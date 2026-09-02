@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/fetch-question-assets.mjs && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "pages:dev": "npm run build && wrangler pages dev dist --compatibility-date=2026-09-02 --compatibility-flag=nodejs_compat",

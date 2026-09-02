@@ -1,6 +1,6 @@
 import { hasQuestionVisual } from './question-visual-index';
 
-const ZIP_URL = './resources/question-assets-549.zip';
+const ZIP_URL = '/api/assets/question-images';
 const MANIFEST_URL = './resources/question-visuals-manifest.json';
 const RANGE_TAIL_SIZE = 128 * 1024;
 const REQUEST_TIMEOUT_MS = 15_000;
