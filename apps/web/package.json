@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "lucide": "^0.469.0",
-    "pdfjs-dist": "^4.10.38"
+    "pdfjs-dist": "^4.10.38",
+    "fflate": "^0.8.2"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.0.0"
