@@ -1,0 +1,2 @@
+export type PlatformContext={userId:string;email?:string;platformRole:'superadmin'|'user';role:string;companyId:string;companyName:string;projectId?:string;projectName?:string;employeeId?:string;systems:Record<string,{enabled:boolean;role:string}>;channels:string[];modules:string[]};
+export function contextOwnsScope(ctx:PlatformContext,companyId:string,projectId?:string){return ctx.companyId===companyId&&(!projectId||ctx.projectId===projectId)}

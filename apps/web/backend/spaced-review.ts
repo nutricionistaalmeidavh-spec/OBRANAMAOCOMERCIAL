@@ -1,0 +1,4 @@
+export type ReviewEvidence={questionId:string;firstTryCorrect:boolean|null};
+const uniq=(ids:string[])=>Array.from(new Set(ids.filter(Boolean)));
+export function buildSpacedReviewPlan(input:{poolIds:string[];previousPlan?:string[];historyIds?:string[];evidence?:ReviewEvidence[];count?:number}){
+ const pool=uniq(input.poolIds),history=uniq(input.historyIds||[]),previous=uniq(input.previousPlan||[]),count=Math.max(3,Math.min(5,Math.floor(input.count||4))),wrong=uniq((input.evidence||[]).filter(item=>item.firstTryCorrect===false).map(item=>item.questionId)),seen=new Set([...history,...previous]),unseen=pool.filter(id=>!seen.has(id)),remaining=pool.filter(id=>!wrong.includes(id)&&!unseen.includes(id)),plan=uniq([...wrong,...unseen,...remaining]).slice(0,count),nextHistory=uniq([...history,...previous]);return{plan,historyIds:nextHistory,poolIds:pool}}
