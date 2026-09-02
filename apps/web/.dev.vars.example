@@ -1,0 +1,10 @@
+# Nomes esperados no ambiente Cloudflare.
+# Nunca salve valores reais neste arquivo.
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GEMINI_API_KEY=
+OWNER_EMAIL=nutricionistaalmeidavh@gmail.com
+OWNER_COMPANY=Obra na Mão
+OWNER_PROJECT=Operação Comercial
+OWNER_CUSTOMER=Obra na Mão
