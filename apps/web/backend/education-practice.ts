@@ -1,4 +1,4 @@
-import { db, error, json } from '@appdeploy/sdk';
+import { db, error, json } from '../cloudflare/sdk';
 import { isEducationUnitId, isPracticeSkillId } from './game-progress-model';
 import { listPracticeRuns, savePracticeRun } from './education-practice-store';
 

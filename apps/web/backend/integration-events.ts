@@ -1,4 +1,4 @@
-import { db } from '@appdeploy/sdk';
+import { db } from '../cloudflare/sdk';
 export type IntegrationEventInput={type:string;companyId:string;projectId?:string;source:string;entityId?:string;actorUserId?:string;payload?:Record<string,unknown>};
 const TABLE='platform_integration_events_v1';const now=()=>new Date().toISOString();
 export async function emitIntegrationEvent(input:IntegrationEventInput){const record={eventId:crypto.randomUUID(),schemaVersion:1,occurredAt:now(),...input,payload:input.payload||{}};const[id]=await db.add(TABLE,[record as unknown as Record<string,unknown>]);return id?{...record,id}:record}

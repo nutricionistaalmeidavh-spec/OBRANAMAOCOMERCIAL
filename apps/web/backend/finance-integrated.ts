@@ -1,4 +1,4 @@
-import { db, storage, ai, json, error, requireAuth, withScopes, type AuthUser, type RouterContext, type RouterResponse, type RouterRoutes } from '@appdeploy/sdk';
+import { db, storage, ai, json, error, requireAuth, withScopes, type AuthUser, type RouterContext, type RouterResponse, type RouterRoutes } from '../cloudflare/sdk';
 import { emitIntegrationEvent } from './integration-events';
 import { writePlatformAudit } from './platform-audit';
 

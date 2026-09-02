@@ -1,4 +1,4 @@
-import { db, json, error, requireAuth, withScopes, requireAdminEmailAllowlist } from '@appdeploy/sdk';
+import { db, json, error, requireAuth, withScopes, requireAdminEmailAllowlist } from '../cloudflare/sdk';
 import { setEducationParticipantStatusByEmail } from './education';
 import { writePlatformAudit } from './platform-audit';
 

@@ -1,4 +1,4 @@
-import { db } from '@appdeploy/sdk';
+import { db } from '../cloudflare/sdk';
 
 export type PhoneSystemGrant = { enabled:boolean; role:string };
 export type PhoneAccess = {

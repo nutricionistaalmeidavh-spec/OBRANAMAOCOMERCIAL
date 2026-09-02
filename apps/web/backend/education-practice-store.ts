@@ -1,4 +1,4 @@
-import { db } from '@appdeploy/sdk';
+import { db } from '../cloudflare/sdk';
 import { normalizeGameProgress, type GameProgressRecord } from './game-progress-model';
 
 export type StoredPracticeRun = GameProgressRecord & { id?: string };

@@ -1,4 +1,4 @@
-import { db, error, json, requireAuth, withScopes } from '@appdeploy/sdk';
+import { db, error, json, requireAuth, withScopes } from '../cloudflare/sdk';
 import { evaluateObjectiveConsolidation } from './unit-policy';
 import { buildAdminOverview, canAccessAdminOverview } from './admin-overview';
 import { canClearDiagnosticDraftAfterFinalization, createDiagnosticDraft, sanitizeDiagnosticDraft } from './diagnostic-draft';

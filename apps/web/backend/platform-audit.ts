@@ -1,4 +1,4 @@
-import { db } from '@appdeploy/sdk';
+import { db } from '../cloudflare/sdk';
 export type PlatformAuditInput={action:string;actorUserId:string;actorEmail?:string;companyId?:string;projectId?:string;entity?:string;entityId?:string;source?:string;metadata?:Record<string,unknown>};
 const TABLE='platform_audit_v2';const now=()=>new Date().toISOString();
 export async function writePlatformAudit(input:PlatformAuditInput){const record={...input,source:input.source||'mh-platform',at:now()};const[id]=await db.add(TABLE,[record as unknown as Record<string,unknown>]);return id?{...record,id}:record}
