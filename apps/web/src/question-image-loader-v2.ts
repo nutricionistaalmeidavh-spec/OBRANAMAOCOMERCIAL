@@ -1,3 +1,4 @@
+import { inflateSync } from 'fflate';
 import { hasQuestionVisual } from './question-visual-index';
 
 const ZIP_URL = '/api/assets/question-images';
@@ -83,7 +84,9 @@ function entriesFromFullBuffer(buffer: ArrayBuffer) {
 async function decodeEntry(entry: ZipEntry, compressed: Uint8Array): Promise<Uint8Array> {
   if (entry.method === 0) return compressed.slice();
   if (entry.method !== 8) throw new Error('Compressão ZIP não suportada');
-  return new Uint8Array(await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+  // Safari/iOS has inconsistent support for DecompressionStream('deflate-raw').
+  // fflate keeps ZIP inflation deterministic across mobile and desktop browsers.
+  return inflateSync(compressed);
 }
 
 async function readEntry(state: ZipState, entry: ZipEntry): Promise<Uint8Array> {
