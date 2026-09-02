@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "obra-na-mao-comercial",
+  "main": "cloudflare/worker.ts",
+  "compatibility_date": "2026-09-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "single-page-application" },
+  "alias": { "@appdeploy/sdk": "./cloudflare/sdk.ts" },
+  "d1_databases": [{ "binding": "DB", "database_name": "obra-na-mao-comercial", "database_id": "PREENCHER_APOS_CRIAR_D1" }],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "obra-na-mao-comercial-files" }],
+  "vars": {
+    "OWNER_COMPANY": "Obra na Mão",
+    "OWNER_PROJECT": "Operação Comercial",
+    "OWNER_CUSTOMER": "Obra na Mão"
+  }
+}
