@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage } = require('electron')
 const path = require('node:path')
 const { DatabaseService } = require('./services/database.cjs')
 const { FileService } = require('./services/file-service.cjs')
@@ -20,6 +20,7 @@ const { ProductService } = require('./services/product-service.cjs')
 const { DemoDataService } = require('./services/demo-data-service.cjs')
 const { UiPreferencesService } = require('./services/ui-preferences-service.cjs')
 const { LanServer } = require('./services/lan-server.cjs')
+const { OnlineService } = require('./services/online-service.cjs')
 
 let mainWindow
 let services
@@ -48,7 +49,7 @@ function createServices() {
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
     works: new WorksService({ db }), planning: new PlanningService({ db }), field: new FieldService({ db }),
-    product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product })
+    product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product }), online: new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
   }
 }
 
@@ -131,6 +132,20 @@ function registerIpc() {
   ipcMain.handle('catalog:save-benefit', envelope((data) => services.catalog.saveBenefit(data)))
   ipcMain.handle('catalog:save-link', envelope((data) => services.catalog.saveLink(data)))
   ipcMain.handle('catalog:deactivate', envelope((data) => services.catalog.deactivate(data.type, data.id)))
+  ipcMain.handle('online:state', envelope(() => services.online.state()))
+  ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
+  ipcMain.handle('online:status', envelope(() => services.online.status()))
+  ipcMain.handle('online:session', envelope(() => services.online.session()))
+  ipcMain.handle('online:disconnect', envelope(() => services.online.disconnect()))
+  ipcMain.handle('online:sync-pull', envelope(({ sinceRevision }) => services.online.syncPull(sinceRevision)))
+  ipcMain.handle('online:sync-push', envelope(({ changes }) => services.online.syncPush(changes)))
+  ipcMain.handle('online:mobile-summary', envelope(({ summary }) => services.online.publishMobileSummary(summary)))
+  ipcMain.handle('online:finance-read', envelope(({ view }) => services.online.financeRead(view)))
+  ipcMain.handle('online:finance-write', envelope(({ action, input }) => services.online.financeWrite(action, input)))
+  ipcMain.handle('online:finance-reference', envelope(({ obligations }) => services.online.publishFinanceReference(obligations)))
+  ipcMain.handle('online:ai-analyze', envelope((payload) => services.online.aiAnalyze(payload)))
+  ipcMain.handle('online:conflicts', envelope(() => services.online.conflicts()))
+  ipcMain.handle('online:resolve-conflict', envelope(({ conflictId, resolution }) => services.online.resolveConflict(conflictId, resolution)))
 }
 
 function fallbackPage(message, details = '') {

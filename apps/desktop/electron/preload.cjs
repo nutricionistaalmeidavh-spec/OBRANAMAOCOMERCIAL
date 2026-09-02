@@ -21,5 +21,21 @@ contextBridge.exposeInMainWorld('fluxoDre', {
   importacoes: { ...entity('importacoes'), preview: () => call('imports:preview'), commit: (token) => call('imports:commit', { token }) },
   importadorUniversal: { choose: () => call('universal-import:choose'), preview: (token, options) => call('universal-import:preview', { token, options }), commit: (token, options) => call('universal-import:commit', { token, options }) },
   relatorios: { dashboard: (filters) => call('dashboard:get', filters), dre: (filters) => call('dre:get', filters) },
+  online: {
+    state: () => call('online:state'),
+    start: (activationCode) => call('online:start', { activationCode }),
+    status: () => call('online:status'),
+    session: () => call('online:session'),
+    disconnect: () => call('online:disconnect'),
+    syncPull: (sinceRevision) => call('online:sync-pull', { sinceRevision }),
+    syncPush: (changes) => call('online:sync-push', { changes }),
+    publishMobileSummary: (summary) => call('online:mobile-summary', { summary }),
+    financeRead: (view) => call('online:finance-read', { view }),
+    financeWrite: (action, input) => call('online:finance-write', { action, input }),
+    publishFinanceReference: (obligations) => call('online:finance-reference', { obligations }),
+    aiAnalyze: (input) => call('online:ai-analyze', input),
+    conflicts: () => call('online:conflicts'),
+    resolveConflict: (conflictId, resolution) => call('online:resolve-conflict', { conflictId, resolution })
+  },
   backup: { create: () => call('backup:create'), restore: () => call('backup:restore'), openDataFolder: () => call('backup:open-data-folder') }
 })

@@ -13,7 +13,7 @@ Aplicativo desktop Windows e offline para gestão financeira e operacional de co
 - Persistência: SQLite local via `better-sqlite3`.
 - Comunicação: API restrita `window.fluxoDre`, definida no preload e atendida por IPC.
 - Dados de execução: `%APPDATA%\fluxo-dre` por padrão; podem ser redirecionados por `FLUXO_DRE_DATA_DIR`.
-- Sem servidor web, autenticação ou dependência de internet em produção.
+- O núcleo continua offline-first em SQLite. A partir de 2026-09-02 existe uma ponte online opcional para vínculo de dispositivo, sincronização Obra360, Financeiro Inteligente e IA estruturada.
 
 ## Fluxo entre camadas
 
@@ -131,3 +131,16 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - `medicoes.itensMedidos`: consulta itens gravados em uma medicao.
 - `compras.moveStock`: registra saida ou ajuste de estoque com bloqueio de saldo negativo.
 - `importadorUniversal`: reconhece financeiro, obras, orcamento, funcionarios, compras, contratos, aditivos, medicoes, ponto, documentos e estoque.
+
+
+## Adendo 2026-09-02 — ponte online
+
+- `electron/services/online-service.cjs`: cliente HTTP do Desktop para o backend Obra na Mão.
+- `electron/services/online-service.test.ts`: cobre vínculo, armazenamento do token e sessão.
+- `electron/main.cjs`: handlers IPC `online:*`.
+- `electron/preload.cjs`: API `window.fluxoDre.online`.
+- `src/pages/SettingsPage.tsx`: vínculo, verificação de autorização, teste de conexão e desconexão.
+- Endpoint padrão: `https://fluxodre-campo-b2u-clbfo5.v2.appdeploy.ai`.
+- Override de ambiente: `FLUXO_DRE_PLATFORM_URL`.
+- O renderer continua sem acesso direto a Node ou ao token do dispositivo.
+- Rotas suportadas incluem sessão, sync pull/push, publicação de resumo mobile, leitura/escrita financeira, publicação de obrigações, IA estruturada e resolução de conflitos.
