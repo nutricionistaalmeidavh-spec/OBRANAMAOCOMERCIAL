@@ -1,0 +1,1 @@
+{"id":"./gestao-pwa","name":"MH Gestão · FluxoDRE","short_name":"MH Gestão","description":"Gestão administrativa e operacional da MH.","start_url":"./gestao.html#gestao","scope":"./","display":"standalone","background_color":"#f4f7fb","theme_color":"#0d2a52","icons":[{"src":"./icon-gestao.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
