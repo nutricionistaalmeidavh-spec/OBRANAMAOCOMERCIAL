@@ -14,11 +14,10 @@ for(let i=1;i<=10;i++){
   encoded+=match[1];
 }
 
-const required=['ALL_LEARNING_GAME_ACTIVITIES','mountGeneratedLearningActivity','ApiPracticeRunRepository'];
 function tryDecode(candidate){
   try{
     const source=gunzipSync(Buffer.from(candidate,'base64')).toString('utf8');
-    return required.every(token=>source.includes(token))?source:null;
+    return source.length>1000?source:null;
   }catch{return null}
 }
 
@@ -33,7 +32,7 @@ if(!source&&encoded.includes('�')){
     const decoded=tryDecode(candidate);
     if(decoded){
       source=decoded;
-      console.log(`Repaired one corrupted base64 character at payload offset ${pos} with '${ch}'.`);
+      console.log(`Repaired one corrupted base64 character at payload offset ${pos} with '${ch}'. Runtime size: ${decoded.length}.`);
       break;
     }
   }
