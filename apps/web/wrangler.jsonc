@@ -10,6 +10,7 @@
     "not_found_handling": "single-page-application"
   },
   "vars": {
+    "OWNER_EMAIL": "nutricionistaalmeidavh@gmail.com",
     "OWNER_COMPANY": "Obra na Mão",
     "OWNER_PROJECT": "Operação Comercial",
     "OWNER_CUSTOMER": "Obra na Mão"
