@@ -37,6 +37,7 @@ const parseJson=<T=Record<string,unknown>>(value:string|null, fallback:T={} as T
   try{return JSON.parse(value) as T}catch{return fallback}
 };
 const id=()=>crypto.randomUUID().replace(/-/g,'');
+const cleanEnvValue=(value?:string)=>String(value||'').trim();
 
 export const db = {
   async list<T=Record<string,unknown>>(collection:string, options:{limit?:number}={}) {
@@ -196,7 +197,7 @@ function sameOriginReturn(request:Request,value:string|null){
   try{const u=new URL(value,origin);return u.origin===origin?u.toString():origin+'/'}catch{return origin+'/'}
 }
 async function authStart(request:Request){
-  const env=runtimeEnv(),clientId=env.GOOGLE_CLIENT_ID;
+  const env=runtimeEnv(),clientId=cleanEnvValue(env.GOOGLE_CLIENT_ID);
   if(!clientId)return error('GOOGLE_CLIENT_ID não configurado.',503);
   const url=new URL(request.url),state=id()+id(),returnTo=sameOriginReturn(request,url.searchParams.get('return')),stamp=now();
   await env.DB.prepare('INSERT INTO oauth_states(id,return_to,expires_at,created_at) VALUES(?,?,?,?)')
@@ -213,17 +214,18 @@ async function authCallback(request:Request){
   const stateRow=await env.DB.prepare('SELECT return_to,expires_at FROM oauth_states WHERE id=?').bind(state).first<{return_to:string;expires_at:string}>();
   await env.DB.prepare('DELETE FROM oauth_states WHERE id=?').bind(state).run();
   if(!stateRow||stateRow.expires_at<now()||!code)return error('Login expirado ou inválido.',400);
-  if(!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET)return error('OAuth Google não configurado.',503);
+  const clientId=cleanEnvValue(env.GOOGLE_CLIENT_ID),clientSecret=cleanEnvValue(env.GOOGLE_CLIENT_SECRET);
+  if(!clientId||!clientSecret)return error('OAuth Google não configurado.',503);
   const redirectUri=url.origin+'/api/auth/callback';
   const tokenResp=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({
-    code,client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET,redirect_uri:redirectUri,grant_type:'authorization_code'
+    code,client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,grant_type:'authorization_code'
   })});
   const token=await tokenResp.json() as Record<string,unknown>;
   const idToken=String(token.id_token||'');
   if(!tokenResp.ok||!idToken)return error('Google não concluiu a autenticação.',401);
   const infoResp=await fetch('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(idToken));
   const info=await infoResp.json() as Record<string,unknown>;
-  if(!infoResp.ok||String(info.aud||'')!==env.GOOGLE_CLIENT_ID||String(info.email_verified||'')!=='true')return error('Identidade Google inválida.',401);
+  if(!infoResp.ok||String(info.aud||'')!==clientId||String(info.email_verified||'')!=='true')return error('Identidade Google inválida.',401);
   const sessionId=id()+id(),expiresAt=new Date(Date.now()+7*24*60*60*1000).toISOString();
   await env.DB.prepare('INSERT INTO auth_sessions(id,user_id,email,name,expires_at,created_at) VALUES(?,?,?,?,?,?)')
     .bind(sessionId,String(info.sub||info.email),String(info.email||'').toLowerCase(),String(info.name||''),expiresAt,now()).run();
@@ -273,6 +275,9 @@ async function healthResponse(env:RuntimeEnv){
     bindings,
     googleClientIdPresent: !!env.GOOGLE_CLIENT_ID,
     googleClientSecretPresent: !!env.GOOGLE_CLIENT_SECRET,
+    googleClientIdFormatValid: /^\d+-[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/.test(cleanEnvValue(env.GOOGLE_CLIENT_ID)),
+    googleClientIdHasWhitespace: cleanEnvValue(env.GOOGLE_CLIENT_ID)!==String(env.GOOGLE_CLIENT_ID||''),
+    googleClientIdHasOuterQuotes: /^["']|["']$/.test(cleanEnvValue(env.GOOGLE_CLIENT_ID)),
     schemaReady,
     ...(dbError?{dbError}:{}),
     checkedAt:new Date().toISOString()
