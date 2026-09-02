@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('fluxoDre', {
   relatorios: { dashboard: (filters) => call('dashboard:get', filters), dre: (filters) => call('dre:get', filters) },
   online: {
     state: () => call('online:state'),
+    setBaseUrl: (baseUrl) => call('online:set-base-url', { baseUrl }),
     start: (activationCode) => call('online:start', { activationCode }),
     status: () => call('online:status'),
     session: () => call('online:session'),
