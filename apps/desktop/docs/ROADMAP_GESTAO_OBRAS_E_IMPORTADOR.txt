@@ -1,0 +1,458 @@
+ROADMAP - FLUXO DRE COMO PLATAFORMA DE GESTAO DE OBRAS
+Atualizado em: 2026-08-11
+
+Legenda:
+[x] concluido
+[>] em andamento / iniciado
+[ ] pendente
+
+Definicao de concluido:
+Um item so recebe [x] quando esta utilizavel na interface atualmente distribuida: o usuario consegue cadastrar ou configurar, consultar, executar a acao principal, corrigir/editar quando aplicavel e ver o reflexo no painel ou relatorio correspondente. Banco, migrations, servicos IPC ou APIs sem fluxo visivel sao somente base tecnica e mantem o item como [>]. A troca futura de UI nao suspende esta obrigacao: cada versao visual em uso deve expor os recursos ja implementados.
+
+Objetivo do produto:
+Transformar o Fluxo DRE de um app principalmente financeiro para uma plataforma operacional de gestao de obras, mantendo o financeiro forte, mas adicionando controle de obra, campo, contratos, compras, medicoes, documentos e importacao universal de planilhas usadas por clientes do setor.
+
+
+0. BASE JA FEITA
+
+[x] Entender funcionamento atual do sistema.
+    Resultado: sistema Electron + React + Vite, banco SQLite local, servicos Electron em CommonJS, telas financeiras, DRE, obras, orcamento, medicoes, folha, ponto, documentos, cadastros, importacao e backup.
+
+[x] Criar mapeamento detalhado inicial.
+    Arquivo: C:\Users\vh_al\Desktop\Fluxo DRE\docs\MAPEAMENTO_DETALHADO.md
+
+[x] Instalar dependencias e toolchain para build.
+    Resultado: Node portable, dependencias npm, Electron, Python/Build Tools/VC Tools e rebuild do better-sqlite3.
+
+[x] Gerar executavel inicial.
+    Arquivo: C:\Users\vh_al\Desktop\Fluxo DRE\drefluxo-main\release\Fluxo-DRE-Setup-1.1.0.exe
+
+[x] Validar build/testes iniciais.
+    Resultado anterior: lint, testes e build passaram.
+
+[x] Ajuste visual rapido: esconder barra de menu nativa superior do Electron.
+    Arquivo alterado: electron\main.cjs
+    Criterio: remover visual padrao "File / Edit / View / Window" para aproximar de app moderno.
+
+[x] Ajuste visual rapido: deixar barra de rolagem da sidebar mais fina e discreta.
+    Arquivo alterado: src\styles\index.css
+    Criterio: scrollbar integrada ao fundo escuro, sem calha branca grosseira.
+
+[x] Validar build depois dos ajustes visuais.
+    Comando: npm run build
+    Resultado: passou, com aviso nao-bloqueante de chunk JS maior que 500 kB.
+
+
+1. DIRECAO VISUAL E UI BASE
+
+[>] Definir nova direcao visual inspirada na referencia enviada.
+    Direcao: painel escuro refinado, sidebar compacta com icones, busca global, cartoes de obras com progresso, painel lateral de pendencias e alertas.
+    Observacao: usar a referencia como inspiracao, sem copiar literalmente cores/marca/layout.
+
+[ ] Criar tokens visuais do produto.
+    Itens: cores, sombras, raios, espacamentos, estados, tipografia, bordas e superficies.
+    Criterio: CSS organizado com variaveis sem deixar o app preso a um unico tom azul/roxo.
+
+[ ] Reformular AppShell.
+    Itens: sidebar recolhida/expandida mais elegante, topo proprio do app, busca global, area de acoes rapidas, competencia atual e notificacoes.
+    Criterio: app parecer software profissional de gestao, nao janela web com menu nativo.
+
+[ ] Criar topbar customizada.
+    Itens: busca, periodo/competencia, botao importar, atalhos para nova obra/conta/RDO, notificacoes.
+    Criterio: substituir a sensacao de barra padrao do sistema por barra funcional do app.
+
+[ ] Melhorar estados vazios.
+    Itens: trocar mensagens passivas por acoes guiadas como importar planilha, criar obra, registrar conta, criar medicao.
+    Criterio: quando nao houver dados, o usuario sabe qual proximo passo tomar.
+
+[ ] Revisar contraste e legibilidade.
+    Itens: textos claros, labels pequenos, botoes, tabelas, cards e estados ativos.
+    Criterio: leitura confortavel em desktop, sem depender so de cor.
+
+[ ] Criar modo "Painel Obra".
+    Itens: cards coloridos por status, progresso fisico, financeiro, equipe, prazo, alertas e pendencias.
+    Criterio: uma obra pode ser entendida em ate 30 segundos.
+
+[ ] Validar responsividade minima.
+    Itens: desktop 1366x768, notebook, telas largas e mobile/tablet futuro.
+    Criterio: sem texto cortado, sobreposto ou controles impossiveis de usar.
+
+
+2. GESTAO DE OBRAS - NUCLEO
+
+[ ] Criar frentes de servico por obra.
+    Lista inicial: fundacoes, estrutura, alvenaria, cobertura, impermeabilizacao, hidraulica, eletrica, esquadrias, revestimentos, pintura, gesso/drywall, pisos, serralheria, marcenaria, ar-condicionado, paisagismo, limpeza e administracao de obra.
+    Regra: a lista inicial e apenas uma sugestao; cada empresa pode adicionar, renomear, desativar e ordenar suas proprias frentes por obra.
+    Modelo: frente pertence a uma obra e pode agrupar etapas, itens orcamentarios, equipe, equipamentos, compras, contratos, medicoes e lancamentos financeiros.
+    Criterio: a obra passa a ser acompanhada por frentes reais de execucao, sem restringir os processos de cada cliente.
+
+[ ] Criar resultado por frente e consolidacao da obra.
+    Construtora: custo previsto, comprometido, realizado e saldo de cada frente formam o custo total da obra.
+    Empreiteiro: receita prevista/medida/recebida menos custos de funcionarios, equipamentos, materiais, compras e terceiros revela o resultado de cada frente e da obra.
+    Criterio: o mesmo nucleo atende tanto a construtora quanto ao empreiteiro, mudando a leitura do painel e nao a estrutura dos dados.
+
+[ ] Expandir cadastro de obras.
+    Campos: cliente, endereco, responsavel, engenheiro, status, datas, contrato, valor contratado, tipo de obra, centro de custo, observacoes.
+    Criterio: obra vira entidade central do sistema.
+
+[x] Criar dashboard individual da obra.
+    Blocos: resumo financeiro, fisico, prazo, medicao, equipe, compras, documentos, pendencias e riscos.
+    Criterio: cada obra tem sua tela "Obra 360".
+
+[ ] Criar status operacional da obra.
+    Estados sugeridos: planejamento, em execucao, pausada, em medicao, encerrada, garantia.
+    Criterio: status aparece em cards, filtros e relatorios.
+
+[>] Criar painel de obras em atencao.
+    Alertas: vencimentos, estouro de orcamento, medicao pendente, atraso fisico, documento vencido, compra sem entrega.
+    Criterio: usuario ve primeiro onde precisa agir.
+
+[ ] Criar historico/auditoria por obra.
+    Eventos: criacao, alteracao de orcamento, lancamento financeiro, medicao, contrato, RDO, documento.
+    Criterio: rastreabilidade para conferencia e suporte.
+
+
+3. PLANEJAMENTO FISICO-FINANCEIRO
+
+[x] Criar cronograma fisico por etapas.
+    Dados: etapa, previsto inicio/fim, responsavel, percentual previsto, percentual realizado, status.
+    Criterio: acompanhar andamento real da obra.
+
+[ ] Criar curva S.
+    Dados: previsto acumulado, realizado acumulado, custo acumulado, receita acumulada.
+    Criterio: comparar planejado x executado x financeiro.
+
+[ ] Criar vinculo entre orcamento, frentes e etapas.
+    Dados: itens do orcamento ligados a frente e a etapas/servicos.
+    Criterio: custo planejado deixa de ser apenas lista e passa a explicar a obra.
+
+[ ] Criar marcos e entregas.
+    Exemplos: fundacao, estrutura, alvenaria, acabamento, vistoria, entrega.
+    Criterio: marcos aparecem no dashboard da obra.
+
+[ ] Criar previsao de caixa por obra.
+    Dados: recebimentos previstos, pagamentos previstos, saldo futuro, necessidades de caixa.
+    Criterio: gestor enxerga risco financeiro antes de acontecer.
+
+
+4. RDO E CAMPO
+
+[x] Criar RDO - Relatorio Diario de Obra.
+    Dados: data, obra, clima, equipe, atividades, ocorrencias, fotos, equipamentos, observacoes.
+    Criterio: substituir planilhas/WhatsApp de diario de obra.
+
+[>] Criar registro de equipe por obra e dia.
+    Dados: funcionarios, terceirizados, horas, funcao, apontamento.
+    Criterio: custo de mao de obra pode ser alocado por obra.
+
+[>] Criar registro de equipamentos.
+    Dados: equipamento, horas de uso, custo, obra, manutencao, observacoes.
+    Criterio: custo e disponibilidade de equipamentos entram no controle da obra.
+
+[>] Criar ocorrencias e impedimentos.
+    Tipos: atraso, retrabalho, falta de material, pendencia cliente, seguranca, qualidade.
+    Criterio: ocorrencias geram pendencias e historico.
+
+[ ] Criar anexos/fotos no RDO.
+    Criterio: documentos de campo ficam ligados a obra, data e evento.
+
+
+5. COMPRAS, MATERIAIS E FORNECEDORES
+
+[ ] Criar solicitacao de compra.
+    Dados: obra, item, quantidade, prazo, prioridade, solicitante, aprovador.
+    Criterio: pedido nasce da obra e pode virar compra/conta.
+
+[ ] Criar controle de cotacoes.
+    Dados: fornecedores, valores, prazo, condicoes, escolhido, justificativa.
+    Criterio: decisao de compra fica auditavel.
+
+[x] Criar pedido de compra.
+    Dados: fornecedor, itens, valor, entrega, status, vinculo com conta a pagar.
+    Criterio: compra compromete orcamento antes de virar pagamento.
+
+[ ] Criar recebimento de materiais.
+    Dados: quantidade pedida, recebida, saldo, nota fiscal, data, obra.
+    Criterio: controlar divergencias e entregas parciais.
+
+[ ] Criar estoque simples por obra.
+    Dados: entrada, saida, saldo, material, unidade, local.
+    Criterio: materiais relevantes deixam de depender de planilhas isoladas.
+
+
+6. CONTRATOS, ADITIVOS E MEDICOES
+
+[x] Expandir contratos por obra.
+    Dados: contrato principal, aditivos, reajustes, retencoes, garantias, anexos.
+    Criterio: valor contratado e alteracoes ficam estruturados.
+
+[x] Criar fluxo de aditivos.
+    Estados: solicitado, aprovado, contratado, faturado.
+    Criterio: aditivos atualizam contrato, orcamento e previsao.
+
+[ ] Melhorar medicoes.
+    Estados: rascunho, enviada, aprovada, faturada, recebida.
+    Criterio: medicao deixa de ser apenas registro e vira fluxo.
+
+[ ] Criar relacao medicao -> nota -> recebimento.
+    Criterio: saber quanto foi medido, faturado, recebido e saldo a receber.
+
+[ ] Criar medicao por item/etapa.
+    Dados: item contratado, quantidade total, medido acumulado, saldo.
+    Criterio: compatibilidade com modelos de planilhas de medicao.
+
+[ ] Permitir anexos e comprovantes em cada medicao.
+    Dados: PDF de boletim, memoria de calculo, nota fiscal, foto e outros documentos vinculados a obra, frente, contrato e periodo da medicao.
+    Criterio: o usuario encontra o valor e sua documentacao no mesmo historico, sem depender de pasta externa.
+
+
+7. FINANCEIRO MAIS INTEGRADO A OBRA
+
+[ ] Alocar receitas/despesas por obra, frente, etapa e categoria.
+    Criterio: DRE geral e DRE por obra funcionam juntas.
+
+[ ] Criar comprometido x realizado.
+    Dados: orcado, pedido, contratado, pago, saldo.
+    Criterio: obra mostra risco de estouro antes do pagamento.
+
+[ ] Criar centro de custo por obra.
+    Criterio: importador e contas conseguem classificar automaticamente.
+
+[ ] Criar lancamento financeiro a partir de compra/contrato/medicao.
+    Criterio: reduzir digitacao duplicada.
+
+[ ] Criar fechamento mensal por obra.
+    Dados: receitas, despesas, margem, caixa, a receber, a pagar.
+    Criterio: painel da competencia continua forte, mas segmentado por obra.
+
+
+8. IMPORTADOR UNIVERSAL DE PLANILHAS
+
+[x] Separar importador atual especifico de cliente.
+    Problema atual: import-service.cjs foi pensado para uma planilha especifica, inclusive aba 2026.
+    Criterio: manter compatibilidade, mas criar arquitetura nova generica.
+
+[x] Criar camada comum de leitura de planilhas.
+    Funcao: ler abas, regioes, cabecalhos, tipos, amostras, formulas e metadados.
+    Criterio: qualquer arquivo Excel/CSV vira uma estrutura analisavel.
+
+[>] Criar detector de tipo de planilha.
+    Tipos: financeiro, folha, funcionarios, obras, orcamento, medicao, ponto, documentos, compras, contratos, estoque.
+    Criterio: sistema sugere destino antes do usuario mapear.
+
+[>] Criar tela de mapeamento assistido.
+    Funcao: usuario confirma colunas de origem e campos de destino.
+    Criterio: novos modelos de clientes podem ser importados sem mexer em codigo.
+
+[ ] Criar perfis/modelos salvos de importacao.
+    Dados: cliente, tipo de planilha, aliases de colunas, regras de transformacao.
+    Criterio: segunda importacao do mesmo modelo fica rapida.
+
+[x] Criar aliases e sinonimos.
+    Exemplos: obra/empreendimento/projeto; valor/total; vencimento/data pagamento; fornecedor/parceiro.
+    Criterio: sistema reconhece variacoes comuns.
+
+[x] Criar criacao automatica de categorias.
+    Regra: quando categoria, centro de custo, fornecedor, obra ou cargo nao existir, sugerir criar.
+    Criterio: importacao nao trava por cadastro ausente.
+
+[x] Criar preview auditavel.
+    Blocos: linhas validas, linhas com alerta, duplicidades, cadastros novos, impacto financeiro.
+    Criterio: usuario confere antes de gravar.
+
+[x] Criar commit transacional.
+    Regra: ou importa tudo valido, ou reverte com log claro.
+    Criterio: banco nao fica pela metade.
+
+[x] Criar log de importacao.
+    Dados: arquivo, hash, data, usuario, linhas importadas, erros, registros criados.
+    Criterio: rastrear e evitar duplicidade.
+
+[>] Criar regras por area relevante.
+    Areas: financeiro, obras, orcamento, medicoes, funcionarios, folha, ponto, documentos, compras, contratos, estoque.
+    Criterio: tudo que antes era controlado em planilha pode entrar no sistema.
+
+[ ] Criar testes com planilhas-modelo diferentes.
+    Criterio: importador prova que nao depende de um unico cliente/modelo.
+
+
+9. DOCUMENTOS E RELATORIOS
+
+[ ] Melhorar documentos por obra.
+    Tipos: contrato, aditivo, nota, recibo, RDO, foto, medicao, proposta, ART/RRT, seguro.
+    Criterio: busca por obra, tipo, competencia e vencimento.
+
+[ ] Criar documentos vencidos/a vencer.
+    Criterio: painel alerta documentacao critica.
+
+[ ] Criar relatorios gerenciais.
+    Relatorios: DRE geral, DRE por obra, fluxo de caixa, posicao de obras, medicoes, compras, folha por obra.
+    Criterio: relatios exportaveis e consistentes.
+
+[ ] Criar exportacao para Excel/PDF.
+    Criterio: gestor consegue compartilhar fora do app.
+
+
+10. QUALIDADE, DADOS E ARQUITETURA
+
+[>] Criar migracoes de banco para novas entidades.
+    Entidades: obra_etapas, rdo, compras, contratos, aditivos, materiais, estoque, import_profiles, import_logs, aliases.
+    Criterio: atualizacao preserva dados existentes.
+
+[ ] Criar servicos Electron por dominio.
+    Servicos: work-dashboard, schedule, rdo, procurement, contracts, universal-import.
+    Criterio: codigo fica organizado e testavel.
+
+[ ] Criar validacoes de dominio.
+    Exemplos: valor negativo, data fora da obra, medicao acima do contratado, compra sem obra.
+    Criterio: evitar dados impossiveis.
+
+[ ] Criar suite de testes ampliada.
+    Tipos: unitarios, servicos, importador, migracoes, fluxos criticos.
+    Criterio: alteracoes grandes ficam seguras.
+
+[ ] Criar backup antes de importacoes grandes.
+    Criterio: usuario pode voltar atras se importar arquivo errado.
+
+[ ] Melhorar performance.
+    Itens: paginacao de tabelas grandes, filtros indexados, importacao em lote, code splitting.
+    Criterio: app continua rapido com muitos anos/obras.
+
+
+11. SEQUENCIA SUGERIDA DE IMPLEMENTACAO
+
+[>] Release 1 - Polimento visual rapido e base de produto.
+    Inclui: esconder menu nativo, scrollbar fina, roadmap, direcao visual, AppShell inicial.
+    Status atual: iniciado, primeiros ajustes concluidos.
+
+[ ] Release 2 - Estrutura da obra, frentes e Obra 360.
+    Inclui: cadastro expandido, status, frentes configuraveis, dashboard da obra, obras em atencao e consolidacao por frente.
+    Motivo: cria valor operacional rapido.
+
+[ ] Release 3 - Cronograma fisico-financeiro.
+    Inclui: etapas vinculadas a frentes, curva S, previsto x realizado e previsao de caixa por obra/frente.
+    Motivo: conecta engenharia e financeiro.
+
+[ ] Release 4 - RDO e campo.
+    Inclui: diario de obra, equipe por dia, ocorrencias, fotos/anexos.
+    Motivo: captura a realidade da obra, nao so o financeiro.
+
+[ ] Release 5 - Compras, materiais e contratos.
+    Inclui: solicitacoes, cotacoes, pedidos, recebimento, contratos e aditivos vinculados a obra e frente.
+    Motivo: controlar comprometido antes do caixa.
+
+[ ] Release 6 - Medicoes completas.
+    Inclui: fluxo aprovado/faturado/recebido, medicao por item, saldo a medir.
+    Motivo: melhora recebiveis e acompanhamento contratual.
+
+[ ] Release 7 - Importador universal.
+    Inclui: detector, mapeamento assistido, perfis salvos, criacao de categorias, logs e testes.
+    Motivo: permitir entrada de clientes com modelos diferentes de planilhas.
+
+[ ] Release 8 - Relatorios, exportacoes e acabamento.
+    Inclui: relatorios executivos, PDF/Excel, performance, acessibilidade e geracao do instalador final.
+    Motivo: preparar produto para uso mais amplo.
+
+
+12. DECISOES PENDENTES
+
+[x] Definir edicoes do produto: Gestao de Obras Construtora e Gestao de Obras Empreiteira.
+    Decisao: manter um unico codigo e banco, com um perfil de operacao gravado na configuracao da empresa/edicao instalada.
+    Construtora: foco em custo por frente, orcado, comprometido, contratado, pago, saldo, fornecedores e prazo. Nao existe recebimento por frente como regra de resultado.
+    Empreiteira: inclui receita por medicao, faturado, recebido e margem por frente, pois a medicao e a fonte de recebimento pelo servico executado.
+    Regra comum: obra, frentes, etapas, orcamento, equipe, equipamentos, compras, contratos, RDO e documentos sao o mesmo nucleo em ambas as edicoes.
+    Distribuicao: o instalador final recebe uma configuracao de edicao (ou arquivo de licenca/configuracao) que habilita apenas menus, indicadores, validacoes e relatorios daquela versao; dados incompatÃƒÂ­veis nao sao apagados, apenas nao ficam expostos.
+
+[ ] Definir se o app tera tema unico escuro/claro ou modo hibrido.
+    Recomendacao atual: shell escuro com conteudo claro/denso, depois tema escuro completo se fizer sentido.
+
+[ ] Definir prioridade entre campo/RDO e importador universal.
+    Recomendacao atual: fazer Obra 360 + RDO antes do importador universal completo, mas iniciar a arquitetura do importador em paralelo.
+
+[ ] Definir o nivel de automacao do importador.
+    Opcoes: simples com mapeamento manual, semi-automatico por aliases, avancado com classificacao inteligente.
+    Recomendacao atual: semi-automatico primeiro.
+
+[ ] Definir primeiro modelo de cliente para generalizacao.
+    Criterio: escolher 2 ou 3 planilhas reais diferentes para criar testes e regras.
+
+
+13. PROXIMO PASSO RECOMENDADO
+
+[ ] Implementar Release 1 completa.
+    Passos imediatos:
+    1. Criar topbar customizada.
+    2. Refinar sidebar recolhida/expandida.
+    3. Criar bloco "Obras em atencao" no painel.
+    4. Criar cards de obras com progresso visual.
+    5. Validar visualmente no app em desenvolvimento.
+    Observacao: gerar instalador apenas no fechamento do pacote final.
+
+
+14. ORDEM PARA CONCLUIR AS FUNCIONALIDADES DE ALTO INTERESSE
+
+[>] Passo 1 - Criar o nucleo de frentes de servico.
+    Entrega: cadastro configuravel por obra, lista inicial sugerida, frente padrao para dados antigos e permissao para adicionar novas frentes; incluir o perfil de operacao construtora/empreiteira.
+    Dependencia: nenhuma. Este passo deve vir antes de custo, planejamento e medicao detalhados.
+
+[>] Passo 2 - Fechar orcado x realizado por obra, frente, etapa e categoria.
+    Entrega: valores orcados, comprometidos, contratados, pagos e saldo; visoes distintas para construtora e empreiteiro.
+
+[>] Passo 3 - Completar cronograma fisico-financeiro e Curva S.
+    Entrega: etapas dentro de frentes, previsto x realizado acumulado, marcos, atraso e previsao de caixa.
+
+[>] Passo 4 - Completar medicoes por frente, etapa e item.
+    Entrega: quantidade/valor contratado, medido acumulado, saldo, faturado e recebido; PDFs e comprovantes por medicao; para empreiteiro, receita alimenta o resultado da frente.
+
+[>] Passo 5 - Completar compras e materiais.
+    Entrega: solicitacao, cotacao, pedido, recebimento, estoque simples e custo apropriado a frente correta.
+
+[ ] Passo 6 - Completar contratos e aditivos.
+    Entrega: contratos de cliente ou fornecedor, aditivos, retencoes, anexos e reflexo automatico no orcamento e financeiro da frente.
+
+[ ] Passo 7 - Completar RDO e operacao de campo.
+    Entrega: fotos/anexos, equipe, equipamentos, ocorrencias, pendencias e apropriacao diaria de custos por frente.
+
+[ ] Passo 8 - Criar tarefas de campo e pendencias.
+    Entrega: responsavel, prazo, prioridade, status, origem em RDO e visualizacao no painel da obra/frente.
+
+[ ] Passo 9 - Ampliar o importador universal.
+    Entrega: compras, contratos, medicoes, ponto, documentos e estoque; perfis salvos, regras por cliente, criacao de cadastros e testes com planilhas reais.
+    Regra: cada importacao deve conseguir identificar ou permitir escolher a obra e a frente de destino. :codex-annotation{index="1"}
+
+[ ] Passo 10 - Consolidar documentos e relatorios RH/obra.
+    Entrega: modelos editaveis e selecionados no menu RH, documentos por obra e relatorios de resultado total e por frente.
+
+
+15. CRITERIOS DE FECHAMENTO DOS PASSOS 6 A 10
+
+[ ] Passo 6 - Contratos, aditivos e medicoes completas.
+    [ ] Tela de contratos com cliente/fornecedor, obra, frente, anexos, vigencia, retencoes e status.
+    [ ] Aditivo com historico, impacto no contrato, orcamento, cronograma e financeiro.
+    [ ] Medicao por item orcamentario e etapa, com quantidade contratada, acumulado, saldo, faturamento e recebimento.
+    [ ] Anexos de medicao visiveis, abrindo e organizados no historico da obra.
+    [ ] Fluxo da empreiteira: rascunho, enviada, aprovada, faturada e recebida; na construtora, medicao contratual sem receita por frente.
+
+[ ] Passo 7 - RDO e operacao de campo completos.
+    [ ] Frente selecionavel em equipe, equipamento e ocorrencia do RDO.
+    [ ] Custos de equipe/equipamentos apropriados automaticamente a obra e frente.
+    [ ] Anexar fotos e documentos no RDO, visualizar, abrir e excluir vinculo com seguranca.
+    [ ] Ocorrencias abertas geram tarefa editavel e rastreavel; ocorrencias resolvidas encerram a pendencia correspondente.
+
+[ ] Passo 8 - Tarefas e pendencias completas.
+    [ ] Criar, editar, concluir, reabrir e filtrar por obra, frente, responsavel, prazo, prioridade e status.
+    [ ] Exibir origem: RDO, compra, contrato ou cadastro manual.
+    [ ] Alertas de atraso e pendencias abertas no Painel e na Obra 360.
+
+[ ] Passo 9 - Importador universal completo.
+    [ ] Importar compras, cotacoes, pedidos, contratos, aditivos, medicoes, ponto, documentos e estoque.
+    [ ] Permitir escolher obra e frente quando a planilha nao tiver essas colunas.
+    [ ] Salvar perfis por cliente, aliases e transformacoes; reaplicar em nova planilha.
+    [ ] Criar cadastros faltantes com previa, confirmacao transacional e reversao segura.
+    [ ] Testes automatizados com planilhas de modelos distintos por area.
+
+[ ] Passo 10 - Documentos e relatorios completos.
+    [ ] Central de documentos filtravel por obra, frente, tipo, competencia e vencimento.
+    [ ] Relatorios de resultado por obra/frente, compras, estoque, contratos, medicoes e folha por obra.
+    [ ] Exportacao CSV/Excel/PDF dos relatorios e documentos gerenciais.
+    [ ] Validacao final de todos os fluxos de interface, lint, testes, build e instalador no fechamento.

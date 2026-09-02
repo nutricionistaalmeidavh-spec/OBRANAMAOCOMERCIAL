@@ -1,0 +1,297 @@
+LISTA REVISADA DE PENDENCIAS - FLUXO DRE
+Atualizado em: 2026-08-11
+
+Legenda:
+[x] concluido e utilizavel na interface atual
+[>] iniciado, mas ainda nao pode ser considerado entregue
+[ ] pendente
+
+Regra de aceite:
+Nenhum item e concluido apenas por ter banco, migration ou servico. Para receber
+[x], o usuario precisa conseguir configurar/cadastrar, consultar, alterar quando
+necessario, executar a acao principal e visualizar o reflexo correspondente na
+interface atual do aplicativo.
+
+RESUMO DO ESTADO ATUAL
+
+[x] Edicoes Construtora e Empreiteira existem na base de produto.
+[>] Frentes de servico, planejamento, pedidos, contratos, medicoes e tarefas ja
+    possuem telas iniciais, mas seus ciclos completos ainda nao estao fechados.
+[>] O importador universal ja le quatro areas: financeiro, obras, orcamento e
+    funcionarios. Ainda nao atende todas as areas previstas.
+[x] Modelos de documentos de RH podem ser administrados separadamente do cadastro
+    de funcionarios, com selecao de modelo para geracao automatica.
+
+PRIORIDADE 1 - FECHAR OS FLUXOS OPERACIONAIS JA INICIADOS
+
+[ ] 1. RDO completo e integrado ao campo.
+    Falta: selecionar frente no RDO, alocar equipe/equipamentos/custos, anexar
+    fotos e documentos, consultar anexos e sincronizar ocorrencia/resolucao com
+    a pendencia criada.
+    Aceite: um RDO registra a realidade da frente, gera pendencia rastreavel e
+    deixa os arquivos acessiveis no historico da obra.
+
+[ ] 2. Tarefas e pendencias operacionais.
+    Falta: editar, concluir/reabrir, filtrar por frente/responsavel/status/prazo,
+    identificar origem (RDO, planejamento ou manual) e exibir atrasos/alertas.
+    Aceite: toda ocorrencia ou etapa pode virar uma pendencia acompanhada ate o
+    encerramento, sem duplicidade ao editar o RDO.
+
+[ ] 3. Medicoes completas.
+    Falta: medicao por etapa e item contratado, quantidade total/medida/saldo,
+    historico dos anexos ja enviados, estados rascunho/enviada/aprovada/faturada/
+    recebida e vinculo com nota/comprovante/conta a receber.
+    Aceite: no perfil Empreiteira, o usuario acompanha do boletim de medicao ao
+    recebimento; na Construtora, acompanha a medicao fisica e seus documentos.
+
+[ ] 4. Contratos e aditivos completos.
+    Falta: anexos, retencoes, garantias, reajustes, fornecedor/cliente conforme
+    o tipo, status operacional, impacto no saldo e relacao com medicao/conta.
+    Aceite: contrato e aditivo alteram os valores previstos e ficam rastreaveis
+    na Obra 360, sem lancamento financeiro duplicado.
+
+[ ] 5. Compras e materiais completos.
+    Falta: solicitacao de compra, cotacoes comparaveis, escolha justificada,
+    conversao para pedido, recebimento parcial, saida/ajuste de estoque e
+    documentos de entrega/nota.
+    Aceite: demanda da obra vira cotacao, pedido, conta a pagar e estoque, com
+    acompanhamento de quantidade pedida, recebida e saldo por obra/frente.
+
+[ ] 6. Fechamento financeiro por obra, frente, etapa e categoria.
+    Falta: alocacao consistente de contas existentes, contratado separado de
+    comprometido, saldo real, visao mensal e DRE por obra/frente.
+    Aceite: Construtora ve custo orcado, comprometido, contratado, pago e saldo;
+    Empreiteira ve tambem receita medida/faturada/recebida e margem.
+
+PRIORIDADE 2 - PLANEJAMENTO E OBRA 360
+
+[ ] 7. Vinculo integral entre orcamento, frentes e etapas.
+    Falta: editar os vinculos em massa, impedir classificacoes incoerentes e
+    mostrar a composicao do custo da etapa e da frente.
+    Aceite: cada item orcado relevante explica uma frente e, quando aplicavel,
+    uma etapa do cronograma.
+
+[ ] 8. Curva S, marcos e previsao de caixa.
+    Falta: visual grafico, comparacao previsto x realizado x custo, marcos de
+    entrega, alerta de atraso e previsao de recebimentos/pagamentos futuros.
+    Aceite: o planejamento permite antecipar atraso e necessidade de caixa por
+    obra e frente, e nao apenas listar etapas.
+
+[ ] 9. Cadastro e painel Obra 360 completos.
+    Falta: campos operacionais da obra, status planejada/em execucao/pausada/em
+    medicao/encerrada/garantia, alertas consolidados e historico/auditoria visivel.
+    Aceite: em uma unica tela o gestor entende custo, prazo, medicao, compras,
+    equipe, pendencias, riscos e documentos da obra.
+
+PRIORIDADE 3 - IMPORTADOR UNIVERSAL
+
+[ ] 10. Ampliar destinos do importador para compras, contratos, aditivos,
+    medicoes, ponto, documentos e estoque. :codex-annotation{index="1"}
+    Falta: detectar, mapear, validar e gravar essas areas; hoje a tela e o
+    servico efetivamente suportam financeiro, obras, orcamento e funcionarios.
+    Aceite: o usuario seleciona uma aba, confirma o destino e importa qualquer
+    area operacional relevante sem alterar codigo.
+
+[ ] 11. Perfis salvos e regras por cliente.
+    Falta: salvar mapeamentos, aliases, transformacoes e valores padrao de obra/
+    frente; escolher ou desativar um perfil salvo.
+    Aceite: a segunda planilha do mesmo cliente e importada com revisao minima.
+
+[ ] 12. Qualidade e seguranca da importacao.
+    Falta: amostras reais de clientes, testes por modelo, relatorio de erros por
+    linha, backup antes de lotes grandes e comprovacao de reversao em falhas.
+    Aceite: importacoes grandes nao deixam dados parciais nem duplicados.
+
+PRIORIDADE 4 - DOCUMENTOS E RELATORIOS
+
+[ ] 13. Central de documentos da obra.
+    Falta: listar e filtrar documentos por obra, frente, tipo, competencia e
+    vencimento; reunir contratos, aditivos, RDO, medicoes, notas, fotos e ART/RRT.
+    Aceite: qualquer documento operacional pode ser encontrado no app sem buscar
+    em pastas externas.
+
+[ ] 14. Alertas de documentos e operacao.
+    Falta: vencidos/a vencer, compra sem entrega, medicao pendente, estouro de
+    orcamento e atraso fisico, com entrada na tela de obras em atencao.
+    Aceite: o painel prioriza automaticamente o que exige acao.
+
+[ ] 15. Relatorios e exportacoes gerenciais.
+    Falta: DRE por obra/frente, fluxo de caixa por obra, posicao de obras,
+    medicoes, compras e folha por obra; exportacao em Excel e PDF.
+    Aceite: os numeros consultados no aplicativo podem ser compartilhados com
+    consistencia fora dele.
+
+PRIORIDADE 5 - PRODUTO, QUALIDADE E DISTRIBUICAO
+
+[ ] 16. Configuracao visivel da edicao do produto.
+    Falta: tela administrativa para consultar/definir a edicao instalada e
+    explicar os recursos habilitados, preservando a configuracao de pacote.
+    Aceite: antes de distribuir, fica claro se a instalacao e Construtora ou
+    Empreiteira e quais menus/indicadores serao exibidos.
+
+[ ] 17. Validacoes, auditoria e testes de dominio.
+    Falta: regras para medicao acima do contratado, datas fora da obra, estoque
+    negativo, compra sem obra/frente e auditoria das alteracoes criticas.
+    Aceite: dados operacionais impossiveis sao bloqueados com mensagem clara e
+    cada alteracao financeira/operacional importante e rastreavel.
+
+[ ] 18. UI atual plenamente integrada.
+    Falta: cada fluxo acima deve permanecer acessivel e coerente na interface
+    atual, com filtros, estados vazios orientados e navegacao entre Obra 360,
+    frentes, planejamento, RDO, compras, contratos, medicoes e documentos.
+    Aceite: a futura reformulacao visual sera uma melhoria de apresentacao, nao
+    uma dependencia para usar as funcionalidades entregues.
+
+[ ] 19. Revisao visual ampla.
+    Falta: tokens de design, AppShell/topbar, busca global, alertas, cards de
+    obras, responsividade e acessibilidade, conforme referencia aprovada.
+    Aceite: interface mais refinada sem retirar os fluxos ja utilizaveis.
+
+[ ] 20. Fechamento do pacote.
+    Falta: testes de ponta a ponta, migracoes em base existente, performance com
+    volume maior, backup/restauracao, validacao manual e instalador final.
+    Aceite: npm run lint, npm test, npm run build e cenarios criticos aprovados;
+    somente entao gerar o instalador de distribuicao.
+
+PASSOS OPERACIONAIS PARA EXECUCAO
+
+[x] Passo 1 - Campo: RDO com frente, anexos e custos.
+    Escopo: concluir o RDO como registro operacional real da obra.
+    Entregas: selecao de obra/frente, equipe, equipamentos, custos, ocorrencias,
+    anexos/fotos e historico consultavel na obra.
+    Pronto quando: o usuario consegue criar, revisar e consultar um RDO completo
+    pela interface atual, com seus anexos vinculados.
+
+[x] Passo 2 - Pendencias/tarefas integradas ao RDO.
+    Escopo: transformar ocorrencias em pendencias gerenciaveis.
+    Entregas: editar tarefa, concluir/reabrir, filtros, origem da pendencia,
+    prazo, responsavel, alertas e sincronizacao sem duplicar ao editar o RDO.
+    Pronto quando: uma ocorrencia do RDO cria uma pendencia, a pendencia aparece
+    no painel certo e sua resolucao fica refletida no historico da obra.
+
+[>] Passo 3 - Medicoes completas por obra, frente, etapa e documento.
+    Escopo: fechar o fluxo de medicao para Construtora e Empreiteira.
+    Entregas: itens/etapas medidos, total medido, saldo a medir, anexos em PDF,
+    estados rascunho/enviada/aprovada/faturada/recebida e historico.
+    Status atual: itens medidos, contrato, frente, anexos e conta a receber por
+    status faturada/recebida foram integrados. Ainda falta tela de historico de
+    anexos e baixa financeira guiada direto a partir da medicao.
+    Pronto quando: na Empreiteira a medicao vira receita acompanhavel ate o
+    recebimento; na Construtora ela registra avanco fisico/documental sem receita
+    por frente.
+
+[>] Passo 4 - Contratos, aditivos e vinculo financeiro.
+    Escopo: tornar contrato uma peca operacional com impacto no saldo da obra.
+    Entregas: anexos, status, tipo, fornecedor/cliente, retencoes, garantias,
+    reajustes, aditivos, ligacao com medicao e contas financeiras.
+    Status atual: contrato/aditivo ganhou retencao, garantia, reajuste, anexos,
+    impacto de prazo e ajuste de valor/conta. Ainda falta tela de historico de
+    anexos e relatorio especifico de saldo contratual.
+    Pronto quando: contrato/aditivo muda o comprometido/contratado da obra e
+    aparece rastreavel na Obra 360, sem lancamentos duplicados.
+
+[x] Passo 5 - Compras, cotacoes, pedidos, recebimento e estoque.
+    Escopo: fechar o ciclo material da demanda ate a entrega.
+    Entregas: solicitacao, cotacoes comparaveis, escolha justificada, pedido,
+    recebimento parcial, entrada/saida/ajuste de estoque e documentos fiscais.
+    Pronto quando: a obra gera uma necessidade, compara fornecedores, emite pedido,
+    registra recebimento e atualiza conta a pagar/estoque por obra/frente.
+
+[>] Passo 6 - Fechamento financeiro por obra/frente/etapa/categoria.
+    Escopo: consolidar os valores vindos de orcamento, compras, contratos,
+    medicoes, folha, equipamentos e contas.
+    Entregas: orcado, comprometido, contratado, pago, saldo, receita medida,
+    faturada, recebida e margem conforme a edicao do produto.
+    Status atual: Obra 360 mostra orcado, comprometido, contratado, pago, medido,
+    recebido e pendencias por frente. Ainda falta relatorio/DRE formal por frente
+    e alocacao assistida de contas antigas sem frente.
+    Pronto quando: Construtora ve custo total e saldo por frente; Empreiteira ve
+    recebimentos menos custos, com resultado por obra e frente.
+
+[>] Passo 7 - Planejamento fisico-financeiro e Curva S.
+    Escopo: ligar orcamento, frentes e etapas ao calendario.
+    Entregas: edicao em massa de vinculos, marcos, previsto x realizado, Curva S,
+    previsao de caixa e alertas de atraso.
+    Status atual: tela ganhou Curva S visual e previsao de caixa por competencia.
+    Ainda falta edicao em massa de vinculos e alertas mais fortes por marco.
+    Pronto quando: o gestor antecipa atraso e necessidade de caixa por obra/frente,
+    com grafico e numeros conectados aos dados reais.
+
+[>] Passo 8 - Obra 360 como painel central.
+    Escopo: transformar a tela da obra no resumo operacional completo.
+    Entregas: status operacional, alertas, auditoria visivel, custo, prazo,
+    medicao, compras, contratos, equipe, tarefas, riscos e documentos.
+    Status atual: Obra 360 concentra frentes, pendencias, documentos, contratos,
+    compras e RDOs recentes. Ainda falta auditoria visivel completa e riscos
+    operacionais consolidados.
+    Pronto quando: a tela individual da obra responde "o que esta acontecendo",
+    "quanto custa", "quanto falta", "o que atrasa" e "onde estao os documentos".
+
+[>] Passo 9 - Importador universal ampliado.
+    Escopo: aceitar planilhas variadas de todas as areas relevantes controladas
+    por clientes do setor. :codex-annotation{index="1"}
+    Entregas: destinos para compras, contratos, aditivos, medicoes, ponto,
+    documentos e estoque; criacao sugerida de cadastros; perfis e regras salvas.
+    Status atual: destinos ampliados para compras, contratos, aditivos, medicoes,
+    ponto, documentos e estoque, com criacao de cadastros. Ainda falta salvar
+    perfis/regras por cliente e bateria com planilhas reais. :codex-annotation{index="1"}
+    Pronto quando: uma planilha nova pode ser mapeada, validada, importada e
+    revertida em caso de falha, sem precisar alterar codigo.
+
+[>] Passo 10 - Central de documentos e alertas.
+    Escopo: reunir documentos operacionais e avisos importantes.
+    Entregas: filtros por obra/frente/tipo/competencia/vencimento, contratos,
+    aditivos, RDO, medicoes, notas, fotos, ART/RRT e alertas de vencimento/atraso.
+    Status atual: central filtra por obra/frente/categoria e importa documentos
+    de obra/RH; anexos de RDO, contrato, compra e medicao entram vinculados. Ainda
+    faltam alertas de vencimento/atraso mais visiveis no painel.
+    Pronto quando: o usuario encontra qualquer documento no app e o painel aponta
+    automaticamente o que precisa de acao.
+
+[ ] Passo 11 - Relatorios e exportacoes gerenciais.
+    Escopo: transformar os dados consolidados em saidas para gestao e cliente.
+    Entregas: DRE por obra/frente, fluxo de caixa por obra, posicao de obras,
+    medicoes, compras, folha por obra e exportacao Excel/PDF.
+    Pronto quando: os principais numeros vistos no sistema saem em relatorios
+    consistentes para envio ou conferencia externa.
+
+[x] Passo 12 - Edicao do produto e configuracao modular.
+    Escopo: tornar explicita a versao Construtora ou Empreiteira.
+    Entregas: tela administrativa de edicao instalada, recursos habilitados,
+    regras de exibicao por edicao e base preparada para futura troca de repositorio.
+    Pronto quando: antes de distribuir, sabemos exatamente quais menus, indicadores
+    e fluxos aparecem em cada pacote.
+
+[>] Passo 13 - Validacoes, auditoria e testes de dominio.
+    Escopo: blindar dados criticos.
+    Entregas: bloqueios para medicao acima do contratado, datas fora da obra,
+    estoque negativo, compra sem obra/frente, alteracoes auditadas e testes.
+    Status atual: validacoes existem para excesso de medicao e estoque negativo;
+    alteracoes criticas auditam em servicos. Ainda falta cobrir todos os casos
+    com testes especificos de dominio.
+    Pronto quando: erros operacionais comuns sao impedidos com mensagem clara e
+    as alteracoes importantes ficam rastreaveis.
+
+[>] Passo 14 - UI atual integrada e navegacao entre fluxos.
+    Escopo: garantir que tudo entregue seja utilizavel antes da futura troca visual.
+    Entregas: filtros, estados vazios, atalhos entre Obra 360, frentes,
+    planejamento, RDO, compras, contratos, medicoes e documentos.
+    Status atual: os fluxos implementados estao acessiveis na UI atual e Obra 360
+    cria atalhos entre modulos. Ainda falta lapidar navegacao global e estados
+    vazios em todos os relatorios futuros.
+    Pronto quando: nenhum modulo entregue depende da futura revisao visual para
+    ser usado no dia a dia.
+
+[ ] Passo 15 - Revisao visual ampla.
+    Escopo: aplicar a direcao visual aprovada depois dos fluxos prontos.
+    Entregas: AppShell/topbar, scrollbar, busca global, cards, tokens visuais,
+    responsividade e acessibilidade.
+    Pronto quando: a interface fica mais refinada sem alterar o comportamento
+    funcional que ja foi aprovado.
+
+[ ] Passo 16 - Fechamento do pacote final.
+    Escopo: preparar distribuicao.
+    Entregas: testes de ponta a ponta, migracoes em base existente, volume maior,
+    backup/restauracao, npm run lint, npm test, npm run build e instalador.
+    Pronto quando: os cenarios criticos estao aprovados e o instalador final pode
+    ser gerado.
