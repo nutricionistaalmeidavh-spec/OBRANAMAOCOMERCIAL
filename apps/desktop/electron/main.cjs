@@ -26,7 +26,7 @@ let mainWindow
 let services
 
 function resolvePaths() {
-  const dataDir = process.env.FLUXO_DRE_DATA_DIR || path.join(app.getPath('appData'), 'fluxo-dre')
+  const dataDir = process.env.OBRA_NA_MAO_DATA_DIR || path.join(app.getPath('appData'), 'obra-na-mao-comercial')
   return { dataDir, documentsDir: path.join(dataDir, 'documentos'), migrationsDir: path.join(app.getAppPath(), 'database', 'migrations') }
 }
 
@@ -133,6 +133,7 @@ function registerIpc() {
   ipcMain.handle('catalog:save-link', envelope((data) => services.catalog.saveLink(data)))
   ipcMain.handle('catalog:deactivate', envelope((data) => services.catalog.deactivate(data.type, data.id)))
   ipcMain.handle('online:state', envelope(() => services.online.state()))
+  ipcMain.handle('online:set-base-url', envelope(({ baseUrl }) => services.online.setBaseUrl(baseUrl)))
   ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
   ipcMain.handle('online:status', envelope(() => services.online.status()))
   ipcMain.handle('online:session', envelope(() => services.online.session()))
@@ -149,7 +150,7 @@ function registerIpc() {
 }
 
 function fallbackPage(message, details = '') {
-  return `data:text/html;charset=utf-8,${encodeURIComponent(`<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial;background:#f3f5f8;color:#152033;display:grid;place-items:center;height:100vh;margin:0}.card{width:min(650px,90vw);background:white;padding:32px;border-radius:14px;box-shadow:0 10px 30px #0001}button{background:#2f67d8;color:white;border:0;border-radius:8px;padding:11px 16px}</style></head><body><div class="card"><h1>O Fluxo DRE não conseguiu iniciar</h1><p>${message}</p><details><summary>Detalhes técnicos</summary>${details}</details><button onclick="location.reload()">Tentar novamente</button></div></body></html>`)}`
+  return `data:text/html;charset=utf-8,${encodeURIComponent(`<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial;background:#f3f5f8;color:#152033;display:grid;place-items:center;height:100vh;margin:0}.card{width:min(650px,90vw);background:white;padding:32px;border-radius:14px;box-shadow:0 10px 30px #0001}button{background:#2f67d8;color:white;border:0;border-radius:8px;padding:11px 16px}</style></head><body><div class="card"><h1>O Obra na Mão Desktop não conseguiu iniciar</h1><p>${message}</p><details><summary>Detalhes técnicos</summary>${details}</details><button onclick="location.reload()">Tentar novamente</button></div></body></html>`)}`
 }
 
 async function createWindow() {
