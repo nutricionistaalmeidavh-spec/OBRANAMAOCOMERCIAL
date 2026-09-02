@@ -26,5 +26,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Build static application
         run: npm run build
+      - name: Compile Pages Functions
+        run: npx wrangler pages functions build functions --outfile .cf-pages-worker.js --external "node:*"
       - name: Bundle Cloudflare Worker
         run: npx wrangler deploy --dry-run --config wrangler.ci.jsonc
