@@ -1,4 +1,4 @@
-import { api,auth } from '@appdeploy/client';
+import { api,auth } from './cloudflare-client';
 import { readFinancePdf } from './finance-pdf';
 import './finance.css';
 type Account={id:string;label:string;institution?:string;ownership:'business'|'personal'};
