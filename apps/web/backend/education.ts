@@ -1,4 +1,4 @@
-import { db, error, json, requireAuth, withScopes } from '../cloudflare/sdk';
+import { db, error, json, requireAuth, withScopes, runtimeEnv } from '../cloudflare/sdk';
 import { evaluateObjectiveConsolidation } from './unit-policy';
 import { buildAdminOverview, canAccessAdminOverview } from './admin-overview';
 import { canClearDiagnosticDraftAfterFinalization, createDiagnosticDraft, sanitizeDiagnosticDraft } from './diagnostic-draft';
@@ -120,8 +120,8 @@ const keyHash = (v: string) => { let h = 2166136261; for (let i = 0; i < v.lengt
     h = Math.imul(h, 16777619);
 } return (h >>> 0).toString(16); };
 const phoneTable = (p: string) => 'edu_phone_' + keyHash(p), emailTable = (e: string) => 'edu_email_' + keyHash(e), centralGrantTable = (e: string) => 'edu_central_grant_' + keyHash(e), sessionTable = (t: string) => 'edu_session_' + keyHash(t), diagnosticTable = (id: string) => 'edu_diagnostic_' + id.replace(/[^a-zA-Z0-9_-]/g, '_');
-const SUPERADMIN_EMAILS = new Set(['vmnutri.tech@gmail.com']);
-const REVOKED_SUPERADMIN_EMAILS = new Set(['marcosvr.lima96@gmail.com']);
+const configuredSuperadminEmail = () => email(String(runtimeEnv().OWNER_EMAIL || ''));
+const REVOKED_SUPERADMIN_EMAILS = new Set<string>();
 function phone(v: string) { let d = v.replace(/\D/g, ''); if (d.length === 10 || d.length === 11)
     d = '55' + d; return d.length >= 12 && d.length <= 13 ? d : ''; }
 function email(v: string) { const e = v.trim().toLowerCase(); return /^\S+@\S+\.\S+$/.test(e) ? e : ''; }
@@ -135,7 +135,7 @@ async function participant(t: string) { if (t.length < 40)
 export async function educationParticipantBySession(token: string) { return participant(token); }
 const effectiveRole = (p: EduParticipant): EduRole => {
     const em = email(p.email || '');
-    if (SUPERADMIN_EMAILS.has(em)) return 'superadmin';
+    if (em && em === configuredSuperadminEmail()) return 'superadmin';
     if (REVOKED_SUPERADMIN_EMAILS.has(em)) return 'colaborador';
     return effectiveEducationRole(p.role, p.jobRole);
 };
@@ -201,7 +201,7 @@ export async function syncEducationIdentityByEmail(input: { email: string; emplo
 export async function setEducationParticipantStatusByEmail(inputEmail: string, active: boolean) { const em = email(inputEmail); if (!em) return false; const p = await find(emailTable(em)); if (!p) return false; await db.update('edu_participants', [{ id: p.id, record: { ...p, status: active ? 'active' : 'inactive', updatedAt: now() } as unknown as Record<string, unknown> }]); return true; }
 export const EDUCATION_ROUTES = { 'POST /api/edu/login': [async (c) => { const b = rec(c.body), id = String(b.identifier || '').trim(), ph = phone(id), em = email(id), pass = String(b.password || ''); if ((!ph && !em) || pass.length < 6)
             return error('E-mail/celular ou senha inválidos.', 400); const p = await find(em ? emailTable(em) : phoneTable(ph)); if (!p || await hash(pass, p.passwordSalt) !== p.passwordHash)
-            return error('E-mail/celular ou senha inválidos.', 401); return json({ token: await issue(p.id), participant: pub(p) }); }], 'GET /api/edu/email/session': [requireAuth(), withScopes('email', 'profile'), async (c) => { const em = email(c.user!.email || ''); let p = await find(emailTable(em)); const grant = (await db.list<Record<string, unknown>>(centralGrantTable(em), { limit: 1 })).items[0], configuredSuperadmin = SUPERADMIN_EMAILS.has(em), validGrant = configuredSuperadmin || (!!grant && String(grant.email || '') === em && String(grant.expiresAt || '') > now()), grantRole = configuredSuperadmin ? 'superadmin' : (isEducationRole(String(grant?.role || '')) ? String(grant!.role) as EduRole : 'colaborador'); if (!p && !validGrant)
+            return error('E-mail/celular ou senha inválidos.', 401); return json({ token: await issue(p.id), participant: pub(p) }); }], 'GET /api/edu/email/session': [requireAuth(), withScopes('email', 'profile'), async (c) => { const em = email(c.user!.email || ''); let p = await find(emailTable(em)); const grant = (await db.list<Record<string, unknown>>(centralGrantTable(em), { limit: 1 })).items[0], configuredSuperadmin = !!em && em === configuredSuperadminEmail(), validGrant = configuredSuperadmin || (!!grant && String(grant.email || '') === em && String(grant.expiresAt || '') > now()), grantRole = configuredSuperadmin ? 'superadmin' : (isEducationRole(String(grant?.role || '')) ? String(grant!.role) as EduRole : 'colaborador'); if (!p && !validGrant)
             return error('Este e-mail não foi liberado.', 403); if (!p) {
             const s = crypto.randomUUID().replace(/-/g, ''), stamp = now(), x: EduParticipant = { name: c.user!.name || em.split('@')[0], phone: '', email: em, jobRole: educationJobRole(grantRole), role: grantRole, status: 'active', passwordSalt: s, passwordHash: await hash(crypto.randomUUID(), s), mustChangePassword: false, createdAt: stamp, updatedAt: stamp }, [id] = await db.add('edu_participants', [x]);
             if (!id)
