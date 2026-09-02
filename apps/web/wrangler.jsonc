@@ -4,6 +4,7 @@
   "main": "cloudflare/worker.ts",
   "compatibility_date": "2026-09-02",
   "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
@@ -14,6 +15,12 @@
       "binding": "DB",
       "database_name": "obra-na-mao-comercial",
       "database_id": "84bdb01f-94f6-4fb4-8c42-7bcdab0ac12a"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "obra-na-mao-comercial-files"
     }
   ],
   "vars": {
