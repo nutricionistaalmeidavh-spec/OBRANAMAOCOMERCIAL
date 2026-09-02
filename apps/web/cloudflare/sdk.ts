@@ -222,7 +222,16 @@ async function authCallback(request:Request){
   })});
   const token=await tokenResp.json() as Record<string,unknown>;
   const idToken=String(token.id_token||'');
-  if(!tokenResp.ok||!idToken)return error('Google não concluiu a autenticação.',401);
+  if(!tokenResp.ok||!idToken){
+    const oauthError=String(token.error||'oauth_token_exchange_failed');
+    const oauthDescription=String(token.error_description||'');
+    return json({
+      error:'Google não concluiu a autenticação.',
+      oauthError,
+      ...(oauthDescription?{oauthDescription}:{}),
+      redirectUri
+    },401);
+  }
   const infoResp=await fetch('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(idToken));
   const info=await infoResp.json() as Record<string,unknown>;
   if(!infoResp.ok||String(info.aud||'')!==clientId||String(info.email_verified||'')!=='true')return error('Identidade Google inválida.',401);
