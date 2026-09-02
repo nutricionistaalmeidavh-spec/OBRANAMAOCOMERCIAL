@@ -4,13 +4,18 @@
   "main": "cloudflare/worker.ts",
   "compatibility_date": "2026-09-02",
   "compatibility_flags": ["nodejs_compat"],
-  "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "single-page-application" },
-  "alias": { "@appdeploy/sdk": "./cloudflare/sdk.ts" },
-  "d1_databases": [{ "binding": "DB", "database_name": "obra-na-mao-comercial", "database_id": "PREENCHER_APOS_CRIAR_D1" }],
-  "r2_buckets": [{ "binding": "FILES", "bucket_name": "obra-na-mao-comercial-files" }],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
   "vars": {
     "OWNER_COMPANY": "Obra na Mão",
     "OWNER_PROJECT": "Operação Comercial",
     "OWNER_CUSTOMER": "Obra na Mão"
   }
+
+  // D1 e R2 entram aqui depois que os recursos forem criados na conta.
+  // O primeiro deploy fica propositalmente sem IDs hardcoded para permitir
+  // que o frontend/PWA seja publicado imediatamente pelo Git.
 }
