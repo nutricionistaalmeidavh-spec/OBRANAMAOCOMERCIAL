@@ -3,7 +3,9 @@
   "name": "obra-na-mao-comercial",
   "main": "cloudflare/worker.ts",
   "compatibility_date": "2026-09-02",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "keep_vars": true,
   "assets": {
     "directory": "./dist",
@@ -27,6 +29,7 @@
     "OWNER_EMAIL": "nutricionistaalmeidavh@gmail.com",
     "OWNER_COMPANY": "Obra na Mão",
     "OWNER_PROJECT": "Operação Comercial",
-    "OWNER_CUSTOMER": "Obra na Mão"
+    "OWNER_CUSTOMER": "Obra na Mão",
+    "GOOGLE_CLIENT_ID": "826322917381-ia1khl7es1gqddv6jsmg8p75m7amfle5.apps.googleusercontent.com"
   }
 }
