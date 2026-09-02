@@ -1,4 +1,4 @@
-import { api, auth } from '@appdeploy/client';
+import { api, auth } from './cloudflare-client';
 import './university.css';
 import { hydrateQuestionVisuals } from './question-image-loader-v2';
 import { hasQuestionVisual } from './question-visual-index';
