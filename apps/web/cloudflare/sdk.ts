@@ -245,11 +245,44 @@ async function authLogout(request:Request){
   return new Response(JSON.stringify({ok:true}),{status:200,headers});
 }
 
+async function healthResponse(env:RuntimeEnv){
+  const dbBinding=(env as RuntimeEnv & {DB?:D1Database}).DB;
+  const bindings={
+    d1:!!dbBinding,
+    r2:!!env.FILES,
+    googleOAuth:!!(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET),
+    gemini:!!env.GEMINI_API_KEY,
+    owner:!!env.OWNER_EMAIL
+  };
+  let schemaReady=false;
+  let dbError:string|undefined;
+  if(dbBinding){
+    try{
+      const rows=await dbBinding.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('kv_records','auth_sessions','oauth_states')").all<{name:string}>();
+      const names=new Set((rows.results||[]).map(x=>x.name));
+      schemaReady=['kv_records','auth_sessions','oauth_states'].every(name=>names.has(name));
+    }catch(error){dbError=(error as Error)?.message||'D1 indisponível';}
+  }
+  return json({
+    ok:true,
+    service:'obra-na-mao-comercial',
+    runtime:'cloudflare-worker',
+    readyForLogin:bindings.d1&&schemaReady&&bindings.googleOAuth&&bindings.owner,
+    readyForDesktopAi:bindings.d1&&schemaReady&&bindings.gemini,
+    readyForFileImports:bindings.d1&&schemaReady&&bindings.r2,
+    bindings,
+    schemaReady,
+    ...(dbError?{dbError}:{}),
+    checkedAt:new Date().toISOString()
+  });
+}
+
 export function router(routes:RouterRoutes){
   return {
     async fetch(request:Request,env:RuntimeEnv,_ctx?:unknown){
       return runtime.run({env,request},async()=>{
         const url=new URL(request.url);
+        if(url.pathname==='/api/health'&&request.method==='GET')return healthResponse(env);
         if(url.pathname==='/api/auth/start'&&request.method==='GET')return authStart(request);
         if(url.pathname==='/api/auth/callback'&&request.method==='GET')return authCallback(request);
         if(url.pathname==='/api/auth/me'&&request.method==='GET')return authMe(request);
