@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dist-electron/
+release/
+coverage/
+*.log
+.vite/
+design-qa.md
+.superdesign/tmp/
