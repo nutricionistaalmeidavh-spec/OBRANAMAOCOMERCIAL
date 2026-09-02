@@ -3,7 +3,7 @@ import { hasQuestionVisual } from './question-visual-index';
 const ZIP_URL = '/api/assets/question-images';
 const MANIFEST_URL = './resources/question-visuals-manifest.json';
 const RANGE_TAIL_SIZE = 128 * 1024;
-const REQUEST_TIMEOUT_MS = 15_000;
+const REQUEST_TIMEOUT_MS = 60_000;
 
 type ZipEntry = { method: number; compressedSize: number; offset: number; name: string };
 type Visual = { file: string; alt: string };
@@ -110,31 +110,14 @@ async function readEntry(state: ZipState, entry: ZipEntry): Promise<Uint8Array> 
 async function loadState(): Promise<ZipState> {
   if (statePromise) return statePromise;
   statePromise = (async () => {
-    const tailResponse = await fetchWithTimeout(ZIP_URL, { headers: { Range: `bytes=-${RANGE_TAIL_SIZE}` } });
-    if (!tailResponse.ok) throw new Error('Falha ao carregar apoios visuais');
-    const tail = await tailResponse.arrayBuffer();
-    if (tailResponse.status === 206) {
-      const end = findEndOfCentralDirectory(tail);
-      const contentRange = tailResponse.headers.get('content-range');
-      const match = contentRange?.match(/bytes\s+(\d+)-/i);
-      const tailStart = match ? Number(match[1]) : 0;
-      const centralEnd = end.centralOffset + end.centralSize - 1;
-      let central: ArrayBuffer;
-      if (end.centralOffset >= tailStart && centralEnd < tailStart + tail.byteLength) {
-        central = tail.slice(end.centralOffset - tailStart, end.centralOffset - tailStart + end.centralSize);
-      } else {
-        const response = await fetchWithTimeout(ZIP_URL, { headers: { Range: `bytes=${end.centralOffset}-${centralEnd}` } });
-        if (!response.ok) throw new Error('Falha ao carregar índice visual');
-        central = await response.arrayBuffer();
-      }
-      const state: ZipState = { entries: readEntriesFromCentral(central, end.total), visuals: new Map() };
-      const manifestEntry = state.entries.get('question-visuals-manifest.json');
-      const manifest = JSON.parse(await readManifest(state, manifestEntry)) as Array<{ prompt: string; src: string; alt: string }>;
-      manifest.forEach((item) => state.visuals.set(normalize(item.prompt), { file: item.src.split('/').pop() || '', alt: item.alt || 'Apoio visual complementar' }));
-      return state;
+    const response = await fetchWithTimeout(ZIP_URL);
+    if (!response.ok) {
+      let detail = '';
+      try { detail = (await response.json() as { error?: string }).error || ''; } catch {}
+      throw new Error(detail || 'Falha ao carregar apoios visuais');
     }
-    // Static hosts that ignore Range return the complete ZIP in this response.
-    const buffer = tail.byteLength > RANGE_TAIL_SIZE ? tail : await (await fetchWithTimeout()).arrayBuffer();
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength < 1024 * 1024) throw new Error('Pacote visual incompleto');
     const state: ZipState = { buffer, entries: entriesFromFullBuffer(buffer), visuals: new Map() };
     const manifestEntry = state.entries.get('question-visuals-manifest.json');
     const manifest = JSON.parse(await readManifest(state, manifestEntry)) as Array<{ prompt: string; src: string; alt: string }>;

@@ -199,62 +199,66 @@ function sameOriginReturn(request:Request,value:string|null){
 const QUESTION_ASSET_KEY='university/question-assets-549.zip';
 const LEGACY_QUESTION_ASSET_URL='https://fluxodre-campo-b2u-clbfo5.v2.appdeploy.ai/resources/question-assets-549.zip';
 
-async function ensureQuestionAssetInR2(env:RuntimeEnv){
-  if(!env.FILES)throw new Error('Binding R2 FILES não configurado.');
-  let head=await env.FILES.head(QUESTION_ASSET_KEY);
-  if(head)return head;
-  const upstream=await fetch(LEGACY_QUESTION_ASSET_URL,{redirect:'follow'});
-  if(!upstream.ok||!upstream.body)throw new Error('Não foi possível migrar as imagens da Universidade: HTTP '+upstream.status);
-  await env.FILES.put(QUESTION_ASSET_KEY,upstream.body,{
-    httpMetadata:{contentType:'application/zip'},
-    customMetadata:{source:'legacy-appdeploy-v93',migratedAt:now()}
+type WaitUntilContext={waitUntil?:(promise:Promise<unknown>)=>void};
+
+function questionAssetHeaders(size?:number){
+  const headers=new Headers({
+    'content-type':'application/zip',
+    'cache-control':'public, max-age=86400, stale-while-revalidate=604800',
+    'x-content-type-options':'nosniff'
   });
-  head=await env.FILES.head(QUESTION_ASSET_KEY);
-  if(!head)throw new Error('O pacote de imagens não foi confirmado no R2 após a migração.');
-  return head;
+  if(size&&size>0)headers.set('content-length',String(size));
+  return headers;
 }
 
-function parseByteRange(value:string,size:number){
-  const match=value.match(/^bytes=(\d*)-(\d*)$/i);
-  if(!match)return null;
-  const a=match[1],b=match[2];
-  let start:number,end:number;
-  if(!a&&b){
-    const suffix=Math.max(1,Number(b));
-    start=Math.max(0,size-suffix);end=size-1;
-  }else{
-    start=Math.max(0,Number(a||0));
-    end=b?Math.min(size-1,Number(b)):size-1;
-  }
-  if(!Number.isFinite(start)||!Number.isFinite(end)||start>end||start>=size)return null;
-  return{start,end,length:end-start+1};
-}
-
-async function questionAssetResponse(request:Request,env:RuntimeEnv){
+async function questionAssetStatus(env:RuntimeEnv){
+  if(!env.FILES)return json({ok:false,r2Bound:false,r2ObjectPresent:false});
   try{
-    const head=await ensureQuestionAssetInR2(env),size=Number(head.size||0);
-    const headers=new Headers({
-      'content-type':'application/zip',
-      'accept-ranges':'bytes',
-      'cache-control':'public, max-age=86400, stale-while-revalidate=604800'
+    const head=await env.FILES.head(QUESTION_ASSET_KEY);
+    return json({
+      ok:true,
+      r2Bound:true,
+      r2ObjectPresent:!!head,
+      r2ObjectBytes:head?.size||0,
+      r2Key:QUESTION_ASSET_KEY,
+      source:head?.customMetadata?.source||null
     });
-    const rangeHeader=request.headers.get('range');
-    if(rangeHeader&&size>0){
-      const range=parseByteRange(rangeHeader,size);
-      if(!range){
-        headers.set('content-range','bytes */'+size);
-        return new Response(null,{status:416,headers});
-      }
-      const object=await env.FILES!.get(QUESTION_ASSET_KEY,{range:{offset:range.start,length:range.length}});
-      if(!object)return error('Pacote visual não encontrado no R2.',404);
-      headers.set('content-range',`bytes ${range.start}-${range.end}/${size}`);
-      headers.set('content-length',String(range.length));
-      return new Response(object.body,{status:206,headers});
+  }catch(e){
+    return json({ok:false,r2Bound:true,r2ObjectPresent:false,error:(e as Error).message},500);
+  }
+}
+
+async function questionAssetResponse(request:Request,env:RuntimeEnv,ctx?:WaitUntilContext){
+  if(!env.FILES)return error('Binding R2 FILES não configurado.',503);
+  try{
+    const existing=await env.FILES.get(QUESTION_ASSET_KEY);
+    if(existing){
+      return new Response(request.method==='HEAD'?null:existing.body,{
+        status:200,
+        headers:questionAssetHeaders(existing.size)
+      });
     }
-    const object=await env.FILES!.get(QUESTION_ASSET_KEY);
-    if(!object)return error('Pacote visual não encontrado no R2.',404);
-    if(size>0)headers.set('content-length',String(size));
-    return new Response(request.method==='HEAD'?null:object.body,{status:200,headers});
+
+    // First use: serve the canonical legacy asset immediately and seed R2 in
+    // the background. This avoids blocking the user's first lesson on migration.
+    const upstream=await fetch(LEGACY_QUESTION_ASSET_URL,{redirect:'follow',cache:'no-store'});
+    if(!upstream.ok||!upstream.body)return error('Não foi possível obter o pacote visual original: HTTP '+upstream.status,503);
+
+    const size=Number(upstream.headers.get('content-length')||0);
+    if(request.method==='HEAD'){
+      return new Response(null,{status:200,headers:questionAssetHeaders(size)});
+    }
+
+    const [clientBody,r2Body]=upstream.body.tee();
+    const save=env.FILES.put(QUESTION_ASSET_KEY,r2Body,{
+      httpMetadata:{contentType:'application/zip'},
+      customMetadata:{source:'legacy-appdeploy-v93',migratedAt:now()}
+    }).then(()=>undefined);
+
+    if(ctx?.waitUntil)ctx.waitUntil(save);
+    else await save;
+
+    return new Response(clientBody,{status:200,headers:questionAssetHeaders(size)});
   }catch(e){
     return error((e as Error).message||'Não foi possível carregar as imagens da Universidade.',503);
   }
@@ -385,11 +389,12 @@ async function healthResponse(env:RuntimeEnv){
 
 export function router(routes:RouterRoutes){
   return {
-    async fetch(request:Request,env:RuntimeEnv,_ctx?:unknown){
+    async fetch(request:Request,env:RuntimeEnv,_ctx?:WaitUntilContext){
       return runtime.run({env,request},async()=>{
         const url=new URL(request.url);
         if(url.pathname==='/api/health'&&request.method==='GET')return healthResponse(env);
-        if(url.pathname==='/api/assets/question-images'&&(request.method==='GET'||request.method==='HEAD'))return questionAssetResponse(request,env);
+        if(url.pathname==='/api/assets/question-images/status'&&request.method==='GET')return questionAssetStatus(env);
+        if(url.pathname==='/api/assets/question-images'&&(request.method==='GET'||request.method==='HEAD'))return questionAssetResponse(request,env,_ctx);
         if(url.pathname==='/api/auth/config'&&request.method==='GET')return authConfig();
         if(url.pathname==='/api/auth/google-credential'&&request.method==='POST')return authGoogleCredential(request);
         if(url.pathname==='/api/auth/start'&&request.method==='GET')return authStart(request);
