@@ -271,6 +271,8 @@ async function healthResponse(env:RuntimeEnv){
     readyForDesktopAi:bindings.d1&&schemaReady&&bindings.gemini,
     readyForFileImports:bindings.d1&&schemaReady&&bindings.r2,
     bindings,
+    googleClientIdPresent: !!env.GOOGLE_CLIENT_ID,
+    googleClientSecretPresent: !!env.GOOGLE_CLIENT_SECRET,
     schemaReady,
     ...(dbError?{dbError}:{}),
     checkedAt:new Date().toISOString()
