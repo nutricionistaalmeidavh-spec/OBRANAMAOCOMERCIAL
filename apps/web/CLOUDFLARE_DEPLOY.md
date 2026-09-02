@@ -15,7 +15,7 @@ Esta pasta substitui as dependências de runtime do AppDeploy por serviços Clou
 
 Configuração recomendada para o primeiro teste:
 - Root directory: `apps/web`
-- Build command: `npm ci && npm run build`
+- Build command: `npm install --no-audit --no-fund && npm run build`
 - Build output: `dist`
 - Functions directory: `functions`
 
@@ -37,3 +37,10 @@ O ZIP original `question-assets-549.zip` não é copiado para o repositório com
 ## Segurança
 
 Nenhuma senha Google é armazenada. O cookie de sessão principal é HttpOnly/Secure/SameSite=Lax. Chaves OAuth e Gemini devem ser configuradas como secrets no Cloudflare, nunca commitadas.
+
+
+## Monorepo / Git
+
+O repositório contém aplicações diferentes. Para Cloudflare, configure a raiz do projeto como `apps/web`. O diretório `apps/desktop` não faz parte do deploy Cloudflare. Alterações no Desktop podem ser excluídas dos Build watch paths para evitar builds online desnecessários.
+
+Para Workers Builds, use o mesmo repositório e a raiz `apps/web`. O comando de deploy é `npx wrangler deploy`.

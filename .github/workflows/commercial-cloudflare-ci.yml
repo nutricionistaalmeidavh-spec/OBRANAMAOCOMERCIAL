@@ -1,0 +1,30 @@
+name: Commercial Cloudflare CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/commercial-cloudflare-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install web dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build static application
+        run: npm run build
+      - name: Bundle Cloudflare Worker
+        run: npx wrangler deploy --dry-run --config wrangler.ci.jsonc
