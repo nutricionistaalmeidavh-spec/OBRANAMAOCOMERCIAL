@@ -1,0 +1,42 @@
+name: Commercial Desktop Windows CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'tsconfig.json'
+      - '.nvmrc'
+      - '.github/workflows/commercial-desktop-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/**'
+
+jobs:
+  desktop:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test Desktop
+        run: npm run test:desktop
+      - name: Build Desktop
+        run: npm run build:desktop
+      - name: Build Windows installer
+        run: npm --workspace apps/desktop run dist
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-Commercial-Windows
+          path: apps/desktop/release/Obra-na-Mao-Desktop-Setup-1.0.0.exe
+          if-no-files-found: error
+          retention-days: 30
