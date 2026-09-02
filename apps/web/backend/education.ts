@@ -125,6 +125,7 @@ const REVOKED_SUPERADMIN_EMAILS = new Set<string>();
 function phone(v: string) { let d = v.replace(/\D/g, ''); if (d.length === 10 || d.length === 11)
     d = '55' + d; return d.length >= 12 && d.length <= 13 ? d : ''; }
 function email(v: string) { const e = v.trim().toLowerCase(); return /^\S+@\S+\.\S+$/.test(e) ? e : ''; }
+const GOOGLE_ONLY_PASSWORD_HASH = '!google-only!';
 async function hash(p: string, s: string) { const b = await crypto.subtle.importKey('raw', enc.encode(p), 'PBKDF2', false, ['deriveBits']), bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(s), iterations: 120000, hash: 'SHA-256' }, b, 256); return Array.from(new Uint8Array(bits), x => x.toString(16).padStart(2, '0')).join(''); }
 async function find(table: string) { const rows = (await db.list<Record<string, unknown>>(table, { limit: 1 })).items, id = String(rows[0]?.participantId || ''); if (!id)
     return null; const [p] = await db.get<EduParticipant>('edu_participants', [id]); return p ? { ...p, id } : null; }
@@ -152,7 +153,7 @@ export async function createCentralEducationSession(input: {
     role?: EduRole;
 }) { const em = email(input.email); if (!em)
     throw new Error('E-mail corporativo inválido.'); const desired = input.role && isEducationRole(input.role) ? input.role : 'colaborador'; let p = await find(emailTable(em)); if (!p) {
-    const s = crypto.randomUUID().replace(/-/g, ''), stamp = now(), x: EduParticipant = { name: input.name || em.split('@')[0], phone: '', email: em, jobRole: educationJobRole(desired), role: desired, status: 'active', passwordSalt: s, passwordHash: await hash(crypto.randomUUID(), s), mustChangePassword: false, createdAt: stamp, updatedAt: stamp }, [id] = await db.add('edu_participants', [x]);
+    const stamp = now(), x: EduParticipant = { name: input.name || em.split('@')[0], phone: '', email: em, jobRole: educationJobRole(desired), role: desired, status: 'active', passwordSalt: '', passwordHash: GOOGLE_ONLY_PASSWORD_HASH, mustChangePassword: false, createdAt: stamp, updatedAt: stamp }, [id] = await db.add('edu_participants', [x]);
     if (!id)
         throw new Error('Não foi possível preparar o acesso à Universidade.');
     await db.add(emailTable(em), [{ participantId: id, createdAt: stamp }]);
@@ -200,10 +201,10 @@ export async function claimEducationPhonePassword(inputPhone: string, nextPasswo
 export async function syncEducationIdentityByEmail(input: { email: string; employeeId?: string; companyId?: string; companyName?: string; name?: string; phone?: string; jobRole?: string }) { const em = email(input.email); if (!em) return false; const p = await find(emailTable(em)); if (!p) return false; const next = { ...p, employeeId: input.employeeId || p.employeeId, companyId: input.companyId || p.companyId, companyName: input.companyName || p.companyName, name: input.name || p.name, phone: input.phone || p.phone, jobRole: input.jobRole || p.jobRole, updatedAt: now() }; await db.update('edu_participants', [{ id: p.id, record: next as unknown as Record<string, unknown> }]); return true; }
 export async function setEducationParticipantStatusByEmail(inputEmail: string, active: boolean) { const em = email(inputEmail); if (!em) return false; const p = await find(emailTable(em)); if (!p) return false; await db.update('edu_participants', [{ id: p.id, record: { ...p, status: active ? 'active' : 'inactive', updatedAt: now() } as unknown as Record<string, unknown> }]); return true; }
 export const EDUCATION_ROUTES = { 'POST /api/edu/login': [async (c) => { const b = rec(c.body), id = String(b.identifier || '').trim(), ph = phone(id), em = email(id), pass = String(b.password || ''); if ((!ph && !em) || pass.length < 6)
-            return error('E-mail/celular ou senha inválidos.', 400); const p = await find(em ? emailTable(em) : phoneTable(ph)); if (!p || await hash(pass, p.passwordSalt) !== p.passwordHash)
+            return error('E-mail/celular ou senha inválidos.', 400); const p = await find(em ? emailTable(em) : phoneTable(ph)); if (!p || p.passwordHash === GOOGLE_ONLY_PASSWORD_HASH || await hash(pass, p.passwordSalt) !== p.passwordHash)
             return error('E-mail/celular ou senha inválidos.', 401); return json({ token: await issue(p.id), participant: pub(p) }); }], 'GET /api/edu/email/session': [requireAuth(), withScopes('email', 'profile'), async (c) => { const em = email(c.user!.email || ''); let p = await find(emailTable(em)); const grant = (await db.list<Record<string, unknown>>(centralGrantTable(em), { limit: 1 })).items[0], configuredSuperadmin = !!em && em === configuredSuperadminEmail(), validGrant = configuredSuperadmin || (!!grant && String(grant.email || '') === em && String(grant.expiresAt || '') > now()), grantRole = configuredSuperadmin ? 'superadmin' : (isEducationRole(String(grant?.role || '')) ? String(grant!.role) as EduRole : 'colaborador'); if (!p && !validGrant)
             return error('Este e-mail não foi liberado.', 403); if (!p) {
-            const s = crypto.randomUUID().replace(/-/g, ''), stamp = now(), x: EduParticipant = { name: c.user!.name || em.split('@')[0], phone: '', email: em, jobRole: educationJobRole(grantRole), role: grantRole, status: 'active', passwordSalt: s, passwordHash: await hash(crypto.randomUUID(), s), mustChangePassword: false, createdAt: stamp, updatedAt: stamp }, [id] = await db.add('edu_participants', [x]);
+            const stamp = now(), x: EduParticipant = { name: c.user!.name || em.split('@')[0], phone: '', email: em, jobRole: educationJobRole(grantRole), role: grantRole, status: 'active', passwordSalt: '', passwordHash: GOOGLE_ONLY_PASSWORD_HASH, mustChangePassword: false, createdAt: stamp, updatedAt: stamp }, [id] = await db.add('edu_participants', [x]);
             if (!id)
                 return error('Não foi possível preparar o acesso.', 500);
             await db.add(emailTable(em), [{ participantId: id, createdAt: stamp }]);
