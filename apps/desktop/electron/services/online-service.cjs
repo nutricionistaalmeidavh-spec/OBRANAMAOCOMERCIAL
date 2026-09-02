@@ -3,7 +3,7 @@ const os = require('node:os')
 const path = require('node:path')
 const crypto = require('node:crypto')
 
-const DEFAULT_BASE_URL = process.env.OBRA_NA_MAO_PLATFORM_URL || process.env.FLUXO_DRE_PLATFORM_URL || ''
+const DEFAULT_BASE_URL = process.env.OBRA_NA_MAO_PLATFORM_URL || process.env.FLUXO_DRE_PLATFORM_URL || 'https://obra-na-mao-comercial.nutricionistaalmeidavh.workers.dev'
 const CONFIG_FILE = 'online-connection.json'
 
 class OnlineService {
