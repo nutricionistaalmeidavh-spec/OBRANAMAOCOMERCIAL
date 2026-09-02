@@ -9,14 +9,17 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "obra-na-mao-comercial",
+      "database_id": "84bdb01f-94f6-4fb4-8c42-7bcdab0ac12a"
+    }
+  ],
   "vars": {
     "OWNER_EMAIL": "nutricionistaalmeidavh@gmail.com",
     "OWNER_COMPANY": "Obra na Mão",
     "OWNER_PROJECT": "Operação Comercial",
     "OWNER_CUSTOMER": "Obra na Mão"
   }
-
-  // D1 e R2 entram aqui depois que os recursos forem criados na conta.
-  // O primeiro deploy fica propositalmente sem IDs hardcoded para permitir
-  // que o frontend/PWA seja publicado imediatamente pelo Git.
 }
