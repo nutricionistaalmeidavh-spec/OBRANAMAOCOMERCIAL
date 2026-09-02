@@ -1,4 +1,4 @@
-import { api } from '@appdeploy/client';
+import { api } from './cloudflare-client';
 import { getLearningGamesRuntime, type PracticeLearningSignal, type DailyPracticeChallenge } from './learning-games-loader';
 
 type Participant = { name: string; email?: string | null; skillLevels?: Record<string, string>; skillConfidence?: Record<string, number>; unitProgress?: Record<string, { attempts?: number; correct?: number; errors?: number }> };
