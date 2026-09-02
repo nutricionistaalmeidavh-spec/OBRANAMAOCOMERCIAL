@@ -94,11 +94,13 @@ async function renderCorporatePortal(){
       portalShell(user.name||user.email||'Usuário','Credencial provisória pendente','<article class="mh-empty"><h3>Ativar credencial</h3><p>Informe o código provisório fornecido pelo administrador.</p><input id="platformCode" maxlength="8" placeholder="CÓDIGO"><button id="claimPlatform" class="mh-primary">Ativar acesso</button></article>');
       document.getElementById('claimPlatform')?.addEventListener('click',async()=>{try{const code=(document.getElementById('platformCode') as HTMLInputElement).value.trim().toUpperCase();await api.post('/api/platform/claim',{code});await renderCorporatePortal()}catch(e){toast(apiErr(e))}});return
     }
-    let university=false;try{const edu=(await api.get('/api/edu/central-grant')).data as {token:string};localStorage.setItem(SESSION,edu.token);university=true}catch{localStorage.removeItem(SESSION)}
     const systems=pa?.systems;let cards='';
     if(systems?.gestao?.enabled&&!b.needsClaim)cards+=card('gestao','Gestão / FluxoDRE','RH, documentos, contratos, compras, medições e visão administrativa.','./gestao.html#gestao','▥',systems.gestao.role);
     if(systems?.obra360?.enabled&&!b.needsClaim)cards+=card('obra','Obra360','Dias, frentes, equipe, tarefas, RDO e rotina de campo.','./obra.html#obra','⌂',systems.obra360.role);
-    if(systems?.universidade?.enabled&&university)cards+=card('universidade','Universidade Empresarial','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱',systems.universidade.role);
+    // O portal exibe a Universidade pela permissão da plataforma. A própria Universidade
+    // cria/recupera a sessão educacional ao abrir, evitando esconder o módulo por uma
+    // falha transitória na criação antecipada da sessão.
+    if(systems?.universidade?.enabled)cards+=card('universidade','Universidade Empresarial','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱',systems.universidade.role);
     if(b.platformRole==='superadmin'||b.isOwner)cards+=card('acessos','Administração de acessos','Usuários, perfis, empresas, obras e sessões.','./index.html#owner','◇','superadmin');
     if(b.needsClaim)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
     if(!cards)cards='<article class="mh-empty"><h3>Nenhum sistema liberado</h3><p>Seu login está válido, mas ainda não há módulos liberados para este perfil.</p></article>';
