@@ -94,7 +94,7 @@ async function readEntry(state: ZipState, entry: ZipEntry): Promise<Uint8Array> 
     const start = entry.offset + 30 + nameLen + extraLen;
     return decodeEntry(entry, new Uint8Array(state.buffer, start, entry.compressedSize));
   }
-  const headerResponse = await fetchWithTimeout({ headers: { Range: `bytes=${entry.offset}-${entry.offset + 29}` } });
+  const headerResponse = await fetchWithTimeout(ZIP_URL, { headers: { Range: `bytes=${entry.offset}-${entry.offset + 29}` } });
   if (!headerResponse.ok) throw new Error('Falha ao carregar imagem de apoio');
   const header = new Uint8Array(await headerResponse.arrayBuffer());
   if (header.length < 30 || new DataView(header.buffer).getUint32(0, true) !== 0x04034b50) throw new Error('Cabeçalho ZIP inválido');
@@ -102,7 +102,7 @@ async function readEntry(state: ZipState, entry: ZipEntry): Promise<Uint8Array> 
   const nameLen = headerView.getUint16(26, true);
   const extraLen = headerView.getUint16(28, true);
   const start = entry.offset + 30 + nameLen + extraLen;
-  const bodyResponse = await fetchWithTimeout({ headers: { Range: `bytes=${start}-${start + entry.compressedSize - 1}` } });
+  const bodyResponse = await fetchWithTimeout(ZIP_URL, { headers: { Range: `bytes=${start}-${start + entry.compressedSize - 1}` } });
   if (!bodyResponse.ok) throw new Error('Falha ao carregar imagem de apoio');
   return decodeEntry(entry, new Uint8Array(await bodyResponse.arrayBuffer()));
 }
@@ -110,7 +110,7 @@ async function readEntry(state: ZipState, entry: ZipEntry): Promise<Uint8Array> 
 async function loadState(): Promise<ZipState> {
   if (statePromise) return statePromise;
   statePromise = (async () => {
-    const tailResponse = await fetchWithTimeout({ headers: { Range: `bytes=-${RANGE_TAIL_SIZE}` } });
+    const tailResponse = await fetchWithTimeout(ZIP_URL, { headers: { Range: `bytes=-${RANGE_TAIL_SIZE}` } });
     if (!tailResponse.ok) throw new Error('Falha ao carregar apoios visuais');
     const tail = await tailResponse.arrayBuffer();
     if (tailResponse.status === 206) {
@@ -123,7 +123,7 @@ async function loadState(): Promise<ZipState> {
       if (end.centralOffset >= tailStart && centralEnd < tailStart + tail.byteLength) {
         central = tail.slice(end.centralOffset - tailStart, end.centralOffset - tailStart + end.centralSize);
       } else {
-        const response = await fetchWithTimeout({ headers: { Range: `bytes=${end.centralOffset}-${centralEnd}` } });
+        const response = await fetchWithTimeout(ZIP_URL, { headers: { Range: `bytes=${end.centralOffset}-${centralEnd}` } });
         if (!response.ok) throw new Error('Falha ao carregar índice visual');
         central = await response.arrayBuffer();
       }
