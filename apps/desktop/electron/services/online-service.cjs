@@ -3,7 +3,7 @@ const os = require('node:os')
 const path = require('node:path')
 const crypto = require('node:crypto')
 
-const DEFAULT_BASE_URL = process.env.FLUXO_DRE_PLATFORM_URL || 'https://fluxodre-campo-b2u-clbfo5.v2.appdeploy.ai'
+const DEFAULT_BASE_URL = process.env.OBRA_NA_MAO_PLATFORM_URL || process.env.FLUXO_DRE_PLATFORM_URL || ''
 const CONFIG_FILE = 'online-connection.json'
 
 class OnlineService {
@@ -12,9 +12,10 @@ class OnlineService {
     this.shell = shell
     this.safeStorage = safeStorage
     this.fetchImpl = fetchImpl
-    this.baseUrl = String(baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '')
     this.configPath = path.join(dataDir, CONFIG_FILE)
     fs.mkdirSync(dataDir, { recursive: true })
+    const saved = this.readConfig().baseUrl
+    this.baseUrl = String(saved || baseUrl || DEFAULT_BASE_URL).trim().replace(/\/$/, '')
   }
 
   readConfig() {
@@ -77,7 +78,24 @@ class OnlineService {
     }
   }
 
+  setBaseUrl(value) {
+    const next = String(value || '').trim().replace(/\/$/, '')
+    if (!/^https?:\/\//i.test(next)) throw new Error('Informe uma URL online válida, começando por https://.')
+    const current = this.readConfig()
+    const changed = this.baseUrl && this.baseUrl !== next
+    this.baseUrl = next
+    if (changed) {
+      delete current.tokenValue
+      delete current.tokenEncoding
+      delete current.linkedAt
+      delete current.pending
+    }
+    fs.writeFileSync(this.configPath, JSON.stringify({ ...current, baseUrl: next, updatedAt: new Date().toISOString() }, null, 2), { mode: 0o600 })
+    return this.state()
+  }
+
   async request(route, payload) {
+    if (!this.baseUrl) throw new Error('Configure o endereço online do Obra na Mão em Configurações.')
     if (typeof this.fetchImpl !== 'function') throw new Error('Este ambiente não possui suporte HTTP.')
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15000)
