@@ -196,6 +196,31 @@ function sameOriginReturn(request:Request,value:string|null){
   if(!value)return origin+'/';
   try{const u=new URL(value,origin);return u.origin===origin?u.toString():origin+'/'}catch{return origin+'/'}
 }
+async function authConfig(){
+  const clientId=cleanEnvValue(runtimeEnv().GOOGLE_CLIENT_ID);
+  return json({googleClientId:clientId});
+}
+
+async function authGoogleCredential(request:Request){
+  const env=runtimeEnv(),clientId=cleanEnvValue(env.GOOGLE_CLIENT_ID);
+  if(!clientId)return error('GOOGLE_CLIENT_ID não configurado.',503);
+  let body:Record<string,unknown>={};
+  try{body=await request.json() as Record<string,unknown>}catch{return error('Credencial Google ausente.',400)}
+  const idToken=String(body.credential||body.idToken||'');
+  if(!idToken)return error('Credencial Google ausente.',400);
+  const infoResp=await fetch('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(idToken));
+  const info=await infoResp.json() as Record<string,unknown>;
+  if(!infoResp.ok||String(info.aud||'')!==clientId||String(info.email_verified||'')!=='true')return error('Identidade Google inválida.',401);
+  const sessionId=id()+id(),expiresAt=new Date(Date.now()+7*24*60*60*1000).toISOString();
+  const email=String(info.email||'').toLowerCase(),name=String(info.name||'');
+  await env.DB.prepare('INSERT INTO auth_sessions(id,user_id,email,name,expires_at,created_at) VALUES(?,?,?,?,?,?)')
+    .bind(sessionId,String(info.sub||email),email,name,expiresAt,now()).run();
+  const headers=new Headers({'content-type':'application/json; charset=utf-8','cache-control':'no-store'});
+  headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`);
+  headers.append('set-cookie','obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=604800');
+  return new Response(JSON.stringify({ok:true,user:{userId:String(info.sub||email),email,name}}),{status:200,headers});
+}
+
 async function authStart(request:Request){
   const env=runtimeEnv(),clientId=cleanEnvValue(env.GOOGLE_CLIENT_ID);
   if(!clientId)return error('GOOGLE_CLIENT_ID não configurado.',503);
@@ -261,7 +286,7 @@ async function healthResponse(env:RuntimeEnv){
   const bindings={
     d1:!!dbBinding,
     r2:!!env.FILES,
-    googleOAuth:!!(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET),
+    googleOAuth:!!cleanEnvValue(env.GOOGLE_CLIENT_ID),
     gemini:!!env.GEMINI_API_KEY,
     owner:!!env.OWNER_EMAIL
   };
@@ -300,6 +325,8 @@ export function router(routes:RouterRoutes){
       return runtime.run({env,request},async()=>{
         const url=new URL(request.url);
         if(url.pathname==='/api/health'&&request.method==='GET')return healthResponse(env);
+        if(url.pathname==='/api/auth/config'&&request.method==='GET')return authConfig();
+        if(url.pathname==='/api/auth/google-credential'&&request.method==='POST')return authGoogleCredential(request);
         if(url.pathname==='/api/auth/start'&&request.method==='GET')return authStart(request);
         if(url.pathname==='/api/auth/callback'&&request.method==='GET')return authCallback(request);
         if(url.pathname==='/api/auth/me'&&request.method==='GET')return authMe(request);
