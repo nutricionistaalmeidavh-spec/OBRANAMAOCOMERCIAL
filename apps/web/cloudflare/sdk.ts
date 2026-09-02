@@ -273,6 +273,7 @@ async function healthResponse(env:RuntimeEnv){
     readyForDesktopAi:bindings.d1&&schemaReady&&bindings.gemini,
     readyForFileImports:bindings.d1&&schemaReady&&bindings.r2,
     bindings,
+    // OAuth runtime diagnostics; remove after validation.
     googleClientIdPresent: !!env.GOOGLE_CLIENT_ID,
     googleClientSecretPresent: !!env.GOOGLE_CLIENT_SECRET,
     googleClientIdFormatValid: /^\d+-[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/.test(cleanEnvValue(env.GOOGLE_CLIENT_ID)),
