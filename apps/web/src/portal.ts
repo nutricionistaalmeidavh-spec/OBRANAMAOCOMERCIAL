@@ -8,7 +8,6 @@ type Bootstrap={needsClaim:boolean;authorized?:boolean;isOwner?:boolean;platform
 type Participant={id:string;name:string;phone:string;email?:string|null;jobRole:string;mustChangePassword:boolean};
 
 const SESSION='obn-edu-session';
-const FINANCE_URL='./index.html#finance';
 const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
 const digits=(v:string)=>v.replace(/\D/g,'');
 const apiErr=(e:unknown)=>{const x=e as {response?:{data?:{error?:string;message?:string}};message?:string};return x.response?.data?.error||x.response?.data?.message||x.message||'Não foi possível concluir.'};
@@ -22,7 +21,7 @@ function publicHome(){
   setBody(`<header class="mh-public-head">${brand()}<button id="openAccess" class="mh-primary">Acessar plataforma</button></header>
   <main class="mh-public-main">
     <section class="mh-hero">
-      <div><small>PLATAFORMA MODULAR PARA CONSTRUÇÃO</small><h1>Campo, gestão, financeiro e capacitação em um único ecossistema.</h1><p>Entre com sua conta corporativa ou, quando habilitado pela empresa, use o acesso de colaborador por celular.</p><div class="mh-hero-actions"><button id="googleLogin" class="mh-primary">Entrar com Google</button></div></div>
+      <div><small>PLATAFORMA MODULAR PARA CONSTRUÇÃO</small><h1>Campo, gestão e capacitação conectados ao financeiro do Desktop.</h1><p>Entre com sua conta corporativa ou, quando habilitado pela empresa, use o acesso de colaborador por celular.</p><div class="mh-hero-actions"><button id="googleLogin" class="mh-primary">Entrar com Google</button></div></div>
       <div class="mh-login-pop open" style="position:relative;inset:auto;transform:none;opacity:1;visibility:visible">
         <small>ACESSO POR CELULAR</small><h2>Colaborador</h2>
         <form id="phoneLogin">
@@ -36,7 +35,6 @@ function publicHome(){
     <section class="mh-resource-grid">
       ${card('gestao','Gestão / FluxoDRE','Administração, RH, documentos, contratos, compras e indicadores.','javascript:void(0)','▥')}
       ${card('obra','Obra360','Dias, frentes, equipe, tarefas, presença, RDO e planejamento.','javascript:void(0)','⌂')}
-      ${card('finance','Financeiro Inteligente','Extratos, conciliação, obrigações e análise financeira estruturada.','javascript:void(0)','◫')}
       ${card('universidade','Universidade Empresarial','Capacitação progressiva, exercícios e trilhas de desenvolvimento.','javascript:void(0)','▱')}
     </section>
   </main>`);
@@ -99,7 +97,6 @@ async function renderCorporatePortal(){
     let university=false;try{const edu=(await api.get('/api/edu/central-grant')).data as {token:string};localStorage.setItem(SESSION,edu.token);university=true}catch{localStorage.removeItem(SESSION)}
     const systems=pa?.systems;let cards='';
     if(systems?.gestao?.enabled&&!b.needsClaim)cards+=card('gestao','Gestão / FluxoDRE','RH, documentos, contratos, compras, medições e visão administrativa.','./gestao.html#gestao','▥',systems.gestao.role);
-    if(systems?.finance?.enabled&&!b.needsClaim)cards+=card('finance','Financeiro Inteligente','Extratos, conciliação bancária e obrigações integradas ao FluxoDRE.',FINANCE_URL,'◫',systems.finance.role);
     if(systems?.obra360?.enabled&&!b.needsClaim)cards+=card('obra','Obra360','Dias, frentes, equipe, tarefas, RDO e rotina de campo.','./obra.html#obra','⌂',systems.obra360.role);
     if(systems?.universidade?.enabled&&university)cards+=card('universidade','Universidade Empresarial','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱',systems.universidade.role);
     if(b.platformRole==='superadmin'||b.isOwner)cards+=card('acessos','Administração de acessos','Usuários, perfis, empresas, obras e sessões.','./index.html#owner','◇','superadmin');
