@@ -138,6 +138,86 @@ export const ai = {
 export const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 export const error=(message:string,status=400)=>json({error:message},status);
 
+export const AUTH_SESSION_TTL_MS=24*60*60*1000;
+export const AUTH_SESSION_MAX_AGE_SECONDS=Math.floor(AUTH_SESSION_TTL_MS/1000);
+export type RateLimitPolicy={scope:string;limit:number;windowSeconds:number};
+
+export function rateLimitPolicy(method:string,pathname:string):RateLimitPolicy|null{
+  const key=method.toUpperCase()+' '+pathname;
+  const exact:Record<string,RateLimitPolicy>={
+    'POST /api/auth/google-credential':{scope:'auth-google',limit:12,windowSeconds:600},
+    'GET /api/auth/start':{scope:'auth-start',limit:30,windowSeconds:600},
+    'POST /api/edu/login':{scope:'edu-login',limit:10,windowSeconds:600},
+    'POST /api/edu/first-access':{scope:'edu-first-access',limit:6,windowSeconds:900},
+    'POST /api/edu/access-status':{scope:'edu-access-status',limit:20,windowSeconds:600},
+    'POST /api/platform/claim':{scope:'platform-claim',limit:10,windowSeconds:900},
+    'POST /api/access/claim':{scope:'member-claim',limit:10,windowSeconds:900},
+    'POST /api/license/claim':{scope:'license-claim',limit:10,windowSeconds:900},
+    'POST /api/bootstrap/claim':{scope:'bootstrap-claim',limit:8,windowSeconds:900},
+    'POST /api/desktop/start':{scope:'desktop-start',limit:20,windowSeconds:300},
+    'POST /api/desktop/status':{scope:'desktop-status',limit:60,windowSeconds:300},
+    'POST /api/desktop/approve':{scope:'desktop-approve',limit:20,windowSeconds:300}
+  };
+  return exact[key]||null;
+}
+
+export function sameOriginMutationAllowed(request:Request){
+  if(['GET','HEAD','OPTIONS'].includes(request.method.toUpperCase()))return true;
+  const hasSession=(request.headers.get('cookie')||'').split(';').some(part=>part.trim().startsWith('obn_session='));
+  if(!hasSession)return true;
+  if((request.headers.get('sec-fetch-site')||'').toLowerCase()==='cross-site')return false;
+  const origin=request.headers.get('origin');
+  if(!origin)return true;
+  try{return new URL(origin).origin===new URL(request.url).origin}catch{return false}
+}
+
+function shortHash(value:string){
+  let h=2166136261;
+  for(let i=0;i<value.length;i++){h^=value.charCodeAt(i);h=Math.imul(h,16777619)}
+  return (h>>>0).toString(16);
+}
+let rateLimitSchemaReady=false;
+async function ensureRateLimitSchema(env:RuntimeEnv){
+  if(rateLimitSchemaReady)return;
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS api_rate_limits (
+    key TEXT NOT NULL,
+    bucket INTEGER NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (key,bucket)
+  )`).run();
+  rateLimitSchemaReady=true;
+}
+async function enforceRateLimit(request:Request,env:RuntimeEnv){
+  const url=new URL(request.url),policy=rateLimitPolicy(request.method,url.pathname);
+  if(!policy)return null;
+  await ensureRateLimitSchema(env);
+  const nowSeconds=Math.floor(Date.now()/1000),bucket=Math.floor(nowSeconds/policy.windowSeconds);
+  const rawIp=(request.headers.get('cf-connecting-ip')||request.headers.get('x-forwarded-for')||'unknown').split(',')[0].trim();
+  const key=policy.scope+':'+shortHash(rawIp);
+  await env.DB.prepare(`INSERT INTO api_rate_limits(key,bucket,count,updated_at) VALUES(?,?,1,?)
+    ON CONFLICT(key,bucket) DO UPDATE SET count=count+1,updated_at=excluded.updated_at`)
+    .bind(key,bucket,new Date().toISOString()).run();
+  const row=await env.DB.prepare('SELECT count FROM api_rate_limits WHERE key=? AND bucket=?').bind(key,bucket).first<{count:number}>();
+  const count=Math.max(1,Number(row?.count||1)),remaining=Math.max(0,policy.limit-count);
+  if(count<=policy.limit)return null;
+  const retryAfter=Math.max(1,policy.windowSeconds-(nowSeconds%policy.windowSeconds));
+  const response=error('Muitas tentativas. Aguarde antes de tentar novamente.',429);
+  response.headers.set('retry-after',String(retryAfter));
+  response.headers.set('x-ratelimit-limit',String(policy.limit));
+  response.headers.set('x-ratelimit-remaining',String(remaining));
+  return response;
+}
+function secureResponse(response:Response){
+  response.headers.set('x-content-type-options','nosniff');
+  response.headers.set('x-frame-options','DENY');
+  response.headers.set('referrer-policy','same-origin');
+  response.headers.set('permissions-policy','camera=(), microphone=(), geolocation=()');
+  response.headers.set('cross-origin-opener-policy','same-origin');
+  response.headers.set('content-security-policy',"default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+  return response;
+}
+
 function cookie(request:Request,name:string){
   const raw=request.headers.get('cookie')||'';
   for(const part of raw.split(';')){const [k,...v]=part.trim().split('=');if(k===name)return decodeURIComponent(v.join('='))}
@@ -149,7 +229,8 @@ async function userFromRequest(request:Request):Promise<AuthUser|null>{
   const row=await runtimeEnv().DB.prepare(
     'SELECT user_id,email,name,expires_at FROM auth_sessions WHERE id=?'
   ).bind(sessionId).first<{user_id:string;email:string;name:string;expires_at:string}>();
-  if(!row||row.expires_at<now())return null;
+  if(!row)return null;
+  if(row.expires_at<now()){await runtimeEnv().DB.prepare('DELETE FROM auth_sessions WHERE id=?').bind(sessionId).run();return null}
   return {userId:row.user_id,email:row.email,name:row.name||undefined};
 }
 export const requireAuth=():Middleware=>async ctx=>{
@@ -211,13 +292,13 @@ async function authGoogleCredential(request:Request){
   const infoResp=await fetch('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(idToken));
   const info=await infoResp.json() as Record<string,unknown>;
   if(!infoResp.ok||String(info.aud||'')!==clientId||String(info.email_verified||'')!=='true')return error('Identidade Google inválida.',401);
-  const sessionId=id()+id(),expiresAt=new Date(Date.now()+7*24*60*60*1000).toISOString();
+  const sessionId=id()+id(),expiresAt=new Date(Date.now()+AUTH_SESSION_TTL_MS).toISOString();
   const email=String(info.email||'').toLowerCase(),name=String(info.name||'');
   await env.DB.prepare('INSERT INTO auth_sessions(id,user_id,email,name,expires_at,created_at) VALUES(?,?,?,?,?,?)')
     .bind(sessionId,String(info.sub||email),email,name,expiresAt,now()).run();
   const headers=new Headers({'content-type':'application/json; charset=utf-8','cache-control':'no-store'});
-  headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`);
-  headers.append('set-cookie','obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=604800');
+  headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}`);
+  headers.append('set-cookie','obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}');
   return new Response(JSON.stringify({ok:true,user:{userId:String(info.sub||email),email,name}}),{status:200,headers});
 }
 
@@ -260,12 +341,12 @@ async function authCallback(request:Request){
   const infoResp=await fetch('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(idToken));
   const info=await infoResp.json() as Record<string,unknown>;
   if(!infoResp.ok||String(info.aud||'')!==clientId||String(info.email_verified||'')!=='true')return error('Identidade Google inválida.',401);
-  const sessionId=id()+id(),expiresAt=new Date(Date.now()+7*24*60*60*1000).toISOString();
+  const sessionId=id()+id(),expiresAt=new Date(Date.now()+AUTH_SESSION_TTL_MS).toISOString();
   await env.DB.prepare('INSERT INTO auth_sessions(id,user_id,email,name,expires_at,created_at) VALUES(?,?,?,?,?,?)')
     .bind(sessionId,String(info.sub||info.email),String(info.email||'').toLowerCase(),String(info.name||''),expiresAt,now()).run();
   const headers=new Headers({location:stateRow.return_to});
-  headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`);
-  headers.append('set-cookie','obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=604800');
+  headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}`);
+  headers.append('set-cookie','obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}');
   return new Response(null,{status:302,headers});
 }
 async function authMe(request:Request){
@@ -307,12 +388,6 @@ async function healthResponse(env:RuntimeEnv){
     readyForDesktopAi:bindings.d1&&schemaReady&&bindings.gemini,
     readyForFileImports:bindings.d1&&schemaReady&&bindings.r2,
     bindings,
-    // OAuth runtime diagnostics; remove after validation.
-    googleClientIdPresent: !!env.GOOGLE_CLIENT_ID,
-    googleClientSecretPresent: !!env.GOOGLE_CLIENT_SECRET,
-    googleClientIdFormatValid: /^\d+-[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/.test(cleanEnvValue(env.GOOGLE_CLIENT_ID)),
-    googleClientIdHasWhitespace: cleanEnvValue(env.GOOGLE_CLIENT_ID)!==String(env.GOOGLE_CLIENT_ID||''),
-    googleClientIdHasOuterQuotes: /^["']|["']$/.test(cleanEnvValue(env.GOOGLE_CLIENT_ID)),
     schemaReady,
     ...(dbError?{dbError}:{}),
     checkedAt:new Date().toISOString()
@@ -323,23 +398,28 @@ export function router(routes:RouterRoutes){
   return {
     async fetch(request:Request,env:RuntimeEnv,_ctx?:WaitUntilContext){
       return runtime.run({env,request},async()=>{
-        const url=new URL(request.url);
-        if(url.pathname==='/api/health'&&request.method==='GET')return healthResponse(env);
-        if(url.pathname==='/api/auth/config'&&request.method==='GET')return authConfig();
-        if(url.pathname==='/api/auth/google-credential'&&request.method==='POST')return authGoogleCredential(request);
-        if(url.pathname==='/api/auth/start'&&request.method==='GET')return authStart(request);
-        if(url.pathname==='/api/auth/callback'&&request.method==='GET')return authCallback(request);
-        if(url.pathname==='/api/auth/me'&&request.method==='GET')return authMe(request);
-        if(url.pathname==='/api/auth/logout'&&request.method==='POST')return authLogout(request);
-        const matched=matchRoute(routes,request.method,url.pathname);
-        if(!matched)return error('Rota não encontrada.',404);
-        const query=Object.fromEntries(url.searchParams.entries()),body=await requestBody(request);
-        const context:RouterContext={request,env,query,params:matched.params,body};
-        for(const middleware of matched.stack){
-          const response=await middleware(context);
-          if(response instanceof Response)return response;
-        }
-        return error('Rota sem resposta.',500);
+        const execute=async()=>{
+          const url=new URL(request.url);
+          if(!sameOriginMutationAllowed(request))return error('Origem da requisição não autorizada.',403);
+          const limited=await enforceRateLimit(request,env);if(limited)return limited;
+          if(url.pathname==='/api/health'&&request.method==='GET')return healthResponse(env);
+          if(url.pathname==='/api/auth/config'&&request.method==='GET')return authConfig();
+          if(url.pathname==='/api/auth/google-credential'&&request.method==='POST')return authGoogleCredential(request);
+          if(url.pathname==='/api/auth/start'&&request.method==='GET')return authStart(request);
+          if(url.pathname==='/api/auth/callback'&&request.method==='GET')return authCallback(request);
+          if(url.pathname==='/api/auth/me'&&request.method==='GET')return authMe(request);
+          if(url.pathname==='/api/auth/logout'&&request.method==='POST')return authLogout(request);
+          const matched=matchRoute(routes,request.method,url.pathname);
+          if(!matched)return error('Rota não encontrada.',404);
+          const query=Object.fromEntries(url.searchParams.entries()),body=await requestBody(request);
+          const context:RouterContext={request,env,query,params:matched.params,body};
+          for(const middleware of matched.stack){
+            const response=await middleware(context);
+            if(response instanceof Response)return response;
+          }
+          return error('Rota sem resposta.',500);
+        };
+        return secureResponse(await execute());
       });
     }
   };
