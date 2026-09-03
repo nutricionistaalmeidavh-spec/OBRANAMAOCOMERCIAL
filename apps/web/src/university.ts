@@ -1,6 +1,5 @@
 import { api, auth } from './cloudflare-client';
 import './university.css';
-import { hydrateQuestionVisuals } from './question-image-loader-v2';
 import { hasQuestionVisual } from './question-visual-index';
 import { evaluateLessonAnswer, lessonAccessViewModel, lessonAttemptFeedback, lessonFeedbackViewModel } from './lesson-feedback';
 import { T, AREAS, MATERIAL_SOURCES, sourceRefs, AUDIT_ROWS, CONTENT, CALIBRATION_BANK, LEVEL_GUIDE, selectQuestions } from './curriculum';
@@ -12,13 +11,13 @@ import { journeyHeadline, journeyStageViews, sessionEstimate } from './journey-v
 import { checkpointEvidence, checkpointLabel, selectReinforcementQuestions, shouldReinforce, type FirstTryResult, type LessonCheckpoint } from './lesson-adaptation';
 import { accountMismatchMessage, destinationAfterAuthentication, googleLoginError, loginMethod, shouldRecoverWithGoogle } from './auth-flow';
 import { competencySummary, getNextLearningAction, getProgressLabel, type LearningUnit } from './learning-state';
-import { navigationItems } from './navigation-model';
 import { selectSupportExcerpt } from './support-selector';
 import { progressMetrics } from './progress-metrics';
 import { canAccessAdmin as canAccessAdminRole, canManageRoles as canManageRolesRule } from './rules';
 import { SUPPORT_MATERIALS } from './support-materials';
 import { adminFailureDetail, adminGroupLabel, educationRoleLabel } from './admin-rh-model';
 import { createPracticeUi } from './practice-ui';
+import { createUniversityShell } from './university-shell';
 // Mantém identificadores pedagógicos legados no banco, mas neutraliza nomenclatura
 // técnica antes de qualquer renderização para o colaborador.
 for (const area of AREAS as Array<{ name: string }>) {
@@ -70,41 +69,9 @@ let me: {
 } | null = null;
 const S = 'mh-edu-session', L = ['N1', 'N2', 'N3', 'N4', 'N5'];
 const tok = () => localStorage.getItem(S) || '', done = () => new Set(me?.participant.completedUnits || []), admin = () => canAccessAdminRole(me?.participant.role), canManageRoles = () => canManageRolesRule(me?.participant.role), all = () => T.flatMap(t => L.map((l, i) => ({ id: t[0] + '-' + l, t: t[0], n: t[1], i: t[2], l, k: i + 1 })));
+const shell = createUniversityShell({ participant: () => me?.participant || null, onNavigate: id => go(id) });
+const say = shell.notify, message = shell.errorMessage, ui = shell.render;
 const practiceUi = createPracticeUi({ token: tok, participant: () => me?.participant || null, render: (title, html, nav) => ui(title, html, nav), notify: say, errorMessage: message });
-function say(x: string) { let e = document.getElementById('eduToast'); if (!e) {
-    e = document.createElement('div');
-    e.id = 'eduToast';
-    document.body.append(e);
-} e.textContent = x; e.className = 'edu-toast show'; setTimeout(() => e?.classList.remove('show'), 2500); }
-function message(x: unknown) { const q = x as {
-    response?: {
-        data?: {
-            error?: string;
-            message?: string;
-        };
-    };
-    message?: string;
-    code?: string;
-}; return q.response?.data?.error || q.response?.data?.message || q.message || q.code || 'Não foi possível concluir o acesso.'; }
-type GuideContext = 'home' | 'tracks' | 'lesson' | 'diagnostic' | 'development' | 'tasks';
-function guideCopy(context: GuideContext) {
-    return ({
-        home: ['Um passo de cada vez', 'Sua próxima atividade já está pronta.'],
-        tracks: ['Escolha seu próximo passo', 'A recomendação fica em destaque.'],
-        lesson: ['Você consegue', 'Leia o apoio e tente no seu ritmo.'],
-        diagnostic: ['Vamos começar', 'Não é prova: é só um ponto de partida.'],
-        development: ['Seu caminho aparece aqui', 'Cada atividade fortalece uma habilidade.'],
-        tasks: ['Tarefa de hoje', 'Poucos minutos já contam.']
-    } as Record<GuideContext, [string, string]>)[context];
-}
-function guideHtml(context: GuideContext, compact = false) { const [title, text] = guideCopy(context); return '<aside class="edu-mh-guide ' + (compact ? 'edu-mh-guide--compact' : '') + '" data-guide-context="' + context + '"><div class="edu-mh-avatar" aria-hidden="true"><img class="edu-mh-frame" src="./guide/mh-neutral.webp" alt=""></div><div class="edu-mh-bubble"><small>GUIA MH</small><strong>' + title + '</strong><p>' + text + '</p></div></aside>'; }
-function inferredGuide(a: string, h: string): GuideContext | undefined { if (a === 'tarefas') return 'tasks'; if (a === 'diagnostico') return 'diagnostic'; if (a === 'evolucao') return 'development'; if (a === 'trilhas' && !h.includes('edu-area-hero')) return h.includes('edu-lesson') || h.includes('edu-question-support') ? 'lesson' : 'tracks'; return undefined; }
-function upgradeLegacyGuide(root: ParentNode = document) { root.querySelectorAll<HTMLElement>('.edu-mh-mascot').forEach(node => { node.className = 'edu-mh-avatar'; node.innerHTML = '<img class="edu-mh-frame" src="./guide/mh-neutral.webp" alt="">'; }); }
-function addPortalLink(root: ParentNode = document) { const header = root.querySelector('.edu-top'); if (header && !header.querySelector('.edu-portal-link')) header.insertAdjacentHTML('beforeend', '<a class="edu-portal-link" href="./index.html#portal" aria-label="Voltar ao Portal MH">Portal MH</a>'); }
-function pageContent(h: string, guide?: GuideContext) { if (guide === 'home') { const marker = '<section class="edu-home-journey">'; const end = '</section>'; const start = h.indexOf(marker); if (start >= 0) { const close = h.indexOf(end, start) + end.length; return h.slice(0, start) + '<div class="edu-home-overview">' + h.slice(start, close) + guideHtml('home') + '</div>' + h.slice(close); } } return (guide ? guideHtml(guide, true) : '') + h; }
-function arrangeHomeGuide(root: ParentNode = document) { const guide = root.querySelector<HTMLElement>('.edu-mh-guide[data-guide-context="home"]'); const journey = root.querySelector<HTMLElement>('.edu-home-journey'); if (!guide || !journey || journey.parentElement?.classList.contains('edu-home-overview')) return; const wrap = document.createElement('div'); wrap.className = 'edu-home-overview'; journey.parentNode?.insertBefore(wrap, journey); wrap.append(journey, guide); }
-function bindGuideAnimation(root: ParentNode = document) { const img = root.querySelector<HTMLImageElement>('.edu-mh-frame'); if (!img || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; const frames = ['./guide/mh-neutral.webp', './guide/mh-blink.webp', './guide/mh-wave.webp', './guide/mh-breathe.webp']; frames.slice(1).forEach(src => { const preload = new Image(); preload.src = src; }); let index = 0; window.setInterval(() => { if (!document.body.contains(img)) return; index = (index + 1) % frames.length; img.src = frames[index]; }, 1800); }
-function ui(title: string, h: string, a = 'inicio', guide?: GuideContext) { const nav = navigationItems({ diagnosticCompleted: !!me?.participant.diagnosticCompletedAt, role: me?.participant.role }); const pageGuide = guide || inferredGuide(a, h); document.body.className = 'edu-body'; document.body.innerHTML = '<div class="edu-app"><aside class="edu-side"><div class="edu-brand"><b>MH</b><span>INSTALAÇÕES<br>HIDRÁULICAS</span></div><nav aria-label="Navegação principal">' + nav.map(x => '<button data-nav="' + x.id + '" class="' + (a === x.id ? 'active' : '') + '" ' + (a === x.id ? 'aria-current="page"' : '') + '>' + x.label + '</button>').join('') + '</nav></aside><main><header class="edu-top"><strong>' + title + '</strong><span>' + me?.participant.name + '<small>' + me?.participant.jobRole + '</small></span></header><section class="edu-content">' + pageContent(h, pageGuide) + '</section></main></div><div id="eduToast" class="edu-toast" role="status" aria-live="polite"></div>'; upgradeLegacyGuide(document); arrangeHomeGuide(document); addPortalLink(document); document.querySelectorAll<HTMLElement>('[data-nav]').forEach(x => x.onclick = () => go(x.dataset.nav || 'inicio')); bindGuideAnimation(document); void hydrateQuestionVisuals(document); }
 function afterAuth() { if (!me)
     return login(); const destination = destinationAfterAuthentication(me.participant); if (destination === 'password-change')
     return passwordChange(); if (destination === 'welcome')
