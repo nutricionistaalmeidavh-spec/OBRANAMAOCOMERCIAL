@@ -30,9 +30,15 @@ if(expected){
   if(observed!==expected)throw new Error('Production did not reach expected commit '+expected.slice(0,12)+' within '+Math.round(waitMs/1000)+'s; last observed '+(observed||'none').slice(0,12));
 }
 
+const buildMeta=await json('/build-meta.json?ts='+Date.now());
+if(!buildMeta.response.ok)throw new Error('/build-meta.json failed: HTTP '+buildMeta.response.status);
+if(!String(buildMeta.data.appVersion||''))throw new Error('Production build metadata is missing appVersion');
+
 const health=await json('/api/health?ts='+Date.now());
 if(!health.response.ok)throw new Error('/api/health failed: HTTP '+health.response.status);
 if(health.data.ok!==true)throw new Error('/api/health is not healthy: '+JSON.stringify(health.data).slice(0,300));
+if(String(health.data.appVersion||'')!==String(buildMeta.data.appVersion||''))throw new Error('Worker/static app version mismatch');
+if(Number(health.data.dbSchemaVersion||0)<2)throw new Error('Production reports an outdated DB schema contract');
 
 const university=await get('/universidade.html?ts='+Date.now());
 if(!university.ok)throw new Error('/universidade.html failed: HTTP '+university.status);
@@ -57,6 +63,8 @@ console.log('Production smoke passed:',{
   base,
   sha:expected?expected.slice(0,12):'not-enforced',
   health:true,
+  appVersion:String(health.data.appVersion||''),
+  dbSchemaVersion:Number(health.data.dbSchemaVersion||0),
   university:true,
   questionVisuals:visualEntries.length,
   protectedRoute:true
