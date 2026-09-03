@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - 'apps/web/**'
+      - '.github/workflows/commercial-cloudflare-ci.yml'
 
 permissions:
   contents: read
@@ -28,6 +29,8 @@ jobs:
           node-version: 22
       - name: Install web dependencies
         run: npm install --no-audit --no-fund
+      - name: Test critical web flows
+        run: npm test
       - name: Verify canonical university question images
         run: npm run assets:verify
       - name: Build static application
@@ -36,3 +39,23 @@ jobs:
         run: npx wrangler pages functions build functions --outfile .cf-pages-worker.js --external "node:*"
       - name: Bundle Cloudflare Worker
         run: npx wrangler deploy --dry-run --config wrangler.ci.jsonc
+
+  production-smoke:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Wait for deployed commit and smoke production
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+          EXPECTED_SHA: ${{ github.sha }}
+          DEPLOY_WAIT_MS: '360000'
+        run: node scripts/smoke-production.mjs
