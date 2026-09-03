@@ -50,19 +50,21 @@ jobs:
           } finally { $stream.Dispose() }
           $hash = (Get-FileHash -Algorithm SHA256 $source.FullName).Hash.ToLower()
           "SHA256  $hash  $($source.Name)" | Set-Content -Encoding ascii (Join-Path $partsDir 'SHA256.txt')
-          @"
-@echo off
-copy /b "$($source.Name).part01"+"$($source.Name).part02" "$($source.Name)"
-certutil -hashfile "$($source.Name)" SHA256
-pause
-"@ | Set-Content -Encoding ascii (Join-Path $partsDir 'RECOMBINAR.cmd')
-          @"
-Obra na Mão Desktop Comercial v$env:DESKTOP_VERSION
-1. Extraia todas as partes na mesma pasta.
-2. Execute RECOMBINAR.cmd.
-3. Confira o SHA256 exibido com SHA256.txt.
-4. Execute o instalador .exe gerado.
-"@ | Set-Content -Encoding utf8 (Join-Path $partsDir 'LEIA-ME.txt')
+          $cmd = @(
+            '@echo off',
+            ('copy /b "'+$source.Name+'.part01"+"'+$source.Name+'.part02" "'+$source.Name+'"'),
+            ('certutil -hashfile "'+$source.Name+'" SHA256'),
+            'pause'
+          )
+          $cmd | Set-Content -Encoding ascii (Join-Path $partsDir 'RECOMBINAR.cmd')
+          $readme = @(
+            'Obra na Mão Desktop Comercial v'+$env:DESKTOP_VERSION,
+            '1. Extraia todas as partes na mesma pasta.',
+            '2. Execute RECOMBINAR.cmd.',
+            '3. Confira o SHA256 exibido com SHA256.txt.',
+            '4. Execute o instalador .exe gerado.'
+          )
+          $readme | Set-Content -Encoding utf8 (Join-Path $partsDir 'LEIA-ME.txt')
       - name: Upload Drive part 01
         uses: actions/upload-artifact@v4
         with:
