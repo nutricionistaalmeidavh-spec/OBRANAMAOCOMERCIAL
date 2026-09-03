@@ -4,6 +4,7 @@ const path = require('node:path')
 const { dialog } = require('electron')
 const { assertSpreadsheetInput } = require('./spreadsheet-guard.cjs')
 const { readWorkbook, sheetRows, encodeCell } = require('./spreadsheet-reader.cjs')
+const { baseImportedName, resolveImportedEmployee, ambiguityMessage } = require('./employee-identity.cjs')
 
 const MONTHS = { JANEIRO:1, FEVEREIRO:2, MARÇO:3, MARCO:3, ABRIL:4, MAIO:5, JUNHO:6, JULHO:7, AGOSTO:8, SETEMBRO:9, OUTUBRO:10, NOVEMBRO:11, DEZEMBRO:12 }
 const EXPENSE_SKIP = /^(total|2º quinzena|extras$|receita$|caixa$|despesas$)/i
@@ -147,6 +148,7 @@ class ImportService {
         else if (salary && !cargo.salario_base_centavos) cargo = this.db.save('cargos',{ ...cargo, salario_base_centavos: salary })
         roleSalaries.set(role,{ cargo, salary: salary || cargo.salario_base_centavos })
       }
+      const employeePool=this.db.db.prepare('SELECT * FROM funcionarios WHERE deleted_at IS NULL ORDER BY id').all()
       for (const profile of profiles) {
         if (!profile.roleHint && profile.salary) {
           const salary = cents(profile.salary.value)
@@ -154,9 +156,19 @@ class ImportService {
           if (nearest && Math.abs(nearest[1].salary-salary) <= 20000) profile.roleHint = nearest[0]
         }
         profile.cargo = profile.roleHint ? roleSalaries.get(profile.roleHint)?.cargo : null
-        let employee = this.db.db.prepare('SELECT * FROM funcionarios WHERE lower(trim(nome))=lower(trim(?)) AND deleted_at IS NULL').get(profile.name)
-        const employeeData = { ...(employee||{}), empresa_id: company.id, nome: profile.name, status: employee?.status || 'ativo', salario_centavos: profile.salary ? cents(profile.salary.value) : (employee?.salario_centavos || 0), cargo_id: profile.cargo?.id || employee?.cargo_id || null, departamento: employee?.departamento || 'Operacional' }
+        const sourceName=baseImportedName(profile.name)
+        const resolution=resolveImportedEmployee(employeePool,sourceName)
+        if(resolution.kind==='ambiguous') throw new Error(ambiguityMessage(resolution))
+        if(resolution.kind==='incomplete') throw new Error('A planilha identifica o funcionário apenas como "'+sourceName+'", mas não existe um cadastro único e completo para vinculá-lo. Cadastre o nome completo e CPF antes de importar.')
+        if(resolution.kind==='invalid') throw new Error('Nome de funcionário inválido na planilha.')
+        let employee = resolution.kind==='match' ? resolution.employee : null
+        const employeeData = { ...(employee||{}), empresa_id: company.id, nome: employee?.nome || sourceName, status: employee?.status || 'ativo', salario_centavos: profile.salary ? cents(profile.salary.value) : (employee?.salario_centavos || 0), cargo_id: profile.cargo?.id || employee?.cargo_id || null, departamento: employee?.departamento || 'Operacional' }
         employee = this.db.save('funcionarios',employeeData)
+        if(resolution.kind!=='match') employeePool.push(employee)
+        else {
+          const index=employeePool.findIndex((item)=>item.id===employee.id)
+          if(index>=0) employeePool[index]=employee
+        }
         employeeMap.set(profile.name,employee)
         for (const benefit of profile.benefits) {
           let catalog = this.db.db.prepare('SELECT * FROM beneficios WHERE lower(nome)=lower(?)').get(benefit.definition.nome)
