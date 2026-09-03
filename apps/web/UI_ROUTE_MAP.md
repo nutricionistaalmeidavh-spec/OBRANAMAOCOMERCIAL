@@ -14,7 +14,7 @@ Atualizado em 2026-09-03. Este arquivo é o inventário visual obrigatório ante
 | Obra360 | `obra.html#obra` / `#obra*` | PWA operacional de campo | Em migração premium |
 | Gestão | `gestao.html#gestao` / `#gestao*` | Consulta administrativa móvel | Em migração premium |
 | Financeiro | `#finance` | Redireciona para o portal / superfície financeira autorizada | Rota de compatibilidade |
-| Ativação | `#activate=<código>` | Ativação de operação/licença | Estado utilitário |
+| Ativação | `#activate=<código>` | Ativação de operação/licença | Premium Bloco 2 |
 | Desktop bridge | `#desktop-bridge` | Ponte com Desktop | Estado técnico |
 | Autorização Desktop | `#desktop-auth=<token>` | Login e pareamento do computador | Estado técnico |
 
@@ -74,22 +74,23 @@ A camada premium compartilhada cobre os dialogs do módulo e diferencia visualme
 - Nova pendência — `openIssue()` — Premium Bloco 1.
 - Editor de checklist/configurações — Premium Bloco 1.
 - Gestão de usuários da obra — `openUsers()` — Premium Bloco 1.
-- Dialog da conta / sair / Central de Licenças — revisar na rodada administrativa.
+- Dialog da conta / sair / Central de Licenças — Premium Bloco 2.
 
 ## 6. Estados de autenticação e preparação do módulo de campo
 
 Antes de chegar às abas, o aplicativo pode renderizar:
 
-- Login.
-- Primeiro acesso / claim de licença.
-- Ativação por código.
-- Inicialização/migração de dados compartilhados.
-- Obra em preparação para perfis não-admin.
-- Canal mobile não contratado.
-- Tela exclusiva de funcionário com “Hoje” e “Minha semana”.
-- Erro de carregamento com tentar novamente / sair.
+| Superfície | Fluxo | Status visual |
+|---|---|---|
+| Login | `renderLogin()` | Premium Bloco 2 |
+| Primeiro acesso / claim de licença | `renderClaim()` + `#activate=<código>` | Premium Bloco 2 |
+| Inicialização/migração de dados compartilhados | `renderMigration()` | Premium Bloco 2 |
+| Obra em preparação | estado de projeto não inicializado para não-admin | Premium Bloco 2 |
+| Canal mobile não contratado | estado de acesso sem canal `mobile` | Premium Bloco 2 |
+| Tela exclusiva de funcionário | `renderWorker()` — “Hoje” e “Minha semana” | Premium Bloco 2 |
+| Erro de carregamento | retry / sair e erro de funcionário | Premium Bloco 2 |
 
-Todos esses estados precisam entrar em uma futura auditoria visual completa.
+A camada `field-premium-access` diferencia autenticação, ativação, preparação, indisponibilidade, erro e rotina do funcionário sem transformar todos os estados no mesmo card genérico.
 
 ## 7. Gestão móvel
 
