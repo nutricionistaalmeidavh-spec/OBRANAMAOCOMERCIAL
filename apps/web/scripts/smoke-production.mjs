@@ -36,9 +36,16 @@ if(!String(buildMeta.data.appVersion||''))throw new Error('Production build meta
 
 const health=await json('/api/health?ts='+Date.now());
 if(!health.response.ok)throw new Error('/api/health failed: HTTP '+health.response.status);
-if(health.data.ok!==true)throw new Error('/api/health is not healthy: '+JSON.stringify(health.data).slice(0,300));
+if(health.data.ok!==true)throw new Error('/api/health is not healthy: '+JSON.stringify(health.data).slice(0,500));
 if(String(health.data.appVersion||'')!==String(buildMeta.data.appVersion||''))throw new Error('Worker/static app version mismatch');
-if(Number(health.data.dbSchemaVersion||0)<2)throw new Error('Production reports an outdated DB schema contract');
+const expectedSchema=Number(health.data.expectedDbSchemaVersion);
+const persistedSchema=Number(health.data.persistedDbSchemaVersion);
+if(!Number.isFinite(expectedSchema)||expectedSchema<2)throw new Error('Production reports an invalid expected DB schema contract');
+if(!Number.isFinite(persistedSchema))throw new Error('Production D1 has no persisted schema version');
+if(persistedSchema!==expectedSchema)throw new Error('Production D1 schema mismatch: expected '+expectedSchema+' persisted '+persistedSchema);
+if(health.data.schemaVersionMatch!==true||health.data.schemaReady!==true)throw new Error('Production D1 schema is not ready: '+JSON.stringify({schemaVersionMatch:health.data.schemaVersionMatch,missingSchemaTables:health.data.missingSchemaTables,missingRequiredMigrations:health.data.missingRequiredMigrations}));
+if(Array.isArray(health.data.missingSchemaTables)&&health.data.missingSchemaTables.length)throw new Error('Production D1 is missing schema tables: '+health.data.missingSchemaTables.join(', '));
+if(Array.isArray(health.data.missingRequiredMigrations)&&health.data.missingRequiredMigrations.length)throw new Error('Production D1 is missing required migrations: '+health.data.missingRequiredMigrations.join(', '));
 
 const home=await get('/?ts='+Date.now());
 const homeHtml=await home.text();
@@ -75,7 +82,9 @@ console.log('Production smoke passed:',{
   commercialLanding:true,
   systemEntry:true,
   appVersion:String(health.data.appVersion||''),
-  dbSchemaVersion:Number(health.data.dbSchemaVersion||0),
+  expectedDbSchemaVersion:expectedSchema,
+  persistedDbSchemaVersion:persistedSchema,
+  schemaReady:health.data.schemaReady===true,
   university:true,
   questionVisuals:visualEntries.length,
   protectedRoute:true

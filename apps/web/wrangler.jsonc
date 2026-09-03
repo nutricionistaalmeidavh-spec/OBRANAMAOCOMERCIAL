@@ -16,7 +16,9 @@
     {
       "binding": "DB",
       "database_name": "obra-na-mao-comercial",
-      "database_id": "84bdb01f-94f6-4fb4-8c42-7bcdab0ac12a"
+      "database_id": "84bdb01f-94f6-4fb4-8c42-7bcdab0ac12a",
+      "migrations_table": "d1_migrations",
+      "migrations_dir": "cloudflare/migrations"
     }
   ],
   "r2_buckets": [

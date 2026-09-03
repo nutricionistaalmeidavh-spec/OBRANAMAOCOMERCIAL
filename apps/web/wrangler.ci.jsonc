@@ -5,7 +5,7 @@
   "compatibility_date":"2026-09-02",
   "compatibility_flags":["nodejs_compat"],
   "assets":{"directory":"./dist","binding":"ASSETS","not_found_handling":"single-page-application"},
-  "d1_databases":[{"binding":"DB","database_name":"obra-na-mao-comercial","database_id":"00000000-0000-0000-0000-000000000000"}],
+  "d1_databases":[{"binding":"DB","database_name":"obra-na-mao-comercial","database_id":"00000000-0000-0000-0000-000000000000","migrations_table":"d1_migrations","migrations_dir":"cloudflare/migrations"}],
   "r2_buckets":[{"binding":"FILES","bucket_name":"obra-na-mao-comercial-files"}],
   "vars":{"OWNER_COMPANY":"Obra na Mão","OWNER_PROJECT":"Operação Comercial","OWNER_CUSTOMER":"Obra na Mão"}
 }

@@ -14,8 +14,8 @@
     "d1:migrate": "npm run d1:migrate:local",
     "assets:verify": "node scripts/verify-question-images.mjs",
     "smoke:production": "node scripts/smoke-production.mjs",
-    "d1:migrate:local": "wrangler d1 migrations apply obra-na-mao-comercial --local",
-    "d1:migrate:remote": "wrangler d1 migrations apply obra-na-mao-comercial --remote",
+    "d1:migrate:local": "wrangler d1 migrations apply obra-na-mao-comercial --local --config wrangler.jsonc",
+    "d1:migrate:remote": "wrangler d1 migrations apply obra-na-mao-comercial --remote --config wrangler.jsonc",
     "ux:verify": "node scripts/verify-ui-contract.mjs"
   },
   "dependencies": {
