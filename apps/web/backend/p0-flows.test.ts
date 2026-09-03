@@ -75,6 +75,7 @@ vi.mock('../cloudflare/sdk', () => ({
   withScopes: () => async () => undefined,
   requireAdminEmailAllowlist: () => async () => undefined,
   runtimeEnv: () => memory.env,
+  recentErrorDiagnostics: vi.fn(async () => []),
   router: (routes: Record<string, unknown>) => ({ routes, fetch: vi.fn() }),
   storage: { write: vi.fn() },
   ai: { extract: vi.fn(), ocr: vi.fn() },
