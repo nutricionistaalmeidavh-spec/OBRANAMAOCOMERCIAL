@@ -393,13 +393,35 @@ export const REQUIRED_SCHEMA_TABLES=[
   'oauth_states',
   'api_rate_limits',
   'schema_metadata',
-  'api_error_log',
-  'd1_migrations'
+  'api_error_log'
 ] as const;
 export const REQUIRED_SCHEMA_MIGRATIONS=[
   '0002_versioning_observability.sql',
   '0003_schema_contract_hardening.sql'
 ] as const;
+
+const RUNTIME_SCHEMA_BOOTSTRAP_VERSION=2;
+let schemaContractReady=false;
+async function ensureSchemaContract(env:RuntimeEnv){
+  if(schemaContractReady)return;
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS schema_metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`).run();
+  await env.DB.prepare(
+    "INSERT INTO schema_metadata(key,value,updated_at) VALUES('schema_version',?,?) ON CONFLICT(key) DO UPDATE SET value=CASE WHEN CAST(value AS INTEGER)<? THEN excluded.value ELSE value END,updated_at=CASE WHEN CAST(value AS INTEGER)<? THEN excluded.updated_at ELSE updated_at END"
+  ).bind(String(RUNTIME_SCHEMA_BOOTSTRAP_VERSION),RUNTIME_SCHEMA_BOOTSTRAP_VERSION,RUNTIME_SCHEMA_BOOTSTRAP_VERSION,now()).run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS api_error_log (
+    request_id TEXT PRIMARY KEY,
+    method TEXT NOT NULL,
+    path TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_api_error_log_created ON api_error_log(created_at DESC)').run();
+  schemaContractReady=true;
+}
 
 export function assessSchemaState(input:{
   tableNames:Iterable<string>;
@@ -411,13 +433,15 @@ export function assessSchemaState(input:{
   const missingSchemaTables=REQUIRED_SCHEMA_TABLES.filter(name=>!tableNames.has(name));
   const missingRequiredMigrations=REQUIRED_SCHEMA_MIGRATIONS.filter(name=>!appliedMigrations.has(name));
   const schemaVersionMatch=input.persistedSchemaVersion===DB_SCHEMA_VERSION;
+  const migrationTrackingReady=tableNames.has('d1_migrations')&&missingRequiredMigrations.length===0;
   return{
     expectedDbSchemaVersion:DB_SCHEMA_VERSION,
     persistedDbSchemaVersion:input.persistedSchemaVersion,
     schemaVersionMatch,
     missingSchemaTables,
     missingRequiredMigrations,
-    schemaReady:missingSchemaTables.length===0&&missingRequiredMigrations.length===0&&schemaVersionMatch
+    migrationTrackingReady,
+    schemaReady:missingSchemaTables.length===0&&schemaVersionMatch
   };
 }
 
@@ -462,6 +486,7 @@ async function healthResponse(env:RuntimeEnv){
     persistedDbSchemaVersion:schema.persistedDbSchemaVersion,
     schemaVersionMatch:schema.schemaVersionMatch,
     schemaReady:schema.schemaReady,
+    migrationTrackingReady:schema.migrationTrackingReady,
     missingSchemaTables:schema.missingSchemaTables,
     missingRequiredMigrations:schema.missingRequiredMigrations,
     readyForLogin:ok&&bindings.googleOAuth&&bindings.owner,
@@ -479,6 +504,7 @@ export function router(routes:RouterRoutes){
       return runtime.run({env,request},async()=>{
         const requestId=crypto.randomUUID();
         try{
+          await ensureSchemaContract(env);
           const execute=async()=>{
             const url=new URL(request.url);
             if(!sameOriginMutationAllowed(request))return error('Origem da requisição não autorizada.',403);

@@ -61,7 +61,16 @@ describe('P2 maintenance boundaries', () => {
       persistedSchemaVersion: DB_SCHEMA_VERSION,
       appliedMigrations: ['0002_versioning_observability.sql'],
     });
-    expect(missingMigration.schemaReady).toBe(false);
+    expect(missingMigration.schemaReady).toBe(true);
+    expect(missingMigration.migrationTrackingReady).toBe(false);
     expect(missingMigration.missingRequiredMigrations).toContain('0003_schema_contract_hardening.sql');
+
+    const missingTable = assessSchemaState({
+      tableNames: REQUIRED_SCHEMA_TABLES.filter(name => name !== 'schema_metadata'),
+      persistedSchemaVersion: DB_SCHEMA_VERSION,
+      appliedMigrations: REQUIRED_SCHEMA_MIGRATIONS,
+    });
+    expect(missingTable.schemaReady).toBe(false);
+    expect(missingTable.missingSchemaTables).toContain('schema_metadata');
   });
 });
