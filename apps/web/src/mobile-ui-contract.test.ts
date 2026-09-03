@@ -7,7 +7,8 @@ const read=(path:string)=>readFile(resolve(webRoot,path),'utf8');
 
 describe('mobile premium UI contract',()=>{
   it('styles every management component emitted by the dashboard renderer',async()=>{
-    const [css,dashboard]=await Promise.all([read('public/field.css'),read('src/mobile-dashboard.ts')]);
+    const [base,premium,dashboard]=await Promise.all([read('public/field.css'),read('public/field-premium-v2.css'),read('src/mobile-dashboard.ts')]);
+    const css=base+'\n'+premium;
     for(const className of ['management-kpis','management-kpi','management-summary-card','management-summary-icon','management-details']){
       expect(dashboard).toContain(className);
       expect(css,`missing base CSS for .${className}`).toMatch(new RegExp(`\\.${className}\\{[^}]+`));
@@ -15,20 +16,24 @@ describe('mobile premium UI contract',()=>{
   });
 
   it('keeps the legacy field shell hidden until the authenticated app is ready',async()=>{
-    const [css,obra,gestao]=await Promise.all([read('public/field.css'),read('obra.html'),read('gestao.html')]);
+    const [css,enhancer,obra,gestao]=await Promise.all([read('public/field-premium-v2.css'),read('public/field-premium-v2.js'),read('obra.html'),read('gestao.html')]);
     for(const [name,html] of [['obra.html',obra],['gestao.html',gestao]] as const){
       expect(html,`${name} must start in boot state`).toMatch(/<body[^>]*class=["'][^"']*field-booting/);
+      expect(html,`${name} must load the premium enhancer`).toContain('/field-premium-v2.js');
     }
     expect(css).toContain('body.field-booting .top');
     expect(css).toContain('body.field-booting main');
     expect(css).toContain('body.field-booting .nav');
+    expect(enhancer).toContain("classList.remove('field-booting')");
   });
 
   it('applies the premium visual shell to all four primary field tabs',async()=>{
-    const field=await read('public/field.js');
+    const [field,enhancer]=await Promise.all([read('public/field.js'),read('public/field-premium-v2.js')]);
     expect(field).toMatch(/function renderDay\([^)]*\)[\s\S]*?day-hero/);
-    expect(field).toMatch(/function renderObra360\([^)]*\)[\s\S]*?obra360-hero/);
-    expect(field).toMatch(/function renderTeam\([^)]*\)[\s\S]*?team-hero/);
+    expect(enhancer).toContain("active==='obra360'");
+    expect(enhancer).toContain("'obra360-hero'");
+    expect(enhancer).toContain("active==='team'");
+    expect(enhancer).toContain("'team-hero'");
     expect(field).toMatch(/function renderManagement\([^)]*\)[\s\S]*?management-hero/);
   });
 });
