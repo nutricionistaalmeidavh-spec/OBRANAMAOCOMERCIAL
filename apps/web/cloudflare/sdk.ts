@@ -404,6 +404,42 @@ const RUNTIME_SCHEMA_BOOTSTRAP_VERSION=2;
 let schemaContractReady=false;
 async function ensureSchemaContract(env:RuntimeEnv){
   if(schemaContractReady)return;
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS kv_records (
+    collection TEXT NOT NULL,
+    id TEXT NOT NULL,
+    record_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (collection,id)
+  )`).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_kv_records_collection_updated ON kv_records(collection,updated_at DESC)').run();
+
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS auth_sessions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    email TEXT NOT NULL,
+    name TEXT,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_auth_sessions_email ON auth_sessions(email)').run();
+
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS oauth_states (
+    id TEXT PRIMARY KEY,
+    return_to TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`).run();
+
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS api_rate_limits (
+    key TEXT NOT NULL,
+    bucket INTEGER NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (key,bucket)
+  )`).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_api_rate_limits_updated ON api_rate_limits(updated_at)').run();
+
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS schema_metadata (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
@@ -411,7 +447,8 @@ async function ensureSchemaContract(env:RuntimeEnv){
   )`).run();
   await env.DB.prepare(
     "INSERT INTO schema_metadata(key,value,updated_at) VALUES('schema_version',?,?) ON CONFLICT(key) DO UPDATE SET value=CASE WHEN CAST(value AS INTEGER)<? THEN excluded.value ELSE value END,updated_at=CASE WHEN CAST(value AS INTEGER)<? THEN excluded.updated_at ELSE updated_at END"
-  ).bind(String(RUNTIME_SCHEMA_BOOTSTRAP_VERSION),RUNTIME_SCHEMA_BOOTSTRAP_VERSION,RUNTIME_SCHEMA_BOOTSTRAP_VERSION,now()).run();
+  ).bind(String(RUNTIME_SCHEMA_BOOTSTRAP_VERSION),now(),RUNTIME_SCHEMA_BOOTSTRAP_VERSION,RUNTIME_SCHEMA_BOOTSTRAP_VERSION).run();
+
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS api_error_log (
     request_id TEXT PRIMARY KEY,
     method TEXT NOT NULL,
