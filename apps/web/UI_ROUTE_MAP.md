@@ -52,29 +52,29 @@ O `field.js` possui quatro abas persistentes no rodapé:
 
 | ID interno | Tela | Renderer / fluxo | Status visual |
 |---|---|---|---|
-| `floors` | Pavimentos | `renderFloors()` | Pendente de redesign |
-| `floors` + pavimento selecionado | Detalhe de pavimento | `renderFloor()` | Pendente de redesign |
-| `issues` | Pendências | `renderIssues()` | Pendente de redesign |
-| `more` | Planejamento / produtividade | `renderMore()` | Pendente de redesign |
-| `settings` | Configurações | `renderSettings()` | Pendente de redesign |
+| `floors` | Pavimentos | `renderFloors()` | Premium Bloco 1 |
+| `floors` + pavimento selecionado | Detalhe de pavimento | `renderFloor()` | Premium Bloco 1 |
+| `issues` | Pendências | `renderIssues()` | Premium Bloco 1 |
+| `more` | Planejamento / produtividade | `renderMore()` | Premium Bloco 1 |
+| `settings` | Configurações | `renderSettings()` | Premium Bloco 1 |
 
 ## 5. Obra360 — modais e subfluxos
 
-Também contam como superfícies visuais e não devem ser esquecidos:
+A camada premium compartilhada cobre os dialogs do módulo e diferencia visualmente etapa/checklist, planejamento, pendência, equipe/usuários e configurações.
 
-- Detalhe/checklist de etapa — `openStage()`.
-- Novo planejamento — `openPlan()`.
-- Novo apontamento — `openNewSession()`.
-- Pausar e retomar apontamento.
-- Concluir apontamento — `openFinishSession()`.
-- Atualizar equipe da sessão — `openCrewUpdate()`.
-- Editar horários — `openEditTimes()`.
-- Detalhes da sessão — `openSessionDetails()`.
-- Revisão/fechamento do RDO — `openRdoReview()`.
-- Nova pendência — `openIssue()`.
-- Editor de checklist/configurações.
-- Gestão de usuários da obra — `openUsers()`.
-- Dialog da conta / sair / Central de Licenças.
+- Detalhe/checklist de etapa — `openStage()` — Premium Bloco 1.
+- Novo planejamento — `openPlan()` — Premium Bloco 1.
+- Novo apontamento — `openNewSession()` — camada premium compartilhada.
+- Pausar e retomar apontamento — camada premium compartilhada.
+- Concluir apontamento — `openFinishSession()` — camada premium compartilhada.
+- Atualizar equipe da sessão — `openCrewUpdate()` — camada premium compartilhada.
+- Editar horários — `openEditTimes()` — camada premium compartilhada.
+- Detalhes da sessão — `openSessionDetails()` — camada premium compartilhada.
+- Revisão/fechamento do RDO — `openRdoReview()` — camada premium compartilhada.
+- Nova pendência — `openIssue()` — Premium Bloco 1.
+- Editor de checklist/configurações — Premium Bloco 1.
+- Gestão de usuários da obra — `openUsers()` — Premium Bloco 1.
+- Dialog da conta / sair / Central de Licenças — revisar na rodada administrativa.
 
 ## 6. Estados de autenticação e preparação do módulo de campo
 
