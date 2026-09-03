@@ -50,4 +50,29 @@ describe('mobile premium UI contract',()=>{
     expect(enhancer).toContain("meta.textContent='Checklists e horários'");
     expect(css).toContain('.day-focus-actions{grid-template-columns:1fr');
   });
+
+  it('covers Block 1 internal Obra360 screens and their modal surfaces with the premium shell',async()=>{
+    const [enhancer,css,map]=await Promise.all([read('public/field-premium-v2.js'),read('public/field-premium-v2.css'),read('UI_ROUTE_MAP.md')]);
+
+    expect(enhancer).toContain('detectInternalSurface');
+    for(const surface of ['floors','floor-detail','issues','planning','settings'])expect(enhancer).toContain(`'${surface}'`);
+    expect(enhancer).toContain('enhanceInternalSurface');
+    expect(enhancer).toContain('enhanceSheet');
+    expect(enhancer).toContain("sheetObserver.observe(sheet");
+
+    for(const selector of [
+      '.internal-hero{',
+      "#content[data-surface='floors']",
+      "#content[data-surface='floor-detail']",
+      "#content[data-surface='issues']",
+      "#content[data-surface='planning']",
+      "#content[data-surface='settings']",
+      '.premium-sheet .sheet-head{'
+    ])expect(css).toContain(selector);
+
+    for(const screen of ['Pavimentos','Detalhe de pavimento','Pendências','Planejamento / produtividade','Configurações']){
+      const row=map.split('\n').find(line=>line.includes(`| ${screen} |`))??'';
+      expect(row,`${screen} must be marked premium in the route map`).toMatch(/Premium/);
+    }
+  });
 });
