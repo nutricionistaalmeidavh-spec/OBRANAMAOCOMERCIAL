@@ -8,16 +8,16 @@
     "npm": ">=10"
   },
   "workspaces": [
-    "apps/*",
+    "apps/desktop",
     "packages/*"
   ],
   "scripts": {
     "test": "npm run test:web --if-present && npm run test:desktop --if-present",
     "build": "npm run build:web --if-present && npm run build:desktop --if-present",
-    "test:web": "npm --workspace apps/web test",
-    "build:web": "npm --workspace apps/web run build",
+    "test:web": "npm --prefix apps/web test",
+    "build:web": "npm --prefix apps/web run build",
     "test:desktop": "npm --workspace apps/desktop test",
     "build:desktop": "npm --workspace apps/desktop run build",
-    "typecheck:contracts": "npm --workspace apps/web exec -- tsc --noEmit -p ../../tsconfig.json"
+    "typecheck:contracts": "cd apps/web && npm exec -- tsc --noEmit -p ../../tsconfig.json"
   }
 }

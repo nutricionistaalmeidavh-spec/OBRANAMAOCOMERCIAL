@@ -5,11 +5,13 @@ on:
   push:
     branches: [main]
     paths:
+      - 'package.json'
       - 'apps/web/**'
       - '.github/workflows/commercial-cloudflare-ci.yml'
   pull_request:
     branches: [main]
     paths:
+      - 'package.json'
       - 'apps/web/**'
       - '.github/workflows/commercial-cloudflare-ci.yml'
 
@@ -28,7 +30,7 @@ jobs:
         with:
           node-version: 22
       - name: Install web dependencies
-        run: npm install --workspaces=false --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Test critical web flows
         run: npm test
       - name: Verify UX and critical assets

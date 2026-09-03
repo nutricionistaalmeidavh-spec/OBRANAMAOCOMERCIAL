@@ -15,7 +15,7 @@ Esta pasta substitui as dependências de runtime do AppDeploy por serviços Clou
 
 Configuração recomendada para o primeiro teste:
 - Root directory: `apps/web`
-- Build command: `npm install --no-audit --no-fund && npm run build`
+- Build command: `npm run build` (a instalação automática executa `npm ci`)
 - Build output: `dist`
 - Functions directory: `functions`
 
@@ -46,3 +46,9 @@ Nenhuma senha Google é armazenada. O cookie de sessão principal é HttpOnly/Se
 O repositório contém aplicações diferentes. Para Cloudflare, configure a raiz do projeto como `apps/web`. O diretório `apps/desktop` não faz parte do deploy Cloudflare. Alterações no Desktop podem ser excluídas dos Build watch paths para evitar builds online desnecessários.
 
 Para Workers Builds, use o mesmo repositório e a raiz `apps/web`. O comando de deploy é `npx wrangler deploy`.
+
+### Instalação independente da aplicação web
+
+`apps/web` é um pacote npm independente, com seu próprio `package-lock.json`, e não integra a lista de workspaces da raiz. Isso permite que a instalação automática do Cloudflare execute `npm ci` em `apps/web` sem procurar um lockfile na raiz ou instalar dependências do Desktop. Os atalhos `test:web` e `build:web` da raiz usam `npm --prefix apps/web`.
+
+O CI também executa `npm ci` sem flags de isolamento para verificar o mesmo caminho de instalação usado pelo Cloudflare. Mantenha a raiz do Worker em `apps/web`, o build em `npm run build` e o deploy em `npx wrangler deploy`.
