@@ -21,6 +21,11 @@ export async function getMeta(projectId:string){const{items}=await db.list<Proje
 export async function getFloors(projectId:string){const{items}=await db.list<FloorRecord>(floorsTable(projectId),{limit:50});return items.sort((a,b)=>a.number-b.number)}
 export async function getDay(projectId:string,date:string){const{items}=await db.list<DayRecord>(dayTable(projectId,date),{limit:1});return items[0]?.day||null}
 
+export async function persistMeta(projectId:string,meta:ProjectMetaRecord){
+  if(!meta.id)throw new Error('Metadados da obra sem identificador.');
+  await db.update(metaTable(projectId),[{id:String(meta.id),record:meta as unknown as Record<string,unknown>}]);
+}
+
 export async function saveDay(projectId:string,date:string,day:Record<string,unknown>,actor:string){
   const table=dayTable(projectId,date),{items}=await db.list<DayRecord>(table,{limit:1}),next={day,updatedAt:now(),updatedBy:actor};
   if(items[0])await db.update(table,[{id:items[0].id,record:next as Record<string,unknown>}]);
