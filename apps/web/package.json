@@ -1,7 +1,7 @@
 {
   "name": "obra-na-mao-comercial-online",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,9 +11,11 @@
     "pages:dev": "npm run build && wrangler pages dev dist --compatibility-date=2026-09-02 --compatibility-flag=nodejs_compat",
     "worker:dev": "npm run build && wrangler dev",
     "worker:deploy": "npm run build && wrangler deploy",
-    "d1:migrate": "wrangler d1 execute obra-na-mao-comercial --file cloudflare/migrations/0001_base.sql",
+    "d1:migrate": "npm run d1:migrate:local",
     "assets:verify": "node scripts/verify-question-images.mjs",
-    "smoke:production": "node scripts/smoke-production.mjs"
+    "smoke:production": "node scripts/smoke-production.mjs",
+    "d1:migrate:local": "wrangler d1 migrations apply obra-na-mao-comercial --local",
+    "d1:migrate:remote": "wrangler d1 migrations apply obra-na-mao-comercial --remote"
   },
   "dependencies": {
     "lucide": "^0.469.0",
