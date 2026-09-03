@@ -1,0 +1,70 @@
+/* Premium mobile field surfaces — 2026-09-03
+   Loaded after field.css so it can safely repair/extend every field surface. */
+
+/* Never paint the legacy static shell while auth/bootstrap/field state are loading. */
+body.field-booting{background:#f7f9fd}
+body.field-booting .top{visibility:hidden}
+body.field-booting main{visibility:hidden}
+body.field-booting .nav{visibility:hidden}
+
+/* Shared premium material language. */
+body.field-shell-active{background:linear-gradient(180deg,#fbfcff 0%,#f4f7fc 62%,#f9fbff 100%)}
+body.field-shell-active .card,
+body.field-shell-active .stage,
+body.field-shell-active .metric{border-color:rgba(177,190,216,.5);background:linear-gradient(145deg,#fff,#fafcff);box-shadow:0 16px 34px rgba(24,45,91,.09),0 4px 10px rgba(24,45,91,.055),inset 0 1px 0 rgba(255,255,255,.98)}
+body.field-shell-active .section-head h2{font-weight:760;letter-spacing:-.03em;color:#101936}
+body.field-shell-active .section-head p{color:#6b7691}
+
+/* Gestão — classes are emitted by mobile-dashboard.ts on gestao.html. */
+.management-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:14px}
+.management-kpi{min-width:0;padding:15px 12px 13px;border:1px solid rgba(178,191,219,.52);border-radius:19px;background:linear-gradient(145deg,#fff,#f9fbff);box-shadow:0 16px 32px rgba(29,52,103,.095),0 4px 9px rgba(29,52,103,.055),inset 0 1px 0 #fff;overflow:hidden}
+.management-kpi-head{display:flex;align-items:center;gap:7px;min-width:0}
+.management-kpi-head strong{min-width:0;font-size:9px;line-height:1.1;text-transform:uppercase;letter-spacing:.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.management-kpi-icon{width:31px;height:31px;flex:0 0 auto;border-radius:50%;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 5px 12px rgba(29,52,103,.07)}
+.management-kpi-icon:after{content:'';position:absolute;inset:9px;border:2px solid currentColor;border-radius:6px;opacity:.9}
+.management-kpi>b{display:block;margin-top:15px;font-size:clamp(15px,4.2vw,21px);line-height:1.06;letter-spacing:-.035em;color:#111a36;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.management-kpi>span{display:block;margin-top:7px;font-size:10px;line-height:1.25;color:#6e7994}
+.management-kpi-foot{margin-top:12px;padding-top:10px;border-top:1px solid #e8ecf3;font-size:9px;line-height:1.2;color:#68738e}
+.management-kpi.revenue .management-kpi-icon{color:#1659f5;background:#ebf2ff}.management-kpi.revenue .management-kpi-head strong{color:#1659f5}
+.management-kpi.expense .management-kpi-icon{color:#0c929d;background:#e9f8f8}.management-kpi.expense .management-kpi-head strong{color:#0c929d}
+.management-kpi.due .management-kpi-icon{color:#6e2bd0;background:#f2ebff}.management-kpi.due .management-kpi-head strong{color:#6e2bd0}
+.management-summary-card{width:100%;margin-top:15px;padding:15px 16px;display:grid;grid-template-columns:46px minmax(0,1fr) 18px;align-items:center;gap:13px;text-align:left;border:1px solid rgba(151,180,244,.56);border-radius:19px;background:linear-gradient(145deg,#fff,#f5f8ff);color:#101936;box-shadow:0 17px 34px rgba(28,59,126,.11),0 4px 9px rgba(28,59,126,.06),inset 0 1px 0 #fff}
+.management-summary-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#4c83ff,#0b59f5 68%,#0042cf);color:#fff;font-size:21px;font-weight:850;box-shadow:0 12px 23px rgba(8,76,230,.28),inset 0 1px 0 rgba(255,255,255,.38)}
+.management-summary-card strong{display:block;font-size:15px;line-height:1.15;letter-spacing:-.018em}.management-summary-card small{display:block;margin-top:4px;color:#68748f;font-size:10px;line-height:1.35}.management-summary-card>b{font-size:27px;color:#1756ef}
+.management-details{margin-top:14px;scroll-margin-top:14px}.management-details .premium-empty{min-height:128px;display:grid;place-items:center;padding:28px 22px;border-style:dashed;color:#6f7990;line-height:1.5}
+
+/* Obra360 — enhancer adds .obra360-hero and repairs the legacy action markup. */
+body.field-shell-active .obra360-hero{position:relative;isolation:isolate;overflow:hidden;min-height:246px;padding:24px;display:flex;flex-direction:column;justify-content:flex-end;gap:18px;background:radial-gradient(circle at 78% 72%,rgba(0,188,255,.34),transparent 29%),radial-gradient(circle at 96% 4%,rgba(26,93,255,.38),transparent 38%),url('/field-hero-build.svg') right center/auto 100% no-repeat,linear-gradient(135deg,#081a49 0%,#0a2c74 60%,#0950e7 130%);border:1px solid rgba(80,137,255,.52);box-shadow:0 26px 58px rgba(13,42,82,.2),0 8px 18px rgba(13,42,82,.14),inset 0 1px 0 rgba(255,255,255,.2);border-radius:24px;color:#fff}
+body.field-shell-active .obra360-hero:before{content:'';position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.055),transparent 38%,rgba(95,180,255,.075));pointer-events:none}
+body.field-shell-active .obra360-hero small,body.field-shell-active .obra360-hero .date,body.field-shell-active .obra360-hero .stats{position:relative;z-index:1}
+body.field-shell-active .obra360-hero .date{font-size:38px;line-height:1;font-weight:800;letter-spacing:-.04em;margin:7px 0 2px}
+body.field-shell-active .obra360-hero .stats{gap:10px}
+body.field-shell-active .obra360-hero .stat{min-width:0;padding:13px 11px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(145deg,rgba(255,255,255,.15),rgba(255,255,255,.075));box-shadow:0 10px 20px rgba(0,20,66,.18),inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(8px)}
+body.field-shell-active .obra360-actions{gap:12px;margin-top:14px}
+
+/* Equipe — the existing first section head becomes a compact premium hero. */
+body.field-shell-active #content[data-surface='team']>.team-hero{position:relative;isolation:isolate;overflow:hidden;min-height:178px;margin:0 0 18px;padding:27px 72px 25px 24px;display:flex;align-items:center;border:1px solid rgba(80,137,255,.5);border-radius:24px;background:radial-gradient(circle at 86% 42%,rgba(0,190,255,.24),transparent 34%),linear-gradient(135deg,#081a49 0%,#0b307e 62%,#0a59ee 132%);box-shadow:0 24px 52px rgba(13,42,82,.19),0 7px 16px rgba(13,42,82,.13),inset 0 1px 0 rgba(255,255,255,.2);color:#fff}
+body.field-shell-active #content[data-surface='team']>.team-hero>div{position:relative;z-index:1}
+body.field-shell-active #content[data-surface='team']>.team-hero h2{margin:0;font-size:31px;line-height:1;font-weight:780;letter-spacing:-.04em;color:#fff}
+body.field-shell-active #content[data-surface='team']>.team-hero p{margin:9px 0 0;max-width:260px;color:rgba(255,255,255,.78);font-size:12px;line-height:1.4}
+.team-hero-glyph{width:48px;height:48px;flex:0 0 auto;margin-right:15px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#6487ff,#115cff 70%,#003dcc);color:#fff;font-size:23px;box-shadow:0 12px 24px rgba(0,65,222,.31),inset 0 1px 0 rgba(255,255,255,.42)}
+body.field-shell-active #content[data-surface='team']>.team-intro-card{padding:17px 18px;border-color:rgba(151,180,244,.46);background:linear-gradient(145deg,#fff,#f7faff);box-shadow:0 15px 30px rgba(29,52,103,.09),0 4px 9px rgba(29,52,103,.05)}
+body.field-shell-active #content[data-surface='team']>.team-intro-card strong{font-size:16px;letter-spacing:-.015em}body.field-shell-active #content[data-surface='team']>.team-intro-card .meta{margin-top:6px;line-height:1.45}
+body.field-shell-active #content[data-surface='team'] .employee{border-radius:18px;box-shadow:0 14px 28px rgba(29,52,103,.085),0 3px 8px rgba(29,52,103,.05)}
+body.field-shell-active #content[data-surface='team'] .avatar{background:linear-gradient(145deg,#edf3ff,#e8efff);color:#1757ed;box-shadow:inset 0 1px 0 #fff}
+
+/* Back control shared by enhanced surfaces. */
+body.field-shell-active .hero-back{position:absolute;top:15px;right:15px;z-index:5;width:46px;height:46px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.2);border-radius:15px;background:linear-gradient(145deg,rgba(255,255,255,.15),rgba(255,255,255,.07));box-shadow:0 12px 24px rgba(0,22,74,.22),inset 0 1px 0 rgba(255,255,255,.2);backdrop-filter:blur(10px);color:#fff;text-decoration:none;font-size:27px;line-height:1}
+
+/* Old quick-action markup is normalized by field-premium-v2.js. */
+body.field-shell-active .quick-action.quick-action-enhanced{display:grid;grid-template-columns:36px minmax(0,1fr) 16px;align-items:center;gap:9px;min-height:82px;padding:12px 11px;border:1px solid rgba(185,196,219,.52);border-radius:18px;background:linear-gradient(145deg,#fff,#fafcff);box-shadow:0 14px 29px rgba(29,52,103,.09),0 3px 8px rgba(29,52,103,.052),inset 0 1px 0 #fff}
+body.field-shell-active .quick-action.quick-action-enhanced:after{content:'›';font-size:27px;color:#1c2746;justify-self:end}
+.quick-action-enhanced .quick-action-glyph{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;background:#edf2ff;color:#2159ee;font-size:17px;font-weight:800}.quick-action-enhanced .quick-action-copy{min-width:0}.quick-action-enhanced .quick-action-copy strong{display:block;font-size:13px;color:#111a36}.quick-action-enhanced .quick-action-copy>span{display:block;margin-top:3px;color:#6c7791;font-size:10px;line-height:1.28}
+.quick-action-enhanced:nth-child(2) .quick-action-glyph{background:#fff0e8;color:#df6a20}.quick-action-enhanced:nth-child(3) .quick-action-glyph{background:#edf8ef;color:#238f48}.quick-action-enhanced:nth-child(4) .quick-action-glyph{background:#f4edff;color:#8433d4}
+
+@media(max-width:420px){
+  .management-kpis{gap:7px}.management-kpi{padding:13px 9px 12px}.management-kpi-head{gap:5px}.management-kpi-icon{width:27px;height:27px}.management-kpi-head strong{font-size:8px}.management-kpi>b{font-size:clamp(14px,4.2vw,18px)}.management-kpi>span,.management-kpi-foot{font-size:8.5px}
+  .management-summary-card{grid-template-columns:42px minmax(0,1fr) 16px;padding:14px}.management-summary-icon{width:42px;height:42px}
+  body.field-shell-active .obra360-hero{min-height:226px;padding:20px}body.field-shell-active .obra360-hero .date{font-size:34px}
+  body.field-shell-active #content[data-surface='team']>.team-hero{min-height:164px;padding-left:20px}.team-hero-glyph{width:44px;height:44px;margin-right:12px}body.field-shell-active #content[data-surface='team']>.team-hero h2{font-size:28px}
+}
