@@ -38,6 +38,12 @@ O callback OAuth do Google deve ser:
 
 O runtime Worker equivalente também está em `apps/web/cloudflare/worker.ts` e pode ser publicado depois com Wrangler.
 
+### Universidade — imagens das questões
+
+As 549 imagens ficam versionadas individualmente em `apps/web/public/question-images/`, com nomes derivados do ID canônico da questão. O mapa `apps/web/public/resources/question-visual-map.json` faz a ligação direta `questionId → arquivo`.
+
+O build executa `npm run assets:verify` e falha se houver imagem, ID ou entrada de mapa ausente. O ZIP legado é usado somente pelo comando excepcional `npm run assets:migrate`, nunca pelo usuário final nem pelo build normal.
+
 ## Desktop
 
 O Desktop não é enviado ao Cloudflare.

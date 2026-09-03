@@ -9,7 +9,8 @@ const publicDir=resolve(root,'public');
 const outDir=resolve(publicDir,'question-images');
 const manifestPath=resolve(publicDir,'resources/question-visuals-manifest.json');
 const mapPath=resolve(publicDir,'resources/question-visual-map.json');
-const source='https://fluxodre-campo-b2u-clbfo5.v2.appdeploy.ai/resources/question-assets-549.zip';
+const source=process.env.QUESTION_IMAGES_LEGACY_ZIP_URL || 'https://fluxodre-campo-b2u-clbfo5.v2.appdeploy.ai/resources/question-assets-549.zip';
+const EXPECTED=549;
 
 const hash=(value)=>{
   let h=2166136261;
@@ -19,8 +20,12 @@ const hash=(value)=>{
 const questionId=(item)=>'q_'+hash(String(item.skill)+'-'+String(item.level)+'|'+String(item.prompt));
 
 const manifest=JSON.parse(await readFile(manifestPath,'utf8'));
+if(!Array.isArray(manifest) || manifest.length!==EXPECTED){
+  throw new Error('Expected '+EXPECTED+' visual records before migration, found '+(Array.isArray(manifest)?manifest.length:'invalid manifest'));
+}
+
 const response=await fetch(source,{redirect:'follow'});
-if(!response.ok)throw new Error('Could not fetch legacy visual pack: HTTP '+response.status);
+if(!response.ok)throw new Error('Could not fetch one-time legacy visual pack: HTTP '+response.status);
 const archive=new Uint8Array(await response.arrayBuffer());
 const files=unzipSync(archive);
 const byBase=new Map();
@@ -30,22 +35,44 @@ await rm(outDir,{recursive:true,force:true});
 await mkdir(outDir,{recursive:true});
 
 const visualMap={};
-let written=0;
+const nextManifest=[];
+const seenIds=new Set();
+const seenFiles=new Set();
+
 for(const item of manifest){
-  const sourceName=basename(String(item.src||''));
-  const bytes=byBase.get(sourceName);
-  if(!bytes)throw new Error('Missing image in legacy pack: '+sourceName);
   const id=questionId(item);
+  if(seenIds.has(id))throw new Error('Duplicate canonical question id: '+id);
+  seenIds.add(id);
+
+  const legacySrc=String(item.legacySrc||item.src||'');
+  const sourceName=basename(legacySrc);
+  if(!sourceName)throw new Error('Legacy source missing for '+String(item.id||id));
+  if(seenFiles.has(sourceName))throw new Error('Duplicate legacy image source: '+sourceName);
+  seenFiles.add(sourceName);
+
+  const bytes=byBase.get(sourceName);
+  if(!bytes)throw new Error('Missing image in one-time legacy pack: '+sourceName);
+
   const fileName=id+'.webp';
+  const canonicalSrc='/question-images/'+fileName;
   await writeFile(resolve(outDir,fileName),bytes);
+
+  const alt=String(item.alt||'Apoio visual complementar');
+  nextManifest.push({
+    ...item,
+    questionId:id,
+    legacySrc,
+    src:canonicalSrc
+  });
   visualMap[id]={
     id,
     sourceId:String(item.id||''),
     prompt:String(item.prompt||''),
-    alt:String(item.alt||'Apoio visual complementar'),
-    src:'/question-images/'+fileName
+    alt,
+    src:canonicalSrc
   };
-  written++;
 }
+
+await writeFile(manifestPath,JSON.stringify(nextManifest,null,2)+'\n','utf8');
 await writeFile(mapPath,JSON.stringify(visualMap,null,2)+'\n','utf8');
-console.log('Materialized '+written+' question images as direct static assets.');
+console.log('Migrated '+EXPECTED+' visuals to canonical ID-linked static assets.');

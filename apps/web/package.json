@@ -5,18 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/materialize-question-images.mjs && vite build",
+    "build": "npm run assets:verify && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "pages:dev": "npm run build && wrangler pages dev dist --compatibility-date=2026-09-02 --compatibility-flag=nodejs_compat",
     "worker:dev": "npm run build && wrangler dev",
     "worker:deploy": "npm run build && wrangler deploy",
-    "d1:migrate": "wrangler d1 execute obra-na-mao-comercial --file cloudflare/migrations/0001_base.sql"
+    "d1:migrate": "wrangler d1 execute obra-na-mao-comercial --file cloudflare/migrations/0001_base.sql",
+    "assets:migrate": "node scripts/migrate-question-images.mjs",
+    "assets:verify": "node scripts/verify-question-images.mjs"
   },
   "dependencies": {
     "lucide": "^0.469.0",
-    "pdfjs-dist": "^4.10.38",
-    "fflate": "^0.8.2"
+    "pdfjs-dist": "^4.10.38"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.0.0"
@@ -28,6 +29,7 @@
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
     "vitest": "^2.1.8",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.0.0",
+    "fflate": "^0.8.2"
   }
 }

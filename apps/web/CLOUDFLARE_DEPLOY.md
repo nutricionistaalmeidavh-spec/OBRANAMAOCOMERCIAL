@@ -30,9 +30,11 @@ Crie e vincule:
 
 Cloudflare atualmente recomenda Workers como plataforma principal para novos projetos full-stack. O mesmo código pode ser publicado com `wrangler deploy`; `wrangler.jsonc` já está preparado para isso.
 
-## Assets grandes
+## Imagens da Universidade
 
-O ZIP original `question-assets-549.zip` não é copiado para o repositório comercial. Ele deve ser expandido e publicado como assets estáticos ou no R2. O manifesto das 549 imagens foi preservado.
+As 549 imagens das questões são assets estáticos canônicos, versionados individualmente em `public/question-images/` e ligados ao `questionId` por `public/resources/question-visual-map.json`.
+
+O ZIP legado não participa do runtime nem do build normal. `npm run assets:verify` bloqueia o build se faltar qualquer ID, mapa ou arquivo. O comando `npm run assets:migrate` existe apenas para reconstrução/migração excepcional a partir do pacote legado.
 
 ## Segurança
 
