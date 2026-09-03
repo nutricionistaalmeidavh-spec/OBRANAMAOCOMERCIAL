@@ -14,7 +14,7 @@ const byId = <T extends HTMLElement>(id:string) => document.getElementById(id) a
 describe('Commercial login and overview DOM flows', () => {
   beforeEach(() => {
     vi.resetAllMocks();localStorage.clear();document.body.innerHTML='';location.hash='#portal';
-    client.isSignedIn.mockReturnValue(false);client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
+    client.isSignedIn.mockReturnValue(false);client.getUser.mockResolvedValue(null);
   });
   it('renders the approved login, supports password visibility and reports Google errors', async () => {
     await mountMhPortal();
@@ -30,8 +30,17 @@ describe('Commercial login and overview DOM flows', () => {
     byId<HTMLButtonElement>('googleLogin').click();
     await vi.waitFor(()=>expect(byId('mhToast').textContent).toBe('Login indisponível'));
   });
+  it('recovers a valid server session when the readable auth hint is missing', async () => {
+    client.isSignedIn.mockReturnValue(false);
+    client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
+    client.get.mockResolvedValue({data:bootstrap('employee')});
+    await mountMhPortal();
+    expect(document.querySelector('h1')?.textContent).toBe('Visão geral');
+    expect(client.getUser).toHaveBeenCalled();
+    expect(client.get.mock.calls.map(call=>call[0])).toContain('/api/bootstrap');
+  });
   it.each(['employee','foreman'])('renders only permitted module navigation for %s and never fetches the overview', async role => {
-    client.isSignedIn.mockReturnValue(true);client.get.mockResolvedValue({data:bootstrap(role)});
+    client.isSignedIn.mockReturnValue(true);client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});client.get.mockResolvedValue({data:bootstrap(role)});
     await mountMhPortal();
     expect(document.querySelector('h1')?.textContent).toBe('Visão geral');
     expect(document.querySelector('.cp-welcome p')?.textContent).toMatch(/^(Bom dia|Boa tarde|Boa noite), Pessoa$/);
@@ -44,6 +53,7 @@ describe('Commercial login and overview DOM flows', () => {
   });
   it('shows real authorized aggregates and clears them immediately on logout', async () => {
     client.isSignedIn.mockReturnValue(true);
+    client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
     client.get.mockImplementation(async path=>({data:path==='/api/bootstrap'?bootstrap('admin'):overview}));
     await mountMhPortal();
     await vi.waitFor(()=>expect(document.body.textContent).toContain('54.000,00'));
@@ -57,6 +67,7 @@ describe('Commercial login and overview DOM flows', () => {
   it('does not insert an in-flight admin response after logout', async () => {
     let release!:(value:unknown)=>void;
     client.isSignedIn.mockReturnValue(true);
+    client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
     client.get.mockImplementation(path=>path==='/api/bootstrap'?Promise.resolve({data:bootstrap('admin')}):new Promise(resolve=>{release=resolve}));
     await mountMhPortal();byId<HTMLButtonElement>('logoutBtn').click();release({data:overview});
     await new Promise(resolve=>setTimeout(resolve,0));

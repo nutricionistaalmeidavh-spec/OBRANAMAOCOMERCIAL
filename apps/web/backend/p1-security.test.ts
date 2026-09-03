@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { AUTH_SESSION_TTL_MS, rateLimitPolicy, sameOriginMutationAllowed } from '../cloudflare/sdk';
+import { AUTH_SESSION_MAX_AGE_SECONDS, AUTH_SESSION_TTL_MS, authHintCookie, rateLimitPolicy, sameOriginMutationAllowed } from '../cloudflare/sdk';
 import { contextOwnsScope, type PlatformContext } from './platform-context';
 import { educationRoleChangeDecision } from './access-control';
 
 describe('P1 security policies', () => {
   it('keeps authenticated web sessions bounded to one day', () => {
     expect(AUTH_SESSION_TTL_MS).toBe(24 * 60 * 60 * 1000);
+    expect(AUTH_SESSION_MAX_AGE_SECONDS).toBe(86_400);
+    expect(authHintCookie()).toBe('obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=86400');
   });
 
   it('rate-limits sensitive authentication and activation endpoints', () => {

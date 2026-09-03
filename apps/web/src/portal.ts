@@ -143,5 +143,5 @@ async function openPortal(){
   if(token){try{const data=(await api.post('/api/edu/me',{token})).data as {participant:Participant};await renderPhonePortal(data.participant);return}catch{localStorage.removeItem(SESSION)}}
   publicHome()
 }
-async function logout(){localStorage.removeItem(SESSION);const corporate=!!(await auth.getUser());publicHome();if(corporate){await auth.signOut();return}location.hash=''}
+async function logout(){localStorage.removeItem(SESSION);const hinted=auth.isSignedIn();publicHome();if(hinted){await auth.signOut();return}if(await auth.getUser()){await auth.signOut();return}location.hash=''}
 export async function mountMhPortal(){document.title='Canteiro360 — Acesso e visão geral';if(location.hash==='#portal'){await openPortal();return}if(await auth.getUser()){location.hash='#portal';await renderCorporatePortal();return}publicHome()}
