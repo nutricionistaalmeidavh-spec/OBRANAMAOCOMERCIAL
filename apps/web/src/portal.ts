@@ -74,7 +74,7 @@ async function showFirstAccess(){
 }
 function portalShell(name:string,meta:string,cards:string){
   setBody(`<header class="mh-portal-head">${brand()}<div><button id="publicBtn">Início</button><button id="logoutBtn">Sair</button></div></header><main class="mh-myportal"><section class="mh-welcome"><small>MEUS SISTEMAS</small><h1>Olá, ${esc(name.split(' ')[0]||name)}</h1><p>${esc(meta)}</p></section><section class="mh-resource-grid">${cards}</section><aside class="mh-install-note"><b>Obra na Mão</b><span>Os módulos disponíveis respeitam a licença da empresa e as permissões do seu perfil.</span></aside></main>`);
-  document.getElementById('publicBtn')?.addEventListener('click',()=>{location.hash='';publicHome()});
+  document.getElementById('publicBtn')?.addEventListener('click',()=>{location.href='./'});
   document.getElementById('logoutBtn')?.addEventListener('click',()=>void logout());
 }
 async function renderPhonePortal(p:Participant){

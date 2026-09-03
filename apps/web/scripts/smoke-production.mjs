@@ -40,6 +40,15 @@ if(health.data.ok!==true)throw new Error('/api/health is not healthy: '+JSON.str
 if(String(health.data.appVersion||'')!==String(buildMeta.data.appVersion||''))throw new Error('Worker/static app version mismatch');
 if(Number(health.data.dbSchemaVersion||0)<2)throw new Error('Production reports an outdated DB schema contract');
 
+const home=await get('/?ts='+Date.now());
+const homeHtml=await home.text();
+if(!home.ok||!homeHtml.includes('<title>ArtiSys'))throw new Error('ArtiSys commercial landing is not deployed');
+const system=await get('/sistema.html?ts='+Date.now());
+const systemHtml=await system.text();
+if(!system.ok||!systemHtml.includes('id="content"'))throw new Error('System entry page is unavailable');
+const logo=await get('/artisys-logo.svg');
+if(!logo.ok||!String(logo.headers.get('content-type')||'').includes('image/svg+xml'))throw new Error('ArtiSys logo is unavailable');
+
 const university=await get('/universidade.html?ts='+Date.now());
 if(!university.ok)throw new Error('/universidade.html failed: HTTP '+university.status);
 const universityHtml=await university.text();
@@ -63,6 +72,8 @@ console.log('Production smoke passed:',{
   base,
   sha:expected?expected.slice(0,12):'not-enforced',
   health:true,
+  commercialLanding:true,
+  systemEntry:true,
   appVersion:String(health.data.appVersion||''),
   dbSchemaVersion:Number(health.data.dbSchemaVersion||0),
   university:true,

@@ -3,8 +3,8 @@ import { resolve } from 'node:path';
 
 const root=resolve(import.meta.dirname,'..');
 const required=[
-  'index.html','obra.html','gestao.html','universidade.html',
-  'public/icon.svg','public/icon-mh.svg','public/icon-obra.svg','public/icon-gestao.svg','public/icon-universidade.svg','public/field.css'
+  'index.html','sistema.html','obra.html','gestao.html','universidade.html',
+  'public/artisys-logo.svg','public/artisys-icon.svg','public/artisys-icon.png','public/icon.svg','public/icon-mh.svg','public/icon-obra.svg','public/icon-gestao.svg','public/icon-universidade.svg','public/field.css'
 ];
 
 const failures=[];
@@ -12,7 +12,7 @@ for(const relative of required){
   try{await access(resolve(root,relative))}catch{failures.push('Arquivo obrigatório ausente: '+relative)}
 }
 
-for(const page of ['index.html','obra.html','gestao.html','universidade.html']){
+for(const page of ['index.html','sistema.html','obra.html','gestao.html','universidade.html']){
   const html=await readFile(resolve(root,page),'utf8');
   if(!/<meta\s+name=["']viewport["']/i.test(html))failures.push(page+': meta viewport ausente');
 }

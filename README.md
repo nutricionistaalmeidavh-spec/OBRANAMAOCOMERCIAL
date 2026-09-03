@@ -12,6 +12,16 @@ Base comercial independente do ecossistema Obra na Mão.
 
 O Cloudflare deve apontar somente para `apps/web`.
 
+### Página inicial ArtiSys
+
+- `/` apresenta a página comercial ArtiSys, com a identidade aprovada e a MH somente como cliente na seção de depoimentos.
+- O ícone **Acessar sistema**, no menu superior e sempre visível no celular, abre `sistema.html#portal`. Login Google, celular, primeiro acesso e permissões usam os fluxos existentes.
+- Links antigos como `index.html#portal`, `#owner`, `#activate=...` e `#desktop-auth=...` continuam funcionando; a entrada preserva query e fragmento e encaminha ao sistema.
+- Gestão, Obra e Universidade mantêm suas páginas e assets separados. A página pública não importa o CSS nem inicializa a sessão do sistema.
+- O botão **Início** do portal retorna à página ArtiSys.
+
+Os contatos WhatsApp e Instagram foram preservados da página aprovada. O WhatsApp `5516999999999` ainda é provisório e precisa de confirmação antes de campanhas.
+
 ### Opção recomendada para o primeiro deploy: Cloudflare Pages + Functions
 
 - Root directory: `apps/web`
