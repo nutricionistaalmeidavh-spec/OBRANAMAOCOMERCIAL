@@ -299,7 +299,7 @@ async function authGoogleCredential(request:Request){
     .bind(sessionId,String(info.sub||email),email,name,expiresAt,now()).run();
   const headers=new Headers({'content-type':'application/json; charset=utf-8','cache-control':'no-store'});
   headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}`);
-  headers.append('set-cookie','obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}');
+  headers.append('set-cookie',`obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}`);
   return new Response(JSON.stringify({ok:true,user:{userId:String(info.sub||email),email,name}}),{status:200,headers});
 }
 
@@ -347,7 +347,7 @@ async function authCallback(request:Request){
     .bind(sessionId,String(info.sub||info.email),String(info.email||'').toLowerCase(),String(info.name||''),expiresAt,now()).run();
   const headers=new Headers({location:stateRow.return_to});
   headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}`);
-  headers.append('set-cookie','obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}');
+  headers.append('set-cookie',`obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}`);
   return new Response(null,{status:302,headers});
 }
 async function authMe(request:Request){

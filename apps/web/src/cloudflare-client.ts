@@ -85,9 +85,29 @@ async function googleSignIn(){
   return new Promise<never>(()=>{});
 }
 
+let verifiedWebSession:boolean|null=null;
+function authHint(){return document.cookie.split(';').some(x=>x.trim()==='obn_auth=1')}
+function clearAuthHint(){document.cookie='obn_auth=; Path=/; Secure; SameSite=Lax; Max-Age=0'}
+async function currentUser(){
+  try{
+    const user=(await api.get<{user:{userId:string;email?:string;name?:string}}>('/api/auth/me')).data.user;
+    verifiedWebSession=true;
+    return user;
+  }catch{
+    verifiedWebSession=false;
+    clearAuthHint();
+    return null;
+  }
+}
+
 export const auth={
-  isSignedIn:()=>document.cookie.split(';').some(x=>x.trim()==='obn_auth=1'),
+  // This is only a local hint for synchronous UI checks. Server validation via /api/auth/me is authoritative.
+  isSignedIn:()=>verifiedWebSession===null?authHint():verifiedWebSession,
   async signIn(_options?:{scope?:string}){return googleSignIn()},
-  async getUser(){try{return (await api.get<{user:{userId:string;email?:string;name?:string}}>('/api/auth/me')).data.user}catch{return null}},
-  async signOut(){try{await api.post('/api/auth/logout',{})}finally{location.reload()}}
+  async getUser(){return currentUser()},
+  async hasSession(){return !!(await currentUser())},
+  async signOut(){
+    try{await api.post('/api/auth/logout',{})}
+    finally{verifiedWebSession=false;clearAuthHint();location.reload()}
+  }
 };
