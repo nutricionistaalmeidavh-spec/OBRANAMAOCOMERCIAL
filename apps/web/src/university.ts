@@ -6,7 +6,6 @@ import { T, AREAS, MATERIAL_SOURCES, sourceRefs, AUDIT_ROWS, CONTENT, CALIBRATIO
 import { LEARNING_STAGES, completedLevelsForSkill, learningStageForLevel, learningStageProgress, learningStageTargetLevel } from './learning-stages';
 import { buildTeachingSequence } from './lesson-teaching';
 import { buildLessonComposition, questionsByIds } from './lesson-composition';
-import { canTutorReroll, nextTutorUnit, tutorAttemptStatus } from './tutor-model';
 import { journeyHeadline, journeyStageViews, sessionEstimate } from './journey-view';
 import { checkpointEvidence, checkpointLabel, selectReinforcementQuestions, shouldReinforce, type FirstTryResult, type LessonCheckpoint } from './lesson-adaptation';
 import { accountMismatchMessage, destinationAfterAuthentication, googleLoginError, loginMethod, shouldRecoverWithGoogle } from './auth-flow';
@@ -15,7 +14,6 @@ import { selectSupportExcerpt } from './support-selector';
 import { progressMetrics } from './progress-metrics';
 import { canAccessAdmin as canAccessAdminRole, canManageRoles as canManageRolesRule } from './rules';
 import { SUPPORT_MATERIALS } from './support-materials';
-import { adminFailureDetail, adminGroupLabel, educationRoleLabel } from './admin-rh-model';
 import { createPracticeUi } from './practice-ui';
 import { createUniversityAdminUi } from './university-admin';
 import { createUniversityShell } from './university-shell';
