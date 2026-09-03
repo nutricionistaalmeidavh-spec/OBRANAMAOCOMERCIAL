@@ -400,6 +400,7 @@ export const REQUIRED_SCHEMA_MIGRATIONS=[
   '0003_schema_contract_hardening.sql'
 ] as const;
 
+const RUNTIME_SCHEMA_BOOTSTRAP_VERSION=2;
 let schemaContractReady=false;
 async function ensureSchemaContract(env:RuntimeEnv){
   if(schemaContractReady)return;
@@ -409,8 +410,8 @@ async function ensureSchemaContract(env:RuntimeEnv){
     updated_at TEXT NOT NULL
   )`).run();
   await env.DB.prepare(
-    "INSERT INTO schema_metadata(key,value,updated_at) VALUES('schema_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at"
-  ).bind(String(DB_SCHEMA_VERSION),now()).run();
+    "INSERT INTO schema_metadata(key,value,updated_at) VALUES('schema_version',?,?) ON CONFLICT(key) DO UPDATE SET value=CASE WHEN CAST(value AS INTEGER)<? THEN excluded.value ELSE value END,updated_at=CASE WHEN CAST(value AS INTEGER)<? THEN excluded.updated_at ELSE updated_at END"
+  ).bind(String(RUNTIME_SCHEMA_BOOTSTRAP_VERSION),RUNTIME_SCHEMA_BOOTSTRAP_VERSION,RUNTIME_SCHEMA_BOOTSTRAP_VERSION,now()).run();
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS api_error_log (
     request_id TEXT PRIMARY KEY,
     method TEXT NOT NULL,
