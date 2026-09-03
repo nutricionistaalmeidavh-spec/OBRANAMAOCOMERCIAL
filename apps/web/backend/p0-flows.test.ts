@@ -91,6 +91,7 @@ import {
 import { EDUCATION_PRACTICE_ROUTES } from './education-practice';
 import { ensurePhoneAccess } from './phone-access';
 import { handler } from './index';
+import { publishMobileSummary } from './e06e09';
 
 const body = async (response: Response) => await response.json() as Record<string, any>;
 const last = (route: readonly unknown[]) => route[route.length - 1] as (ctx: any) => Promise<Response>;
@@ -482,5 +483,49 @@ describe('P0 critical web flows', () => {
     const data = await body(response);
     expect(data.record.runId).toBe('run-1');
     expect(data.record.skillId).toBe('math.addition');
+  });
+});
+
+
+describe('Commercial portal overview API boundaries', () => {
+  beforeEach(() => memory.reset());
+  const routes = (handler as unknown as { routes: Record<string, readonly unknown[]> }).routes;
+  const owner = {userId:'owner-id',email:'owner@example.com',name:'Owner'};
+  const call = (route:string,user?:Record<string,string>,payload:Record<string,unknown>={}) => last(routes[route])({user,body:payload,query:{projectId:'other-project',companyId:'other-company'},params:{}});
+  async function setup(role:string, modules:string[]) {
+    const bootstrap=await body(await call('GET /api/bootstrap',owner));
+    const companyId=bootstrap.company.id,projectId=bootstrap.project.id;
+    await call('POST /api/project/import',owner,{state:{project:{name:'Test'},employees:[{id:'employee-portal',name:'Employee'}],floors:[],days:{}}});
+    const user={userId:'portal-user',email:'portal@example.test',name:'Portal User'};
+    const created=await call('POST /api/members',owner,{email:user.email,role,modules,channels:['mobile'],employeeId:role==='employee'?'employee-portal':undefined});
+    expect(created.status).toBe(200);
+    const member=await body(await call('GET /api/bootstrap',user));
+    await publishMobileSummary(projectId,'desktop-a',{generatedAt:'2026-09-03T14:20:00Z',privateField:'secret',modules:{dre:{result:5400000,payroll:'secret'},documents:{expiring30d:3},contracts:{active:8},measurements:{open:6},rh:{employees:['secret']}}});
+    await publishMobileSummary('other-project','desktop-b',{modules:{documents:{expiring30d:999}}});
+    return {user,member,companyId,projectId};
+  }
+  it('rejects requests without a corporate identity, including phone tokens alone', async () => {
+    expect((await call('GET /api/portal/overview',undefined,{token:'phone-token'})).status).toBe(401);
+  });
+  it.each(['employee','foreman'])('denies direct API calls by %s despite assigned management modules', async role => {
+    const {user}=await setup(role,['obra360','dre','contracts','documents']);
+    const response=await call('GET /api/portal/overview',user);
+    expect(response.status).toBe(403);expect(JSON.stringify(await body(response))).not.toContain('5400000');
+  });
+  it('returns only authorized aggregates from the membership project and disables caching', async () => {
+    const {user}=await setup('admin',['documents']);
+    const response=await call('GET /api/portal/overview',user);
+    expect(response.status).toBe(200);expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(await body(response)).toEqual({updatedAt:'2026-09-03T14:20:00.000Z',metrics:[],attention:[{key:'documents',label:'Documentos a vencer em 30 dias',value:3,kind:'count'}]});
+  });
+  it.each(['disabled','blocked','pending','wrong-company','wrong-project'])('denies %s management grants even with an administrative membership', async condition => {
+    const {user,member}=await setup('admin',['dre','documents']);
+    const [access]=await memory.db.get<any>('platform_accesses',[member.platformAccess.id]);
+    if(condition==='disabled')access.systems.gestao.enabled=false;
+    if(condition==='blocked'||condition==='pending')access.status=condition;
+    if(condition==='wrong-company')access.companyIds=['other-company'];
+    if(condition==='wrong-project')access.projectIds=['other-project'];
+    await memory.db.update('platform_accesses',[{id:access.id,record:access}]);
+    expect((await call('GET /api/portal/overview',user)).status).toBe(403);
   });
 });

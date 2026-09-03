@@ -12,6 +12,7 @@ import { writePlatformAudit } from './platform-audit';
 import { assembleState, carryForwardActiveAssignments, getCompany, getDay, getMeta, getProject, persistMeta, saveDay, saveSnapshot, type ProjectRecord as Project } from './project-state';
 import { appendDesktopSyncChange, deviceByToken, getDesktopAuth, getDesktopSyncHead, indexDeviceToken, saveDesktopAuth, type DesktopAuth, type Device } from './desktop-store';
 import { systemDiagnostics } from './diagnostics';
+import { canReadOverview, projectOverview } from '../shared/portal-overview';
 
 type Role = 'admin' | 'foreman' | 'employee';
 type Member = { companyId:string; projectId:string; email:string; userId?:string; name?:string; role:Role; employeeId?:string; projectMemberId?:string; joinCode?:string; modules?:string[]; channels?:string[]; claimedAt?:string; canonicalOwner?:boolean; createdAt:string; updatedAt:string };
@@ -94,6 +95,18 @@ async function resolveFinanceAccess(user:{userId:string;email?:string;name?:stri
 async function resolvePlatformContext(user:{userId:string;email?:string;name?:string}):Promise<PlatformContext|null>{const isOwner=norm(user.email)===ownerEmail(),member=isOwner?await ensureOwnerMembership(user):await resolveMembership(user);if(!member)return null;const entitlement=await memberEntitlements(member),platform=await ensurePlatformAccessForMember({email:member.email||user.email||'',name:member.name||user.name,companyId:member.companyId,projectId:member.projectId,employeeId:member.employeeId,role:member.role,modules:entitlement.modules,isSuperadmin:isOwner||member.canonicalOwner===true});if(platform.status!=='active')return null;const company=await getCompany(member.companyId),project=await getProject(member.projectId);return{userId:user.userId,email:user.email,platformRole:platform.platformRole,role:member.role,companyId:member.companyId,companyName:String(company?.name||'Empresa'),projectId:member.projectId,projectName:String(project?.name||'Obra'),employeeId:member.employeeId,systems:platform.systems,channels:entitlement.channels,modules:entitlement.modules}}
 const secured=[requireAuth(),withScopes('email','profile')] as const;const ownerSecured=[requireAuth(),withScopes('email','profile'),requireAdminEmailAllowlist(ADMIN_EMAILS)] as const;
 export const handler=router({
+  'GET /api/portal/overview':[...secured,async(ctx)=>{
+    if(!ctx.user)return error('Autenticação necessária.',401);
+    const gate=await requireMember(ctx.user,['admin'],'mobile');
+    if(gate.response)return gate.response;
+    const platformAccess=await getPlatformAccess(ctx.user.email||'');
+    if(!canReadOverview({role:gate.member!.role,platformAccess,access:gate.access}))return error('Resumo de gestão não autorizado.',403);
+    // Scope is resolved from the authenticated membership, never from query/body IDs.
+    const record=await getMobileSummary(gate.member!.projectId);
+    const response=json(projectOverview(record?.summary,gate.access!.modules,record?.publishedAt));
+    response.headers.set('Cache-Control','private, no-store');
+    return response;
+  }],
   ...createFinanceRoutes(resolveFinanceAccess),
   ...createPlatformCoreRoutes(resolvePlatformContext,desktopFinanceRead),
   'GET /api/_healthcheck':[async()=>json({message:'Success'})],
