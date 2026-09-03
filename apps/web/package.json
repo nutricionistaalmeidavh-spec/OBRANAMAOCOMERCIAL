@@ -5,14 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run assets:verify && vite build",
+    "build": "node scripts/write-build-meta.mjs && npm run assets:verify && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "pages:dev": "npm run build && wrangler pages dev dist --compatibility-date=2026-09-02 --compatibility-flag=nodejs_compat",
     "worker:dev": "npm run build && wrangler dev",
     "worker:deploy": "npm run build && wrangler deploy",
     "d1:migrate": "wrangler d1 execute obra-na-mao-comercial --file cloudflare/migrations/0001_base.sql",
-    "assets:verify": "node scripts/verify-question-images.mjs"
+    "assets:verify": "node scripts/verify-question-images.mjs",
+    "smoke:production": "node scripts/smoke-production.mjs"
   },
   "dependencies": {
     "lucide": "^0.469.0",
