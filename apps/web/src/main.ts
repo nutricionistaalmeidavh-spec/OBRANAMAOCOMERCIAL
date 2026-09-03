@@ -1,6 +1,7 @@
 import { auth, api } from './cloudflare-client';
 import { renderManagementDashboard, managementHtml } from './mobile-dashboard';
 import './styles.css';
+import { APP_VERSION, PROJECT_STATE_VERSION } from '../shared/version';
 
 type Role = 'admin' | 'foreman' | 'employee';
 type Bootstrap = {
@@ -68,11 +69,11 @@ function seedState(b?:Bootstrap):ProjectState{
 
   const floors=[0,1].map(number=>({number,stages:services.map(service=>({service,label:labels[service],status:'not_started',targetDate:null,checklist:[]}))}));
   const firstDay=localISODate(),day={date:firstDay,presentCount:0,absentCount:0,attendance:{},assignments:[],events:[],note:'',plans:[],sessions:[]};
-  return{version:6,project:{name:b?.project?.name||'Nova obra',customer:b?.project?.customer||'',startFloor:0,targetFloor:1},settings:{defaultWorkStart:'07:30',marginalEfficiency:.7,averageWeeklyAbsences:2,unassignedCompensationDays:3,attendanceTimesheetMode:'disabled'},employees,floors,days:{[firstDay]:day},checklistTemplates:{},issues:[],history:[]};
+  return{version:PROJECT_STATE_VERSION,project:{name:b?.project?.name||'Nova obra',customer:b?.project?.customer||'',startFloor:0,targetFloor:1},settings:{defaultWorkStart:'07:30',marginalEfficiency:.7,averageWeeklyAbsences:2,unassignedCompensationDays:3,attendanceTimesheetMode:'disabled'},employees,floors,days:{[firstDay]:day},checklistTemplates:{},issues:[],history:[]};
 }
 
 function setHeader(role?:Role,online=true,syncState:'idle'|'syncing'|'pending'='idle'){const indicator=document.querySelector('.local') as HTMLElement|null;if(!indicator)return;if(!role){indicator.innerHTML='<i></i> Login';return}const status=syncState==='syncing'?'Salvando':(!online||syncState==='pending')?'Pendente':'Sincronizado';indicator.innerHTML=`<i></i>${roleLabel(role)} · ${status}`;indicator.classList.toggle('sync-pending',status==='Pendente');indicator.classList.toggle('sync-saving',status==='Salvando');indicator.setAttribute('role','button');indicator.tabIndex=0;indicator.onclick=()=>openAccount(role,online)}
-function openOwnerPortal(){location.hash='#owner';location.reload()}function openAccount(role:Role,online:boolean){const dlg=document.getElementById('sheet') as HTMLDialogElement,owner=activeBootstrap?.isOwner===true;dlg.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Minha conta</h2><div class="meta">${roleLabel(role)} · ${online?'sincronizado':'modo local'}</div></div><button class="close">×</button></div>${owner?'<button id="ownerPortalBtn" class="btn" style="width:100%;margin-top:14px">Central de Licenças / Comercial</button><div class="meta">Libere clientes, planos, módulos, links e computadores autorizados.</div>':''}<button id="signOutBtn" class="linkbtn" style="width:100%;margin-top:14px">Sair da conta</button></div>`;dlg.showModal();dlg.querySelector('.close')?.addEventListener('click',()=>dlg.close());dlg.querySelector('#ownerPortalBtn')?.addEventListener('click',openOwnerPortal);dlg.querySelector('#signOutBtn')?.addEventListener('click',async()=>{await signOutCurrent();location.reload()})}
+function openOwnerPortal(){location.hash='#owner';location.reload()}function openAccount(role:Role,online:boolean){const dlg=document.getElementById('sheet') as HTMLDialogElement,owner=activeBootstrap?.isOwner===true;dlg.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Minha conta</h2><div class="meta">${roleLabel(role)} · ${online?'sincronizado':'modo local'} · v${APP_VERSION}</div></div><button class="close">×</button></div>${owner?'<button id="ownerPortalBtn" class="btn" style="width:100%;margin-top:14px">Central de Licenças / Comercial</button><div class="meta">Libere clientes, planos, módulos, links e computadores autorizados.</div>':''}<button id="signOutBtn" class="linkbtn" style="width:100%;margin-top:14px">Sair da conta</button></div>`;dlg.showModal();dlg.querySelector('.close')?.addEventListener('click',()=>dlg.close());dlg.querySelector('#ownerPortalBtn')?.addEventListener('click',openOwnerPortal);dlg.querySelector('#signOutBtn')?.addEventListener('click',async()=>{await signOutCurrent();location.reload()})}
 function messageCard(title:string,text:string){return `<div class="card"><strong>${esc(title)}</strong><p class="meta">${esc(text)}</p></div>`}
 const PHONE_SESSION='obn-edu-session';
 const phoneToken=()=>localStorage.getItem(PHONE_SESSION)||'';
