@@ -26,7 +26,14 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        shell: pwsh
+        run: |
+          npm install --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) {
+            npm cache clean --force
+            npm install --no-audit --no-fund
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test Desktop
         run: npm run test:desktop
       - name: Build Desktop
