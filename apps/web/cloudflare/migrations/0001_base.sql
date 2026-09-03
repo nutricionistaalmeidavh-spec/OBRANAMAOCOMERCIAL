@@ -33,3 +33,11 @@ CREATE TABLE IF NOT EXISTS api_rate_limits (
   PRIMARY KEY (key,bucket)
 );
 CREATE INDEX IF NOT EXISTS idx_api_rate_limits_updated ON api_rate_limits(updated_at);
+
+
+CREATE TABLE IF NOT EXISTS app_schema_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+INSERT OR REPLACE INTO app_schema_meta(key,value,updated_at) VALUES ('schema_version','2',CURRENT_TIMESTAMP);

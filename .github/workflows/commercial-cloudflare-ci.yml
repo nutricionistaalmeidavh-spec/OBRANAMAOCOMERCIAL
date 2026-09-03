@@ -31,6 +31,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Test critical web flows
         run: npm test
+      - name: Verify UX and critical assets
+        run: npm run ux:verify
       - name: Verify canonical university question images
         run: npm run assets:verify
       - name: Build static application

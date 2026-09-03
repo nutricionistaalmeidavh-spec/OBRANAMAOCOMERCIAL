@@ -75,6 +75,7 @@ vi.mock('../cloudflare/sdk', () => ({
   withScopes: () => async () => undefined,
   requireAdminEmailAllowlist: () => async () => undefined,
   runtimeEnv: () => memory.env,
+  recentErrorDiagnostics: vi.fn(async () => []),
   router: (routes: Record<string, unknown>) => ({ routes, fetch: vi.fn() }),
   storage: { write: vi.fn() },
   ai: { extract: vi.fn(), ocr: vi.fn() },
@@ -300,6 +301,146 @@ describe('P0 critical web flows', () => {
 
     const devices = await memory.db.list('devices', { limit: 10 });
     expect((devices.items[0] as Record<string, unknown>).tokenExpiresAt).toBeTruthy();
+  });
+
+  it('validates Admin → Foreman → Employee permissions without a presencial user', async () => {
+    const routes = (handler as unknown as { routes: Record<string, readonly unknown[]> }).routes;
+    const adminUser = { userId: 'admin-owner', email: 'owner@example.com', name: 'Admin' };
+    const bootstrap = await last(routes['GET /api/bootstrap'])({ user: adminUser, body: {}, query: {}, params: {} });
+    expect(bootstrap.status).toBe(200);
+
+    const snapshot = {
+      version: 7,
+      project: { name: 'Operação Comercial', customer: 'Obra na Mão', startFloor: 0, targetFloor: 2 },
+      settings: { defaultWorkStart: '07:30' },
+      employees: [
+        { id: 'emp-foreman', name: 'Encarregado Teste', compensationDays: 0 },
+        { id: 'emp-worker', name: 'Funcionário Teste', compensationDays: 0 },
+      ],
+      floors: [],
+      days: {
+        '2026-09-03': { date:'2026-09-03', presentCount:0, absentCount:0, attendance:{}, assignments:[], events:[], note:'', plans:[], sessions:[] },
+      },
+    };
+    expect((await last(routes['POST /api/project/import'])({ user: adminUser, body: { state: snapshot }, query:{}, params:{} })).status).toBe(200);
+
+    const foremanCreate = await last(routes['POST /api/members'])({
+      user: adminUser,
+      body: { email:'foreman@test.local', role:'foreman', employeeId:'emp-foreman', modules:['obra360','rdo'], channels:['mobile'] },
+      query:{}, params:{},
+    });
+    expect(foremanCreate.status).toBe(200);
+    const foremanMember = (await body(foremanCreate)).member;
+
+    const workerCreate = await last(routes['POST /api/members'])({
+      user: adminUser,
+      body: { email:'worker@test.local', role:'employee', employeeId:'emp-worker', modules:['obra360'], channels:['mobile'] },
+      query:{}, params:{},
+    });
+    expect(workerCreate.status).toBe(200);
+    const workerMember = (await body(workerCreate)).member;
+
+    const foremanUser = { userId:'foreman-user', email:'foreman@test.local', name:'Encarregado Teste' };
+    const foremanClaim = await last(routes['POST /api/access/claim'])({
+      user: foremanUser, body:{ code:foremanMember.joinCode }, query:{}, params:{},
+    });
+    expect(foremanClaim.status).toBe(200);
+    expect((await body(foremanClaim)).role).toBe('foreman');
+
+    const foremanBootstrap = await last(routes['GET /api/bootstrap'])({ user:foremanUser, body:{}, query:{}, params:{} });
+    expect(foremanBootstrap.status).toBe(200);
+    expect((await body(foremanBootstrap)).role).toBe('foreman');
+
+    const foremanProject = await last(routes['GET /api/project'])({ user:foremanUser, body:{}, query:{date:'2026-09-03'}, params:{} });
+    expect(foremanProject.status).toBe(200);
+
+    const markWorker = await last(routes['POST /api/attendance'])({
+      user:foremanUser, body:{date:'2026-09-03',employeeId:'emp-worker',status:'present'}, query:{}, params:{},
+    });
+    expect(markWorker.status).toBe(200);
+    expect((await body(markWorker)).day.attendance['emp-worker']).toBe('present');
+
+    const workerUser = { userId:'worker-user', email:'worker@test.local', name:'Funcionário Teste' };
+    const workerClaim = await last(routes['POST /api/access/claim'])({
+      user:workerUser, body:{code:workerMember.joinCode}, query:{}, params:{},
+    });
+    expect(workerClaim.status).toBe(200);
+    expect((await body(workerClaim)).role).toBe('employee');
+
+    const workerBootstrap = await last(routes['GET /api/bootstrap'])({ user:workerUser, body:{}, query:{}, params:{} });
+    expect(workerBootstrap.status).toBe(200);
+    expect((await body(workerBootstrap)).role).toBe('employee');
+
+    const workerTasks = await last(routes['GET /api/my-tasks'])({ user:workerUser, body:{}, query:{today:'2026-09-03'}, params:{} });
+    expect(workerTasks.status).toBe(200);
+
+    const employeeProject = await last(routes['GET /api/project'])({ user:workerUser, body:{}, query:{date:'2026-09-03'}, params:{} });
+    expect(employeeProject.status).toBe(403);
+  });
+
+  it('validates Desktop ↔ mobile synchronization on the canonical project state', async () => {
+    const routes = (handler as unknown as { routes: Record<string, readonly unknown[]> }).routes;
+    const adminUser = { userId:'sync-owner', email:'owner@example.com', name:'Admin Sync' };
+    const bootstrap = await last(routes['GET /api/bootstrap'])({ user:adminUser, body:{}, query:{}, params:{} });
+    const bootstrapData = await body(bootstrap);
+    const companyId = String(bootstrapData.membership.companyId), projectId = String(bootstrapData.membership.projectId);
+
+    const snapshot = {
+      version:7,
+      project:{name:'Operação Comercial',customer:'Obra na Mão',startFloor:0,targetFloor:2},
+      settings:{defaultWorkStart:'07:30'},
+      employees:[{id:'emp-sync-foreman',name:'Encarregado Sync',phone:'16 99999-0100',compensationDays:0}],
+      floors:[],
+      days:{},
+    };
+    expect((await last(routes['POST /api/project/import'])({user:adminUser,body:{state:snapshot},query:{},params:{}})).status).toBe(200);
+
+    await ensureEducationPhoneParticipant({
+      phone:'16 99999-0100',name:'Encarregado Sync',employeeId:'emp-sync-foreman',companyId,companyName:'Obra na Mão',jobRole:'Encarregado',
+    });
+    await ensurePhoneAccess({
+      phone:'16 99999-0100',name:'Encarregado Sync',employeeId:'emp-sync-foreman',companyId,projectId,obraRole:'encarregado',universityRole:'colaborador',
+    });
+    const firstAccess = await last(EDUCATION_PHONE_ACCESS_ROUTES['POST /api/edu/first-access'])({
+      body:{identifier:'16 99999-0100',password:'SenhaSegura123!'},
+    });
+    const phoneToken=String((await body(firstAccess)).token);
+
+    const requestId='sync-desktop-request-123456789012345';
+    const secret='sync-desktop-secret-123456789012345678901234';
+    const installationId='sync-installation-123456';
+    expect((await last(routes['POST /api/desktop/start'])({body:{requestId,secret,installationId,deviceName:'Desktop Sync',platform:'win32'},query:{},params:{}})).status).toBe(200);
+    expect((await last(routes['POST /api/desktop/approve'])({user:adminUser,body:{requestId,secret},query:{},params:{}})).status).toBe(200);
+    const status = await last(routes['POST /api/desktop/status'])({body:{requestId,secret},query:{},params:{}});
+    const desktop = await body(status);
+    const deviceToken=String(desktop.deviceToken),deviceId=String(desktop.deviceId);
+    expect(deviceToken).toBeTruthy();
+
+    const push = await last(routes['POST /api/desktop/sync/push'])({
+      body:{deviceToken,changes:[{
+        changeId:'change-sync-000001',entity:'tarefas_obra',action:'upsert',localId:101,baseMobileRevision:0,
+        payload:{titulo:'Instalar prumada',status:'open',responsavel:'Equipe A'}
+      }]},query:{},params:{},
+    });
+    expect(push.status).toBe(200);
+    expect((await body(push)).accepted[0].status).toBe('accepted');
+
+    const mobileUpdate = await last(routes['POST /api/phone/mobile/bridge/update'])({
+      body:{token:phoneToken,entity:'tarefas_obra',localId:101,sourceDeviceId:deviceId,patch:{status:'done',responsavel:'Equipe B'}},
+      query:{},params:{},
+    });
+    expect(mobileUpdate.status).toBe(200);
+
+    const pull = await last(routes['POST /api/desktop/sync/pull'])({
+      body:{deviceToken,sinceRevision:0},query:{},params:{},
+    });
+    expect(pull.status).toBe(200);
+    const pulled=await body(pull);
+    expect(pulled.changed).toBe(true);
+    const tasks=pulled.snapshot.desktopBridge.tasks;
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].payload.status).toBe('done');
+    expect(tasks[0].payload.responsavel).toBe('Equipe B');
   });
 
   it('persists a valid native practice run for the signed-in participant', async () => {

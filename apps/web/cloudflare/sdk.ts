@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { APP_VERSION, API_CONTRACT_VERSION, DB_SCHEMA_VERSION } from '../shared/version';
 
 export type AuthUser = { userId:string; email?:string; name?:string };
 export type RuntimeEnv = {
@@ -362,6 +363,30 @@ async function authLogout(request:Request){
   return new Response(JSON.stringify({ok:true}),{status:200,headers});
 }
 
+type ApiErrorRow={request_id:string;method:string;path:string;message:string;created_at:string};
+async function recordUnexpectedError(env:RuntimeEnv,request:Request,requestId:string,cause:unknown){
+  const url=new URL(request.url),message=cause instanceof Error?cause.message:String(cause||'unknown error');
+  try{
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS api_error_log (
+      request_id TEXT PRIMARY KEY,
+      method TEXT NOT NULL,
+      path TEXT NOT NULL,
+      message TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`).run();
+    await env.DB.prepare('INSERT OR REPLACE INTO api_error_log(request_id,method,path,message,created_at) VALUES(?,?,?,?,?)')
+      .bind(requestId,request.method,url.pathname,message.slice(0,800),now()).run();
+    await env.DB.prepare('DELETE FROM api_error_log WHERE request_id IN (SELECT request_id FROM api_error_log ORDER BY created_at DESC LIMIT -1 OFFSET 200)').run();
+  }catch{}
+}
+export async function recentErrorDiagnostics(limit=50){
+  const env=runtimeEnv(),max=Math.max(1,Math.min(200,Math.floor(limit||50)));
+  try{
+    const rows=await env.DB.prepare('SELECT request_id,method,path,message,created_at FROM api_error_log ORDER BY created_at DESC LIMIT ?').bind(max).all<ApiErrorRow>();
+    return rows.results||[];
+  }catch{return[]}
+}
+
 async function healthResponse(env:RuntimeEnv){
   const dbBinding=(env as RuntimeEnv & {DB?:D1Database}).DB;
   const bindings={
@@ -375,15 +400,21 @@ async function healthResponse(env:RuntimeEnv){
   let dbError:string|undefined;
   if(dbBinding){
     try{
-      const rows=await dbBinding.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('kv_records','auth_sessions','oauth_states')").all<{name:string}>();
+      await dbBinding.prepare("CREATE TABLE IF NOT EXISTS app_schema_meta (key TEXT PRIMARY KEY,value TEXT NOT NULL,updated_at TEXT NOT NULL)").run();
+      await dbBinding.prepare("INSERT INTO app_schema_meta(key,value,updated_at) VALUES('schema_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(String(DB_SCHEMA_VERSION),now()).run();
+      await dbBinding.prepare("INSERT INTO app_schema_meta(key,value,updated_at) VALUES('app_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(APP_VERSION,now()).run();
+      const rows=await dbBinding.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('kv_records','auth_sessions','oauth_states','app_schema_meta')").all<{name:string}>();
       const names=new Set((rows.results||[]).map(x=>x.name));
-      schemaReady=['kv_records','auth_sessions','oauth_states'].every(name=>names.has(name));
+      schemaReady=['kv_records','auth_sessions','oauth_states','app_schema_meta'].every(name=>names.has(name));
     }catch(error){dbError=(error as Error)?.message||'D1 indisponível';}
   }
   return json({
     ok:true,
     service:'obra-na-mao-comercial',
     runtime:'cloudflare-worker',
+    appVersion:APP_VERSION,
+    apiContractVersion:API_CONTRACT_VERSION,
+    dbSchemaVersion:DB_SCHEMA_VERSION,
     readyForLogin:bindings.d1&&schemaReady&&bindings.googleOAuth&&bindings.owner,
     readyForDesktopAi:bindings.d1&&schemaReady&&bindings.gemini,
     readyForFileImports:bindings.d1&&schemaReady&&bindings.r2,
@@ -398,28 +429,40 @@ export function router(routes:RouterRoutes){
   return {
     async fetch(request:Request,env:RuntimeEnv,_ctx?:WaitUntilContext){
       return runtime.run({env,request},async()=>{
-        const execute=async()=>{
-          const url=new URL(request.url);
-          if(!sameOriginMutationAllowed(request))return error('Origem da requisição não autorizada.',403);
-          const limited=await enforceRateLimit(request,env);if(limited)return limited;
-          if(url.pathname==='/api/health'&&request.method==='GET')return healthResponse(env);
-          if(url.pathname==='/api/auth/config'&&request.method==='GET')return authConfig();
-          if(url.pathname==='/api/auth/google-credential'&&request.method==='POST')return authGoogleCredential(request);
-          if(url.pathname==='/api/auth/start'&&request.method==='GET')return authStart(request);
-          if(url.pathname==='/api/auth/callback'&&request.method==='GET')return authCallback(request);
-          if(url.pathname==='/api/auth/me'&&request.method==='GET')return authMe(request);
-          if(url.pathname==='/api/auth/logout'&&request.method==='POST')return authLogout(request);
-          const matched=matchRoute(routes,request.method,url.pathname);
-          if(!matched)return error('Rota não encontrada.',404);
-          const query=Object.fromEntries(url.searchParams.entries()),body=await requestBody(request);
-          const context:RouterContext={request,env,query,params:matched.params,body};
-          for(const middleware of matched.stack){
-            const response=await middleware(context);
-            if(response instanceof Response)return response;
-          }
-          return error('Rota sem resposta.',500);
-        };
-        return secureResponse(await execute());
+        const requestId=crypto.randomUUID();
+        try{
+          const execute=async()=>{
+            const url=new URL(request.url);
+            if(!sameOriginMutationAllowed(request))return error('Origem da requisição não autorizada.',403);
+            const limited=await enforceRateLimit(request,env);if(limited)return limited;
+            if(url.pathname==='/api/health'&&request.method==='GET')return healthResponse(env);
+            if(url.pathname==='/api/auth/config'&&request.method==='GET')return authConfig();
+            if(url.pathname==='/api/auth/google-credential'&&request.method==='POST')return authGoogleCredential(request);
+            if(url.pathname==='/api/auth/start'&&request.method==='GET')return authStart(request);
+            if(url.pathname==='/api/auth/callback'&&request.method==='GET')return authCallback(request);
+            if(url.pathname==='/api/auth/me'&&request.method==='GET')return authMe(request);
+            if(url.pathname==='/api/auth/logout'&&request.method==='POST')return authLogout(request);
+            const matched=matchRoute(routes,request.method,url.pathname);
+            if(!matched)return error('Rota não encontrada.',404);
+            const query=Object.fromEntries(url.searchParams.entries()),body=await requestBody(request);
+            const context:RouterContext={request,env,query,params:matched.params,body};
+            for(const middleware of matched.stack){
+              const response=await middleware(context);
+              if(response instanceof Response)return response;
+            }
+            return error('Rota sem resposta.',500);
+          };
+          const response=secureResponse(await execute());
+          response.headers.set('x-request-id',requestId);
+          response.headers.set('x-app-version',APP_VERSION);
+          return response;
+        }catch(cause){
+          await recordUnexpectedError(env,request,requestId,cause);
+          const response=secureResponse(json({error:'Erro interno inesperado.',requestId},500));
+          response.headers.set('x-request-id',requestId);
+          response.headers.set('x-app-version',APP_VERSION);
+          return response;
+        }
       });
     }
   };

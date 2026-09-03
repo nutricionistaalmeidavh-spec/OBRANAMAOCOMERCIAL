@@ -13,7 +13,7 @@
 /* Guia MH: personagem fornecido pela equipe, com quatro poses leves. */
 .edu-mh-avatar{width:96px;height:132px;overflow:hidden;flex:0 0 96px;display:flex;align-items:flex-end;justify-content:center;border-radius:16px;background:rgba(255,255,255,.08)}
 .edu-mh-avatar .edu-mh-frame{display:block;width:100%;height:100%;object-fit:contain;object-position:center bottom}
-.edu-mh-mascot{width:96px;height:132px;overflow:hidden;background:url('./guide/mh-neutral.webp') center bottom/contain no-repeat;flex:0 0 96px}
+.edu-mh-mascot{width:96px;height:132px;overflow:hidden;background:url('/icon-mh.svg') center/70% no-repeat;flex:0 0 96px}
 .edu-mh-mascot>*{display:none!important}
 .edu-mh-guide--compact{margin:0 0 18px;padding:12px 16px;gap:12px;max-width:560px}
 .edu-mh-guide--compact .edu-mh-avatar{width:58px;height:78px;flex-basis:58px;border-radius:12px}
@@ -28,4 +28,8 @@
 .edu-mh-guide--compact{grid-template-columns:74px 1fr;gap:14px;max-width:none;margin:0 0 22px;padding:16px 20px}.edu-mh-guide--compact .edu-mh-avatar{width:74px;height:100px}.edu-mh-guide--compact .edu-mh-bubble strong{font-size:1rem}.edu-mh-guide--compact .edu-mh-bubble p{font-size:.92rem}
 @media(max-width:760px){.edu-mh-guide{grid-template-columns:64px 1fr;gap:12px;padding:14px 16px;border-radius:14px}.edu-mh-avatar{width:64px;height:88px}.edu-mh-guide--compact{grid-template-columns:56px 1fr;padding:12px 14px}.edu-mh-guide--compact .edu-mh-avatar{width:56px;height:76px}.edu-mh-guide::after{font-size:90px;bottom:-28px}}
 .edu-home-overview{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.8fr);gap:18px;align-items:stretch;margin:18px 0}.edu-home-overview .edu-home-journey{margin:0}.edu-home-overview .edu-mh-guide{margin:0;height:100%}.edu-portal-link{display:inline-flex;align-items:center;border:1px solid #cbd7e4;border-radius:8px;padding:9px 13px;color:#0b376b;text-decoration:none;font-size:13px;font-weight:700;margin-left:18px;white-space:nowrap}.edu-portal-link:hover{background:#edf3fb}@media(max-width:760px){.edu-home-overview{grid-template-columns:1fr;gap:12px}.edu-home-overview .edu-mh-guide{height:auto}.edu-top{gap:8px}.edu-top span{margin-left:auto}.edu-portal-link{font-size:11px;padding:8px 9px;margin-left:4px}}
+@keyframes edu-guide-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.edu-mh-frame--available{animation:edu-guide-float 3.2s ease-in-out infinite;transform-origin:center bottom}
+@media(prefers-reduced-motion:reduce){.edu-mh-frame--available{animation:none}}
 
+.edu-version{display:block;margin:4px 0 14px;padding-left:2px;font-size:10px;letter-spacing:.08em;opacity:.58}
