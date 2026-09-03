@@ -15,9 +15,9 @@ describe('mobile premium UI contract',()=>{
     }
   });
 
-  it('keeps the legacy field shell hidden until the authenticated app is ready',async()=>{
-    const [css,enhancer,obra,gestao]=await Promise.all([read('public/field-premium-v2.css'),read('public/field-premium-v2.js'),read('obra.html'),read('gestao.html')]);
-    for(const [name,html] of [['obra.html',obra],['gestao.html',gestao]] as const){
+  it('keeps the legacy field shell hidden until the application is ready on every app entry',async()=>{
+    const [css,enhancer,sistema,obra,gestao]=await Promise.all([read('public/field-premium-v2.css'),read('public/field-premium-v2.js'),read('sistema.html'),read('obra.html'),read('gestao.html')]);
+    for(const [name,html] of [['sistema.html',sistema],['obra.html',obra],['gestao.html',gestao]] as const){
       expect(html,`${name} must start in boot state`).toMatch(/<body[^>]*class=["'][^"']*field-booting/);
       expect(html,`${name} must load the premium enhancer`).toContain('/field-premium-v2.js');
     }
