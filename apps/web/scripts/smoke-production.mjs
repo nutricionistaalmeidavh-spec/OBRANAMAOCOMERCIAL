@@ -35,7 +35,7 @@ if(!buildMeta.response.ok)throw new Error('/build-meta.json failed: HTTP '+build
 if(!String(buildMeta.data.appVersion||''))throw new Error('Production build metadata is missing appVersion');
 
 const health=await json('/api/health?ts='+Date.now());
-if(!health.response.ok)throw new Error('/api/health failed: HTTP '+health.response.status);
+if(!health.response.ok)throw new Error('/api/health failed: HTTP '+health.response.status+' '+JSON.stringify(health.data).slice(0,700));
 if(health.data.ok!==true)throw new Error('/api/health is not healthy: '+JSON.stringify(health.data).slice(0,500));
 if(String(health.data.appVersion||'')!==String(buildMeta.data.appVersion||''))throw new Error('Worker/static app version mismatch');
 const expectedSchema=Number(health.data.expectedDbSchemaVersion);
