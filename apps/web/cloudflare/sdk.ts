@@ -400,9 +400,12 @@ async function healthResponse(env:RuntimeEnv){
   let dbError:string|undefined;
   if(dbBinding){
     try{
-      const rows=await dbBinding.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('kv_records','auth_sessions','oauth_states')").all<{name:string}>();
+      await dbBinding.prepare("CREATE TABLE IF NOT EXISTS app_schema_meta (key TEXT PRIMARY KEY,value TEXT NOT NULL,updated_at TEXT NOT NULL)").run();
+      await dbBinding.prepare("INSERT INTO app_schema_meta(key,value,updated_at) VALUES('schema_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(String(DB_SCHEMA_VERSION),now()).run();
+      await dbBinding.prepare("INSERT INTO app_schema_meta(key,value,updated_at) VALUES('app_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(APP_VERSION,now()).run();
+      const rows=await dbBinding.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('kv_records','auth_sessions','oauth_states','app_schema_meta')").all<{name:string}>();
       const names=new Set((rows.results||[]).map(x=>x.name));
-      schemaReady=['kv_records','auth_sessions','oauth_states'].every(name=>names.has(name));
+      schemaReady=['kv_records','auth_sessions','oauth_states','app_schema_meta'].every(name=>names.has(name));
     }catch(error){dbError=(error as Error)?.message||'D1 indisponível';}
   }
   return json({
