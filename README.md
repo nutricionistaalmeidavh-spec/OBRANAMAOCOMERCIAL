@@ -42,7 +42,7 @@ O runtime Worker equivalente também está em `apps/web/cloudflare/worker.ts` e 
 
 As 549 imagens ficam versionadas individualmente em `apps/web/public/question-images/`, com nomes derivados do ID canônico da questão. O mapa `apps/web/public/resources/question-visual-map.json` faz a ligação direta `questionId → arquivo`.
 
-O build executa `npm run assets:verify` e falha se houver imagem, ID ou entrada de mapa ausente. O ZIP legado é usado somente pelo comando excepcional `npm run assets:migrate`, nunca pelo usuário final nem pelo build normal.
+O build executa `npm run assets:verify` e falha se houver imagem, ID ou entrada de mapa ausente. A migração do ZIP legado já foi encerrada: o build e o runtime usam somente os assets individuais versionados no repositório.
 
 ## Desktop
 

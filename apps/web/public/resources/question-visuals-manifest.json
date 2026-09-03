@@ -9,8 +9,7 @@
     "src": "/question-images/q_a23ang.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_a23ang",
-    "legacySrc": "./question-images/001_CURR-adicao-N1-01.webp"
+    "questionId": "q_a23ang"
   },
   {
     "order": 2,
@@ -22,8 +21,7 @@
     "src": "/question-images/q_44h4hl.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_44h4hl",
-    "legacySrc": "./question-images/002_CURR-adicao-N1-02.webp"
+    "questionId": "q_44h4hl"
   },
   {
     "order": 3,
@@ -35,8 +33,7 @@
     "src": "/question-images/q_ehdha5.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_ehdha5",
-    "legacySrc": "./question-images/003_CURR-adicao-N1-03.webp"
+    "questionId": "q_ehdha5"
   },
   {
     "order": 4,
@@ -48,8 +45,7 @@
     "src": "/question-images/q_j0iqwl.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_j0iqwl",
-    "legacySrc": "./question-images/004_YA-adicao-N1-001.webp"
+    "questionId": "q_j0iqwl"
   },
   {
     "order": 5,
@@ -61,8 +57,7 @@
     "src": "/question-images/q_ovsgz7.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_ovsgz7",
-    "legacySrc": "./question-images/005_YA-adicao-N1-002.webp"
+    "questionId": "q_ovsgz7"
   },
   {
     "order": 6,
@@ -74,8 +69,7 @@
     "src": "/question-images/q_1v3calf.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1v3calf",
-    "legacySrc": "./question-images/006_YA-adicao-N1-003.webp"
+    "questionId": "q_1v3calf"
   },
   {
     "order": 7,
@@ -87,8 +81,7 @@
     "src": "/question-images/q_i6wk8h.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_i6wk8h",
-    "legacySrc": "./question-images/007_YA-adicao-N1-004.webp"
+    "questionId": "q_i6wk8h"
   },
   {
     "order": 8,
@@ -100,8 +93,7 @@
     "src": "/question-images/q_sq0wth.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_sq0wth",
-    "legacySrc": "./question-images/008_YA-adicao-N1-005.webp"
+    "questionId": "q_sq0wth"
   },
   {
     "order": 9,
@@ -113,8 +105,7 @@
     "src": "/question-images/q_14jyccj.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_14jyccj",
-    "legacySrc": "./question-images/009_YA-adicao-N1-006.webp"
+    "questionId": "q_14jyccj"
   },
   {
     "order": 10,
@@ -126,8 +117,7 @@
     "src": "/question-images/q_1tbq8z7.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1tbq8z7",
-    "legacySrc": "./question-images/010_YA-adicao-N1-007.webp"
+    "questionId": "q_1tbq8z7"
   },
   {
     "order": 11,
@@ -139,8 +129,7 @@
     "src": "/question-images/q_1yvxx7w.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1yvxx7w",
-    "legacySrc": "./question-images/011_YA-adicao-N1-008.webp"
+    "questionId": "q_1yvxx7w"
   },
   {
     "order": 12,
@@ -152,8 +141,7 @@
     "src": "/question-images/q_121gbai.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_121gbai",
-    "legacySrc": "./question-images/012_YA-adicao-N1-009.webp"
+    "questionId": "q_121gbai"
   },
   {
     "order": 13,
@@ -165,8 +153,7 @@
     "src": "/question-images/q_1omlz4e.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1omlz4e",
-    "legacySrc": "./question-images/013_YA-adicao-N1-010.webp"
+    "questionId": "q_1omlz4e"
   },
   {
     "order": 14,
@@ -178,8 +165,7 @@
     "src": "/question-images/q_6wvf7w.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_6wvf7w",
-    "legacySrc": "./question-images/014_YA-adicao-N1-011.webp"
+    "questionId": "q_6wvf7w"
   },
   {
     "order": 15,
@@ -191,8 +177,7 @@
     "src": "/question-images/q_hzp4k1.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_hzp4k1",
-    "legacySrc": "./question-images/015_YA-adicao-N1-012.webp"
+    "questionId": "q_hzp4k1"
   },
   {
     "order": 16,
@@ -204,8 +189,7 @@
     "src": "/question-images/q_1twvyw4.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1twvyw4",
-    "legacySrc": "./question-images/016_YA-adicao-N1-013.webp"
+    "questionId": "q_1twvyw4"
   },
   {
     "order": 17,
@@ -217,8 +201,7 @@
     "src": "/question-images/q_1dixddr.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1dixddr",
-    "legacySrc": "./question-images/017_YA-adicao-N1-014.webp"
+    "questionId": "q_1dixddr"
   },
   {
     "order": 18,
@@ -230,8 +213,7 @@
     "src": "/question-images/q_1e1ugtj.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1e1ugtj",
-    "legacySrc": "./question-images/018_YA-adicao-N1-015.webp"
+    "questionId": "q_1e1ugtj"
   },
   {
     "order": 19,
@@ -243,8 +225,7 @@
     "src": "/question-images/q_5p1z3q.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_5p1z3q",
-    "legacySrc": "./question-images/019_YA-adicao-N1-016.webp"
+    "questionId": "q_5p1z3q"
   },
   {
     "order": 20,
@@ -256,8 +237,7 @@
     "src": "/question-images/q_1in1cw3.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1in1cw3",
-    "legacySrc": "./question-images/020_YA-adicao-N1-017.webp"
+    "questionId": "q_1in1cw3"
   },
   {
     "order": 21,
@@ -269,8 +249,7 @@
     "src": "/question-images/q_1gxylne.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1gxylne",
-    "legacySrc": "./question-images/021_YA-adicao-N1-018.webp"
+    "questionId": "q_1gxylne"
   },
   {
     "order": 22,
@@ -282,8 +261,7 @@
     "src": "/question-images/q_14cdkel.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_14cdkel",
-    "legacySrc": "./question-images/022_YA-adicao-N1-019.webp"
+    "questionId": "q_14cdkel"
   },
   {
     "order": 23,
@@ -295,8 +273,7 @@
     "src": "/question-images/q_zh7pwq.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_zh7pwq",
-    "legacySrc": "./question-images/023_YA-adicao-N1-020.webp"
+    "questionId": "q_zh7pwq"
   },
   {
     "order": 24,
@@ -308,8 +285,7 @@
     "src": "/question-images/q_8h6d79.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_8h6d79",
-    "legacySrc": "./question-images/024_CURR-divisao-N1-01.webp"
+    "questionId": "q_8h6d79"
   },
   {
     "order": 25,
@@ -321,8 +297,7 @@
     "src": "/question-images/q_lhn1u4.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_lhn1u4",
-    "legacySrc": "./question-images/025_CURR-divisao-N1-02.webp"
+    "questionId": "q_lhn1u4"
   },
   {
     "order": 26,
@@ -334,8 +309,7 @@
     "src": "/question-images/q_pcktsi.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_pcktsi",
-    "legacySrc": "./question-images/026_CURR-divisao-N1-03.webp"
+    "questionId": "q_pcktsi"
   },
   {
     "order": 27,
@@ -347,8 +321,7 @@
     "src": "/question-images/q_p2oblx.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_p2oblx",
-    "legacySrc": "./question-images/027_CURR-medidas-N1-01.webp"
+    "questionId": "q_p2oblx"
   },
   {
     "order": 28,
@@ -360,8 +333,7 @@
     "src": "/question-images/q_ktqk4c.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_ktqk4c",
-    "legacySrc": "./question-images/028_CURR-medidas-N1-02.webp"
+    "questionId": "q_ktqk4c"
   },
   {
     "order": 29,
@@ -373,8 +345,7 @@
     "src": "/question-images/q_1ij6kox.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1ij6kox",
-    "legacySrc": "./question-images/029_CURR-medidas-N1-03.webp"
+    "questionId": "q_1ij6kox"
   },
   {
     "order": 30,
@@ -386,8 +357,7 @@
     "src": "/question-images/q_7la7og.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_7la7og",
-    "legacySrc": "./question-images/030_CURR-multiplicacao-N1-01.webp"
+    "questionId": "q_7la7og"
   },
   {
     "order": 31,
@@ -399,8 +369,7 @@
     "src": "/question-images/q_10oyk8y.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_10oyk8y",
-    "legacySrc": "./question-images/031_CURR-multiplicacao-N1-02.webp"
+    "questionId": "q_10oyk8y"
   },
   {
     "order": 32,
@@ -412,8 +381,7 @@
     "src": "/question-images/q_1jyuyea.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1jyuyea",
-    "legacySrc": "./question-images/032_CURR-multiplicacao-N1-03.webp"
+    "questionId": "q_1jyuyea"
   },
   {
     "order": 33,
@@ -425,8 +393,7 @@
     "src": "/question-images/q_dc3y81.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_dc3y81",
-    "legacySrc": "./question-images/033_CURR-porcentagem-N1-01.webp"
+    "questionId": "q_dc3y81"
   },
   {
     "order": 34,
@@ -438,8 +405,7 @@
     "src": "/question-images/q_12o6k0.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_12o6k0",
-    "legacySrc": "./question-images/034_CURR-porcentagem-N1-02.webp"
+    "questionId": "q_12o6k0"
   },
   {
     "order": 35,
@@ -451,8 +417,7 @@
     "src": "/question-images/q_15lxs7r.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_15lxs7r",
-    "legacySrc": "./question-images/035_CURR-porcentagem-N1-03.webp"
+    "questionId": "q_15lxs7r"
   },
   {
     "order": 36,
@@ -464,8 +429,7 @@
     "src": "/question-images/q_1drr9ec.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1drr9ec",
-    "legacySrc": "./question-images/036_CURR-adicao-N2-01.webp"
+    "questionId": "q_1drr9ec"
   },
   {
     "order": 37,
@@ -477,8 +441,7 @@
     "src": "/question-images/q_vq9n8y.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_vq9n8y",
-    "legacySrc": "./question-images/037_CURR-adicao-N2-02.webp"
+    "questionId": "q_vq9n8y"
   },
   {
     "order": 38,
@@ -490,8 +453,7 @@
     "src": "/question-images/q_tixndu.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_tixndu",
-    "legacySrc": "./question-images/038_CURR-adicao-N2-03.webp"
+    "questionId": "q_tixndu"
   },
   {
     "order": 39,
@@ -503,8 +465,7 @@
     "src": "/question-images/q_n495mp.webp",
     "alt": "Apoio visual complementar — CONTAGEM E QUANTIDADE",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_n495mp",
-    "legacySrc": "./question-images/039_ADD-adicao-N2-001.webp"
+    "questionId": "q_n495mp"
   },
   {
     "order": 40,
@@ -516,8 +477,7 @@
     "src": "/question-images/q_cne18o.webp",
     "alt": "Apoio visual complementar — CONTAGEM E QUANTIDADE",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_cne18o",
-    "legacySrc": "./question-images/040_ADD-adicao-N2-002.webp"
+    "questionId": "q_cne18o"
   },
   {
     "order": 41,
@@ -529,8 +489,7 @@
     "src": "/question-images/q_1ndvxl3.webp",
     "alt": "Apoio visual complementar — CONTAGEM E QUANTIDADE",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1ndvxl3",
-    "legacySrc": "./question-images/041_ADD-adicao-N2-003.webp"
+    "questionId": "q_1ndvxl3"
   },
   {
     "order": 42,
@@ -542,8 +501,7 @@
     "src": "/question-images/q_18lvhc0.webp",
     "alt": "Apoio visual complementar — CONTAGEM E QUANTIDADE",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_18lvhc0",
-    "legacySrc": "./question-images/042_ADD-adicao-N2-004.webp"
+    "questionId": "q_18lvhc0"
   },
   {
     "order": 43,
@@ -555,8 +513,7 @@
     "src": "/question-images/q_kzczzo.webp",
     "alt": "Apoio visual complementar — CONTAGEM E QUANTIDADE",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_kzczzo",
-    "legacySrc": "./question-images/043_ADD-adicao-N2-005.webp"
+    "questionId": "q_kzczzo"
   },
   {
     "order": 44,
@@ -568,8 +525,7 @@
     "src": "/question-images/q_5pp25n.webp",
     "alt": "Apoio visual complementar — SEQUÊNCIAS NUMÉRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_5pp25n",
-    "legacySrc": "./question-images/044_ADD-adicao-N2-006.webp"
+    "questionId": "q_5pp25n"
   },
   {
     "order": 45,
@@ -581,8 +537,7 @@
     "src": "/question-images/q_1m0zl0l.webp",
     "alt": "Apoio visual complementar — SEQUÊNCIAS NUMÉRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1m0zl0l",
-    "legacySrc": "./question-images/045_ADD-adicao-N2-007.webp"
+    "questionId": "q_1m0zl0l"
   },
   {
     "order": 46,
@@ -594,8 +549,7 @@
     "src": "/question-images/q_1cdrnfo.webp",
     "alt": "Apoio visual complementar — SEQUÊNCIAS NUMÉRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1cdrnfo",
-    "legacySrc": "./question-images/046_ADD-adicao-N2-008.webp"
+    "questionId": "q_1cdrnfo"
   },
   {
     "order": 47,
@@ -607,8 +561,7 @@
     "src": "/question-images/q_1omn7wt.webp",
     "alt": "Apoio visual complementar — SEQUÊNCIAS NUMÉRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1omn7wt",
-    "legacySrc": "./question-images/047_ADD-adicao-N2-009.webp"
+    "questionId": "q_1omn7wt"
   },
   {
     "order": 48,
@@ -620,8 +573,7 @@
     "src": "/question-images/q_mr3ewv.webp",
     "alt": "Apoio visual complementar — SEQUÊNCIAS NUMÉRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_mr3ewv",
-    "legacySrc": "./question-images/048_ADD-adicao-N2-010.webp"
+    "questionId": "q_mr3ewv"
   },
   {
     "order": 49,
@@ -633,8 +585,7 @@
     "src": "/question-images/q_1s2152j.webp",
     "alt": "Apoio visual complementar — COMPARAÇÃO DE NÚMEROS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1s2152j",
-    "legacySrc": "./question-images/049_ADD-adicao-N2-011.webp"
+    "questionId": "q_1s2152j"
   },
   {
     "order": 50,
@@ -646,8 +597,7 @@
     "src": "/question-images/q_1bbiknd.webp",
     "alt": "Apoio visual complementar — COMPARAÇÃO DE NÚMEROS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1bbiknd",
-    "legacySrc": "./question-images/050_ADD-adicao-N2-012.webp"
+    "questionId": "q_1bbiknd"
   },
   {
     "order": 51,
@@ -659,8 +609,7 @@
     "src": "/question-images/q_rz2fs4.webp",
     "alt": "Apoio visual complementar — COMPARAÇÃO DE NÚMEROS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_rz2fs4",
-    "legacySrc": "./question-images/051_ADD-adicao-N2-013.webp"
+    "questionId": "q_rz2fs4"
   },
   {
     "order": 52,
@@ -672,8 +621,7 @@
     "src": "/question-images/q_1it78zu.webp",
     "alt": "Apoio visual complementar — COMPARAÇÃO DE NÚMEROS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1it78zu",
-    "legacySrc": "./question-images/052_ADD-adicao-N2-014.webp"
+    "questionId": "q_1it78zu"
   },
   {
     "order": 53,
@@ -685,8 +633,7 @@
     "src": "/question-images/q_1fsflpi.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1fsflpi",
-    "legacySrc": "./question-images/053_ADD-adicao-N2-015.webp"
+    "questionId": "q_1fsflpi"
   },
   {
     "order": 54,
@@ -698,8 +645,7 @@
     "src": "/question-images/q_pait2z.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_pait2z",
-    "legacySrc": "./question-images/054_ADD-adicao-N2-016.webp"
+    "questionId": "q_pait2z"
   },
   {
     "order": 55,
@@ -711,8 +657,7 @@
     "src": "/question-images/q_10nw3gp.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_10nw3gp",
-    "legacySrc": "./question-images/055_ADD-adicao-N2-017.webp"
+    "questionId": "q_10nw3gp"
   },
   {
     "order": 56,
@@ -724,8 +669,7 @@
     "src": "/question-images/q_6oxtty.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_6oxtty",
-    "legacySrc": "./question-images/056_ADD-adicao-N2-018.webp"
+    "questionId": "q_6oxtty"
   },
   {
     "order": 57,
@@ -737,8 +681,7 @@
     "src": "/question-images/q_1890v2d.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1890v2d",
-    "legacySrc": "./question-images/057_ADD-adicao-N2-019.webp"
+    "questionId": "q_1890v2d"
   },
   {
     "order": 58,
@@ -750,8 +693,7 @@
     "src": "/question-images/q_1xyamrw.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1xyamrw",
-    "legacySrc": "./question-images/058_ADD-adicao-N2-020.webp"
+    "questionId": "q_1xyamrw"
   },
   {
     "order": 59,
@@ -763,8 +705,7 @@
     "src": "/question-images/q_yffopc.webp",
     "alt": "Apoio visual complementar — SISTEMAS DE NUMERAÇÃO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_yffopc",
-    "legacySrc": "./question-images/059_ADD-adicao-N2-021.webp"
+    "questionId": "q_yffopc"
   },
   {
     "order": 60,
@@ -776,8 +717,7 @@
     "src": "/question-images/q_1futkte.webp",
     "alt": "Apoio visual complementar — SISTEMAS DE NUMERAÇÃO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1futkte",
-    "legacySrc": "./question-images/060_ADD-adicao-N2-022.webp"
+    "questionId": "q_1futkte"
   },
   {
     "order": 61,
@@ -789,8 +729,7 @@
     "src": "/question-images/q_jrew1k.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS NATURAIS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_jrew1k",
-    "legacySrc": "./question-images/061_ADD-adicao-N2-023.webp"
+    "questionId": "q_jrew1k"
   },
   {
     "order": 62,
@@ -802,8 +741,7 @@
     "src": "/question-images/q_febbe6.webp",
     "alt": "Apoio visual complementar — DIVISORES E MÚLTIPLOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_febbe6",
-    "legacySrc": "./question-images/062_ADD-adicao-N2-024.webp"
+    "questionId": "q_febbe6"
   },
   {
     "order": 63,
@@ -815,8 +753,7 @@
     "src": "/question-images/q_1s1ifin.webp",
     "alt": "Apoio visual complementar — DIVISORES E MÚLTIPLOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1s1ifin",
-    "legacySrc": "./question-images/063_ADD-adicao-N2-025.webp"
+    "questionId": "q_1s1ifin"
   },
   {
     "order": 64,
@@ -828,8 +765,7 @@
     "src": "/question-images/q_l051q2.webp",
     "alt": "Apoio visual complementar — NÚMEROS INTEIROS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_l051q2",
-    "legacySrc": "./question-images/064_ADD-adicao-N2-026.webp"
+    "questionId": "q_l051q2"
   },
   {
     "order": 65,
@@ -841,8 +777,7 @@
     "src": "/question-images/q_1g2pa8j.webp",
     "alt": "Apoio visual complementar — NÚMEROS INTEIROS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1g2pa8j",
-    "legacySrc": "./question-images/065_ADD-adicao-N2-027.webp"
+    "questionId": "q_1g2pa8j"
   },
   {
     "order": 66,
@@ -854,8 +789,7 @@
     "src": "/question-images/q_100ijv9.webp",
     "alt": "Apoio visual complementar — TEORIA DOS CONJUNTOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_100ijv9",
-    "legacySrc": "./question-images/066_ADD-adicao-N2-028.webp"
+    "questionId": "q_100ijv9"
   },
   {
     "order": 67,
@@ -867,8 +801,7 @@
     "src": "/question-images/q_igrs3n.webp",
     "alt": "Apoio visual complementar — DÍZIMAS PERIÓDICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_igrs3n",
-    "legacySrc": "./question-images/067_ADD-adicao-N2-029.webp"
+    "questionId": "q_igrs3n"
   },
   {
     "order": 68,
@@ -880,8 +813,7 @@
     "src": "/question-images/q_13c0l0d.webp",
     "alt": "Apoio visual complementar — DÍZIMAS PERIÓDICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_13c0l0d",
-    "legacySrc": "./question-images/068_ADD-adicao-N2-030.webp"
+    "questionId": "q_13c0l0d"
   },
   {
     "order": 69,
@@ -893,8 +825,7 @@
     "src": "/question-images/q_6oqczq.webp",
     "alt": "Apoio visual complementar — EXPRESSÕES NUMÉRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_6oqczq",
-    "legacySrc": "./question-images/069_ADD-adicao-N2-031.webp"
+    "questionId": "q_6oqczq"
   },
   {
     "order": 70,
@@ -906,8 +837,7 @@
     "src": "/question-images/q_3nygz7.webp",
     "alt": "Apoio visual complementar — EXPRESSÕES NUMÉRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_3nygz7",
-    "legacySrc": "./question-images/070_ADD-adicao-N2-032.webp"
+    "questionId": "q_3nygz7"
   },
   {
     "order": 71,
@@ -919,8 +849,7 @@
     "src": "/question-images/q_1hqnki5.webp",
     "alt": "Apoio visual complementar — SEQUÊNCIAS E REGULARIDADES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1hqnki5",
-    "legacySrc": "./question-images/071_ADD-adicao-N2-033.webp"
+    "questionId": "q_1hqnki5"
   },
   {
     "order": 72,
@@ -932,8 +861,7 @@
     "src": "/question-images/q_z6thgj.webp",
     "alt": "Apoio visual complementar — SEQUÊNCIAS E REGULARIDADES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_z6thgj",
-    "legacySrc": "./question-images/072_ADD-adicao-N2-034.webp"
+    "questionId": "q_z6thgj"
   },
   {
     "order": 73,
@@ -945,8 +873,7 @@
     "src": "/question-images/q_lenq5o.webp",
     "alt": "Apoio visual complementar — EQUAÇÕES E PROPORCIONALIDADE",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_lenq5o",
-    "legacySrc": "./question-images/073_ADD-adicao-N2-035.webp"
+    "questionId": "q_lenq5o"
   },
   {
     "order": 74,
@@ -958,8 +885,7 @@
     "src": "/question-images/q_kevop6.webp",
     "alt": "Apoio visual complementar — EQUAÇÕES E PROPORCIONALIDADE",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_kevop6",
-    "legacySrc": "./question-images/074_ADD-adicao-N2-036.webp"
+    "questionId": "q_kevop6"
   },
   {
     "order": 75,
@@ -971,8 +897,7 @@
     "src": "/question-images/q_121wgc0.webp",
     "alt": "Apoio visual complementar — PORCENTAGENS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_121wgc0",
-    "legacySrc": "./question-images/075_ADD-adicao-N2-037.webp"
+    "questionId": "q_121wgc0"
   },
   {
     "order": 76,
@@ -984,8 +909,7 @@
     "src": "/question-images/q_uh4fpn.webp",
     "alt": "Apoio visual complementar — PORCENTAGENS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_uh4fpn",
-    "legacySrc": "./question-images/076_ADD-adicao-N2-038.webp"
+    "questionId": "q_uh4fpn"
   },
   {
     "order": 77,
@@ -997,8 +921,7 @@
     "src": "/question-images/q_7ya3ay.webp",
     "alt": "Apoio visual complementar — ÂNGULOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_7ya3ay",
-    "legacySrc": "./question-images/077_ADD-adicao-N2-039.webp"
+    "questionId": "q_7ya3ay"
   },
   {
     "order": 78,
@@ -1010,8 +933,7 @@
     "src": "/question-images/q_fqarl6.webp",
     "alt": "Apoio visual complementar — ÂNGULOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_fqarl6",
-    "legacySrc": "./question-images/078_ADD-adicao-N2-040.webp"
+    "questionId": "q_fqarl6"
   },
   {
     "order": 79,
@@ -1023,8 +945,7 @@
     "src": "/question-images/q_jpjhvq.webp",
     "alt": "Apoio visual complementar — ÁREA",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_jpjhvq",
-    "legacySrc": "./question-images/079_ADD-adicao-N2-041.webp"
+    "questionId": "q_jpjhvq"
   },
   {
     "order": 80,
@@ -1036,8 +957,7 @@
     "src": "/question-images/q_19m67xl.webp",
     "alt": "Apoio visual complementar — ÁREA",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_19m67xl",
-    "legacySrc": "./question-images/080_ADD-adicao-N2-042.webp"
+    "questionId": "q_19m67xl"
   },
   {
     "order": 81,
@@ -1049,8 +969,7 @@
     "src": "/question-images/q_pzghro.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_pzghro",
-    "legacySrc": "./question-images/081_YA-adicao-N2-001.webp"
+    "questionId": "q_pzghro"
   },
   {
     "order": 82,
@@ -1062,8 +981,7 @@
     "src": "/question-images/q_478g2y.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_478g2y",
-    "legacySrc": "./question-images/082_YA-adicao-N2-002.webp"
+    "questionId": "q_478g2y"
   },
   {
     "order": 83,
@@ -1075,8 +993,7 @@
     "src": "/question-images/q_zxt4wl.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_zxt4wl",
-    "legacySrc": "./question-images/083_YA-adicao-N2-003.webp"
+    "questionId": "q_zxt4wl"
   },
   {
     "order": 84,
@@ -1088,8 +1005,7 @@
     "src": "/question-images/q_kvo3fm.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_kvo3fm",
-    "legacySrc": "./question-images/084_YA-adicao-N2-004.webp"
+    "questionId": "q_kvo3fm"
   },
   {
     "order": 85,
@@ -1101,8 +1017,7 @@
     "src": "/question-images/q_dd0xqv.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_dd0xqv",
-    "legacySrc": "./question-images/085_YA-adicao-N2-005.webp"
+    "questionId": "q_dd0xqv"
   },
   {
     "order": 86,
@@ -1114,8 +1029,7 @@
     "src": "/question-images/q_1xtwouf.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1xtwouf",
-    "legacySrc": "./question-images/086_YA-adicao-N2-006.webp"
+    "questionId": "q_1xtwouf"
   },
   {
     "order": 87,
@@ -1127,8 +1041,7 @@
     "src": "/question-images/q_125jndt.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_125jndt",
-    "legacySrc": "./question-images/087_YA-adicao-N2-007.webp"
+    "questionId": "q_125jndt"
   },
   {
     "order": 88,
@@ -1140,8 +1053,7 @@
     "src": "/question-images/q_1sy3ia7.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1sy3ia7",
-    "legacySrc": "./question-images/088_YA-adicao-N2-008.webp"
+    "questionId": "q_1sy3ia7"
   },
   {
     "order": 89,
@@ -1153,8 +1065,7 @@
     "src": "/question-images/q_ogua0a.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_ogua0a",
-    "legacySrc": "./question-images/089_YA-adicao-N2-009.webp"
+    "questionId": "q_ogua0a"
   },
   {
     "order": 90,
@@ -1166,8 +1077,7 @@
     "src": "/question-images/q_11sawb5.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_11sawb5",
-    "legacySrc": "./question-images/090_YA-adicao-N2-010.webp"
+    "questionId": "q_11sawb5"
   },
   {
     "order": 91,
@@ -1179,8 +1089,7 @@
     "src": "/question-images/q_jyrz2n.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_jyrz2n",
-    "legacySrc": "./question-images/091_YA-adicao-N2-011.webp"
+    "questionId": "q_jyrz2n"
   },
   {
     "order": 92,
@@ -1192,8 +1101,7 @@
     "src": "/question-images/q_q7gj0q.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_q7gj0q",
-    "legacySrc": "./question-images/092_YA-adicao-N2-012.webp"
+    "questionId": "q_q7gj0q"
   },
   {
     "order": 93,
@@ -1205,8 +1113,7 @@
     "src": "/question-images/q_byhr41.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_byhr41",
-    "legacySrc": "./question-images/093_YA-adicao-N2-013.webp"
+    "questionId": "q_byhr41"
   },
   {
     "order": 94,
@@ -1218,8 +1125,7 @@
     "src": "/question-images/q_8immm0.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_8immm0",
-    "legacySrc": "./question-images/094_YA-adicao-N2-014.webp"
+    "questionId": "q_8immm0"
   },
   {
     "order": 95,
@@ -1231,8 +1137,7 @@
     "src": "/question-images/q_1e3ieam.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1e3ieam",
-    "legacySrc": "./question-images/095_YA-adicao-N2-015.webp"
+    "questionId": "q_1e3ieam"
   },
   {
     "order": 96,
@@ -1244,8 +1149,7 @@
     "src": "/question-images/q_pha0dw.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_pha0dw",
-    "legacySrc": "./question-images/096_YA-adicao-N2-016.webp"
+    "questionId": "q_pha0dw"
   },
   {
     "order": 97,
@@ -1257,8 +1161,7 @@
     "src": "/question-images/q_kql59y.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_kql59y",
-    "legacySrc": "./question-images/097_YA-adicao-N2-017.webp"
+    "questionId": "q_kql59y"
   },
   {
     "order": 98,
@@ -1270,8 +1173,7 @@
     "src": "/question-images/q_zv8swq.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_zv8swq",
-    "legacySrc": "./question-images/098_YA-adicao-N2-018.webp"
+    "questionId": "q_zv8swq"
   },
   {
     "order": 99,
@@ -1283,8 +1185,7 @@
     "src": "/question-images/q_1sipgnj.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1sipgnj",
-    "legacySrc": "./question-images/099_YA-adicao-N2-019.webp"
+    "questionId": "q_1sipgnj"
   },
   {
     "order": 100,
@@ -1296,8 +1197,7 @@
     "src": "/question-images/q_bss07i.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_bss07i",
-    "legacySrc": "./question-images/100_YA-adicao-N2-020.webp"
+    "questionId": "q_bss07i"
   },
   {
     "order": 101,
@@ -1309,8 +1209,7 @@
     "src": "/question-images/q_1v10p6.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1v10p6",
-    "legacySrc": "./question-images/101_CURR-divisao-N2-01.webp"
+    "questionId": "q_1v10p6"
   },
   {
     "order": 102,
@@ -1322,8 +1221,7 @@
     "src": "/question-images/q_1p7htw6.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1p7htw6",
-    "legacySrc": "./question-images/102_CURR-divisao-N2-02.webp"
+    "questionId": "q_1p7htw6"
   },
   {
     "order": 103,
@@ -1335,8 +1233,7 @@
     "src": "/question-images/q_19hwkcl.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_19hwkcl",
-    "legacySrc": "./question-images/103_CURR-divisao-N2-03.webp"
+    "questionId": "q_19hwkcl"
   },
   {
     "order": 104,
@@ -1348,8 +1245,7 @@
     "src": "/question-images/q_16td1l3.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_16td1l3",
-    "legacySrc": "./question-images/104_CURR-medidas-N2-01.webp"
+    "questionId": "q_16td1l3"
   },
   {
     "order": 105,
@@ -1361,8 +1257,7 @@
     "src": "/question-images/q_1rgomex.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1rgomex",
-    "legacySrc": "./question-images/105_CURR-medidas-N2-02.webp"
+    "questionId": "q_1rgomex"
   },
   {
     "order": 106,
@@ -1374,8 +1269,7 @@
     "src": "/question-images/q_rx10nf.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_rx10nf",
-    "legacySrc": "./question-images/106_CURR-medidas-N2-03.webp"
+    "questionId": "q_rx10nf"
   },
   {
     "order": 107,
@@ -1387,8 +1281,7 @@
     "src": "/question-images/q_n8p4yu.webp",
     "alt": "Apoio visual complementar — FORMAS GEOMÉTRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_n8p4yu",
-    "legacySrc": "./question-images/107_ADD-medidas-N2-001.webp"
+    "questionId": "q_n8p4yu"
   },
   {
     "order": 108,
@@ -1400,8 +1293,7 @@
     "src": "/question-images/q_1vvc7jk.webp",
     "alt": "Apoio visual complementar — FORMAS GEOMÉTRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1vvc7jk",
-    "legacySrc": "./question-images/108_ADD-medidas-N2-002.webp"
+    "questionId": "q_1vvc7jk"
   },
   {
     "order": 109,
@@ -1413,8 +1305,7 @@
     "src": "/question-images/q_qp768j.webp",
     "alt": "Apoio visual complementar — FORMAS GEOMÉTRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_qp768j",
-    "legacySrc": "./question-images/109_ADD-medidas-N2-003.webp"
+    "questionId": "q_qp768j"
   },
   {
     "order": 110,
@@ -1426,8 +1317,7 @@
     "src": "/question-images/q_38kuor.webp",
     "alt": "Apoio visual complementar — FORMAS GEOMÉTRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_38kuor",
-    "legacySrc": "./question-images/110_ADD-medidas-N2-004.webp"
+    "questionId": "q_38kuor"
   },
   {
     "order": 111,
@@ -1439,8 +1329,7 @@
     "src": "/question-images/q_17jp1sd.webp",
     "alt": "Apoio visual complementar — MEDIDAS E TEMPO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_17jp1sd",
-    "legacySrc": "./question-images/111_ADD-medidas-N2-005.webp"
+    "questionId": "q_17jp1sd"
   },
   {
     "order": 112,
@@ -1452,8 +1341,7 @@
     "src": "/question-images/q_151chpy.webp",
     "alt": "Apoio visual complementar — MEDIDAS E TEMPO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_151chpy",
-    "legacySrc": "./question-images/112_ADD-medidas-N2-006.webp"
+    "questionId": "q_151chpy"
   },
   {
     "order": 113,
@@ -1465,8 +1353,7 @@
     "src": "/question-images/q_iiso06.webp",
     "alt": "Apoio visual complementar — MEDIDAS E TEMPO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_iiso06",
-    "legacySrc": "./question-images/113_ADD-medidas-N2-007.webp"
+    "questionId": "q_iiso06"
   },
   {
     "order": 114,
@@ -1478,8 +1365,7 @@
     "src": "/question-images/q_kpg6d5.webp",
     "alt": "Apoio visual complementar — MEDIDAS E TEMPO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_kpg6d5",
-    "legacySrc": "./question-images/114_ADD-medidas-N2-008.webp"
+    "questionId": "q_kpg6d5"
   },
   {
     "order": 115,
@@ -1491,8 +1377,7 @@
     "src": "/question-images/q_11x3xhp.webp",
     "alt": "Apoio visual complementar — MEDIDAS E TEMPO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_11x3xhp",
-    "legacySrc": "./question-images/115_ADD-medidas-N2-009.webp"
+    "questionId": "q_11x3xhp"
   },
   {
     "order": 116,
@@ -1504,8 +1389,7 @@
     "src": "/question-images/q_1kvt89i.webp",
     "alt": "Apoio visual complementar — CONVERSÃO DE UNIDADES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1kvt89i",
-    "legacySrc": "./question-images/116_ADD-medidas-N2-010.webp"
+    "questionId": "q_1kvt89i"
   },
   {
     "order": 117,
@@ -1517,8 +1401,7 @@
     "src": "/question-images/q_h4z856.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_h4z856",
-    "legacySrc": "./question-images/117_CURR-multiplicacao-N2-01.webp"
+    "questionId": "q_h4z856"
   },
   {
     "order": 118,
@@ -1530,8 +1413,7 @@
     "src": "/question-images/q_13pvn3l.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_13pvn3l",
-    "legacySrc": "./question-images/118_CURR-multiplicacao-N2-02.webp"
+    "questionId": "q_13pvn3l"
   },
   {
     "order": 119,
@@ -1543,8 +1425,7 @@
     "src": "/question-images/q_1btniud.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1btniud",
-    "legacySrc": "./question-images/119_CURR-multiplicacao-N2-03.webp"
+    "questionId": "q_1btniud"
   },
   {
     "order": 120,
@@ -1556,8 +1437,7 @@
     "src": "/question-images/q_1xii29l.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1xii29l",
-    "legacySrc": "./question-images/120_CURR-porcentagem-N2-01.webp"
+    "questionId": "q_1xii29l"
   },
   {
     "order": 121,
@@ -1569,8 +1449,7 @@
     "src": "/question-images/q_1er1mru.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1er1mru",
-    "legacySrc": "./question-images/121_CURR-porcentagem-N2-02.webp"
+    "questionId": "q_1er1mru"
   },
   {
     "order": 122,
@@ -1582,8 +1461,7 @@
     "src": "/question-images/q_1dtaapi.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1dtaapi",
-    "legacySrc": "./question-images/122_CURR-porcentagem-N2-03.webp"
+    "questionId": "q_1dtaapi"
   },
   {
     "order": 123,
@@ -1595,8 +1473,7 @@
     "src": "/question-images/q_uasy2o.webp",
     "alt": "Apoio visual complementar — DINHEIRO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_uasy2o",
-    "legacySrc": "./question-images/123_ADD-porcentagem-N2-001.webp"
+    "questionId": "q_uasy2o"
   },
   {
     "order": 124,
@@ -1608,8 +1485,7 @@
     "src": "/question-images/q_1gjjxa6.webp",
     "alt": "Apoio visual complementar — DINHEIRO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1gjjxa6",
-    "legacySrc": "./question-images/124_ADD-porcentagem-N2-002.webp"
+    "questionId": "q_1gjjxa6"
   },
   {
     "order": 125,
@@ -1621,8 +1497,7 @@
     "src": "/question-images/q_1s6znw2.webp",
     "alt": "Apoio visual complementar — DINHEIRO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1s6znw2",
-    "legacySrc": "./question-images/125_ADD-porcentagem-N2-003.webp"
+    "questionId": "q_1s6znw2"
   },
   {
     "order": 126,
@@ -1634,8 +1509,7 @@
     "src": "/question-images/q_sxydpv.webp",
     "alt": "Apoio visual complementar — DINHEIRO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_sxydpv",
-    "legacySrc": "./question-images/126_ADD-porcentagem-N2-004.webp"
+    "questionId": "q_sxydpv"
   },
   {
     "order": 127,
@@ -1647,8 +1521,7 @@
     "src": "/question-images/q_1xsjqxx.webp",
     "alt": "Apoio visual complementar — FRAÇÕES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1xsjqxx",
-    "legacySrc": "./question-images/127_ADD-porcentagem-N2-005.webp"
+    "questionId": "q_1xsjqxx"
   },
   {
     "order": 128,
@@ -1660,8 +1533,7 @@
     "src": "/question-images/q_fkh65q.webp",
     "alt": "Apoio visual complementar — FRAÇÕES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_fkh65q",
-    "legacySrc": "./question-images/128_ADD-porcentagem-N2-006.webp"
+    "questionId": "q_fkh65q"
   },
   {
     "order": 129,
@@ -1673,8 +1545,7 @@
     "src": "/question-images/q_102g1k.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS REAIS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_102g1k",
-    "legacySrc": "./question-images/129_ADD-porcentagem-N2-007.webp"
+    "questionId": "q_102g1k"
   },
   {
     "order": 130,
@@ -1686,8 +1557,7 @@
     "src": "/question-images/q_1bhg2d1.webp",
     "alt": "Apoio visual complementar — ESTATÍSTICA",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1bhg2d1",
-    "legacySrc": "./question-images/130_ADD-porcentagem-N2-008.webp"
+    "questionId": "q_1bhg2d1"
   },
   {
     "order": 131,
@@ -1699,8 +1569,7 @@
     "src": "/question-images/q_wjlgic.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_wjlgic",
-    "legacySrc": "./question-images/131_CURR-adicao-N3-01.webp"
+    "questionId": "q_wjlgic"
   },
   {
     "order": 132,
@@ -1712,8 +1581,7 @@
     "src": "/question-images/q_1iu40vb.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1iu40vb",
-    "legacySrc": "./question-images/132_CURR-adicao-N3-02.webp"
+    "questionId": "q_1iu40vb"
   },
   {
     "order": 133,
@@ -1725,8 +1593,7 @@
     "src": "/question-images/q_j5wfxx.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_j5wfxx",
-    "legacySrc": "./question-images/133_CURR-adicao-N3-03.webp"
+    "questionId": "q_j5wfxx"
   },
   {
     "order": 134,
@@ -1738,8 +1605,7 @@
     "src": "/question-images/q_12gohlf.webp",
     "alt": "Apoio visual complementar — SISTEMAS DE NUMERAÇÃO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_12gohlf",
-    "legacySrc": "./question-images/134_ADD-adicao-N3-001.webp"
+    "questionId": "q_12gohlf"
   },
   {
     "order": 135,
@@ -1751,8 +1617,7 @@
     "src": "/question-images/q_io818b.webp",
     "alt": "Apoio visual complementar — SISTEMAS DE NUMERAÇÃO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_io818b",
-    "legacySrc": "./question-images/135_ADD-adicao-N3-002.webp"
+    "questionId": "q_io818b"
   },
   {
     "order": 136,
@@ -1764,8 +1629,7 @@
     "src": "/question-images/q_19mzeks.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS NATURAIS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_19mzeks",
-    "legacySrc": "./question-images/136_ADD-adicao-N3-003.webp"
+    "questionId": "q_19mzeks"
   },
   {
     "order": 137,
@@ -1777,8 +1641,7 @@
     "src": "/question-images/q_1mp53g.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS NATURAIS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1mp53g",
-    "legacySrc": "./question-images/137_ADD-adicao-N3-004.webp"
+    "questionId": "q_1mp53g"
   },
   {
     "order": 138,
@@ -1790,8 +1653,7 @@
     "src": "/question-images/q_e8fxj9.webp",
     "alt": "Apoio visual complementar — DIVISORES E MÚLTIPLOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_e8fxj9",
-    "legacySrc": "./question-images/138_ADD-adicao-N3-005.webp"
+    "questionId": "q_e8fxj9"
   },
   {
     "order": 139,
@@ -1803,8 +1665,7 @@
     "src": "/question-images/q_1qbueqf.webp",
     "alt": "Apoio visual complementar — DIVISORES E MÚLTIPLOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1qbueqf",
-    "legacySrc": "./question-images/139_ADD-adicao-N3-006.webp"
+    "questionId": "q_1qbueqf"
   },
   {
     "order": 140,
@@ -1816,8 +1677,7 @@
     "src": "/question-images/q_157gc0y.webp",
     "alt": "Apoio visual complementar — NÚMEROS INTEIROS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_157gc0y",
-    "legacySrc": "./question-images/140_ADD-adicao-N3-007.webp"
+    "questionId": "q_157gc0y"
   },
   {
     "order": 141,
@@ -1829,8 +1689,7 @@
     "src": "/question-images/q_hpaqxs.webp",
     "alt": "Apoio visual complementar — NÚMEROS INTEIROS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_hpaqxs",
-    "legacySrc": "./question-images/141_ADD-adicao-N3-008.webp"
+    "questionId": "q_hpaqxs"
   },
   {
     "order": 142,
@@ -1842,8 +1701,7 @@
     "src": "/question-images/q_1f3ea2a.webp",
     "alt": "Apoio visual complementar — TEORIA DOS CONJUNTOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1f3ea2a",
-    "legacySrc": "./question-images/142_ADD-adicao-N3-009.webp"
+    "questionId": "q_1f3ea2a"
   },
   {
     "order": 143,
@@ -1855,8 +1713,7 @@
     "src": "/question-images/q_1wasg1o.webp",
     "alt": "Apoio visual complementar — DÍZIMAS PERIÓDICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1wasg1o",
-    "legacySrc": "./question-images/143_ADD-adicao-N3-010.webp"
+    "questionId": "q_1wasg1o"
   },
   {
     "order": 144,
@@ -1868,8 +1725,7 @@
     "src": "/question-images/q_d6wfsa.webp",
     "alt": "Apoio visual complementar — EXPRESSÕES NUMÉRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_d6wfsa",
-    "legacySrc": "./question-images/144_ADD-adicao-N3-011.webp"
+    "questionId": "q_d6wfsa"
   },
   {
     "order": 145,
@@ -1881,8 +1737,7 @@
     "src": "/question-images/q_eik3p8.webp",
     "alt": "Apoio visual complementar — SEQUÊNCIAS E REGULARIDADES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_eik3p8",
-    "legacySrc": "./question-images/145_ADD-adicao-N3-012.webp"
+    "questionId": "q_eik3p8"
   },
   {
     "order": 146,
@@ -1894,8 +1749,7 @@
     "src": "/question-images/q_1qertkw.webp",
     "alt": "Apoio visual complementar — EQUAÇÕES E PROPORCIONALIDADE",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1qertkw",
-    "legacySrc": "./question-images/146_ADD-adicao-N3-013.webp"
+    "questionId": "q_1qertkw"
   },
   {
     "order": 147,
@@ -1907,8 +1761,7 @@
     "src": "/question-images/q_1qe4yqr.webp",
     "alt": "Apoio visual complementar — PORCENTAGENS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1qe4yqr",
-    "legacySrc": "./question-images/147_ADD-adicao-N3-014.webp"
+    "questionId": "q_1qe4yqr"
   },
   {
     "order": 148,
@@ -1920,8 +1773,7 @@
     "src": "/question-images/q_1rato7a.webp",
     "alt": "Apoio visual complementar — PORCENTAGENS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1rato7a",
-    "legacySrc": "./question-images/148_ADD-adicao-N3-015.webp"
+    "questionId": "q_1rato7a"
   },
   {
     "order": 149,
@@ -1933,8 +1785,7 @@
     "src": "/question-images/q_djeceo.webp",
     "alt": "Apoio visual complementar — ÂNGULOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_djeceo",
-    "legacySrc": "./question-images/149_ADD-adicao-N3-016.webp"
+    "questionId": "q_djeceo"
   },
   {
     "order": 150,
@@ -1946,8 +1797,7 @@
     "src": "/question-images/q_11j60nh.webp",
     "alt": "Apoio visual complementar — ÂNGULOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_11j60nh",
-    "legacySrc": "./question-images/150_ADD-adicao-N3-017.webp"
+    "questionId": "q_11j60nh"
   },
   {
     "order": 151,
@@ -1959,8 +1809,7 @@
     "src": "/question-images/q_1a3y8hz.webp",
     "alt": "Apoio visual complementar — ÁREA",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1a3y8hz",
-    "legacySrc": "./question-images/151_ADD-adicao-N3-018.webp"
+    "questionId": "q_1a3y8hz"
   },
   {
     "order": 152,
@@ -1972,8 +1821,7 @@
     "src": "/question-images/q_l40epc.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_l40epc",
-    "legacySrc": "./question-images/152_CURR-divisao-N3-01.webp"
+    "questionId": "q_l40epc"
   },
   {
     "order": 153,
@@ -1985,8 +1833,7 @@
     "src": "/question-images/q_514faz.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_514faz",
-    "legacySrc": "./question-images/153_CURR-divisao-N3-02.webp"
+    "questionId": "q_514faz"
   },
   {
     "order": 154,
@@ -1998,8 +1845,7 @@
     "src": "/question-images/q_1i09xkw.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1i09xkw",
-    "legacySrc": "./question-images/154_CURR-divisao-N3-03.webp"
+    "questionId": "q_1i09xkw"
   },
   {
     "order": 155,
@@ -2011,8 +1857,7 @@
     "src": "/question-images/q_1e2g45e.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1e2g45e",
-    "legacySrc": "./question-images/155_CURR-medidas-N3-01.webp"
+    "questionId": "q_1e2g45e"
   },
   {
     "order": 156,
@@ -2024,8 +1869,7 @@
     "src": "/question-images/q_e0eij4.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_e0eij4",
-    "legacySrc": "./question-images/156_CURR-medidas-N3-02.webp"
+    "questionId": "q_e0eij4"
   },
   {
     "order": 157,
@@ -2037,8 +1881,7 @@
     "src": "/question-images/q_5c8sn4.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_5c8sn4",
-    "legacySrc": "./question-images/157_CURR-medidas-N3-03.webp"
+    "questionId": "q_5c8sn4"
   },
   {
     "order": 158,
@@ -2050,8 +1893,7 @@
     "src": "/question-images/q_heym4u.webp",
     "alt": "Apoio visual complementar — CONVERSÃO DE UNIDADES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_heym4u",
-    "legacySrc": "./question-images/158_ADD-medidas-N3-001.webp"
+    "questionId": "q_heym4u"
   },
   {
     "order": 159,
@@ -2063,8 +1905,7 @@
     "src": "/question-images/q_1am7md3.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1am7md3",
-    "legacySrc": "./question-images/159_CURR-multiplicacao-N3-01.webp"
+    "questionId": "q_1am7md3"
   },
   {
     "order": 160,
@@ -2076,8 +1917,7 @@
     "src": "/question-images/q_1qqqnzz.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1qqqnzz",
-    "legacySrc": "./question-images/160_CURR-multiplicacao-N3-02.webp"
+    "questionId": "q_1qqqnzz"
   },
   {
     "order": 161,
@@ -2089,8 +1929,7 @@
     "src": "/question-images/q_egatbk.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_egatbk",
-    "legacySrc": "./question-images/161_CURR-multiplicacao-N3-03.webp"
+    "questionId": "q_egatbk"
   },
   {
     "order": 162,
@@ -2102,8 +1941,7 @@
     "src": "/question-images/q_1mtujkq.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1mtujkq",
-    "legacySrc": "./question-images/162_YA-multiplicacao-N3-001.webp"
+    "questionId": "q_1mtujkq"
   },
   {
     "order": 163,
@@ -2115,8 +1953,7 @@
     "src": "/question-images/q_72lrt4.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_72lrt4",
-    "legacySrc": "./question-images/163_YA-multiplicacao-N3-002.webp"
+    "questionId": "q_72lrt4"
   },
   {
     "order": 164,
@@ -2128,8 +1965,7 @@
     "src": "/question-images/q_1s1p9bb.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1s1p9bb",
-    "legacySrc": "./question-images/164_YA-multiplicacao-N3-003.webp"
+    "questionId": "q_1s1p9bb"
   },
   {
     "order": 165,
@@ -2141,8 +1977,7 @@
     "src": "/question-images/q_1hgszaw.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1hgszaw",
-    "legacySrc": "./question-images/165_YA-multiplicacao-N3-004.webp"
+    "questionId": "q_1hgszaw"
   },
   {
     "order": 166,
@@ -2154,8 +1989,7 @@
     "src": "/question-images/q_1rwvt77.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1rwvt77",
-    "legacySrc": "./question-images/166_YA-multiplicacao-N3-005.webp"
+    "questionId": "q_1rwvt77"
   },
   {
     "order": 167,
@@ -2167,8 +2001,7 @@
     "src": "/question-images/q_9w3rrt.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_9w3rrt",
-    "legacySrc": "./question-images/167_YA-multiplicacao-N3-006.webp"
+    "questionId": "q_9w3rrt"
   },
   {
     "order": 168,
@@ -2180,8 +2013,7 @@
     "src": "/question-images/q_kt3a5h.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_kt3a5h",
-    "legacySrc": "./question-images/168_YA-multiplicacao-N3-007.webp"
+    "questionId": "q_kt3a5h"
   },
   {
     "order": 169,
@@ -2193,8 +2025,7 @@
     "src": "/question-images/q_9yph5k.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_9yph5k",
-    "legacySrc": "./question-images/169_YA-multiplicacao-N3-008.webp"
+    "questionId": "q_9yph5k"
   },
   {
     "order": 170,
@@ -2206,8 +2037,7 @@
     "src": "/question-images/q_19psl9m.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_19psl9m",
-    "legacySrc": "./question-images/170_YA-multiplicacao-N3-009.webp"
+    "questionId": "q_19psl9m"
   },
   {
     "order": 171,
@@ -2219,8 +2049,7 @@
     "src": "/question-images/q_d72trt.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_d72trt",
-    "legacySrc": "./question-images/171_YA-multiplicacao-N3-010.webp"
+    "questionId": "q_d72trt"
   },
   {
     "order": 172,
@@ -2232,8 +2061,7 @@
     "src": "/question-images/q_1bm9tnk.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1bm9tnk",
-    "legacySrc": "./question-images/172_YA-multiplicacao-N3-011.webp"
+    "questionId": "q_1bm9tnk"
   },
   {
     "order": 173,
@@ -2245,8 +2073,7 @@
     "src": "/question-images/q_4f2rei.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_4f2rei",
-    "legacySrc": "./question-images/173_YA-multiplicacao-N3-012.webp"
+    "questionId": "q_4f2rei"
   },
   {
     "order": 174,
@@ -2258,8 +2085,7 @@
     "src": "/question-images/q_14arxx4.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_14arxx4",
-    "legacySrc": "./question-images/174_YA-multiplicacao-N3-013.webp"
+    "questionId": "q_14arxx4"
   },
   {
     "order": 175,
@@ -2271,8 +2097,7 @@
     "src": "/question-images/q_iraev3.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_iraev3",
-    "legacySrc": "./question-images/175_YA-multiplicacao-N3-014.webp"
+    "questionId": "q_iraev3"
   },
   {
     "order": 176,
@@ -2284,8 +2109,7 @@
     "src": "/question-images/q_1n8wjtj.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1n8wjtj",
-    "legacySrc": "./question-images/176_YA-multiplicacao-N3-015.webp"
+    "questionId": "q_1n8wjtj"
   },
   {
     "order": 177,
@@ -2297,8 +2121,7 @@
     "src": "/question-images/q_whsnha.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_whsnha",
-    "legacySrc": "./question-images/177_YA-multiplicacao-N3-016.webp"
+    "questionId": "q_whsnha"
   },
   {
     "order": 178,
@@ -2310,8 +2133,7 @@
     "src": "/question-images/q_zb6ftq.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_zb6ftq",
-    "legacySrc": "./question-images/178_YA-multiplicacao-N3-017.webp"
+    "questionId": "q_zb6ftq"
   },
   {
     "order": 179,
@@ -2323,8 +2145,7 @@
     "src": "/question-images/q_r2j7uc.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_r2j7uc",
-    "legacySrc": "./question-images/179_YA-multiplicacao-N3-018.webp"
+    "questionId": "q_r2j7uc"
   },
   {
     "order": 180,
@@ -2336,8 +2157,7 @@
     "src": "/question-images/q_k8rbl5.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_k8rbl5",
-    "legacySrc": "./question-images/180_YA-multiplicacao-N3-019.webp"
+    "questionId": "q_k8rbl5"
   },
   {
     "order": 181,
@@ -2349,8 +2169,7 @@
     "src": "/question-images/q_s8u9jv.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_s8u9jv",
-    "legacySrc": "./question-images/181_YA-multiplicacao-N3-020.webp"
+    "questionId": "q_s8u9jv"
   },
   {
     "order": 182,
@@ -2362,8 +2181,7 @@
     "src": "/question-images/q_o6xesa.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_o6xesa",
-    "legacySrc": "./question-images/182_CURR-porcentagem-N3-01.webp"
+    "questionId": "q_o6xesa"
   },
   {
     "order": 183,
@@ -2375,8 +2193,7 @@
     "src": "/question-images/q_4k8wht.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_4k8wht",
-    "legacySrc": "./question-images/183_CURR-porcentagem-N3-02.webp"
+    "questionId": "q_4k8wht"
   },
   {
     "order": 184,
@@ -2388,8 +2205,7 @@
     "src": "/question-images/q_80ghop.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_80ghop",
-    "legacySrc": "./question-images/184_CURR-porcentagem-N3-03.webp"
+    "questionId": "q_80ghop"
   },
   {
     "order": 185,
@@ -2401,8 +2217,7 @@
     "src": "/question-images/q_15s9sr9.webp",
     "alt": "Apoio visual complementar — FRAÇÕES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_15s9sr9",
-    "legacySrc": "./question-images/185_ADD-porcentagem-N3-001.webp"
+    "questionId": "q_15s9sr9"
   },
   {
     "order": 186,
@@ -2414,8 +2229,7 @@
     "src": "/question-images/q_1kh0xo6.webp",
     "alt": "Apoio visual complementar — FRAÇÕES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1kh0xo6",
-    "legacySrc": "./question-images/186_ADD-porcentagem-N3-002.webp"
+    "questionId": "q_1kh0xo6"
   },
   {
     "order": 187,
@@ -2427,8 +2241,7 @@
     "src": "/question-images/q_1sh36vs.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS REAIS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1sh36vs",
-    "legacySrc": "./question-images/187_ADD-porcentagem-N3-003.webp"
+    "questionId": "q_1sh36vs"
   },
   {
     "order": 188,
@@ -2440,8 +2253,7 @@
     "src": "/question-images/q_t5m59q.webp",
     "alt": "Apoio visual complementar — ESTATÍSTICA",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_t5m59q",
-    "legacySrc": "./question-images/188_ADD-porcentagem-N3-004.webp"
+    "questionId": "q_t5m59q"
   },
   {
     "order": 189,
@@ -2453,8 +2265,7 @@
     "src": "/question-images/q_1omrd24.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1omrd24",
-    "legacySrc": "./question-images/189_CURR-adicao-N4-01.webp"
+    "questionId": "q_1omrd24"
   },
   {
     "order": 190,
@@ -2466,8 +2277,7 @@
     "src": "/question-images/q_1okqwkm.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1okqwkm",
-    "legacySrc": "./question-images/190_CURR-adicao-N4-02.webp"
+    "questionId": "q_1okqwkm"
   },
   {
     "order": 191,
@@ -2479,8 +2289,7 @@
     "src": "/question-images/q_11z3yij.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_11z3yij",
-    "legacySrc": "./question-images/191_CURR-adicao-N4-03.webp"
+    "questionId": "q_11z3yij"
   },
   {
     "order": 192,
@@ -2492,8 +2301,7 @@
     "src": "/question-images/q_4rk4bx.webp",
     "alt": "Apoio visual complementar — SISTEMAS DE NUMERAÇÃO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_4rk4bx",
-    "legacySrc": "./question-images/192_ADD-adicao-N4-001.webp"
+    "questionId": "q_4rk4bx"
   },
   {
     "order": 193,
@@ -2505,8 +2313,7 @@
     "src": "/question-images/q_32gr1w.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS NATURAIS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_32gr1w",
-    "legacySrc": "./question-images/193_ADD-adicao-N4-002.webp"
+    "questionId": "q_32gr1w"
   },
   {
     "order": 194,
@@ -2518,8 +2325,7 @@
     "src": "/question-images/q_12vp5h8.webp",
     "alt": "Apoio visual complementar — DIVISORES E MÚLTIPLOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_12vp5h8",
-    "legacySrc": "./question-images/194_ADD-adicao-N4-003.webp"
+    "questionId": "q_12vp5h8"
   },
   {
     "order": 195,
@@ -2531,8 +2337,7 @@
     "src": "/question-images/q_b29flh.webp",
     "alt": "Apoio visual complementar — NÚMEROS INTEIROS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_b29flh",
-    "legacySrc": "./question-images/195_ADD-adicao-N4-004.webp"
+    "questionId": "q_b29flh"
   },
   {
     "order": 196,
@@ -2544,8 +2349,7 @@
     "src": "/question-images/q_14t3y2.webp",
     "alt": "Apoio visual complementar — TEORIA DOS CONJUNTOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_14t3y2",
-    "legacySrc": "./question-images/196_ADD-adicao-N4-005.webp"
+    "questionId": "q_14t3y2"
   },
   {
     "order": 197,
@@ -2557,8 +2361,7 @@
     "src": "/question-images/q_1cj3oye.webp",
     "alt": "Apoio visual complementar — DÍZIMAS PERIÓDICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1cj3oye",
-    "legacySrc": "./question-images/197_ADD-adicao-N4-006.webp"
+    "questionId": "q_1cj3oye"
   },
   {
     "order": 198,
@@ -2570,8 +2373,7 @@
     "src": "/question-images/q_169tzq.webp",
     "alt": "Apoio visual complementar — EXPRESSÕES NUMÉRICAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_169tzq",
-    "legacySrc": "./question-images/198_ADD-adicao-N4-007.webp"
+    "questionId": "q_169tzq"
   },
   {
     "order": 199,
@@ -2583,8 +2385,7 @@
     "src": "/question-images/q_v0tz9x.webp",
     "alt": "Apoio visual complementar — SEQUÊNCIAS E REGULARIDADES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_v0tz9x",
-    "legacySrc": "./question-images/199_ADD-adicao-N4-008.webp"
+    "questionId": "q_v0tz9x"
   },
   {
     "order": 200,
@@ -2596,8 +2397,7 @@
     "src": "/question-images/q_i20cac.webp",
     "alt": "Apoio visual complementar — EQUAÇÕES E PROPORCIONALIDADE",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_i20cac",
-    "legacySrc": "./question-images/200_ADD-adicao-N4-009.webp"
+    "questionId": "q_i20cac"
   },
   {
     "order": 201,
@@ -2609,8 +2409,7 @@
     "src": "/question-images/q_1puqubs.webp",
     "alt": "Apoio visual complementar — PORCENTAGENS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1puqubs",
-    "legacySrc": "./question-images/201_ADD-adicao-N4-010.webp"
+    "questionId": "q_1puqubs"
   },
   {
     "order": 202,
@@ -2622,8 +2421,7 @@
     "src": "/question-images/q_1gbqqgd.webp",
     "alt": "Apoio visual complementar — ÂNGULOS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1gbqqgd",
-    "legacySrc": "./question-images/202_ADD-adicao-N4-011.webp"
+    "questionId": "q_1gbqqgd"
   },
   {
     "order": 203,
@@ -2635,8 +2433,7 @@
     "src": "/question-images/q_pusl1o.webp",
     "alt": "Apoio visual complementar — ÁREA",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_pusl1o",
-    "legacySrc": "./question-images/203_ADD-adicao-N4-012.webp"
+    "questionId": "q_pusl1o"
   },
   {
     "order": 204,
@@ -2648,8 +2445,7 @@
     "src": "/question-images/q_ggb29i.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_ggb29i",
-    "legacySrc": "./question-images/204_CURR-divisao-N4-01.webp"
+    "questionId": "q_ggb29i"
   },
   {
     "order": 205,
@@ -2661,8 +2457,7 @@
     "src": "/question-images/q_1lqskl1.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1lqskl1",
-    "legacySrc": "./question-images/205_CURR-divisao-N4-02.webp"
+    "questionId": "q_1lqskl1"
   },
   {
     "order": 206,
@@ -2674,8 +2469,7 @@
     "src": "/question-images/q_1erondi.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1erondi",
-    "legacySrc": "./question-images/206_CURR-divisao-N4-03.webp"
+    "questionId": "q_1erondi"
   },
   {
     "order": 207,
@@ -2687,8 +2481,7 @@
     "src": "/question-images/q_1c8bqum.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1c8bqum",
-    "legacySrc": "./question-images/207_CURR-medidas-N4-01.webp"
+    "questionId": "q_1c8bqum"
   },
   {
     "order": 208,
@@ -2700,8 +2493,7 @@
     "src": "/question-images/q_1xb511e.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1xb511e",
-    "legacySrc": "./question-images/208_CURR-medidas-N4-02.webp"
+    "questionId": "q_1xb511e"
   },
   {
     "order": 209,
@@ -2713,8 +2505,7 @@
     "src": "/question-images/q_1g22tuh.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1g22tuh",
-    "legacySrc": "./question-images/209_CURR-medidas-N4-03.webp"
+    "questionId": "q_1g22tuh"
   },
   {
     "order": 210,
@@ -2726,8 +2517,7 @@
     "src": "/question-images/q_q17a9n.webp",
     "alt": "Apoio visual complementar — CONVERSÃO DE UNIDADES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_q17a9n",
-    "legacySrc": "./question-images/210_ADD-medidas-N4-001.webp"
+    "questionId": "q_q17a9n"
   },
   {
     "order": 211,
@@ -2739,8 +2529,7 @@
     "src": "/question-images/q_yaqnwq.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_yaqnwq",
-    "legacySrc": "./question-images/211_CURR-multiplicacao-N4-01.webp"
+    "questionId": "q_yaqnwq"
   },
   {
     "order": 212,
@@ -2752,8 +2541,7 @@
     "src": "/question-images/q_409nwu.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_409nwu",
-    "legacySrc": "./question-images/212_CURR-multiplicacao-N4-02.webp"
+    "questionId": "q_409nwu"
   },
   {
     "order": 213,
@@ -2765,8 +2553,7 @@
     "src": "/question-images/q_1pakw2h.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1pakw2h",
-    "legacySrc": "./question-images/213_CURR-multiplicacao-N4-03.webp"
+    "questionId": "q_1pakw2h"
   },
   {
     "order": 214,
@@ -2778,8 +2565,7 @@
     "src": "/question-images/q_14u6gl0.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_14u6gl0",
-    "legacySrc": "./question-images/214_CURR-porcentagem-N4-01.webp"
+    "questionId": "q_14u6gl0"
   },
   {
     "order": 215,
@@ -2791,8 +2577,7 @@
     "src": "/question-images/q_f2cye8.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_f2cye8",
-    "legacySrc": "./question-images/215_CURR-porcentagem-N4-02.webp"
+    "questionId": "q_f2cye8"
   },
   {
     "order": 216,
@@ -2804,8 +2589,7 @@
     "src": "/question-images/q_olvm17.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_olvm17",
-    "legacySrc": "./question-images/216_CURR-porcentagem-N4-03.webp"
+    "questionId": "q_olvm17"
   },
   {
     "order": 217,
@@ -2817,8 +2601,7 @@
     "src": "/question-images/q_rfn06.webp",
     "alt": "Apoio visual complementar — FRAÇÕES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_rfn06",
-    "legacySrc": "./question-images/217_ADD-porcentagem-N4-001.webp"
+    "questionId": "q_rfn06"
   },
   {
     "order": 218,
@@ -2830,8 +2613,7 @@
     "src": "/question-images/q_h299v3.webp",
     "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS REAIS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_h299v3",
-    "legacySrc": "./question-images/218_ADD-porcentagem-N4-002.webp"
+    "questionId": "q_h299v3"
   },
   {
     "order": 219,
@@ -2843,8 +2625,7 @@
     "src": "/question-images/q_12x0l6m.webp",
     "alt": "Apoio visual complementar — ESTATÍSTICA",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_12x0l6m",
-    "legacySrc": "./question-images/219_ADD-porcentagem-N4-003.webp"
+    "questionId": "q_12x0l6m"
   },
   {
     "order": 220,
@@ -2856,8 +2637,7 @@
     "src": "/question-images/q_1po3h92.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1po3h92",
-    "legacySrc": "./question-images/220_YA-porcentagem-N4-001.webp"
+    "questionId": "q_1po3h92"
   },
   {
     "order": 221,
@@ -2869,8 +2649,7 @@
     "src": "/question-images/q_1e2m47l.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1e2m47l",
-    "legacySrc": "./question-images/221_YA-porcentagem-N4-002.webp"
+    "questionId": "q_1e2m47l"
   },
   {
     "order": 222,
@@ -2882,8 +2661,7 @@
     "src": "/question-images/q_amb2vk.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_amb2vk",
-    "legacySrc": "./question-images/222_YA-porcentagem-N4-003.webp"
+    "questionId": "q_amb2vk"
   },
   {
     "order": 223,
@@ -2895,8 +2673,7 @@
     "src": "/question-images/q_1belv7.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1belv7",
-    "legacySrc": "./question-images/223_YA-porcentagem-N4-004.webp"
+    "questionId": "q_1belv7"
   },
   {
     "order": 224,
@@ -2908,8 +2685,7 @@
     "src": "/question-images/q_ho3kg1.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_ho3kg1",
-    "legacySrc": "./question-images/224_YA-porcentagem-N4-005.webp"
+    "questionId": "q_ho3kg1"
   },
   {
     "order": 225,
@@ -2921,8 +2697,7 @@
     "src": "/question-images/q_1hffkdo.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1hffkdo",
-    "legacySrc": "./question-images/225_YA-porcentagem-N4-006.webp"
+    "questionId": "q_1hffkdo"
   },
   {
     "order": 226,
@@ -2934,8 +2709,7 @@
     "src": "/question-images/q_10a9d80.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_10a9d80",
-    "legacySrc": "./question-images/226_YA-porcentagem-N4-007.webp"
+    "questionId": "q_10a9d80"
   },
   {
     "order": 227,
@@ -2947,8 +2721,7 @@
     "src": "/question-images/q_116q0li.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_116q0li",
-    "legacySrc": "./question-images/227_YA-porcentagem-N4-008.webp"
+    "questionId": "q_116q0li"
   },
   {
     "order": 228,
@@ -2960,8 +2733,7 @@
     "src": "/question-images/q_1l27g2c.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1l27g2c",
-    "legacySrc": "./question-images/228_YA-porcentagem-N4-009.webp"
+    "questionId": "q_1l27g2c"
   },
   {
     "order": 229,
@@ -2973,8 +2745,7 @@
     "src": "/question-images/q_1sb1ryg.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1sb1ryg",
-    "legacySrc": "./question-images/229_YA-porcentagem-N4-010.webp"
+    "questionId": "q_1sb1ryg"
   },
   {
     "order": 230,
@@ -2986,8 +2757,7 @@
     "src": "/question-images/q_vn9lvt.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_vn9lvt",
-    "legacySrc": "./question-images/230_YA-porcentagem-N4-011.webp"
+    "questionId": "q_vn9lvt"
   },
   {
     "order": 231,
@@ -2999,8 +2769,7 @@
     "src": "/question-images/q_1j914ar.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1j914ar",
-    "legacySrc": "./question-images/231_YA-porcentagem-N4-012.webp"
+    "questionId": "q_1j914ar"
   },
   {
     "order": 232,
@@ -3012,8 +2781,7 @@
     "src": "/question-images/q_1s6do4s.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1s6do4s",
-    "legacySrc": "./question-images/232_YA-porcentagem-N4-013.webp"
+    "questionId": "q_1s6do4s"
   },
   {
     "order": 233,
@@ -3025,8 +2793,7 @@
     "src": "/question-images/q_19260sd.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_19260sd",
-    "legacySrc": "./question-images/233_YA-porcentagem-N4-014.webp"
+    "questionId": "q_19260sd"
   },
   {
     "order": 234,
@@ -3038,8 +2805,7 @@
     "src": "/question-images/q_giacfl.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_giacfl",
-    "legacySrc": "./question-images/234_YA-porcentagem-N4-015.webp"
+    "questionId": "q_giacfl"
   },
   {
     "order": 235,
@@ -3051,8 +2817,7 @@
     "src": "/question-images/q_8j5tx4.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_8j5tx4",
-    "legacySrc": "./question-images/235_YA-porcentagem-N4-016.webp"
+    "questionId": "q_8j5tx4"
   },
   {
     "order": 236,
@@ -3064,8 +2829,7 @@
     "src": "/question-images/q_pr0cw8.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_pr0cw8",
-    "legacySrc": "./question-images/236_YA-porcentagem-N4-017.webp"
+    "questionId": "q_pr0cw8"
   },
   {
     "order": 237,
@@ -3077,8 +2841,7 @@
     "src": "/question-images/q_kc1deg.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_kc1deg",
-    "legacySrc": "./question-images/237_YA-porcentagem-N4-018.webp"
+    "questionId": "q_kc1deg"
   },
   {
     "order": 238,
@@ -3090,8 +2853,7 @@
     "src": "/question-images/q_1p6g7ly.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1p6g7ly",
-    "legacySrc": "./question-images/238_YA-porcentagem-N4-019.webp"
+    "questionId": "q_1p6g7ly"
   },
   {
     "order": 239,
@@ -3103,8 +2865,7 @@
     "src": "/question-images/q_1lbnrri.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1lbnrri",
-    "legacySrc": "./question-images/239_YA-porcentagem-N4-020.webp"
+    "questionId": "q_1lbnrri"
   },
   {
     "order": 240,
@@ -3116,8 +2877,7 @@
     "src": "/question-images/q_gbbh68.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_gbbh68",
-    "legacySrc": "./question-images/240_CURR-adicao-N5-01.webp"
+    "questionId": "q_gbbh68"
   },
   {
     "order": 241,
@@ -3129,8 +2889,7 @@
     "src": "/question-images/q_99gvnk.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_99gvnk",
-    "legacySrc": "./question-images/241_CURR-adicao-N5-02.webp"
+    "questionId": "q_99gvnk"
   },
   {
     "order": 242,
@@ -3142,8 +2901,7 @@
     "src": "/question-images/q_1n7bs0b.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1n7bs0b",
-    "legacySrc": "./question-images/242_CURR-adicao-N5-03.webp"
+    "questionId": "q_1n7bs0b"
   },
   {
     "order": 243,
@@ -3155,8 +2913,7 @@
     "src": "/question-images/q_1ejoqm3.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1ejoqm3",
-    "legacySrc": "./question-images/243_CURR-divisao-N5-01.webp"
+    "questionId": "q_1ejoqm3"
   },
   {
     "order": 244,
@@ -3168,8 +2925,7 @@
     "src": "/question-images/q_1u3yfti.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1u3yfti",
-    "legacySrc": "./question-images/244_CURR-divisao-N5-02.webp"
+    "questionId": "q_1u3yfti"
   },
   {
     "order": 245,
@@ -3181,8 +2937,7 @@
     "src": "/question-images/q_1q96ndi.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1q96ndi",
-    "legacySrc": "./question-images/245_CURR-divisao-N5-03.webp"
+    "questionId": "q_1q96ndi"
   },
   {
     "order": 246,
@@ -3194,8 +2949,7 @@
     "src": "/question-images/q_aic9hl.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_aic9hl",
-    "legacySrc": "./question-images/246_CURR-medidas-N5-01.webp"
+    "questionId": "q_aic9hl"
   },
   {
     "order": 247,
@@ -3207,8 +2961,7 @@
     "src": "/question-images/q_fypgt5.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_fypgt5",
-    "legacySrc": "./question-images/247_CURR-medidas-N5-02.webp"
+    "questionId": "q_fypgt5"
   },
   {
     "order": 248,
@@ -3220,8 +2973,7 @@
     "src": "/question-images/q_1ooaju7.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1ooaju7",
-    "legacySrc": "./question-images/248_CURR-medidas-N5-03.webp"
+    "questionId": "q_1ooaju7"
   },
   {
     "order": 249,
@@ -3233,8 +2985,7 @@
     "src": "/question-images/q_by58xc.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_by58xc",
-    "legacySrc": "./question-images/249_CURR-multiplicacao-N5-01.webp"
+    "questionId": "q_by58xc"
   },
   {
     "order": 250,
@@ -3246,8 +2997,7 @@
     "src": "/question-images/q_1kxasaf.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1kxasaf",
-    "legacySrc": "./question-images/250_CURR-multiplicacao-N5-02.webp"
+    "questionId": "q_1kxasaf"
   },
   {
     "order": 251,
@@ -3259,8 +3009,7 @@
     "src": "/question-images/q_722sq5.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_722sq5",
-    "legacySrc": "./question-images/251_CURR-multiplicacao-N5-03.webp"
+    "questionId": "q_722sq5"
   },
   {
     "order": 252,
@@ -3272,8 +3021,7 @@
     "src": "/question-images/q_te0t04.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_te0t04",
-    "legacySrc": "./question-images/252_CURR-porcentagem-N5-01.webp"
+    "questionId": "q_te0t04"
   },
   {
     "order": 253,
@@ -3285,8 +3033,7 @@
     "src": "/question-images/q_7xaa5q.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_7xaa5q",
-    "legacySrc": "./question-images/253_CURR-porcentagem-N5-02.webp"
+    "questionId": "q_7xaa5q"
   },
   {
     "order": 254,
@@ -3298,8 +3045,7 @@
     "src": "/question-images/q_1rj6yj7.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1rj6yj7",
-    "legacySrc": "./question-images/254_CURR-porcentagem-N5-03.webp"
+    "questionId": "q_1rj6yj7"
   },
   {
     "order": 255,
@@ -3311,8 +3057,7 @@
     "src": "/question-images/q_1k8qqpi.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1k8qqpi",
-    "legacySrc": "./question-images/255_YA-porcentagem-N5-001.webp"
+    "questionId": "q_1k8qqpi"
   },
   {
     "order": 256,
@@ -3324,8 +3069,7 @@
     "src": "/question-images/q_3e7ujs.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_3e7ujs",
-    "legacySrc": "./question-images/256_YA-porcentagem-N5-002.webp"
+    "questionId": "q_3e7ujs"
   },
   {
     "order": 257,
@@ -3337,8 +3081,7 @@
     "src": "/question-images/q_1c87wcq.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1c87wcq",
-    "legacySrc": "./question-images/257_YA-porcentagem-N5-003.webp"
+    "questionId": "q_1c87wcq"
   },
   {
     "order": 258,
@@ -3350,8 +3093,7 @@
     "src": "/question-images/q_vjsonf.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_vjsonf",
-    "legacySrc": "./question-images/258_YA-porcentagem-N5-004.webp"
+    "questionId": "q_vjsonf"
   },
   {
     "order": 259,
@@ -3363,8 +3105,7 @@
     "src": "/question-images/q_4vy5ou.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_4vy5ou",
-    "legacySrc": "./question-images/259_YA-porcentagem-N5-005.webp"
+    "questionId": "q_4vy5ou"
   },
   {
     "order": 260,
@@ -3376,8 +3117,7 @@
     "src": "/question-images/q_mhgav5.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_mhgav5",
-    "legacySrc": "./question-images/260_YA-porcentagem-N5-006.webp"
+    "questionId": "q_mhgav5"
   },
   {
     "order": 261,
@@ -3389,8 +3129,7 @@
     "src": "/question-images/q_1gbaha.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1gbaha",
-    "legacySrc": "./question-images/261_YA-porcentagem-N5-007.webp"
+    "questionId": "q_1gbaha"
   },
   {
     "order": 262,
@@ -3402,8 +3141,7 @@
     "src": "/question-images/q_10ipv2a.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_10ipv2a",
-    "legacySrc": "./question-images/262_YA-porcentagem-N5-008.webp"
+    "questionId": "q_10ipv2a"
   },
   {
     "order": 263,
@@ -3415,8 +3153,7 @@
     "src": "/question-images/q_1hk23ga.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1hk23ga",
-    "legacySrc": "./question-images/263_YA-porcentagem-N5-009.webp"
+    "questionId": "q_1hk23ga"
   },
   {
     "order": 264,
@@ -3428,8 +3165,7 @@
     "src": "/question-images/q_1pmgvr2.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1pmgvr2",
-    "legacySrc": "./question-images/264_YA-porcentagem-N5-010.webp"
+    "questionId": "q_1pmgvr2"
   },
   {
     "order": 265,
@@ -3441,8 +3177,7 @@
     "src": "/question-images/q_jpobxc.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_jpobxc",
-    "legacySrc": "./question-images/265_YA-porcentagem-N5-011.webp"
+    "questionId": "q_jpobxc"
   },
   {
     "order": 266,
@@ -3454,8 +3189,7 @@
     "src": "/question-images/q_xjh0xw.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_xjh0xw",
-    "legacySrc": "./question-images/266_YA-porcentagem-N5-012.webp"
+    "questionId": "q_xjh0xw"
   },
   {
     "order": 267,
@@ -3467,8 +3201,7 @@
     "src": "/question-images/q_1bqj43x.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1bqj43x",
-    "legacySrc": "./question-images/267_YA-porcentagem-N5-013.webp"
+    "questionId": "q_1bqj43x"
   },
   {
     "order": 268,
@@ -3480,8 +3213,7 @@
     "src": "/question-images/q_yp6w98.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_yp6w98",
-    "legacySrc": "./question-images/268_YA-porcentagem-N5-014.webp"
+    "questionId": "q_yp6w98"
   },
   {
     "order": 269,
@@ -3493,8 +3225,7 @@
     "src": "/question-images/q_hm3w26.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_hm3w26",
-    "legacySrc": "./question-images/269_YA-porcentagem-N5-015.webp"
+    "questionId": "q_hm3w26"
   },
   {
     "order": 270,
@@ -3506,8 +3237,7 @@
     "src": "/question-images/q_2kup5v.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_2kup5v",
-    "legacySrc": "./question-images/270_YA-porcentagem-N5-016.webp"
+    "questionId": "q_2kup5v"
   },
   {
     "order": 271,
@@ -3519,8 +3249,7 @@
     "src": "/question-images/q_o9i3b3.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_o9i3b3",
-    "legacySrc": "./question-images/271_YA-porcentagem-N5-017.webp"
+    "questionId": "q_o9i3b3"
   },
   {
     "order": 272,
@@ -3532,8 +3261,7 @@
     "src": "/question-images/q_1e9w31l.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1e9w31l",
-    "legacySrc": "./question-images/272_YA-porcentagem-N5-018.webp"
+    "questionId": "q_1e9w31l"
   },
   {
     "order": 273,
@@ -3545,8 +3273,7 @@
     "src": "/question-images/q_s93ft4.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_s93ft4",
-    "legacySrc": "./question-images/273_YA-porcentagem-N5-019.webp"
+    "questionId": "q_s93ft4"
   },
   {
     "order": 274,
@@ -3558,8 +3285,7 @@
     "src": "/question-images/q_1xm8s3f.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1xm8s3f",
-    "legacySrc": "./question-images/274_YA-porcentagem-N5-020.webp"
+    "questionId": "q_1xm8s3f"
   },
   {
     "order": 275,
@@ -3571,8 +3297,7 @@
     "src": "/question-images/q_1rre8jw.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1rre8jw",
-    "legacySrc": "./question-images/275_YA-porcentagem-N5-021.webp"
+    "questionId": "q_1rre8jw"
   },
   {
     "order": 276,
@@ -3584,8 +3309,7 @@
     "src": "/question-images/q_132rfh0.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_132rfh0",
-    "legacySrc": "./question-images/276_YA-porcentagem-N5-022.webp"
+    "questionId": "q_132rfh0"
   },
   {
     "order": 277,
@@ -3597,8 +3321,7 @@
     "src": "/question-images/q_1v22x1h.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1v22x1h",
-    "legacySrc": "./question-images/277_YA-porcentagem-N5-023.webp"
+    "questionId": "q_1v22x1h"
   },
   {
     "order": 278,
@@ -3610,8 +3333,7 @@
     "src": "/question-images/q_cioqtz.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_cioqtz",
-    "legacySrc": "./question-images/278_YA-porcentagem-N5-024.webp"
+    "questionId": "q_cioqtz"
   },
   {
     "order": 279,
@@ -3623,8 +3345,7 @@
     "src": "/question-images/q_301t5f.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_301t5f",
-    "legacySrc": "./question-images/279_YA-porcentagem-N5-025.webp"
+    "questionId": "q_301t5f"
   },
   {
     "order": 280,
@@ -3636,8 +3357,7 @@
     "src": "/question-images/q_6awve1.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_6awve1",
-    "legacySrc": "./question-images/280_YA-porcentagem-N5-026.webp"
+    "questionId": "q_6awve1"
   },
   {
     "order": 281,
@@ -3649,8 +3369,7 @@
     "src": "/question-images/q_nw3zoj.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_nw3zoj",
-    "legacySrc": "./question-images/281_YA-porcentagem-N5-027.webp"
+    "questionId": "q_nw3zoj"
   },
   {
     "order": 282,
@@ -3662,8 +3381,7 @@
     "src": "/question-images/q_17cxfyt.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_17cxfyt",
-    "legacySrc": "./question-images/282_YA-porcentagem-N5-028.webp"
+    "questionId": "q_17cxfyt"
   },
   {
     "order": 283,
@@ -3675,8 +3393,7 @@
     "src": "/question-images/q_mqaami.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_mqaami",
-    "legacySrc": "./question-images/283_YA-porcentagem-N5-029.webp"
+    "questionId": "q_mqaami"
   },
   {
     "order": 284,
@@ -3688,8 +3405,7 @@
     "src": "/question-images/q_10bd5nu.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_10bd5nu",
-    "legacySrc": "./question-images/284_YA-porcentagem-N5-030.webp"
+    "questionId": "q_10bd5nu"
   },
   {
     "order": 285,
@@ -3701,8 +3417,7 @@
     "src": "/question-images/q_qknr2z.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_qknr2z",
-    "legacySrc": "./question-images/285_YA-porcentagem-N5-031.webp"
+    "questionId": "q_qknr2z"
   },
   {
     "order": 286,
@@ -3714,8 +3429,7 @@
     "src": "/question-images/q_yh5lo7.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_yh5lo7",
-    "legacySrc": "./question-images/286_YA-porcentagem-N5-032.webp"
+    "questionId": "q_yh5lo7"
   },
   {
     "order": 287,
@@ -3727,8 +3441,7 @@
     "src": "/question-images/q_94ihsr.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_94ihsr",
-    "legacySrc": "./question-images/287_YA-porcentagem-N5-033.webp"
+    "questionId": "q_94ihsr"
   },
   {
     "order": 288,
@@ -3740,8 +3453,7 @@
     "src": "/question-images/q_sbrmrl.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_sbrmrl",
-    "legacySrc": "./question-images/288_YA-porcentagem-N5-034.webp"
+    "questionId": "q_sbrmrl"
   },
   {
     "order": 289,
@@ -3753,8 +3465,7 @@
     "src": "/question-images/q_ri9sjr.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_ri9sjr",
-    "legacySrc": "./question-images/289_YA-porcentagem-N5-035.webp"
+    "questionId": "q_ri9sjr"
   },
   {
     "order": 290,
@@ -3766,8 +3477,7 @@
     "src": "/question-images/q_rw85sb.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_rw85sb",
-    "legacySrc": "./question-images/290_YA-porcentagem-N5-036.webp"
+    "questionId": "q_rw85sb"
   },
   {
     "order": 291,
@@ -3779,8 +3489,7 @@
     "src": "/question-images/q_mk1ubq.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_mk1ubq",
-    "legacySrc": "./question-images/291_YA-porcentagem-N5-037.webp"
+    "questionId": "q_mk1ubq"
   },
   {
     "order": 292,
@@ -3792,8 +3501,7 @@
     "src": "/question-images/q_nfzp9a.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_nfzp9a",
-    "legacySrc": "./question-images/292_YA-porcentagem-N5-038.webp"
+    "questionId": "q_nfzp9a"
   },
   {
     "order": 293,
@@ -3805,8 +3513,7 @@
     "src": "/question-images/q_11o4nut.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_11o4nut",
-    "legacySrc": "./question-images/293_YA-porcentagem-N5-039.webp"
+    "questionId": "q_11o4nut"
   },
   {
     "order": 294,
@@ -3818,8 +3525,7 @@
     "src": "/question-images/q_1jku41w.webp",
     "alt": "Apoio visual complementar — MATEMÁTICA",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1jku41w",
-    "legacySrc": "./question-images/294_YA-porcentagem-N5-040.webp"
+    "questionId": "q_1jku41w"
   },
   {
     "order": 295,
@@ -3831,8 +3537,7 @@
     "src": "/question-images/q_dosaw7.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_dosaw7",
-    "legacySrc": "./question-images/295_CURR-compreensao-N1-01.webp"
+    "questionId": "q_dosaw7"
   },
   {
     "order": 296,
@@ -3844,8 +3549,7 @@
     "src": "/question-images/q_1jk93ys.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1jk93ys",
-    "legacySrc": "./question-images/296_CURR-compreensao-N1-02.webp"
+    "questionId": "q_1jk93ys"
   },
   {
     "order": 297,
@@ -3857,8 +3561,7 @@
     "src": "/question-images/q_9bm3uc.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_9bm3uc",
-    "legacySrc": "./question-images/297_CURR-compreensao-N1-03.webp"
+    "questionId": "q_9bm3uc"
   },
   {
     "order": 298,
@@ -3870,8 +3573,7 @@
     "src": "/question-images/q_qm7ul8.webp",
     "alt": "Apoio visual complementar — INTERPRETAÇÃO E VOCABULÁRIO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_qm7ul8",
-    "legacySrc": "./question-images/298_ADD-compreensao-N1-001.webp"
+    "questionId": "q_qm7ul8"
   },
   {
     "order": 299,
@@ -3883,8 +3585,7 @@
     "src": "/question-images/q_lgr561.webp",
     "alt": "Apoio visual complementar — INTERPRETAÇÃO E VOCABULÁRIO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_lgr561",
-    "legacySrc": "./question-images/299_ADD-compreensao-N1-002.webp"
+    "questionId": "q_lgr561"
   },
   {
     "order": 300,
@@ -3896,8 +3597,7 @@
     "src": "/question-images/q_14jshu7.webp",
     "alt": "Apoio visual complementar — INTERPRETAÇÃO E VOCABULÁRIO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_14jshu7",
-    "legacySrc": "./question-images/300_ADD-compreensao-N1-003.webp"
+    "questionId": "q_14jshu7"
   },
   {
     "order": 301,
@@ -3909,8 +3609,7 @@
     "src": "/question-images/q_18qjfrs.webp",
     "alt": "Apoio visual complementar — INTERPRETAÇÃO E VOCABULÁRIO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_18qjfrs",
-    "legacySrc": "./question-images/301_ADD-compreensao-N1-004.webp"
+    "questionId": "q_18qjfrs"
   },
   {
     "order": 302,
@@ -3922,8 +3621,7 @@
     "src": "/question-images/q_umm0rr.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_umm0rr",
-    "legacySrc": "./question-images/302_CURR-leitura-N1-01.webp"
+    "questionId": "q_umm0rr"
   },
   {
     "order": 303,
@@ -3935,8 +3633,7 @@
     "src": "/question-images/q_gsd07f.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_gsd07f",
-    "legacySrc": "./question-images/303_CURR-leitura-N1-02.webp"
+    "questionId": "q_gsd07f"
   },
   {
     "order": 304,
@@ -3948,8 +3645,7 @@
     "src": "/question-images/q_advfiq.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_advfiq",
-    "legacySrc": "./question-images/304_CURR-leitura-N1-03.webp"
+    "questionId": "q_advfiq"
   },
   {
     "order": 305,
@@ -3961,8 +3657,7 @@
     "src": "/question-images/q_akoaek.webp",
     "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_akoaek",
-    "legacySrc": "./question-images/305_ADD-leitura-N1-001.webp"
+    "questionId": "q_akoaek"
   },
   {
     "order": 306,
@@ -3974,8 +3669,7 @@
     "src": "/question-images/q_dcj4nf.webp",
     "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_dcj4nf",
-    "legacySrc": "./question-images/306_ADD-leitura-N1-002.webp"
+    "questionId": "q_dcj4nf"
   },
   {
     "order": 307,
@@ -3987,8 +3681,7 @@
     "src": "/question-images/q_ufgovo.webp",
     "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_ufgovo",
-    "legacySrc": "./question-images/307_ADD-leitura-N1-003.webp"
+    "questionId": "q_ufgovo"
   },
   {
     "order": 308,
@@ -4000,8 +3693,7 @@
     "src": "/question-images/q_i0fbmu.webp",
     "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_i0fbmu",
-    "legacySrc": "./question-images/308_ADD-leitura-N1-004.webp"
+    "questionId": "q_i0fbmu"
   },
   {
     "order": 309,
@@ -4013,8 +3705,7 @@
     "src": "/question-images/q_16ypdsa.webp",
     "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_16ypdsa",
-    "legacySrc": "./question-images/309_ADD-leitura-N1-005.webp"
+    "questionId": "q_16ypdsa"
   },
   {
     "order": 310,
@@ -4026,8 +3717,7 @@
     "src": "/question-images/q_fs80ls.webp",
     "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_fs80ls",
-    "legacySrc": "./question-images/310_ADD-leitura-N1-006.webp"
+    "questionId": "q_fs80ls"
   },
   {
     "order": 311,
@@ -4039,8 +3729,7 @@
     "src": "/question-images/q_1ry0kpb.webp",
     "alt": "Apoio visual complementar — SONS E SÍLABAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1ry0kpb",
-    "legacySrc": "./question-images/311_ADD-leitura-N1-007.webp"
+    "questionId": "q_1ry0kpb"
   },
   {
     "order": 312,
@@ -4052,8 +3741,7 @@
     "src": "/question-images/q_2w8vlg.webp",
     "alt": "Apoio visual complementar — SONS E SÍLABAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_2w8vlg",
-    "legacySrc": "./question-images/312_ADD-leitura-N1-008.webp"
+    "questionId": "q_2w8vlg"
   },
   {
     "order": 313,
@@ -4065,8 +3753,7 @@
     "src": "/question-images/q_8f5d4v.webp",
     "alt": "Apoio visual complementar — SONS E SÍLABAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_8f5d4v",
-    "legacySrc": "./question-images/313_ADD-leitura-N1-009.webp"
+    "questionId": "q_8f5d4v"
   },
   {
     "order": 314,
@@ -4078,8 +3765,7 @@
     "src": "/question-images/q_1xzvbo1.webp",
     "alt": "Apoio visual complementar — SONS E SÍLABAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1xzvbo1",
-    "legacySrc": "./question-images/314_ADD-leitura-N1-010.webp"
+    "questionId": "q_1xzvbo1"
   },
   {
     "order": 315,
@@ -4091,8 +3777,7 @@
     "src": "/question-images/q_12i4z61.webp",
     "alt": "Apoio visual complementar — SONS E SÍLABAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_12i4z61",
-    "legacySrc": "./question-images/315_ADD-leitura-N1-011.webp"
+    "questionId": "q_12i4z61"
   },
   {
     "order": 316,
@@ -4104,8 +3789,7 @@
     "src": "/question-images/q_rzhxfk.webp",
     "alt": "Apoio visual complementar — SONS E SÍLABAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_rzhxfk",
-    "legacySrc": "./question-images/316_ADD-leitura-N1-012.webp"
+    "questionId": "q_rzhxfk"
   },
   {
     "order": 317,
@@ -4117,8 +3801,7 @@
     "src": "/question-images/q_abitio.webp",
     "alt": "Apoio visual complementar — RIMAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_abitio",
-    "legacySrc": "./question-images/317_ADD-leitura-N1-013.webp"
+    "questionId": "q_abitio"
   },
   {
     "order": 318,
@@ -4130,8 +3813,7 @@
     "src": "/question-images/q_1dvtaph.webp",
     "alt": "Apoio visual complementar — RIMAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1dvtaph",
-    "legacySrc": "./question-images/318_ADD-leitura-N1-014.webp"
+    "questionId": "q_1dvtaph"
   },
   {
     "order": 319,
@@ -4143,8 +3825,7 @@
     "src": "/question-images/q_1fak1pe.webp",
     "alt": "Apoio visual complementar — RIMAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1fak1pe",
-    "legacySrc": "./question-images/319_ADD-leitura-N1-015.webp"
+    "questionId": "q_1fak1pe"
   },
   {
     "order": 320,
@@ -4156,8 +3837,7 @@
     "src": "/question-images/q_191onu7.webp",
     "alt": "Apoio visual complementar — RIMAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_191onu7",
-    "legacySrc": "./question-images/320_ADD-leitura-N1-016.webp"
+    "questionId": "q_191onu7"
   },
   {
     "order": 321,
@@ -4169,8 +3849,7 @@
     "src": "/question-images/q_e1v8s6.webp",
     "alt": "Apoio visual complementar — FORMAÇÃO DE PALAVRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_e1v8s6",
-    "legacySrc": "./question-images/321_ADD-leitura-N1-017.webp"
+    "questionId": "q_e1v8s6"
   },
   {
     "order": 322,
@@ -4182,8 +3861,7 @@
     "src": "/question-images/q_5iditu.webp",
     "alt": "Apoio visual complementar — FORMAÇÃO DE PALAVRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_5iditu",
-    "legacySrc": "./question-images/322_ADD-leitura-N1-018.webp"
+    "questionId": "q_5iditu"
   },
   {
     "order": 323,
@@ -4195,8 +3873,7 @@
     "src": "/question-images/q_j2vm8o.webp",
     "alt": "Apoio visual complementar — FORMAÇÃO DE PALAVRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_j2vm8o",
-    "legacySrc": "./question-images/323_ADD-leitura-N1-019.webp"
+    "questionId": "q_j2vm8o"
   },
   {
     "order": 324,
@@ -4208,8 +3885,7 @@
     "src": "/question-images/q_1mj60ht.webp",
     "alt": "Apoio visual complementar — FORMAÇÃO DE PALAVRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1mj60ht",
-    "legacySrc": "./question-images/324_ADD-leitura-N1-020.webp"
+    "questionId": "q_1mj60ht"
   },
   {
     "order": 325,
@@ -4221,8 +3897,7 @@
     "src": "/question-images/q_1bp9kim.webp",
     "alt": "Apoio visual complementar — FORMAÇÃO DE PALAVRAS",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1bp9kim",
-    "legacySrc": "./question-images/325_ADD-leitura-N1-021.webp"
+    "questionId": "q_1bp9kim"
   },
   {
     "order": 326,
@@ -4234,8 +3909,7 @@
     "src": "/question-images/q_1ot6e0v.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1ot6e0v",
-    "legacySrc": "./question-images/326_YA-leitura-N1-001.webp"
+    "questionId": "q_1ot6e0v"
   },
   {
     "order": 327,
@@ -4247,8 +3921,7 @@
     "src": "/question-images/q_1bisj8p.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1bisj8p",
-    "legacySrc": "./question-images/327_YA-leitura-N1-002.webp"
+    "questionId": "q_1bisj8p"
   },
   {
     "order": 328,
@@ -4260,8 +3933,7 @@
     "src": "/question-images/q_qet1j.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_qet1j",
-    "legacySrc": "./question-images/328_YA-leitura-N1-003.webp"
+    "questionId": "q_qet1j"
   },
   {
     "order": 329,
@@ -4273,8 +3945,7 @@
     "src": "/question-images/q_9l6atd.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_9l6atd",
-    "legacySrc": "./question-images/329_YA-leitura-N1-004.webp"
+    "questionId": "q_9l6atd"
   },
   {
     "order": 330,
@@ -4286,8 +3957,7 @@
     "src": "/question-images/q_undkbj.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_undkbj",
-    "legacySrc": "./question-images/330_YA-leitura-N1-005.webp"
+    "questionId": "q_undkbj"
   },
   {
     "order": 331,
@@ -4299,8 +3969,7 @@
     "src": "/question-images/q_6y6dd5.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_6y6dd5",
-    "legacySrc": "./question-images/331_YA-leitura-N1-006.webp"
+    "questionId": "q_6y6dd5"
   },
   {
     "order": 332,
@@ -4312,8 +3981,7 @@
     "src": "/question-images/q_1lz13dq.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1lz13dq",
-    "legacySrc": "./question-images/332_YA-leitura-N1-007.webp"
+    "questionId": "q_1lz13dq"
   },
   {
     "order": 333,
@@ -4325,8 +3993,7 @@
     "src": "/question-images/q_5ytfis.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_5ytfis",
-    "legacySrc": "./question-images/333_YA-leitura-N1-008.webp"
+    "questionId": "q_5ytfis"
   },
   {
     "order": 334,
@@ -4338,8 +4005,7 @@
     "src": "/question-images/q_nms5oi.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_nms5oi",
-    "legacySrc": "./question-images/334_YA-leitura-N1-009.webp"
+    "questionId": "q_nms5oi"
   },
   {
     "order": 335,
@@ -4351,8 +4017,7 @@
     "src": "/question-images/q_10dzz5.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_10dzz5",
-    "legacySrc": "./question-images/335_YA-leitura-N1-010.webp"
+    "questionId": "q_10dzz5"
   },
   {
     "order": 336,
@@ -4364,8 +4029,7 @@
     "src": "/question-images/q_1r7owem.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1r7owem",
-    "legacySrc": "./question-images/336_YA-leitura-N1-011.webp"
+    "questionId": "q_1r7owem"
   },
   {
     "order": 337,
@@ -4377,8 +4041,7 @@
     "src": "/question-images/q_z2rvzo.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_z2rvzo",
-    "legacySrc": "./question-images/337_YA-leitura-N1-012.webp"
+    "questionId": "q_z2rvzo"
   },
   {
     "order": 338,
@@ -4390,8 +4053,7 @@
     "src": "/question-images/q_1af4xw5.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1af4xw5",
-    "legacySrc": "./question-images/338_YA-leitura-N1-013.webp"
+    "questionId": "q_1af4xw5"
   },
   {
     "order": 339,
@@ -4403,8 +4065,7 @@
     "src": "/question-images/q_sgpqt7.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_sgpqt7",
-    "legacySrc": "./question-images/339_YA-leitura-N1-014.webp"
+    "questionId": "q_sgpqt7"
   },
   {
     "order": 340,
@@ -4416,8 +4077,7 @@
     "src": "/question-images/q_17ft0za.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_17ft0za",
-    "legacySrc": "./question-images/340_YA-leitura-N1-015.webp"
+    "questionId": "q_17ft0za"
   },
   {
     "order": 341,
@@ -4429,8 +4089,7 @@
     "src": "/question-images/q_1necem3.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1necem3",
-    "legacySrc": "./question-images/341_YA-leitura-N1-016.webp"
+    "questionId": "q_1necem3"
   },
   {
     "order": 342,
@@ -4442,8 +4101,7 @@
     "src": "/question-images/q_17egn3f.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_17egn3f",
-    "legacySrc": "./question-images/342_YA-leitura-N1-017.webp"
+    "questionId": "q_17egn3f"
   },
   {
     "order": 343,
@@ -4455,8 +4113,7 @@
     "src": "/question-images/q_bttjsq.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_bttjsq",
-    "legacySrc": "./question-images/343_YA-leitura-N1-018.webp"
+    "questionId": "q_bttjsq"
   },
   {
     "order": 344,
@@ -4468,8 +4125,7 @@
     "src": "/question-images/q_vw81ce.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_vw81ce",
-    "legacySrc": "./question-images/344_YA-leitura-N1-019.webp"
+    "questionId": "q_vw81ce"
   },
   {
     "order": 345,
@@ -4481,8 +4137,7 @@
     "src": "/question-images/q_1ee658h.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1ee658h",
-    "legacySrc": "./question-images/345_YA-leitura-N1-020.webp"
+    "questionId": "q_1ee658h"
   },
   {
     "order": 346,
@@ -4494,8 +4149,7 @@
     "src": "/question-images/q_1cv61ex.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1cv61ex",
-    "legacySrc": "./question-images/346_CURR-compreensao-N2-01.webp"
+    "questionId": "q_1cv61ex"
   },
   {
     "order": 347,
@@ -4507,8 +4161,7 @@
     "src": "/question-images/q_1xqiiqj.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1xqiiqj",
-    "legacySrc": "./question-images/347_CURR-compreensao-N2-02.webp"
+    "questionId": "q_1xqiiqj"
   },
   {
     "order": 348,
@@ -4520,8 +4173,7 @@
     "src": "/question-images/q_1q3ssgx.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1q3ssgx",
-    "legacySrc": "./question-images/348_CURR-compreensao-N2-03.webp"
+    "questionId": "q_1q3ssgx"
   },
   {
     "order": 349,
@@ -4533,8 +4185,7 @@
     "src": "/question-images/q_1fsmkah.webp",
     "alt": "Apoio visual complementar — LINGUAGEM",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1fsmkah",
-    "legacySrc": "./question-images/349_PT-compreensao-N2-001.webp"
+    "questionId": "q_1fsmkah"
   },
   {
     "order": 350,
@@ -4546,8 +4197,7 @@
     "src": "/question-images/q_16uhp1j.webp",
     "alt": "Apoio visual complementar — LINGUAGEM",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_16uhp1j",
-    "legacySrc": "./question-images/350_PT-compreensao-N2-002.webp"
+    "questionId": "q_16uhp1j"
   },
   {
     "order": 351,
@@ -4559,8 +4209,7 @@
     "src": "/question-images/q_1b67taw.webp",
     "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1b67taw",
-    "legacySrc": "./question-images/351_PT-compreensao-N2-003.webp"
+    "questionId": "q_1b67taw"
   },
   {
     "order": 352,
@@ -4572,8 +4221,7 @@
     "src": "/question-images/q_17envxn.webp",
     "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_17envxn",
-    "legacySrc": "./question-images/352_PT-compreensao-N2-004.webp"
+    "questionId": "q_17envxn"
   },
   {
     "order": 353,
@@ -4585,8 +4233,7 @@
     "src": "/question-images/q_1kaw94o.webp",
     "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1kaw94o",
-    "legacySrc": "./question-images/353_PT-compreensao-N2-005.webp"
+    "questionId": "q_1kaw94o"
   },
   {
     "order": 354,
@@ -4598,8 +4245,7 @@
     "src": "/question-images/q_lwa07n.webp",
     "alt": "Apoio visual complementar — ADVÉRBIOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_lwa07n",
-    "legacySrc": "./question-images/354_PT-compreensao-N2-006.webp"
+    "questionId": "q_lwa07n"
   },
   {
     "order": 355,
@@ -4611,8 +4257,7 @@
     "src": "/question-images/q_g87igu.webp",
     "alt": "Apoio visual complementar — ADVÉRBIOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_g87igu",
-    "legacySrc": "./question-images/355_PT-compreensao-N2-007.webp"
+    "questionId": "q_g87igu"
   },
   {
     "order": 356,
@@ -4624,8 +4269,7 @@
     "src": "/question-images/q_13vj1yy.webp",
     "alt": "Apoio visual complementar — NUMERAIS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_13vj1yy",
-    "legacySrc": "./question-images/356_PT-compreensao-N2-008.webp"
+    "questionId": "q_13vj1yy"
   },
   {
     "order": 357,
@@ -4637,8 +4281,7 @@
     "src": "/question-images/q_g3u2lc.webp",
     "alt": "Apoio visual complementar — INTERJEIÇÕES",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_g3u2lc",
-    "legacySrc": "./question-images/357_PT-compreensao-N2-009.webp"
+    "questionId": "q_g3u2lc"
   },
   {
     "order": 358,
@@ -4650,8 +4293,7 @@
     "src": "/question-images/q_1es84wm.webp",
     "alt": "Apoio visual complementar — CONJUNÇÕES",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1es84wm",
-    "legacySrc": "./question-images/358_PT-compreensao-N2-010.webp"
+    "questionId": "q_1es84wm"
   },
   {
     "order": 359,
@@ -4663,8 +4305,7 @@
     "src": "/question-images/q_1158so4.webp",
     "alt": "Apoio visual complementar — FRASE, ORAÇÃO E PERÍODO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1158so4",
-    "legacySrc": "./question-images/359_PT-compreensao-N2-011.webp"
+    "questionId": "q_1158so4"
   },
   {
     "order": 360,
@@ -4676,8 +4317,7 @@
     "src": "/question-images/q_1fu72vx.webp",
     "alt": "Apoio visual complementar — SUJEITO E PREDICADO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1fu72vx",
-    "legacySrc": "./question-images/360_PT-compreensao-N2-012.webp"
+    "questionId": "q_1fu72vx"
   },
   {
     "order": 361,
@@ -4689,8 +4329,7 @@
     "src": "/question-images/q_7zxuk2.webp",
     "alt": "Apoio visual complementar — FIGURAS DE LINGUAGEM",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_7zxuk2",
-    "legacySrc": "./question-images/361_PT-compreensao-N2-013.webp"
+    "questionId": "q_7zxuk2"
   },
   {
     "order": 362,
@@ -4702,8 +4341,7 @@
     "src": "/question-images/q_155b5x5.webp",
     "alt": "Apoio visual complementar — LITERATURA E GÊNEROS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_155b5x5",
-    "legacySrc": "./question-images/362_PT-compreensao-N2-014.webp"
+    "questionId": "q_155b5x5"
   },
   {
     "order": 363,
@@ -4715,8 +4353,7 @@
     "src": "/question-images/q_16197um.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_16197um",
-    "legacySrc": "./question-images/363_YA-compreensao-N2-001.webp"
+    "questionId": "q_16197um"
   },
   {
     "order": 364,
@@ -4728,8 +4365,7 @@
     "src": "/question-images/q_1fxrh6t.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1fxrh6t",
-    "legacySrc": "./question-images/364_YA-compreensao-N2-002.webp"
+    "questionId": "q_1fxrh6t"
   },
   {
     "order": 365,
@@ -4741,8 +4377,7 @@
     "src": "/question-images/q_1yzijkz.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1yzijkz",
-    "legacySrc": "./question-images/365_YA-compreensao-N2-003.webp"
+    "questionId": "q_1yzijkz"
   },
   {
     "order": 366,
@@ -4754,8 +4389,7 @@
     "src": "/question-images/q_m3n04k.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_m3n04k",
-    "legacySrc": "./question-images/366_YA-compreensao-N2-004.webp"
+    "questionId": "q_m3n04k"
   },
   {
     "order": 367,
@@ -4767,8 +4401,7 @@
     "src": "/question-images/q_5uaqnl.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_5uaqnl",
-    "legacySrc": "./question-images/367_YA-compreensao-N2-005.webp"
+    "questionId": "q_5uaqnl"
   },
   {
     "order": 368,
@@ -4780,8 +4413,7 @@
     "src": "/question-images/q_8do3fr.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_8do3fr",
-    "legacySrc": "./question-images/368_YA-compreensao-N2-006.webp"
+    "questionId": "q_8do3fr"
   },
   {
     "order": 369,
@@ -4793,8 +4425,7 @@
     "src": "/question-images/q_16etic6.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_16etic6",
-    "legacySrc": "./question-images/369_YA-compreensao-N2-007.webp"
+    "questionId": "q_16etic6"
   },
   {
     "order": 370,
@@ -4806,8 +4437,7 @@
     "src": "/question-images/q_ohgas9.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_ohgas9",
-    "legacySrc": "./question-images/370_YA-compreensao-N2-008.webp"
+    "questionId": "q_ohgas9"
   },
   {
     "order": 371,
@@ -4819,8 +4449,7 @@
     "src": "/question-images/q_1mf3d7e.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1mf3d7e",
-    "legacySrc": "./question-images/371_YA-compreensao-N2-009.webp"
+    "questionId": "q_1mf3d7e"
   },
   {
     "order": 372,
@@ -4832,8 +4461,7 @@
     "src": "/question-images/q_1qefes5.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1qefes5",
-    "legacySrc": "./question-images/372_YA-compreensao-N2-010.webp"
+    "questionId": "q_1qefes5"
   },
   {
     "order": 373,
@@ -4845,8 +4473,7 @@
     "src": "/question-images/q_101d66b.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_101d66b",
-    "legacySrc": "./question-images/373_YA-compreensao-N2-011.webp"
+    "questionId": "q_101d66b"
   },
   {
     "order": 374,
@@ -4858,8 +4485,7 @@
     "src": "/question-images/q_16c70yd.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_16c70yd",
-    "legacySrc": "./question-images/374_YA-compreensao-N2-012.webp"
+    "questionId": "q_16c70yd"
   },
   {
     "order": 375,
@@ -4871,8 +4497,7 @@
     "src": "/question-images/q_1j4mul9.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1j4mul9",
-    "legacySrc": "./question-images/375_YA-compreensao-N2-013.webp"
+    "questionId": "q_1j4mul9"
   },
   {
     "order": 376,
@@ -4884,8 +4509,7 @@
     "src": "/question-images/q_1fpwb82.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1fpwb82",
-    "legacySrc": "./question-images/376_YA-compreensao-N2-014.webp"
+    "questionId": "q_1fpwb82"
   },
   {
     "order": 377,
@@ -4897,8 +4521,7 @@
     "src": "/question-images/q_1a0jvqh.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1a0jvqh",
-    "legacySrc": "./question-images/377_YA-compreensao-N2-015.webp"
+    "questionId": "q_1a0jvqh"
   },
   {
     "order": 378,
@@ -4910,8 +4533,7 @@
     "src": "/question-images/q_bj3db1.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_bj3db1",
-    "legacySrc": "./question-images/378_YA-compreensao-N2-016.webp"
+    "questionId": "q_bj3db1"
   },
   {
     "order": 379,
@@ -4923,8 +4545,7 @@
     "src": "/question-images/q_1ih4oir.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1ih4oir",
-    "legacySrc": "./question-images/379_YA-compreensao-N2-017.webp"
+    "questionId": "q_1ih4oir"
   },
   {
     "order": 380,
@@ -4936,8 +4557,7 @@
     "src": "/question-images/q_s9ye2p.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_s9ye2p",
-    "legacySrc": "./question-images/380_YA-compreensao-N2-018.webp"
+    "questionId": "q_s9ye2p"
   },
   {
     "order": 381,
@@ -4949,8 +4569,7 @@
     "src": "/question-images/q_eusdqp.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_eusdqp",
-    "legacySrc": "./question-images/381_YA-compreensao-N2-019.webp"
+    "questionId": "q_eusdqp"
   },
   {
     "order": 382,
@@ -4962,8 +4581,7 @@
     "src": "/question-images/q_1xea5n2.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1xea5n2",
-    "legacySrc": "./question-images/382_YA-compreensao-N2-020.webp"
+    "questionId": "q_1xea5n2"
   },
   {
     "order": 383,
@@ -4975,8 +4593,7 @@
     "src": "/question-images/q_schh8t.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_schh8t",
-    "legacySrc": "./question-images/383_CURR-leitura-N2-01.webp"
+    "questionId": "q_schh8t"
   },
   {
     "order": 384,
@@ -4988,8 +4605,7 @@
     "src": "/question-images/q_9f26ly.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_9f26ly",
-    "legacySrc": "./question-images/384_CURR-leitura-N2-02.webp"
+    "questionId": "q_9f26ly"
   },
   {
     "order": 385,
@@ -5001,8 +4617,7 @@
     "src": "/question-images/q_eg83v9.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_eg83v9",
-    "legacySrc": "./question-images/385_CURR-leitura-N2-03.webp"
+    "questionId": "q_eg83v9"
   },
   {
     "order": 386,
@@ -5014,8 +4629,7 @@
     "src": "/question-images/q_14u8fyn.webp",
     "alt": "Apoio visual complementar — FONEMA",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_14u8fyn",
-    "legacySrc": "./question-images/386_PT-leitura-N2-001.webp"
+    "questionId": "q_14u8fyn"
   },
   {
     "order": 387,
@@ -5027,8 +4641,7 @@
     "src": "/question-images/q_fb2roj.webp",
     "alt": "Apoio visual complementar — TONICIDADE",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_fb2roj",
-    "legacySrc": "./question-images/387_PT-leitura-N2-002.webp"
+    "questionId": "q_fb2roj"
   },
   {
     "order": 388,
@@ -5040,8 +4653,7 @@
     "src": "/question-images/q_1sci61x.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1sci61x",
-    "legacySrc": "./question-images/388_CURR-compreensao-N3-01.webp"
+    "questionId": "q_1sci61x"
   },
   {
     "order": 389,
@@ -5053,8 +4665,7 @@
     "src": "/question-images/q_1sespdx.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1sespdx",
-    "legacySrc": "./question-images/389_CURR-compreensao-N3-02.webp"
+    "questionId": "q_1sespdx"
   },
   {
     "order": 390,
@@ -5066,8 +4677,7 @@
     "src": "/question-images/q_zfau5q.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_zfau5q",
-    "legacySrc": "./question-images/390_CURR-compreensao-N3-03.webp"
+    "questionId": "q_zfau5q"
   },
   {
     "order": 391,
@@ -5079,8 +4689,7 @@
     "src": "/question-images/q_10y04yk.webp",
     "alt": "Apoio visual complementar — LINGUAGEM",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_10y04yk",
-    "legacySrc": "./question-images/391_PT-compreensao-N3-001.webp"
+    "questionId": "q_10y04yk"
   },
   {
     "order": 392,
@@ -5092,8 +4701,7 @@
     "src": "/question-images/q_87547k.webp",
     "alt": "Apoio visual complementar — LINGUAGEM",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_87547k",
-    "legacySrc": "./question-images/392_PT-compreensao-N3-002.webp"
+    "questionId": "q_87547k"
   },
   {
     "order": 393,
@@ -5105,8 +4713,7 @@
     "src": "/question-images/q_dxcxph.webp",
     "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_dxcxph",
-    "legacySrc": "./question-images/393_PT-compreensao-N3-003.webp"
+    "questionId": "q_dxcxph"
   },
   {
     "order": 394,
@@ -5118,8 +4725,7 @@
     "src": "/question-images/q_1f65vhd.webp",
     "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1f65vhd",
-    "legacySrc": "./question-images/394_PT-compreensao-N3-004.webp"
+    "questionId": "q_1f65vhd"
   },
   {
     "order": 395,
@@ -5131,8 +4737,7 @@
     "src": "/question-images/q_14vhx90.webp",
     "alt": "Apoio visual complementar — ADVÉRBIOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_14vhx90",
-    "legacySrc": "./question-images/395_PT-compreensao-N3-005.webp"
+    "questionId": "q_14vhx90"
   },
   {
     "order": 396,
@@ -5144,8 +4749,7 @@
     "src": "/question-images/q_ek6uqi.webp",
     "alt": "Apoio visual complementar — NUMERAIS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_ek6uqi",
-    "legacySrc": "./question-images/396_PT-compreensao-N3-006.webp"
+    "questionId": "q_ek6uqi"
   },
   {
     "order": 397,
@@ -5157,8 +4761,7 @@
     "src": "/question-images/q_131669i.webp",
     "alt": "Apoio visual complementar — INTERJEIÇÕES",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_131669i",
-    "legacySrc": "./question-images/397_PT-compreensao-N3-007.webp"
+    "questionId": "q_131669i"
   },
   {
     "order": 398,
@@ -5170,8 +4773,7 @@
     "src": "/question-images/q_5oytst.webp",
     "alt": "Apoio visual complementar — CONJUNÇÕES",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_5oytst",
-    "legacySrc": "./question-images/398_PT-compreensao-N3-008.webp"
+    "questionId": "q_5oytst"
   },
   {
     "order": 399,
@@ -5183,8 +4785,7 @@
     "src": "/question-images/q_1ujyjoi.webp",
     "alt": "Apoio visual complementar — FRASE, ORAÇÃO E PERÍODO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1ujyjoi",
-    "legacySrc": "./question-images/399_PT-compreensao-N3-009.webp"
+    "questionId": "q_1ujyjoi"
   },
   {
     "order": 400,
@@ -5196,8 +4797,7 @@
     "src": "/question-images/q_1c04v1g.webp",
     "alt": "Apoio visual complementar — SUJEITO E PREDICADO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1c04v1g",
-    "legacySrc": "./question-images/400_PT-compreensao-N3-010.webp"
+    "questionId": "q_1c04v1g"
   },
   {
     "order": 401,
@@ -5209,8 +4809,7 @@
     "src": "/question-images/q_1tqwza0.webp",
     "alt": "Apoio visual complementar — FIGURAS DE LINGUAGEM",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1tqwza0",
-    "legacySrc": "./question-images/401_PT-compreensao-N3-011.webp"
+    "questionId": "q_1tqwza0"
   },
   {
     "order": 402,
@@ -5222,8 +4821,7 @@
     "src": "/question-images/q_1b11bwq.webp",
     "alt": "Apoio visual complementar — LITERATURA E GÊNEROS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1b11bwq",
-    "legacySrc": "./question-images/402_PT-compreensao-N3-012.webp"
+    "questionId": "q_1b11bwq"
   },
   {
     "order": 403,
@@ -5235,8 +4833,7 @@
     "src": "/question-images/q_kcsz11.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_kcsz11",
-    "legacySrc": "./question-images/403_YA-compreensao-N3-001.webp"
+    "questionId": "q_kcsz11"
   },
   {
     "order": 404,
@@ -5248,8 +4845,7 @@
     "src": "/question-images/q_nzh4ie.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_nzh4ie",
-    "legacySrc": "./question-images/404_YA-compreensao-N3-002.webp"
+    "questionId": "q_nzh4ie"
   },
   {
     "order": 405,
@@ -5261,8 +4857,7 @@
     "src": "/question-images/q_1sok0nd.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1sok0nd",
-    "legacySrc": "./question-images/405_YA-compreensao-N3-003.webp"
+    "questionId": "q_1sok0nd"
   },
   {
     "order": 406,
@@ -5274,8 +4869,7 @@
     "src": "/question-images/q_xziu7o.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_xziu7o",
-    "legacySrc": "./question-images/406_YA-compreensao-N3-004.webp"
+    "questionId": "q_xziu7o"
   },
   {
     "order": 407,
@@ -5287,8 +4881,7 @@
     "src": "/question-images/q_l1tdbb.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_l1tdbb",
-    "legacySrc": "./question-images/407_YA-compreensao-N3-005.webp"
+    "questionId": "q_l1tdbb"
   },
   {
     "order": 408,
@@ -5300,8 +4893,7 @@
     "src": "/question-images/q_1u4b82u.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1u4b82u",
-    "legacySrc": "./question-images/408_YA-compreensao-N3-006.webp"
+    "questionId": "q_1u4b82u"
   },
   {
     "order": 409,
@@ -5313,8 +4905,7 @@
     "src": "/question-images/q_33aw46.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_33aw46",
-    "legacySrc": "./question-images/409_YA-compreensao-N3-007.webp"
+    "questionId": "q_33aw46"
   },
   {
     "order": 410,
@@ -5326,8 +4917,7 @@
     "src": "/question-images/q_l90cop.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_l90cop",
-    "legacySrc": "./question-images/410_YA-compreensao-N3-008.webp"
+    "questionId": "q_l90cop"
   },
   {
     "order": 411,
@@ -5339,8 +4929,7 @@
     "src": "/question-images/q_luwcoi.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_luwcoi",
-    "legacySrc": "./question-images/411_YA-compreensao-N3-009.webp"
+    "questionId": "q_luwcoi"
   },
   {
     "order": 412,
@@ -5352,8 +4941,7 @@
     "src": "/question-images/q_1jmqjdg.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1jmqjdg",
-    "legacySrc": "./question-images/412_YA-compreensao-N3-010.webp"
+    "questionId": "q_1jmqjdg"
   },
   {
     "order": 413,
@@ -5365,8 +4953,7 @@
     "src": "/question-images/q_jmd9tu.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_jmd9tu",
-    "legacySrc": "./question-images/413_YA-compreensao-N3-011.webp"
+    "questionId": "q_jmd9tu"
   },
   {
     "order": 414,
@@ -5378,8 +4965,7 @@
     "src": "/question-images/q_zfohs1.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_zfohs1",
-    "legacySrc": "./question-images/414_YA-compreensao-N3-012.webp"
+    "questionId": "q_zfohs1"
   },
   {
     "order": 415,
@@ -5391,8 +4977,7 @@
     "src": "/question-images/q_1hc73jb.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1hc73jb",
-    "legacySrc": "./question-images/415_YA-compreensao-N3-013.webp"
+    "questionId": "q_1hc73jb"
   },
   {
     "order": 416,
@@ -5404,8 +4989,7 @@
     "src": "/question-images/q_523yi0.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_523yi0",
-    "legacySrc": "./question-images/416_YA-compreensao-N3-014.webp"
+    "questionId": "q_523yi0"
   },
   {
     "order": 417,
@@ -5417,8 +5001,7 @@
     "src": "/question-images/q_159n1a8.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_159n1a8",
-    "legacySrc": "./question-images/417_YA-compreensao-N3-015.webp"
+    "questionId": "q_159n1a8"
   },
   {
     "order": 418,
@@ -5430,8 +5013,7 @@
     "src": "/question-images/q_zwz4mp.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_zwz4mp",
-    "legacySrc": "./question-images/418_YA-compreensao-N3-016.webp"
+    "questionId": "q_zwz4mp"
   },
   {
     "order": 419,
@@ -5443,8 +5025,7 @@
     "src": "/question-images/q_wkez56.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_wkez56",
-    "legacySrc": "./question-images/419_YA-compreensao-N3-017.webp"
+    "questionId": "q_wkez56"
   },
   {
     "order": 420,
@@ -5456,8 +5037,7 @@
     "src": "/question-images/q_19imhol.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_19imhol",
-    "legacySrc": "./question-images/420_YA-compreensao-N3-018.webp"
+    "questionId": "q_19imhol"
   },
   {
     "order": 421,
@@ -5469,8 +5049,7 @@
     "src": "/question-images/q_lqyhfb.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_lqyhfb",
-    "legacySrc": "./question-images/421_YA-compreensao-N3-019.webp"
+    "questionId": "q_lqyhfb"
   },
   {
     "order": 422,
@@ -5482,8 +5061,7 @@
     "src": "/question-images/q_611ohh.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_611ohh",
-    "legacySrc": "./question-images/422_YA-compreensao-N3-020.webp"
+    "questionId": "q_611ohh"
   },
   {
     "order": 423,
@@ -5495,8 +5073,7 @@
     "src": "/question-images/q_4b4ay6.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_4b4ay6",
-    "legacySrc": "./question-images/423_CURR-leitura-N3-01.webp"
+    "questionId": "q_4b4ay6"
   },
   {
     "order": 424,
@@ -5508,8 +5085,7 @@
     "src": "/question-images/q_yj8buz.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_yj8buz",
-    "legacySrc": "./question-images/424_CURR-leitura-N3-02.webp"
+    "questionId": "q_yj8buz"
   },
   {
     "order": 425,
@@ -5521,8 +5097,7 @@
     "src": "/question-images/q_d9l10m.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_d9l10m",
-    "legacySrc": "./question-images/425_CURR-leitura-N3-03.webp"
+    "questionId": "q_d9l10m"
   },
   {
     "order": 426,
@@ -5534,8 +5109,7 @@
     "src": "/question-images/q_11msnxz.webp",
     "alt": "Apoio visual complementar — FONEMA",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_11msnxz",
-    "legacySrc": "./question-images/426_PT-leitura-N3-001.webp"
+    "questionId": "q_11msnxz"
   },
   {
     "order": 427,
@@ -5547,8 +5121,7 @@
     "src": "/question-images/q_w2w0yw.webp",
     "alt": "Apoio visual complementar — TONICIDADE",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_w2w0yw",
-    "legacySrc": "./question-images/427_PT-leitura-N3-002.webp"
+    "questionId": "q_w2w0yw"
   },
   {
     "order": 428,
@@ -5560,8 +5133,7 @@
     "src": "/question-images/q_k3eree.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_k3eree",
-    "legacySrc": "./question-images/428_CURR-compreensao-N4-01.webp"
+    "questionId": "q_k3eree"
   },
   {
     "order": 429,
@@ -5573,8 +5145,7 @@
     "src": "/question-images/q_1m45xk2.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1m45xk2",
-    "legacySrc": "./question-images/429_CURR-compreensao-N4-02.webp"
+    "questionId": "q_1m45xk2"
   },
   {
     "order": 430,
@@ -5586,8 +5157,7 @@
     "src": "/question-images/q_nofp1v.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_nofp1v",
-    "legacySrc": "./question-images/430_CURR-compreensao-N4-03.webp"
+    "questionId": "q_nofp1v"
   },
   {
     "order": 431,
@@ -5599,8 +5169,7 @@
     "src": "/question-images/q_1if0mso.webp",
     "alt": "Apoio visual complementar — LINGUAGEM",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1if0mso",
-    "legacySrc": "./question-images/431_PT-compreensao-N4-001.webp"
+    "questionId": "q_1if0mso"
   },
   {
     "order": 432,
@@ -5612,8 +5181,7 @@
     "src": "/question-images/q_1gvqc01.webp",
     "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1gvqc01",
-    "legacySrc": "./question-images/432_PT-compreensao-N4-002.webp"
+    "questionId": "q_1gvqc01"
   },
   {
     "order": 433,
@@ -5625,8 +5193,7 @@
     "src": "/question-images/q_1szvd99.webp",
     "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1szvd99",
-    "legacySrc": "./question-images/433_PT-compreensao-N4-003.webp"
+    "questionId": "q_1szvd99"
   },
   {
     "order": 434,
@@ -5638,8 +5205,7 @@
     "src": "/question-images/q_1ujeae9.webp",
     "alt": "Apoio visual complementar — ADVÉRBIOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1ujeae9",
-    "legacySrc": "./question-images/434_PT-compreensao-N4-004.webp"
+    "questionId": "q_1ujeae9"
   },
   {
     "order": 435,
@@ -5651,8 +5217,7 @@
     "src": "/question-images/q_sn44yb.webp",
     "alt": "Apoio visual complementar — NUMERAIS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_sn44yb",
-    "legacySrc": "./question-images/435_PT-compreensao-N4-005.webp"
+    "questionId": "q_sn44yb"
   },
   {
     "order": 436,
@@ -5664,8 +5229,7 @@
     "src": "/question-images/q_1b4zu6p.webp",
     "alt": "Apoio visual complementar — INTERJEIÇÕES",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1b4zu6p",
-    "legacySrc": "./question-images/436_PT-compreensao-N4-006.webp"
+    "questionId": "q_1b4zu6p"
   },
   {
     "order": 437,
@@ -5677,8 +5241,7 @@
     "src": "/question-images/q_1fdgngi.webp",
     "alt": "Apoio visual complementar — CONJUNÇÕES",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1fdgngi",
-    "legacySrc": "./question-images/437_PT-compreensao-N4-007.webp"
+    "questionId": "q_1fdgngi"
   },
   {
     "order": 438,
@@ -5690,8 +5253,7 @@
     "src": "/question-images/q_1ex94em.webp",
     "alt": "Apoio visual complementar — FRASE, ORAÇÃO E PERÍODO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1ex94em",
-    "legacySrc": "./question-images/438_PT-compreensao-N4-008.webp"
+    "questionId": "q_1ex94em"
   },
   {
     "order": 439,
@@ -5703,8 +5265,7 @@
     "src": "/question-images/q_5yp7qr.webp",
     "alt": "Apoio visual complementar — SUJEITO E PREDICADO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_5yp7qr",
-    "legacySrc": "./question-images/439_PT-compreensao-N4-009.webp"
+    "questionId": "q_5yp7qr"
   },
   {
     "order": 440,
@@ -5716,8 +5277,7 @@
     "src": "/question-images/q_c0ks5o.webp",
     "alt": "Apoio visual complementar — FIGURAS DE LINGUAGEM",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_c0ks5o",
-    "legacySrc": "./question-images/440_PT-compreensao-N4-010.webp"
+    "questionId": "q_c0ks5o"
   },
   {
     "order": 441,
@@ -5729,8 +5289,7 @@
     "src": "/question-images/q_gn2of9.webp",
     "alt": "Apoio visual complementar — LITERATURA E GÊNEROS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_gn2of9",
-    "legacySrc": "./question-images/441_PT-compreensao-N4-011.webp"
+    "questionId": "q_gn2of9"
   },
   {
     "order": 442,
@@ -5742,8 +5301,7 @@
     "src": "/question-images/q_18bzk45.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_18bzk45",
-    "legacySrc": "./question-images/442_CURR-leitura-N4-01.webp"
+    "questionId": "q_18bzk45"
   },
   {
     "order": 443,
@@ -5755,8 +5313,7 @@
     "src": "/question-images/q_1sz5s43.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1sz5s43",
-    "legacySrc": "./question-images/443_CURR-leitura-N4-02.webp"
+    "questionId": "q_1sz5s43"
   },
   {
     "order": 444,
@@ -5768,8 +5325,7 @@
     "src": "/question-images/q_y6yyml.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_y6yyml",
-    "legacySrc": "./question-images/444_CURR-leitura-N4-03.webp"
+    "questionId": "q_y6yyml"
   },
   {
     "order": 445,
@@ -5781,8 +5337,7 @@
     "src": "/question-images/q_1x9kfxx.webp",
     "alt": "Apoio visual complementar — FONEMA",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1x9kfxx",
-    "legacySrc": "./question-images/445_PT-leitura-N4-001.webp"
+    "questionId": "q_1x9kfxx"
   },
   {
     "order": 446,
@@ -5794,8 +5349,7 @@
     "src": "/question-images/q_4d05do.webp",
     "alt": "Apoio visual complementar — TONICIDADE",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_4d05do",
-    "legacySrc": "./question-images/446_PT-leitura-N4-002.webp"
+    "questionId": "q_4d05do"
   },
   {
     "order": 447,
@@ -5807,8 +5361,7 @@
     "src": "/question-images/q_sehv0a.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_sehv0a",
-    "legacySrc": "./question-images/447_CURR-compreensao-N5-01.webp"
+    "questionId": "q_sehv0a"
   },
   {
     "order": 448,
@@ -5820,8 +5373,7 @@
     "src": "/question-images/q_j3godj.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_j3godj",
-    "legacySrc": "./question-images/448_CURR-compreensao-N5-02.webp"
+    "questionId": "q_j3godj"
   },
   {
     "order": 449,
@@ -5833,8 +5385,7 @@
     "src": "/question-images/q_1ahgazf.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1ahgazf",
-    "legacySrc": "./question-images/449_CURR-compreensao-N5-03.webp"
+    "questionId": "q_1ahgazf"
   },
   {
     "order": 450,
@@ -5846,8 +5397,7 @@
     "src": "/question-images/q_1p0jvjk.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1p0jvjk",
-    "legacySrc": "./question-images/450_CURR-leitura-N5-01.webp"
+    "questionId": "q_1p0jvjk"
   },
   {
     "order": 451,
@@ -5859,8 +5409,7 @@
     "src": "/question-images/q_1cfyq69.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1cfyq69",
-    "legacySrc": "./question-images/451_CURR-leitura-N5-02.webp"
+    "questionId": "q_1cfyq69"
   },
   {
     "order": 452,
@@ -5872,8 +5421,7 @@
     "src": "/question-images/q_16hkwmm.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_16hkwmm",
-    "legacySrc": "./question-images/452_CURR-leitura-N5-03.webp"
+    "questionId": "q_16hkwmm"
   },
   {
     "order": 453,
@@ -5885,8 +5433,7 @@
     "src": "/question-images/q_1lekz0n.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1lekz0n",
-    "legacySrc": "./question-images/453_CURR-escrita-N1-01.webp"
+    "questionId": "q_1lekz0n"
   },
   {
     "order": 454,
@@ -5898,8 +5445,7 @@
     "src": "/question-images/q_15qa4kc.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_15qa4kc",
-    "legacySrc": "./question-images/454_CURR-escrita-N1-02.webp"
+    "questionId": "q_15qa4kc"
   },
   {
     "order": 455,
@@ -5911,8 +5457,7 @@
     "src": "/question-images/q_1yiax1j.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1yiax1j",
-    "legacySrc": "./question-images/455_CURR-escrita-N1-03.webp"
+    "questionId": "q_1yiax1j"
   },
   {
     "order": 456,
@@ -5924,8 +5469,7 @@
     "src": "/question-images/q_1docn8d.webp",
     "alt": "Apoio visual complementar — FRASES SIMPLES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1docn8d",
-    "legacySrc": "./question-images/456_ADD-escrita-N1-001.webp"
+    "questionId": "q_1docn8d"
   },
   {
     "order": 457,
@@ -5937,8 +5481,7 @@
     "src": "/question-images/q_aji27r.webp",
     "alt": "Apoio visual complementar — FRASES SIMPLES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_aji27r",
-    "legacySrc": "./question-images/457_ADD-escrita-N1-002.webp"
+    "questionId": "q_aji27r"
   },
   {
     "order": 458,
@@ -5950,8 +5493,7 @@
     "src": "/question-images/q_18fic62.webp",
     "alt": "Apoio visual complementar — FRASES SIMPLES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_18fic62",
-    "legacySrc": "./question-images/458_ADD-escrita-N1-003.webp"
+    "questionId": "q_18fic62"
   },
   {
     "order": 459,
@@ -5963,8 +5505,7 @@
     "src": "/question-images/q_4ietmt.webp",
     "alt": "Apoio visual complementar — FRASES SIMPLES",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_4ietmt",
-    "legacySrc": "./question-images/459_ADD-escrita-N1-004.webp"
+    "questionId": "q_4ietmt"
   },
   {
     "order": 460,
@@ -5976,8 +5517,7 @@
     "src": "/question-images/q_86pqjp.webp",
     "alt": "Apoio visual complementar — PRODUÇÃO DE TEXTO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_86pqjp",
-    "legacySrc": "./question-images/460_ADD-escrita-N1-005.webp"
+    "questionId": "q_86pqjp"
   },
   {
     "order": 461,
@@ -5989,8 +5529,7 @@
     "src": "/question-images/q_1m5a6ep.webp",
     "alt": "Apoio visual complementar — PRODUÇÃO DE TEXTO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1m5a6ep",
-    "legacySrc": "./question-images/461_ADD-escrita-N1-006.webp"
+    "questionId": "q_1m5a6ep"
   },
   {
     "order": 462,
@@ -6002,8 +5541,7 @@
     "src": "/question-images/q_1ey0ts4.webp",
     "alt": "Apoio visual complementar — PRODUÇÃO DE TEXTO",
     "sourceFile": "additional-bank.ts",
-    "questionId": "q_1ey0ts4",
-    "legacySrc": "./question-images/462_ADD-escrita-N1-007.webp"
+    "questionId": "q_1ey0ts4"
   },
   {
     "order": 463,
@@ -6015,8 +5553,7 @@
     "src": "/question-images/q_pr9tw0.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_pr9tw0",
-    "legacySrc": "./question-images/463_CURR-escrita-N2-01.webp"
+    "questionId": "q_pr9tw0"
   },
   {
     "order": 464,
@@ -6028,8 +5565,7 @@
     "src": "/question-images/q_fb85rz.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_fb85rz",
-    "legacySrc": "./question-images/464_CURR-escrita-N2-02.webp"
+    "questionId": "q_fb85rz"
   },
   {
     "order": 465,
@@ -6041,8 +5577,7 @@
     "src": "/question-images/q_1axwj87.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1axwj87",
-    "legacySrc": "./question-images/465_CURR-escrita-N2-03.webp"
+    "questionId": "q_1axwj87"
   },
   {
     "order": 466,
@@ -6054,8 +5589,7 @@
     "src": "/question-images/q_1r80gam.webp",
     "alt": "Apoio visual complementar — PARÔNIMOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1r80gam",
-    "legacySrc": "./question-images/466_PT-escrita-N2-001.webp"
+    "questionId": "q_1r80gam"
   },
   {
     "order": 467,
@@ -6067,8 +5601,7 @@
     "src": "/question-images/q_1capksz.webp",
     "alt": "Apoio visual complementar — VERBOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1capksz",
-    "legacySrc": "./question-images/467_PT-escrita-N2-002.webp"
+    "questionId": "q_1capksz"
   },
   {
     "order": 468,
@@ -6080,8 +5613,7 @@
     "src": "/question-images/q_1jjy3r9.webp",
     "alt": "Apoio visual complementar — VERBOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1jjy3r9",
-    "legacySrc": "./question-images/468_PT-escrita-N2-003.webp"
+    "questionId": "q_1jjy3r9"
   },
   {
     "order": 469,
@@ -6093,8 +5625,7 @@
     "src": "/question-images/q_syq1au.webp",
     "alt": "Apoio visual complementar — SUBSTANTIVOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_syq1au",
-    "legacySrc": "./question-images/469_PT-escrita-N2-004.webp"
+    "questionId": "q_syq1au"
   },
   {
     "order": 470,
@@ -6106,8 +5637,7 @@
     "src": "/question-images/q_pgy7dz.webp",
     "alt": "Apoio visual complementar — ADJETIVOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_pgy7dz",
-    "legacySrc": "./question-images/470_PT-escrita-N2-005.webp"
+    "questionId": "q_pgy7dz"
   },
   {
     "order": 471,
@@ -6119,8 +5649,7 @@
     "src": "/question-images/q_se6086.webp",
     "alt": "Apoio visual complementar — ARTIGO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_se6086",
-    "legacySrc": "./question-images/471_PT-escrita-N2-006.webp"
+    "questionId": "q_se6086"
   },
   {
     "order": 472,
@@ -6132,8 +5661,7 @@
     "src": "/question-images/q_1303mfa.webp",
     "alt": "Apoio visual complementar — CRASE",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1303mfa",
-    "legacySrc": "./question-images/472_PT-escrita-N2-007.webp"
+    "questionId": "q_1303mfa"
   },
   {
     "order": 473,
@@ -6145,8 +5673,7 @@
     "src": "/question-images/q_i21fu0.webp",
     "alt": "Apoio visual complementar — PREPOSIÇÃO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_i21fu0",
-    "legacySrc": "./question-images/473_PT-escrita-N2-008.webp"
+    "questionId": "q_i21fu0"
   },
   {
     "order": 474,
@@ -6158,8 +5685,7 @@
     "src": "/question-images/q_ecyent.webp",
     "alt": "Apoio visual complementar — EMPREGO DOS PORQUÊS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_ecyent",
-    "legacySrc": "./question-images/474_PT-escrita-N2-009.webp"
+    "questionId": "q_ecyent"
   },
   {
     "order": 475,
@@ -6171,8 +5697,7 @@
     "src": "/question-images/q_13c26dw.webp",
     "alt": "Apoio visual complementar — SINTAXE DE CONCORDÂNCIA",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_13c26dw",
-    "legacySrc": "./question-images/475_PT-escrita-N2-010.webp"
+    "questionId": "q_13c26dw"
   },
   {
     "order": 476,
@@ -6184,8 +5709,7 @@
     "src": "/question-images/q_1c83j5u.webp",
     "alt": "Apoio visual complementar — PRONOMES",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1c83j5u",
-    "legacySrc": "./question-images/476_PT-escrita-N2-011.webp"
+    "questionId": "q_1c83j5u"
   },
   {
     "order": 477,
@@ -6197,8 +5721,7 @@
     "src": "/question-images/q_1lounue.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1lounue",
-    "legacySrc": "./question-images/477_CURR-escrita-N3-01.webp"
+    "questionId": "q_1lounue"
   },
   {
     "order": 478,
@@ -6210,8 +5733,7 @@
     "src": "/question-images/q_49wmv5.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_49wmv5",
-    "legacySrc": "./question-images/478_CURR-escrita-N3-02.webp"
+    "questionId": "q_49wmv5"
   },
   {
     "order": 479,
@@ -6223,8 +5745,7 @@
     "src": "/question-images/q_1y1d179.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1y1d179",
-    "legacySrc": "./question-images/479_CURR-escrita-N3-03.webp"
+    "questionId": "q_1y1d179"
   },
   {
     "order": 480,
@@ -6236,8 +5757,7 @@
     "src": "/question-images/q_1unxmm.webp",
     "alt": "Apoio visual complementar — PARÔNIMOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1unxmm",
-    "legacySrc": "./question-images/480_PT-escrita-N3-001.webp"
+    "questionId": "q_1unxmm"
   },
   {
     "order": 481,
@@ -6249,8 +5769,7 @@
     "src": "/question-images/q_77ytck.webp",
     "alt": "Apoio visual complementar — VERBOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_77ytck",
-    "legacySrc": "./question-images/481_PT-escrita-N3-002.webp"
+    "questionId": "q_77ytck"
   },
   {
     "order": 482,
@@ -6262,8 +5781,7 @@
     "src": "/question-images/q_1p8zki.webp",
     "alt": "Apoio visual complementar — VERBOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1p8zki",
-    "legacySrc": "./question-images/482_PT-escrita-N3-003.webp"
+    "questionId": "q_1p8zki"
   },
   {
     "order": 483,
@@ -6275,8 +5793,7 @@
     "src": "/question-images/q_5k36m3.webp",
     "alt": "Apoio visual complementar — SUBSTANTIVOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_5k36m3",
-    "legacySrc": "./question-images/483_PT-escrita-N3-004.webp"
+    "questionId": "q_5k36m3"
   },
   {
     "order": 484,
@@ -6288,8 +5805,7 @@
     "src": "/question-images/q_1phzn65.webp",
     "alt": "Apoio visual complementar — ADJETIVOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1phzn65",
-    "legacySrc": "./question-images/484_PT-escrita-N3-005.webp"
+    "questionId": "q_1phzn65"
   },
   {
     "order": 485,
@@ -6301,8 +5817,7 @@
     "src": "/question-images/q_22z4js.webp",
     "alt": "Apoio visual complementar — ARTIGO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_22z4js",
-    "legacySrc": "./question-images/485_PT-escrita-N3-006.webp"
+    "questionId": "q_22z4js"
   },
   {
     "order": 486,
@@ -6314,8 +5829,7 @@
     "src": "/question-images/q_1us4bmy.webp",
     "alt": "Apoio visual complementar — CRASE",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1us4bmy",
-    "legacySrc": "./question-images/486_PT-escrita-N3-007.webp"
+    "questionId": "q_1us4bmy"
   },
   {
     "order": 487,
@@ -6327,8 +5841,7 @@
     "src": "/question-images/q_159yax6.webp",
     "alt": "Apoio visual complementar — PREPOSIÇÃO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_159yax6",
-    "legacySrc": "./question-images/487_PT-escrita-N3-008.webp"
+    "questionId": "q_159yax6"
   },
   {
     "order": 488,
@@ -6340,8 +5853,7 @@
     "src": "/question-images/q_5xjuj9.webp",
     "alt": "Apoio visual complementar — EMPREGO DOS PORQUÊS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_5xjuj9",
-    "legacySrc": "./question-images/488_PT-escrita-N3-009.webp"
+    "questionId": "q_5xjuj9"
   },
   {
     "order": 489,
@@ -6353,8 +5865,7 @@
     "src": "/question-images/q_1g14y0v.webp",
     "alt": "Apoio visual complementar — SINTAXE DE CONCORDÂNCIA",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1g14y0v",
-    "legacySrc": "./question-images/489_PT-escrita-N3-010.webp"
+    "questionId": "q_1g14y0v"
   },
   {
     "order": 490,
@@ -6366,8 +5877,7 @@
     "src": "/question-images/q_1p04oel.webp",
     "alt": "Apoio visual complementar — PRONOMES",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1p04oel",
-    "legacySrc": "./question-images/490_PT-escrita-N3-011.webp"
+    "questionId": "q_1p04oel"
   },
   {
     "order": 491,
@@ -6379,8 +5889,7 @@
     "src": "/question-images/q_12nlvzl.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_12nlvzl",
-    "legacySrc": "./question-images/491_CURR-escrita-N4-01.webp"
+    "questionId": "q_12nlvzl"
   },
   {
     "order": 492,
@@ -6392,8 +5901,7 @@
     "src": "/question-images/q_mc2grr.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_mc2grr",
-    "legacySrc": "./question-images/492_CURR-escrita-N4-02.webp"
+    "questionId": "q_mc2grr"
   },
   {
     "order": 493,
@@ -6405,8 +5913,7 @@
     "src": "/question-images/q_mtu07k.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_mtu07k",
-    "legacySrc": "./question-images/493_CURR-escrita-N4-03.webp"
+    "questionId": "q_mtu07k"
   },
   {
     "order": 494,
@@ -6418,8 +5925,7 @@
     "src": "/question-images/q_105leq0.webp",
     "alt": "Apoio visual complementar — PARÔNIMOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_105leq0",
-    "legacySrc": "./question-images/494_PT-escrita-N4-001.webp"
+    "questionId": "q_105leq0"
   },
   {
     "order": 495,
@@ -6431,8 +5937,7 @@
     "src": "/question-images/q_yxg0fc.webp",
     "alt": "Apoio visual complementar — VERBOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_yxg0fc",
-    "legacySrc": "./question-images/495_PT-escrita-N4-002.webp"
+    "questionId": "q_yxg0fc"
   },
   {
     "order": 496,
@@ -6444,8 +5949,7 @@
     "src": "/question-images/q_1kfh659.webp",
     "alt": "Apoio visual complementar — VERBOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1kfh659",
-    "legacySrc": "./question-images/496_PT-escrita-N4-003.webp"
+    "questionId": "q_1kfh659"
   },
   {
     "order": 497,
@@ -6457,8 +5961,7 @@
     "src": "/question-images/q_uaza2k.webp",
     "alt": "Apoio visual complementar — SUBSTANTIVOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_uaza2k",
-    "legacySrc": "./question-images/497_PT-escrita-N4-004.webp"
+    "questionId": "q_uaza2k"
   },
   {
     "order": 498,
@@ -6470,8 +5973,7 @@
     "src": "/question-images/q_400qee.webp",
     "alt": "Apoio visual complementar — ADJETIVOS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_400qee",
-    "legacySrc": "./question-images/498_PT-escrita-N4-005.webp"
+    "questionId": "q_400qee"
   },
   {
     "order": 499,
@@ -6483,8 +5985,7 @@
     "src": "/question-images/q_1v5zv5m.webp",
     "alt": "Apoio visual complementar — ARTIGO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1v5zv5m",
-    "legacySrc": "./question-images/499_PT-escrita-N4-006.webp"
+    "questionId": "q_1v5zv5m"
   },
   {
     "order": 500,
@@ -6496,8 +5997,7 @@
     "src": "/question-images/q_1f87uep.webp",
     "alt": "Apoio visual complementar — CRASE",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1f87uep",
-    "legacySrc": "./question-images/500_PT-escrita-N4-007.webp"
+    "questionId": "q_1f87uep"
   },
   {
     "order": 501,
@@ -6509,8 +6009,7 @@
     "src": "/question-images/q_1qo4qpz.webp",
     "alt": "Apoio visual complementar — CRASE",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1qo4qpz",
-    "legacySrc": "./question-images/501_PT-escrita-N4-008.webp"
+    "questionId": "q_1qo4qpz"
   },
   {
     "order": 502,
@@ -6522,8 +6021,7 @@
     "src": "/question-images/q_1akilfw.webp",
     "alt": "Apoio visual complementar — PREPOSIÇÃO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1akilfw",
-    "legacySrc": "./question-images/502_PT-escrita-N4-009.webp"
+    "questionId": "q_1akilfw"
   },
   {
     "order": 503,
@@ -6535,8 +6033,7 @@
     "src": "/question-images/q_15bnc46.webp",
     "alt": "Apoio visual complementar — EMPREGO DOS PORQUÊS",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_15bnc46",
-    "legacySrc": "./question-images/503_PT-escrita-N4-010.webp"
+    "questionId": "q_15bnc46"
   },
   {
     "order": 504,
@@ -6548,8 +6045,7 @@
     "src": "/question-images/q_1rypmdz.webp",
     "alt": "Apoio visual complementar — SINTAXE DE CONCORDÂNCIA",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1rypmdz",
-    "legacySrc": "./question-images/504_PT-escrita-N4-011.webp"
+    "questionId": "q_1rypmdz"
   },
   {
     "order": 505,
@@ -6561,8 +6057,7 @@
     "src": "/question-images/q_1lwx8oz.webp",
     "alt": "Apoio visual complementar — PRONOMES",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1lwx8oz",
-    "legacySrc": "./question-images/505_PT-escrita-N4-012.webp"
+    "questionId": "q_1lwx8oz"
   },
   {
     "order": 506,
@@ -6574,8 +6069,7 @@
     "src": "/question-images/q_sn4xq7.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_sn4xq7",
-    "legacySrc": "./question-images/506_YA-escrita-N4-001.webp"
+    "questionId": "q_sn4xq7"
   },
   {
     "order": 507,
@@ -6587,8 +6081,7 @@
     "src": "/question-images/q_luxs6w.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_luxs6w",
-    "legacySrc": "./question-images/507_YA-escrita-N4-002.webp"
+    "questionId": "q_luxs6w"
   },
   {
     "order": 508,
@@ -6600,8 +6093,7 @@
     "src": "/question-images/q_4svajt.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_4svajt",
-    "legacySrc": "./question-images/508_YA-escrita-N4-003.webp"
+    "questionId": "q_4svajt"
   },
   {
     "order": 509,
@@ -6613,8 +6105,7 @@
     "src": "/question-images/q_fmr9mz.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_fmr9mz",
-    "legacySrc": "./question-images/509_YA-escrita-N4-004.webp"
+    "questionId": "q_fmr9mz"
   },
   {
     "order": 510,
@@ -6626,8 +6117,7 @@
     "src": "/question-images/q_1ha0p2k.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1ha0p2k",
-    "legacySrc": "./question-images/510_YA-escrita-N4-005.webp"
+    "questionId": "q_1ha0p2k"
   },
   {
     "order": 511,
@@ -6639,8 +6129,7 @@
     "src": "/question-images/q_mlnxhe.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_mlnxhe",
-    "legacySrc": "./question-images/511_YA-escrita-N4-006.webp"
+    "questionId": "q_mlnxhe"
   },
   {
     "order": 512,
@@ -6652,8 +6141,7 @@
     "src": "/question-images/q_1lrg1yf.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1lrg1yf",
-    "legacySrc": "./question-images/512_YA-escrita-N4-007.webp"
+    "questionId": "q_1lrg1yf"
   },
   {
     "order": 513,
@@ -6665,8 +6153,7 @@
     "src": "/question-images/q_1nt99sw.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1nt99sw",
-    "legacySrc": "./question-images/513_YA-escrita-N4-008.webp"
+    "questionId": "q_1nt99sw"
   },
   {
     "order": 514,
@@ -6678,8 +6165,7 @@
     "src": "/question-images/q_1mn5m36.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1mn5m36",
-    "legacySrc": "./question-images/514_YA-escrita-N4-009.webp"
+    "questionId": "q_1mn5m36"
   },
   {
     "order": 515,
@@ -6691,8 +6177,7 @@
     "src": "/question-images/q_1yppgws.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1yppgws",
-    "legacySrc": "./question-images/515_YA-escrita-N4-010.webp"
+    "questionId": "q_1yppgws"
   },
   {
     "order": 516,
@@ -6704,8 +6189,7 @@
     "src": "/question-images/q_1ifrzca.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1ifrzca",
-    "legacySrc": "./question-images/516_YA-escrita-N4-011.webp"
+    "questionId": "q_1ifrzca"
   },
   {
     "order": 517,
@@ -6717,8 +6201,7 @@
     "src": "/question-images/q_15kkmel.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_15kkmel",
-    "legacySrc": "./question-images/517_YA-escrita-N4-012.webp"
+    "questionId": "q_15kkmel"
   },
   {
     "order": 518,
@@ -6730,8 +6213,7 @@
     "src": "/question-images/q_x8g0ar.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_x8g0ar",
-    "legacySrc": "./question-images/518_YA-escrita-N4-013.webp"
+    "questionId": "q_x8g0ar"
   },
   {
     "order": 519,
@@ -6743,8 +6225,7 @@
     "src": "/question-images/q_1qeabst.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1qeabst",
-    "legacySrc": "./question-images/519_YA-escrita-N4-014.webp"
+    "questionId": "q_1qeabst"
   },
   {
     "order": 520,
@@ -6756,8 +6237,7 @@
     "src": "/question-images/q_15r33qj.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_15r33qj",
-    "legacySrc": "./question-images/520_YA-escrita-N4-015.webp"
+    "questionId": "q_15r33qj"
   },
   {
     "order": 521,
@@ -6769,8 +6249,7 @@
     "src": "/question-images/q_2yv9i9.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_2yv9i9",
-    "legacySrc": "./question-images/521_YA-escrita-N4-016.webp"
+    "questionId": "q_2yv9i9"
   },
   {
     "order": 522,
@@ -6782,8 +6261,7 @@
     "src": "/question-images/q_1k38zo4.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1k38zo4",
-    "legacySrc": "./question-images/522_YA-escrita-N4-017.webp"
+    "questionId": "q_1k38zo4"
   },
   {
     "order": 523,
@@ -6795,8 +6273,7 @@
     "src": "/question-images/q_qfyyuj.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_qfyyuj",
-    "legacySrc": "./question-images/523_YA-escrita-N4-018.webp"
+    "questionId": "q_qfyyuj"
   },
   {
     "order": 524,
@@ -6808,8 +6285,7 @@
     "src": "/question-images/q_1o69aev.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1o69aev",
-    "legacySrc": "./question-images/524_YA-escrita-N4-019.webp"
+    "questionId": "q_1o69aev"
   },
   {
     "order": 525,
@@ -6821,8 +6297,7 @@
     "src": "/question-images/q_1dpqph4.webp",
     "alt": "Apoio visual complementar — PORTUGUÊS",
     "sourceFile": "young-adult-bank.ts",
-    "questionId": "q_1dpqph4",
-    "legacySrc": "./question-images/525_YA-escrita-N4-020.webp"
+    "questionId": "q_1dpqph4"
   },
   {
     "order": 526,
@@ -6834,8 +6309,7 @@
     "src": "/question-images/q_b8wgoz.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_b8wgoz",
-    "legacySrc": "./question-images/526_CURR-escrita-N5-01.webp"
+    "questionId": "q_b8wgoz"
   },
   {
     "order": 527,
@@ -6847,8 +6321,7 @@
     "src": "/question-images/q_adtysw.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_adtysw",
-    "legacySrc": "./question-images/527_CURR-escrita-N5-02.webp"
+    "questionId": "q_adtysw"
   },
   {
     "order": 528,
@@ -6860,8 +6333,7 @@
     "src": "/question-images/q_1ecpu22.webp",
     "alt": "Apoio visual complementar — Base curricular",
     "sourceFile": "curriculum.ts",
-    "questionId": "q_1ecpu22",
-    "legacySrc": "./question-images/528_CURR-escrita-N5-03.webp"
+    "questionId": "q_1ecpu22"
   },
   {
     "order": 529,
@@ -6873,8 +6345,7 @@
     "src": "/question-images/q_p03ufe.webp",
     "alt": "Apoio visual complementar — CLASSICISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_p03ufe",
-    "legacySrc": "./question-images/529_PT-compreensao-N2-015.webp"
+    "questionId": "q_p03ufe"
   },
   {
     "order": 530,
@@ -6886,8 +6357,7 @@
     "src": "/question-images/q_1umxa0q.webp",
     "alt": "Apoio visual complementar — BARROCO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1umxa0q",
-    "legacySrc": "./question-images/530_PT-compreensao-N2-016.webp"
+    "questionId": "q_1umxa0q"
   },
   {
     "order": 531,
@@ -6899,8 +6369,7 @@
     "src": "/question-images/q_xs5ewt.webp",
     "alt": "Apoio visual complementar — ROMANTISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_xs5ewt",
-    "legacySrc": "./question-images/531_PT-compreensao-N2-017.webp"
+    "questionId": "q_xs5ewt"
   },
   {
     "order": 532,
@@ -6912,8 +6381,7 @@
     "src": "/question-images/q_tikwl1.webp",
     "alt": "Apoio visual complementar — REALISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_tikwl1",
-    "legacySrc": "./question-images/532_PT-compreensao-N2-018.webp"
+    "questionId": "q_tikwl1"
   },
   {
     "order": 533,
@@ -6925,8 +6393,7 @@
     "src": "/question-images/q_8zumr7.webp",
     "alt": "Apoio visual complementar — MODERNISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_8zumr7",
-    "legacySrc": "./question-images/533_PT-compreensao-N2-019.webp"
+    "questionId": "q_8zumr7"
   },
   {
     "order": 534,
@@ -6938,8 +6405,7 @@
     "src": "/question-images/q_1tb5axi.webp",
     "alt": "Apoio visual complementar — ESTRUTURA DE UMA DISSERTAÇÃO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1tb5axi",
-    "legacySrc": "./question-images/534_PT-escrita-N2-012.webp"
+    "questionId": "q_1tb5axi"
   },
   {
     "order": 535,
@@ -6951,8 +6417,7 @@
     "src": "/question-images/q_10m0anm.webp",
     "alt": "Apoio visual complementar — DICAS PARA BOA REDAÇÃO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_10m0anm",
-    "legacySrc": "./question-images/535_PT-escrita-N2-013.webp"
+    "questionId": "q_10m0anm"
   },
   {
     "order": 536,
@@ -6964,8 +6429,7 @@
     "src": "/question-images/q_1qqwhjr.webp",
     "alt": "Apoio visual complementar — CLASSICISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1qqwhjr",
-    "legacySrc": "./question-images/536_PT-compreensao-N3-013.webp"
+    "questionId": "q_1qqwhjr"
   },
   {
     "order": 537,
@@ -6977,8 +6441,7 @@
     "src": "/question-images/q_1ndc2z3.webp",
     "alt": "Apoio visual complementar — BARROCO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1ndc2z3",
-    "legacySrc": "./question-images/537_PT-compreensao-N3-014.webp"
+    "questionId": "q_1ndc2z3"
   },
   {
     "order": 538,
@@ -6990,8 +6453,7 @@
     "src": "/question-images/q_ltsac2.webp",
     "alt": "Apoio visual complementar — ROMANTISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_ltsac2",
-    "legacySrc": "./question-images/538_PT-compreensao-N3-015.webp"
+    "questionId": "q_ltsac2"
   },
   {
     "order": 539,
@@ -7003,8 +6465,7 @@
     "src": "/question-images/q_6ldqb3.webp",
     "alt": "Apoio visual complementar — REALISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_6ldqb3",
-    "legacySrc": "./question-images/539_PT-compreensao-N3-016.webp"
+    "questionId": "q_6ldqb3"
   },
   {
     "order": 540,
@@ -7016,8 +6477,7 @@
     "src": "/question-images/q_gmz7i5.webp",
     "alt": "Apoio visual complementar — MODERNISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_gmz7i5",
-    "legacySrc": "./question-images/540_PT-compreensao-N3-017.webp"
+    "questionId": "q_gmz7i5"
   },
   {
     "order": 541,
@@ -7029,8 +6489,7 @@
     "src": "/question-images/q_105b2y8.webp",
     "alt": "Apoio visual complementar — ESTRUTURA DE UMA DISSERTAÇÃO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_105b2y8",
-    "legacySrc": "./question-images/541_PT-escrita-N3-012.webp"
+    "questionId": "q_105b2y8"
   },
   {
     "order": 542,
@@ -7042,8 +6501,7 @@
     "src": "/question-images/q_fbtwxb.webp",
     "alt": "Apoio visual complementar — DICAS PARA BOA REDAÇÃO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_fbtwxb",
-    "legacySrc": "./question-images/542_PT-escrita-N3-013.webp"
+    "questionId": "q_fbtwxb"
   },
   {
     "order": 543,
@@ -7055,8 +6513,7 @@
     "src": "/question-images/q_1xsd2kw.webp",
     "alt": "Apoio visual complementar — CLASSICISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1xsd2kw",
-    "legacySrc": "./question-images/543_PT-compreensao-N4-012.webp"
+    "questionId": "q_1xsd2kw"
   },
   {
     "order": 544,
@@ -7068,8 +6525,7 @@
     "src": "/question-images/q_pwmtcv.webp",
     "alt": "Apoio visual complementar — BARROCO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_pwmtcv",
-    "legacySrc": "./question-images/544_PT-compreensao-N4-013.webp"
+    "questionId": "q_pwmtcv"
   },
   {
     "order": 545,
@@ -7081,8 +6537,7 @@
     "src": "/question-images/q_7h03zl.webp",
     "alt": "Apoio visual complementar — ROMANTISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_7h03zl",
-    "legacySrc": "./question-images/545_PT-compreensao-N4-014.webp"
+    "questionId": "q_7h03zl"
   },
   {
     "order": 546,
@@ -7094,8 +6549,7 @@
     "src": "/question-images/q_18rc4fs.webp",
     "alt": "Apoio visual complementar — REALISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_18rc4fs",
-    "legacySrc": "./question-images/546_PT-compreensao-N4-015.webp"
+    "questionId": "q_18rc4fs"
   },
   {
     "order": 547,
@@ -7107,8 +6561,7 @@
     "src": "/question-images/q_62vhm4.webp",
     "alt": "Apoio visual complementar — MODERNISMO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_62vhm4",
-    "legacySrc": "./question-images/547_PT-compreensao-N4-016.webp"
+    "questionId": "q_62vhm4"
   },
   {
     "order": 548,
@@ -7120,8 +6573,7 @@
     "src": "/question-images/q_nk9ofy.webp",
     "alt": "Apoio visual complementar — ESTRUTURA DE UMA DISSERTAÇÃO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_nk9ofy",
-    "legacySrc": "./question-images/548_PT-escrita-N4-013.webp"
+    "questionId": "q_nk9ofy"
   },
   {
     "order": 549,
@@ -7133,7 +6585,6 @@
     "src": "/question-images/q_1b6g5fo.webp",
     "alt": "Apoio visual complementar — DICAS PARA BOA REDAÇÃO",
     "sourceFile": "portuguese-bank.ts",
-    "questionId": "q_1b6g5fo",
-    "legacySrc": "./question-images/549_PT-escrita-N4-014.webp"
+    "questionId": "q_1b6g5fo"
   }
 ]

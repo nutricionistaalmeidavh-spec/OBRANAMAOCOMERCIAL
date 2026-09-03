@@ -34,7 +34,7 @@ Cloudflare atualmente recomenda Workers como plataforma principal para novos pro
 
 As 549 imagens das questões são assets estáticos canônicos, versionados individualmente em `public/question-images/` e ligados ao `questionId` por `public/resources/question-visual-map.json`.
 
-O ZIP legado não participa do runtime nem do build normal. `npm run assets:verify` bloqueia o build se faltar qualquer ID, mapa ou arquivo. O comando `npm run assets:migrate` existe apenas para reconstrução/migração excepcional a partir do pacote legado.
+A migração do pacote legado foi concluída. O ZIP não participa do runtime, do build nem da fonte atual do projeto. `npm run assets:verify` bloqueia o build se faltar qualquer ID, entrada de mapa ou arquivo.
 
 ## Segurança
 
