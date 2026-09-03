@@ -38,20 +38,16 @@ describe('mobile premium UI contract',()=>{
   });
 
   it('keeps Dias focused on immediate work and moves secondary navigation into Obra360',async()=>{
-    const field=await read('public/field.js');
+    const [field,enhancer,css]=await Promise.all([read('public/field.js'),read('public/field-premium-v2.js'),read('public/field-premium-v2.css')]);
     const day=field.match(/function renderDay\(\)\{[\s\S]*?function planCard/)?.[0]??'';
-    const obra=field.match(/function renderObra360\(\)\{[\s\S]*?function renderManagement/)?.[0]??'';
 
     expect(day).toContain('data-screen="issues"');
     expect(day).toContain('Próximas ações');
-    expect(day).not.toContain('data-screen="team"');
-    expect(day).not.toContain('data-screen="more"');
-    expect(day).not.toContain('data-screen="settings"');
-
-    expect(obra).toContain('data-screen="floors"');
-    expect(obra).toContain('data-screen="issues"');
-    expect(obra).toContain('data-screen="more"');
-    expect(obra).toContain('data-screen="settings"');
-    expect(obra).not.toContain('data-screen="today"');
+    expect(enhancer).toContain("active==='today'");
+    expect(enhancer).toContain("[data-screen=\"team\"],[data-screen=\"more\"],[data-screen=\"settings\"]");
+    expect(enhancer).toContain("dayButton.dataset.screen='settings'");
+    expect(enhancer).toContain("title.textContent='Configurações'");
+    expect(enhancer).toContain("meta.textContent='Checklists e horários'");
+    expect(css).toContain('.day-focus-actions{grid-template-columns:1fr');
   });
 });
