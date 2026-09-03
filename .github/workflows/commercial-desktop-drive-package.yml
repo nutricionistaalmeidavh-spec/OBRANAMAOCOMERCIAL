@@ -1,0 +1,83 @@
+name: Package Commercial Desktop for Drive
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/commercial-desktop-drive-package.yml'
+
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve version
+        shell: pwsh
+        run: |
+          $version = (Get-Content apps/desktop/package.json | ConvertFrom-Json).version
+          "DESKTOP_VERSION=$version" >> $env:GITHUB_ENV
+      - name: Download released installer
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          gh release download "desktop-commercial-v$env:DESKTOP_VERSION" --repo "${{ github.repository }}" --pattern "*.exe" --dir out
+      - name: Split installer into Drive-safe parts
+        shell: pwsh
+        run: |
+          $source = Get-ChildItem out -Filter *.exe | Select-Object -First 1
+          if (-not $source) { throw "Installer não encontrado." }
+          $partsDir = Join-Path $PWD 'out\parts'
+          New-Item -ItemType Directory -Force -Path $partsDir | Out-Null
+          $chunkSize = 70MB
+          $stream = [System.IO.File]::OpenRead($source.FullName)
+          try {
+            $buffer = New-Object byte[] $chunkSize
+            $index = 1
+            while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+              $partName = "$($source.Name).part$($index.ToString('00'))"
+              $partPath = Join-Path $partsDir $partName
+              $out = [System.IO.File]::Create($partPath)
+              try { $out.Write($buffer, 0, $read) } finally { $out.Dispose() }
+              $index++
+            }
+          } finally { $stream.Dispose() }
+          $hash = (Get-FileHash -Algorithm SHA256 $source.FullName).Hash.ToLower()
+          "SHA256  $hash  $($source.Name)" | Set-Content -Encoding ascii (Join-Path $partsDir 'SHA256.txt')
+          @"
+@echo off
+copy /b "$($source.Name).part01"+"$($source.Name).part02" "$($source.Name)"
+certutil -hashfile "$($source.Name)" SHA256
+pause
+"@ | Set-Content -Encoding ascii (Join-Path $partsDir 'RECOMBINAR.cmd')
+          @"
+Obra na Mão Desktop Comercial v$env:DESKTOP_VERSION
+1. Extraia todas as partes na mesma pasta.
+2. Execute RECOMBINAR.cmd.
+3. Confira o SHA256 exibido com SHA256.txt.
+4. Execute o instalador .exe gerado.
+"@ | Set-Content -Encoding utf8 (Join-Path $partsDir 'LEIA-ME.txt')
+      - name: Upload Drive part 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-Commercial-${{ env.DESKTOP_VERSION }}-Drive-Parte-01
+          path: |
+            out/parts/*.part01
+            out/parts/RECOMBINAR.cmd
+            out/parts/SHA256.txt
+            out/parts/LEIA-ME.txt
+          compression-level: 0
+          retention-days: 90
+      - name: Upload Drive part 02
+        uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-Commercial-${{ env.DESKTOP_VERSION }}-Drive-Parte-02
+          path: out/parts/*.part02
+          compression-level: 0
+          retention-days: 90
