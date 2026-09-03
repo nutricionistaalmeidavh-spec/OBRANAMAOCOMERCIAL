@@ -1,5 +1,6 @@
 import { api, auth } from './cloudflare-client';
 import './portal.css';
+import { APP_VERSION } from '../shared/version';
 
 type Role='admin'|'foreman'|'employee';
 type SystemKey='gestao'|'obra360'|'universidade'|'finance';
@@ -12,7 +13,7 @@ const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 const digits=(v:string)=>v.replace(/\D/g,'');
 const apiErr=(e:unknown)=>{const x=e as {response?:{data?:{error?:string;message?:string}};message?:string};return x.response?.data?.error||x.response?.data?.message||x.message||'Não foi possível concluir.'};
 
-function brand(){return '<div class="mh-brand"><span>ON</span><strong>OBRA NA MÃO<br>GESTÃO CONECTADA</strong></div>'}
+function brand(){return '<div class="mh-brand"><span>ON</span><strong>OBRA NA MÃO<br>GESTÃO CONECTADA<small>v'+APP_VERSION+'</small></strong></div>'}
 function setBody(html:string){document.body.className='mh-portal-body';document.body.innerHTML=`<div id="mhPortal">${html}</div><div id="mhToast" class="mh-toast"></div>`}
 function toast(text:string){const e=document.getElementById('mhToast');if(!e)return;e.textContent=text;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2800)}
 function card(key:string,title:string,text:string,href:string,icon:string,role?:string){return `<a class="mh-resource-card" data-resource="${key}" href="${href}"><i>${icon}</i><div><small>${role?`PERFIL · ${esc(role.toUpperCase())}`:'SISTEMA LIBERADO'}</small><h3>${title}</h3><p>${text}</p><b>Abrir →</b></div></a>`}
@@ -91,7 +92,7 @@ async function renderCorporatePortal(){
     const b=(await api.get('/api/bootstrap')).data as Bootstrap,pa=b.platformAccess;
     if(pa?.status==='blocked'){portalShell(user.name||user.email||'Usuário','Acesso bloqueado','<article class="mh-empty"><h3>Acesso bloqueado</h3><p>Procure o administrador da sua empresa.</p></article>');return}
     if(pa?.status==='pending'){
-      portalShell(user.name||user.email||'Usuário','Credencial provisória pendente','<article class="mh-empty"><h3>Ativar credencial</h3><p>Informe o código provisório fornecido pelo administrador.</p><input id="platformCode" maxlength="8" placeholder="CÓDIGO"><button id="claimPlatform" class="mh-primary">Ativar acesso</button></article>');
+      portalShell(user.name||user.email||'Usuário','Credencial provisória pendente','<article class="mh-empty"><h3>Ativar credencial</h3><p>Informe o código provisório fornecido pelo administrador.</p><input id="platformCode" maxlength="12" placeholder="CÓDIGO"><button id="claimPlatform" class="mh-primary">Ativar acesso</button></article>');
       document.getElementById('claimPlatform')?.addEventListener('click',async()=>{try{const code=(document.getElementById('platformCode') as HTMLInputElement).value.trim().toUpperCase();await api.post('/api/platform/claim',{code});await renderCorporatePortal()}catch(e){toast(apiErr(e))}});return
     }
     const systems=pa?.systems;let cards='';
