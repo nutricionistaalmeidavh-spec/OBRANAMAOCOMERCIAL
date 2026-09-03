@@ -33,6 +33,10 @@ body.field-shell-active .section-head p{color:#6b7691}
 .management-summary-card strong{display:block;font-size:15px;line-height:1.15;letter-spacing:-.018em}.management-summary-card small{display:block;margin-top:4px;color:#68748f;font-size:10px;line-height:1.35}.management-summary-card>b{font-size:27px;color:#1756ef}
 .management-details{margin-top:14px;scroll-margin-top:14px}.management-details .premium-empty{min-height:128px;display:grid;place-items:center;padding:28px 22px;border-style:dashed;color:#6f7990;line-height:1.5}
 
+/* Dias — keep only the immediate critical action above the daily workflow. */
+body.field-shell-active .day-focus-actions{grid-template-columns:1fr;gap:10px;margin-top:14px}
+body.field-shell-active .day-focus-actions>.quick-action{width:100%;min-height:76px}
+
 /* Obra360 — enhancer adds .obra360-hero and repairs the legacy action markup. */
 body.field-shell-active .obra360-hero{position:relative;isolation:isolate;overflow:hidden;min-height:246px;padding:24px;display:flex;flex-direction:column;justify-content:flex-end;gap:18px;background:radial-gradient(circle at 78% 72%,rgba(0,188,255,.34),transparent 29%),radial-gradient(circle at 96% 4%,rgba(26,93,255,.38),transparent 38%),url('/field-hero-build.svg') right center/auto 100% no-repeat,linear-gradient(135deg,#081a49 0%,#0a2c74 60%,#0950e7 130%);border:1px solid rgba(80,137,255,.52);box-shadow:0 26px 58px rgba(13,42,82,.2),0 8px 18px rgba(13,42,82,.14),inset 0 1px 0 rgba(255,255,255,.2);border-radius:24px;color:#fff}
 body.field-shell-active .obra360-hero:before{content:'';position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.055),transparent 38%,rgba(95,180,255,.075));pointer-events:none}
