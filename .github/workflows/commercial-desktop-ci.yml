@@ -27,7 +27,7 @@ jobs:
           node-version-file: .nvmrc
       - name: Install Desktop dependencies
         working-directory: apps/desktop
-        run: npm install --no-audit --no-fund
+        run: npm install --workspaces=false --no-audit --no-fund
       - name: Test Desktop
         working-directory: apps/desktop
         run: npm test
