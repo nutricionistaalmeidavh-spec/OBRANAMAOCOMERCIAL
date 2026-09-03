@@ -118,8 +118,12 @@ function registerIpc() {
   ipcMain.handle('payroll:remove-variable', envelope(({ id }) => services.payroll.removeVariable(id)))
   ipcMain.handle('payroll:confirm', envelope(async (payload) => {
     const payment = services.payroll.confirm(payload)
-    const documents = Number(payload.quinzena) === 1 ? await services.time.generateDocuments({ funcionario_id: payload.funcionario_id, competencia: payload.competencia, paymentDate: payload.data }) : null
-    return { ...payment, documents }
+    let documents = null, documentError = null
+    if (Number(payload.quinzena) === 1) {
+      try { documents = await services.time.generateDocuments({ funcionario_id: payload.funcionario_id, competencia: payload.competencia, paymentDate: payload.data }) }
+      catch (error) { documentError = error instanceof Error ? error.message : String(error) }
+    }
+    return { ...payment, documents, documentError }
   }))
   ipcMain.handle('payroll:pending', envelope(({ competencia }) => services.payroll.pending(competencia)))
   ipcMain.handle('time:get', envelope((payload) => services.time.get(payload)))
