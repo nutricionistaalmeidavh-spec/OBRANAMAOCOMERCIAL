@@ -88,6 +88,7 @@ import {
   syncEducationIdentityByEmail,
 } from './education';
 import { EDUCATION_PRACTICE_ROUTES } from './education-practice';
+import { ensurePhoneAccess } from './phone-access';
 import { handler } from './index';
 
 const body = async (response: Response) => await response.json() as Record<string, any>;
@@ -197,6 +198,108 @@ describe('P0 critical web flows', () => {
     const attendanceData = await body(attendance);
     expect(attendanceData.day.presentCount).toBe(1);
     expect(attendanceData.day.attendance['emp-1']).toBe('present');
+  });
+
+  it('authorizes the mobile foreman only inside the linked company and project', async () => {
+    const routes = (handler as unknown as { routes: Record<string, readonly unknown[]> }).routes;
+    const user = { userId: 'owner-user', email: 'owner@example.com', name: 'Owner' };
+
+    const bootstrap = await last(routes['GET /api/bootstrap'])({ user, body: {}, query: {}, params: {} });
+    const bootstrapData = await body(bootstrap);
+    const companyId = String(bootstrapData.membership.companyId);
+    const projectId = String(bootstrapData.membership.projectId);
+
+    const snapshot = {
+      version: 6,
+      project: { name: 'Operação Comercial', customer: 'Obra na Mão', startFloor: 0, targetFloor: 1 },
+      settings: { defaultWorkStart: '07:30' },
+      employees: [{ id: 'emp-field', name: 'Encarregado', phone: '16 99999-0003', compensationDays: 0 }],
+      floors: [],
+      days: {},
+    };
+    const imported = await last(routes['POST /api/project/import'])({ user, body: { state: snapshot }, query: {}, params: {} });
+    expect(imported.status).toBe(200);
+
+    await ensureEducationPhoneParticipant({
+      phone: '16 99999-0003',
+      name: 'Encarregado',
+      employeeId: 'emp-field',
+      companyId,
+      companyName: 'Obra na Mão',
+      jobRole: 'Encarregado',
+    });
+    await ensurePhoneAccess({
+      phone: '16 99999-0003',
+      name: 'Encarregado',
+      employeeId: 'emp-field',
+      companyId,
+      projectId,
+      obraRole: 'encarregado',
+      universityRole: 'colaborador',
+    });
+    const firstAccess = await last(EDUCATION_PHONE_ACCESS_ROUTES['POST /api/edu/first-access'])({
+      body: { identifier: '16 99999-0003', password: 'SenhaSegura123!' },
+    });
+    const token = String((await body(firstAccess)).token);
+
+    const mobile = await last(routes['POST /api/phone/bootstrap'])({
+      body: { token }, query: {}, params: {},
+    });
+    expect(mobile.status).toBe(200);
+    const mobileData = await body(mobile);
+    expect(mobileData.membership.companyId).toBe(companyId);
+    expect(mobileData.membership.projectId).toBe(projectId);
+    expect(mobileData.role).toBe('foreman');
+  });
+
+  it('pairs a desktop, hashes the temporary secret and opens a bounded device session', async () => {
+    const routes = (handler as unknown as { routes: Record<string, readonly unknown[]> }).routes;
+    const user = { userId: 'owner-user', email: 'owner@example.com', name: 'Owner' };
+    await last(routes['GET /api/bootstrap'])({ user, body: {}, query: {}, params: {} });
+
+    const requestId = 'desktop-request-12345678901234567890';
+    const secret = 'desktop-secret-123456789012345678901234567890';
+    const installationId = 'installation-1234567890';
+
+    const start = await last(routes['POST /api/desktop/start'])({
+      body: { requestId, secret, installationId, deviceName: 'PC Teste', platform: 'win32' },
+      query: {}, params: {},
+    });
+    expect(start.status).toBe(200);
+
+    const approve = await last(routes['POST /api/desktop/approve'])({
+      user,
+      body: { requestId, secret },
+      query: {},
+      params: {},
+    });
+    expect(approve.status).toBe(200);
+
+    const status = await last(routes['POST /api/desktop/status'])({
+      body: { requestId, secret },
+      query: {},
+      params: {},
+    });
+    expect(status.status).toBe(200);
+    const statusData = await body(status);
+    expect(statusData.status).toBe('approved');
+    expect(statusData.deviceToken).toBeTruthy();
+
+    const session = await last(routes['POST /api/desktop/session'])({
+      body: { deviceToken: statusData.deviceToken },
+      query: {},
+      params: {},
+    });
+    expect(session.status).toBe(200);
+    expect((await body(session)).authorized).toBe(true);
+
+    const authRecords = await memory.db.list('desktop_auth_' + requestId.replace(/[^a-zA-Z0-9_-]/g, '_'), { limit: 1 });
+    expect(authRecords.items[0]).toBeDefined();
+    expect((authRecords.items[0] as Record<string, unknown>).secret).toBeUndefined();
+    expect((authRecords.items[0] as Record<string, unknown>).secretHash).toBeTruthy();
+
+    const devices = await memory.db.list('devices', { limit: 10 });
+    expect((devices.items[0] as Record<string, unknown>).tokenExpiresAt).toBeTruthy();
   });
 
   it('persists a valid native practice run for the signed-in participant', async () => {
