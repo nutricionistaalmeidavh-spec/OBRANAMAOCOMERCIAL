@@ -36,4 +36,22 @@ describe('mobile premium UI contract',()=>{
     expect(enhancer).toContain("'team-hero'");
     expect(field).toMatch(/function renderManagement\([^)]*\)[\s\S]*?management-hero/);
   });
+
+  it('keeps Dias focused on immediate work and moves secondary navigation into Obra360',async()=>{
+    const field=await read('public/field.js');
+    const day=field.match(/function renderDay\(\)\{[\s\S]*?function planCard/)?.[0]??'';
+    const obra=field.match(/function renderObra360\(\)\{[\s\S]*?function renderManagement/)?.[0]??'';
+
+    expect(day).toContain('data-screen="issues"');
+    expect(day).toContain('Próximas ações');
+    expect(day).not.toContain('data-screen="team"');
+    expect(day).not.toContain('data-screen="more"');
+    expect(day).not.toContain('data-screen="settings"');
+
+    expect(obra).toContain('data-screen="floors"');
+    expect(obra).toContain('data-screen="issues"');
+    expect(obra).toContain('data-screen="more"');
+    expect(obra).toContain('data-screen="settings"');
+    expect(obra).not.toContain('data-screen="today"');
+  });
 });
