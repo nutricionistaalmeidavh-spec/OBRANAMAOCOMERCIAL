@@ -1,0 +1,58 @@
+/* Block 2 — premium access, preparation and employee surfaces. */
+body.field-access-active{background:linear-gradient(180deg,#f9fbff 0%,#f4f7fc 58%,#f8faff 100%);color:#101936}
+body.field-access-active .top,body.field-access-active .nav{display:none!important}
+body.field-access-active .shell{min-height:100vh;padding-bottom:0;background:transparent}
+body.field-access-active main{padding:18px 16px calc(28px + env(safe-area-inset-bottom));min-height:100vh}
+body.field-access-active .auth-page{min-height:calc(100vh - 36px);padding:0;place-items:center}
+
+/* Login, claim and migration share structure but not exactly the same tone. */
+#content[data-access-surface='login'] .premium-access-card,
+#content[data-access-surface='claim'] .premium-access-card,
+#content[data-access-surface='migration'] .premium-access-card,
+#content[data-access-surface='error'] .premium-access-card{position:relative;overflow:hidden;width:min(100%,540px);padding:0 20px 22px;border:1px solid rgba(176,190,219,.58);border-radius:28px;background:linear-gradient(150deg,#fff,#f9fbff);box-shadow:0 28px 66px rgba(20,43,88,.16),0 8px 20px rgba(20,43,88,.08),inset 0 1px 0 #fff}
+.premium-access-card>.access-visual{position:relative;isolation:isolate;overflow:hidden;height:132px;margin:0 -20px 23px;padding:22px;display:flex;align-items:flex-end;gap:11px;color:#fff;background:radial-gradient(circle at 83% 68%,rgba(0,190,255,.3),transparent 30%),linear-gradient(135deg,#07194a 0%,#0b317c 64%,#0a5aef 138%)}
+.premium-access-card>.access-visual:before{content:'';position:absolute;inset:0;background:linear-gradient(112deg,rgba(255,255,255,.06),transparent 40%,rgba(119,207,255,.08));pointer-events:none}
+.access-visual-glyph{position:relative;z-index:2;width:43px;height:43px;display:grid;place-items:center;flex:0 0 auto;border-radius:14px;background:linear-gradient(145deg,#6b8cff,#145fff 68%,#0043cf);border:1px solid rgba(255,255,255,.25);box-shadow:0 12px 24px rgba(0,55,201,.33),inset 0 1px 0 rgba(255,255,255,.4);font-weight:850;font-size:20px}
+.access-visual-label{position:relative;z-index:2;padding-bottom:3px;font-size:11px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.82)}
+.access-visual-art{position:absolute;right:-30px;bottom:-50px;width:190px;height:145px;border:1px solid rgba(126,214,255,.18);transform:rotate(-8deg);box-shadow:0 0 44px rgba(0,183,255,.14)}
+.access-visual-art:before,.access-visual-art:after{content:'';position:absolute;border:1px solid rgba(126,214,255,.18)}.access-visual-art:before{inset:25px 18px 0 27px}.access-visual-art:after{left:76px;top:-60px;width:1px;height:160px;transform:rotate(35deg);transform-origin:bottom}
+.premium-access-card>.access-visual-teal{background:radial-gradient(circle at 82% 62%,rgba(59,220,224,.24),transparent 30%),linear-gradient(135deg,#082447 0%,#0b466a 62%,#057e97 138%)}
+.premium-access-card>.access-visual-teal .access-visual-glyph{background:linear-gradient(145deg,#47d3da,#0a9da8 72%,#08727e)}
+.premium-access-card>.access-visual-red{background:radial-gradient(circle at 82% 62%,rgba(255,120,122,.18),transparent 30%),linear-gradient(135deg,#281536 0%,#5a2037 62%,#8f2c42 138%)}
+.premium-access-card>.access-visual-red .access-visual-glyph{background:linear-gradient(145deg,#ff7b82,#d64555 72%,#a72a3a)}
+.premium-access-card small{font-weight:750;letter-spacing:.045em;color:#69748f}.premium-access-card h2{margin:6px 0 8px;font-size:27px;line-height:1.05;letter-spacing:-.035em;color:#101936}.premium-access-card h3{margin:0 0 8px;font-size:18px;letter-spacing:-.02em}.premium-access-card p{margin:0 0 14px;color:#66718b;line-height:1.5}
+.premium-access-card .form{gap:13px;margin:17px 0}.premium-access-card .form label{color:#4f5c78;font-size:12px;font-weight:700}.premium-access-control{margin-top:7px!important;min-height:46px;border:1px solid rgba(174,188,218,.66)!important;border-radius:14px!important;padding:11px 12px!important;background:#fff!important;box-shadow:0 4px 12px rgba(23,48,98,.045),inset 0 1px 0 #fff;color:#101936!important;outline:none}.premium-access-control:focus{border-color:#4a7fff!important;box-shadow:0 0 0 4px rgba(50,101,242,.11),0 7px 16px rgba(23,48,98,.06)}
+.premium-access-action{min-height:48px;border-radius:15px!important;box-shadow:0 12px 24px rgba(18,45,101,.12),inset 0 1px 0 rgba(255,255,255,.16)}.premium-access-card>.btn.premium-access-action{background:linear-gradient(135deg,#0c2f77,#0a59ef);color:#fff}.premium-access-card>.linkbtn.premium-access-action{background:#eef3ff;color:#1855df;box-shadow:inset 0 0 0 1px rgba(113,151,239,.18)}
+.premium-access-notice{margin-top:16px;border:1px solid rgba(164,185,229,.45)!important;background:linear-gradient(145deg,#f9fbff,#f2f6ff)!important;box-shadow:none!important}
+#content[data-access-surface='claim'] .premium-access-card{box-shadow:0 28px 66px rgba(20,43,88,.14),0 8px 20px rgba(20,43,88,.07),inset 0 1px 0 #fff}
+#content[data-access-surface='migration'] .premium-access-card{border-color:rgba(127,190,199,.5)}
+#content[data-access-surface='error'] .premium-access-card{border-color:rgba(216,161,169,.55)}
+
+/* Utility access states use a calmer centered status treatment. */
+#content[data-access-surface='preparing'],
+#content[data-access-surface='mobile-unavailable'],
+#content[data-access-surface='error']:not(:has(.auth-page)){min-height:calc(100vh - 36px);display:grid;place-items:center}
+.premium-access-state{width:min(100%,520px);margin:0!important;padding:28px 24px!important;text-align:left!important;border:1px solid rgba(177,190,216,.56)!important;border-radius:25px!important;background:linear-gradient(145deg,#fff,#f8faff)!important;box-shadow:0 25px 58px rgba(22,45,91,.14),0 7px 16px rgba(22,45,91,.07),inset 0 1px 0 #fff!important}
+.access-state-icon{width:50px;height:50px;margin-bottom:18px;display:grid;place-items:center;border-radius:16px;font-size:22px;font-weight:850;background:#edf3ff;color:#1557ed;box-shadow:0 11px 22px rgba(28,83,222,.16),inset 0 1px 0 #fff}.access-state-icon-amber{background:#fff3e7;color:#d66a1e}.access-state-icon-red{background:#fff0f1;color:#c84151}.premium-access-state strong{display:block;font-size:22px;line-height:1.1;letter-spacing:-.03em;color:#101936}.premium-access-state .meta{margin-top:9px;font-size:14px;line-height:1.5;color:#68748e}
+#content[data-access-surface='preparing'] .premium-access-state{border-color:rgba(126,166,239,.52)!important}
+#content[data-access-surface='mobile-unavailable'] .premium-access-state{border-color:rgba(231,184,120,.52)!important}
+#content[data-access-surface='error'] .premium-access-state{border-color:rgba(219,157,166,.52)!important}
+
+/* Employee-only experience: less dashboard, more personal work queue. */
+#content[data-access-surface='employee']{padding-top:18px}
+#content[data-access-surface='employee']>.premium-worker-hero{position:relative;isolation:isolate;overflow:hidden;min-height:205px;margin:0 0 24px;padding:25px 23px;display:flex;flex-direction:column;justify-content:flex-end;border:1px solid rgba(78,137,255,.5);border-radius:26px;background:radial-gradient(circle at 82% 72%,rgba(0,192,255,.3),transparent 29%),url('/field-hero-build.svg') right center/auto 100% no-repeat,linear-gradient(135deg,#071949 0%,#0a307a 62%,#0a59ef 136%);box-shadow:0 27px 58px rgba(13,42,82,.2),0 8px 18px rgba(13,42,82,.13),inset 0 1px 0 rgba(255,255,255,.21);color:#fff}
+.premium-worker-hero small{position:relative;z-index:2;color:rgba(255,255,255,.68);font-weight:700}.premium-worker-hero h2{position:relative;z-index:2;margin:7px 0 8px;font-size:31px;line-height:1;font-weight:790;letter-spacing:-.04em}.premium-worker-hero p{position:relative;z-index:2;max-width:270px;color:rgba(255,255,255,.78);font-size:13px;line-height:1.45}.worker-hero-badge{position:absolute;z-index:3;top:17px;left:18px;padding:7px 10px;border:1px solid rgba(255,255,255,.17);border-radius:999px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}.worker-hero-art{position:absolute;right:-40px;bottom:-60px;width:210px;height:155px;border:1px solid rgba(124,215,255,.17);transform:rotate(-8deg);box-shadow:0 0 48px rgba(0,184,255,.15)}
+.premium-worker-section{margin-top:24px}.premium-worker-section>.section-head{margin-bottom:12px;align-items:flex-end}.premium-worker-section>.section-head h2{font-size:22px;letter-spacing:-.035em;color:#101936}.premium-worker-section>.section-head p{font-size:12px;color:#6c7790}
+.premium-worker-task{position:relative;min-height:88px;margin-bottom:11px!important;padding:16px 14px 15px 61px!important;border:1px solid rgba(177,190,216,.54)!important;border-left:1px solid rgba(177,190,216,.54)!important;border-radius:19px!important;background:linear-gradient(145deg,#fff,#fafcff)!important;box-shadow:0 15px 31px rgba(27,51,101,.09),0 4px 9px rgba(27,51,101,.05),inset 0 1px 0 #fff!important}.worker-task-glyph{position:absolute;left:15px;top:17px;width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:#edf3ff;color:#1c5cec;font-size:17px;font-weight:850}.premium-worker-task strong{font-size:14px;color:#101936}.premium-worker-task .meta{color:#6a7590;line-height:1.4}.premium-worker-task .badge{background:#eef3ff;color:#1957e6;border:1px solid rgba(113,151,239,.14)}
+.premium-worker-empty{padding:22px!important;border-style:dashed!important;background:rgba(255,255,255,.72)!important;box-shadow:none!important;color:#748099!important}
+
+/* Account sheet is intentionally distinct from operational dialogs. */
+.premium-account-sheet{padding:18px 18px 20px!important;background:linear-gradient(155deg,#fff,#f8faff);border-radius:24px}.account-sheet-mark{display:flex;align-items:center;gap:11px;margin:0 0 17px;padding:12px;border:1px solid rgba(168,187,226,.4);border-radius:17px;background:linear-gradient(145deg,#f8fbff,#eef4ff)}.account-sheet-mark>span{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(145deg,#4d80ff,#0b59ef);color:#fff;font-weight:850;box-shadow:0 9px 18px rgba(24,83,228,.22)}.account-sheet-mark small{display:block;color:#66728d;font-size:9px;font-weight:800;letter-spacing:.11em}.account-sheet-mark strong{display:block;margin-top:2px;color:#101936;font-size:14px}.premium-account-sheet .sheet-head{padding-bottom:13px;border-bottom:1px solid #e8edf5}.premium-account-sheet .sheet-head h2{font-size:21px;letter-spacing:-.03em}.premium-account-action{min-height:46px;border-radius:14px!important}.premium-account-sheet #ownerPortalBtn{background:linear-gradient(135deg,#0c2f77,#0a59ef)!important;color:#fff!important;box-shadow:0 12px 24px rgba(18,68,173,.2)}.premium-account-sheet #signOutBtn{background:#f4f6fa!important;color:#47536d!important}
+
+@media(max-width:420px){
+  body.field-access-active main{padding:14px 14px calc(24px + env(safe-area-inset-bottom))}
+  .premium-access-card>.access-visual{height:118px}
+  .premium-access-card h2{font-size:25px}
+  #content[data-access-surface='employee']>.premium-worker-hero{min-height:190px;padding:23px 20px}
+  .premium-worker-hero h2{font-size:29px}
+}
