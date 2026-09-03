@@ -1,0 +1,3845 @@
+{
+  "q_a23ang": {
+    "id": "q_a23ang",
+    "sourceId": "CURR-adicao-N1-01",
+    "prompt": "Qual registro representa vinte e cinco unidades?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_a23ang.webp"
+  },
+  "q_44h4hl": {
+    "id": "q_44h4hl",
+    "sourceId": "CURR-adicao-N1-02",
+    "prompt": "Escreva em algarismos romanos o número 5.",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_44h4hl.webp"
+  },
+  "q_ehdha5": {
+    "id": "q_ehdha5",
+    "sourceId": "CURR-adicao-N1-03",
+    "prompt": "Qual operação usamos quando repartimos 12 peças igualmente entre 3 pessoas?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_ehdha5.webp"
+  },
+  "q_j0iqwl": {
+    "id": "q_j0iqwl",
+    "sourceId": "YA-adicao-N1-001",
+    "prompt": "Complete: 1, 2, 3, __, __, 6.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_j0iqwl.webp"
+  },
+  "q_ovsgz7": {
+    "id": "q_ovsgz7",
+    "sourceId": "YA-adicao-N1-002",
+    "prompt": "Complete: 4, 5, __, 7.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_ovsgz7.webp"
+  },
+  "q_1v3calf": {
+    "id": "q_1v3calf",
+    "sourceId": "YA-adicao-N1-003",
+    "prompt": "Qual é maior: 3 ou 7?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1v3calf.webp"
+  },
+  "q_i6wk8h": {
+    "id": "q_i6wk8h",
+    "sourceId": "YA-adicao-N1-004",
+    "prompt": "Qual é menor: 2 ou 9?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_i6wk8h.webp"
+  },
+  "q_sq0wth": {
+    "id": "q_sq0wth",
+    "sourceId": "YA-adicao-N1-005",
+    "prompt": "2 + 1 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_sq0wth.webp"
+  },
+  "q_14jyccj": {
+    "id": "q_14jyccj",
+    "sourceId": "YA-adicao-N1-006",
+    "prompt": "3 + 2 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_14jyccj.webp"
+  },
+  "q_1tbq8z7": {
+    "id": "q_1tbq8z7",
+    "sourceId": "YA-adicao-N1-007",
+    "prompt": "5 - 2 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1tbq8z7.webp"
+  },
+  "q_1yvxx7w": {
+    "id": "q_1yvxx7w",
+    "sourceId": "YA-adicao-N1-008",
+    "prompt": "7 - 3 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1yvxx7w.webp"
+  },
+  "q_121gbai": {
+    "id": "q_121gbai",
+    "sourceId": "YA-adicao-N1-009",
+    "prompt": "Complete: 2 + __ = 5.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_121gbai.webp"
+  },
+  "q_1omlz4e": {
+    "id": "q_1omlz4e",
+    "sourceId": "YA-adicao-N1-010",
+    "prompt": "Complete: 1 + __ = 4.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1omlz4e.webp"
+  },
+  "q_6wvf7w": {
+    "id": "q_6wvf7w",
+    "sourceId": "YA-adicao-N1-011",
+    "prompt": "Qual número vem depois de 8?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_6wvf7w.webp"
+  },
+  "q_hzp4k1": {
+    "id": "q_hzp4k1",
+    "sourceId": "YA-adicao-N1-012",
+    "prompt": "Qual número vem antes de 6?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_hzp4k1.webp"
+  },
+  "q_1twvyw4": {
+    "id": "q_1twvyw4",
+    "sourceId": "YA-adicao-N1-013",
+    "prompt": "Coloque em ordem crescente: 5, 2, 4.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1twvyw4.webp"
+  },
+  "q_1dixddr": {
+    "id": "q_1dixddr",
+    "sourceId": "YA-adicao-N1-014",
+    "prompt": "Coloque em ordem decrescente: 3, 8, 6.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1dixddr.webp"
+  },
+  "q_1e1ugtj": {
+    "id": "q_1e1ugtj",
+    "sourceId": "YA-adicao-N1-015",
+    "prompt": "Um setor recebeu 3 caixas pela manhã e 2 à tarde. Quantas caixas recebeu no total?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1e1ugtj.webp"
+  },
+  "q_5p1z3q": {
+    "id": "q_5p1z3q",
+    "sourceId": "YA-adicao-N1-016",
+    "prompt": "Havia 6 formulários sobre uma mesa. Dois foram usados. Quantos restaram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_5p1z3q.webp"
+  },
+  "q_1in1cw3": {
+    "id": "q_1in1cw3",
+    "sourceId": "YA-adicao-N1-017",
+    "prompt": "Complete: 6, 7, 8, __, 10.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1in1cw3.webp"
+  },
+  "q_1gxylne": {
+    "id": "q_1gxylne",
+    "sourceId": "YA-adicao-N1-018",
+    "prompt": "4 + 4 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1gxylne.webp"
+  },
+  "q_14cdkel": {
+    "id": "q_14cdkel",
+    "sourceId": "YA-adicao-N1-019",
+    "prompt": "9 - 4 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_14cdkel.webp"
+  },
+  "q_zh7pwq": {
+    "id": "q_zh7pwq",
+    "sourceId": "YA-adicao-N1-020",
+    "prompt": "Complete: __ + 2 = 7.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_zh7pwq.webp"
+  },
+  "q_8h6d79": {
+    "id": "q_8h6d79",
+    "sourceId": "CURR-divisao-N1-01",
+    "prompt": "Quantos pares cada pessoa recebe?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_8h6d79.webp"
+  },
+  "q_lhn1u4": {
+    "id": "q_lhn1u4",
+    "sourceId": "CURR-divisao-N1-02",
+    "prompt": "Se 8 parafusos forem divididos entre 2 pessoas, quantos cada uma recebe?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_lhn1u4.webp"
+  },
+  "q_pcktsi": {
+    "id": "q_pcktsi",
+    "sourceId": "CURR-divisao-N1-03",
+    "prompt": "Qual situação representa uma divisão?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_pcktsi.webp"
+  },
+  "q_p2oblx": {
+    "id": "q_p2oblx",
+    "sourceId": "CURR-medidas-N1-01",
+    "prompt": "A medida 3 m indica o comprimento de qual item?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_p2oblx.webp"
+  },
+  "q_ktqk4c": {
+    "id": "q_ktqk4c",
+    "sourceId": "CURR-medidas-N1-02",
+    "prompt": "Qual unidade é mais adequada para pesar uma caixa de ferramentas?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_ktqk4c.webp"
+  },
+  "q_1ij6kox": {
+    "id": "q_1ij6kox",
+    "sourceId": "CURR-medidas-N1-03",
+    "prompt": "Quantos minutos há em 1 hora?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1ij6kox.webp"
+  },
+  "q_7la7og": {
+    "id": "q_7la7og",
+    "sourceId": "CURR-multiplicacao-N1-01",
+    "prompt": "Quantos pares de luvas há nas 3 caixas?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_7la7og.webp"
+  },
+  "q_10oyk8y": {
+    "id": "q_10oyk8y",
+    "sourceId": "CURR-multiplicacao-N1-02",
+    "prompt": "Se forem separadas 4 caixas com 2 pares em cada uma, quantos pares haverá?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_10oyk8y.webp"
+  },
+  "q_1jyuyea": {
+    "id": "q_1jyuyea",
+    "sourceId": "CURR-multiplicacao-N1-03",
+    "prompt": "Qual adição representa 3 caixas com 2 pares em cada uma?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1jyuyea.webp"
+  },
+  "q_dc3y81": {
+    "id": "q_dc3y81",
+    "sourceId": "CURR-porcentagem-N1-01",
+    "prompt": "Quanto é 10% de 100 folhas?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_dc3y81.webp"
+  },
+  "q_12o6k0": {
+    "id": "q_12o6k0",
+    "sourceId": "CURR-porcentagem-N1-02",
+    "prompt": "Uma caixa tem 10 peças. Se 50% foram conferidas, quantas peças foram conferidas?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_12o6k0.webp"
+  },
+  "q_15lxs7r": {
+    "id": "q_15lxs7r",
+    "sourceId": "CURR-porcentagem-N1-03",
+    "prompt": "Qual fração representa 25% de uma quantidade?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_15lxs7r.webp"
+  },
+  "q_1drr9ec": {
+    "id": "q_1drr9ec",
+    "sourceId": "CURR-adicao-N2-01",
+    "prompt": "Após usar 5 das 12 conexões, qual é o saldo?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1drr9ec.webp"
+  },
+  "q_vq9n8y": {
+    "id": "q_vq9n8y",
+    "sourceId": "CURR-adicao-N2-02",
+    "prompt": "Com a chegada de mais 4 conexões, qual é o novo saldo?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_vq9n8y.webp"
+  },
+  "q_tixndu": {
+    "id": "q_tixndu",
+    "sourceId": "CURR-adicao-N2-03",
+    "prompt": "Qual registro representa todo o movimento?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_tixndu.webp"
+  },
+  "q_n495mp": {
+    "id": "q_n495mp",
+    "sourceId": "ADD-adicao-N2-001",
+    "prompt": "Conte e escreva quantos objetos há no desenho.",
+    "alt": "Apoio visual complementar — CONTAGEM E QUANTIDADE",
+    "src": "/question-images/q_n495mp.webp"
+  },
+  "q_cne18o": {
+    "id": "q_cne18o",
+    "sourceId": "ADD-adicao-N2-002",
+    "prompt": "Pinte 5 estrelas entre um grupo de 9.",
+    "alt": "Apoio visual complementar — CONTAGEM E QUANTIDADE",
+    "src": "/question-images/q_cne18o.webp"
+  },
+  "q_1ndvxl3": {
+    "id": "q_1ndvxl3",
+    "sourceId": "ADD-adicao-N2-003",
+    "prompt": "Relacione o número à quantidade: 4 bolas, 6 lápis, 8 botões.",
+    "alt": "Apoio visual complementar — CONTAGEM E QUANTIDADE",
+    "src": "/question-images/q_1ndvxl3.webp"
+  },
+  "q_18lvhc0": {
+    "id": "q_18lvhc0",
+    "sourceId": "ADD-adicao-N2-004",
+    "prompt": "Desenhe 4 triângulos e 3 círculos.",
+    "alt": "Apoio visual complementar — CONTAGEM E QUANTIDADE",
+    "src": "/question-images/q_18lvhc0.webp"
+  },
+  "q_kzczzo": {
+    "id": "q_kzczzo",
+    "sourceId": "ADD-adicao-N2-005",
+    "prompt": "Circule o grupo que tem mais elementos: grupo com 5 ou grupo com 8 bolinhas.",
+    "alt": "Apoio visual complementar — CONTAGEM E QUANTIDADE",
+    "src": "/question-images/q_kzczzo.webp"
+  },
+  "q_5pp25n": {
+    "id": "q_5pp25n",
+    "sourceId": "ADD-adicao-N2-006",
+    "prompt": "Observe 2, 4 e 6; escreva os dois próximos números antes de 12.",
+    "alt": "Apoio visual complementar — SEQUÊNCIAS NUMÉRICAS",
+    "src": "/question-images/q_5pp25n.webp"
+  },
+  "q_1m0zl0l": {
+    "id": "q_1m0zl0l",
+    "sourceId": "ADD-adicao-N2-007",
+    "prompt": "Complete a sequência: 10, 9, 8, __, __, 5.",
+    "alt": "Apoio visual complementar — SEQUÊNCIAS NUMÉRICAS",
+    "src": "/question-images/q_1m0zl0l.webp"
+  },
+  "q_1cdrnfo": {
+    "id": "q_1cdrnfo",
+    "sourceId": "ADD-adicao-N2-008",
+    "prompt": "Escreva os números de 1 a 20 em ordem crescente.",
+    "alt": "Apoio visual complementar — SEQUÊNCIAS NUMÉRICAS",
+    "src": "/question-images/q_1cdrnfo.webp"
+  },
+  "q_1omn7wt": {
+    "id": "q_1omn7wt",
+    "sourceId": "ADD-adicao-N2-009",
+    "prompt": "Complete a sequência: 5, 10, 15, __, __, 30.",
+    "alt": "Apoio visual complementar — SEQUÊNCIAS NUMÉRICAS",
+    "src": "/question-images/q_1omn7wt.webp"
+  },
+  "q_mr3ewv": {
+    "id": "q_mr3ewv",
+    "sourceId": "ADD-adicao-N2-010",
+    "prompt": "Circule o número que está fora da sequência: 1, 2, 3, 4, 6, 5.",
+    "alt": "Apoio visual complementar — SEQUÊNCIAS NUMÉRICAS",
+    "src": "/question-images/q_mr3ewv.webp"
+  },
+  "q_1s2152j": {
+    "id": "q_1s2152j",
+    "sourceId": "ADD-adicao-N2-011",
+    "prompt": "Circule o número maior: 6 ou 9.",
+    "alt": "Apoio visual complementar — COMPARAÇÃO DE NÚMEROS",
+    "src": "/question-images/q_1s2152j.webp"
+  },
+  "q_1bbiknd": {
+    "id": "q_1bbiknd",
+    "sourceId": "ADD-adicao-N2-012",
+    "prompt": "Circule o número menor: 12 ou 7.",
+    "alt": "Apoio visual complementar — COMPARAÇÃO DE NÚMEROS",
+    "src": "/question-images/q_1bbiknd.webp"
+  },
+  "q_rz2fs4": {
+    "id": "q_rz2fs4",
+    "sourceId": "ADD-adicao-N2-013",
+    "prompt": "Ordene do menor para o maior: 8, 3, 15, 1, 10.",
+    "alt": "Apoio visual complementar — COMPARAÇÃO DE NÚMEROS",
+    "src": "/question-images/q_rz2fs4.webp"
+  },
+  "q_1it78zu": {
+    "id": "q_1it78zu",
+    "sourceId": "ADD-adicao-N2-014",
+    "prompt": "Complete com maior que, menor que ou igual a: 7 __ 10; 15 __ 15; 20 __ 12.",
+    "alt": "Apoio visual complementar — COMPARAÇÃO DE NÚMEROS",
+    "src": "/question-images/q_1it78zu.webp"
+  },
+  "q_1fsflpi": {
+    "id": "q_1fsflpi",
+    "sourceId": "ADD-adicao-N2-015",
+    "prompt": "Resolva: 3 + 4 = __",
+    "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
+    "src": "/question-images/q_1fsflpi.webp"
+  },
+  "q_pait2z": {
+    "id": "q_pait2z",
+    "sourceId": "ADD-adicao-N2-016",
+    "prompt": "Resolva: 9 - 5 = __",
+    "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
+    "src": "/question-images/q_pait2z.webp"
+  },
+  "q_10nw3gp": {
+    "id": "q_10nw3gp",
+    "sourceId": "ADD-adicao-N2-017",
+    "prompt": "Complete: 6 + __ = 10",
+    "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
+    "src": "/question-images/q_10nw3gp.webp"
+  },
+  "q_6oxtty": {
+    "id": "q_6oxtty",
+    "sourceId": "ADD-adicao-N2-018",
+    "prompt": "Complete: 15 - __ = 8",
+    "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
+    "src": "/question-images/q_6oxtty.webp"
+  },
+  "q_1890v2d": {
+    "id": "q_1890v2d",
+    "sourceId": "ADD-adicao-N2-019",
+    "prompt": "Ana tinha 6 balas e ganhou mais 3. Com quantas ficou?",
+    "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
+    "src": "/question-images/q_1890v2d.webp"
+  },
+  "q_1xyamrw": {
+    "id": "q_1xyamrw",
+    "sourceId": "ADD-adicao-N2-020",
+    "prompt": "Pedro tinha 12 figurinhas e deu 5 ao amigo. Com quantas ficou?",
+    "alt": "Apoio visual complementar — OPERAÇÕES SIMPLES",
+    "src": "/question-images/q_1xyamrw.webp"
+  },
+  "q_yffopc": {
+    "id": "q_yffopc",
+    "sourceId": "ADD-adicao-N2-021",
+    "prompt": "Escreva o número 47 em algarismos romanos.",
+    "alt": "Apoio visual complementar — SISTEMAS DE NUMERAÇÃO",
+    "src": "/question-images/q_yffopc.webp"
+  },
+  "q_1futkte": {
+    "id": "q_1futkte",
+    "sourceId": "ADD-adicao-N2-022",
+    "prompt": "Escreva por extenso o número 3.208.",
+    "alt": "Apoio visual complementar — SISTEMAS DE NUMERAÇÃO",
+    "src": "/question-images/q_1futkte.webp"
+  },
+  "q_jrew1k": {
+    "id": "q_jrew1k",
+    "sourceId": "ADD-adicao-N2-023",
+    "prompt": "Calcule: 245 + 178; 932 - 456; 34 x 12; 144 ÷ 12.",
+    "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS NATURAIS",
+    "src": "/question-images/q_jrew1k.webp"
+  },
+  "q_febbe6": {
+    "id": "q_febbe6",
+    "sourceId": "ADD-adicao-N2-024",
+    "prompt": "Liste todos os divisores de 24.",
+    "alt": "Apoio visual complementar — DIVISORES E MÚLTIPLOS",
+    "src": "/question-images/q_febbe6.webp"
+  },
+  "q_1s1ifin": {
+    "id": "q_1s1ifin",
+    "sourceId": "ADD-adicao-N2-025",
+    "prompt": "Escreva os cinco primeiros múltiplos de 6.",
+    "alt": "Apoio visual complementar — DIVISORES E MÚLTIPLOS",
+    "src": "/question-images/q_1s1ifin.webp"
+  },
+  "q_l051q2": {
+    "id": "q_l051q2",
+    "sourceId": "ADD-adicao-N2-026",
+    "prompt": "Calcule: (-5)+8; (+7)-(+12); (-4)x(-3).",
+    "alt": "Apoio visual complementar — NÚMEROS INTEIROS",
+    "src": "/question-images/q_l051q2.webp"
+  },
+  "q_1g2pa8j": {
+    "id": "q_1g2pa8j",
+    "sourceId": "ADD-adicao-N2-027",
+    "prompt": "Ordene: -8, 3, -1, 0, 5.",
+    "alt": "Apoio visual complementar — NÚMEROS INTEIROS",
+    "src": "/question-images/q_1g2pa8j.webp"
+  },
+  "q_100ijv9": {
+    "id": "q_100ijv9",
+    "sourceId": "ADD-adicao-N2-028",
+    "prompt": "Dados A={1,2,3,4} e B={3,4,5,6}, escreva união e interseção.",
+    "alt": "Apoio visual complementar — TEORIA DOS CONJUNTOS",
+    "src": "/question-images/q_100ijv9.webp"
+  },
+  "q_igrs3n": {
+    "id": "q_igrs3n",
+    "sourceId": "ADD-adicao-N2-029",
+    "prompt": "Transforme em fração: 0,333...",
+    "alt": "Apoio visual complementar — DÍZIMAS PERIÓDICAS",
+    "src": "/question-images/q_igrs3n.webp"
+  },
+  "q_13c0l0d": {
+    "id": "q_13c0l0d",
+    "sourceId": "ADD-adicao-N2-030",
+    "prompt": "Classifique 0,1666... e 0,272727... como dízima simples/composta.",
+    "alt": "Apoio visual complementar — DÍZIMAS PERIÓDICAS",
+    "src": "/question-images/q_13c0l0d.webp"
+  },
+  "q_6oqczq": {
+    "id": "q_6oqczq",
+    "sourceId": "ADD-adicao-N2-031",
+    "prompt": "Resolva: 5 + (3 x 2) - 4.",
+    "alt": "Apoio visual complementar — EXPRESSÕES NUMÉRICAS",
+    "src": "/question-images/q_6oqczq.webp"
+  },
+  "q_3nygz7": {
+    "id": "q_3nygz7",
+    "sourceId": "ADD-adicao-N2-032",
+    "prompt": "Resolva: 20 - [8 + (3 x 2)].",
+    "alt": "Apoio visual complementar — EXPRESSÕES NUMÉRICAS",
+    "src": "/question-images/q_3nygz7.webp"
+  },
+  "q_1hqnki5": {
+    "id": "q_1hqnki5",
+    "sourceId": "ADD-adicao-N2-033",
+    "prompt": "Encontre os termos que faltam na sequência par até 12.",
+    "alt": "Apoio visual complementar — SEQUÊNCIAS E REGULARIDADES",
+    "src": "/question-images/q_1hqnki5.webp"
+  },
+  "q_z6thgj": {
+    "id": "q_z6thgj",
+    "sourceId": "ADD-adicao-N2-034",
+    "prompt": "Complete: 1, 4, 9, 16, __, __.",
+    "alt": "Apoio visual complementar — SEQUÊNCIAS E REGULARIDADES",
+    "src": "/question-images/q_z6thgj.webp"
+  },
+  "q_lenq5o": {
+    "id": "q_lenq5o",
+    "sourceId": "ADD-adicao-N2-035",
+    "prompt": "Resolva: x + 7 = 15.",
+    "alt": "Apoio visual complementar — EQUAÇÕES E PROPORCIONALIDADE",
+    "src": "/question-images/q_lenq5o.webp"
+  },
+  "q_kevop6": {
+    "id": "q_kevop6",
+    "sourceId": "ADD-adicao-N2-036",
+    "prompt": "Resolva: 3x - 4 = 11.",
+    "alt": "Apoio visual complementar — EQUAÇÕES E PROPORCIONALIDADE",
+    "src": "/question-images/q_kevop6.webp"
+  },
+  "q_121wgc0": {
+    "id": "q_121wgc0",
+    "sourceId": "ADD-adicao-N2-037",
+    "prompt": "Calcule 20% de 150.",
+    "alt": "Apoio visual complementar — PORCENTAGENS",
+    "src": "/question-images/q_121wgc0.webp"
+  },
+  "q_uh4fpn": {
+    "id": "q_uh4fpn",
+    "sourceId": "ADD-adicao-N2-038",
+    "prompt": "Calcule 45% de 80.",
+    "alt": "Apoio visual complementar — PORCENTAGENS",
+    "src": "/question-images/q_uh4fpn.webp"
+  },
+  "q_7ya3ay": {
+    "id": "q_7ya3ay",
+    "sourceId": "ADD-adicao-N2-039",
+    "prompt": "Classifique os ângulos: 30°, 90°, 120°, 180°.",
+    "alt": "Apoio visual complementar — ÂNGULOS",
+    "src": "/question-images/q_7ya3ay.webp"
+  },
+  "q_fqarl6": {
+    "id": "q_fqarl6",
+    "sourceId": "ADD-adicao-N2-040",
+    "prompt": "Meça ou desenhe um ângulo de 45°.",
+    "alt": "Apoio visual complementar — ÂNGULOS",
+    "src": "/question-images/q_fqarl6.webp"
+  },
+  "q_jpjhvq": {
+    "id": "q_jpjhvq",
+    "sourceId": "ADD-adicao-N2-041",
+    "prompt": "Área de retângulo com base 8 cm e altura 5 cm.",
+    "alt": "Apoio visual complementar — ÁREA",
+    "src": "/question-images/q_jpjhvq.webp"
+  },
+  "q_19m67xl": {
+    "id": "q_19m67xl",
+    "sourceId": "ADD-adicao-N2-042",
+    "prompt": "Área de quadrado de lado 6 cm.",
+    "alt": "Apoio visual complementar — ÁREA",
+    "src": "/question-images/q_19m67xl.webp"
+  },
+  "q_pzghro": {
+    "id": "q_pzghro",
+    "sourceId": "YA-adicao-N2-001",
+    "prompt": "Complete: 10, 11, 12, __, __, 15.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_pzghro.webp"
+  },
+  "q_478g2y": {
+    "id": "q_478g2y",
+    "sourceId": "YA-adicao-N2-002",
+    "prompt": "Complete: 20, 21, __, 23, __.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_478g2y.webp"
+  },
+  "q_zxt4wl": {
+    "id": "q_zxt4wl",
+    "sourceId": "YA-adicao-N2-003",
+    "prompt": "Qual é maior: 17 ou 12?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_zxt4wl.webp"
+  },
+  "q_kvo3fm": {
+    "id": "q_kvo3fm",
+    "sourceId": "YA-adicao-N2-004",
+    "prompt": "Qual é menor: 14 ou 19?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_kvo3fm.webp"
+  },
+  "q_dd0xqv": {
+    "id": "q_dd0xqv",
+    "sourceId": "YA-adicao-N2-005",
+    "prompt": "8 + 6 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_dd0xqv.webp"
+  },
+  "q_1xtwouf": {
+    "id": "q_1xtwouf",
+    "sourceId": "YA-adicao-N2-006",
+    "prompt": "9 + 7 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1xtwouf.webp"
+  },
+  "q_125jndt": {
+    "id": "q_125jndt",
+    "sourceId": "YA-adicao-N2-007",
+    "prompt": "15 - 6 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_125jndt.webp"
+  },
+  "q_1sy3ia7": {
+    "id": "q_1sy3ia7",
+    "sourceId": "YA-adicao-N2-008",
+    "prompt": "18 - 9 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1sy3ia7.webp"
+  },
+  "q_ogua0a": {
+    "id": "q_ogua0a",
+    "sourceId": "YA-adicao-N2-009",
+    "prompt": "Complete: 7 + __ = 12.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_ogua0a.webp"
+  },
+  "q_11sawb5": {
+    "id": "q_11sawb5",
+    "sourceId": "YA-adicao-N2-010",
+    "prompt": "Complete: __ + 5 = 13.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_11sawb5.webp"
+  },
+  "q_jyrz2n": {
+    "id": "q_jyrz2n",
+    "sourceId": "YA-adicao-N2-011",
+    "prompt": "Complete: 5, 7, 9, __, __.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_jyrz2n.webp"
+  },
+  "q_q7gj0q": {
+    "id": "q_q7gj0q",
+    "sourceId": "YA-adicao-N2-012",
+    "prompt": "Complete: 2, 4, 6, __, __.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_q7gj0q.webp"
+  },
+  "q_byhr41": {
+    "id": "q_byhr41",
+    "sourceId": "YA-adicao-N2-013",
+    "prompt": "Em uma sala havia 9 pessoas. Chegaram mais 5. Quantas ficaram na sala?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_byhr41.webp"
+  },
+  "q_8immm0": {
+    "id": "q_8immm0",
+    "sourceId": "YA-adicao-N2-014",
+    "prompt": "Um arquivo tinha 16 pastas. Quatro foram retiradas. Quantas ficaram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_8immm0.webp"
+  },
+  "q_1e3ieam": {
+    "id": "q_1e3ieam",
+    "sourceId": "YA-adicao-N2-015",
+    "prompt": "Uma equipe separou 7 documentos pela manhã e 8 à tarde. Quantos documentos separou?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1e3ieam.webp"
+  },
+  "q_pha0dw": {
+    "id": "q_pha0dw",
+    "sourceId": "YA-adicao-N2-016",
+    "prompt": "Havia 20 cadeiras. Seis foram levadas para outra sala. Quantas restaram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_pha0dw.webp"
+  },
+  "q_kql59y": {
+    "id": "q_kql59y",
+    "sourceId": "YA-adicao-N2-017",
+    "prompt": "Complete: __ + 8 = 17.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_kql59y.webp"
+  },
+  "q_zv8swq": {
+    "id": "q_zv8swq",
+    "sourceId": "YA-adicao-N2-018",
+    "prompt": "Complete: 14 - __ = 9.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_zv8swq.webp"
+  },
+  "q_1sipgnj": {
+    "id": "q_1sipgnj",
+    "sourceId": "YA-adicao-N2-019",
+    "prompt": "Coloque em ordem crescente: 18, 11, 15, 13.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1sipgnj.webp"
+  },
+  "q_bss07i": {
+    "id": "q_bss07i",
+    "sourceId": "YA-adicao-N2-020",
+    "prompt": "Coloque em ordem decrescente: 9, 16, 12, 20.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_bss07i.webp"
+  },
+  "q_1v10p6": {
+    "id": "q_1v10p6",
+    "sourceId": "CURR-divisao-N2-01",
+    "prompt": "Quantos materiais cada equipe recebe?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1v10p6.webp"
+  },
+  "q_1p7htw6": {
+    "id": "q_1p7htw6",
+    "sourceId": "CURR-divisao-N2-02",
+    "prompt": "Quantos metros de fita cada grupo recebe?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1p7htw6.webp"
+  },
+  "q_19hwkcl": {
+    "id": "q_19hwkcl",
+    "sourceId": "CURR-divisao-N2-03",
+    "prompt": "Qual cálculo representa a distribuição dos materiais?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_19hwkcl.webp"
+  },
+  "q_16td1l3": {
+    "id": "q_16td1l3",
+    "sourceId": "CURR-medidas-N2-01",
+    "prompt": "Uma barra de 2 metros mede quantos centímetros?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_16td1l3.webp"
+  },
+  "q_1rgomex": {
+    "id": "q_1rgomex",
+    "sourceId": "CURR-medidas-N2-02",
+    "prompt": "Uma atividade durou 90 minutos. Isso corresponde a...",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1rgomex.webp"
+  },
+  "q_rx10nf": {
+    "id": "q_rx10nf",
+    "sourceId": "CURR-medidas-N2-03",
+    "prompt": "Uma carga de 3 quilogramas corresponde a quantos gramas?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_rx10nf.webp"
+  },
+  "q_n8p4yu": {
+    "id": "q_n8p4yu",
+    "sourceId": "ADD-medidas-N2-001",
+    "prompt": "Observe um piso com quatro lados iguais: descreva a forma que você reconhece.",
+    "alt": "Apoio visual complementar — FORMAS GEOMÉTRICAS",
+    "src": "/question-images/q_n8p4yu.webp"
+  },
+  "q_1vvc7jk": {
+    "id": "q_1vvc7jk",
+    "sourceId": "ADD-medidas-N2-002",
+    "prompt": "Compare uma placa redonda e uma janela retangular: qual diferença de contorno aparece?",
+    "alt": "Apoio visual complementar — FORMAS GEOMÉTRICAS",
+    "src": "/question-images/q_1vvc7jk.webp"
+  },
+  "q_qp768j": {
+    "id": "q_qp768j",
+    "sourceId": "ADD-medidas-N2-003",
+    "prompt": "Registre um objeto do trabalho que tenha formato triangular.",
+    "alt": "Apoio visual complementar — FORMAS GEOMÉTRICAS",
+    "src": "/question-images/q_qp768j.webp"
+  },
+  "q_38kuor": {
+    "id": "q_38kuor",
+    "sourceId": "ADD-medidas-N2-004",
+    "prompt": "Conte os lados de um retângulo desenhado e escreva o resultado.",
+    "alt": "Apoio visual complementar — FORMAS GEOMÉTRICAS",
+    "src": "/question-images/q_38kuor.webp"
+  },
+  "q_17jp1sd": {
+    "id": "q_17jp1sd",
+    "sourceId": "ADD-medidas-N2-005",
+    "prompt": "Que instrumento você usaria para medir o comprimento de uma bancada?",
+    "alt": "Apoio visual complementar — MEDIDAS E TEMPO",
+    "src": "/question-images/q_17jp1sd.webp"
+  },
+  "q_151chpy": {
+    "id": "q_151chpy",
+    "sourceId": "ADD-medidas-N2-006",
+    "prompt": "Leia um relógio marcando 8h e registre o horário por extenso.",
+    "alt": "Apoio visual complementar — MEDIDAS E TEMPO",
+    "src": "/question-images/q_151chpy.webp"
+  },
+  "q_iiso06": {
+    "id": "q_iiso06",
+    "sourceId": "ADD-medidas-N2-007",
+    "prompt": "Explique qual unidade combina com a duração de um turno.",
+    "alt": "Apoio visual complementar — MEDIDAS E TEMPO",
+    "src": "/question-images/q_iiso06.webp"
+  },
+  "q_kpg6d5": {
+    "id": "q_kpg6d5",
+    "sourceId": "ADD-medidas-N2-008",
+    "prompt": "Organize 7h, 12h e 17h na ordem em que acontecem.",
+    "alt": "Apoio visual complementar — MEDIDAS E TEMPO",
+    "src": "/question-images/q_kpg6d5.webp"
+  },
+  "q_11x3xhp": {
+    "id": "q_11x3xhp",
+    "sourceId": "ADD-medidas-N2-009",
+    "prompt": "Descreva quando uma trena é mais útil que um relógio.",
+    "alt": "Apoio visual complementar — MEDIDAS E TEMPO",
+    "src": "/question-images/q_11x3xhp.webp"
+  },
+  "q_1kvt89i": {
+    "id": "q_1kvt89i",
+    "sourceId": "ADD-medidas-N2-010",
+    "prompt": "Converta 2 metros em centímetros e escreva o cálculo.",
+    "alt": "Apoio visual complementar — CONVERSÃO DE UNIDADES",
+    "src": "/question-images/q_1kvt89i.webp"
+  },
+  "q_h4z856": {
+    "id": "q_h4z856",
+    "sourceId": "CURR-multiplicacao-N2-01",
+    "prompt": "Quantos cones serão entregues às 4 equipes?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_h4z856.webp"
+  },
+  "q_13pvn3l": {
+    "id": "q_13pvn3l",
+    "sourceId": "CURR-multiplicacao-N2-02",
+    "prompt": "Quantas fitas serão usadas pelos 5 grupos?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_13pvn3l.webp"
+  },
+  "q_1btniud": {
+    "id": "q_1btniud",
+    "sourceId": "CURR-multiplicacao-N2-03",
+    "prompt": "Na multiplicação 4 × 6 = 24, o que representa o número 4?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1btniud.webp"
+  },
+  "q_1xii29l": {
+    "id": "q_1xii29l",
+    "sourceId": "CURR-porcentagem-N2-01",
+    "prompt": "Um bônus de 10% sobre 200 reais corresponde a quanto?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1xii29l.webp"
+  },
+  "q_1er1mru": {
+    "id": "q_1er1mru",
+    "sourceId": "CURR-porcentagem-N2-02",
+    "prompt": "Uma meta de 150 unidades foi cumprida em 20%. Quantas unidades correspondem a essa parte?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1er1mru.webp"
+  },
+  "q_1dtaapi": {
+    "id": "q_1dtaapi",
+    "sourceId": "CURR-porcentagem-N2-03",
+    "prompt": "Qual é a metade de 80 reais, ou seja, 50% de 80?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1dtaapi.webp"
+  },
+  "q_uasy2o": {
+    "id": "q_uasy2o",
+    "sourceId": "ADD-porcentagem-N2-001",
+    "prompt": "Registre duas formas de pagar uma compra de R$ 10,00.",
+    "alt": "Apoio visual complementar — DINHEIRO",
+    "src": "/question-images/q_uasy2o.webp"
+  },
+  "q_1gjjxa6": {
+    "id": "q_1gjjxa6",
+    "sourceId": "ADD-porcentagem-N2-002",
+    "prompt": "Uma compra custa R$ 7,00 e você entrega R$ 10,00: escreva o troco.",
+    "alt": "Apoio visual complementar — DINHEIRO",
+    "src": "/question-images/q_1gjjxa6.webp"
+  },
+  "q_1s6znw2": {
+    "id": "q_1s6znw2",
+    "sourceId": "ADD-porcentagem-N2-003",
+    "prompt": "Compare uma nota de R$ 5,00 com três moedas de R$ 1,00.",
+    "alt": "Apoio visual complementar — DINHEIRO",
+    "src": "/question-images/q_1s6znw2.webp"
+  },
+  "q_sxydpv": {
+    "id": "q_sxydpv",
+    "sourceId": "ADD-porcentagem-N2-004",
+    "prompt": "Explique por que conferir o troco evita engano.",
+    "alt": "Apoio visual complementar — DINHEIRO",
+    "src": "/question-images/q_sxydpv.webp"
+  },
+  "q_1xsjqxx": {
+    "id": "q_1xsjqxx",
+    "sourceId": "ADD-porcentagem-N2-005",
+    "prompt": "Desenhe uma barra dividida em duas partes iguais e nomeie uma parte.",
+    "alt": "Apoio visual complementar — FRAÇÕES",
+    "src": "/question-images/q_1xsjqxx.webp"
+  },
+  "q_fkh65q": {
+    "id": "q_fkh65q",
+    "sourceId": "ADD-porcentagem-N2-006",
+    "prompt": "Escreva uma fração que represente três partes de quatro.",
+    "alt": "Apoio visual complementar — FRAÇÕES",
+    "src": "/question-images/q_fkh65q.webp"
+  },
+  "q_102g1k": {
+    "id": "q_102g1k",
+    "sourceId": "ADD-porcentagem-N2-007",
+    "prompt": "Calcule 18 + 7 e registre como conferiu o resultado.",
+    "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS REAIS",
+    "src": "/question-images/q_102g1k.webp"
+  },
+  "q_1bhg2d1": {
+    "id": "q_1bhg2d1",
+    "sourceId": "ADD-porcentagem-N2-008",
+    "prompt": "Conte quantas pessoas estão em uma frente e registre o total.",
+    "alt": "Apoio visual complementar — ESTATÍSTICA",
+    "src": "/question-images/q_1bhg2d1.webp"
+  },
+  "q_wjlgic": {
+    "id": "q_wjlgic",
+    "sourceId": "CURR-adicao-N3-01",
+    "prompt": "Quantos tubos a equipe tem logo depois de receber os 7?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_wjlgic.webp"
+  },
+  "q_1iu40vb": {
+    "id": "q_1iu40vb",
+    "sourceId": "CURR-adicao-N3-02",
+    "prompt": "Quantos tubos ficam depois do uso de 9?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1iu40vb.webp"
+  },
+  "q_j5wfxx": {
+    "id": "q_j5wfxx",
+    "sourceId": "CURR-adicao-N3-03",
+    "prompt": "Comparado ao planejamento de 15 tubos, quantos sobraram?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_j5wfxx.webp"
+  },
+  "q_12gohlf": {
+    "id": "q_12gohlf",
+    "sourceId": "ADD-adicao-N3-001",
+    "prompt": "Converta para o sistema decimal: XLIV, MCMXC.",
+    "alt": "Apoio visual complementar — SISTEMAS DE NUMERAÇÃO",
+    "src": "/question-images/q_12gohlf.webp"
+  },
+  "q_io818b": {
+    "id": "q_io818b",
+    "sourceId": "ADD-adicao-N3-002",
+    "prompt": "Explique valor posicional usando o número 5.253.",
+    "alt": "Apoio visual complementar — SISTEMAS DE NUMERAÇÃO",
+    "src": "/question-images/q_io818b.webp"
+  },
+  "q_19mzeks": {
+    "id": "q_19mzeks",
+    "sourceId": "ADD-adicao-N3-003",
+    "prompt": "Resolva: 25 + 8 x 3 - 10 ÷ 2.",
+    "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS NATURAIS",
+    "src": "/question-images/q_19mzeks.webp"
+  },
+  "q_1mp53g": {
+    "id": "q_1mp53g",
+    "sourceId": "ADD-adicao-N3-004",
+    "prompt": "12 caixas com 24 produtos cada. Quantos produtos ao todo?",
+    "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS NATURAIS",
+    "src": "/question-images/q_1mp53g.webp"
+  },
+  "q_e8fxj9": {
+    "id": "q_e8fxj9",
+    "sourceId": "ADD-adicao-N3-005",
+    "prompt": "Calcule o MDC e o MMC entre 18 e 24.",
+    "alt": "Apoio visual complementar — DIVISORES E MÚLTIPLOS",
+    "src": "/question-images/q_e8fxj9.webp"
+  },
+  "q_1qbueqf": {
+    "id": "q_1qbueqf",
+    "sourceId": "ADD-adicao-N3-006",
+    "prompt": "Classifique 17, 21, 29 e 35 em primos ou compostos.",
+    "alt": "Apoio visual complementar — DIVISORES E MÚLTIPLOS",
+    "src": "/question-images/q_1qbueqf.webp"
+  },
+  "q_157gc0y": {
+    "id": "q_157gc0y",
+    "sourceId": "ADD-adicao-N3-007",
+    "prompt": "Resolva: (-15)+(-7)-(-20)+6.",
+    "alt": "Apoio visual complementar — NÚMEROS INTEIROS",
+    "src": "/question-images/q_157gc0y.webp"
+  },
+  "q_hpaqxs": {
+    "id": "q_hpaqxs",
+    "sourceId": "ADD-adicao-N3-008",
+    "prompt": "Temperatura era -3°C e subiu 9°C. Qual ficou?",
+    "alt": "Apoio visual complementar — NÚMEROS INTEIROS",
+    "src": "/question-images/q_hpaqxs.webp"
+  },
+  "q_1f3ea2a": {
+    "id": "q_1f3ea2a",
+    "sourceId": "ADD-adicao-N3-009",
+    "prompt": "Dados A={2,4,6,8} e B={4,8,12}, calcule A-B e represente em Venn.",
+    "alt": "Apoio visual complementar — TEORIA DOS CONJUNTOS",
+    "src": "/question-images/q_1f3ea2a.webp"
+  },
+  "q_1wasg1o": {
+    "id": "q_1wasg1o",
+    "sourceId": "ADD-adicao-N3-010",
+    "prompt": "Transforme em fração geratriz: 0,4555...",
+    "alt": "Apoio visual complementar — DÍZIMAS PERIÓDICAS",
+    "src": "/question-images/q_1wasg1o.webp"
+  },
+  "q_d6wfsa": {
+    "id": "q_d6wfsa",
+    "sourceId": "ADD-adicao-N3-011",
+    "prompt": "Resolva: 3² + (10 - 4) ÷ 2 - 5.",
+    "alt": "Apoio visual complementar — EXPRESSÕES NUMÉRICAS",
+    "src": "/question-images/q_d6wfsa.webp"
+  },
+  "q_eik3p8": {
+    "id": "q_eik3p8",
+    "sourceId": "ADD-adicao-N3-012",
+    "prompt": "Descubra a regra e os próximos três termos: 3,7,11,15...",
+    "alt": "Apoio visual complementar — SEQUÊNCIAS E REGULARIDADES",
+    "src": "/question-images/q_eik3p8.webp"
+  },
+  "q_1qertkw": {
+    "id": "q_1qertkw",
+    "sourceId": "ADD-adicao-N3-013",
+    "prompt": "Regra de três: 5 m custam R$60; quanto custam 8 m?",
+    "alt": "Apoio visual complementar — EQUAÇÕES E PROPORCIONALIDADE",
+    "src": "/question-images/q_1qertkw.webp"
+  },
+  "q_1qe4yqr": {
+    "id": "q_1qe4yqr",
+    "sourceId": "ADD-adicao-N3-014",
+    "prompt": "Produto de R$250 com desconto de 15%. Preço final?",
+    "alt": "Apoio visual complementar — PORCENTAGENS",
+    "src": "/question-images/q_1qe4yqr.webp"
+  },
+  "q_1rato7a": {
+    "id": "q_1rato7a",
+    "sourceId": "ADD-adicao-N3-015",
+    "prompt": "Salário de R$1.800 com aumento de 8%. Novo valor?",
+    "alt": "Apoio visual complementar — PORCENTAGENS",
+    "src": "/question-images/q_1rato7a.webp"
+  },
+  "q_djeceo": {
+    "id": "q_djeceo",
+    "sourceId": "ADD-adicao-N3-016",
+    "prompt": "Ângulos complementares: um mede 35°. Quanto mede o outro?",
+    "alt": "Apoio visual complementar — ÂNGULOS",
+    "src": "/question-images/q_djeceo.webp"
+  },
+  "q_11j60nh": {
+    "id": "q_11j60nh",
+    "sourceId": "ADD-adicao-N3-017",
+    "prompt": "Ângulos suplementares: um mede 110°. Quanto mede o outro?",
+    "alt": "Apoio visual complementar — ÂNGULOS",
+    "src": "/question-images/q_11j60nh.webp"
+  },
+  "q_1a3y8hz": {
+    "id": "q_1a3y8hz",
+    "sourceId": "ADD-adicao-N3-018",
+    "prompt": "Terreno 15 m x 10 m; calcule área e valor a R$350/m².",
+    "alt": "Apoio visual complementar — ÁREA",
+    "src": "/question-images/q_1a3y8hz.webp"
+  },
+  "q_l40epc": {
+    "id": "q_l40epc",
+    "sourceId": "CURR-divisao-N3-01",
+    "prompt": "Quantas peças cada equipe recebe sem ultrapassar o estoque?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_l40epc.webp"
+  },
+  "q_514faz": {
+    "id": "q_514faz",
+    "sourceId": "CURR-divisao-N3-02",
+    "prompt": "Quantas peças sobram para reposição?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_514faz.webp"
+  },
+  "q_1i09xkw": {
+    "id": "q_1i09xkw",
+    "sourceId": "CURR-divisao-N3-03",
+    "prompt": "Qual registro mostra a divisão completa?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1i09xkw.webp"
+  },
+  "q_1e2g45e": {
+    "id": "q_1e2g45e",
+    "sourceId": "CURR-medidas-N3-01",
+    "prompt": "Uma equipe usa 4 metros e depois mais 2,5 metros de tubo. Qual é o total?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1e2g45e.webp"
+  },
+  "q_e0eij4": {
+    "id": "q_e0eij4",
+    "sourceId": "CURR-medidas-N3-02",
+    "prompt": "Quanto resulta de 2,4 litros somados a 600 mililitros?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_e0eij4.webp"
+  },
+  "q_5c8sn4": {
+    "id": "q_5c8sn4",
+    "sourceId": "CURR-medidas-N3-03",
+    "prompt": "Três períodos de 45 minutos duram quanto tempo?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_5c8sn4.webp"
+  },
+  "q_heym4u": {
+    "id": "q_heym4u",
+    "sourceId": "ADD-medidas-N3-001",
+    "prompt": "Explique quando trocar metros por centímetros facilita a medição.",
+    "alt": "Apoio visual complementar — CONVERSÃO DE UNIDADES",
+    "src": "/question-images/q_heym4u.webp"
+  },
+  "q_1am7md3": {
+    "id": "q_1am7md3",
+    "sourceId": "CURR-multiplicacao-N3-01",
+    "prompt": "Quantas conexões serão instaladas nos 5 pavimentos?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1am7md3.webp"
+  },
+  "q_1qqqnzz": {
+    "id": "q_1qqqnzz",
+    "sourceId": "CURR-multiplicacao-N3-02",
+    "prompt": "Quantas conexões já foram instaladas nos 3 pavimentos?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1qqqnzz.webp"
+  },
+  "q_egatbk": {
+    "id": "q_egatbk",
+    "sourceId": "CURR-multiplicacao-N3-03",
+    "prompt": "Quantas conexões ainda faltam para completar os 5 pavimentos?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_egatbk.webp"
+  },
+  "q_1mtujkq": {
+    "id": "q_1mtujkq",
+    "sourceId": "YA-multiplicacao-N3-001",
+    "prompt": "24 + 13 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1mtujkq.webp"
+  },
+  "q_72lrt4": {
+    "id": "q_72lrt4",
+    "sourceId": "YA-multiplicacao-N3-002",
+    "prompt": "35 + 22 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_72lrt4.webp"
+  },
+  "q_1s1p9bb": {
+    "id": "q_1s1p9bb",
+    "sourceId": "YA-multiplicacao-N3-003",
+    "prompt": "48 - 16 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1s1p9bb.webp"
+  },
+  "q_1hgszaw": {
+    "id": "q_1hgszaw",
+    "sourceId": "YA-multiplicacao-N3-004",
+    "prompt": "52 - 27 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1hgszaw.webp"
+  },
+  "q_1rwvt77": {
+    "id": "q_1rwvt77",
+    "sourceId": "YA-multiplicacao-N3-005",
+    "prompt": "Complete: 18 + __ = 30.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1rwvt77.webp"
+  },
+  "q_9w3rrt": {
+    "id": "q_9w3rrt",
+    "sourceId": "YA-multiplicacao-N3-006",
+    "prompt": "Complete: __ + 17 = 40.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_9w3rrt.webp"
+  },
+  "q_kt3a5h": {
+    "id": "q_kt3a5h",
+    "sourceId": "YA-multiplicacao-N3-007",
+    "prompt": "Complete: 45 - __ = 29.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_kt3a5h.webp"
+  },
+  "q_9yph5k": {
+    "id": "q_9yph5k",
+    "sourceId": "YA-multiplicacao-N3-008",
+    "prompt": "Complete: __ - 12 = 31.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_9yph5k.webp"
+  },
+  "q_19psl9m": {
+    "id": "q_19psl9m",
+    "sourceId": "YA-multiplicacao-N3-009",
+    "prompt": "Complete a sequência: 10, 15, 20, __, __.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_19psl9m.webp"
+  },
+  "q_d72trt": {
+    "id": "q_d72trt",
+    "sourceId": "YA-multiplicacao-N3-010",
+    "prompt": "Complete a sequência: 32, 30, 28, __, __.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_d72trt.webp"
+  },
+  "q_1bm9tnk": {
+    "id": "q_1bm9tnk",
+    "sourceId": "YA-multiplicacao-N3-011",
+    "prompt": "Um setor tinha 28 formulários. Recebeu mais 17. Quantos passou a ter?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1bm9tnk.webp"
+  },
+  "q_4f2rei": {
+    "id": "q_4f2rei",
+    "sourceId": "YA-multiplicacao-N3-012",
+    "prompt": "Havia 45 caixas em um depósito. Foram retiradas 18. Quantas ficaram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_4f2rei.webp"
+  },
+  "q_14arxx4": {
+    "id": "q_14arxx4",
+    "sourceId": "YA-multiplicacao-N3-013",
+    "prompt": "Uma equipe organizou 16 documentos pela manhã e 19 à tarde. Quantos organizou ao todo?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_14arxx4.webp"
+  },
+  "q_iraev3": {
+    "id": "q_iraev3",
+    "sourceId": "YA-multiplicacao-N3-014",
+    "prompt": "Um arquivo tinha 50 pastas. Depois de retirar 12 e devolver 5, com quantas ficou?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_iraev3.webp"
+  },
+  "q_1n8wjtj": {
+    "id": "q_1n8wjtj",
+    "sourceId": "YA-multiplicacao-N3-015",
+    "prompt": "Em uma sala havia 21 pessoas. Entraram 8 e saíram 6. Quantas ficaram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1n8wjtj.webp"
+  },
+  "q_whsnha": {
+    "id": "q_whsnha",
+    "sourceId": "YA-multiplicacao-N3-016",
+    "prompt": "Um setor recebeu 34 itens e depois mais 11. Em seguida, 9 foram utilizados. Quantos restaram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_whsnha.webp"
+  },
+  "q_zb6ftq": {
+    "id": "q_zb6ftq",
+    "sourceId": "YA-multiplicacao-N3-017",
+    "prompt": "Qual é maior: 37 + 8 ou 50 - 4?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_zb6ftq.webp"
+  },
+  "q_r2j7uc": {
+    "id": "q_r2j7uc",
+    "sourceId": "YA-multiplicacao-N3-018",
+    "prompt": "Qual é menor: 42 - 7 ou 19 + 18?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_r2j7uc.webp"
+  },
+  "q_k8rbl5": {
+    "id": "q_k8rbl5",
+    "sourceId": "YA-multiplicacao-N3-019",
+    "prompt": "Coloque em ordem crescente: 46, 31, 39, 28.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_k8rbl5.webp"
+  },
+  "q_s8u9jv": {
+    "id": "q_s8u9jv",
+    "sourceId": "YA-multiplicacao-N3-020",
+    "prompt": "Descubra o número: __ + 9 - 4 = 20.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_s8u9jv.webp"
+  },
+  "q_o6xesa": {
+    "id": "q_o6xesa",
+    "sourceId": "CURR-porcentagem-N3-01",
+    "prompt": "Quanto representa 15% de 200 peças?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_o6xesa.webp"
+  },
+  "q_4k8wht": {
+    "id": "q_4k8wht",
+    "sourceId": "CURR-porcentagem-N3-02",
+    "prompt": "Um material custa 80 reais e recebe desconto de 25%. Qual é o novo preço?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_4k8wht.webp"
+  },
+  "q_80ghop": {
+    "id": "q_80ghop",
+    "sourceId": "CURR-porcentagem-N3-03",
+    "prompt": "De 24 tarefas, 18 foram concluídas. Qual percentual foi concluído?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_80ghop.webp"
+  },
+  "q_15s9sr9": {
+    "id": "q_15s9sr9",
+    "sourceId": "ADD-porcentagem-N3-001",
+    "prompt": "Compare metade e um quarto usando palavras simples.",
+    "alt": "Apoio visual complementar — FRAÇÕES",
+    "src": "/question-images/q_15s9sr9.webp"
+  },
+  "q_1kh0xo6": {
+    "id": "q_1kh0xo6",
+    "sourceId": "ADD-porcentagem-N3-002",
+    "prompt": "Relacione 1/2 a uma situação de repartir um material.",
+    "alt": "Apoio visual complementar — FRAÇÕES",
+    "src": "/question-images/q_1kh0xo6.webp"
+  },
+  "q_1sh36vs": {
+    "id": "q_1sh36vs",
+    "sourceId": "ADD-porcentagem-N3-003",
+    "prompt": "Retire 9 de 20 e escreva a conta completa.",
+    "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS REAIS",
+    "src": "/question-images/q_1sh36vs.webp"
+  },
+  "q_t5m59q": {
+    "id": "q_t5m59q",
+    "sourceId": "ADD-porcentagem-N3-004",
+    "prompt": "Compare dois registros de produção e diga qual é maior.",
+    "alt": "Apoio visual complementar — ESTATÍSTICA",
+    "src": "/question-images/q_t5m59q.webp"
+  },
+  "q_1omrd24": {
+    "id": "q_1omrd24",
+    "sourceId": "CURR-adicao-N4-01",
+    "prompt": "Quantas peças serão separadas para os dois pedidos?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1omrd24.webp"
+  },
+  "q_1okqwkm": {
+    "id": "q_1okqwkm",
+    "sourceId": "CURR-adicao-N4-02",
+    "prompt": "Depois de separar 75 de um estoque de 100, qual saldo permanece?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1okqwkm.webp"
+  },
+  "q_11z3yij": {
+    "id": "q_11z3yij",
+    "sourceId": "CURR-adicao-N4-03",
+    "prompt": "Qual procedimento confere corretamente o saldo?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_11z3yij.webp"
+  },
+  "q_4rk4bx": {
+    "id": "q_4rk4bx",
+    "sourceId": "ADD-adicao-N4-001",
+    "prompt": "Explique por que o sistema romano não usa zero e a limitação disso.",
+    "alt": "Apoio visual complementar — SISTEMAS DE NUMERAÇÃO",
+    "src": "/question-images/q_4rk4bx.webp"
+  },
+  "q_32gr1w": {
+    "id": "q_32gr1w",
+    "sourceId": "ADD-adicao-N4-002",
+    "prompt": "Uma fábrica produz 350 peças/dia, 22 dias/mês. Quantas em um trimestre?",
+    "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS NATURAIS",
+    "src": "/question-images/q_32gr1w.webp"
+  },
+  "q_12vp5h8": {
+    "id": "q_12vp5h8",
+    "sourceId": "ADD-adicao-N4-003",
+    "prompt": "Dois ônibus saem a cada 15 e 20 min. Quando sairão juntos novamente?",
+    "alt": "Apoio visual complementar — DIVISORES E MÚLTIPLOS",
+    "src": "/question-images/q_12vp5h8.webp"
+  },
+  "q_b29flh": {
+    "id": "q_b29flh",
+    "sourceId": "ADD-adicao-N4-004",
+    "prompt": "Resolva: -3 x (4 - 7) + (-2)³ ÷ 4.",
+    "alt": "Apoio visual complementar — NÚMEROS INTEIROS",
+    "src": "/question-images/q_b29flh.webp"
+  },
+  "q_14t3y2": {
+    "id": "q_14t3y2",
+    "sourceId": "ADD-adicao-N4-005",
+    "prompt": "Pesquisa com futebol/vôlei: quantas pessoas não gostam de nenhum?",
+    "alt": "Apoio visual complementar — TEORIA DOS CONJUNTOS",
+    "src": "/question-images/q_14t3y2.webp"
+  },
+  "q_1cj3oye": {
+    "id": "q_1cj3oye",
+    "sourceId": "ADD-adicao-N4-006",
+    "prompt": "Explique por que toda dízima periódica é racional.",
+    "alt": "Apoio visual complementar — DÍZIMAS PERIÓDICAS",
+    "src": "/question-images/q_1cj3oye.webp"
+  },
+  "q_169tzq": {
+    "id": "q_169tzq",
+    "sourceId": "ADD-adicao-N4-007",
+    "prompt": "Resolva: {40 - [(6 + 4) x 2 - 5]} ÷ 5 + 3².",
+    "alt": "Apoio visual complementar — EXPRESSÕES NUMÉRICAS",
+    "src": "/question-images/q_169tzq.webp"
+  },
+  "q_v0tz9x": {
+    "id": "q_v0tz9x",
+    "sourceId": "ADD-adicao-N4-008",
+    "prompt": "Encontre a fórmula da sequência 5,8,11,14,17... e o 20º termo.",
+    "alt": "Apoio visual complementar — SEQUÊNCIAS E REGULARIDADES",
+    "src": "/question-images/q_v0tz9x.webp"
+  },
+  "q_i20cac": {
+    "id": "q_i20cac",
+    "sourceId": "ADD-adicao-N4-009",
+    "prompt": "Regra de três composta com operários, muro e dias.",
+    "alt": "Apoio visual complementar — EQUAÇÕES E PROPORCIONALIDADE",
+    "src": "/question-images/q_i20cac.webp"
+  },
+  "q_1puqubs": {
+    "id": "q_1puqubs",
+    "sourceId": "ADD-adicao-N4-010",
+    "prompt": "Produto R$400 com dois aumentos sucessivos de 10%.",
+    "alt": "Apoio visual complementar — PORCENTAGENS",
+    "src": "/question-images/q_1puqubs.webp"
+  },
+  "q_1gbqqgd": {
+    "id": "q_1gbqqgd",
+    "sourceId": "ADD-adicao-N4-011",
+    "prompt": "Triângulo com ângulos 55° e 65°: calcule o terceiro e classifique.",
+    "alt": "Apoio visual complementar — ÂNGULOS",
+    "src": "/question-images/q_1gbqqgd.webp"
+  },
+  "q_pusl1o": {
+    "id": "q_pusl1o",
+    "sourceId": "ADD-adicao-N4-012",
+    "prompt": "Sala 6x4 m com cerâmicas de 40 cm; quantas necessárias?",
+    "alt": "Apoio visual complementar — ÁREA",
+    "src": "/question-images/q_pusl1o.webp"
+  },
+  "q_ggb29i": {
+    "id": "q_ggb29i",
+    "sourceId": "CURR-divisao-N4-01",
+    "prompt": "Quantas tarefas cabem por hora?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_ggb29i.webp"
+  },
+  "q_1lqskl1": {
+    "id": "q_1lqskl1",
+    "sourceId": "CURR-divisao-N4-02",
+    "prompt": "Quantas peças inteiras cabem em cada caixa?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1lqskl1.webp"
+  },
+  "q_1erondi": {
+    "id": "q_1erondi",
+    "sourceId": "CURR-divisao-N4-03",
+    "prompt": "Quantas peças ficam fora das caixas completas?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1erondi.webp"
+  },
+  "q_1c8bqum": {
+    "id": "q_1c8bqum",
+    "sourceId": "CURR-medidas-N4-01",
+    "prompt": "Qual é a área de um espaço de 6 m por 4 m?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1c8bqum.webp"
+  },
+  "q_1xb511e": {
+    "id": "q_1xb511e",
+    "sourceId": "CURR-medidas-N4-02",
+    "prompt": "Uma barra de 2,5 metros será cortada em 4 partes iguais. Qual o comprimento de cada parte?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1xb511e.webp"
+  },
+  "q_1g22tuh": {
+    "id": "q_1g22tuh",
+    "sourceId": "CURR-medidas-N4-03",
+    "prompt": "Por que o registro deve informar a unidade depois do número?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1g22tuh.webp"
+  },
+  "q_q17a9n": {
+    "id": "q_q17a9n",
+    "sourceId": "ADD-medidas-N4-001",
+    "prompt": "Registre 1 quilômetro em metros.",
+    "alt": "Apoio visual complementar — CONVERSÃO DE UNIDADES",
+    "src": "/question-images/q_q17a9n.webp"
+  },
+  "q_yaqnwq": {
+    "id": "q_yaqnwq",
+    "sourceId": "CURR-multiplicacao-N4-01",
+    "prompt": "Quantas peças serão produzidas em 7 dias?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_yaqnwq.webp"
+  },
+  "q_409nwu": {
+    "id": "q_409nwu",
+    "sourceId": "CURR-multiplicacao-N4-02",
+    "prompt": "Qual será o custo dos 8 kits?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_409nwu.webp"
+  },
+  "q_1pakw2h": {
+    "id": "q_1pakw2h",
+    "sourceId": "CURR-multiplicacao-N4-03",
+    "prompt": "Depois de comprar os kits, quanto do orçamento permanece?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1pakw2h.webp"
+  },
+  "q_14u6gl0": {
+    "id": "q_14u6gl0",
+    "sourceId": "CURR-porcentagem-N4-01",
+    "prompt": "Quanto é 12% de um orçamento de 250 reais?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_14u6gl0.webp"
+  },
+  "q_f2cye8": {
+    "id": "q_f2cye8",
+    "sourceId": "CURR-porcentagem-N4-02",
+    "prompt": "Uma produção de 120 peças aumentou 15%. Qual é o novo total?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_f2cye8.webp"
+  },
+  "q_olvm17": {
+    "id": "q_olvm17",
+    "sourceId": "CURR-porcentagem-N4-03",
+    "prompt": "Foram usados 30% de 240 metros de tubo. Quantos metros ainda permanecem?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_olvm17.webp"
+  },
+  "q_rfn06": {
+    "id": "q_rfn06",
+    "sourceId": "ADD-porcentagem-N4-001",
+    "prompt": "Explique o que o número de baixo indica em 2/5.",
+    "alt": "Apoio visual complementar — FRAÇÕES",
+    "src": "/question-images/q_rfn06.webp"
+  },
+  "q_h299v3": {
+    "id": "q_h299v3",
+    "sourceId": "ADD-porcentagem-N4-002",
+    "prompt": "Escolha uma estratégia para conferir 6 × 4 e descreva-a.",
+    "alt": "Apoio visual complementar — OPERAÇÕES COM NÚMEROS REAIS",
+    "src": "/question-images/q_h299v3.webp"
+  },
+  "q_12x0l6m": {
+    "id": "q_12x0l6m",
+    "sourceId": "ADD-porcentagem-N4-003",
+    "prompt": "Explique por que anotar dados ajuda a decidir no trabalho.",
+    "alt": "Apoio visual complementar — ESTATÍSTICA",
+    "src": "/question-images/q_12x0l6m.webp"
+  },
+  "q_1po3h92": {
+    "id": "q_1po3h92",
+    "sourceId": "YA-porcentagem-N4-001",
+    "prompt": "67 + 28 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1po3h92.webp"
+  },
+  "q_1e2m47l": {
+    "id": "q_1e2m47l",
+    "sourceId": "YA-porcentagem-N4-002",
+    "prompt": "84 - 39 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1e2m47l.webp"
+  },
+  "q_amb2vk": {
+    "id": "q_amb2vk",
+    "sourceId": "YA-porcentagem-N4-003",
+    "prompt": "125 + 47 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_amb2vk.webp"
+  },
+  "q_1belv7": {
+    "id": "q_1belv7",
+    "sourceId": "YA-porcentagem-N4-004",
+    "prompt": "150 - 68 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1belv7.webp"
+  },
+  "q_ho3kg1": {
+    "id": "q_ho3kg1",
+    "sourceId": "YA-porcentagem-N4-005",
+    "prompt": "Complete: 36 + __ = 91.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_ho3kg1.webp"
+  },
+  "q_1hffkdo": {
+    "id": "q_1hffkdo",
+    "sourceId": "YA-porcentagem-N4-006",
+    "prompt": "Complete: __ + 58 = 120.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1hffkdo.webp"
+  },
+  "q_10a9d80": {
+    "id": "q_10a9d80",
+    "sourceId": "YA-porcentagem-N4-007",
+    "prompt": "Complete: 100 - __ = 47.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_10a9d80.webp"
+  },
+  "q_116q0li": {
+    "id": "q_116q0li",
+    "sourceId": "YA-porcentagem-N4-008",
+    "prompt": "Complete: __ - 35 = 62.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_116q0li.webp"
+  },
+  "q_1l27g2c": {
+    "id": "q_1l27g2c",
+    "sourceId": "YA-porcentagem-N4-009",
+    "prompt": "Complete: 14, 21, 28, __, __.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1l27g2c.webp"
+  },
+  "q_1sb1ryg": {
+    "id": "q_1sb1ryg",
+    "sourceId": "YA-porcentagem-N4-010",
+    "prompt": "Complete: 90, 85, 80, __, __.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1sb1ryg.webp"
+  },
+  "q_vn9lvt": {
+    "id": "q_vn9lvt",
+    "sourceId": "YA-porcentagem-N4-011",
+    "prompt": "Um arquivo tinha 63 documentos. Foram acrescentados 27 e depois retirados 18. Quantos ficaram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_vn9lvt.webp"
+  },
+  "q_1j914ar": {
+    "id": "q_1j914ar",
+    "sourceId": "YA-porcentagem-N4-012",
+    "prompt": "Uma sala tinha 48 cadeiras. Recebeu mais 16 e depois 9 foram levadas para outro local. Quantas ficaram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1j914ar.webp"
+  },
+  "q_1s6do4s": {
+    "id": "q_1s6do4s",
+    "sourceId": "YA-porcentagem-N4-013",
+    "prompt": "Um setor iniciou o dia com 75 itens. Utilizou 28 e recebeu mais 13. Com quantos terminou?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1s6do4s.webp"
+  },
+  "q_19260sd": {
+    "id": "q_19260sd",
+    "sourceId": "YA-porcentagem-N4-014",
+    "prompt": "Em uma pasta havia 120 registros. Foram separados 35 e depois mais 22. Quantos ainda não haviam sido separados?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_19260sd.webp"
+  },
+  "q_giacfl": {
+    "id": "q_giacfl",
+    "sourceId": "YA-porcentagem-N4-015",
+    "prompt": "Pela manhã foram atendidas 34 pessoas e à tarde 29. Se 7 atendimentos foram cancelados, quantos ocorreram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_giacfl.webp"
+  },
+  "q_8j5tx4": {
+    "id": "q_8j5tx4",
+    "sourceId": "YA-porcentagem-N4-016",
+    "prompt": "Uma equipe precisava revisar 100 documentos. Revisou 38 pela manhã e 27 à tarde. Quantos ainda faltam?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_8j5tx4.webp"
+  },
+  "q_pr0cw8": {
+    "id": "q_pr0cw8",
+    "sourceId": "YA-porcentagem-N4-017",
+    "prompt": "Qual é maior: 72 + 19 ou 120 - 28?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_pr0cw8.webp"
+  },
+  "q_kc1deg": {
+    "id": "q_kc1deg",
+    "sourceId": "YA-porcentagem-N4-018",
+    "prompt": "Qual é menor: 150 - 63 ou 45 + 41?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_kc1deg.webp"
+  },
+  "q_1p6g7ly": {
+    "id": "q_1p6g7ly",
+    "sourceId": "YA-porcentagem-N4-019",
+    "prompt": "Descubra o número: __ + 25 - 10 = 70.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1p6g7ly.webp"
+  },
+  "q_1lbnrri": {
+    "id": "q_1lbnrri",
+    "sourceId": "YA-porcentagem-N4-020",
+    "prompt": "Descubra o número: 100 - __ + 8 = 60.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1lbnrri.webp"
+  },
+  "q_gbbh68": {
+    "id": "q_gbbh68",
+    "sourceId": "CURR-adicao-N5-01",
+    "prompt": "Depois de reservar os 22 metros, quanto fica disponível para uma nova ordem?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_gbbh68.webp"
+  },
+  "q_99gvnk": {
+    "id": "q_99gvnk",
+    "sourceId": "CURR-adicao-N5-02",
+    "prompt": "Uma nova ordem precisa de 70 metros. Quanto falta?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_99gvnk.webp"
+  },
+  "q_1n7bs0b": {
+    "id": "q_1n7bs0b",
+    "sourceId": "CURR-adicao-N5-03",
+    "prompt": "Qual registro comunica a situação com mais precisão?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1n7bs0b.webp"
+  },
+  "q_1ejoqm3": {
+    "id": "q_1ejoqm3",
+    "sourceId": "CURR-divisao-N5-01",
+    "prompt": "Quantos metros cada frente recebe?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1ejoqm3.webp"
+  },
+  "q_1u3yfti": {
+    "id": "q_1u3yfti",
+    "sourceId": "CURR-divisao-N5-02",
+    "prompt": "Quantas peças inteiras cabem em cada uma das 8 caixas?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1u3yfti.webp"
+  },
+  "q_1q96ndi": {
+    "id": "q_1q96ndi",
+    "sourceId": "CURR-divisao-N5-03",
+    "prompt": "Qual registro comunica corretamente a sobra da segunda ordem?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1q96ndi.webp"
+  },
+  "q_aic9hl": {
+    "id": "q_aic9hl",
+    "sourceId": "CURR-medidas-N5-01",
+    "prompt": "Depois de cortar 7 trechos de 2,4 m de um rolo de 18 m, quanto sobra?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_aic9hl.webp"
+  },
+  "q_fypgt5": {
+    "id": "q_fypgt5",
+    "sourceId": "CURR-medidas-N5-02",
+    "prompt": "Um tanque de 2.500 litros recebeu 750 litros de uso. Qual volume permanece?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_fypgt5.webp"
+  },
+  "q_1ooaju7": {
+    "id": "q_1ooaju7",
+    "sourceId": "CURR-medidas-N5-03",
+    "prompt": "Um turno vai de 7h30 a 15h00 e tem 30 minutos de pausa. Qual é o tempo efetivo de trabalho?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1ooaju7.webp"
+  },
+  "q_by58xc": {
+    "id": "q_by58xc",
+    "sourceId": "CURR-multiplicacao-N5-01",
+    "prompt": "Quantas peças a Equipe A instala na programação?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_by58xc.webp"
+  },
+  "q_1kxasaf": {
+    "id": "q_1kxasaf",
+    "sourceId": "CURR-multiplicacao-N5-02",
+    "prompt": "O quadro registra 72 peças para a Equipe B. Qual cálculo confere esse resultado?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1kxasaf.webp"
+  },
+  "q_722sq5": {
+    "id": "q_722sq5",
+    "sourceId": "CURR-multiplicacao-N5-03",
+    "prompt": "Qual decisão atende à meta de 150 peças?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_722sq5.webp"
+  },
+  "q_te0t04": {
+    "id": "q_te0t04",
+    "sourceId": "CURR-porcentagem-N5-01",
+    "prompt": "Uma perda de 8% em 375 peças deixa quantas peças utilizáveis?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_te0t04.webp"
+  },
+  "q_7xaa5q": {
+    "id": "q_7xaa5q",
+    "sourceId": "CURR-porcentagem-N5-02",
+    "prompt": "Qual desconto é maior em dinheiro: 12% de 500 reais ou 15% de 400 reais?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_7xaa5q.webp"
+  },
+  "q_1rj6yj7": {
+    "id": "q_1rj6yj7",
+    "sourceId": "CURR-porcentagem-N5-03",
+    "prompt": "Uma meta era 240 atendimentos e foram feitos 204. Qual percentual da meta foi atingido?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1rj6yj7.webp"
+  },
+  "q_1k8qqpi": {
+    "id": "q_1k8qqpi",
+    "sourceId": "YA-porcentagem-N5-001",
+    "prompt": "Qual era o serviço programado?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1k8qqpi.webp"
+  },
+  "q_3e7ujs": {
+    "id": "q_3e7ujs",
+    "sourceId": "YA-porcentagem-N5-002",
+    "prompt": "Em que dia ele ocorreria?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_3e7ujs.webp"
+  },
+  "q_1c87wcq": {
+    "id": "q_1c87wcq",
+    "sourceId": "YA-porcentagem-N5-003",
+    "prompt": "O que alguns moradores fizeram antes da manutenção?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1c87wcq.webp"
+  },
+  "q_vjsonf": {
+    "id": "q_vjsonf",
+    "sourceId": "YA-porcentagem-N5-004",
+    "prompt": "O serviço terminou no horário previsto?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_vjsonf.webp"
+  },
+  "q_4vy5ou": {
+    "id": "q_4vy5ou",
+    "sourceId": "YA-porcentagem-N5-005",
+    "prompt": "Quanto tempo a mais ele durou?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_4vy5ou.webp"
+  },
+  "q_mhgav5": {
+    "id": "q_mhgav5",
+    "sourceId": "YA-porcentagem-N5-006",
+    "prompt": "Quando o abastecimento voltou ao normal?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_mhgav5.webp"
+  },
+  "q_1gbaha": {
+    "id": "q_1gbaha",
+    "sourceId": "YA-porcentagem-N5-007",
+    "prompt": "Por que a administração publicou uma nova mensagem?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1gbaha.webp"
+  },
+  "q_10ipv2a": {
+    "id": "q_10ipv2a",
+    "sourceId": "YA-porcentagem-N5-008",
+    "prompt": "O que se pode inferir sobre os moradores que guardaram água?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_10ipv2a.webp"
+  },
+  "q_1hk23ga": {
+    "id": "q_1hk23ga",
+    "sourceId": "YA-porcentagem-N5-009",
+    "prompt": "Qual é a finalidade principal do texto?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1hk23ga.webp"
+  },
+  "q_1pmgvr2": {
+    "id": "q_1pmgvr2",
+    "sourceId": "YA-porcentagem-N5-010",
+    "prompt": "Identifique uma relação de contraste no texto.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1pmgvr2.webp"
+  },
+  "q_jpobxc": {
+    "id": "q_jpobxc",
+    "sourceId": "YA-porcentagem-N5-011",
+    "prompt": "A palavra \"ele\", se usada para substituir \"o serviço\", seria um recurso de:",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_jpobxc.webp"
+  },
+  "q_xjh0xw": {
+    "id": "q_xjh0xw",
+    "sourceId": "YA-porcentagem-N5-012",
+    "prompt": "Sugira um título adequado.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_xjh0xw.webp"
+  },
+  "q_1bqj43x": {
+    "id": "q_1bqj43x",
+    "sourceId": "YA-porcentagem-N5-013",
+    "prompt": "Qual é a causa apresentada na frase?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1bqj43x.webp"
+  },
+  "q_yp6w98": {
+    "id": "q_yp6w98",
+    "sourceId": "YA-porcentagem-N5-014",
+    "prompt": "Qual é a ação principal de Luciana?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_yp6w98.webp"
+  },
+  "q_hm3w26": {
+    "id": "q_hm3w26",
+    "sourceId": "YA-porcentagem-N5-015",
+    "prompt": "Substitua \"Luciana\" por um pronome sem perder o sentido.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_hm3w26.webp"
+  },
+  "q_2kup5v": {
+    "id": "q_2kup5v",
+    "sourceId": "YA-porcentagem-N5-016",
+    "prompt": "Reescreva no plural: \"O gerente confirmou o dado.\"",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_2kup5v.webp"
+  },
+  "q_o9i3b3": {
+    "id": "q_o9i3b3",
+    "sourceId": "YA-porcentagem-N5-017",
+    "prompt": "Reescreva a frase no passado: \"A equipe confere os documentos.\"",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_o9i3b3.webp"
+  },
+  "q_1e9w31l": {
+    "id": "q_1e9w31l",
+    "sourceId": "YA-porcentagem-N5-018",
+    "prompt": "Reescreva a frase no futuro: \"A equipe confere os documentos.\"",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1e9w31l.webp"
+  },
+  "q_s93ft4": {
+    "id": "q_s93ft4",
+    "sourceId": "YA-porcentagem-N5-019",
+    "prompt": "Revise a frase: \"os funcionario chegou cedo e organizou os documento.\"",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_s93ft4.webp"
+  },
+  "q_1xm8s3f": {
+    "id": "q_1xm8s3f",
+    "sourceId": "YA-porcentagem-N5-020",
+    "prompt": "Produza um pequeno texto de 5 a 7 frases sobre uma situação realista do cotidiano.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1xm8s3f.webp"
+  },
+  "q_1rre8jw": {
+    "id": "q_1rre8jw",
+    "sourceId": "YA-porcentagem-N5-021",
+    "prompt": "248 + 176 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1rre8jw.webp"
+  },
+  "q_132rfh0": {
+    "id": "q_132rfh0",
+    "sourceId": "YA-porcentagem-N5-022",
+    "prompt": "500 - 238 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_132rfh0.webp"
+  },
+  "q_1v22x1h": {
+    "id": "q_1v22x1h",
+    "sourceId": "YA-porcentagem-N5-023",
+    "prompt": "375 + 129 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1v22x1h.webp"
+  },
+  "q_cioqtz": {
+    "id": "q_cioqtz",
+    "sourceId": "YA-porcentagem-N5-024",
+    "prompt": "640 - 285 = __",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_cioqtz.webp"
+  },
+  "q_301t5f": {
+    "id": "q_301t5f",
+    "sourceId": "YA-porcentagem-N5-025",
+    "prompt": "Complete: 185 + __ = 400.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_301t5f.webp"
+  },
+  "q_6awve1": {
+    "id": "q_6awve1",
+    "sourceId": "YA-porcentagem-N5-026",
+    "prompt": "Complete: __ + 275 = 600.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_6awve1.webp"
+  },
+  "q_nw3zoj": {
+    "id": "q_nw3zoj",
+    "sourceId": "YA-porcentagem-N5-027",
+    "prompt": "Complete: 520 - __ = 285.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_nw3zoj.webp"
+  },
+  "q_17cxfyt": {
+    "id": "q_17cxfyt",
+    "sourceId": "YA-porcentagem-N5-028",
+    "prompt": "Complete: __ - 145 = 330.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_17cxfyt.webp"
+  },
+  "q_mqaami": {
+    "id": "q_mqaami",
+    "sourceId": "YA-porcentagem-N5-029",
+    "prompt": "Complete: 100, 125, 150, __, __.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_mqaami.webp"
+  },
+  "q_10bd5nu": {
+    "id": "q_10bd5nu",
+    "sourceId": "YA-porcentagem-N5-030",
+    "prompt": "Complete: 300, 280, 260, __, __.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_10bd5nu.webp"
+  },
+  "q_qknr2z": {
+    "id": "q_qknr2z",
+    "sourceId": "YA-porcentagem-N5-031",
+    "prompt": "Um arquivo tinha 240 documentos. Incluídos 85 e retirados 60. Quantos permaneceram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_qknr2z.webp"
+  },
+  "q_yh5lo7": {
+    "id": "q_yh5lo7",
+    "sourceId": "YA-porcentagem-N5-032",
+    "prompt": "Depósito começou com 350 unidades. Saíram 128 e chegaram 75. Quantas ao final?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_yh5lo7.webp"
+  },
+  "q_94ihsr": {
+    "id": "q_94ihsr",
+    "sourceId": "YA-porcentagem-N5-033",
+    "prompt": "Equipe tinha 180 registros. Conferiu 72 e 64. Quantos faltavam?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_94ihsr.webp"
+  },
+  "q_sbrmrl": {
+    "id": "q_sbrmrl",
+    "sourceId": "YA-porcentagem-N5-034",
+    "prompt": "Setor recebeu 125 solicitações e 138 no dia seguinte; 47 canceladas. Quantas permaneceram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_sbrmrl.webp"
+  },
+  "q_ri9sjr": {
+    "id": "q_ri9sjr",
+    "sourceId": "YA-porcentagem-N5-035",
+    "prompt": "Registros 86, 94 e 73; 12 duplicados. Quantos válidos restaram?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_ri9sjr.webp"
+  },
+  "q_rw85sb": {
+    "id": "q_rw85sb",
+    "sourceId": "YA-porcentagem-N5-036",
+    "prompt": "Arquivo tinha 500 fichas; 135 retiradas e 48 retornaram. Quantas estão no arquivo?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_rw85sb.webp"
+  },
+  "q_mk1ubq": {
+    "id": "q_mk1ubq",
+    "sourceId": "YA-porcentagem-N5-037",
+    "prompt": "Qual é maior: 275 + 149 ou 500 - 80?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_mk1ubq.webp"
+  },
+  "q_nfzp9a": {
+    "id": "q_nfzp9a",
+    "sourceId": "YA-porcentagem-N5-038",
+    "prompt": "Qual é menor: 620 - 215 ou 180 + 230?",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_nfzp9a.webp"
+  },
+  "q_11o4nut": {
+    "id": "q_11o4nut",
+    "sourceId": "YA-porcentagem-N5-039",
+    "prompt": "Descubra: __ + 120 - 45 = 300.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_11o4nut.webp"
+  },
+  "q_1jku41w": {
+    "id": "q_1jku41w",
+    "sourceId": "YA-porcentagem-N5-040",
+    "prompt": "Descubra: 500 - __ + 30 = 260.",
+    "alt": "Apoio visual complementar — MATEMÁTICA",
+    "src": "/question-images/q_1jku41w.webp"
+  },
+  "q_dosaw7": {
+    "id": "q_dosaw7",
+    "sourceId": "CURR-compreensao-N1-01",
+    "prompt": "O aviso ‘PAUSA ÀS 10H’ informa o quê?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_dosaw7.webp"
+  },
+  "q_1jk93ys": {
+    "id": "q_1jk93ys",
+    "sourceId": "CURR-compreensao-N1-02",
+    "prompt": "A placa ‘USE BOTAS’ orienta qual ação?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1jk93ys.webp"
+  },
+  "q_9bm3uc": {
+    "id": "q_9bm3uc",
+    "sourceId": "CURR-compreensao-N1-03",
+    "prompt": "No recado ‘Rita, leve a lista’, quem deve levar a lista?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_9bm3uc.webp"
+  },
+  "q_qm7ul8": {
+    "id": "q_qm7ul8",
+    "sourceId": "ADD-compreensao-N1-001",
+    "prompt": "Leia a palavra “entrada” e escreva uma situação em que ela aparece.",
+    "alt": "Apoio visual complementar — INTERPRETAÇÃO E VOCABULÁRIO",
+    "src": "/question-images/q_qm7ul8.webp"
+  },
+  "q_lgr561": {
+    "id": "q_lgr561",
+    "sourceId": "ADD-compreensao-N1-002",
+    "prompt": "Escolha um aviso do trabalho e explique o que ele quer dizer.",
+    "alt": "Apoio visual complementar — INTERPRETAÇÃO E VOCABULÁRIO",
+    "src": "/question-images/q_lgr561.webp"
+  },
+  "q_14jshu7": {
+    "id": "q_14jshu7",
+    "sourceId": "ADD-compreensao-N1-003",
+    "prompt": "Registre uma palavra que indique ação em uma instrução.",
+    "alt": "Apoio visual complementar — INTERPRETAÇÃO E VOCABULÁRIO",
+    "src": "/question-images/q_14jshu7.webp"
+  },
+  "q_18qjfrs": {
+    "id": "q_18qjfrs",
+    "sourceId": "ADD-compreensao-N1-004",
+    "prompt": "Descreva como uma imagem pode ajudar a entender um aviso.",
+    "alt": "Apoio visual complementar — INTERPRETAÇÃO E VOCABULÁRIO",
+    "src": "/question-images/q_18qjfrs.webp"
+  },
+  "q_umm0rr": {
+    "id": "q_umm0rr",
+    "sourceId": "CURR-leitura-N1-01",
+    "prompt": "Qual opção mostra somente vogais?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_umm0rr.webp"
+  },
+  "q_gsd07f": {
+    "id": "q_gsd07f",
+    "sourceId": "CURR-leitura-N1-02",
+    "prompt": "Escreva a letra que vem depois de M no alfabeto.",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_gsd07f.webp"
+  },
+  "q_advfiq": {
+    "id": "q_advfiq",
+    "sourceId": "CURR-leitura-N1-03",
+    "prompt": "Em qual palavra a letra inicial é uma consoante?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_advfiq.webp"
+  },
+  "q_akoaek": {
+    "id": "q_akoaek",
+    "sourceId": "ADD-leitura-N1-001",
+    "prompt": "Circule todas as letras P: T P B P D P L P R P.",
+    "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
+    "src": "/question-images/q_akoaek.webp"
+  },
+  "q_dcj4nf": {
+    "id": "q_dcj4nf",
+    "sourceId": "ADD-leitura-N1-002",
+    "prompt": "Observe o alfabeto e escreva a letra depois de J e antes de N.",
+    "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
+    "src": "/question-images/q_dcj4nf.webp"
+  },
+  "q_ufgovo": {
+    "id": "q_ufgovo",
+    "sourceId": "ADD-leitura-N1-003",
+    "prompt": "Complete: F, G, H, __, __, K.",
+    "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
+    "src": "/question-images/q_ufgovo.webp"
+  },
+  "q_i0fbmu": {
+    "id": "q_i0fbmu",
+    "sourceId": "ADD-leitura-N1-004",
+    "prompt": "Pinte maiúsculas de vermelho e minúsculas de azul: A e I o T u.",
+    "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
+    "src": "/question-images/q_i0fbmu.webp"
+  },
+  "q_16ypdsa": {
+    "id": "q_16ypdsa",
+    "sourceId": "ADD-leitura-N1-005",
+    "prompt": "Escreva seu sobrenome e circule as vogais.",
+    "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
+    "src": "/question-images/q_16ypdsa.webp"
+  },
+  "q_fs80ls": {
+    "id": "q_fs80ls",
+    "sourceId": "ADD-leitura-N1-006",
+    "prompt": "Ligue cada letra maiúscula à minúscula: E - Q - N /// n - q - e.",
+    "alt": "Apoio visual complementar — RECONHECIMENTO DE LETRAS",
+    "src": "/question-images/q_fs80ls.webp"
+  },
+  "q_1ry0kpb": {
+    "id": "q_1ry0kpb",
+    "sourceId": "ADD-leitura-N1-007",
+    "prompt": "Escreva três palavras que comecem com BA.",
+    "alt": "Apoio visual complementar — SONS E SÍLABAS",
+    "src": "/question-images/q_1ry0kpb.webp"
+  },
+  "q_2w8vlg": {
+    "id": "q_2w8vlg",
+    "sourceId": "ADD-leitura-N1-008",
+    "prompt": "Separe em sílabas: janela, sapato, computador, relógio.",
+    "alt": "Apoio visual complementar — SONS E SÍLABAS",
+    "src": "/question-images/q_2w8vlg.webp"
+  },
+  "q_8f5d4v": {
+    "id": "q_8f5d4v",
+    "sourceId": "ADD-leitura-N1-009",
+    "prompt": "Circule a palavra que NÃO começa com o mesmo som: pente, panela, sofá, pipoca.",
+    "alt": "Apoio visual complementar — SONS E SÍLABAS",
+    "src": "/question-images/q_8f5d4v.webp"
+  },
+  "q_1xzvbo1": {
+    "id": "q_1xzvbo1",
+    "sourceId": "ADD-leitura-N1-010",
+    "prompt": "Complete com a sílaba que falta: __TO, __SA, __LA.",
+    "alt": "Apoio visual complementar — SONS E SÍLABAS",
+    "src": "/question-images/q_1xzvbo1.webp"
+  },
+  "q_12i4z61": {
+    "id": "q_12i4z61",
+    "sourceId": "ADD-leitura-N1-011",
+    "prompt": "Forme cinco palavras usando TA, TE, TI, TO, TU.",
+    "alt": "Apoio visual complementar — SONS E SÍLABAS",
+    "src": "/question-images/q_12i4z61.webp"
+  },
+  "q_rzhxfk": {
+    "id": "q_rzhxfk",
+    "sourceId": "ADD-leitura-N1-012",
+    "prompt": "Quantas sílabas tem hospital? Separe-a.",
+    "alt": "Apoio visual complementar — SONS E SÍLABAS",
+    "src": "/question-images/q_rzhxfk.webp"
+  },
+  "q_abitio": {
+    "id": "q_abitio",
+    "sourceId": "ADD-leitura-N1-013",
+    "prompt": "Encontre duas palavras que rimam: janela, panela, sapato, cadeira.",
+    "alt": "Apoio visual complementar — RIMAS",
+    "src": "/question-images/q_abitio.webp"
+  },
+  "q_1dvtaph": {
+    "id": "q_1dvtaph",
+    "sourceId": "ADD-leitura-N1-014",
+    "prompt": "O gato subiu no muro, e o rato ficou no escuro.",
+    "alt": "Apoio visual complementar — RIMAS",
+    "src": "/question-images/q_1dvtaph.webp"
+  },
+  "q_1fak1pe": {
+    "id": "q_1fak1pe",
+    "sourceId": "ADD-leitura-N1-015",
+    "prompt": "Escreva uma palavra que rime com flor.",
+    "alt": "Apoio visual complementar — RIMAS",
+    "src": "/question-images/q_1fak1pe.webp"
+  },
+  "q_191onu7": {
+    "id": "q_191onu7",
+    "sourceId": "ADD-leitura-N1-016",
+    "prompt": "Escreva uma palavra que rime com pão.",
+    "alt": "Apoio visual complementar — RIMAS",
+    "src": "/question-images/q_191onu7.webp"
+  },
+  "q_e1v8s6": {
+    "id": "q_e1v8s6",
+    "sourceId": "ADD-leitura-N1-017",
+    "prompt": "Complete: _AIXA, _ORTA, _RATO.",
+    "alt": "Apoio visual complementar — FORMAÇÃO DE PALAVRAS",
+    "src": "/question-images/q_e1v8s6.webp"
+  },
+  "q_5iditu": {
+    "id": "q_5iditu",
+    "sourceId": "ADD-leitura-N1-018",
+    "prompt": "Observe o desenho de um objeto e escreva o nome dele.",
+    "alt": "Apoio visual complementar — FORMAÇÃO DE PALAVRAS",
+    "src": "/question-images/q_5iditu.webp"
+  },
+  "q_j2vm8o": {
+    "id": "q_j2vm8o",
+    "sourceId": "ADD-leitura-N1-019",
+    "prompt": "Reorganize O-V-R-I-L para formar uma palavra.",
+    "alt": "Apoio visual complementar — FORMAÇÃO DE PALAVRAS",
+    "src": "/question-images/q_j2vm8o.webp"
+  },
+  "q_1mj60ht": {
+    "id": "q_1mj60ht",
+    "sourceId": "ADD-leitura-N1-020",
+    "prompt": "Escreva o plural de flor, animal, papel, limão.",
+    "alt": "Apoio visual complementar — FORMAÇÃO DE PALAVRAS",
+    "src": "/question-images/q_1mj60ht.webp"
+  },
+  "q_1bp9kim": {
+    "id": "q_1bp9kim",
+    "sourceId": "ADD-leitura-N1-021",
+    "prompt": "Complete uma cruzadinha de meios de transporte: CARRO, MOTO, TREM, AVIÃO, BARCO.",
+    "alt": "Apoio visual complementar — FORMAÇÃO DE PALAVRAS",
+    "src": "/question-images/q_1bp9kim.webp"
+  },
+  "q_1ot6e0v": {
+    "id": "q_1ot6e0v",
+    "sourceId": "YA-leitura-N1-001",
+    "prompt": "Complete a palavra com a letra que falta: _ASA.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1ot6e0v.webp"
+  },
+  "q_1bisj8p": {
+    "id": "q_1bisj8p",
+    "sourceId": "YA-leitura-N1-002",
+    "prompt": "Complete: _ATO.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1bisj8p.webp"
+  },
+  "q_qet1j": {
+    "id": "q_qet1j",
+    "sourceId": "YA-leitura-N1-003",
+    "prompt": "Circule mentalmente as vogais da palavra TRABALHO e escreva apenas as vogais.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_qet1j.webp"
+  },
+  "q_9l6atd": {
+    "id": "q_9l6atd",
+    "sourceId": "YA-leitura-N1-004",
+    "prompt": "Quantas sílabas há na palavra CASA?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_9l6atd.webp"
+  },
+  "q_undkbj": {
+    "id": "q_undkbj",
+    "sourceId": "YA-leitura-N1-005",
+    "prompt": "Separe em sílabas: MERCADO.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_undkbj.webp"
+  },
+  "q_6y6dd5": {
+    "id": "q_6y6dd5",
+    "sourceId": "YA-leitura-N1-006",
+    "prompt": "Junte as sílabas e forme uma palavra: PA + TO.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_6y6dd5.webp"
+  },
+  "q_1lz13dq": {
+    "id": "q_1lz13dq",
+    "sourceId": "YA-leitura-N1-007",
+    "prompt": "Junte as sílabas e forme uma palavra: CA + FÉ.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1lz13dq.webp"
+  },
+  "q_5ytfis": {
+    "id": "q_5ytfis",
+    "sourceId": "YA-leitura-N1-008",
+    "prompt": "Qual palavra começa com a mesma letra de MESA?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_5ytfis.webp"
+  },
+  "q_nms5oi": {
+    "id": "q_nms5oi",
+    "sourceId": "YA-leitura-N1-009",
+    "prompt": "Qual palavra rima com PATO?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_nms5oi.webp"
+  },
+  "q_10dzz5": {
+    "id": "q_10dzz5",
+    "sourceId": "YA-leitura-N1-010",
+    "prompt": "Qual palavra rima com MÃO?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_10dzz5.webp"
+  },
+  "q_1r7owem": {
+    "id": "q_1r7owem",
+    "sourceId": "YA-leitura-N1-011",
+    "prompt": "Escreva a palavra em letras minúsculas: CASA.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1r7owem.webp"
+  },
+  "q_z2rvzo": {
+    "id": "q_z2rvzo",
+    "sourceId": "YA-leitura-N1-012",
+    "prompt": "Escreva a palavra em letras maiúsculas: trabalho.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_z2rvzo.webp"
+  },
+  "q_1af4xw5": {
+    "id": "q_1af4xw5",
+    "sourceId": "YA-leitura-N1-013",
+    "prompt": "Quantas letras há na palavra LOBO?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1af4xw5.webp"
+  },
+  "q_sgpqt7": {
+    "id": "q_sgpqt7",
+    "sourceId": "YA-leitura-N1-014",
+    "prompt": "Quantas vogais há na palavra LOBO?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_sgpqt7.webp"
+  },
+  "q_17ft0za": {
+    "id": "q_17ft0za",
+    "sourceId": "YA-leitura-N1-015",
+    "prompt": "Qual sinal deve aparecer no final da pergunta: \"Você chegou cedo__\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_17ft0za.webp"
+  },
+  "q_1necem3": {
+    "id": "q_1necem3",
+    "sourceId": "YA-leitura-N1-016",
+    "prompt": "Qual sinal deve aparecer no final da afirmação: \"A reunião começou cedo__\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1necem3.webp"
+  },
+  "q_17egn3f": {
+    "id": "q_17egn3f",
+    "sourceId": "YA-leitura-N1-017",
+    "prompt": "Leia: \"Ana chegou cedo.\" Quem chegou cedo?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_17egn3f.webp"
+  },
+  "q_bttjsq": {
+    "id": "q_bttjsq",
+    "sourceId": "YA-leitura-N1-018",
+    "prompt": "Leia: \"Paulo abriu a porta.\" O que Paulo abriu?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_bttjsq.webp"
+  },
+  "q_vw81ce": {
+    "id": "q_vw81ce",
+    "sourceId": "YA-leitura-N1-019",
+    "prompt": "Leia: \"A loja fecha às seis.\" O que fecha às seis?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_vw81ce.webp"
+  },
+  "q_1ee658h": {
+    "id": "q_1ee658h",
+    "sourceId": "YA-leitura-N1-020",
+    "prompt": "Coloque as palavras em ordem alfabética: casa, aviso, banco.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1ee658h.webp"
+  },
+  "q_1cv61ex": {
+    "id": "q_1cv61ex",
+    "sourceId": "CURR-compreensao-N2-01",
+    "prompt": "A frase 'A equipe chegou às 8h' é...",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1cv61ex.webp"
+  },
+  "q_1xqiiqj": {
+    "id": "q_1xqiiqj",
+    "sourceId": "CURR-compreensao-N2-02",
+    "prompt": "A frase 'Este é o melhor turno' expressa...",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1xqiiqj.webp"
+  },
+  "q_1q3ssgx": {
+    "id": "q_1q3ssgx",
+    "sourceId": "CURR-compreensao-N2-03",
+    "prompt": "Se a entrega foi adiada para amanhã, o que muda?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1q3ssgx.webp"
+  },
+  "q_1fsmkah": {
+    "id": "q_1fsmkah",
+    "sourceId": "PT-compreensao-N2-001",
+    "prompt": "Cite três formas diferentes de linguagem usadas no dia a dia (ex.: fala, gestos, imagens).",
+    "alt": "Apoio visual complementar — LINGUAGEM",
+    "src": "/question-images/q_1fsmkah.webp"
+  },
+  "q_16uhp1j": {
+    "id": "q_16uhp1j",
+    "sourceId": "PT-compreensao-N2-002",
+    "prompt": "O que é linguagem verbal? Dê um exemplo.",
+    "alt": "Apoio visual complementar — LINGUAGEM",
+    "src": "/question-images/q_16uhp1j.webp"
+  },
+  "q_1b67taw": {
+    "id": "q_1b67taw",
+    "sourceId": "PT-compreensao-N2-003",
+    "prompt": "Escreva um sinônimo para: alegre, veloz, formoso, triste.",
+    "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
+    "src": "/question-images/q_1b67taw.webp"
+  },
+  "q_17envxn": {
+    "id": "q_17envxn",
+    "sourceId": "PT-compreensao-N2-004",
+    "prompt": "Escreva um antônimo para: claro, generoso, fácil, cheio.",
+    "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
+    "src": "/question-images/q_17envxn.webp"
+  },
+  "q_1kaw94o": {
+    "id": "q_1kaw94o",
+    "sourceId": "PT-compreensao-N2-005",
+    "prompt": "Dê um exemplo de palavra homônima e explique seu duplo sentido.",
+    "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
+    "src": "/question-images/q_1kaw94o.webp"
+  },
+  "q_lwa07n": {
+    "id": "q_lwa07n",
+    "sourceId": "PT-compreensao-N2-006",
+    "prompt": "Sublinhe os advérbios: \"Ele correu rapidamente e chegou tarde.\"",
+    "alt": "Apoio visual complementar — ADVÉRBIOS",
+    "src": "/question-images/q_lwa07n.webp"
+  },
+  "q_g87igu": {
+    "id": "q_g87igu",
+    "sourceId": "PT-compreensao-N2-007",
+    "prompt": "Classifique os advérbios abaixo quanto à circunstância: aqui, hoje, muito, talvez.",
+    "alt": "Apoio visual complementar — ADVÉRBIOS",
+    "src": "/question-images/q_g87igu.webp"
+  },
+  "q_13vj1yy": {
+    "id": "q_13vj1yy",
+    "sourceId": "PT-compreensao-N2-008",
+    "prompt": "Classifique os numerais: dois, segundo, dobro, dezena.",
+    "alt": "Apoio visual complementar — NUMERAIS",
+    "src": "/question-images/q_13vj1yy.webp"
+  },
+  "q_g3u2lc": {
+    "id": "q_g3u2lc",
+    "sourceId": "PT-compreensao-N2-009",
+    "prompt": "Identifique as interjeições e o sentimento que expressam: \"Ai! Que dor!\" / \"Oba! Consegui!\"",
+    "alt": "Apoio visual complementar — INTERJEIÇÕES",
+    "src": "/question-images/q_g3u2lc.webp"
+  },
+  "q_1es84wm": {
+    "id": "q_1es84wm",
+    "sourceId": "PT-compreensao-N2-010",
+    "prompt": "Classifique as conjunções: \"e\", \"mas\", \"porque\", \"se\".",
+    "alt": "Apoio visual complementar — CONJUNÇÕES",
+    "src": "/question-images/q_1es84wm.webp"
+  },
+  "q_1158so4": {
+    "id": "q_1158so4",
+    "sourceId": "PT-compreensao-N2-011",
+    "prompt": "Classifique como frase, oração ou período: \"Socorro!\" / \"Ele chegou.\" / \"Ele chegou e saiu.\"",
+    "alt": "Apoio visual complementar — FRASE, ORAÇÃO E PERÍODO",
+    "src": "/question-images/q_1158so4.webp"
+  },
+  "q_1fu72vx": {
+    "id": "q_1fu72vx",
+    "sourceId": "PT-compreensao-N2-012",
+    "prompt": "Identifique sujeito e predicado: \"Os alunos estudaram para a prova.\"",
+    "alt": "Apoio visual complementar — SUJEITO E PREDICADO",
+    "src": "/question-images/q_1fu72vx.webp"
+  },
+  "q_7zxuk2": {
+    "id": "q_7zxuk2",
+    "sourceId": "PT-compreensao-N2-013",
+    "prompt": "Identifique a figura de linguagem: \"Chorei rios de lágrimas.\"",
+    "alt": "Apoio visual complementar — FIGURAS DE LINGUAGEM",
+    "src": "/question-images/q_7zxuk2.webp"
+  },
+  "q_155b5x5": {
+    "id": "q_155b5x5",
+    "sourceId": "PT-compreensao-N2-014",
+    "prompt": "Cite os três gêneros literários e um exemplo de obra para cada.",
+    "alt": "Apoio visual complementar — LITERATURA E GÊNEROS",
+    "src": "/question-images/q_155b5x5.webp"
+  },
+  "q_16197um": {
+    "id": "q_16197um",
+    "sourceId": "YA-compreensao-N2-001",
+    "prompt": "Que tipo de texto é esse?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_16197um.webp"
+  },
+  "q_1fxrh6t": {
+    "id": "q_1fxrh6t",
+    "sourceId": "YA-compreensao-N2-002",
+    "prompt": "Em que dia a biblioteca ficará fechada?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1fxrh6t.webp"
+  },
+  "q_1yzijkz": {
+    "id": "q_1yzijkz",
+    "sourceId": "YA-compreensao-N2-003",
+    "prompt": "Por que ela ficará fechada?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1yzijkz.webp"
+  },
+  "q_m3n04k": {
+    "id": "q_m3n04k",
+    "sourceId": "YA-compreensao-N2-004",
+    "prompt": "Quando o atendimento será retomado?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_m3n04k.webp"
+  },
+  "q_5uaqnl": {
+    "id": "q_5uaqnl",
+    "sourceId": "YA-compreensao-N2-005",
+    "prompt": "Qual mensagem central aparece no aviso sobre os galhos?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_5uaqnl.webp"
+  },
+  "q_8do3fr": {
+    "id": "q_8do3fr",
+    "sourceId": "YA-compreensao-N2-006",
+    "prompt": "A palavra \"Ele\" substitui qual nome?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_8do3fr.webp"
+  },
+  "q_16etic6": {
+    "id": "q_16etic6",
+    "sourceId": "YA-compreensao-N2-007",
+    "prompt": "O que Marcos organizou?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_16etic6.webp"
+  },
+  "q_ohgas9": {
+    "id": "q_ohgas9",
+    "sourceId": "YA-compreensao-N2-008",
+    "prompt": "O que aconteceria depois da organização dos documentos?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_ohgas9.webp"
+  },
+  "q_1mf3d7e": {
+    "id": "q_1mf3d7e",
+    "sourceId": "YA-compreensao-N2-009",
+    "prompt": "Reescreva corretamente: \"marcos chegou cedo.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1mf3d7e.webp"
+  },
+  "q_1qefes5": {
+    "id": "q_1qefes5",
+    "sourceId": "YA-compreensao-N2-010",
+    "prompt": "Reescreva corretamente: \"a reunião começou. ela terminou às dez.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1qefes5.webp"
+  },
+  "q_101d66b": {
+    "id": "q_101d66b",
+    "sourceId": "YA-compreensao-N2-011",
+    "prompt": "Complete com M, N ou til: ca__po.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_101d66b.webp"
+  },
+  "q_16c70yd": {
+    "id": "q_16c70yd",
+    "sourceId": "YA-compreensao-N2-012",
+    "prompt": "Complete com M, N ou til: ma__hã.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_16c70yd.webp"
+  },
+  "q_1j4mul9": {
+    "id": "q_1j4mul9",
+    "sourceId": "YA-compreensao-N2-013",
+    "prompt": "Complete com M, N ou til: irmã__.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1j4mul9.webp"
+  },
+  "q_1fpwb82": {
+    "id": "q_1fpwb82",
+    "sourceId": "YA-compreensao-N2-014",
+    "prompt": "Qual palavra tem sentido mais próximo de \"avisar\"?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1fpwb82.webp"
+  },
+  "q_1a0jvqh": {
+    "id": "q_1a0jvqh",
+    "sourceId": "YA-compreensao-N2-015",
+    "prompt": "Qual título combina melhor com a frase \"O ônibus atrasou por causa do trânsito\"?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1a0jvqh.webp"
+  },
+  "q_bj3db1": {
+    "id": "q_bj3db1",
+    "sourceId": "YA-compreensao-N2-016",
+    "prompt": "Passe para o plural: \"O documento importante.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_bj3db1.webp"
+  },
+  "q_1ih4oir": {
+    "id": "q_1ih4oir",
+    "sourceId": "YA-compreensao-N2-017",
+    "prompt": "Passe para o singular: \"As portas abertas.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1ih4oir.webp"
+  },
+  "q_s9ye2p": {
+    "id": "q_s9ye2p",
+    "sourceId": "YA-compreensao-N2-018",
+    "prompt": "Complete corretamente: \"Os funcionários ______ cedo.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_s9ye2p.webp"
+  },
+  "q_eusdqp": {
+    "id": "q_eusdqp",
+    "sourceId": "YA-compreensao-N2-019",
+    "prompt": "Complete corretamente: \"A funcionária ______ cedo.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_eusdqp.webp"
+  },
+  "q_1xea5n2": {
+    "id": "q_1xea5n2",
+    "sourceId": "YA-compreensao-N2-020",
+    "prompt": "Escreva uma frase curta usando a palavra \"aviso\".",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1xea5n2.webp"
+  },
+  "q_schh8t": {
+    "id": "q_schh8t",
+    "sourceId": "CURR-leitura-N2-01",
+    "prompt": "O aviso 'Higienize as mãos antes de iniciar' pede qual ação primeiro?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_schh8t.webp"
+  },
+  "q_9f26ly": {
+    "id": "q_9f26ly",
+    "sourceId": "CURR-leitura-N2-02",
+    "prompt": "A expressão 'água potável' indica água...",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_9f26ly.webp"
+  },
+  "q_eg83v9": {
+    "id": "q_eg83v9",
+    "sourceId": "CURR-leitura-N2-03",
+    "prompt": "Em uma placa, onde normalmente encontramos a instrução principal?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_eg83v9.webp"
+  },
+  "q_14u8fyn": {
+    "id": "q_14u8fyn",
+    "sourceId": "PT-leitura-N2-001",
+    "prompt": "Separe em fonemas a palavra \"casa\" e a palavra \"chuva\".",
+    "alt": "Apoio visual complementar — FONEMA",
+    "src": "/question-images/q_14u8fyn.webp"
+  },
+  "q_fb2roj": {
+    "id": "q_fb2roj",
+    "sourceId": "PT-leitura-N2-002",
+    "prompt": "Classifique quanto à tonicidade: café, árvore, médico, jabuti.",
+    "alt": "Apoio visual complementar — TONICIDADE",
+    "src": "/question-images/q_fb2roj.webp"
+  },
+  "q_1sci61x": {
+    "id": "q_1sci61x",
+    "sourceId": "CURR-compreensao-N3-01",
+    "prompt": "Você recebe: 'pare o equipamento' e 'continue até o supervisor chegar'. Qual atitude é mais segura?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1sci61x.webp"
+  },
+  "q_1sespdx": {
+    "id": "q_1sespdx",
+    "sourceId": "CURR-compreensao-N3-02",
+    "prompt": "Um recado diz 'Carlos, registre a medição antes do almoço'. Quem deve agir?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1sespdx.webp"
+  },
+  "q_zfau5q": {
+    "id": "q_zfau5q",
+    "sourceId": "CURR-compreensao-N3-03",
+    "prompt": "Se o registro não for feito, qual consequência é mais provável?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_zfau5q.webp"
+  },
+  "q_10y04yk": {
+    "id": "q_10y04yk",
+    "sourceId": "PT-compreensao-N3-001",
+    "prompt": "Diferencie linguagem verbal de linguagem não verbal, citando um exemplo de cada.",
+    "alt": "Apoio visual complementar — LINGUAGEM",
+    "src": "/question-images/q_10y04yk.webp"
+  },
+  "q_87547k": {
+    "id": "q_87547k",
+    "sourceId": "PT-compreensao-N3-002",
+    "prompt": "Explique, com suas palavras, a função da linguagem em uma conversa entre amigos e em um discurso formal.",
+    "alt": "Apoio visual complementar — LINGUAGEM",
+    "src": "/question-images/q_87547k.webp"
+  },
+  "q_dxcxph": {
+    "id": "q_dxcxph",
+    "sourceId": "PT-compreensao-N3-003",
+    "prompt": "Reescreva a frase substituindo a palavra destacada por um sinônimo adequado: \"O diretor foi intransigente com os prazos.\"",
+    "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
+    "src": "/question-images/q_dxcxph.webp"
+  },
+  "q_1f65vhd": {
+    "id": "q_1f65vhd",
+    "sourceId": "PT-compreensao-N3-004",
+    "prompt": "Explique a diferença entre homônimos homógrafos e homófonos, com um exemplo de cada.",
+    "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
+    "src": "/question-images/q_1f65vhd.webp"
+  },
+  "q_14vhx90": {
+    "id": "q_14vhx90",
+    "sourceId": "PT-compreensao-N3-005",
+    "prompt": "Reescreva a frase trocando a posição do advérbio e explique se o sentido mudou: \"Só ele resolveu o problema.\"",
+    "alt": "Apoio visual complementar — ADVÉRBIOS",
+    "src": "/question-images/q_14vhx90.webp"
+  },
+  "q_ek6uqi": {
+    "id": "q_ek6uqi",
+    "sourceId": "PT-compreensao-N3-006",
+    "prompt": "Escreva por extenso: 15º, 1/3, 200.",
+    "alt": "Apoio visual complementar — NUMERAIS",
+    "src": "/question-images/q_ek6uqi.webp"
+  },
+  "q_131669i": {
+    "id": "q_131669i",
+    "sourceId": "PT-compreensao-N3-007",
+    "prompt": "Escreva um pequeno diálogo usando ao menos três interjeições diferentes.",
+    "alt": "Apoio visual complementar — INTERJEIÇÕES",
+    "src": "/question-images/q_131669i.webp"
+  },
+  "q_5oytst": {
+    "id": "q_5oytst",
+    "sourceId": "PT-compreensao-N3-008",
+    "prompt": "Una as frases usando a conjunção adequada: \"Estudei muito. / Não fui bem na prova.\"",
+    "alt": "Apoio visual complementar — CONJUNÇÕES",
+    "src": "/question-images/q_5oytst.webp"
+  },
+  "q_1ujyjoi": {
+    "id": "q_1ujyjoi",
+    "sourceId": "PT-compreensao-N3-009",
+    "prompt": "Identifique o número de orações no período: \"Quando ele chegou, todos já haviam saído, pois estava muito tarde.\"",
+    "alt": "Apoio visual complementar — FRASE, ORAÇÃO E PERÍODO",
+    "src": "/question-images/q_1ujyjoi.webp"
+  },
+  "q_1c04v1g": {
+    "id": "q_1c04v1g",
+    "sourceId": "PT-compreensao-N3-010",
+    "prompt": "Classifique o sujeito: \"Choveu muito ontem.\" / \"Vendem-se casas.\" / \"Fala-se inglês aqui.\"",
+    "alt": "Apoio visual complementar — SUJEITO E PREDICADO",
+    "src": "/question-images/q_1c04v1g.webp"
+  },
+  "q_1tqwza0": {
+    "id": "q_1tqwza0",
+    "sourceId": "PT-compreensao-N3-011",
+    "prompt": "Identifique a figura de linguagem em: \"O sol beijava as montanhas\" / \"Ele é um leão em campo\" / \"Que silêncio ensurdecedor.\"",
+    "alt": "Apoio visual complementar — FIGURAS DE LINGUAGEM",
+    "src": "/question-images/q_1tqwza0.webp"
+  },
+  "q_1b11bwq": {
+    "id": "q_1b11bwq",
+    "sourceId": "PT-compreensao-N3-012",
+    "prompt": "Diferencie gênero lírico, épico e dramático quanto à forma e à finalidade.",
+    "alt": "Apoio visual complementar — LITERATURA E GÊNEROS",
+    "src": "/question-images/q_1b11bwq.webp"
+  },
+  "q_kcsz11": {
+    "id": "q_kcsz11",
+    "sourceId": "YA-compreensao-N3-001",
+    "prompt": "Qual ideia principal aparece no relato sobre os galhos?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_kcsz11.webp"
+  },
+  "q_nzh4ie": {
+    "id": "q_nzh4ie",
+    "sourceId": "YA-compreensao-N3-002",
+    "prompt": "O que provocou o problema?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_nzh4ie.webp"
+  },
+  "q_1sok0nd": {
+    "id": "q_1sok0nd",
+    "sourceId": "YA-compreensao-N3-003",
+    "prompt": "O que caiu na rua?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1sok0nd.webp"
+  },
+  "q_xziu7o": {
+    "id": "q_xziu7o",
+    "sourceId": "YA-compreensao-N3-004",
+    "prompt": "Quem ajudou a organizar a passagem?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_xziu7o.webp"
+  },
+  "q_l1tdbb": {
+    "id": "q_l1tdbb",
+    "sourceId": "YA-compreensao-N3-005",
+    "prompt": "Quando os moradores ajudaram?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_l1tdbb.webp"
+  },
+  "q_1u4b82u": {
+    "id": "q_1u4b82u",
+    "sourceId": "YA-compreensao-N3-006",
+    "prompt": "Para que esse texto foi escrito?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1u4b82u.webp"
+  },
+  "q_33aw46": {
+    "id": "q_33aw46",
+    "sourceId": "YA-compreensao-N3-007",
+    "prompt": "A expressão \"equipe responsável pela limpeza\" se refere a pessoas que fariam o quê?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_33aw46.webp"
+  },
+  "q_l90cop": {
+    "id": "q_l90cop",
+    "sourceId": "YA-compreensao-N3-008",
+    "prompt": "Dê outro título adequado ao texto.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_l90cop.webp"
+  },
+  "q_luwcoi": {
+    "id": "q_luwcoi",
+    "sourceId": "YA-compreensao-N3-009",
+    "prompt": "A palavra \"Ela\" retoma qual palavra?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_luwcoi.webp"
+  },
+  "q_1jmqjdg": {
+    "id": "q_1jmqjdg",
+    "sourceId": "YA-compreensao-N3-010",
+    "prompt": "A palavra \"o\", em \"o entregou\", retoma qual expressão?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1jmqjdg.webp"
+  },
+  "q_jmd9tu": {
+    "id": "q_jmd9tu",
+    "sourceId": "YA-compreensao-N3-011",
+    "prompt": "Reescreva no plural: \"A funcionária recebeu o comunicado.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_jmd9tu.webp"
+  },
+  "q_zfohs1": {
+    "id": "q_zfohs1",
+    "sourceId": "YA-compreensao-N3-012",
+    "prompt": "Reescreva no singular: \"Os funcionários organizaram os documentos.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_zfohs1.webp"
+  },
+  "q_1hc73jb": {
+    "id": "q_1hc73jb",
+    "sourceId": "YA-compreensao-N3-013",
+    "prompt": "Complete: \"As salas estavam ______.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1hc73jb.webp"
+  },
+  "q_523yi0": {
+    "id": "q_523yi0",
+    "sourceId": "YA-compreensao-N3-014",
+    "prompt": "Complete: \"O arquivo estava ______.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_523yi0.webp"
+  },
+  "q_159n1a8": {
+    "id": "q_159n1a8",
+    "sourceId": "YA-compreensao-N3-015",
+    "prompt": "Qual palavra é mais adequada para substituir \"problema\" sem alterar muito o sentido?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_159n1a8.webp"
+  },
+  "q_zwz4mp": {
+    "id": "q_zwz4mp",
+    "sourceId": "YA-compreensao-N3-016",
+    "prompt": "Organize em ordem alfabética: reunião, aviso, documento, cadastro.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_zwz4mp.webp"
+  },
+  "q_wkez56": {
+    "id": "q_wkez56",
+    "sourceId": "YA-compreensao-N3-017",
+    "prompt": "Leia: \"O portão estava fechado, por isso João procurou outra entrada.\" O que significa \"por isso\"?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_wkez56.webp"
+  },
+  "q_19imhol": {
+    "id": "q_19imhol",
+    "sourceId": "YA-compreensao-N3-018",
+    "prompt": "Leia: \"O ônibus estava lotado, mas chegou no horário.\" A palavra \"mas\" indica:",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_19imhol.webp"
+  },
+  "q_lqyhfb": {
+    "id": "q_lqyhfb",
+    "sourceId": "YA-compreensao-N3-019",
+    "prompt": "Escreva uma frase usando \"ele\" ou \"ela\" para evitar repetição de um nome.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_lqyhfb.webp"
+  },
+  "q_611ohh": {
+    "id": "q_611ohh",
+    "sourceId": "YA-compreensao-N3-020",
+    "prompt": "Escreva duas frases usando \"mas\", \"por isso\" ou \"depois\" para conectar as ideias.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_611ohh.webp"
+  },
+  "q_4b4ay6": {
+    "id": "q_4b4ay6",
+    "sourceId": "CURR-leitura-N3-01",
+    "prompt": "A mensagem 'A reunião mudou para 14h, na sala 2' informa alteração em...",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_4b4ay6.webp"
+  },
+  "q_yj8buz": {
+    "id": "q_yj8buz",
+    "sourceId": "CURR-leitura-N3-02",
+    "prompt": "O aviso 'Não compartilhe este código' orienta a...",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_yj8buz.webp"
+  },
+  "q_d9l10m": {
+    "id": "q_d9l10m",
+    "sourceId": "CURR-leitura-N3-03",
+    "prompt": "Na instrução 'clique no link e confirme', qual ação aparece antes?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_d9l10m.webp"
+  },
+  "q_11msnxz": {
+    "id": "q_11msnxz",
+    "sourceId": "PT-leitura-N3-001",
+    "prompt": "Explique a diferença entre letra e fonema, usando a palavra \"táxi\" como exemplo.",
+    "alt": "Apoio visual complementar — FONEMA",
+    "src": "/question-images/q_11msnxz.webp"
+  },
+  "q_w2w0yw": {
+    "id": "q_w2w0yw",
+    "sourceId": "PT-leitura-N3-002",
+    "prompt": "Aplique a regra de acentuação e explique por que \"família\" e \"história\" são acentuadas.",
+    "alt": "Apoio visual complementar — TONICIDADE",
+    "src": "/question-images/q_w2w0yw.webp"
+  },
+  "q_k3eree": {
+    "id": "q_k3eree",
+    "sourceId": "CURR-compreensao-N4-01",
+    "prompt": "A mensagem A diz 'use luvas'; a B diz 'luvas apenas na limpeza'. O que falta para decidir?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_k3eree.webp"
+  },
+  "q_1m45xk2": {
+    "id": "q_1m45xk2",
+    "sourceId": "CURR-compreensao-N4-02",
+    "prompt": "Um comunicado informa o local, mas não informa o horário. Qual pergunta completa o entendimento?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1m45xk2.webp"
+  },
+  "q_nofp1v": {
+    "id": "q_nofp1v",
+    "sourceId": "CURR-compreensao-N4-03",
+    "prompt": "Entre 'pare agora' e 'pare quando terminar', qual instrução é mais precisa em risco imediato?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_nofp1v.webp"
+  },
+  "q_1if0mso": {
+    "id": "q_1if0mso",
+    "sourceId": "PT-compreensao-N4-001",
+    "prompt": "Analise uma propaganda (real ou inventada) e explique como ela combina linguagem verbal e não verbal para convencer o público.",
+    "alt": "Apoio visual complementar — LINGUAGEM",
+    "src": "/question-images/q_1if0mso.webp"
+  },
+  "q_1gvqc01": {
+    "id": "q_1gvqc01",
+    "sourceId": "PT-compreensao-N4-002",
+    "prompt": "Construa duas frases em que a mesma palavra homônima assuma sentidos diferentes.",
+    "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
+    "src": "/question-images/q_1gvqc01.webp"
+  },
+  "q_1szvd99": {
+    "id": "q_1szvd99",
+    "sourceId": "PT-compreensao-N4-003",
+    "prompt": "Analise a ambiguidade gerada pelo uso de uma palavra homônima em: \"O jogo terminou cedo.\"",
+    "alt": "Apoio visual complementar — SINÔNIMOS, ANTÔNIMOS E HOMÔNIMOS",
+    "src": "/question-images/q_1szvd99.webp"
+  },
+  "q_1ujeae9": {
+    "id": "q_1ujeae9",
+    "sourceId": "PT-compreensao-N4-004",
+    "prompt": "Explique a diferença de sentido entre: \"Ele não fala bem\" e \"Ele fala não bem\".",
+    "alt": "Apoio visual complementar — ADVÉRBIOS",
+    "src": "/question-images/q_1ujeae9.webp"
+  },
+  "q_sn44yb": {
+    "id": "q_sn44yb",
+    "sourceId": "PT-compreensao-N4-005",
+    "prompt": "Explique a diferença de uso entre numeral cardinal e ordinal em referências a séculos e capítulos de livros.",
+    "alt": "Apoio visual complementar — NUMERAIS",
+    "src": "/question-images/q_sn44yb.webp"
+  },
+  "q_1b4zu6p": {
+    "id": "q_1b4zu6p",
+    "sourceId": "PT-compreensao-N4-006",
+    "prompt": "Explique como a interjeição contribui para o sentido de um texto publicitário, dando um exemplo.",
+    "alt": "Apoio visual complementar — INTERJEIÇÕES",
+    "src": "/question-images/q_1b4zu6p.webp"
+  },
+  "q_1fdgngi": {
+    "id": "q_1fdgngi",
+    "sourceId": "PT-compreensao-N4-007",
+    "prompt": "Reescreva o parágrafo substituindo as conjunções repetidas por sinônimos conjuntivos.",
+    "alt": "Apoio visual complementar — CONJUNÇÕES",
+    "src": "/question-images/q_1fdgngi.webp"
+  },
+  "q_1ex94em": {
+    "id": "q_1ex94em",
+    "sourceId": "PT-compreensao-N4-008",
+    "prompt": "Reescreva o período composto como duas frases simples, sem perder o sentido original.",
+    "alt": "Apoio visual complementar — FRASE, ORAÇÃO E PERÍODO",
+    "src": "/question-images/q_1ex94em.webp"
+  },
+  "q_5yp7qr": {
+    "id": "q_5yp7qr",
+    "sourceId": "PT-compreensao-N4-009",
+    "prompt": "Identifique e classifique o sujeito em orações sem sujeito e com sujeito indeterminado.",
+    "alt": "Apoio visual complementar — SUJEITO E PREDICADO",
+    "src": "/question-images/q_5yp7qr.webp"
+  },
+  "q_c0ks5o": {
+    "id": "q_c0ks5o",
+    "sourceId": "PT-compreensao-N4-010",
+    "prompt": "Escreva um pequeno texto empregando pelo menos três figuras de linguagem diferentes e identifique-as.",
+    "alt": "Apoio visual complementar — FIGURAS DE LINGUAGEM",
+    "src": "/question-images/q_c0ks5o.webp"
+  },
+  "q_gn2of9": {
+    "id": "q_gn2of9",
+    "sourceId": "PT-compreensao-N4-011",
+    "prompt": "Escolha uma obra conhecida e classifique-a quanto ao gênero literário, justificando.",
+    "alt": "Apoio visual complementar — LITERATURA E GÊNEROS",
+    "src": "/question-images/q_gn2of9.webp"
+  },
+  "q_18bzk45": {
+    "id": "q_18bzk45",
+    "sourceId": "CURR-leitura-N4-01",
+    "prompt": "Compare: 'Entrada EPI às 7h' e 'Entrada equipe às 7h'. O que diferencia os avisos?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_18bzk45.webp"
+  },
+  "q_1sz5s43": {
+    "id": "q_1sz5s43",
+    "sourceId": "CURR-leitura-N4-02",
+    "prompt": "A frase 'Antes de liberar a equipe, confira o 4º pavimento' indica que a conferência acontece...",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1sz5s43.webp"
+  },
+  "q_y6yyml": {
+    "id": "q_y6yyml",
+    "sourceId": "CURR-leitura-N4-03",
+    "prompt": "Na ordem 'registre a quantidade e depois assine', qual etapa vem por último?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_y6yyml.webp"
+  },
+  "q_1x9kfxx": {
+    "id": "q_1x9kfxx",
+    "sourceId": "PT-leitura-N4-001",
+    "prompt": "Identifique dígrafos e encontros consonantais nas palavras: chuva, prato, guerra, exceto.",
+    "alt": "Apoio visual complementar — FONEMA",
+    "src": "/question-images/q_1x9kfxx.webp"
+  },
+  "q_4d05do": {
+    "id": "q_4d05do",
+    "sourceId": "PT-leitura-N4-002",
+    "prompt": "Corrija a acentuação e explique a regra em cada caso: \"arvore, oculos, dificil, ultimo, agua.\"",
+    "alt": "Apoio visual complementar — TONICIDADE",
+    "src": "/question-images/q_4d05do.webp"
+  },
+  "q_sehv0a": {
+    "id": "q_sehv0a",
+    "sourceId": "CURR-compreensao-N5-01",
+    "prompt": "Uma postagem sem autor afirma que um procedimento mudou. Qual ação demonstra leitura crítica?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_sehv0a.webp"
+  },
+  "q_j3godj": {
+    "id": "q_j3godj",
+    "sourceId": "CURR-compreensao-N5-02",
+    "prompt": "Dois registros apontam atraso e falta de material. Qual conclusão é mais sustentada?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_j3godj.webp"
+  },
+  "q_1ahgazf": {
+    "id": "q_1ahgazf",
+    "sourceId": "CURR-compreensao-N5-03",
+    "prompt": "Ao resumir um comunicado longo para a equipe, o que deve ser preservado?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1ahgazf.webp"
+  },
+  "q_1p0jvjk": {
+    "id": "q_1p0jvjk",
+    "sourceId": "CURR-leitura-N5-01",
+    "prompt": "Uma escala registra início às 7h, mas o aviso de segurança exige conferência às 6h45. Qual leitura é mais adequada?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1p0jvjk.webp"
+  },
+  "q_1cfyq69": {
+    "id": "q_1cfyq69",
+    "sourceId": "CURR-leitura-N5-02",
+    "prompt": "Um cartaz diz 'Proteja seus dados'. Mesmo sem outra frase, o público esperado é...",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1cfyq69.webp"
+  },
+  "q_16hkwmm": {
+    "id": "q_16hkwmm",
+    "sourceId": "CURR-leitura-N5-03",
+    "prompt": "Duas mensagens informam horários diferentes para a mesma reunião. O que fazer antes de escolher uma?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_16hkwmm.webp"
+  },
+  "q_1lekz0n": {
+    "id": "q_1lekz0n",
+    "sourceId": "CURR-escrita-N1-01",
+    "prompt": "Qual escrita registra corretamente o nome Ana?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1lekz0n.webp"
+  },
+  "q_15qa4kc": {
+    "id": "q_15qa4kc",
+    "sourceId": "CURR-escrita-N1-02",
+    "prompt": "Para preencher o setor da ficha, qual palavra é adequada?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_15qa4kc.webp"
+  },
+  "q_1yiax1j": {
+    "id": "q_1yiax1j",
+    "sourceId": "CURR-escrita-N1-03",
+    "prompt": "Qual mensagem curta confirma que a tarefa foi recebida?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1yiax1j.webp"
+  },
+  "q_1docn8d": {
+    "id": "q_1docn8d",
+    "sourceId": "ADD-escrita-N1-001",
+    "prompt": "Copie “Use o capacete” e destaque a primeira palavra.",
+    "alt": "Apoio visual complementar — FRASES SIMPLES",
+    "src": "/question-images/q_1docn8d.webp"
+  },
+  "q_aji27r": {
+    "id": "q_aji27r",
+    "sourceId": "ADD-escrita-N1-002",
+    "prompt": "Escreva uma frase curta avisando que a tarefa terminou.",
+    "alt": "Apoio visual complementar — FRASES SIMPLES",
+    "src": "/question-images/q_aji27r.webp"
+  },
+  "q_18fic62": {
+    "id": "q_18fic62",
+    "sourceId": "ADD-escrita-N1-003",
+    "prompt": "Leia “Pausa às dez” e registre o horário indicado.",
+    "alt": "Apoio visual complementar — FRASES SIMPLES",
+    "src": "/question-images/q_18fic62.webp"
+  },
+  "q_4ietmt": {
+    "id": "q_4ietmt",
+    "sourceId": "ADD-escrita-N1-004",
+    "prompt": "Monte uma mensagem simples para chamar um colega.",
+    "alt": "Apoio visual complementar — FRASES SIMPLES",
+    "src": "/question-images/q_4ietmt.webp"
+  },
+  "q_86pqjp": {
+    "id": "q_86pqjp",
+    "sourceId": "ADD-escrita-N1-005",
+    "prompt": "Escreva um aviso curto sobre uma área molhada.",
+    "alt": "Apoio visual complementar — PRODUÇÃO DE TEXTO",
+    "src": "/question-images/q_86pqjp.webp"
+  },
+  "q_1m5a6ep": {
+    "id": "q_1m5a6ep",
+    "sourceId": "ADD-escrita-N1-006",
+    "prompt": "Registre uma mensagem informando que faltou material.",
+    "alt": "Apoio visual complementar — PRODUÇÃO DE TEXTO",
+    "src": "/question-images/q_1m5a6ep.webp"
+  },
+  "q_1ey0ts4": {
+    "id": "q_1ey0ts4",
+    "sourceId": "ADD-escrita-N1-007",
+    "prompt": "Escreva duas frases contando o que foi feito no turno.",
+    "alt": "Apoio visual complementar — PRODUÇÃO DE TEXTO",
+    "src": "/question-images/q_1ey0ts4.webp"
+  },
+  "q_pr9tw0": {
+    "id": "q_pr9tw0",
+    "sourceId": "CURR-escrita-N2-01",
+    "prompt": "Qual aviso é mais claro sobre estoque?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_pr9tw0.webp"
+  },
+  "q_fb85rz": {
+    "id": "q_fb85rz",
+    "sourceId": "CURR-escrita-N2-02",
+    "prompt": "Qual registro informa tempo e atividade?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_fb85rz.webp"
+  },
+  "q_1axwj87": {
+    "id": "q_1axwj87",
+    "sourceId": "CURR-escrita-N2-03",
+    "prompt": "Qual pedido é objetivo e respeitoso?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1axwj87.webp"
+  },
+  "q_1r80gam": {
+    "id": "q_1r80gam",
+    "sourceId": "PT-escrita-N2-001",
+    "prompt": "O que são parônimos? Dê um exemplo de par de palavras parônimas.",
+    "alt": "Apoio visual complementar — PARÔNIMOS",
+    "src": "/question-images/q_1r80gam.webp"
+  },
+  "q_1capksz": {
+    "id": "q_1capksz",
+    "sourceId": "PT-escrita-N2-002",
+    "prompt": "Classifique como regular ou irregular: cantar, fazer, comer, ir.",
+    "alt": "Apoio visual complementar — VERBOS",
+    "src": "/question-images/q_1capksz.webp"
+  },
+  "q_1jjy3r9": {
+    "id": "q_1jjy3r9",
+    "sourceId": "PT-escrita-N2-003",
+    "prompt": "Conjugue o verbo \"estudar\" no presente do indicativo (eu, tu, ele, nós, vós, eles).",
+    "alt": "Apoio visual complementar — VERBOS",
+    "src": "/question-images/q_1jjy3r9.webp"
+  },
+  "q_syq1au": {
+    "id": "q_syq1au",
+    "sourceId": "PT-escrita-N2-004",
+    "prompt": "Classifique os substantivos quanto ao tipo (próprio, comum, concreto, abstrato): Brasil, cadeira, amor, cidade.",
+    "alt": "Apoio visual complementar — SUBSTANTIVOS",
+    "src": "/question-images/q_syq1au.webp"
+  },
+  "q_pgy7dz": {
+    "id": "q_pgy7dz",
+    "sourceId": "PT-escrita-N2-005",
+    "prompt": "Sublinhe os adjetivos: \"A casa grande e antiga pertencia a um homem generoso.\"",
+    "alt": "Apoio visual complementar — ADJETIVOS",
+    "src": "/question-images/q_pgy7dz.webp"
+  },
+  "q_se6086": {
+    "id": "q_se6086",
+    "sourceId": "PT-escrita-N2-006",
+    "prompt": "Complete com artigo definido ou indefinido: \"___ menino comprou ___ livro interessante.\"",
+    "alt": "Apoio visual complementar — ARTIGO",
+    "src": "/question-images/q_se6086.webp"
+  },
+  "q_1303mfa": {
+    "id": "q_1303mfa",
+    "sourceId": "PT-escrita-N2-007",
+    "prompt": "Marque onde há crase: \"Vou a a escola / Refiro-me a o assunto / Cheguei a as três horas.\"",
+    "alt": "Apoio visual complementar — CRASE",
+    "src": "/question-images/q_1303mfa.webp"
+  },
+  "q_i21fu0": {
+    "id": "q_i21fu0",
+    "sourceId": "PT-escrita-N2-008",
+    "prompt": "Sublinhe as preposições: \"Ela foi para casa depois do trabalho, sem pressa.\"",
+    "alt": "Apoio visual complementar — PREPOSIÇÃO",
+    "src": "/question-images/q_i21fu0.webp"
+  },
+  "q_ecyent": {
+    "id": "q_ecyent",
+    "sourceId": "PT-escrita-N2-009",
+    "prompt": "Complete com \"por que\", \"porque\", \"por quê\" ou \"porquê\": \"___ você não veio à festa? ___ estava doente.\"",
+    "alt": "Apoio visual complementar — EMPREGO DOS PORQUÊS",
+    "src": "/question-images/q_ecyent.webp"
+  },
+  "q_13c26dw": {
+    "id": "q_13c26dw",
+    "sourceId": "PT-escrita-N2-010",
+    "prompt": "Corrija a concordância: \"Os menino chegou cedo.\" / \"A maioria dos alunos foram aprovado.\"",
+    "alt": "Apoio visual complementar — SINTAXE DE CONCORDÂNCIA",
+    "src": "/question-images/q_13c26dw.webp"
+  },
+  "q_1c83j5u": {
+    "id": "q_1c83j5u",
+    "sourceId": "PT-escrita-N2-011",
+    "prompt": "Classifique os pronomes destacados: \"Eu te disse que isso não é meu problema.\"",
+    "alt": "Apoio visual complementar — PRONOMES",
+    "src": "/question-images/q_1c83j5u.webp"
+  },
+  "q_1lounue": {
+    "id": "q_1lounue",
+    "sourceId": "CURR-escrita-N3-01",
+    "prompt": "Complete: 'Local: almoxarifado. Data: 12/03. ____: 4 conexões.'",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1lounue.webp"
+  },
+  "q_49wmv5": {
+    "id": "q_49wmv5",
+    "sourceId": "CURR-escrita-N3-02",
+    "prompt": "Qual frase separa fato de opinião?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_49wmv5.webp"
+  },
+  "q_1y1d179": {
+    "id": "q_1y1d179",
+    "sourceId": "CURR-escrita-N3-03",
+    "prompt": "Para avisar mudança de turno, qual informação não pode faltar?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1y1d179.webp"
+  },
+  "q_1unxmm": {
+    "id": "q_1unxmm",
+    "sourceId": "PT-escrita-N3-001",
+    "prompt": "Diferencie, usando uma frase para cada: cumprimento / comprimento; comprimir / cumprir.",
+    "alt": "Apoio visual complementar — PARÔNIMOS",
+    "src": "/question-images/q_1unxmm.webp"
+  },
+  "q_77ytck": {
+    "id": "q_77ytck",
+    "sourceId": "PT-escrita-N3-002",
+    "prompt": "Passe para o pretérito perfeito e depois para o futuro do presente: \"Eu como frutas todos os dias.\"",
+    "alt": "Apoio visual complementar — VERBOS",
+    "src": "/question-images/q_77ytck.webp"
+  },
+  "q_1p8zki": {
+    "id": "q_1p8zki",
+    "sourceId": "PT-escrita-N3-003",
+    "prompt": "Identifique o modo verbal em: \"Se ele chegasse mais cedo, pegaria o ônibus.\"",
+    "alt": "Apoio visual complementar — VERBOS",
+    "src": "/question-images/q_1p8zki.webp"
+  },
+  "q_5k36m3": {
+    "id": "q_5k36m3",
+    "sourceId": "PT-escrita-N3-004",
+    "prompt": "Passe para o plural: cidadão, pão, hífen, cônsul.",
+    "alt": "Apoio visual complementar — SUBSTANTIVOS",
+    "src": "/question-images/q_5k36m3.webp"
+  },
+  "q_1phzn65": {
+    "id": "q_1phzn65",
+    "sourceId": "PT-escrita-N3-005",
+    "prompt": "Passe os adjetivos para o grau comparativo e superlativo: bom, mau, grande.",
+    "alt": "Apoio visual complementar — ADJETIVOS",
+    "src": "/question-images/q_1phzn65.webp"
+  },
+  "q_22z4js": {
+    "id": "q_22z4js",
+    "sourceId": "PT-escrita-N3-006",
+    "prompt": "Explique a diferença de sentido entre: \"Comprei um carro\" e \"Comprei o carro.\"",
+    "alt": "Apoio visual complementar — ARTIGO",
+    "src": "/question-images/q_22z4js.webp"
+  },
+  "q_1us4bmy": {
+    "id": "q_1us4bmy",
+    "sourceId": "PT-escrita-N3-007",
+    "prompt": "Corrija: \"Entreguei o trabalho a professora\" e justifique a regra aplicada.",
+    "alt": "Apoio visual complementar — CRASE",
+    "src": "/question-images/q_1us4bmy.webp"
+  },
+  "q_159yax6": {
+    "id": "q_159yax6",
+    "sourceId": "PT-escrita-N3-008",
+    "prompt": "Complete com a preposição adequada: \"Ele gosta ___ música; assistimos ___ filme; obedecemos ___ regras.\"",
+    "alt": "Apoio visual complementar — PREPOSIÇÃO",
+    "src": "/question-images/q_159yax6.webp"
+  },
+  "q_5xjuj9": {
+    "id": "q_5xjuj9",
+    "sourceId": "PT-escrita-N3-009",
+    "prompt": "Escreva uma frase correta para cada uma das quatro formas do \"porquê\".",
+    "alt": "Apoio visual complementar — EMPREGO DOS PORQUÊS",
+    "src": "/question-images/q_5xjuj9.webp"
+  },
+  "q_1g14y0v": {
+    "id": "q_1g14y0v",
+    "sourceId": "PT-escrita-N3-010",
+    "prompt": "Corrija: \"Fazem dois anos que ele se formou.\" / \"Vinte por cento dos moradores votou contra.\"",
+    "alt": "Apoio visual complementar — SINTAXE DE CONCORDÂNCIA",
+    "src": "/question-images/q_1g14y0v.webp"
+  },
+  "q_1p04oel": {
+    "id": "q_1p04oel",
+    "sourceId": "PT-escrita-N3-011",
+    "prompt": "Corrija o uso do pronome: \"Fazer um favor a mim mesmo\" / \"Entre eu e você não há segredos.\"",
+    "alt": "Apoio visual complementar — PRONOMES",
+    "src": "/question-images/q_1p04oel.webp"
+  },
+  "q_12nlvzl": {
+    "id": "q_12nlvzl",
+    "sourceId": "CURR-escrita-N4-01",
+    "prompt": "Qual reescrita transforma 'deu problema lá' em registro útil?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_12nlvzl.webp"
+  },
+  "q_mc2grr": {
+    "id": "q_mc2grr",
+    "sourceId": "CURR-escrita-N4-02",
+    "prompt": "Qual registro organiza melhor uma ocorrência?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_mc2grr.webp"
+  },
+  "q_mtu07k": {
+    "id": "q_mtu07k",
+    "sourceId": "CURR-escrita-N4-03",
+    "prompt": "Que título ajuda a localizar o documento?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_mtu07k.webp"
+  },
+  "q_105leq0": {
+    "id": "q_105leq0",
+    "sourceId": "PT-escrita-N4-001",
+    "prompt": "Construa um parágrafo curto usando corretamente os parônimos: cessão, sessão e seção.",
+    "alt": "Apoio visual complementar — PARÔNIMOS",
+    "src": "/question-images/q_105leq0.webp"
+  },
+  "q_yxg0fc": {
+    "id": "q_yxg0fc",
+    "sourceId": "PT-escrita-N4-002",
+    "prompt": "Reescreva corrigindo os erros de tempo e modo verbal: \"Nós assistimos o filme ontem e gostou muito, mas ela preferia que nós fossemos embora antes.\"",
+    "alt": "Apoio visual complementar — VERBOS",
+    "src": "/question-images/q_yxg0fc.webp"
+  },
+  "q_1kfh659": {
+    "id": "q_1kfh659",
+    "sourceId": "PT-escrita-N4-003",
+    "prompt": "Explique a diferença de sentido entre \"Ele foi ao médico\" e \"Ele iria ao médico\".",
+    "alt": "Apoio visual complementar — VERBOS",
+    "src": "/question-images/q_1kfh659.webp"
+  },
+  "q_uaza2k": {
+    "id": "q_uaza2k",
+    "sourceId": "PT-escrita-N4-004",
+    "prompt": "Explique a diferença entre substantivo coletivo e substantivo comum, dando três exemplos de coletivos pouco usuais.",
+    "alt": "Apoio visual complementar — SUBSTANTIVOS",
+    "src": "/question-images/q_uaza2k.webp"
+  },
+  "q_400qee": {
+    "id": "q_400qee",
+    "sourceId": "PT-escrita-N4-005",
+    "prompt": "Reescreva o texto substituindo os adjetivos por locuções adjetivas equivalentes: \"amor paterno, dor de cabeça, atitude covarde.\"",
+    "alt": "Apoio visual complementar — ADJETIVOS",
+    "src": "/question-images/q_400qee.webp"
+  },
+  "q_1v5zv5m": {
+    "id": "q_1v5zv5m",
+    "sourceId": "PT-escrita-N4-006",
+    "prompt": "Identifique os casos de ausência de artigo no texto: \"Criança gosta de brincar\" — explique o efeito de sentido.",
+    "alt": "Apoio visual complementar — ARTIGO",
+    "src": "/question-images/q_1v5zv5m.webp"
+  },
+  "q_1f87uep": {
+    "id": "q_1f87uep",
+    "sourceId": "PT-escrita-N4-007",
+    "prompt": "Identifique e corrija os erros: \"Ela chegou à uma hora atrasada, andando à pé, à procura do endereço.\"",
+    "alt": "Apoio visual complementar — CRASE",
+    "src": "/question-images/q_1f87uep.webp"
+  },
+  "q_1qo4qpz": {
+    "id": "q_1qo4qpz",
+    "sourceId": "PT-escrita-N4-008",
+    "prompt": "Escreva três frases que exemplifiquem crase facultativa.",
+    "alt": "Apoio visual complementar — CRASE",
+    "src": "/question-images/q_1qo4qpz.webp"
+  },
+  "q_1akilfw": {
+    "id": "q_1akilfw",
+    "sourceId": "PT-escrita-N4-009",
+    "prompt": "Explique o erro de regência em: \"Prefiro carne do que peixe\" e reescreva corretamente.",
+    "alt": "Apoio visual complementar — PREPOSIÇÃO",
+    "src": "/question-images/q_1akilfw.webp"
+  },
+  "q_15bnc46": {
+    "id": "q_15bnc46",
+    "sourceId": "PT-escrita-N4-010",
+    "prompt": "Corrija o texto: \"Não sei o porque disso, mas por quê ele fez assim eu não entendo, porquê nunca me explicou.\"",
+    "alt": "Apoio visual complementar — EMPREGO DOS PORQUÊS",
+    "src": "/question-images/q_15bnc46.webp"
+  },
+  "q_1rypmdz": {
+    "id": "q_1rypmdz",
+    "sourceId": "PT-escrita-N4-011",
+    "prompt": "Explique a regra de concordância em: \"Aluga-se casas\" x \"Alugam-se casas\".",
+    "alt": "Apoio visual complementar — SINTAXE DE CONCORDÂNCIA",
+    "src": "/question-images/q_1rypmdz.webp"
+  },
+  "q_1lwx8oz": {
+    "id": "q_1lwx8oz",
+    "sourceId": "PT-escrita-N4-012",
+    "prompt": "Explique a diferença de sentido/formalidade entre: \"Vi ela na rua\" e \"Vi-a na rua.\"",
+    "alt": "Apoio visual complementar — PRONOMES",
+    "src": "/question-images/q_1lwx8oz.webp"
+  },
+  "q_sn4xq7": {
+    "id": "q_sn4xq7",
+    "sourceId": "YA-escrita-N4-001",
+    "prompt": "Quem é o personagem principal?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_sn4xq7.webp"
+  },
+  "q_luxs6w": {
+    "id": "q_luxs6w",
+    "sourceId": "YA-escrita-N4-002",
+    "prompt": "Em que período do dia ocorre a situação?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_luxs6w.webp"
+  },
+  "q_4svajt": {
+    "id": "q_4svajt",
+    "sourceId": "YA-escrita-N4-003",
+    "prompt": "Qual foi o problema inicial?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_4svajt.webp"
+  },
+  "q_fmr9mz": {
+    "id": "q_fmr9mz",
+    "sourceId": "YA-escrita-N4-004",
+    "prompt": "O que Roberto fez para resolver o problema?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_fmr9mz.webp"
+  },
+  "q_1ha0p2k": {
+    "id": "q_1ha0p2k",
+    "sourceId": "YA-escrita-N4-005",
+    "prompt": "O ônibus já havia passado quando ele voltou ao ponto?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1ha0p2k.webp"
+  },
+  "q_mlnxhe": {
+    "id": "q_mlnxhe",
+    "sourceId": "YA-escrita-N4-006",
+    "prompt": "O texto está narrado em primeira ou terceira pessoa?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_mlnxhe.webp"
+  },
+  "q_1lrg1yf": {
+    "id": "q_1lrg1yf",
+    "sourceId": "YA-escrita-N4-007",
+    "prompt": "Cite uma palavra ou expressão que indique tempo.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1lrg1yf.webp"
+  },
+  "q_1nt99sw": {
+    "id": "q_1nt99sw",
+    "sourceId": "YA-escrita-N4-008",
+    "prompt": "O verbo \"saiu\" está no:",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1nt99sw.webp"
+  },
+  "q_1mn5m36": {
+    "id": "q_1mn5m36",
+    "sourceId": "YA-escrita-N4-009",
+    "prompt": "Passe para o presente: \"Roberto voltou rapidamente.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1mn5m36.webp"
+  },
+  "q_1yppgws": {
+    "id": "q_1yppgws",
+    "sourceId": "YA-escrita-N4-010",
+    "prompt": "Passe para o futuro: \"Roberto pega o documento.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1yppgws.webp"
+  },
+  "q_1ifrzca": {
+    "id": "q_1ifrzca",
+    "sourceId": "YA-escrita-N4-011",
+    "prompt": "Complete corretamente: \"As carteiras estavam ______.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1ifrzca.webp"
+  },
+  "q_15kkmel": {
+    "id": "q_15kkmel",
+    "sourceId": "YA-escrita-N4-012",
+    "prompt": "Complete corretamente: \"Os documentos estavam ______.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_15kkmel.webp"
+  },
+  "q_x8g0ar": {
+    "id": "q_x8g0ar",
+    "sourceId": "YA-escrita-N4-013",
+    "prompt": "Qual palavra pode substituir \"rapidamente\" sem mudar muito o sentido?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_x8g0ar.webp"
+  },
+  "q_1qeabst": {
+    "id": "q_1qeabst",
+    "sourceId": "YA-escrita-N4-014",
+    "prompt": "Qual é a função de um título em um texto?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1qeabst.webp"
+  },
+  "q_15r33qj": {
+    "id": "q_15r33qj",
+    "sourceId": "YA-escrita-N4-015",
+    "prompt": "Escolha o título mais adequado para o texto:",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_15r33qj.webp"
+  },
+  "q_2yv9i9": {
+    "id": "q_2yv9i9",
+    "sourceId": "YA-escrita-N4-016",
+    "prompt": "Coloque em ordem alfabética: carteira, casa, caminho, cadastro.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_2yv9i9.webp"
+  },
+  "q_1k38zo4": {
+    "id": "q_1k38zo4",
+    "sourceId": "YA-escrita-N4-017",
+    "prompt": "Escolha a grafia adequada para completar a frase.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1k38zo4.webp"
+  },
+  "q_qfyyuj": {
+    "id": "q_qfyyuj",
+    "sourceId": "YA-escrita-N4-018",
+    "prompt": "Qual grafia completa corretamente a frase apresentada?",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_qfyyuj.webp"
+  },
+  "q_1o69aev": {
+    "id": "q_1o69aev",
+    "sourceId": "YA-escrita-N4-019",
+    "prompt": "Reescreva evitando repetição: \"Roberto pegou a carteira. Roberto colocou a carteira no bolso.\"",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1o69aev.webp"
+  },
+  "q_1dpqph4": {
+    "id": "q_1dpqph4",
+    "sourceId": "YA-escrita-N4-020",
+    "prompt": "Escreva um final alternativo de 3 a 4 frases para a situação.",
+    "alt": "Apoio visual complementar — PORTUGUÊS",
+    "src": "/question-images/q_1dpqph4.webp"
+  },
+  "q_b8wgoz": {
+    "id": "q_b8wgoz",
+    "sourceId": "CURR-escrita-N5-01",
+    "prompt": "Qual resumo é mais adequado para liderança?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_b8wgoz.webp"
+  },
+  "q_adtysw": {
+    "id": "q_adtysw",
+    "sourceId": "CURR-escrita-N5-02",
+    "prompt": "Qual frase mantém tom profissional e não acusa?",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_adtysw.webp"
+  },
+  "q_1ecpu22": {
+    "id": "q_1ecpu22",
+    "sourceId": "CURR-escrita-N5-03",
+    "prompt": "Uma revisão final deve conferir...",
+    "alt": "Apoio visual complementar — Base curricular",
+    "src": "/question-images/q_1ecpu22.webp"
+  },
+  "q_p03ufe": {
+    "id": "q_p03ufe",
+    "sourceId": "PT-compreensao-N2-015",
+    "prompt": "Em que período histórico surgiu o Classicismo?",
+    "alt": "Apoio visual complementar — CLASSICISMO",
+    "src": "/question-images/q_p03ufe.webp"
+  },
+  "q_1umxa0q": {
+    "id": "q_1umxa0q",
+    "sourceId": "PT-compreensao-N2-016",
+    "prompt": "O que caracteriza o conflito barroco entre corpo e alma?",
+    "alt": "Apoio visual complementar — BARROCO",
+    "src": "/question-images/q_1umxa0q.webp"
+  },
+  "q_xs5ewt": {
+    "id": "q_xs5ewt",
+    "sourceId": "PT-compreensao-N2-017",
+    "prompt": "Cite duas características do Romantismo.",
+    "alt": "Apoio visual complementar — ROMANTISMO",
+    "src": "/question-images/q_xs5ewt.webp"
+  },
+  "q_tikwl1": {
+    "id": "q_tikwl1",
+    "sourceId": "PT-compreensao-N2-018",
+    "prompt": "Cite uma diferença entre Romantismo e Realismo.",
+    "alt": "Apoio visual complementar — REALISMO",
+    "src": "/question-images/q_tikwl1.webp"
+  },
+  "q_8zumr7": {
+    "id": "q_8zumr7",
+    "sourceId": "PT-compreensao-N2-019",
+    "prompt": "Em que ano ocorreu a Semana de Arte Moderna e onde?",
+    "alt": "Apoio visual complementar — MODERNISMO",
+    "src": "/question-images/q_8zumr7.webp"
+  },
+  "q_1tb5axi": {
+    "id": "q_1tb5axi",
+    "sourceId": "PT-escrita-N2-012",
+    "prompt": "Cite as três partes básicas de uma dissertação.",
+    "alt": "Apoio visual complementar — ESTRUTURA DE UMA DISSERTAÇÃO",
+    "src": "/question-images/q_1tb5axi.webp"
+  },
+  "q_10m0anm": {
+    "id": "q_10m0anm",
+    "sourceId": "PT-escrita-N2-013",
+    "prompt": "Cite três cuidados importantes ao escrever uma redação.",
+    "alt": "Apoio visual complementar — DICAS PARA BOA REDAÇÃO",
+    "src": "/question-images/q_10m0anm.webp"
+  },
+  "q_1qqwhjr": {
+    "id": "q_1qqwhjr",
+    "sourceId": "PT-compreensao-N3-013",
+    "prompt": "Cite duas características do Classicismo.",
+    "alt": "Apoio visual complementar — CLASSICISMO",
+    "src": "/question-images/q_1qqwhjr.webp"
+  },
+  "q_1ndc2z3": {
+    "id": "q_1ndc2z3",
+    "sourceId": "PT-compreensao-N3-014",
+    "prompt": "Cite dois recursos estilísticos comuns na literatura barroca.",
+    "alt": "Apoio visual complementar — BARROCO",
+    "src": "/question-images/q_1ndc2z3.webp"
+  },
+  "q_ltsac2": {
+    "id": "q_ltsac2",
+    "sourceId": "PT-compreensao-N3-015",
+    "prompt": "Diferencie as três gerações do Romantismo brasileiro em poesia.",
+    "alt": "Apoio visual complementar — ROMANTISMO",
+    "src": "/question-images/q_ltsac2.webp"
+  },
+  "q_6ldqb3": {
+    "id": "q_6ldqb3",
+    "sourceId": "PT-compreensao-N3-016",
+    "prompt": "Explique o conceito de crítica social no Realismo.",
+    "alt": "Apoio visual complementar — REALISMO",
+    "src": "/question-images/q_6ldqb3.webp"
+  },
+  "q_gmz7i5": {
+    "id": "q_gmz7i5",
+    "sourceId": "PT-compreensao-N3-017",
+    "prompt": "Cite duas rupturas que o Modernismo trouxe em relação à literatura anterior.",
+    "alt": "Apoio visual complementar — MODERNISMO",
+    "src": "/question-images/q_gmz7i5.webp"
+  },
+  "q_105b2y8": {
+    "id": "q_105b2y8",
+    "sourceId": "PT-escrita-N3-012",
+    "prompt": "Elabore uma introdução para o tema \"O uso das redes sociais entre jovens\".",
+    "alt": "Apoio visual complementar — ESTRUTURA DE UMA DISSERTAÇÃO",
+    "src": "/question-images/q_105b2y8.webp"
+  },
+  "q_fbtwxb": {
+    "id": "q_fbtwxb",
+    "sourceId": "PT-escrita-N3-013",
+    "prompt": "Reescreva um parágrafo corrigindo problemas de coesão e repetição de palavras.",
+    "alt": "Apoio visual complementar — DICAS PARA BOA REDAÇÃO",
+    "src": "/question-images/q_fbtwxb.webp"
+  },
+  "q_1xsd2kw": {
+    "id": "q_1xsd2kw",
+    "sourceId": "PT-compreensao-N4-012",
+    "prompt": "Compare os valores do Classicismo com os do Barroco.",
+    "alt": "Apoio visual complementar — CLASSICISMO",
+    "src": "/question-images/q_1xsd2kw.webp"
+  },
+  "q_pwmtcv": {
+    "id": "q_pwmtcv",
+    "sourceId": "PT-compreensao-N4-013",
+    "prompt": "Explique como a Contrarreforma influenciou os temas do Barroco.",
+    "alt": "Apoio visual complementar — BARROCO",
+    "src": "/question-images/q_pwmtcv.webp"
+  },
+  "q_7h03zl": {
+    "id": "q_7h03zl",
+    "sourceId": "PT-compreensao-N4-014",
+    "prompt": "Analise como o nacionalismo romântico se manifesta na construção do herói indígena.",
+    "alt": "Apoio visual complementar — ROMANTISMO",
+    "src": "/question-images/q_7h03zl.webp"
+  },
+  "q_18rc4fs": {
+    "id": "q_18rc4fs",
+    "sourceId": "PT-compreensao-N4-015",
+    "prompt": "Compare a visão da mulher no Romantismo e no Realismo.",
+    "alt": "Apoio visual complementar — REALISMO",
+    "src": "/question-images/q_18rc4fs.webp"
+  },
+  "q_62vhm4": {
+    "id": "q_62vhm4",
+    "sourceId": "PT-compreensao-N4-016",
+    "prompt": "Escolha um poema modernista e analise seus recursos de linguagem coloquial e verso livre.",
+    "alt": "Apoio visual complementar — MODERNISMO",
+    "src": "/question-images/q_62vhm4.webp"
+  },
+  "q_nk9ofy": {
+    "id": "q_nk9ofy",
+    "sourceId": "PT-escrita-N4-013",
+    "prompt": "Escreva um parágrafo de desenvolvimento com argumento e exemplo, seguido de uma conclusão coerente.",
+    "alt": "Apoio visual complementar — ESTRUTURA DE UMA DISSERTAÇÃO",
+    "src": "/question-images/q_nk9ofy.webp"
+  },
+  "q_1b6g5fo": {
+    "id": "q_1b6g5fo",
+    "sourceId": "PT-escrita-N4-014",
+    "prompt": "Produza uma redação dissertativa completa sobre um tema social atual.",
+    "alt": "Apoio visual complementar — DICAS PARA BOA REDAÇÃO",
+    "src": "/question-images/q_1b6g5fo.webp"
+  }
+}
