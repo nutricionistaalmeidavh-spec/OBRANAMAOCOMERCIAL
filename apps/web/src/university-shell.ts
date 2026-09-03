@@ -26,7 +26,11 @@ function upgradeLegacyGuide(root:ParentNode=document){root.querySelectorAll<HTML
 function addPortalLink(root:ParentNode=document){const header=root.querySelector('.edu-top');if(header&&!header.querySelector('.edu-portal-link'))header.insertAdjacentHTML('beforeend','<a class="edu-portal-link" href="./index.html#portal" aria-label="Voltar ao Portal MH">Portal MH</a>')}
 function pageContent(html:string,guide?:GuideContext){if(guide==='home'){const marker='<section class="edu-home-journey">',end='</section>',start=html.indexOf(marker);if(start>=0){const close=html.indexOf(end,start)+end.length;return html.slice(0,start)+'<div class="edu-home-overview">'+html.slice(start,close)+guideHtml('home')+'</div>'+html.slice(close)}}return(guide?guideHtml(guide,true):'')+html}
 function arrangeHomeGuide(root:ParentNode=document){const guide=root.querySelector<HTMLElement>('.edu-mh-guide[data-guide-context="home"]'),journey=root.querySelector<HTMLElement>('.edu-home-journey');if(!guide||!journey||journey.parentElement?.classList.contains('edu-home-overview'))return;const wrap=document.createElement('div');wrap.className='edu-home-overview';journey.parentNode?.insertBefore(wrap,journey);wrap.append(journey,guide)}
-function bindGuideAnimation(root:ParentNode=document){const img=root.querySelector<HTMLImageElement>('.edu-mh-frame');if(!img)return;img.classList.add('edu-mh-frame--available')}
+function bindGuideAnimation(root:ParentNode=document){
+  const image=root.querySelector<HTMLImageElement>('.edu-mh-frame');
+  if(!image)return;
+  image.classList.add('edu-mh-frame--ready');
+}
 
 export function createUniversityShell(input:{participant:()=>ShellParticipant|null;onNavigate:(id:string)=>void}){
   const notify=(message:string)=>{let element=document.getElementById('eduToast');if(!element){element=document.createElement('div');element.id='eduToast';document.body.append(element)}element.textContent=message;element.className='edu-toast show';setTimeout(()=>element?.classList.remove('show'),2500)};
