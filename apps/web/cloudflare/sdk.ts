@@ -387,6 +387,40 @@ export async function recentErrorDiagnostics(limit=50){
   }catch{return[]}
 }
 
+export const REQUIRED_SCHEMA_TABLES=[
+  'kv_records',
+  'auth_sessions',
+  'oauth_states',
+  'api_rate_limits',
+  'schema_metadata',
+  'api_error_log',
+  'd1_migrations'
+] as const;
+export const REQUIRED_SCHEMA_MIGRATIONS=[
+  '0002_versioning_observability.sql',
+  '0003_schema_contract_hardening.sql'
+] as const;
+
+export function assessSchemaState(input:{
+  tableNames:Iterable<string>;
+  persistedSchemaVersion:number|null;
+  appliedMigrations?:Iterable<string>;
+}){
+  const tableNames=new Set(input.tableNames);
+  const appliedMigrations=new Set(input.appliedMigrations||[]);
+  const missingSchemaTables=REQUIRED_SCHEMA_TABLES.filter(name=>!tableNames.has(name));
+  const missingRequiredMigrations=REQUIRED_SCHEMA_MIGRATIONS.filter(name=>!appliedMigrations.has(name));
+  const schemaVersionMatch=input.persistedSchemaVersion===DB_SCHEMA_VERSION;
+  return{
+    expectedDbSchemaVersion:DB_SCHEMA_VERSION,
+    persistedDbSchemaVersion:input.persistedSchemaVersion,
+    schemaVersionMatch,
+    missingSchemaTables,
+    missingRequiredMigrations,
+    schemaReady:missingSchemaTables.length===0&&missingRequiredMigrations.length===0&&schemaVersionMatch
+  };
+}
+
 async function healthResponse(env:RuntimeEnv){
   const dbBinding=(env as RuntimeEnv & {DB?:D1Database}).DB;
   const bindings={
@@ -396,33 +430,47 @@ async function healthResponse(env:RuntimeEnv){
     gemini:!!env.GEMINI_API_KEY,
     owner:!!env.OWNER_EMAIL
   };
-  let schemaReady=false;
+  let schema=assessSchemaState({tableNames:[],persistedSchemaVersion:null,appliedMigrations:[]});
   let dbError:string|undefined;
   if(dbBinding){
     try{
-      await dbBinding.prepare("CREATE TABLE IF NOT EXISTS app_schema_meta (key TEXT PRIMARY KEY,value TEXT NOT NULL,updated_at TEXT NOT NULL)").run();
-      await dbBinding.prepare("INSERT INTO app_schema_meta(key,value,updated_at) VALUES('schema_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(String(DB_SCHEMA_VERSION),now()).run();
-      await dbBinding.prepare("INSERT INTO app_schema_meta(key,value,updated_at) VALUES('app_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(APP_VERSION,now()).run();
-      const rows=await dbBinding.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('kv_records','auth_sessions','oauth_states','app_schema_meta')").all<{name:string}>();
-      const names=new Set((rows.results||[]).map(x=>x.name));
-      schemaReady=['kv_records','auth_sessions','oauth_states','app_schema_meta'].every(name=>names.has(name));
+      const tableRows=await dbBinding.prepare("SELECT name FROM sqlite_master WHERE type='table'").all<{name:string}>();
+      const tableNames=(tableRows.results||[]).map(row=>row.name);
+      let persistedSchemaVersion:number|null=null;
+      let appliedMigrations:string[]=[];
+      if(tableNames.includes('schema_metadata')){
+        const meta=await dbBinding.prepare("SELECT value FROM schema_metadata WHERE key='schema_version'").first<{value:string}>();
+        const parsed=Number(meta?.value);
+        persistedSchemaVersion=Number.isFinite(parsed)?parsed:null;
+      }
+      if(tableNames.includes('d1_migrations')){
+        const migrationRows=await dbBinding.prepare('SELECT name FROM d1_migrations ORDER BY id').all<{name:string}>();
+        appliedMigrations=(migrationRows.results||[]).map(row=>row.name);
+      }
+      schema=assessSchemaState({tableNames,persistedSchemaVersion,appliedMigrations});
     }catch(error){dbError=(error as Error)?.message||'D1 indisponível';}
   }
+  const ok=bindings.d1&&schema.schemaReady&&!dbError;
   return json({
-    ok:true,
+    ok,
     service:'obra-na-mao-comercial',
     runtime:'cloudflare-worker',
     appVersion:APP_VERSION,
     apiContractVersion:API_CONTRACT_VERSION,
     dbSchemaVersion:DB_SCHEMA_VERSION,
-    readyForLogin:bindings.d1&&schemaReady&&bindings.googleOAuth&&bindings.owner,
-    readyForDesktopAi:bindings.d1&&schemaReady&&bindings.gemini,
-    readyForFileImports:bindings.d1&&schemaReady&&bindings.r2,
+    expectedDbSchemaVersion:schema.expectedDbSchemaVersion,
+    persistedDbSchemaVersion:schema.persistedDbSchemaVersion,
+    schemaVersionMatch:schema.schemaVersionMatch,
+    schemaReady:schema.schemaReady,
+    missingSchemaTables:schema.missingSchemaTables,
+    missingRequiredMigrations:schema.missingRequiredMigrations,
+    readyForLogin:ok&&bindings.googleOAuth&&bindings.owner,
+    readyForDesktopAi:ok&&bindings.gemini,
+    readyForFileImports:ok&&bindings.r2,
     bindings,
-    schemaReady,
     ...(dbError?{dbError}:{}),
     checkedAt:new Date().toISOString()
-  });
+  },ok?200:503);
 }
 
 export function router(routes:RouterRoutes){
