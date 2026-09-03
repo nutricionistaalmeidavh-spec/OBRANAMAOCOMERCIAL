@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 22
       - name: Install web dependencies
-        run: npm install --no-audit --no-fund
+        run: npm install --workspaces=false --no-audit --no-fund
       - name: Test critical web flows
         run: npm test
       - name: Verify UX and critical assets

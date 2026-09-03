@@ -10,5 +10,5 @@ function openLegacyRoute() {
 // Keep landing styles and application styles in separate documents.
 window.addEventListener('hashchange', openLegacyRoute);
 if (!openLegacyRoute()) {
-  void import('./artisys-landing.jsx');
+  void import('./artisys-landing');
 }
