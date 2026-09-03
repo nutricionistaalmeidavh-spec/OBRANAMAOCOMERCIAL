@@ -4,6 +4,7 @@ const os = require('node:os')
 const crypto = require('node:crypto')
 const { BrowserWindow } = require('electron')
 const { sanitizeName, sha256 } = require('./file-service.cjs')
+const { formatCpf, formatCnpj, employeeIdentityIssues } = require('./employee-identity.cjs')
 
 const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
@@ -82,13 +83,13 @@ class TimeService {
       const label=r.tipo==='trabalho'?'':r.tipo.toUpperCase()
       return '<tr><td>'+Number(r.data.slice(-2))+'</td><td>'+esc(r.entrada)+'</td><td>'+esc(r.intervalo_saida)+'</td><td>'+esc(r.intervalo_entrada)+'</td><td>'+esc(r.saida)+'</td><td>'+esc(label||r.observacoes)+'</td></tr>'
     }).join('')+'</tbody></table>'
-    return '<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box}body{font-family:Arial;color:#111;margin:0;font-size:9px}.title{text-align:center;font-size:18px;font-weight:700;margin-bottom:7px}.meta{display:grid;grid-template-columns:2fr 1fr 1fr;border:1px solid #333;margin-bottom:7px}.meta div{padding:4px 6px;border-right:1px solid #555;border-bottom:1px solid #555}.meta div:nth-child(3n){border-right:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #444;padding:3px;text-align:center;height:22px}th{background:#edf1f5;font-size:8px}.sign{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin:28px 55px 0;text-align:center}.sign div{border-top:1px solid #111;padding-top:4px}.note{text-align:center;margin-top:8px;color:#555}</style></head><body><div class="title">FICHA DE PONTO - '+title+'</div><div class="meta"><div><b>Empregador:</b> '+esc(company&&company.razao_social)+'</div><div><b>CNPJ:</b> '+esc(company&&company.cnpj)+'</div><div><b>Nº ordem:</b> '+esc(data.employee.matricula||data.employee.id)+'</div><div><b>Empregado:</b> '+esc(data.employee.nome)+'</div><div><b>Função:</b> '+esc(cargo&&cargo.nome)+'</div><div><b>Competência:</b> '+title+'</div><div><b>Horário:</b> '+esc(point.jornada_inicio)+' às '+esc(point.intervalo_inicio)+'</div><div><b>Intervalo:</b> '+esc(point.intervalo_inicio)+' às '+esc(point.intervalo_fim)+'</div><div><b>Saída:</b> '+esc(point.jornada_fim)+'</div></div><div class="grid">'+table(rows.slice(0,15))+table(rows.slice(15))+'</div><div class="sign"><div>Assinatura do empregado</div><div>Assinatura do empregador</div></div><div class="note">Declaro que as marcações acima correspondem à jornada realizada no período.</div></body></html>'
+    return '<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box}body{font-family:Arial;color:#111;margin:0;font-size:9px}.title{text-align:center;font-size:18px;font-weight:700;margin-bottom:7px}.meta{display:grid;grid-template-columns:2fr 1.2fr 2fr 1.2fr;border:1px solid #333;margin-bottom:7px}.meta div{padding:4px 6px;border-right:1px solid #555;border-bottom:1px solid #555}.meta div:nth-child(4n){border-right:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #444;padding:3px;text-align:center;height:22px}th{background:#edf1f5;font-size:8px}.sign{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin:28px 55px 0;text-align:center}.sign div{border-top:1px solid #111;padding-top:4px}.note{text-align:center;margin-top:8px;color:#555}</style></head><body><div class="title">FICHA DE PONTO - '+title+'</div><div class="meta"><div><b>Empregador:</b> '+esc(company&&company.razao_social)+'</div><div><b>CNPJ:</b> '+esc(formatCnpj(company&&company.cnpj))+'</div><div><b>Empregado:</b> '+esc(data.employee.nome)+'</div><div><b>CPF:</b> '+esc(formatCpf(data.employee.cpf))+'</div><div><b>Função:</b> '+esc(cargo&&cargo.nome)+'</div><div><b>Nº ordem:</b> '+esc(data.employee.matricula||data.employee.id)+'</div><div><b>Competência:</b> '+title+'</div><div><b>Horário:</b> '+esc(point.jornada_inicio)+' às '+esc(point.jornada_fim)+'</div><div><b>Intervalo:</b> '+esc(point.intervalo_inicio)+' às '+esc(point.intervalo_fim)+'</div></div><div class="grid">'+table(rows.slice(0,15))+table(rows.slice(15))+'</div><div class="sign"><div>Assinatura do empregado</div><div>Assinatura do empregador</div></div><div class="note">Declaro que as marcações acima correspondem à jornada realizada no período.</div></body></html>'
   }
 
   receiptHtml(data,company,cargo,benefits,paymentDate) {
     const parts=data.point.competencia.split('-'), competence=MONTHS[Number(parts[1])-1].toUpperCase()+'/'+parts[0]
     const items=benefits.length?benefits:[{descricao:'Benefícios do mês',valor_centavos:0}]
-    const blocks=items.map((item)=>'<section><div class="head"><b>'+esc(data.employee.nome)+'</b><span>'+esc(cargo&&cargo.nome)+'</span><span>Competência: '+competence+'</span></div><table><tr><th>Benefício</th><th>Valor</th></tr><tr><td>'+esc(item.descricao)+'</td><td>'+brl(item.valor_centavos)+'</td></tr><tr><td>Empregador: '+esc(company&&company.razao_social)+'</td><td>CNPJ: '+esc(company&&company.cnpj)+'</td></tr><tr><td>CPF: '+esc(data.employee.cpf)+'</td><td>Data: '+String(paymentDate||'').split('-').reverse().join('/')+'</td></tr><tr><td colspan="2">Declaro ter recebido o valor acima referente a '+esc(item.descricao)+' da competência '+competence+'.</td></tr></table><div class="signature">'+esc(data.employee.nome)+' - assinatura</div></section>').join('')
+    const blocks=items.map((item)=>'<section><div class="head"><b>'+esc(data.employee.nome)+'</b><span>'+esc(cargo&&cargo.nome)+'</span><span>Competência: '+competence+'</span></div><table><tr><th>Benefício</th><th>Valor</th></tr><tr><td>'+esc(item.descricao)+'</td><td>'+brl(item.valor_centavos)+'</td></tr><tr><td>Empregador: '+esc(company&&company.razao_social)+'</td><td>CNPJ: '+esc(formatCnpj(company&&company.cnpj))+'</td></tr><tr><td>Empregado: '+esc(data.employee.nome)+'</td><td>CPF: '+esc(formatCpf(data.employee.cpf))+'</td></tr><tr><td>Data: '+String(paymentDate||'').split('-').reverse().join('/')+'</td><td>Função: '+esc(cargo&&cargo.nome)+'</td></tr><tr><td colspan="2">Declaro ter recebido o valor acima referente a '+esc(item.descricao)+' da competência '+competence+'.</td></tr></table><div class="signature">'+esc(data.employee.nome)+' - assinatura</div></section>').join('')
     return '<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial;color:#111;margin:0;font-size:10px}h1{text-align:center;font-size:15px;margin:0 0 12px}section{border:1.4px solid #333;margin-bottom:12px;break-inside:avoid}.head{display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;padding:7px;background:#edf1f5}.head span{display:block}table{width:100%;border-collapse:collapse}th,td{border:1px solid #555;padding:6px;text-align:left}th{background:#f7f8fa}.signature{width:45%;margin:25px 12px 10px auto;border-top:1px solid #111;text-align:center;padding-top:4px}</style></head><body><h1>RECIBOS DE BENEFÍCIOS - '+competence+'</h1>'+blocks+'</body></html>'
   }
 
@@ -110,28 +111,32 @@ class TimeService {
     if(!data.marks.length) data=this.autoFill(payload)
     const company=data.employee.empresa_id?this.db.get('empresas',data.employee.empresa_id):null
     const cargo=data.employee.cargo_id?this.db.get('cargos',data.employee.cargo_id):null
+    const issues=employeeIdentityIssues(data.employee,company)
+    if(issues.length) throw new Error('Complete o cadastro de '+String(data.employee.nome||'funcionário')+' antes de gerar documentos mensais: '+issues.join(', ')+'.')
     const sheet=this.db.db.prepare('SELECT id FROM folhas_pagamento WHERE empresa_id IS ? AND competencia=?').get(data.employee.empresa_id||null,data.point.competencia)
     const benefits=sheet?this.db.db.prepare("SELECT descricao,valor_centavos FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND natureza='credito' AND (tipo LIKE 'beneficio_%' OR lower(descricao) LIKE '%café%' OR lower(descricao) LIKE '%aliment%') ORDER BY descricao").all(sheet.id,data.employee.id):[]
     const folders=this.fileService.employeeFolders(data.employee,company&&(company.nome_fantasia||company.razao_social))
-    const parts=data.point.competencia.split('-'), monthFolder=path.join(folders.base,'Mensal',parts[0],parts[1]+' - '+MONTHS[Number(parts[1])-1])
-    const pointFolder=path.join(monthFolder,'Folha de ponto'), receiptFolder=path.join(monthFolder,'Recibos')
-    fs.mkdirSync(pointFolder,{recursive:true}); fs.mkdirSync(receiptFolder,{recursive:true})
+    const parts=data.point.competencia.split('-'), monthlyFolder=path.join(folders.base,'Recibos',parts[0],parts[1]+' - '+MONTHS[Number(parts[1])-1])
+    fs.mkdirSync(monthlyFolder,{recursive:true})
     const stamp=Date.now(), pointName='Ficha de ponto - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf'
     const receiptName='Recibos de benefícios - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf'
-    const pointPath=path.join(pointFolder,pointName), receiptPath=path.join(receiptFolder,receiptName)
+    const pointPath=path.join(monthlyFolder,pointName), receiptPath=path.join(monthlyFolder,receiptName)
     await this.printHtml(this.pointHtml(data,company,cargo),pointPath)
     await this.printHtml(this.receiptHtml(data,company,cargo,benefits,payload.paymentDate),receiptPath)
     const pointDoc=this.registerPdf(data.employee,'folha_ponto','Ficha de ponto - '+data.point.competencia,pointPath)
     const receiptDoc=this.registerPdf(data.employee,'recibos_beneficios','Recibos de benefícios - '+data.point.competencia,receiptPath)
     this.db.db.prepare("UPDATE pontos_mensais SET status='gerado',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(data.point.id)
-    return {point:{...pointDoc,path:pointPath},receipt:{...receiptDoc,path:receiptPath}}
+    return {folder:monthlyFolder,point:{...pointDoc,path:pointPath},receipt:{...receiptDoc,path:receiptPath}}
   }
 
   async generateForAll(payload) {
-    const employees=this.db.db.prepare("SELECT id FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome").all()
-    const generated=[]
-    for(const employee of employees) generated.push(await this.generateDocuments({funcionario_id:employee.id,competencia:payload.competencia,paymentDate:payload.paymentDate}))
-    return generated
+    const employees=this.db.db.prepare("SELECT id,nome FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome").all()
+    const results=[]
+    for(const employee of employees) {
+      try { results.push({funcionario_id:employee.id,nome:employee.nome,ok:true,documents:await this.generateDocuments({funcionario_id:employee.id,competencia:payload.competencia,paymentDate:payload.paymentDate})}) }
+      catch(error) { results.push({funcionario_id:employee.id,nome:employee.nome,ok:false,error:error instanceof Error?error.message:String(error)}) }
+    }
+    return results
   }
 }
 
