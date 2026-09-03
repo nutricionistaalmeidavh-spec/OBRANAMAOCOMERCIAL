@@ -1,5 +1,6 @@
 import { hydrateQuestionVisuals } from './question-image-loader-v2';
 import { navigationItems } from './navigation-model';
+import { APP_VERSION } from '../shared/version';
 
 export type GuideContext='home'|'tracks'|'lesson'|'diagnostic'|'development'|'tasks';
 export type ShellParticipant={name:string;jobRole:string;diagnosticCompletedAt?:string|null;role?:'superadmin'|'admin'|'rh'|'gestor'|'colaborador'};
@@ -32,7 +33,7 @@ export function createUniversityShell(input:{participant:()=>ShellParticipant|nu
   const render=(title:string,html:string,active='inicio',guide?:GuideContext)=>{
     const participant=input.participant(),nav=navigationItems({diagnosticCompleted:!!participant?.diagnosticCompletedAt,role:participant?.role}),pageGuide=guide||inferredGuide(active,html);
     document.body.className='edu-body';
-    document.body.innerHTML='<div class="edu-app"><aside class="edu-side"><div class="edu-brand"><b>MH</b><span>INSTALAÇÕES<br>HIDRÁULICAS</span></div><nav aria-label="Navegação principal">'+nav.map(item=>'<button data-nav="'+item.id+'" class="'+(active===item.id?'active':'')+'" '+(active===item.id?'aria-current="page"':'')+'>'+item.label+'</button>').join('')+'</nav></aside><main><header class="edu-top"><strong>'+title+'</strong><span>'+(participant?.name||'')+'<small>'+(participant?.jobRole||'')+'</small></span></header><section class="edu-content">'+pageContent(html,pageGuide)+'</section></main></div><div id="eduToast" class="edu-toast" role="status" aria-live="polite"></div>';
+    document.body.innerHTML='<div class="edu-app"><aside class="edu-side"><div class="edu-brand"><b>MH</b><span>INSTALAÇÕES<br>HIDRÁULICAS</span></div><small class="edu-version">v${APP_VERSION}</small><nav aria-label="Navegação principal">'+nav.map(item=>'<button data-nav="'+item.id+'" class="'+(active===item.id?'active':'')+'" '+(active===item.id?'aria-current="page"':'')+'>'+item.label+'</button>').join('')+'</nav></aside><main><header class="edu-top"><strong>'+title+'</strong><span>'+(participant?.name||'')+'<small>'+(participant?.jobRole||'')+'</small></span></header><section class="edu-content">'+pageContent(html,pageGuide)+'</section></main></div><div id="eduToast" class="edu-toast" role="status" aria-live="polite"></div>';
     upgradeLegacyGuide(document);arrangeHomeGuide(document);addPortalLink(document);
     document.querySelectorAll<HTMLElement>('[data-nav]').forEach(item=>item.onclick=()=>input.onNavigate(item.dataset.nav||'inicio'));
     bindGuideAnimation(document);void hydrateQuestionVisuals(document);
