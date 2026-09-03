@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { APP_VERSION, API_CONTRACT_VERSION, DB_SCHEMA_VERSION, PROJECT_STATE_VERSION } from '../shared/version';
+import { assessSchemaState, REQUIRED_SCHEMA_MIGRATIONS, REQUIRED_SCHEMA_TABLES } from '../cloudflare/sdk';
 import { AREAS, CONTENT, QUESTION_BANK, QUESTION_COVERAGE, T, selectQuestions } from '../src/curriculum';
 
 describe('P2 maintenance boundaries', () => {
@@ -28,10 +29,39 @@ describe('P2 maintenance boundaries', () => {
     }
   });
 
-  it('tracks database schema version in a forward migration', () => {
-    const file = resolve(process.cwd(), 'cloudflare/migrations/0002_versioning_observability.sql');
-    const sql = readFileSync(file, 'utf8');
-    expect(sql).toContain("VALUES('schema_version','2'");
-    expect(sql).toContain('CREATE TABLE IF NOT EXISTS api_error_log');
+  it('tracks database schema version in forward migrations', () => {
+    const v2 = readFileSync(resolve(process.cwd(), 'cloudflare/migrations/0002_versioning_observability.sql'), 'utf8');
+    const hardening = readFileSync(resolve(process.cwd(), 'cloudflare/migrations/0003_schema_contract_hardening.sql'), 'utf8');
+    for (const sql of [v2, hardening]) {
+      expect(sql).toContain('CREATE TABLE IF NOT EXISTS schema_metadata');
+      expect(sql).toContain("VALUES('schema_version','2'");
+      expect(sql).toContain('CREATE TABLE IF NOT EXISTS api_error_log');
+    }
+  });
+
+  it('does not report schema ready from code constants alone', () => {
+    const ready = assessSchemaState({
+      tableNames: REQUIRED_SCHEMA_TABLES,
+      persistedSchemaVersion: DB_SCHEMA_VERSION,
+      appliedMigrations: REQUIRED_SCHEMA_MIGRATIONS,
+    });
+    expect(ready.schemaReady).toBe(true);
+    expect(ready.persistedDbSchemaVersion).toBe(DB_SCHEMA_VERSION);
+
+    const stale = assessSchemaState({
+      tableNames: REQUIRED_SCHEMA_TABLES,
+      persistedSchemaVersion: 1,
+      appliedMigrations: REQUIRED_SCHEMA_MIGRATIONS,
+    });
+    expect(stale.schemaReady).toBe(false);
+    expect(stale.schemaVersionMatch).toBe(false);
+
+    const missingMigration = assessSchemaState({
+      tableNames: REQUIRED_SCHEMA_TABLES,
+      persistedSchemaVersion: DB_SCHEMA_VERSION,
+      appliedMigrations: ['0002_versioning_observability.sql'],
+    });
+    expect(missingMigration.schemaReady).toBe(false);
+    expect(missingMigration.missingRequiredMigrations).toContain('0003_schema_contract_hardening.sql');
   });
 });
