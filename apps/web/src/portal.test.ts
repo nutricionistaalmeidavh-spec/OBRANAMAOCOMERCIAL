@@ -20,6 +20,7 @@ describe('Commercial login and overview DOM flows', () => {
     await mountMhPortal();
     expect(document.querySelector('h1')?.textContent).toBe('Acesse sua operação');
     expect(document.querySelector('.cp-login-brand img')?.getAttribute('src')).toContain('canteiro360-logo.png');
+    expect(document.querySelector('.cp-google-mark')).not.toBeNull();
     expect(document.querySelector('.cp-vendor img')?.getAttribute('src')).toContain('artisys-icon.svg');
     expect(document.body.textContent).not.toContain('SISTEMA LIBERADO');
     byId<HTMLButtonElement>('togglePassword').click();expect(byId<HTMLInputElement>('phonePassword').type).toBe('text');
@@ -33,6 +34,8 @@ describe('Commercial login and overview DOM flows', () => {
     client.isSignedIn.mockReturnValue(true);client.get.mockResolvedValue({data:bootstrap(role)});
     await mountMhPortal();
     expect(document.querySelector('h1')?.textContent).toBe('Visão geral');
+    expect(document.querySelector('.cp-welcome p')?.textContent).toMatch(/^(Bom dia|Boa tarde|Boa noite), Pessoa$/);
+    expect(Array.from(document.querySelectorAll('.cp-bottom-nav span')).map(node=>node.textContent)).toContain('Mais');
     expect(document.querySelector('[data-resource="gestao"]')).toBeNull();
     expect(document.querySelector('[data-resource="obra"]')).not.toBeNull();
     expect(document.querySelector('[data-resource="universidade"]')).not.toBeNull();
