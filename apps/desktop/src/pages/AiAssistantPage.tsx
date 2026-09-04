@@ -42,10 +42,10 @@ export default function AiAssistantPage() {
       if (!onlineState?.linked) throw new Error('Vincule este Desktop ao Obra na Mão online em Configurações antes de usar a IA.')
 
       const [dashboard, works, accounts, people, tasks] = await Promise.all([
-        safe(window.fluxoDre.relatorios.dashboard({ competence, competencia: competence }), {}),
+        safe(window.fluxoDre.relatorios.dashboard({ competencia: competence }), {}),
         safe(window.fluxoDre.obras.list(), []),
         safe(window.fluxoDre.contas.list({ competencia: competence }), []),
-        safe(window.fluxoDre.pessoas.list(), []),
+        safe(window.fluxoDre.funcionarios.list(), []),
         safe(window.fluxoDre.tarefas.list({}), []),
       ])
 
