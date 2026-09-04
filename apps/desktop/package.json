@@ -1,6 +1,6 @@
 {
   "name": "obra-na-mao-desktop-commercial",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Obra na Mão Desktop — edição comercial independente",
   "author": "Fluxo DRE",
   "main": "electron/main.cjs",
@@ -18,31 +18,11 @@
     "appId": "br.com.obranamao.comercial.desktop",
     "productName": "Obra na Mão Desktop",
     "npmRebuild": false,
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "database/**/*",
-      "package.json"
-    ],
-    "asarUnpack": [
-      "node_modules/better-sqlite3/**/*"
-    ],
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "artifactName": "Obra-na-Mao-Desktop-Setup-${version}.${ext}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Obra na Mão Desktop"
-    },
+    "directories": {"output": "release"},
+    "files": ["dist/**/*","electron/**/*","database/**/*","package.json"],
+    "asarUnpack": ["node_modules/better-sqlite3/**/*"],
+    "win": {"target": ["nsis"],"artifactName": "Obra-na-Mao-Desktop-Setup-${version}.${ext}"},
+    "nsis": {"oneClick": false,"allowToChangeInstallationDirectory": true,"createDesktopShortcut": true,"createStartMenuShortcut": true,"shortcutName": "Obra na Mão Desktop"},
     "electronVersion": "43.4.1"
   },
   "dependencies": {

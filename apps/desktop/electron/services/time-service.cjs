@@ -1,197 +1,51 @@
-const fs = require('node:fs')
-const path = require('node:path')
-const os = require('node:os')
-const crypto = require('node:crypto')
-const { BrowserWindow } = require('electron')
-const { PDFDocument } = require('pdf-lib')
-const { sanitizeName, sha256 } = require('./file-service.cjs')
-const { formatCpf, formatCnpj, employeeIdentityIssues } = require('./employee-identity.cjs')
+const fs=require('node:fs')
+const path=require('node:path')
+const os=require('node:os')
+const crypto=require('node:crypto')
+const {BrowserWindow}=require('electron')
+const {PDFDocument}=require('pdf-lib')
+const {sanitizeName,sha256}=require('./file-service.cjs')
+const {formatCpf,formatCnpj,employeeIdentityIssues}=require('./employee-identity.cjs')
 
-const MONTHS = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
-const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
-const brl = (v) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(v)||0)/100)
-function validCompetence(v) {
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(v||''))) throw new Error('Competência inválida.')
-  return String(v)
+const MONTHS=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
+const esc=(v)=>String(v==null?'':v).replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
+const brl=(v)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(v)||0)/100)
+function validCompetence(v){if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(v||'')))throw new Error('Competência inválida.');return String(v)}
+function addMinutes(time,delta){const p=String(time).split(':').map(Number),total=Math.max(0,Math.min(1439,p[0]*60+p[1]+delta));return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')}
+function jitter(employeeId,date,slot){const values=[-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7],byte=crypto.createHash('sha256').update(employeeId+'|'+date+'|'+slot).digest()[slot];return values[byte%values.length]}
+function monthDays(competencia){const [year,month]=validCompetence(competencia).split('-').map(Number);return Array.from({length:new Date(year,month,0).getDate()},(_,index)=>{const day=index+1,data=year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');return{data,day,weekday:new Date(year,month-1,day).getDay()}})}
+function bodyOnly(html){const match=String(html||'').match(/<body[^>]*>([\s\S]*?)<\/body>/i);return match?match[1]:String(html||'')}
+function policyKey(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+function filterBenefitsByPolicy(benefits,policy){const configured=String(policy||'').split(',').map(policyKey).filter(Boolean);if(!configured.length)return benefits||[];return(benefits||[]).filter((item)=>configured.some((key)=>policyKey(item.descricao).includes(key)||key.includes(policyKey(item.descricao))))}
+function buildPrintBatchHtml(entries,selection){
+  const point=Boolean(selection&&selection.point),receipts=Boolean(selection&&selection.receipts)
+  if(!point&&!receipts)throw new Error('Selecione fichas de ponto e/ou recibos para imprimir.')
+  const blocks=[]
+  for(const item of entries||[]){if(!item||item.ok===false)continue;if(point&&item.pointHtml)blocks.push('<article class="print-document point-document">'+bodyOnly(item.pointHtml)+'</article>');if(receipts&&item.receiptHtml)blocks.push('<article class="print-document receipt-document">'+bodyOnly(item.receiptHtml)+'</article>')}
+  if(!blocks.length)throw new Error('Nenhum documento válido foi preparado para impressão.')
+  return '<!doctype html><html><head><meta charset="utf-8"><style>@page pointPage{size:A4 landscape;margin:9mm}@page receiptPage{size:A4 portrait;margin:14mm}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif;color:#111}.print-document{break-after:page;page-break-after:always}.print-document:last-child{break-after:auto;page-break-after:auto}.point-document{page:pointPage;font-size:9px}.receipt-document{page:receiptPage;font-size:10px}.point-document table,.receipt-document table{width:100%;border-collapse:collapse}.point-document th,.point-document td,.receipt-document th,.receipt-document td{border:1px solid #555;padding:4px}.point-document .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.point-document .title,.receipt-document h1{text-align:center}.receipt-document .head{display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;padding:7px;background:#edf1f5}.signature{width:45%;margin:30px 12px 12px auto;border-top:1px solid #111;text-align:center;padding-top:4px}</style></head><body>'+blocks.join('')+'</body></html>'
 }
-function addMinutes(time, delta) {
-  const p=String(time).split(':').map(Number), total=Math.max(0,Math.min(1439,p[0]*60+p[1]+delta))
-  return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')
-}
-function jitter(employeeId,date,slot) {
-  const values=[-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7]
-  const byte=crypto.createHash('sha256').update(employeeId+'|'+date+'|'+slot).digest()[slot]
-  return values[byte%values.length]
-}
-function monthDays(competencia) {
-  const parts=validCompetence(competencia).split('-').map(Number), year=parts[0], month=parts[1]
-  return Array.from({length:new Date(year,month,0).getDate()},(_,index)=>{
-    const day=index+1, data=year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')
-    return {data,day,weekday:new Date(year,month-1,day).getDay()}
-  })
-}
+async function mergeGeneratedPdfs(results,selection){const point=Boolean(selection&&selection.point),receipts=Boolean(selection&&selection.receipts);if(!point&&!receipts)throw new Error('Selecione fichas de ponto e/ou recibos para imprimir.');const merged=await PDFDocument.create();let documents=0;for(const item of results||[]){if(!item||item.ok===false)continue;const generated=item.documents||item,paths=[];if(point&&generated.point?.path)paths.push(generated.point.path);if(receipts&&generated.receipt?.path)paths.push(generated.receipt.path);for(const filePath of paths){if(!fs.existsSync(filePath))continue;const source=await PDFDocument.load(fs.readFileSync(filePath)),pages=await merged.copyPages(source,source.getPageIndices());pages.forEach((page)=>merged.addPage(page));documents++}}if(!documents)throw new Error('Nenhum documento válido foi gerado para impressão.');return merged.save()}
 
-async function mergeGeneratedPdfs(results, selection) {
-  const point=Boolean(selection&&selection.point), receipts=Boolean(selection&&selection.receipts)
-  if(!point&&!receipts) throw new Error('Selecione fichas de ponto e/ou recibos para imprimir.')
-  const merged=await PDFDocument.create()
-  let documents=0
-  for(const item of results||[]) {
-    if(!item||item.ok===false) continue
-    const generated=item.documents||item
-    const paths=[]
-    if(point&&generated.point&&generated.point.path) paths.push(generated.point.path)
-    if(receipts&&generated.receipt&&generated.receipt.path) paths.push(generated.receipt.path)
-    for(const filePath of paths) {
-      if(!fs.existsSync(filePath)) continue
-      const source=await PDFDocument.load(fs.readFileSync(filePath))
-      const pages=await merged.copyPages(source,source.getPageIndices())
-      pages.forEach((page)=>merged.addPage(page))
-      documents+=1
-    }
-  }
-  if(!documents) throw new Error('Nenhum documento válido foi gerado para impressão.')
-  return merged.save()
+class TimeService{
+  constructor({db,fileService}){this.db=db;this.fileService=fileService}
+  ensure(funcionarioId,competencia){const employee=this.db.get('funcionarios',Number(funcionarioId));if(!employee)throw new Error('Funcionário não encontrado.');competencia=validCompetence(competencia);let point=this.db.db.prepare('SELECT * FROM pontos_mensais WHERE funcionario_id=? AND competencia=?').get(employee.id,competencia);if(!point){const info=this.db.db.prepare('INSERT INTO pontos_mensais(funcionario_id,competencia,jornada_inicio,intervalo_inicio,intervalo_fim,jornada_fim) VALUES (?,?,?,?,?,?)').run(employee.id,competencia,employee.jornada_inicio||'07:00',employee.intervalo_inicio||'11:00',employee.intervalo_fim||'12:00',employee.jornada_fim||'17:00');point=this.db.db.prepare('SELECT * FROM pontos_mensais WHERE id=?').get(Number(info.lastInsertRowid))}return{employee,point}}
+  get(payload){const base=this.ensure(payload.funcionario_id,payload.competencia),marks=this.db.db.prepare('SELECT * FROM ponto_marcacoes WHERE ponto_mensal_id=? ORDER BY data').all(base.point.id);return{employee:base.employee,point:base.point,marks}}
+  autoFill(payload){const base=this.ensure(payload.funcionario_id,payload.competencia),point=base.point,overwrite=Boolean(payload.overwrite),insert=this.db.db.prepare("INSERT INTO ponto_marcacoes(ponto_mensal_id,data,tipo,entrada,intervalo_saida,intervalo_entrada,saida) VALUES (?,?,?,?,?,?,?) ON CONFLICT(ponto_mensal_id,data) DO UPDATE SET tipo=excluded.tipo,entrada=excluded.entrada,intervalo_saida=excluded.intervalo_saida,intervalo_entrada=excluded.intervalo_entrada,saida=excluded.saida,updated_at=CURRENT_TIMESTAMP"),exists=this.db.db.prepare('SELECT id FROM ponto_marcacoes WHERE ponto_mensal_id=? AND data=?');this.db.db.transaction(()=>{for(const day of monthDays(point.competencia)){if(!overwrite&&exists.get(point.id,day.data))continue;const weekend=day.weekday===0?'domingo':day.weekday===6?'sabado':null,values=weekend?[null,null,null,null]:[addMinutes(point.jornada_inicio,jitter(base.employee.id,day.data,0)),addMinutes(point.intervalo_inicio,jitter(base.employee.id,day.data,1)),addMinutes(point.intervalo_fim,Math.abs(jitter(base.employee.id,day.data,2))),addMinutes(point.jornada_fim,jitter(base.employee.id,day.data,3))];insert.run(point.id,day.data,weekend||'trabalho',values[0],values[1],values[2],values[3])}this.db.db.prepare('UPDATE pontos_mensais SET preenchimento_automatico=1,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(point.id)})();return this.get(payload)}
+  save(payload){const base=this.ensure(payload.funcionario_id,payload.competencia),allowed=new Set(['trabalho','falta','ferias','feriado','folga','afastado','sabado','domingo']),upsert=this.db.db.prepare("INSERT INTO ponto_marcacoes(ponto_mensal_id,data,tipo,entrada,intervalo_saida,intervalo_entrada,saida,observacoes) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(ponto_mensal_id,data) DO UPDATE SET tipo=excluded.tipo,entrada=excluded.entrada,intervalo_saida=excluded.intervalo_saida,intervalo_entrada=excluded.intervalo_entrada,saida=excluded.saida,observacoes=excluded.observacoes,updated_at=CURRENT_TIMESTAMP");this.db.db.transaction(()=>{for(const row of payload.marks||[]){const tipo=allowed.has(row.tipo)?row.tipo:'trabalho',clean=(value)=>/^\d{2}:\d{2}$/.test(String(value||''))?value:null,values=tipo==='trabalho'?[clean(row.entrada),clean(row.intervalo_saida),clean(row.intervalo_entrada),clean(row.saida)]:[null,null,null,null];upsert.run(base.point.id,row.data,tipo,values[0],values[1],values[2],values[3],row.observacoes||null)}this.db.db.prepare("UPDATE pontos_mensais SET status='preenchido',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(base.point.id)})();return this.get(payload)}
+  pointHtml(data,company,cargo){const point=data.point,rows=data.marks,[year,month]=point.competencia.split('-'),title=MONTHS[Number(month)-1].toUpperCase()+'/'+year,table=(items)=>'<table><thead><tr><th>Dia</th><th>Manhã<br>Entrada</th><th>Manhã<br>Saída</th><th>Tarde<br>Entrada</th><th>Tarde<br>Saída</th><th>Observação</th></tr></thead><tbody>'+items.map((r)=>'<tr><td>'+Number(r.data.slice(-2))+'</td><td>'+esc(r.entrada)+'</td><td>'+esc(r.intervalo_saida)+'</td><td>'+esc(r.intervalo_entrada)+'</td><td>'+esc(r.saida)+'</td><td>'+esc(r.tipo==='trabalho'?(r.observacoes||''):r.tipo.toUpperCase())+'</td></tr>').join('')+'</tbody></table>';return '<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box}body{font-family:Arial;color:#111;margin:0;font-size:9px}.title{text-align:center;font-size:18px;font-weight:700;margin-bottom:7px}.meta{display:grid;grid-template-columns:2fr 1.2fr 2fr 1.2fr;border:1px solid #333;margin-bottom:7px}.meta div{padding:4px 6px;border-right:1px solid #555;border-bottom:1px solid #555}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #444;padding:3px;text-align:center;height:22px}th{background:#edf1f5}.sign{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin:28px 55px 0;text-align:center}.sign div{border-top:1px solid #111;padding-top:4px}.note{text-align:center;margin-top:8px;color:#555}</style></head><body><div class="title">FICHA DE PONTO - '+title+'</div><div class="meta"><div><b>Empregador:</b> '+esc(company?.razao_social)+'</div><div><b>CNPJ:</b> '+esc(formatCnpj(company?.cnpj))+'</div><div><b>Empregado:</b> '+esc(data.employee.nome)+'</div><div><b>CPF:</b> '+esc(formatCpf(data.employee.cpf))+'</div><div><b>Função:</b> '+esc(cargo?.nome)+'</div><div><b>Nº ordem:</b> '+esc(data.employee.matricula||data.employee.id)+'</div><div><b>Competência:</b> '+title+'</div><div><b>Horário:</b> '+esc(point.jornada_inicio)+' às '+esc(point.jornada_fim)+'</div><div><b>Intervalo:</b> '+esc(point.intervalo_inicio)+' às '+esc(point.intervalo_fim)+'</div></div><div class="grid">'+table(rows.slice(0,15))+table(rows.slice(15))+'</div><div class="sign"><div>Assinatura do empregado</div><div>Assinatura do empregador</div></div><div class="note">Declaro que as marcações acima correspondem à jornada realizada no período.</div></body></html>'}
+  receiptHtml(data,company,cargo,benefits,paymentDate){if(!benefits.length)return null;const [year,month]=data.point.competencia.split('-'),competence=MONTHS[Number(month)-1].toUpperCase()+'/'+year,rows=benefits.map((item)=>'<tr><td>'+esc(item.descricao)+'</td><td>'+brl(item.valor_centavos)+'</td></tr>').join(''),names=benefits.map((item)=>item.descricao).join(', ');return '<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial;color:#111;margin:0;font-size:10px}h1{text-align:center;font-size:15px}section{border:1.4px solid #333;break-inside:avoid}.head{display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;padding:7px;background:#edf1f5}table{width:100%;border-collapse:collapse}th,td{border:1px solid #555;padding:6px;text-align:left}th{background:#f7f8fa}.signature{width:45%;margin:30px 12px 12px auto;border-top:1px solid #111;text-align:center;padding-top:4px}</style></head><body><h1>RECIBOS DE BENEFÍCIOS - '+competence+'</h1><section><div class="head"><b>'+esc(data.employee.nome)+'</b><span>'+esc(cargo?.nome)+'</span><span>Competência: '+competence+'</span></div><table><tr><th>Benefício</th><th>Valor</th></tr>'+rows+'<tr><td>Empregador: '+esc(company?.razao_social)+'</td><td>CNPJ: '+esc(formatCnpj(company?.cnpj))+'</td></tr><tr><td>Empregado: '+esc(data.employee.nome)+'</td><td>CPF: '+esc(formatCpf(data.employee.cpf))+'</td></tr><tr><td>Data: '+String(paymentDate||'').split('-').reverse().join('/')+'</td><td>Função: '+esc(cargo?.nome)+'</td></tr><tr><td colspan="2">Declaro ter recebido os valores acima referentes a '+esc(names)+' da competência '+competence+'.</td></tr></table><div class="signature">'+esc(data.employee.nome)+' - assinatura</div></section></body></html>'}
+  async printHtml(html,destination){const win=new BrowserWindow({show:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}}),htmlPath=path.join(os.tmpdir(),'obra-na-mao-render-'+process.pid+'-'+Date.now()+'.html');try{fs.writeFileSync(htmlPath,html,'utf8');await win.loadFile(htmlPath);const pdf=await win.webContents.printToPDF({pageSize:'A4',printBackground:true,margins:{marginType:'none'}});fs.writeFileSync(destination,pdf)}finally{win.destroy();if(fs.existsSync(htmlPath))fs.unlinkSync(htmlPath)}}
+  registerPdf(employee,category,title,destination){const stat=fs.statSync(destination),version=this.db.db.prepare('SELECT COALESCE(MAX(versao),0)+1 value FROM documentos WHERE funcionario_id=? AND categoria=? AND deleted_at IS NULL').get(employee.id,category).value,file=this.db.save('arquivos',{nome_original:path.basename(destination),nome_armazenado:path.basename(destination),caminho:destination,tamanho:stat.size,extensao:'.pdf',mime_type:'application/pdf',hash:sha256(destination),origem:'gerado_mensal'});return this.db.save('documentos',{arquivo_id:file.id,empresa_id:employee.empresa_id,obra_id:employee.obra_atual_id,funcionario_id:employee.id,categoria:category,titulo:title,status_assinatura:'nao_assinado',versao:version})}
+  benefitRows(employee,competencia,company){const sheet=this.db.db.prepare('SELECT id FROM folhas_pagamento WHERE empresa_id IS ? AND competencia=?').get(employee.empresa_id||null,competencia);if(!sheet)return[];const rows=this.db.db.prepare("SELECT descricao,valor_centavos FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND natureza='credito' AND (tipo LIKE 'beneficio_%' OR lower(descricao) LIKE '%café%' OR lower(descricao) LIKE '%cafe%' OR lower(descricao) LIKE '%aliment%' OR lower(descricao) LIKE '%transporte%') ORDER BY descricao COLLATE NOCASE").all(sheet.id,employee.id);return filterBenefitsByPolicy(rows,company?.politica_recibos)}
+  validatedData(employeeId,competencia){let data=this.get({funcionario_id:employeeId,competencia});if(!data.marks.length)data=this.autoFill({funcionario_id:employeeId,competencia});const company=data.employee.empresa_id?this.db.get('empresas',data.employee.empresa_id):null,cargo=data.employee.cargo_id?this.db.get('cargos',data.employee.cargo_id):null,issues=employeeIdentityIssues(data.employee,company);if(!cargo||!String(cargo.nome||'').trim())issues.push('cargo/função');if(issues.length)throw new Error('Complete o cadastro de '+String(data.employee.nome||'funcionário')+' antes de gerar documentos mensais: '+issues.join(', ')+'.');return{data,company,cargo,benefits:this.benefitRows(data.employee,data.point.competencia,company)}}
+  printableEntry(employeeId,competencia,paymentDate){const {data,company,cargo,benefits}=this.validatedData(employeeId,competencia);return{funcionario_id:data.employee.id,nome:data.employee.nome,ok:true,pointHtml:this.pointHtml(data,company,cargo),receiptHtml:this.receiptHtml(data,company,cargo,benefits,paymentDate)}}
+  async generateDocuments(payload){const pointSelected=payload.point!==false,receiptsSelected=payload.receipts!==false;if(!pointSelected&&!receiptsSelected)throw new Error('Selecione fichas de ponto e/ou recibos para gerar.');const {data,company,cargo,benefits}=this.validatedData(payload.funcionario_id,payload.competencia),folders=this.fileService.employeeFolders(data.employee,company&&(company.nome_fantasia||company.razao_social)),parts=data.point.competencia.split('-'),monthlyFolder=path.join(folders.base,'Recibos',parts[0],parts[1]+' - '+MONTHS[Number(parts[1])-1]);fs.mkdirSync(monthlyFolder,{recursive:true});const stamp=Date.now(),result={folder:monthlyFolder};if(pointSelected){const pointPath=path.join(monthlyFolder,'Ficha de ponto - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf');await this.printHtml(this.pointHtml(data,company,cargo),pointPath);result.point={...this.registerPdf(data.employee,'folha_ponto','Ficha de ponto - '+data.point.competencia,pointPath),path:pointPath}}if(receiptsSelected&&benefits.length){const receiptPath=path.join(monthlyFolder,'Recibos de benefícios - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf');await this.printHtml(this.receiptHtml(data,company,cargo,benefits,payload.paymentDate),receiptPath);result.receipt={...this.registerPdf(data.employee,'recibos_beneficios','Recibos de benefícios - '+data.point.competencia,receiptPath),path:receiptPath}}this.db.db.prepare("UPDATE pontos_mensais SET status='gerado',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(data.point.id);return result}
+  async generateForAll(payload){if(payload?.reprint)return this.reprintForAll({...payload,reprint:false});if(payload?.print)return this.printForAll({...payload,print:false});const employees=this.db.db.prepare("SELECT id,nome FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome COLLATE NOCASE").all(),results=[];for(const employee of employees){try{results.push({funcionario_id:employee.id,nome:employee.nome,ok:true,documents:await this.generateDocuments({funcionario_id:employee.id,competencia:payload.competencia,paymentDate:payload.paymentDate,point:payload.point,receipts:payload.receipts})})}catch(error){results.push({funcionario_id:employee.id,nome:employee.nome,ok:false,error:error instanceof Error?error.message:String(error)})}}return results}
+  preparePrintableEntries(payload,employeeIds){const selected=employeeIds?new Set(employeeIds.map(Number)):null,employees=this.db.db.prepare("SELECT id,nome FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome COLLATE NOCASE").all().filter((employee)=>!selected||selected.has(Number(employee.id))),entries=[];for(const employee of employees){try{entries.push(this.printableEntry(employee.id,payload.competencia,payload.paymentDate))}catch(error){entries.push({funcionario_id:employee.id,nome:employee.nome,ok:false,error:error instanceof Error?error.message:String(error)})}}return entries}
+  async printEntries(entries,payload){const successful=entries.filter((item)=>item.ok);if(!successful.length)return{results:entries,employees:0,documents:0,printed:false,canceled:false};let html;try{html=buildPrintBatchHtml(successful,{point:payload.point,receipts:payload.receipts})}catch(error){if(/Nenhum documento válido/.test(String(error?.message)))return{results:entries,employees:successful.length,documents:0,printed:false,canceled:false};throw error}const htmlPath=path.join(os.tmpdir(),'obra-na-mao-impressao-'+validCompetence(payload.competencia)+'-'+Date.now()+'.html'),win=new BrowserWindow({show:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}});try{fs.writeFileSync(htmlPath,html,'utf8');await win.loadFile(htmlPath);await new Promise((resolve)=>setTimeout(resolve,150));const outcome=await new Promise((resolve)=>win.webContents.print({silent:false,printBackground:true},(success,failureReason)=>resolve({success,failureReason}))),canceled=!outcome.success&&/cancel/i.test(String(outcome.failureReason||''));if(!outcome.success&&!canceled)throw new Error('Não foi possível abrir/concluir a impressão: '+String(outcome.failureReason||'erro desconhecido'));const documents=successful.reduce((total,item)=>total+(payload.point&&item.pointHtml?1:0)+(payload.receipts&&item.receiptHtml?1:0),0);return{results:entries,employees:successful.length,documents,printed:Boolean(outcome.success),canceled}}finally{win.destroy();if(fs.existsSync(htmlPath))fs.unlinkSync(htmlPath)}}
+  async printForAll(payload){const generated=await this.generateForAll({...payload,print:false,reprint:false}),successful=generated.filter((item)=>item.ok);if(!successful.length)return{results:generated,employees:0,documents:0,printed:false,canceled:false};const entries=this.preparePrintableEntries(payload,successful.map((item)=>item.funcionario_id)),printed=await this.printEntries(entries,payload),failedGenerated=generated.filter((item)=>!item.ok);return{...printed,results:[...printed.results,...failedGenerated]}}
+  async reprintForAll(payload){const entries=this.preparePrintableEntries(payload),result=await this.printEntries(entries,payload);return{...result,reprint:true}}
 }
 
-class TimeService {
-  constructor({db,fileService}) { this.db=db; this.fileService=fileService }
-  ensure(funcionarioId,competencia) {
-    const employee=this.db.get('funcionarios',Number(funcionarioId))
-    if(!employee) throw new Error('Funcionário não encontrado.')
-    competencia=validCompetence(competencia)
-    let point=this.db.db.prepare('SELECT * FROM pontos_mensais WHERE funcionario_id=? AND competencia=?').get(employee.id,competencia)
-    if(!point) {
-      const info=this.db.db.prepare('INSERT INTO pontos_mensais(funcionario_id,competencia,jornada_inicio,intervalo_inicio,intervalo_fim,jornada_fim) VALUES (?,?,?,?,?,?)').run(employee.id,competencia,employee.jornada_inicio||'07:00',employee.intervalo_inicio||'11:00',employee.intervalo_fim||'12:00',employee.jornada_fim||'17:00')
-      point=this.db.db.prepare('SELECT * FROM pontos_mensais WHERE id=?').get(Number(info.lastInsertRowid))
-    }
-    return {employee,point}
-  }
-  get(payload) {
-    const base=this.ensure(payload.funcionario_id,payload.competencia)
-    const marks=this.db.db.prepare('SELECT * FROM ponto_marcacoes WHERE ponto_mensal_id=? ORDER BY data').all(base.point.id)
-    return {employee:base.employee,point:base.point,marks}
-  }
-  autoFill(payload) {
-    const base=this.ensure(payload.funcionario_id,payload.competencia), point=base.point, overwrite=Boolean(payload.overwrite)
-    const insert=this.db.db.prepare("INSERT INTO ponto_marcacoes(ponto_mensal_id,data,tipo,entrada,intervalo_saida,intervalo_entrada,saida) VALUES (?,?,?,?,?,?,?) ON CONFLICT(ponto_mensal_id,data) DO UPDATE SET tipo=excluded.tipo,entrada=excluded.entrada,intervalo_saida=excluded.intervalo_saida,intervalo_entrada=excluded.intervalo_entrada,saida=excluded.saida,updated_at=CURRENT_TIMESTAMP")
-    const exists=this.db.db.prepare('SELECT id FROM ponto_marcacoes WHERE ponto_mensal_id=? AND data=?')
-    this.db.db.transaction(()=>{
-      for(const day of monthDays(point.competencia)) {
-        if(!overwrite && exists.get(point.id,day.data)) continue
-        const weekend=day.weekday===0?'domingo':day.weekday===6?'sabado':null
-        const values=weekend?[null,null,null,null]:[addMinutes(point.jornada_inicio,jitter(base.employee.id,day.data,0)),addMinutes(point.intervalo_inicio,jitter(base.employee.id,day.data,1)),addMinutes(point.intervalo_fim,Math.abs(jitter(base.employee.id,day.data,2))),addMinutes(point.jornada_fim,jitter(base.employee.id,day.data,3))]
-        insert.run(point.id,day.data,weekend||'trabalho',values[0],values[1],values[2],values[3])
-      }
-      this.db.db.prepare('UPDATE pontos_mensais SET preenchimento_automatico=1,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(point.id)
-    })()
-    return this.get(payload)
-  }
-  save(payload) {
-    const base=this.ensure(payload.funcionario_id,payload.competencia), allowed=new Set(['trabalho','falta','ferias','feriado','folga','afastado','sabado','domingo'])
-    const upsert=this.db.db.prepare("INSERT INTO ponto_marcacoes(ponto_mensal_id,data,tipo,entrada,intervalo_saida,intervalo_entrada,saida,observacoes) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(ponto_mensal_id,data) DO UPDATE SET tipo=excluded.tipo,entrada=excluded.entrada,intervalo_saida=excluded.intervalo_saida,intervalo_entrada=excluded.intervalo_entrada,saida=excluded.saida,observacoes=excluded.observacoes,updated_at=CURRENT_TIMESTAMP")
-    this.db.db.transaction(()=>{
-      for(const row of payload.marks||[]) {
-        const tipo=allowed.has(row.tipo)?row.tipo:'trabalho', clean=(value)=>/^\d{2}:\d{2}$/.test(String(value||''))?value:null
-        const values=tipo==='trabalho'?[clean(row.entrada),clean(row.intervalo_saida),clean(row.intervalo_entrada),clean(row.saida)]:[null,null,null,null]
-        upsert.run(base.point.id,row.data,tipo,values[0],values[1],values[2],values[3],row.observacoes||null)
-      }
-      this.db.db.prepare("UPDATE pontos_mensais SET status='preenchido',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(base.point.id)
-    })()
-    return this.get(payload)
-  }
-
-  pointHtml(data,company,cargo) {
-    const point=data.point, rows=data.marks, parts=point.competencia.split('-'), title=MONTHS[Number(parts[1])-1].toUpperCase()+'/'+parts[0]
-    const table=(items)=>'<table><thead><tr><th>Dia</th><th>Manhã<br>Entrada</th><th>Manhã<br>Saída</th><th>Tarde<br>Entrada</th><th>Tarde<br>Saída</th><th>Observação</th></tr></thead><tbody>'+items.map((r)=>{
-      const label=r.tipo==='trabalho'?'':r.tipo.toUpperCase()
-      return '<tr><td>'+Number(r.data.slice(-2))+'</td><td>'+esc(r.entrada)+'</td><td>'+esc(r.intervalo_saida)+'</td><td>'+esc(r.intervalo_entrada)+'</td><td>'+esc(r.saida)+'</td><td>'+esc(label||r.observacoes)+'</td></tr>'
-    }).join('')+'</tbody></table>'
-    return '<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box}body{font-family:Arial;color:#111;margin:0;font-size:9px}.title{text-align:center;font-size:18px;font-weight:700;margin-bottom:7px}.meta{display:grid;grid-template-columns:2fr 1.2fr 2fr 1.2fr;border:1px solid #333;margin-bottom:7px}.meta div{padding:4px 6px;border-right:1px solid #555;border-bottom:1px solid #555}.meta div:nth-child(4n){border-right:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #444;padding:3px;text-align:center;height:22px}th{background:#edf1f5;font-size:8px}.sign{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin:28px 55px 0;text-align:center}.sign div{border-top:1px solid #111;padding-top:4px}.note{text-align:center;margin-top:8px;color:#555}</style></head><body><div class="title">FICHA DE PONTO - '+title+'</div><div class="meta"><div><b>Empregador:</b> '+esc(company&&company.razao_social)+'</div><div><b>CNPJ:</b> '+esc(formatCnpj(company&&company.cnpj))+'</div><div><b>Empregado:</b> '+esc(data.employee.nome)+'</div><div><b>CPF:</b> '+esc(formatCpf(data.employee.cpf))+'</div><div><b>Função:</b> '+esc(cargo&&cargo.nome)+'</div><div><b>Nº ordem:</b> '+esc(data.employee.matricula||data.employee.id)+'</div><div><b>Competência:</b> '+title+'</div><div><b>Horário:</b> '+esc(point.jornada_inicio)+' às '+esc(point.jornada_fim)+'</div><div><b>Intervalo:</b> '+esc(point.intervalo_inicio)+' às '+esc(point.intervalo_fim)+'</div></div><div class="grid">'+table(rows.slice(0,15))+table(rows.slice(15))+'</div><div class="sign"><div>Assinatura do empregado</div><div>Assinatura do empregador</div></div><div class="note">Declaro que as marcações acima correspondem à jornada realizada no período.</div></body></html>'
-  }
-
-  receiptHtml(data,company,cargo,benefits,paymentDate) {
-    const parts=data.point.competencia.split('-'), competence=MONTHS[Number(parts[1])-1].toUpperCase()+'/'+parts[0]
-    const items=benefits.length?benefits:[{descricao:'Benefícios do mês',valor_centavos:0}]
-    const blocks=items.map((item)=>'<section><div class="head"><b>'+esc(data.employee.nome)+'</b><span>'+esc(cargo&&cargo.nome)+'</span><span>Competência: '+competence+'</span></div><table><tr><th>Benefício</th><th>Valor</th></tr><tr><td>'+esc(item.descricao)+'</td><td>'+brl(item.valor_centavos)+'</td></tr><tr><td>Empregador: '+esc(company&&company.razao_social)+'</td><td>CNPJ: '+esc(formatCnpj(company&&company.cnpj))+'</td></tr><tr><td>Empregado: '+esc(data.employee.nome)+'</td><td>CPF: '+esc(formatCpf(data.employee.cpf))+'</td></tr><tr><td>Data: '+String(paymentDate||'').split('-').reverse().join('/')+'</td><td>Função: '+esc(cargo&&cargo.nome)+'</td></tr><tr><td colspan="2">Declaro ter recebido o valor acima referente a '+esc(item.descricao)+' da competência '+competence+'.</td></tr></table><div class="signature">'+esc(data.employee.nome)+' - assinatura</div></section>').join('')
-    return '<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial;color:#111;margin:0;font-size:10px}h1{text-align:center;font-size:15px;margin:0 0 12px}section{border:1.4px solid #333;margin-bottom:12px;break-inside:avoid}.head{display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;padding:7px;background:#edf1f5}.head span{display:block}table{width:100%;border-collapse:collapse}th,td{border:1px solid #555;padding:6px;text-align:left}th{background:#f7f8fa}.signature{width:45%;margin:25px 12px 10px auto;border-top:1px solid #111;text-align:center;padding-top:4px}</style></head><body><h1>RECIBOS DE BENEFÍCIOS - '+competence+'</h1>'+blocks+'</body></html>'
-  }
-
-  async printHtml(html,destination) {
-    const win=new BrowserWindow({show:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}})
-    const htmlPath=path.join(os.tmpdir(),'fluxo-dre-render-'+process.pid+'-'+Date.now()+'.html')
-    try { fs.writeFileSync(htmlPath,html,'utf8'); await win.loadFile(htmlPath); const pdf=await win.webContents.printToPDF({pageSize:'A4',printBackground:true,margins:{marginType:'none'}}); fs.writeFileSync(destination,pdf) }
-    finally { win.destroy(); if(fs.existsSync(htmlPath)) fs.unlinkSync(htmlPath) }
-  }
-
-  registerPdf(employee,category,title,destination) {
-    const stat=fs.statSync(destination), version=(this.db.db.prepare('SELECT COALESCE(MAX(versao),0)+1 value FROM documentos WHERE funcionario_id=? AND categoria=? AND deleted_at IS NULL').get(employee.id,category).value)
-    const file=this.db.save('arquivos',{nome_original:path.basename(destination),nome_armazenado:path.basename(destination),caminho:destination,tamanho:stat.size,extensao:'.pdf',mime_type:'application/pdf',hash:sha256(destination),origem:'gerado_mensal'})
-    return this.db.save('documentos',{arquivo_id:file.id,empresa_id:employee.empresa_id,obra_id:employee.obra_atual_id,funcionario_id:employee.id,categoria:category,titulo:title,status_assinatura:'nao_assinado',versao:version})
-  }
-
-  async generateDocuments(payload) {
-    let data=this.get(payload)
-    if(!data.marks.length) data=this.autoFill(payload)
-    const company=data.employee.empresa_id?this.db.get('empresas',data.employee.empresa_id):null
-    const cargo=data.employee.cargo_id?this.db.get('cargos',data.employee.cargo_id):null
-    const issues=employeeIdentityIssues(data.employee,company)
-    if(!cargo||!String(cargo.nome||'').trim()) issues.push('cargo/função')
-    if(issues.length) throw new Error('Complete o cadastro de '+String(data.employee.nome||'funcionário')+' antes de gerar documentos mensais: '+issues.join(', ')+'.')
-    const sheet=this.db.db.prepare('SELECT id FROM folhas_pagamento WHERE empresa_id IS ? AND competencia=?').get(data.employee.empresa_id||null,data.point.competencia)
-    const benefits=sheet?this.db.db.prepare("SELECT descricao,valor_centavos FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND natureza='credito' AND (tipo LIKE 'beneficio_%' OR lower(descricao) LIKE '%café%' OR lower(descricao) LIKE '%aliment%') ORDER BY descricao").all(sheet.id,data.employee.id):[]
-    const folders=this.fileService.employeeFolders(data.employee,company&&(company.nome_fantasia||company.razao_social))
-    const parts=data.point.competencia.split('-'), monthlyFolder=path.join(folders.base,'Recibos',parts[0],parts[1]+' - '+MONTHS[Number(parts[1])-1])
-    fs.mkdirSync(monthlyFolder,{recursive:true})
-    const stamp=Date.now(), pointName='Ficha de ponto - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf'
-    const receiptName='Recibos de benefícios - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf'
-    const pointPath=path.join(monthlyFolder,pointName), receiptPath=path.join(monthlyFolder,receiptName)
-    await this.printHtml(this.pointHtml(data,company,cargo),pointPath)
-    await this.printHtml(this.receiptHtml(data,company,cargo,benefits,payload.paymentDate),receiptPath)
-    const pointDoc=this.registerPdf(data.employee,'folha_ponto','Ficha de ponto - '+data.point.competencia,pointPath)
-    const receiptDoc=this.registerPdf(data.employee,'recibos_beneficios','Recibos de benefícios - '+data.point.competencia,receiptPath)
-    this.db.db.prepare("UPDATE pontos_mensais SET status='gerado',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(data.point.id)
-    return {folder:monthlyFolder,point:{...pointDoc,path:pointPath},receipt:{...receiptDoc,path:receiptPath}}
-  }
-
-  async generateForAll(payload) {
-    if(payload&&payload.print) return this.printForAll({...payload,print:false})
-    const employees=this.db.db.prepare("SELECT id,nome FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome").all()
-    const results=[]
-    for(const employee of employees) {
-      try { results.push({funcionario_id:employee.id,nome:employee.nome,ok:true,documents:await this.generateDocuments({funcionario_id:employee.id,competencia:payload.competencia,paymentDate:payload.paymentDate})}) }
-      catch(error) { results.push({funcionario_id:employee.id,nome:employee.nome,ok:false,error:error instanceof Error?error.message:String(error)}) }
-    }
-    return results
-  }
-
-  async preparePrintBatch(payload) {
-    const selection={point:Boolean(payload.point),receipts:Boolean(payload.receipts)}
-    if(!selection.point&&!selection.receipts) throw new Error('Selecione fichas de ponto e/ou recibos para imprimir.')
-    const results=await this.generateForAll({...payload,print:false})
-    const successful=results.filter((item)=>item.ok)
-    if(!successful.length) return {path:null,results,employees:0,documents:0}
-    const bytes=await mergeGeneratedPdfs(successful,selection)
-    const destination=path.join(os.tmpdir(),'fluxo-dre-lote-'+validCompetence(payload.competencia)+'-'+Date.now()+'.pdf')
-    fs.writeFileSync(destination,bytes)
-    return {path:destination,results,employees:successful.length,documents:successful.length*(Number(selection.point)+Number(selection.receipts))}
-  }
-
-  async printForAll(payload) {
-    const batch=await this.preparePrintBatch(payload)
-    if(!batch.path) return {...batch,printed:false,canceled:false}
-    const win=new BrowserWindow({show:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}})
-    try {
-      await win.loadFile(batch.path)
-      const outcome=await new Promise((resolve)=>win.webContents.print({silent:false,printBackground:true},(success,failureReason)=>resolve({success,failureReason})))
-      const canceled=!outcome.success&&/cancel/i.test(String(outcome.failureReason||''))
-      if(!outcome.success&&!canceled) throw new Error('Não foi possível abrir/concluir a impressão: '+String(outcome.failureReason||'erro desconhecido'))
-      return {...batch,printed:Boolean(outcome.success),canceled}
-    } finally {
-      win.destroy()
-      if(batch.path&&fs.existsSync(batch.path)) fs.unlinkSync(batch.path)
-    }
-  }
-}
-
-module.exports={TimeService,monthDays,addMinutes,jitter,mergeGeneratedPdfs}
+module.exports={TimeService,monthDays,addMinutes,jitter,mergeGeneratedPdfs,buildPrintBatchHtml,filterBenefitsByPolicy}

@@ -21,6 +21,7 @@ import SchedulePage from './pages/SchedulePage'
 import DailyReportPage from './pages/DailyReportPage'
 import ProcurementPage from './pages/ProcurementPage'
 import HrTemplatesPage from './pages/HrTemplatesPage'
+import RhHubPage from './pages/RhHubPage'
 import FrontsPage from './pages/FrontsPage'
 import ContractsPage from './pages/ContractsPage'
 import TasksPage from './pages/TasksPage'
@@ -69,6 +70,7 @@ export default function App() {
     <Route path="/contratos" element={<ContractsPage/>}/>
     <Route path="/tarefas" element={<TasksPage/>}/>
     <Route path="/medicoes" element={<MeasurementsPage/>}/>
+    <Route path="/rh" element={<RhHubPage/>}/>
     <Route path="/funcionarios" element={<EmployeesPage/>}/>
     <Route path="/registro-funcionario" element={<EmployeeRegistrationPage/>}/>
     <Route path="/ponto" element={<TimeSheetPage/>}/>
