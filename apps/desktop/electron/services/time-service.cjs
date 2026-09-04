@@ -30,6 +30,49 @@ function monthDays(competencia) {
     return {data,day,weekday:new Date(year,month-1,day).getDay()}
   })
 }
+function bodyOnly(html) {
+  const match=String(html||'').match(/<body[^>]*>([\s\S]*?)<\/body>/i)
+  return match?match[1]:String(html||'')
+}
+function buildPrintBatchHtml(entries, selection) {
+  const point=Boolean(selection&&selection.point), receipts=Boolean(selection&&selection.receipts)
+  if(!point&&!receipts) throw new Error('Selecione fichas de ponto e/ou recibos para imprimir.')
+  const blocks=[]
+  for(const item of entries||[]) {
+    if(!item||item.ok===false) continue
+    if(point&&item.pointHtml) blocks.push('<article class="print-document point-document">'+bodyOnly(item.pointHtml)+'</article>')
+    if(receipts&&item.receiptHtml) blocks.push('<article class="print-document receipt-document">'+bodyOnly(item.receiptHtml)+'</article>')
+  }
+  if(!blocks.length) throw new Error('Nenhum documento válido foi preparado para impressão.')
+  return '<!doctype html><html><head><meta charset="utf-8"><style>'+[
+    '@page pointPage{size:A4 landscape;margin:9mm}',
+    '@page receiptPage{size:A4 portrait;margin:14mm}',
+    '*{box-sizing:border-box}',
+    'html,body{margin:0;padding:0;font-family:Arial,sans-serif;color:#111}',
+    '.print-document{break-after:page;page-break-after:always}',
+    '.print-document:last-child{break-after:auto;page-break-after:auto}',
+    '.point-document{page:pointPage;font-size:9px}',
+    '.point-document .title{text-align:center;font-size:18px;font-weight:700;margin-bottom:7px}',
+    '.point-document .meta{display:grid;grid-template-columns:2fr 1.2fr 2fr 1.2fr;border:1px solid #333;margin-bottom:7px}',
+    '.point-document .meta div{padding:4px 6px;border-right:1px solid #555;border-bottom:1px solid #555}',
+    '.point-document .meta div:nth-child(4n){border-right:0}',
+    '.point-document .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}',
+    '.point-document table,.receipt-document table{width:100%;border-collapse:collapse}',
+    '.point-document th,.point-document td{border:1px solid #444;padding:3px;text-align:center;height:22px}',
+    '.point-document th{background:#edf1f5;font-size:8px}',
+    '.point-document .sign{display:grid;grid-template-columns:1fr 1fr;gap:80px;margin:28px 55px 0;text-align:center}',
+    '.point-document .sign div{border-top:1px solid #111;padding-top:4px}',
+    '.point-document .note{text-align:center;margin-top:8px;color:#555}',
+    '.receipt-document{page:receiptPage;font-size:10px}',
+    '.receipt-document h1{text-align:center;font-size:15px;margin:0 0 12px}',
+    '.receipt-document section{border:1.4px solid #333;margin-bottom:12px;break-inside:avoid}',
+    '.receipt-document .head{display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;padding:7px;background:#edf1f5}',
+    '.receipt-document .head span{display:block}',
+    '.receipt-document th,.receipt-document td{border:1px solid #555;padding:6px;text-align:left}',
+    '.receipt-document th{background:#f7f8fa}',
+    '.receipt-document .signature{width:45%;margin:30px 12px 12px auto;border-top:1px solid #111;text-align:center;padding-top:4px}'
+  ].join('')+'</style></head><body>'+blocks.join('')+'</body></html>'
+}
 
 async function mergeGeneratedPdfs(results, selection) {
   const point=Boolean(selection&&selection.point), receipts=Boolean(selection&&selection.receipts)
@@ -112,14 +155,15 @@ class TimeService {
 
   receiptHtml(data,company,cargo,benefits,paymentDate) {
     const parts=data.point.competencia.split('-'), competence=MONTHS[Number(parts[1])-1].toUpperCase()+'/'+parts[0]
-    const items=benefits.length?benefits:[{descricao:'Benefícios do mês',valor_centavos:0}]
-    const blocks=items.map((item)=>'<section><div class="head"><b>'+esc(data.employee.nome)+'</b><span>'+esc(cargo&&cargo.nome)+'</span><span>Competência: '+competence+'</span></div><table><tr><th>Benefício</th><th>Valor</th></tr><tr><td>'+esc(item.descricao)+'</td><td>'+brl(item.valor_centavos)+'</td></tr><tr><td>Empregador: '+esc(company&&company.razao_social)+'</td><td>CNPJ: '+esc(formatCnpj(company&&company.cnpj))+'</td></tr><tr><td>Empregado: '+esc(data.employee.nome)+'</td><td>CPF: '+esc(formatCpf(data.employee.cpf))+'</td></tr><tr><td>Data: '+String(paymentDate||'').split('-').reverse().join('/')+'</td><td>Função: '+esc(cargo&&cargo.nome)+'</td></tr><tr><td colspan="2">Declaro ter recebido o valor acima referente a '+esc(item.descricao)+' da competência '+competence+'.</td></tr></table><div class="signature">'+esc(data.employee.nome)+' - assinatura</div></section>').join('')
-    return '<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial;color:#111;margin:0;font-size:10px}h1{text-align:center;font-size:15px;margin:0 0 12px}section{border:1.4px solid #333;margin-bottom:12px;break-inside:avoid}.head{display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;padding:7px;background:#edf1f5}.head span{display:block}table{width:100%;border-collapse:collapse}th,td{border:1px solid #555;padding:6px;text-align:left}th{background:#f7f8fa}.signature{width:45%;margin:25px 12px 10px auto;border-top:1px solid #111;text-align:center;padding-top:4px}</style></head><body><h1>RECIBOS DE BENEFÍCIOS - '+competence+'</h1>'+blocks+'</body></html>'
+    if(!benefits.length) return null
+    const benefitRows=benefits.map((item)=>'<tr><td>'+esc(item.descricao)+'</td><td>'+brl(item.valor_centavos)+'</td></tr>').join('')
+    const names=benefits.map((item)=>item.descricao).join(', ')
+    return '<!doctype html><html><head><meta charset="utf-8"><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial;color:#111;margin:0;font-size:10px}h1{text-align:center;font-size:15px;margin:0 0 12px}section{border:1.4px solid #333;margin-bottom:12px;break-inside:avoid}.head{display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;padding:7px;background:#edf1f5}.head span{display:block}table{width:100%;border-collapse:collapse}th,td{border:1px solid #555;padding:6px;text-align:left}th{background:#f7f8fa}.signature{width:45%;margin:30px 12px 12px auto;border-top:1px solid #111;text-align:center;padding-top:4px}</style></head><body><h1>RECIBOS DE BENEFÍCIOS - '+competence+'</h1><section><div class="head"><b>'+esc(data.employee.nome)+'</b><span>'+esc(cargo&&cargo.nome)+'</span><span>Competência: '+competence+'</span></div><table><tr><th>Benefício</th><th>Valor</th></tr>'+benefitRows+'<tr><td>Empregador: '+esc(company&&company.razao_social)+'</td><td>CNPJ: '+esc(formatCnpj(company&&company.cnpj))+'</td></tr><tr><td>Empregado: '+esc(data.employee.nome)+'</td><td>CPF: '+esc(formatCpf(data.employee.cpf))+'</td></tr><tr><td>Data: '+String(paymentDate||'').split('-').reverse().join('/')+'</td><td>Função: '+esc(cargo&&cargo.nome)+'</td></tr><tr><td colspan="2">Declaro ter recebido os valores acima referentes a '+esc(names)+' da competência '+competence+'.</td></tr></table><div class="signature">'+esc(data.employee.nome)+' - assinatura</div></section></body></html>'
   }
 
   async printHtml(html,destination) {
     const win=new BrowserWindow({show:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}})
-    const htmlPath=path.join(os.tmpdir(),'fluxo-dre-render-'+process.pid+'-'+Date.now()+'.html')
+    const htmlPath=path.join(os.tmpdir(),'obra-na-mao-render-'+process.pid+'-'+Date.now()+'.html')
     try { fs.writeFileSync(htmlPath,html,'utf8'); await win.loadFile(htmlPath); const pdf=await win.webContents.printToPDF({pageSize:'A4',printBackground:true,margins:{marginType:'none'}}); fs.writeFileSync(destination,pdf) }
     finally { win.destroy(); if(fs.existsSync(htmlPath)) fs.unlinkSync(htmlPath) }
   }
@@ -130,7 +174,37 @@ class TimeService {
     return this.db.save('documentos',{arquivo_id:file.id,empresa_id:employee.empresa_id,obra_id:employee.obra_atual_id,funcionario_id:employee.id,categoria:category,titulo:title,status_assinatura:'nao_assinado',versao:version})
   }
 
+  benefitRows(employee,competencia) {
+    const sheet=this.db.db.prepare('SELECT id FROM folhas_pagamento WHERE empresa_id IS ? AND competencia=?').get(employee.empresa_id||null,competencia)
+    if(!sheet) return []
+    return this.db.db.prepare(`
+      SELECT fl.descricao, fl.valor_centavos
+      FROM folha_lancamentos fl
+      LEFT JOIN beneficios b ON lower(trim(b.nome))=lower(trim(fl.descricao))
+        OR lower(fl.tipo)=('beneficio_' || replace(replace(lower(b.tipo),' ','_'),'-','_'))
+      LEFT JOIN empresa_beneficio_recibo p ON p.empresa_id=? AND p.beneficio_id=b.id
+      WHERE fl.folha_id=? AND fl.funcionario_id=? AND fl.natureza='credito'
+        AND (fl.tipo LIKE 'beneficio_%' OR b.id IS NOT NULL)
+        AND COALESCE(p.imprimir_recibo,1)=1
+      ORDER BY fl.descricao COLLATE NOCASE
+    `).all(employee.empresa_id||0,sheet.id,employee.id)
+  }
+
+  printableEntry(employeeId,competencia,paymentDate) {
+    let data=this.get({funcionario_id:employeeId,competencia})
+    if(!data.marks.length) data=this.autoFill({funcionario_id:employeeId,competencia})
+    const company=data.employee.empresa_id?this.db.get('empresas',data.employee.empresa_id):null
+    const cargo=data.employee.cargo_id?this.db.get('cargos',data.employee.cargo_id):null
+    const issues=employeeIdentityIssues(data.employee,company)
+    if(!cargo||!String(cargo.nome||'').trim()) issues.push('cargo/função')
+    if(issues.length) throw new Error('Complete o cadastro de '+String(data.employee.nome||'funcionário')+' antes de gerar documentos mensais: '+issues.join(', ')+'.')
+    const benefits=this.benefitRows(data.employee,data.point.competencia)
+    return {funcionario_id:data.employee.id,nome:data.employee.nome,ok:true,pointHtml:this.pointHtml(data,company,cargo),receiptHtml:this.receiptHtml(data,company,cargo,benefits,paymentDate)}
+  }
+
   async generateDocuments(payload) {
+    const pointSelected=payload.point!==false, receiptsSelected=payload.receipts!==false
+    if(!pointSelected&&!receiptsSelected) throw new Error('Selecione fichas de ponto e/ou recibos para gerar.')
     let data=this.get(payload)
     if(!data.marks.length) data=this.autoFill(payload)
     const company=data.employee.empresa_id?this.db.get('empresas',data.employee.empresa_id):null
@@ -138,60 +212,93 @@ class TimeService {
     const issues=employeeIdentityIssues(data.employee,company)
     if(!cargo||!String(cargo.nome||'').trim()) issues.push('cargo/função')
     if(issues.length) throw new Error('Complete o cadastro de '+String(data.employee.nome||'funcionário')+' antes de gerar documentos mensais: '+issues.join(', ')+'.')
-    const sheet=this.db.db.prepare('SELECT id FROM folhas_pagamento WHERE empresa_id IS ? AND competencia=?').get(data.employee.empresa_id||null,data.point.competencia)
-    const benefits=sheet?this.db.db.prepare("SELECT descricao,valor_centavos FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND natureza='credito' AND (tipo LIKE 'beneficio_%' OR lower(descricao) LIKE '%café%' OR lower(descricao) LIKE '%aliment%') ORDER BY descricao").all(sheet.id,data.employee.id):[]
+    const benefits=this.benefitRows(data.employee,data.point.competencia)
     const folders=this.fileService.employeeFolders(data.employee,company&&(company.nome_fantasia||company.razao_social))
     const parts=data.point.competencia.split('-'), monthlyFolder=path.join(folders.base,'Recibos',parts[0],parts[1]+' - '+MONTHS[Number(parts[1])-1])
     fs.mkdirSync(monthlyFolder,{recursive:true})
-    const stamp=Date.now(), pointName='Ficha de ponto - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf'
-    const receiptName='Recibos de benefícios - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf'
-    const pointPath=path.join(monthlyFolder,pointName), receiptPath=path.join(monthlyFolder,receiptName)
-    await this.printHtml(this.pointHtml(data,company,cargo),pointPath)
-    await this.printHtml(this.receiptHtml(data,company,cargo,benefits,payload.paymentDate),receiptPath)
-    const pointDoc=this.registerPdf(data.employee,'folha_ponto','Ficha de ponto - '+data.point.competencia,pointPath)
-    const receiptDoc=this.registerPdf(data.employee,'recibos_beneficios','Recibos de benefícios - '+data.point.competencia,receiptPath)
+    const stamp=Date.now(), result={folder:monthlyFolder}
+    if(pointSelected) {
+      const pointName='Ficha de ponto - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf'
+      const pointPath=path.join(monthlyFolder,pointName)
+      await this.printHtml(this.pointHtml(data,company,cargo),pointPath)
+      const pointDoc=this.registerPdf(data.employee,'folha_ponto','Ficha de ponto - '+data.point.competencia,pointPath)
+      result.point={...pointDoc,path:pointPath}
+    }
+    if(receiptsSelected&&benefits.length) {
+      const receiptName='Recibos de benefícios - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf'
+      const receiptPath=path.join(monthlyFolder,receiptName)
+      await this.printHtml(this.receiptHtml(data,company,cargo,benefits,payload.paymentDate),receiptPath)
+      const receiptDoc=this.registerPdf(data.employee,'recibos_beneficios','Recibos de benefícios - '+data.point.competencia,receiptPath)
+      result.receipt={...receiptDoc,path:receiptPath}
+    }
     this.db.db.prepare("UPDATE pontos_mensais SET status='gerado',updated_at=CURRENT_TIMESTAMP WHERE id=?").run(data.point.id)
-    return {folder:monthlyFolder,point:{...pointDoc,path:pointPath},receipt:{...receiptDoc,path:receiptPath}}
+    return result
   }
 
   async generateForAll(payload) {
+    if(payload&&payload.reprint) return this.reprintForAll({...payload,reprint:false})
     if(payload&&payload.print) return this.printForAll({...payload,print:false})
-    const employees=this.db.db.prepare("SELECT id,nome FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome").all()
+    const employees=this.db.db.prepare("SELECT id,nome FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome COLLATE NOCASE").all()
     const results=[]
     for(const employee of employees) {
-      try { results.push({funcionario_id:employee.id,nome:employee.nome,ok:true,documents:await this.generateDocuments({funcionario_id:employee.id,competencia:payload.competencia,paymentDate:payload.paymentDate})}) }
+      try { results.push({funcionario_id:employee.id,nome:employee.nome,ok:true,documents:await this.generateDocuments({funcionario_id:employee.id,competencia:payload.competencia,paymentDate:payload.paymentDate,point:payload.point,receipts:payload.receipts})}) }
       catch(error) { results.push({funcionario_id:employee.id,nome:employee.nome,ok:false,error:error instanceof Error?error.message:String(error)}) }
     }
     return results
   }
 
-  async preparePrintBatch(payload) {
-    const selection={point:Boolean(payload.point),receipts:Boolean(payload.receipts)}
-    if(!selection.point&&!selection.receipts) throw new Error('Selecione fichas de ponto e/ou recibos para imprimir.')
-    const results=await this.generateForAll({...payload,print:false})
-    const successful=results.filter((item)=>item.ok)
-    if(!successful.length) return {path:null,results,employees:0,documents:0}
-    const bytes=await mergeGeneratedPdfs(successful,selection)
-    const destination=path.join(os.tmpdir(),'fluxo-dre-lote-'+validCompetence(payload.competencia)+'-'+Date.now()+'.pdf')
-    fs.writeFileSync(destination,bytes)
-    return {path:destination,results,employees:successful.length,documents:successful.length*(Number(selection.point)+Number(selection.receipts))}
+  preparePrintableEntries(payload,employeeIds) {
+    const selected=employeeIds?new Set(employeeIds.map(Number)):null
+    const employees=this.db.db.prepare("SELECT id,nome FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome COLLATE NOCASE").all().filter((employee)=>!selected||selected.has(Number(employee.id)))
+    const entries=[]
+    for(const employee of employees) {
+      try { entries.push(this.printableEntry(employee.id,payload.competencia,payload.paymentDate)) }
+      catch(error) { entries.push({funcionario_id:employee.id,nome:employee.nome,ok:false,error:error instanceof Error?error.message:String(error)}) }
+    }
+    return entries
   }
 
-  async printForAll(payload) {
-    const batch=await this.preparePrintBatch(payload)
-    if(!batch.path) return {...batch,printed:false,canceled:false}
+  async printEntries(entries,payload) {
+    const successful=entries.filter((item)=>item.ok)
+    if(!successful.length) return {results:entries,employees:0,documents:0,printed:false,canceled:false}
+    let html
+    try { html=buildPrintBatchHtml(successful,{point:payload.point,receipts:payload.receipts}) }
+    catch(error) {
+      if(/Nenhum documento válido/.test(String(error&&error.message))) return {results:entries,employees:successful.length,documents:0,printed:false,canceled:false}
+      throw error
+    }
+    const htmlPath=path.join(os.tmpdir(),'obra-na-mao-impressao-'+validCompetence(payload.competencia)+'-'+Date.now()+'.html')
     const win=new BrowserWindow({show:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}})
     try {
-      await win.loadFile(batch.path)
+      fs.writeFileSync(htmlPath,html,'utf8')
+      await win.loadFile(htmlPath)
+      await new Promise((resolve)=>setTimeout(resolve,150))
       const outcome=await new Promise((resolve)=>win.webContents.print({silent:false,printBackground:true},(success,failureReason)=>resolve({success,failureReason})))
       const canceled=!outcome.success&&/cancel/i.test(String(outcome.failureReason||''))
       if(!outcome.success&&!canceled) throw new Error('Não foi possível abrir/concluir a impressão: '+String(outcome.failureReason||'erro desconhecido'))
-      return {...batch,printed:Boolean(outcome.success),canceled}
+      const documents=successful.reduce((total,item)=>total+(payload.point&&item.pointHtml?1:0)+(payload.receipts&&item.receiptHtml?1:0),0)
+      return {results:entries,employees:successful.length,documents,printed:Boolean(outcome.success),canceled}
     } finally {
       win.destroy()
-      if(batch.path&&fs.existsSync(batch.path)) fs.unlinkSync(batch.path)
+      if(fs.existsSync(htmlPath)) fs.unlinkSync(htmlPath)
     }
+  }
+
+  async printForAll(payload) {
+    const generated=await this.generateForAll({...payload,print:false,reprint:false})
+    const successful=generated.filter((item)=>item.ok)
+    if(!successful.length) return {results:generated,employees:0,documents:0,printed:false,canceled:false}
+    const entries=this.preparePrintableEntries(payload,successful.map((item)=>item.funcionario_id))
+    const printed=await this.printEntries(entries,payload)
+    const failedGenerated=generated.filter((item)=>!item.ok)
+    return {...printed,results:[...printed.results,...failedGenerated]}
+  }
+
+  async reprintForAll(payload) {
+    const entries=this.preparePrintableEntries(payload)
+    const result=await this.printEntries(entries,payload)
+    return {...result,reprint:true}
   }
 }
 
-module.exports={TimeService,monthDays,addMinutes,jitter,mergeGeneratedPdfs}
+module.exports={TimeService,monthDays,addMinutes,jitter,mergeGeneratedPdfs,buildPrintBatchHtml}
