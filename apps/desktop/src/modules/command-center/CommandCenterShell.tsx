@@ -30,7 +30,7 @@ const groups = [
     { to: '/contratos', label: 'Contratos e aditivos', icon: FileArchive },
     { to: '/tarefas', label: 'Tarefas', icon: ClipboardList },
   ] },
-  { label: 'RH', items: [
+  { label: 'RH', to: '/rh', items: [
     { to: '/funcionarios', label: 'Funcionarios', icon: UsersRound },
     { to: '/registro-funcionario', label: 'Registro funcionario', icon: BriefcaseBusiness },
     { to: '/ponto', label: 'Folhas de ponto', icon: CalendarClock },
@@ -56,7 +56,7 @@ export default function CommandCenterShell({ children }: { children: ReactNode }
         <div><strong>Fluxo DRE</strong><span>Central operacional</span></div>
       </div>
       <nav>{groups.map((group) => <div className="nav-group" key={group.label}>
-        <span className="nav-label">{group.label}</span>
+        {group.to?<NavLink className="nav-label" to={group.to} title={collapsed?group.label:undefined}>{group.label}</NavLink>:<span className="nav-label">{group.label}</span>}
         {group.items.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} end={to === '/'} title={collapsed ? label : undefined}>
           <Icon size={18}/><span>{label}</span>
         </NavLink>)}
