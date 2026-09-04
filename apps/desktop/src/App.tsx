@@ -4,6 +4,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { useAsync } from './hooks/useAsync'
 import { CommandCenterShell, DashboardPage as CommandCenterDashboardPage, DrePage as CommandCenterDrePage, FinancePage as CommandCenterFinancePage } from './modules/command-center'
 import { ClassicAppShell, ClassicDashboardPage, ClassicDrePage, ClassicFinancePage } from './modules/classic-ui'
+import AiAssistantPage from './pages/AiAssistantPage'
 import PayrollPage from './pages/PayrollPage'
 import WorksPage from './pages/WorksPage'
 import BudgetPage from './pages/BudgetPage'
@@ -54,6 +55,7 @@ export default function App() {
 
   return <ErrorBoundary><Shell><RouteBoundary><Routes>
     <Route path="/" element={<DashboardPage/>}/>
+    <Route path="/assistente-ia" element={<AiAssistantPage/>}/>
     <Route path="/dre" element={<DrePage/>}/>
     <Route path="/financeiro" element={<FinancePage/>}/>
     <Route path="/folha" element={<PayrollPage/>}/>

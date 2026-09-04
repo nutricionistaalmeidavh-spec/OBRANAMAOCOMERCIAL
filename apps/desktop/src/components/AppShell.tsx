@@ -1,10 +1,13 @@
 import { ReactNode, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { BarChart3, BriefcaseBusiness, Building2, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, FileArchive, FileSpreadsheet, HardHat, Landmark, LayoutDashboard, ReceiptText, Settings, UsersRound, WalletCards } from 'lucide-react'
+import { BarChart3, BriefcaseBusiness, Building2, CalendarClock, ChevronLeft, ChevronRight, ClipboardList, FileArchive, FileSpreadsheet, HardHat, Landmark, LayoutDashboard, ReceiptText, Settings, Sparkles, UsersRound, WalletCards } from 'lucide-react'
 
 const groups = [
   { label: 'Visao geral', items: [
     { to: '/', label: 'Painel', icon: LayoutDashboard }, { to: '/dre', label: 'DRE', icon: BarChart3 }
+  ]},
+  { label: 'Inteligencia', items: [
+    { to: '/assistente-ia', label: 'Assistente IA', icon: Sparkles }
   ]},
   { label: 'Financeiro', items: [
     { to: '/financeiro', label: 'Contas', icon: WalletCards }, { to: '/folha', label: 'Folha e pagamentos', icon: ReceiptText }
