@@ -10,7 +10,7 @@ Atualizado em 2026-09-03. Este arquivo é o inventário visual obrigatório ante
 | Aplicação / roteador | `sistema.html` | Decide portal, owner, universidade, finanças, bridge, ativação e módulos | Infraestrutura |
 | Portal | `#portal` | Login ou dashboard geral conforme sessão | Premium atual |
 | Administração comercial | `#owner` | Licenças, clientes, acessos e dispositivos | Revisar em rodada própria |
-| Universidade | `universidade.html#universidade` / `#universidade*` | Ambiente educacional | Design próprio |
+| Universidade | `universidade.html#universidade` / `#universidade*` | Ambiente educacional | Premium Bloco 3 |
 | Obra360 | `obra.html#obra` / `#obra*` | PWA operacional de campo | Em migração premium |
 | Gestão | `gestao.html#gestao` / `#gestao*` | Consulta administrativa móvel | Em migração premium |
 | Financeiro | `#finance` | Redireciona para o portal / superfície financeira autorizada | Rota de compatibilidade |
@@ -105,15 +105,18 @@ Os valores devem sempre vir do resumo publicado pelo Desktop; ausência de dado 
 
 ## 8. Universidade
 
-Navegação principal definida por `navigation-model.ts`:
+| Superfície | Navegação / contexto | Status visual |
+|---|---|---|
+| Início | `inicio` | Premium Bloco 3 |
+| Sondagem / Diagnóstico | `diagnostico` | Premium Bloco 3 |
+| Trilhas e progresso | `trilhas` | Premium Bloco 3 |
+| Aula | contexto `lesson` dentro de trilhas | Premium Bloco 3 |
+| Prática & Desafios | `pratica` | Premium Bloco 3 |
+| Desenvolvimento / evolução | `evolucao` / contexto `development` | Premium Bloco 3 |
+| Tarefas | `tarefas` | Premium Bloco 3 |
+| Tutor / Admin | `admin` para superadmin/admin/RH | Premium Bloco 3 |
 
-- `inicio` — Início.
-- `diagnostico` — Sondagem, apenas enquanto não concluída.
-- `trilhas` — Trilhas e progresso.
-- `pratica` — Prática & Desafios.
-- `admin` — Tutor, para superadmin/admin/RH.
-
-Contextos adicionais de conteúdo: aula, desenvolvimento/evolução e tarefas.
+O Bloco 3 mantém conteúdo, progresso, autenticação e permissões existentes. A camada `university-premium.css` diferencia visualmente estudo, prática, acompanhamento e administração, em vez de tratar toda a Universidade como o mesmo conjunto de cards.
 
 ## 9. Regra para próximas alterações visuais
 
