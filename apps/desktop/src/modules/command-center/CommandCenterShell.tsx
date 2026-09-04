@@ -4,13 +4,16 @@ import {
   BarChart3, BriefcaseBusiness, Building2, CalendarClock, ChevronLeft,
   ChevronRight, ClipboardCheck, ClipboardList, FileArchive, FileSpreadsheet,
   HardHat, Landmark, LayoutDashboard, PackageSearch, ReceiptText, Settings,
-  UsersRound, WalletCards,
+  Sparkles, UsersRound, WalletCards,
 } from 'lucide-react'
 
 const groups = [
   { label: 'Visao geral', items: [
     { to: '/', label: 'Painel', icon: LayoutDashboard },
     { to: '/dre', label: 'DRE', icon: BarChart3 },
+  ] },
+  { label: 'Inteligencia', items: [
+    { to: '/assistente-ia', label: 'Assistente IA', icon: Sparkles },
   ] },
   { label: 'Financeiro', items: [
     { to: '/financeiro', label: 'Contas', icon: WalletCards },
