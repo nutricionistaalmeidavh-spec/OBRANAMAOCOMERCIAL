@@ -3,6 +3,7 @@ const path = require('node:path')
 const os = require('node:os')
 const crypto = require('node:crypto')
 const { BrowserWindow } = require('electron')
+const { PDFDocument } = require('pdf-lib')
 const { sanitizeName, sha256 } = require('./file-service.cjs')
 const { formatCpf, formatCnpj, employeeIdentityIssues } = require('./employee-identity.cjs')
 
@@ -28,6 +29,29 @@ function monthDays(competencia) {
     const day=index+1, data=year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')
     return {data,day,weekday:new Date(year,month-1,day).getDay()}
   })
+}
+
+async function mergeGeneratedPdfs(results, selection) {
+  const point=Boolean(selection&&selection.point), receipts=Boolean(selection&&selection.receipts)
+  if(!point&&!receipts) throw new Error('Selecione fichas de ponto e/ou recibos para imprimir.')
+  const merged=await PDFDocument.create()
+  let documents=0
+  for(const item of results||[]) {
+    if(!item||item.ok===false) continue
+    const generated=item.documents||item
+    const paths=[]
+    if(point&&generated.point&&generated.point.path) paths.push(generated.point.path)
+    if(receipts&&generated.receipt&&generated.receipt.path) paths.push(generated.receipt.path)
+    for(const filePath of paths) {
+      if(!fs.existsSync(filePath)) continue
+      const source=await PDFDocument.load(fs.readFileSync(filePath))
+      const pages=await merged.copyPages(source,source.getPageIndices())
+      pages.forEach((page)=>merged.addPage(page))
+      documents+=1
+    }
+  }
+  if(!documents) throw new Error('Nenhum documento válido foi gerado para impressão.')
+  return merged.save()
 }
 
 class TimeService {
@@ -112,6 +136,7 @@ class TimeService {
     const company=data.employee.empresa_id?this.db.get('empresas',data.employee.empresa_id):null
     const cargo=data.employee.cargo_id?this.db.get('cargos',data.employee.cargo_id):null
     const issues=employeeIdentityIssues(data.employee,company)
+    if(!cargo||!String(cargo.nome||'').trim()) issues.push('cargo/função')
     if(issues.length) throw new Error('Complete o cadastro de '+String(data.employee.nome||'funcionário')+' antes de gerar documentos mensais: '+issues.join(', ')+'.')
     const sheet=this.db.db.prepare('SELECT id FROM folhas_pagamento WHERE empresa_id IS ? AND competencia=?').get(data.employee.empresa_id||null,data.point.competencia)
     const benefits=sheet?this.db.db.prepare("SELECT descricao,valor_centavos FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND natureza='credito' AND (tipo LIKE 'beneficio_%' OR lower(descricao) LIKE '%café%' OR lower(descricao) LIKE '%aliment%') ORDER BY descricao").all(sheet.id,data.employee.id):[]
@@ -130,6 +155,7 @@ class TimeService {
   }
 
   async generateForAll(payload) {
+    if(payload&&payload.print) return this.printForAll({...payload,print:false})
     const employees=this.db.db.prepare("SELECT id,nome FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome").all()
     const results=[]
     for(const employee of employees) {
@@ -138,16 +164,34 @@ class TimeService {
     }
     return results
   }
+
+  async preparePrintBatch(payload) {
+    const selection={point:Boolean(payload.point),receipts:Boolean(payload.receipts)}
+    if(!selection.point&&!selection.receipts) throw new Error('Selecione fichas de ponto e/ou recibos para imprimir.')
+    const results=await this.generateForAll({...payload,print:false})
+    const successful=results.filter((item)=>item.ok)
+    if(!successful.length) return {path:null,results,employees:0,documents:0}
+    const bytes=await mergeGeneratedPdfs(successful,selection)
+    const destination=path.join(os.tmpdir(),'fluxo-dre-lote-'+validCompetence(payload.competencia)+'-'+Date.now()+'.pdf')
+    fs.writeFileSync(destination,bytes)
+    return {path:destination,results,employees:successful.length,documents:successful.length*(Number(selection.point)+Number(selection.receipts))}
+  }
+
+  async printForAll(payload) {
+    const batch=await this.preparePrintBatch(payload)
+    if(!batch.path) return {...batch,printed:false,canceled:false}
+    const win=new BrowserWindow({show:false,webPreferences:{sandbox:true,contextIsolation:true,nodeIntegration:false}})
+    try {
+      await win.loadFile(batch.path)
+      const outcome=await new Promise((resolve)=>win.webContents.print({silent:false,printBackground:true},(success,failureReason)=>resolve({success,failureReason})))
+      const canceled=!outcome.success&&/cancel/i.test(String(outcome.failureReason||''))
+      if(!outcome.success&&!canceled) throw new Error('Não foi possível abrir/concluir a impressão: '+String(outcome.failureReason||'erro desconhecido'))
+      return {...batch,printed:Boolean(outcome.success),canceled}
+    } finally {
+      win.destroy()
+      if(batch.path&&fs.existsSync(batch.path)) fs.unlinkSync(batch.path)
+    }
+  }
 }
 
-module.exports={TimeService,monthDays,addMinutes,jitter}
-
-
-
-
-
-
-
-
-
-
+module.exports={TimeService,monthDays,addMinutes,jitter,mergeGeneratedPdfs}

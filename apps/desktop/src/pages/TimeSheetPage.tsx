@@ -1,4 +1,4 @@
-import { FileDown, Save, Sparkles, UsersRound } from 'lucide-react'
+import { FileDown, Printer, Save, Sparkles, UsersRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button, Card, Empty, Field, Loading, PageHeader, Status } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
@@ -13,6 +13,9 @@ export default function TimeSheetPage(){
   const [marks,setMarks]=useState<any[]>([])
   const [busy,setBusy]=useState(false)
   const [message,setMessage]=useState('')
+  const [batchOpen,setBatchOpen]=useState(false)
+  const [printPoint,setPrintPoint]=useState(true)
+  const [printReceipts,setPrintReceipts]=useState(true)
   const employees=useAsync(()=>window.fluxoDre.funcionarios.list({status:'ativo'}),[])
   const cargos=useAsync(()=>window.fluxoDre.cargos.list(),[])
   const point=useAsync(()=>employee?window.fluxoDre.ponto.get({funcionario_id:Number(employee),competencia}):Promise.resolve(null),[employee,competencia,version])
@@ -23,9 +26,19 @@ export default function TimeSheetPage(){
   const autoFill=async()=>{setBusy(true);try{const result=await window.fluxoDre.ponto.autoFill({funcionario_id:Number(employee),competencia});setMarks(result.marks);setMessage('Marcações realistas preenchidas. Revise exceções antes de imprimir.')}finally{setBusy(false)}}
   const save=async()=>{setBusy(true);try{await window.fluxoDre.ponto.save({funcionario_id:Number(employee),competencia,marks});setVersion((v)=>v+1);setMessage('Ficha de ponto salva.')}finally{setBusy(false)}}
   const generate=async()=>{setBusy(true);setMessage('');try{await save();const result=await window.fluxoDre.ponto.generate({funcionario_id:Number(employee),competencia,paymentDate:today()});setMessage('Ficha de ponto e recibos gerados juntos na pasta mensal do funcionário.');await window.fluxoDre.documentos.reveal(result.point.path)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
-  const generateAll=async()=>{setBusy(true);setMessage('');try{const result=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today()});const ok=result.filter((item:any)=>item.ok),failed=result.filter((item:any)=>!item.ok);setMessage(failed.length?ok.length+' funcionários gerados. '+failed.length+' precisam completar o cadastro: '+failed.map((item:any)=>item.nome).join(', ')+'.':ok.length+' funcionários processados e documentos gerados.')}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
+  const summarize=(result:any[])=>{const ok=result.filter((item:any)=>item.ok),failed=result.filter((item:any)=>!item.ok);return failed.length?ok.length+' funcionários gerados. '+failed.length+' não foram processados por cadastro incompleto: '+failed.map((item:any)=>item.nome).join(', ')+'.':ok.length+' funcionários processados e documentos gerados.'}
+  const generateAll=async()=>{setBusy(true);setMessage('');try{const result=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today()});setMessage(summarize(result));setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
+  const printAll=async()=>{if(!printPoint&&!printReceipts){setMessage('Selecione fichas de ponto e/ou recibos para imprimir.');return}setBusy(true);setMessage('');try{const result:any=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today(),print:true,point:printPoint,receipts:printReceipts});const failed=(result.results||[]).filter((item:any)=>!item.ok);const suffix=failed.length?' '+failed.length+' funcionário(s) não entraram no lote por cadastro incompleto: '+failed.map((item:any)=>item.nome).join(', ')+'.':'';setMessage(result.canceled?'Impressão cancelada. Os documentos gerados foram mantidos nos arquivos dos funcionários.'+suffix:(result.printed?'Lote enviado para a caixa de impressão com '+result.employees+' funcionário(s), na ordem ficha/recibos por colaborador.':'Documentos gerados, mas nenhum lote foi impresso.')+suffix);setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
   return <>
-    <PageHeader title="Folhas de ponto" description="Controle mensal com quatro marcações diárias e geração dos recibos de benefícios." actions={<Button variant="secondary" icon={<UsersRound size={16}/>} onClick={generateAll} disabled={busy}>Gerar para todos</Button>}/>
+    <PageHeader title="Folhas de ponto" description="Controle mensal com quatro marcações diárias e geração dos recibos de benefícios." actions={<Button variant="secondary" icon={<UsersRound size={16}/>} onClick={()=>setBatchOpen((value)=>!value)} disabled={busy}>Gerar para todos</Button>}/>
+    {batchOpen&&<Card className="print-batch-card" style={{marginBottom:14,maxWidth:560,marginLeft:'auto'}}>
+      <div className="card-header" style={{alignItems:'flex-start'}}><div><h2>Documentos em lote</h2><p>Escolha o que será impresso. O lote segue funcionário por funcionário: ficha de ponto e depois recibos.</p></div></div>
+      <div style={{display:'grid',gap:10,margin:'14px 0'}}>
+        <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}><input type="checkbox" checked={printPoint} onChange={(event)=>setPrintPoint(event.target.checked)}/><span><strong>Fichas de ponto</strong><br/><small>Uma ficha mensal para cada colaborador.</small></span></label>
+        <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}><input type="checkbox" checked={printReceipts} onChange={(event)=>setPrintReceipts(event.target.checked)}/><span><strong>Recibos de benefícios</strong><br/><small>Café, alimentação e demais benefícios mensais encontrados.</small></span></label>
+      </div>
+      <div className="row-actions" style={{justifyContent:'flex-end'}}><Button variant="secondary" onClick={()=>setBatchOpen(false)} disabled={busy}>Cancelar</Button><Button variant="secondary" icon={<FileDown size={15}/>} onClick={generateAll} disabled={busy}>Somente gerar</Button><Button icon={<Printer size={15}/>} onClick={printAll} disabled={busy||(!printPoint&&!printReceipts)}>Imprimir</Button></div>
+    </Card>}
     <Card className="time-filter"><Field label="Funcionário" wide><select value={employee} onChange={(event)=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option value={item.id} key={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((role:any)=>role.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><input type="month" value={competencia} onChange={(event)=>setCompetencia(event.target.value)}/></Field></Card>
     {!employee?<Card><Empty title="Selecione um funcionário" description="A ficha será criada para a competência escolhida."/></Card>:point.loading?<Card><Loading label="Carregando ficha de ponto..."/></Card>:<>
       <div className="time-banner"><div><strong>{selected?.nome}</strong><span>CPF {selected?.cpf||'não informado'} · {cargo?.nome||'Sem cargo'} · {competenceLabel(competencia)}</span></div><div className="time-schedule"><span>Jornada prevista</span><b>{point.data?.point.jornada_inicio} - {point.data?.point.intervalo_inicio} / {point.data?.point.intervalo_fim} - {point.data?.point.jornada_fim}</b></div><Status value={point.data?.point.status||'rascunho'}/></div>
