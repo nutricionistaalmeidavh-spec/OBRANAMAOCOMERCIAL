@@ -37,10 +37,10 @@ describe('billing/licensing stages 2-6 integration contract',()=>{
   })
 
   it('fails uncertain provider calls into reconciliation instead of issuing a duplicate charge',()=>{
-    const service=backend('billing-service.ts')
+    const service=backend('billing-service.ts'),routes=backend('billing-routes.ts')
     expect(service).toContain('reconciliation_required=1')
     expect(service).toContain('if(existing)return{ok:true')
-    expect(service).toContain('events/retry')
+    expect(routes).toContain('events/retry')
   })
 
   it('persists provider events before business processing and validates payment binding',()=>{
