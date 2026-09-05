@@ -131,6 +131,7 @@ async function renderCorporatePortal(){
     if(systems?.universidade?.enabled)cards+=card('universidade','Universidade','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱',systems.universidade.role);
     if(b.platformRole==='superadmin'||b.isOwner)cards+=card('acessos','Administração de acessos','Usuários, perfis, empresas, obras e sessões.','./index.html#owner','◇','superadmin');
     if(b.needsClaim)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
+    if(b.role==='admin'||b.platformRole==='superadmin'||b.isOwner)cards+=card('cobranca','Plano e cobrança','Consulte sua assinatura, pagamentos ou conheça outros planos.','./sistema.html#plano-cobranca','▤');
     if(!cards)cards='<article class="mh-empty"><h3>Nenhum sistema liberado</h3><p>Seu login está válido, mas ainda não há módulos liberados para este perfil.</p></article>';
     portalShell(user.name||user.email||'Usuário',`${b.platformRole==='superadmin'?'Superadmin · ':''}${b.company?.name||'Empresa'}${b.project?.name?` · ${b.project.name}`:''}`,cards,b)
   }catch(e){publicHome();toast(apiErr(e))}
