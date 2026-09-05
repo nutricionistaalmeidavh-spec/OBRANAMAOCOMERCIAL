@@ -17,9 +17,9 @@ export default function DashboardPage() {
   return <>
     <header className="command-header">
       <div>
-        <span className="command-eyebrow">Central financeira</span>
+        <span className="command-eyebrow">Visao financeira e operacional</span>
         <h1>Painel de comando</h1>
-        <p>Monitoramento operacional do caixa, resultado e execucao das obras.</p>
+        <p>Caixa, resultado e execucao das obras em uma leitura executiva do periodo.</p>
       </div>
       <div className="command-header-actions">
         {data?.vencidos > 0 && <div className="command-alert"><CircleAlert size={17}/><div><span>Atencao</span><strong>{brl(data.vencidos)} vencidos</strong></div></div>}
@@ -32,7 +32,7 @@ export default function DashboardPage() {
       <div className="command-kpi-grid">
         <Card className="command-kpi command-kpi-positive"><div className="command-kpi-heading"><BanknoteArrowUp size={17}/><span>Receitas totais</span></div><strong>{brl(data.receitas)}</strong><div className="metric-track"><i style={{width:'100%'}}/></div></Card>
         <Card className="command-kpi command-kpi-negative"><div className="command-kpi-heading"><BanknoteArrowDown size={17}/><span>Despesas totais</span></div><strong>{brl(data.despesas)}</strong><div className="metric-track"><i style={{width:`${percentage(data.despesas, data.receitas)}%`}}/></div></Card>
-        <Card className={`command-kpi ${data.resultado >= 0 ? 'command-kpi-primary' : 'command-kpi-negative'}`}><div className="command-kpi-heading"><Scale size={17}/><span>Resultado operacional</span></div><strong>{brl(data.resultado)}</strong><small>Margem {percentage(data.resultado, data.receitas).toFixed(1).replace('.', ',')}%</small></Card>
+        <Card className={`command-kpi ${data.resultado >= 0 ? 'command-kpi-primary' : 'command-kpi-warning'}`}><div className="command-kpi-heading"><Scale size={17}/><span>Resultado operacional</span></div><strong>{brl(data.resultado)}</strong><small>Margem {percentage(data.resultado, data.receitas).toFixed(1).replace('.', ',')}%</small></Card>
         <Card className="command-kpi"><div className="command-kpi-heading"><Landmark size={17}/><span>Contas pendentes</span></div><strong>{brl(data.pagar + data.receber)}</strong><small>{brl(data.pagar)} a pagar</small></Card>
         <Card className="command-kpi command-kpi-warning"><div className="command-kpi-heading"><CircleAlert size={17}/><span>Valores vencidos</span></div><strong>{brl(data.vencidos)}</strong><small>{data.vencidos > 0 ? 'Acao necessaria' : 'Sem atrasos no periodo'}</small></Card>
       </div>
@@ -41,8 +41,8 @@ export default function DashboardPage() {
         <Card className="command-panel command-chart-panel">
           <div className="card-header command-card-header"><div><span className="command-eyebrow">Fluxo financeiro</span><h2>Evolucao de receitas e despesas</h2></div><div className="chart-legend"><span className="legend-positive">Receitas</span><span className="legend-negative">Despesas</span><b>{competencia.slice(0,4)}</b></div></div>
           <div className="card-body command-chart-body">{data.trend?.length ? <ResponsiveContainer width="100%" height="100%"><AreaChart data={data.trend.map((row:any) => ({...row, receitas:row.receitas / 100, despesas:row.despesas / 100}))} margin={{top:12,right:14,left:2,bottom:0}}>
-            <defs><linearGradient id="command-revenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#2fc38c" stopOpacity={.2}/><stop offset="95%" stopColor="#2fc38c" stopOpacity={0}/></linearGradient><linearGradient id="command-expense" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ff6673" stopOpacity={.16}/><stop offset="95%" stopColor="#ff6673" stopOpacity={0}/></linearGradient></defs>
-            <CartesianGrid stroke="#1d2938" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="competencia" tickFormatter={competenceLabel} tick={{fontSize:10,fill:'#8492a6'}} axisLine={false} tickLine={false}/><YAxis tickFormatter={(value:number) => `R$ ${Math.round(value / 1000)}k`} tick={{fontSize:9,fill:'#657489'}} axisLine={false} tickLine={false}/><Tooltip formatter={(value:any) => brl(Number(value || 0) * 100)} labelFormatter={(label:any) => competenceLabel(String(label || ''))} contentStyle={{background:'#162231',border:'1px solid #263446',borderRadius:8,color:'#dce7f4'}}/><Area type="monotone" dataKey="receitas" stroke="#2fc38c" fill="url(#command-revenue)" strokeWidth={2}/><Area type="monotone" dataKey="despesas" stroke="#ff6673" fill="url(#command-expense)" strokeWidth={2}/>
+            <defs><linearGradient id="command-revenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0b59f5" stopOpacity={.18}/><stop offset="95%" stopColor="#0b59f5" stopOpacity={0}/></linearGradient><linearGradient id="command-expense" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0c929d" stopOpacity={.14}/><stop offset="95%" stopColor="#0c929d" stopOpacity={0}/></linearGradient></defs>
+            <CartesianGrid stroke="#e5eaf2" strokeDasharray="4 4" vertical={false}/><XAxis dataKey="competencia" tickFormatter={competenceLabel} tick={{fontSize:10,fill:'#7a859b'}} axisLine={false} tickLine={false}/><YAxis tickFormatter={(value:number) => `R$ ${Math.round(value / 1000)}k`} tick={{fontSize:9,fill:'#8a95a8'}} axisLine={false} tickLine={false}/><Tooltip formatter={(value:any) => brl(Number(value || 0) * 100)} labelFormatter={(label:any) => competenceLabel(String(label || ''))} contentStyle={{background:'#ffffff',border:'1px solid #dce3ed',borderRadius:12,color:'#101936',boxShadow:'0 12px 30px rgba(26,50,100,.12)'}}/><Area type="monotone" dataKey="receitas" stroke="#0b59f5" fill="url(#command-revenue)" strokeWidth={2.2}/><Area type="monotone" dataKey="despesas" stroke="#0c929d" fill="url(#command-expense)" strokeWidth={2.2}/>
           </AreaChart></ResponsiveContainer> : <Empty title="Sem movimentacao neste periodo" description="Importe a planilha ou registre contas para visualizar a evolucao."/>}</div>
         </Card>
 
