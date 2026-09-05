@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Bot, ExternalLink, Send, Sparkles, X } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWorkContext } from '../hooks/useWorkContext'
@@ -85,18 +86,8 @@ export function GlobalAiAssistant({ screenLabel }: Props) {
     }
   }
 
-  return <div className="global-ai-root">
-    <button
-      type="button"
-      className={`global-ai-trigger ${open ? 'is-open' : ''}`}
-      aria-expanded={open}
-      aria-controls="global-ai-drawer"
-      onClick={() => setOpen((value) => !value)}
-    >
-      <Sparkles size={16}/><span>IA</span>
-    </button>
-
-    {open && <aside id="global-ai-drawer" className="global-ai-drawer" aria-label="Assistente IA global">
+  const drawer = open ? createPortal(
+    <aside id="global-ai-drawer" className="global-ai-drawer" aria-label="Assistente IA global">
       <div className="global-ai-head">
         <div className="global-ai-title"><span><Bot size={18}/></span><div><strong>ArtiSys IA</strong><small>{meta?.model ? `Gemini · ${meta.model}` : screenLabel}</small></div></div>
         <button type="button" className="global-ai-close" aria-label="Fechar assistente" onClick={() => setOpen(false)}><X size={18}/></button>
@@ -134,6 +125,20 @@ export function GlobalAiAssistant({ screenLabel }: Props) {
           <button type="submit" disabled={loading || !question.trim()}><Send size={14}/>{loading ? 'Analisando...' : 'Perguntar'}</button>
         </div>
       </form>
-    </aside>}
+    </aside>,
+    document.body,
+  ) : null
+
+  return <div className="global-ai-root">
+    <button
+      type="button"
+      className={`global-ai-trigger ${open ? 'is-open' : ''}`}
+      aria-expanded={open}
+      aria-controls="global-ai-drawer"
+      onClick={() => setOpen((value) => !value)}
+    >
+      <Sparkles size={16}/><span>IA</span>
+    </button>
+    {drawer}
   </div>
 }
