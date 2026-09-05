@@ -1,5 +1,6 @@
 import { error, json, requireAuth, withScopes, type RouterRoutes, type RuntimeEnv } from '../cloudflare/sdk'
 import { billingStatus, checkoutForUser, createPlanVersion, listActivePlans, processAsaasWebhookPayload } from './billing-service'
+import { reconcileBillingOrder } from './billing-reconciliation'
 
 type BillingRuntime=RuntimeEnv&{ASAAS_API_KEY?:string;ASAAS_API_BASE_URL?:string;ASAAS_WEBHOOK_TOKEN?:string}
 const secured=[requireAuth(),withScopes('email','profile')] as const
@@ -17,6 +18,11 @@ export const BILLING_ROUTES:RouterRoutes={
   'POST /api/billing/admin/plans':[...secured,async c=>{
     if(!owner(c.user!.email,c.env))return error('Apenas o proprietário pode alterar o catálogo comercial.',403)
     const b=rec(c.body);try{const plan=await createPlanVersion(c.env as BillingRuntime,{planCode:String(b.planCode||''),name:String(b.name||''),priceCents:Number(b.priceCents||0),interval:String(b.interval||'monthly'),modules:arr(b.modules),channels:arr(b.channels),maxUsers:Number(b.maxUsers||10),maxProjects:Number(b.maxProjects||5),maxDevices:Number(b.maxDevices||2)});return json({plan},201)}catch(e){return error((e as Error).message||'Plano inválido.',400)}
+  }],
+  'POST /api/billing/admin/orders/reconcile':[...secured,async c=>{
+    if(!owner(c.user!.email,c.env))return error('Apenas o proprietário pode reconciliar cobranças.',403)
+    const orderId=String(rec(c.body).orderId||'').trim();if(!orderId)return error('Informe a ordem.',400)
+    try{const result=await reconcileBillingOrder(c.env as BillingRuntime,orderId);if(!result.ok)return error(result.error,result.status);return json(result)}catch(e){return error((e as Error).message||'Falha na reconciliação.',409)}
   }],
   'POST /api/billing/admin/events/retry':[...secured,async c=>{
     if(!owner(c.user!.email,c.env))return error('Apenas o proprietário pode reconciliar cobranças.',403)
