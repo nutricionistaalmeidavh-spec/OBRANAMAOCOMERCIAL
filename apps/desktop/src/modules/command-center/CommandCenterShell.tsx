@@ -3,19 +3,17 @@ import { NavLink, useLocation } from 'react-router-dom'
 import {
   BarChart3, CalendarClock, ChevronLeft, ChevronRight, ClipboardCheck,
   ClipboardList, FileSpreadsheet, HardHat, LayoutDashboard, PackageSearch,
-  ReceiptText, Settings, Sparkles, UsersRound, WalletCards,
+  ReceiptText, Settings, UsersRound, WalletCards,
 } from 'lucide-react'
 import artisysLogo from '../../assets/artisys-logo.svg'
 import artisysIcon from '../../assets/artisys-icon.svg'
 import { WorkContextBar } from '../../components/WorkContextBar'
+import { GlobalAiAssistant } from '../../components/GlobalAiAssistant'
 import { matchesNavigation } from '../../utils/ux'
 
 const groups = [
   { label: 'Visao geral', items: [
     { to: '/', label: 'Painel', icon: LayoutDashboard },
-  ] },
-  { label: 'Inteligencia', items: [
-    { to: '/assistente-ia', label: 'Assistente IA', icon: Sparkles },
   ] },
   { label: 'Financeiro', items: [
     { to: '/dre', label: 'DRE', icon: BarChart3 },
@@ -127,7 +125,10 @@ export default function CommandCenterShell({ children }: { children: ReactNode }
     <main className="main-content">
       <header className="artisys-topbar">
         <div className="artisys-breadcrumb"><span>{route.section}</span><i>/</i><strong>{route.label}</strong></div>
-        <div className="artisys-topbar-status"><span className="artisys-sync-dot"/>ArtiSys Desktop <b>Comercial</b></div>
+        <div className="artisys-topbar-actions">
+          <GlobalAiAssistant screenLabel={route.label}/>
+          <div className="artisys-topbar-status"><span className="artisys-sync-dot"/>ArtiSys Desktop <b>Comercial</b></div>
+        </div>
       </header>
       <div className="content-wrap"><WorkContextBar/>{children}</div>
     </main>
