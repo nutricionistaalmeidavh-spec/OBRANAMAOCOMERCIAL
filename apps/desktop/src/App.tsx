@@ -41,6 +41,7 @@ export default function App() {
       void Promise.all([
         import('./modules/command-center/command-center.css'),
         import('./modules/command-center/artisys-desktop.css'),
+        import('./modules/command-center/artisys-rh.css'),
       ]).finally(() => {
         if (active) setCommandCenterStylesReady(true)
       })
