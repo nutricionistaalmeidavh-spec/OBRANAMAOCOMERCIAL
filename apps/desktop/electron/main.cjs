@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage } = require('electron')
 const path = require('node:path')
-const { DatabaseService } = require('./services/database.cjs')
+const { DatabaseService } = require('./services/database-safe.cjs')
 const { FileService } = require('./services/file-service.cjs')
 const { BackupService } = require('./services/backup-service.cjs')
 const { ImportService } = require('./services/import-service.cjs')
