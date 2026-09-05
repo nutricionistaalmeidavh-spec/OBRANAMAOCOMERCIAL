@@ -42,6 +42,7 @@ export default function App() {
         import('./modules/command-center/command-center.css'),
         import('./modules/command-center/artisys-desktop.css'),
         import('./modules/command-center/artisys-rh.css'),
+        import('./modules/command-center/artisys-operations.css'),
       ]).finally(() => {
         if (active) setCommandCenterStylesReady(true)
       })
