@@ -51,5 +51,16 @@
 .route-configuracoes .benefit-config.enabled{border-color:#cbdafa;background:#f7faff}.route-configuracoes .benefit-toggle{display:flex;align-items:center;gap:8px;color:#17213b;font-size:9px}
 .route-configuracoes .success-box{border-radius:11px}
 
-@media(max-width:1320px){.route-configuracoes .settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.route-configuracoes .setting-card-feature{grid-column:span 1}.route-importacao .import-months{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:980px){.route-documentos .toolbar-left{grid-template-columns:1fr}.route-documentos .filters{grid-template-columns:1fr}.route-configuracoes .settings-grid{grid-template-columns:1fr}.route-importacao .import-months{grid-template-columns:1fr}.route-configuracoes .benefit-config{grid-template-columns:1fr}.route-cadastros .segmented{min-width:0;width:100%}}
+/* Shared hub surface: purchases/contracts and configuration entry points. */
+.artisys-hub-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.artisys-hub-link{display:block;color:inherit;text-decoration:none;min-width:0}
+.artisys-hub-card{position:relative;min-height:190px;padding:20px;display:flex;flex-direction:column;gap:14px;overflow:hidden;border:1px solid #e0e6f1;background:linear-gradient(145deg,#fff,#fafcff);box-shadow:0 10px 26px rgba(23,48,101,.045);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.artisys-hub-card:before{content:'';position:absolute;right:-42px;top:-46px;width:128px;height:128px;border-radius:50%;background:radial-gradient(circle,rgba(11,89,245,.08),transparent 68%);pointer-events:none}
+.artisys-hub-link:hover .artisys-hub-card,.artisys-hub-link:focus-visible .artisys-hub-card{transform:translateY(-2px);border-color:#c9d9fb;box-shadow:0 14px 30px rgba(23,48,101,.08)}
+.artisys-hub-link:focus-visible{outline:none}.artisys-hub-link:focus-visible .artisys-hub-card{outline:2px solid #0b59f5;outline-offset:2px}
+.artisys-hub-card>*{position:relative;z-index:1}.artisys-hub-card-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#edf3ff;color:#1557e8;border:1px solid #dce6f8}
+.artisys-hub-card-copy h2{margin:0 0 7px;font-size:14px;letter-spacing:-.01em;color:#101936}.artisys-hub-card-copy p{margin:0;max-width:42ch;color:#69768c;font-size:10px;line-height:1.55}
+.artisys-hub-card-arrow{position:absolute;right:18px;bottom:14px;color:#1557e8;font-size:24px;line-height:1}
+
+@media(max-width:1320px){.route-configuracoes .settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.route-configuracoes .setting-card-feature{grid-column:span 1}.route-importacao .import-months{grid-template-columns:repeat(2,minmax(0,1fr))}.artisys-hub-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:980px){.route-documentos .toolbar-left{grid-template-columns:1fr}.route-documentos .filters{grid-template-columns:1fr}.route-configuracoes .settings-grid{grid-template-columns:1fr}.route-importacao .import-months{grid-template-columns:1fr}.route-configuracoes .benefit-config{grid-template-columns:1fr}.route-cadastros .segmented{min-width:0;width:100%}.artisys-hub-grid{grid-template-columns:1fr}}
