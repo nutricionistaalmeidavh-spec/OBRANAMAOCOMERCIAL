@@ -2,8 +2,8 @@ import { ReactNode, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   BarChart3, CalendarClock, ChevronLeft, ChevronRight, ClipboardCheck,
-  ClipboardList, FileArchive, FileSpreadsheet, HardHat, LayoutDashboard,
-  PackageSearch, ReceiptText, Settings, Sparkles, UsersRound, WalletCards,
+  ClipboardList, FileSpreadsheet, HardHat, LayoutDashboard, PackageSearch,
+  ReceiptText, Settings, Sparkles, UsersRound, WalletCards,
 } from 'lucide-react'
 import artisysLogo from '../../assets/artisys-logo.svg'
 import artisysIcon from '../../assets/artisys-icon.svg'
@@ -86,7 +86,8 @@ export default function CommandCenterShell({ children }: { children: ReactNode }
     return routeLabels[location.pathname] || {section:'ArtiSys', label:'Desktop'}
   }, [location.pathname])
   const routeClass = useMemo(() => {
-    const key = location.pathname === '/' ? 'painel' : location.pathname.replace(/^\/+|\/+$/g, '').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()
+    const visualPath = location.pathname === '/configuracoes/sistema' ? '/configuracoes' : location.pathname
+    const key = visualPath === '/' ? 'painel' : visualPath.replace(/^\/+|\/+$/g, '').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()
     return `route-${key || 'painel'}`
   }, [location.pathname])
   const visibleGroups = groups.map(group => ({
