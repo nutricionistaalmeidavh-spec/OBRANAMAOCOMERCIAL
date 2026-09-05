@@ -188,7 +188,7 @@ function fallbackPage(message, details = '') {
 
 async function createWindow() {
   Menu.setApplicationMenu(null)
-  mainWindow = new BrowserWindow({ width: 1440, height: 900, minWidth: 1024, minHeight: 700, backgroundColor: '#f3f5f8', show: false, autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
+  mainWindow = new BrowserWindow({ icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'), width: 1440, height: 900, minWidth: 1024, minHeight: 700, backgroundColor: '#f3f5f8', show: false, autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
   mainWindow.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' } })
   mainWindow.webContents.on('will-navigate', (event, url) => { const allowed = process.env.VITE_DEV_SERVER_URL ? url.startsWith(process.env.VITE_DEV_SERVER_URL) : url.startsWith('file:'); if (!allowed) event.preventDefault() })
   mainWindow.once('ready-to-show', () => mainWindow.show())
@@ -198,7 +198,7 @@ async function createWindow() {
 
 app.whenReady().then(async () => {
   try { services = createServices(); registerIpc(); await createWindow(); services.sync.start() }
-  catch (error) { console.error(error); mainWindow = new BrowserWindow({ width: 900, height: 650, backgroundColor: '#f3f5f8' }); await mainWindow.loadURL(fallbackPage('Não foi possível abrir o banco de dados local.', error.stack)) }
+  catch (error) { console.error(error); mainWindow = new BrowserWindow({ icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'), width: 900, height: 650, backgroundColor: '#f3f5f8' }); await mainWindow.loadURL(fallbackPage('Não foi possível abrir o banco de dados local.', error.stack)) }
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 })
 
@@ -211,3 +211,4 @@ app.on('before-quit', (event) => {
 })
 process.on('uncaughtException', (error) => { console.error(error); dialog.showErrorBox('Erro inesperado', error.message) })
 process.on('unhandledRejection', (error) => console.error(error))
+

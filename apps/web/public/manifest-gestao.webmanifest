@@ -1,1 +1,37 @@
-{"id":"./gestao-pwa","name":"Obra na Mão · Gestão","short_name":"Obra na Mão","description":"Gestão administrativa e operacional da empresa.","start_url":"./gestao.html#gestao","scope":"./","display":"standalone","background_color":"#f4f7fb","theme_color":"#0d2a52","icons":[{"src":"./icon-gestao.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "id": "./gestao-pwa",
+  "name": "Obra na Mão · Gestão",
+  "short_name": "Obra na Mão",
+  "description": "Gestão administrativa e operacional da empresa.",
+  "start_url": "./gestao.html#gestao",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0d2a52",
+  "icons": [
+    {
+      "src": "./icons/artisys-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/artisys-icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/artisys-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/artisys-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

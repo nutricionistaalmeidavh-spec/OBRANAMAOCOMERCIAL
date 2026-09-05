@@ -1,1 +1,37 @@
-{"id":"./universidade-pwa","name":"Universidade Empresarial · Obra na Mão","short_name":"Universidade","description":"Capacitação, diagnóstico, alfabetização e matemática aplicada.","start_url":"./universidade.html#universidade","scope":"./","display":"standalone","background_color":"#f4f7fb","theme_color":"#0d2a52","icons":[{"src":"./icon-universidade.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "id": "./universidade-pwa",
+  "name": "Universidade Empresarial · Obra na Mão",
+  "short_name": "Universidade",
+  "description": "Capacitação, diagnóstico, alfabetização e matemática aplicada.",
+  "start_url": "./universidade.html#universidade",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0d2a52",
+  "icons": [
+    {
+      "src": "./icons/artisys-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/artisys-icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/artisys-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/artisys-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
