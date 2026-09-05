@@ -16,11 +16,13 @@ import DocumentsPage from './pages/DocumentsPage'
 import RegistriesPage from './pages/RegistriesPage'
 import ImportPage from './pages/ImportPage'
 import SettingsPage from './pages/SettingsPage'
+import SettingsHubPage from './pages/SettingsHubPage'
 import TimeSheetPage from './pages/TimeSheetPage'
 import WorkDetailPage from './pages/WorkDetailPage'
 import SchedulePage from './pages/SchedulePage'
 import DailyReportPage from './pages/DailyReportPage'
 import ProcurementPage from './pages/ProcurementPage'
+import ProcurementContractsHubPage from './pages/ProcurementContractsHubPage'
 import HrTemplatesPage from './pages/HrTemplatesPage'
 import RhHubPage from './pages/RhHubPage'
 import FrontsPage from './pages/FrontsPage'
@@ -67,25 +69,27 @@ export default function App() {
     <Route path="/dre" element={<DrePage/>}/>
     <Route path="/financeiro" element={<FinancePage/>}/>
     <Route path="/folha" element={<PayrollPage/>}/>
+    <Route path="/orcamento" element={<BudgetPage/>}/>
+    <Route path="/medicoes" element={<MeasurementsPage/>}/>
+    <Route path="/compras-contratos" element={<ProcurementContractsHubPage/>}/>
+    <Route path="/compras" element={<ProcurementPage/>}/>
+    <Route path="/contratos" element={<ContractsPage/>}/>
+    <Route path="/cadastros" element={<RegistriesPage/>}/>
     <Route path="/obras" element={<WorksPage/>}/>
     <Route path="/obras/:id" element={<WorkDetailPage/>}/>
     <Route path="/frentes" element={<FrontsPage/>}/>
-    <Route path="/orcamento" element={<BudgetPage/>}/>
     <Route path="/planejamento" element={<SchedulePage/>}/>
     <Route path="/rdo" element={<DailyReportPage/>}/>
-    <Route path="/compras" element={<ProcurementPage/>}/>
-    <Route path="/contratos" element={<ContractsPage/>}/>
     <Route path="/tarefas" element={<TasksPage/>}/>
-    <Route path="/medicoes" element={<MeasurementsPage/>}/>
     <Route path="/rh" element={<RhHubPage/>}/>
     <Route path="/funcionarios" element={<EmployeesPage/>}/>
     <Route path="/registro-funcionario" element={<EmployeeRegistrationPage/>}/>
     <Route path="/ponto" element={<TimeSheetPage/>}/>
     <Route path="/rh/modelos" element={<HrTemplatesPage/>}/>
     <Route path="/documentos" element={<DocumentsPage/>}/>
-    <Route path="/cadastros" element={<RegistriesPage/>}/>
     <Route path="/importacao" element={<ImportPage/>}/>
-    <Route path="/configuracoes" element={<SettingsPage/>}/>
+    <Route path="/configuracoes" element={<SettingsHubPage/>}/>
+    <Route path="/configuracoes/sistema" element={<SettingsPage/>}/>
     <Route path="*" element={<Navigate to="/" replace/>}/>
   </Routes></RouteBoundary></Shell></WorkContextProvider></ErrorBoundary>
 }
