@@ -1,5 +1,5 @@
 import type { AuthUser, RuntimeEnv } from '../cloudflare/sdk'
-import { createAsaasCheckout } from './asaas-client'
+import { asaasCheckoutUrl, createAsaasCheckout, isUnknownAsaasOutcome } from './asaas-client'
 import { canApplyProviderTransition, normalizeAsaasEvent, validatePaidCheckout, validatePaidOrder, type FinancialStatus } from './billing-policy'
 import { LICENSE_CHANNELS, LICENSE_MODULES, activateOrRenewBillingLicense, revokeBillingLicense } from './license-service'
 
@@ -8,6 +8,7 @@ type Plan={id:string;plan_code:string;version:number;name:string;price_cents:num
 type Order={id:string;user_id:string;user_email:string;company_id:string|null;requested_company_name:string;plan_version_id:string;amount_cents:number;currency:string;financial_status:FinancialStatus;idempotency_key:string;provider:string;provider_customer_id:string|null;provider_payment_id:string|null;provider_subscription_id:string|null;provider_checkout_id:string|null;provider_status:string|null;checkout_url:string|null;license_id:string|null;reconciliation_required:number;created_at:string;updated_at:string}
 type Subscription={id:string;company_id:string|null;user_id:string;user_email:string;plan_version_id:string;provider:string;provider_customer_id:string|null;provider_subscription_id:string|null;financial_status:FinancialStatus;current_period_end:string|null;license_id:string|null;initial_order_id:string|null;created_at:string;updated_at:string}
 type ProviderPayload={id?:string;event?:string;dateCreated?:string;payment?:Record<string,unknown>;checkout?:Record<string,unknown>;subscription?:Record<string,unknown>;[key:string]:unknown}
+export type CheckoutRecoveryState='ready'|'verifying'|'paid'|'failed'
 
 const now=()=>new Date().toISOString(),id=()=>crypto.randomUUID().replace(/-/g,''),rec=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{}
 const arr=(value:string)=>{try{const x=JSON.parse(value);return Array.isArray(x)?x.map(String):[]}catch{return[]}}
@@ -18,6 +19,7 @@ async function orderById(env:BillingEnv,orderId:string){return first<Order>(env,
 async function orderByPayment(env:BillingEnv,paymentId:string){return first<Order>(env,'SELECT * FROM billing_orders WHERE provider=? AND provider_payment_id=?','asaas',paymentId)}
 async function orderByCheckout(env:BillingEnv,checkoutId:string){return first<Order>(env,'SELECT * FROM billing_orders WHERE provider=? AND provider_checkout_id=?','asaas',checkoutId)}
 async function subscriptionByProvider(env:BillingEnv,subscriptionId:string){return first<Subscription>(env,'SELECT * FROM billing_subscriptions WHERE provider=? AND provider_subscription_id=?','asaas',subscriptionId)}
+const checkoutState=(order:Order):CheckoutRecoveryState=>order.financial_status==='paid'?'paid':order.checkout_url?'ready':order.financial_status==='failed'?'failed':'verifying'
 
 export async function listActivePlans(env:BillingEnv){const rows=await env.DB.prepare('SELECT id,plan_code,version,name,price_cents,currency,interval_code FROM billing_plan_versions WHERE active=1 ORDER BY price_cents ASC').all<Plan>();return rows.results||[]}
 
@@ -30,18 +32,83 @@ export async function createPlanVersion(env:BillingEnv,input:{planCode:string;na
   return activePlan(env,planCode)
 }
 
+function checkoutItemsAmount(checkout:Record<string,unknown>){const items=Array.isArray(checkout.items)?checkout.items.map(rec):[];if(!items.length)return 0;const total=items.reduce((sum,item)=>sum+(Number(item.quantity||0)*Number(item.value||0)),0);return Number.isFinite(total)?Math.round(total*100):0}
+function providerData(payload:ProviderPayload){
+  const payment=rec(payload.payment),checkout=rec(payload.checkout),subscription=rec(payload.subscription),checkoutId=String(checkout.id||''),paymentId=String(payment.id||checkout.paymentId||''),subscriptionId=String(payment.subscription||subscription.id||checkout.subscriptionId||''),customerId=String(payment.customer||subscription.customer||checkout.customer||''),externalReference=String(payment.externalReference||checkout.externalReference||subscription.externalReference||''),paymentValue=Number(payment.value||0),checkoutValue=checkoutItemsAmount(checkout),amountCents=paymentValue>0&&Number.isFinite(paymentValue)?Math.round(paymentValue*100):checkoutValue
+  return{payment,checkout,subscription,checkoutId,paymentId,subscriptionId,customerId,externalReference,amountCents}
+}
+
+async function bindHostedCheckout(env:BillingEnv,order:Order,data:ReturnType<typeof providerData>,eventType:string){
+  if(!data.checkoutId)throw new Error('Checkout Asaas sem identificador.')
+  if(data.externalReference&&data.externalReference!==order.id)throw new Error('Checkout Asaas com vínculo divergente.')
+  if(order.provider_checkout_id&&order.provider_checkout_id!==data.checkoutId)throw new Error('Checkout divergente da ordem.')
+  const collision=await orderByCheckout(env,data.checkoutId);if(collision&&collision.id!==order.id)throw new Error('Checkout Asaas já vinculado a outra ordem.')
+  const candidate=String(data.checkout.link||data.checkout.url||'').trim()||undefined,checkoutUrl=asaasCheckoutUrl(env,data.checkoutId,candidate),providerStatus=String(data.checkout.status||eventType||'ACTIVE'),stamp=now()
+  await env.DB.prepare(`UPDATE billing_orders SET provider_checkout_id=?,provider_status=?,checkout_url=?,reconciliation_required=0,financial_status=CASE WHEN financial_status IN ('created','failed') THEN 'pending' ELSE financial_status END,updated_at=? WHERE id=? AND (provider_checkout_id IS NULL OR provider_checkout_id=?)`).bind(data.checkoutId,providerStatus,checkoutUrl,stamp,order.id,data.checkoutId).run()
+  return orderById(env,order.id)
+}
+
+export async function recoverHostedCheckoutOrder(env:BillingEnv,order:Order){
+  if(order.provider_checkout_id){
+    if(order.checkout_url&&order.reconciliation_required===0)return order
+    const checkoutUrl=order.checkout_url||asaasCheckoutUrl(env,order.provider_checkout_id)
+    await env.DB.prepare(`UPDATE billing_orders SET checkout_url=?,reconciliation_required=0,financial_status=CASE WHEN financial_status='created' THEN 'pending' ELSE financial_status END,updated_at=? WHERE id=?`).bind(checkoutUrl,now(),order.id).run()
+    return await orderById(env,order.id)||order
+  }
+  const event=await first<{payload_json:string;event_type:string}>(env,`SELECT payload_json,event_type FROM billing_provider_events WHERE provider='asaas' AND external_reference=? AND event_type IN ('CHECKOUT_CREATED','CHECKOUT_UPDATED','CHECKOUT_PAID') ORDER BY created_at DESC LIMIT 1`,order.id)
+  if(!event)return order
+  let payload:ProviderPayload;try{payload=JSON.parse(event.payload_json) as ProviderPayload}catch{return order}
+  const data=providerData(payload);if(!data.checkoutId)return order
+  return await bindHostedCheckout(env,order,data,event.event_type)||order
+}
+
+async function attemptCheckout(env:BillingEnv,order:Order,plan:Plan,callbackBaseUrl:string,reused:boolean){
+  try{
+    const provider=await createAsaasCheckout(env,{orderId:order.id,amountCents:plan.price_cents,planName:plan.name,interval:plan.interval_code,callbackBaseUrl}),updated=now()
+    await env.DB.prepare(`UPDATE billing_orders SET financial_status='pending',provider_checkout_id=?,provider_status=?,checkout_url=?,reconciliation_required=0,updated_at=? WHERE id=? AND provider_checkout_id IS NULL AND financial_status IN ('created','failed')`).bind(provider.checkoutId,provider.providerStatus,provider.checkoutUrl,updated,order.id).run()
+    const current=await orderById(env,order.id)||order
+    return{ok:true as const,order:current,reused,state:checkoutState(current)}
+  }catch(cause){
+    let current=await orderById(env,order.id)||order
+    if(current.provider_checkout_id||current.checkout_url){current=await recoverHostedCheckoutOrder(env,current);return{ok:true as const,order:current,reused,state:checkoutState(current)}}
+    if(isUnknownAsaasOutcome(cause)){
+      await env.DB.prepare(`UPDATE billing_orders SET reconciliation_required=1,provider_status='UNKNOWN',updated_at=? WHERE id=? AND provider_checkout_id IS NULL AND financial_status IN ('created','failed')`).bind(now(),order.id).run()
+      current=await orderById(env,order.id)||order
+      current=await recoverHostedCheckoutOrder(env,current)
+      return{ok:true as const,order:current,reused,state:checkoutState(current)}
+    }
+    await env.DB.prepare(`UPDATE billing_orders SET financial_status='failed',reconciliation_required=0,provider_status='FAILED',updated_at=? WHERE id=? AND provider_checkout_id IS NULL AND financial_status IN ('created','failed')`).bind(now(),order.id).run()
+    current=await orderById(env,order.id)||order
+    if(current.provider_checkout_id||current.checkout_url){current=await recoverHostedCheckoutOrder(env,current);return{ok:true as const,order:current,reused,state:checkoutState(current)}}
+    return{ok:false as const,status:502,error:'Não foi possível criar o checkout no Asaas. Você pode tentar novamente com segurança.',orderId:order.id}
+  }
+}
+
+async function resumeExistingCheckout(env:BillingEnv,order:Order,callbackBaseUrl:string){
+  let current=order
+  if(current.reconciliation_required||String(current.provider_status||'').toUpperCase()==='UNKNOWN')current=await recoverHostedCheckoutOrder(env,current)
+  const state=checkoutState(current)
+  if(state!=='failed')return{ok:true as const,order:current,reused:true,state}
+  const plan=await planById(env,current.plan_version_id);if(!plan)return{ok:false as const,status:409,error:'Plano da ordem não está mais disponível.'}
+  return attemptCheckout(env,current,plan,callbackBaseUrl,true)
+}
+
 export async function checkoutForUser(env:BillingEnv,user:AuthUser,input:{planCode:string;companyName:string;idempotencyKey:string;callbackBaseUrl:string}){
   const idem=input.idempotencyKey.trim(),companyName=input.companyName.trim().replace(/[\u0000-\u001f]/g,' ').slice(0,120),email=String(user.email||'').trim().toLowerCase()
   if(!email||idem.length<16||idem.length>120||!companyName)return{ok:false as const,status:400,error:'Dados de contratação inválidos.'}
-  const existing=await first<Order>(env,'SELECT * FROM billing_orders WHERE user_id=? AND idempotency_key=?',user.userId,idem);if(existing)return{ok:true as const,order:existing,reused:true}
+  const existing=await first<Order>(env,'SELECT * FROM billing_orders WHERE user_id=? AND idempotency_key=?',user.userId,idem);if(existing)return resumeExistingCheckout(env,existing,input.callbackBaseUrl)
   const plan=await activePlan(env,input.planCode.trim().toLowerCase());if(!plan)return{ok:false as const,status:404,error:'Plano indisponível.'}
   const orderId=id(),stamp=now()
-  try{await env.DB.prepare(`INSERT INTO billing_orders(id,user_id,user_email,requested_company_name,plan_version_id,amount_cents,currency,financial_status,idempotency_key,provider,created_at,updated_at) VALUES(?,?,?,?,?,?,'BRL','created',?,'asaas',?,?)`).bind(orderId,user.userId,email,companyName,plan.id,plan.price_cents,idem,stamp,stamp).run()}catch{const raced=await first<Order>(env,'SELECT * FROM billing_orders WHERE user_id=? AND idempotency_key=?',user.userId,idem);if(raced)return{ok:true as const,order:raced,reused:true};throw new Error('Não foi possível registrar a ordem.')}
-  try{
-    const provider=await createAsaasCheckout(env,{orderId,amountCents:plan.price_cents,planName:plan.name,interval:plan.interval_code,callbackBaseUrl:input.callbackBaseUrl}),updated=now()
-    await env.DB.prepare(`UPDATE billing_orders SET financial_status='pending',provider_checkout_id=?,provider_status=?,checkout_url=?,updated_at=? WHERE id=? AND financial_status='created'`).bind(provider.checkoutId,provider.providerStatus,provider.checkoutUrl,updated,orderId).run()
-    return{ok:true as const,order:await orderById(env,orderId),reused:false}
-  }catch(cause){await env.DB.prepare(`UPDATE billing_orders SET reconciliation_required=1,provider_status='UNKNOWN',updated_at=? WHERE id=?`).bind(now(),orderId).run();return{ok:false as const,status:502,error:'Checkout criado com estado incerto. Não tente novamente com outra chave; a reconciliação é necessária.',orderId,details:cause instanceof Error?cause.message:'provider_error'}}
+  try{await env.DB.prepare(`INSERT INTO billing_orders(id,user_id,user_email,requested_company_name,plan_version_id,amount_cents,currency,financial_status,idempotency_key,provider,created_at,updated_at) VALUES(?,?,?,?,?,?,'BRL','created',?,'asaas',?,?)`).bind(orderId,user.userId,email,companyName,plan.id,plan.price_cents,idem,stamp,stamp).run()}catch{const raced=await first<Order>(env,'SELECT * FROM billing_orders WHERE user_id=? AND idempotency_key=?',user.userId,idem);if(raced)return resumeExistingCheckout(env,raced,input.callbackBaseUrl);throw new Error('Não foi possível registrar a ordem.')}
+  const order=await orderById(env,orderId);if(!order)throw new Error('Não foi possível carregar a ordem registrada.')
+  return attemptCheckout(env,order,plan,input.callbackBaseUrl,false)
+}
+
+export async function checkoutStatusForUser(env:BillingEnv,user:AuthUser,orderId:string){
+  const reference=orderId.trim();if(!reference)return{ok:false as const,status:400,error:'Informe a ordem.'}
+  let order=await orderById(env,reference);if(!order||order.user_id!==user.userId)return{ok:false as const,status:404,error:'Ordem não encontrada.'}
+  if(order.reconciliation_required||String(order.provider_status||'').toUpperCase()==='UNKNOWN'||(!order.checkout_url&&order.financial_status==='created'))order=await recoverHostedCheckoutOrder(env,order)
+  return{ok:true as const,state:checkoutState(order),order}
 }
 
 async function ensureCompany(env:BillingEnv,order:Order,plan:Plan){
@@ -56,11 +123,6 @@ async function bindCompanyLicense(env:BillingEnv,companyId:string,licenseId:stri
   const record=rec(JSON.parse(row.record_json)),updated={...record,licenseId,licensedModules:arr(plan.modules_json),licensedChannels:arr(plan.channels_json)};await env.DB.prepare(`UPDATE kv_records SET record_json=?,updated_at=? WHERE collection='companies' AND id=?`).bind(JSON.stringify(updated),now(),companyId).run()
 }
 
-function checkoutItemsAmount(checkout:Record<string,unknown>){const items=Array.isArray(checkout.items)?checkout.items.map(rec):[];if(!items.length)return 0;const total=items.reduce((sum,item)=>sum+(Number(item.quantity||0)*Number(item.value||0)),0);return Number.isFinite(total)?Math.round(total*100):0}
-function providerData(payload:ProviderPayload){
-  const payment=rec(payload.payment),checkout=rec(payload.checkout),subscription=rec(payload.subscription),checkoutId=String(checkout.id||''),paymentId=String(payment.id||checkout.paymentId||''),subscriptionId=String(payment.subscription||subscription.id||checkout.subscriptionId||''),customerId=String(payment.customer||subscription.customer||checkout.customer||''),externalReference=String(payment.externalReference||checkout.externalReference||subscription.externalReference||''),paymentValue=Number(payment.value||0),checkoutValue=checkoutItemsAmount(checkout),amountCents=paymentValue>0&&Number.isFinite(paymentValue)?Math.round(paymentValue*100):checkoutValue
-  return{payment,checkout,subscription,checkoutId,paymentId,subscriptionId,customerId,externalReference,amountCents}
-}
 async function markEvent(env:BillingEnv,eventId:string,status:string,errorMessage?:string){await env.DB.prepare(`UPDATE billing_provider_events SET processing_status=?,attempt_count=attempt_count+1,last_error=?,processed_at=CASE WHEN ?='processed' THEN ? ELSE processed_at END,updated_at=? WHERE provider='asaas' AND provider_event_id=?`).bind(status,errorMessage||null,status,now(),now(),eventId).run()}
 
 async function activateOrder(env:BillingEnv,order:Order,plan:Plan,eventId:string,eventType:string,data:ReturnType<typeof providerData>){
@@ -135,7 +197,10 @@ export async function processAsaasWebhookPayload(env:BillingEnv,payload:Provider
     let subscription=data.subscriptionId?await subscriptionByProvider(env,data.subscriptionId):order?.provider_subscription_id?await subscriptionByProvider(env,order.provider_subscription_id):null
     if(!order&&subscription?.initial_order_id&&(!data.paymentId||!subscription.company_id)){order=await orderById(env,subscription.initial_order_id)}
 
-    if(eventType==='SUBSCRIPTION_CREATED'){
+    if(eventType.startsWith('CHECKOUT_')&&order&&data.checkoutId){order=await bindHostedCheckout(env,order,data,eventType)||order}
+    if(eventType==='CHECKOUT_CREATED'||eventType==='CHECKOUT_UPDATED'){
+      if(!order)throw new Error('Checkout sem ordem vinculada.')
+    }else if(eventType==='SUBSCRIPTION_CREATED'){
       if(!order)throw new Error('Assinatura sem ordem vinculada.')
       await bindSubscriptionCreated(env,order,data);subscription=await subscriptionByProvider(env,data.subscriptionId)
     }else if(next==='paid'){
