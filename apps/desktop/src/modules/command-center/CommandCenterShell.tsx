@@ -1,10 +1,9 @@
 import { ReactNode, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  BarChart3, BriefcaseBusiness, Building2, CalendarClock, ChevronLeft,
-  ChevronRight, ClipboardCheck, ClipboardList, FileArchive, FileSpreadsheet,
-  HardHat, Landmark, LayoutDashboard, PackageSearch, ReceiptText, Settings,
-  Sparkles, UsersRound, WalletCards,
+  BarChart3, CalendarClock, ChevronLeft, ChevronRight, ClipboardCheck,
+  ClipboardList, FileArchive, FileSpreadsheet, HardHat, LayoutDashboard,
+  PackageSearch, ReceiptText, Settings, Sparkles, UsersRound, WalletCards,
 } from 'lucide-react'
 import artisysLogo from '../../assets/artisys-logo.svg'
 import artisysIcon from '../../assets/artisys-icon.svg'
@@ -14,38 +13,29 @@ import { matchesNavigation } from '../../utils/ux'
 const groups = [
   { label: 'Visao geral', items: [
     { to: '/', label: 'Painel', icon: LayoutDashboard },
-    { to: '/dre', label: 'DRE', icon: BarChart3 },
   ] },
   { label: 'Inteligencia', items: [
     { to: '/assistente-ia', label: 'Assistente IA', icon: Sparkles },
   ] },
   { label: 'Financeiro', items: [
+    { to: '/dre', label: 'DRE', icon: BarChart3 },
     { to: '/financeiro', label: 'Contas', icon: WalletCards },
-    { to: '/folha', label: 'Folha e pagamentos', icon: ReceiptText },
+    { to: '/orcamento', label: 'Orcamento', icon: FileSpreadsheet },
+    { to: '/medicoes', label: 'Medicoes', icon: ClipboardCheck },
+    { to: '/compras-contratos', label: 'Compras e Contratos', icon: PackageSearch },
   ] },
-  { label: 'Operacao', items: [
+  { label: 'Obras', items: [
     { to: '/obras', label: 'Obras', icon: HardHat },
     { to: '/frentes', label: 'Frentes de servico', icon: ClipboardCheck },
-    { to: '/orcamento', label: 'Orcamento', icon: FileSpreadsheet },
     { to: '/planejamento', label: 'Planejamento', icon: CalendarClock },
     { to: '/rdo', label: 'Diario de obra', icon: ClipboardList },
-    { to: '/medicoes', label: 'Medicoes', icon: ClipboardCheck },
-    { to: '/compras', label: 'Compras e materiais', icon: PackageSearch },
-    { to: '/contratos', label: 'Contratos e aditivos', icon: FileArchive },
     { to: '/tarefas', label: 'Tarefas', icon: ClipboardList },
   ] },
-  { label: 'RH', to: '/rh', items: [
-    { to: '/funcionarios', label: 'Funcionarios', icon: UsersRound },
-    { to: '/registro-funcionario', label: 'Registro funcionario', icon: BriefcaseBusiness },
-    { to: '/ponto', label: 'Folhas de ponto', icon: CalendarClock },
-    { to: '/rh/modelos', label: 'Modelos de documentos', icon: FileArchive },
+  { label: 'Pessoas & RH', items: [
+    { to: '/rh', label: 'RH', icon: UsersRound },
+    { to: '/folha', label: 'Folha e pagamentos', icon: ReceiptText },
   ] },
-  { label: 'Arquivo', items: [
-    { to: '/documentos', label: 'Documentos', icon: FileArchive },
-    { to: '/cadastros', label: 'Empresas e parceiros', icon: Building2 },
-  ] },
-  { label: 'Sistema', items: [
-    { to: '/importacao', label: 'Importar planilha', icon: Landmark },
+  { label: 'Configuracoes', items: [
     { to: '/configuracoes', label: 'Configuracoes', icon: Settings },
   ] },
 ]
@@ -53,27 +43,29 @@ const groups = [
 const routeLabels:Record<string,{section:string;label:string}> = {
   '/': {section:'Visao geral', label:'Painel'},
   '/assistente-ia': {section:'Inteligencia', label:'Assistente IA'},
-  '/dre': {section:'Visao geral', label:'DRE'},
+  '/dre': {section:'Financeiro', label:'DRE'},
   '/financeiro': {section:'Financeiro', label:'Contas'},
-  '/folha': {section:'Financeiro', label:'Folha e pagamentos'},
-  '/obras': {section:'Operacao', label:'Obras'},
-  '/frentes': {section:'Operacao', label:'Frentes de servico'},
-  '/orcamento': {section:'Operacao', label:'Orcamento'},
-  '/planejamento': {section:'Operacao', label:'Planejamento'},
-  '/rdo': {section:'Operacao', label:'Diario de obra'},
-  '/medicoes': {section:'Operacao', label:'Medicoes'},
-  '/compras': {section:'Operacao', label:'Compras e materiais'},
-  '/contratos': {section:'Operacao', label:'Contratos e aditivos'},
-  '/tarefas': {section:'Operacao', label:'Tarefas'},
-  '/rh': {section:'RH', label:'Central de RH'},
-  '/funcionarios': {section:'RH', label:'Funcionarios'},
-  '/registro-funcionario': {section:'RH', label:'Registro funcionario'},
-  '/ponto': {section:'RH', label:'Folhas de ponto'},
-  '/rh/modelos': {section:'RH', label:'Modelos de documentos'},
-  '/documentos': {section:'Arquivo', label:'Documentos'},
-  '/cadastros': {section:'Arquivo', label:'Empresas e parceiros'},
-  '/importacao': {section:'Sistema', label:'Importar planilha'},
-  '/configuracoes': {section:'Sistema', label:'Configuracoes'},
+  '/orcamento': {section:'Financeiro', label:'Orcamento'},
+  '/medicoes': {section:'Financeiro', label:'Medicoes'},
+  '/compras-contratos': {section:'Financeiro', label:'Compras e Contratos'},
+  '/compras': {section:'Financeiro', label:'Compras e materiais'},
+  '/contratos': {section:'Financeiro', label:'Contratos e aditivos'},
+  '/cadastros': {section:'Financeiro', label:'Empresas e parceiros'},
+  '/obras': {section:'Obras', label:'Obras'},
+  '/frentes': {section:'Obras', label:'Frentes de servico'},
+  '/planejamento': {section:'Obras', label:'Planejamento'},
+  '/rdo': {section:'Obras', label:'Diario de obra'},
+  '/tarefas': {section:'Obras', label:'Tarefas'},
+  '/rh': {section:'Pessoas & RH', label:'RH'},
+  '/folha': {section:'Pessoas & RH', label:'Folha e pagamentos'},
+  '/funcionarios': {section:'Pessoas & RH', label:'Funcionarios'},
+  '/registro-funcionario': {section:'Pessoas & RH', label:'Registro funcionario'},
+  '/ponto': {section:'Pessoas & RH', label:'Folhas de ponto'},
+  '/rh/modelos': {section:'Pessoas & RH', label:'Modelos de documentos'},
+  '/configuracoes': {section:'Configuracoes', label:'Central'},
+  '/configuracoes/sistema': {section:'Configuracoes', label:'Configuracoes do sistema'},
+  '/documentos': {section:'Configuracoes', label:'Documentos'},
+  '/importacao': {section:'Configuracoes', label:'Importar planilha'},
 }
 
 export default function CommandCenterShell({ children }: { children: ReactNode }) {
@@ -90,13 +82,18 @@ export default function CommandCenterShell({ children }: { children: ReactNode }
   })
   const location = useLocation()
   const route = useMemo(() => {
-    if (location.pathname.startsWith('/obras/')) return {section:'Operacao', label:'Detalhes da obra'}
+    if (location.pathname.startsWith('/obras/')) return {section:'Obras', label:'Detalhes da obra'}
     return routeLabels[location.pathname] || {section:'ArtiSys', label:'Desktop'}
   }, [location.pathname])
   const routeClass = useMemo(() => {
     const key = location.pathname === '/' ? 'painel' : location.pathname.replace(/^\/+|\/+$/g, '').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()
     return `route-${key || 'painel'}`
   }, [location.pathname])
+  const visibleGroups = groups.map(group => ({
+    ...group,
+    items: group.items.filter(item => matchesNavigation(`${group.label} ${item.label}`, search)),
+  })).filter(group => !search || group.items.length)
+  const hasSearchResults = visibleGroups.some(group => group.items.length)
 
   return <div className={`app-shell command-center-shell artisys-desktop-shell ${routeClass} ${collapsed ? 'sidebar-collapsed' : ''}`}>
     <aside className="sidebar command-sidebar">
@@ -107,19 +104,17 @@ export default function CommandCenterShell({ children }: { children: ReactNode }
       {!collapsed && <input className="nav-search" aria-label="Buscar página no menu" placeholder="Buscar página…" value={search} onChange={event => setSearch(event.target.value)}/>}
       <nav aria-label="Menu principal">
         {!collapsed && !search && favorites.length > 0 && <div className="nav-group"><span className="nav-label">Favoritos</span>{groups.flatMap(group => group.items).filter(item => favorites.includes(item.to)).map(({to,label,icon:Icon}) => <NavLink key={to} to={to} end={to === '/'}><Icon size={17}/><span>{label}</span></NavLink>)}</div>}
-        {groups.map((group) => {
-          const items = group.items.filter(item => matchesNavigation(`${group.label} ${item.label}`, search))
-          if (search && !items.length) return null
+        {visibleGroups.map((group) => {
           const expanded = collapsed || !!search || !closedGroups.includes(group.label)
           return <div className="nav-group" key={group.label}>
             {!collapsed && <button className="nav-group-toggle" aria-expanded={expanded} onClick={() => setClosedGroups(previous => previous.includes(group.label) ? previous.filter(label => label !== group.label) : [...previous, group.label])}>{group.label}<span aria-hidden="true">{expanded ? '−' : '+'}</span></button>}
-            {expanded && <>{group.to && <NavLink to={group.to} title="Central de RH"><UsersRound size={17}/><span>Central de RH</span></NavLink>}{items.map(({ to, label, icon: Icon }) => <div className="nav-item-row" key={to}>
+            {expanded && group.items.map(({ to, label, icon: Icon }) => <div className="nav-item-row" key={to}>
               <NavLink to={to} end={to === '/'} title={collapsed ? label : undefined}><Icon size={17}/><span>{label}</span></NavLink>
               {!collapsed && <button className="nav-favorite" aria-label={`${favorites.includes(to) ? 'Remover' : 'Adicionar'} ${label} ${favorites.includes(to) ? 'dos' : 'aos'} favoritos`} aria-pressed={favorites.includes(to)} onClick={() => toggleFavorite(to)}>{favorites.includes(to) ? '★' : '☆'}</button>}
-            </div>)}</>}
+            </div>)}
           </div>
         })}
-        {search && !groups.some(group => group.items.some(item => matchesNavigation(`${group.label} ${item.label}`, search))) && <p role="status">Nenhuma página encontrada.</p>}
+        {search && !hasSearchResults && <p role="status">Nenhuma página encontrada.</p>}
       </nav>
       <div className="artisys-sidebar-foot">
         <div className="artisys-product-state"><i/><span><strong>Comercial</strong><small>Ambiente local seguro</small></span></div>
