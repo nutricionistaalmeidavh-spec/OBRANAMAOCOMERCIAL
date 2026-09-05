@@ -9,6 +9,7 @@ type Order=PlanMeta&{id:string;plan_version_id:string;amount_cents:number;curren
 type Subscription=PlanMeta&{id:string;financial_status:string;current_period_end?:string|null;created_at:string;updated_at:string;plan_code?:string;plan_name?:string;price_cents?:number;currency?:string;interval_code?:string};
 type Payment={id:string;provider_payment_id:string;provider_status?:string;financial_status:string;amount_cents:number;paid_at?:string|null;created_at:string;updated_at:string};
 type BillingStatus={orders:Order[];subscriptions:Subscription[];payments?:Payment[];usage?:{users:number;projects:number;devices:number}};
+type CheckoutState='ready'|'verifying'|'paid'|'failed';
 
 type BillingTab='plans'|'confirmation'|'billing';
 const icons={ArrowLeft,Check,CreditCard,FileText,House,LogOut,ReceiptText,ShieldCheck,Users,Building2,Monitor,CalendarDays,ExternalLink};
@@ -19,6 +20,8 @@ const icon=(name:string)=>`<i data-lucide="${name}" aria-hidden="true"></i>`;
 const errorText=(cause:unknown)=>{const error=cause as {response?:{status?:number;data?:{error?:string}};message?:string};return error.response?.data?.error||error.message||'Não foi possível concluir.'};
 const selectedPlan=()=>new URLSearchParams(location.hash.split('?')[1]||'').get('plano')||'';
 const moduleLabels:Record<string,string>={finance:'Financeiro',rh:'RH',contracts:'Contratos',rdo:'RDO',obra360:'Obra360',dre:'DRE',procurement:'Compras',measurements:'Medições',documents:'Documentos',universidade:'Universidade Empresarial',ai:'IA ArtiSys'};
+let confirmationPolls=0;
+let confirmationTimer:number|undefined;
 
 function setBody(content:string,current:BillingTab){
   const nav=(id:BillingTab|'home',label:string,href:string,iconName:string)=>`<a href="${href}" ${current===id?'aria-current="page"':''}>${icon(iconName)}<span>${label}</span></a>`;
@@ -33,6 +36,8 @@ function showError(title:string,cause:unknown,retry:()=>void,current:BillingTab=
 async function requireUser(){const user=await auth.getUser();if(!user){location.hash='#portal';return null}return user}
 function idempotencyKey(planCode:string){const storage=`artisys-billing-idempotency:${planCode}`,existing=sessionStorage.getItem(storage);if(existing&&/^[0-9a-f-]{36}$/i.test(existing))return existing;const next=crypto.randomUUID();sessionStorage.setItem(storage,next);return next}
 function clearIdempotency(planCode?:string){if(planCode)sessionStorage.removeItem(`artisys-billing-idempotency:${planCode}`)}
+function stopConfirmationPolling(){if(confirmationTimer!==undefined){window.clearTimeout(confirmationTimer);confirmationTimer=undefined}confirmationPolls=0}
+function scheduleConfirmationPolling(){if(confirmationTimer!==undefined||confirmationPolls>=3)return;confirmationPolls+=1;confirmationTimer=window.setTimeout(()=>{confirmationTimer=undefined;void renderConfirmation()},2000)}
 
 export async function renderPlans(){
   if(!await requireUser())return;
@@ -57,7 +62,7 @@ export async function renderCheckout(){
     document.getElementById('checkoutForm')?.addEventListener('submit',async event=>{
       event.preventDefault();const form=event.currentTarget as HTMLFormElement,button=form.querySelector('button')!,companyName=(form.elements.namedItem('companyName') as HTMLInputElement).value.trim();if(!companyName||button.disabled)return;
       button.disabled=true;button.textContent='Criando checkout…';
-      try{const result=(await api.post<{order:Order}>('/api/billing/checkout',{planCode,companyName,idempotencyKey:idem})).data;sessionStorage.setItem('artisys-billing-order',result.order.id);location.hash=`#assinatura?pedido=${encodeURIComponent(result.order.id)}`;await renderConfirmation()}catch(cause){button.disabled=false;button.textContent='Continuar para o Asaas';const toast=document.getElementById('mhToast')!;toast.textContent=errorText(cause);toast.classList.add('show')}
+      try{const result=(await api.post<{order:Order;state:CheckoutState}>('/api/billing/checkout',{planCode,companyName,idempotencyKey:idem})).data;sessionStorage.setItem('artisys-billing-order',result.order.id);location.hash=`#assinatura?pedido=${encodeURIComponent(result.order.id)}`;await renderConfirmation()}catch(cause){button.disabled=false;button.textContent='Continuar para o Asaas';const toast=document.getElementById('mhToast')!;toast.textContent=errorText(cause);toast.classList.add('show')}
     });
   }catch(cause){showError('Não foi possível preparar a contratação',cause,()=>void renderCheckout())}
 }
@@ -67,12 +72,27 @@ export async function renderConfirmation(){
   const requested=new URLSearchParams(location.hash.split('?')[1]||'').get('pedido')||sessionStorage.getItem('artisys-billing-order')||'';
   setBody(state('Confirmando assinatura','Verificando o status mais recente da sua contratação.'),'confirmation');
   try{
-    const status=(await api.get<BillingStatus>('/api/billing/status')).data,order=status.orders.find(item=>item.id===requested)||status.orders[0];
-    if(!order){location.hash='#planos';return}
-    const paid=order.financial_status==='paid',terminal=['canceled','refunded','failed'].includes(order.financial_status);if(paid||terminal)clearIdempotency(order.plan_code);
+    const status=(await api.get<BillingStatus>('/api/billing/status')).data;
+    let order=status.orders.find(item=>item.id===requested)||status.orders[0];
+    if(!order){stopConfirmationPolling();location.hash='#planos';return}
+    let recoveryState:CheckoutState|undefined;
+    if(order.reconciliation_required||(!order.checkout_url&&order.financial_status==='created')){
+      const recovery=(await api.post<{order:Order;state:CheckoutState}>('/api/billing/checkout/status',{orderId:order.id})).data;
+      order={...order,...recovery.order};recoveryState=recovery.state;
+    }
+    const paid=order.financial_status==='paid'||recoveryState==='paid',failed=order.financial_status==='failed'||recoveryState==='failed',verifying=recoveryState==='verifying'||(!order.checkout_url&&!paid&&!failed&&!!order.reconciliation_required);
+    if(paid||['canceled','refunded'].includes(order.financial_status))clearIdempotency(order.plan_code);
+    if(verifying){
+      setBody(`<section class="billing-confirmation"><span class="billing-spinner"></span><span class="billing-eyebrow">CHECKOUT ASAAS</span><h1>Estamos confirmando seu checkout</h1><p>Recebemos sua solicitação e estamos verificando com o Asaas antes de permitir qualquer nova tentativa. Isso evita cobranças duplicadas.</p><div class="billing-order"><span>Pedido <strong>${esc(order.id.slice(0,8).toUpperCase())}</strong></span><span>Valor <strong>${money(order.amount_cents,order.currency)}</strong></span><span>Status <strong>Em verificação</strong></span></div><button id="refreshBilling" class="billing-secondary">Verificar novamente</button><a class="billing-text-link" href="#plano-cobranca">Ver plano e cobrança</a></section>`,'confirmation');
+      document.getElementById('refreshBilling')?.addEventListener('click',()=>void renderConfirmation());scheduleConfirmationPolling();return;
+    }
+    stopConfirmationPolling();
+    if(failed){
+      setBody(`<section class="billing-confirmation"><div class="billing-confirmation-icon">${icon('credit-card')}</div><span class="billing-eyebrow">CHECKOUT ASAAS</span><h1>Não foi possível criar o checkout</h1><p>A tentativa anterior falhou antes de uma cobrança ser confirmada. Você pode tentar novamente com segurança usando o mesmo pedido.</p><div class="billing-order"><span>Pedido <strong>${esc(order.id.slice(0,8).toUpperCase())}</strong></span><span>Valor <strong>${money(order.amount_cents,order.currency)}</strong></span><span>Status <strong>Falhou</strong></span></div><a class="billing-primary" href="#checkout?plano=${encodeURIComponent(order.plan_code||'')}">Tentar novamente</a><a class="billing-text-link" href="#plano-cobranca">Ver plano e cobrança</a></section>`,'confirmation');return;
+    }
     setBody(`<section class="billing-confirmation"><div class="billing-confirmation-icon ${paid?'is-paid':''}">${icon(paid?'check':'credit-card')}</div><span class="billing-eyebrow">${paid?'ASSINATURA ATIVA':'CHECKOUT ASAAS'}</span><h1>${paid?'Pagamento confirmado':'Finalize o pagamento no Asaas'}</h1><p>${paid?'Sua licença foi ativada automaticamente. Você já pode configurar a operação.':'O pagador preencherá CPF/CNPJ, endereço e dados de pagamento diretamente no ambiente seguro do Asaas.'}</p><div class="billing-order"><span>Pedido <strong>${esc(order.id.slice(0,8).toUpperCase())}</strong></span><span>Valor <strong>${money(order.amount_cents,order.currency)}</strong></span><span>Status <strong>${esc(statusLabel(order.financial_status))}</strong></span></div>${paid?'<a class="billing-primary" href="#portal">Ir para o painel</a>':`${order.checkout_url?`<a class="billing-primary" href="${esc(order.checkout_url)}" rel="noopener noreferrer">Abrir Checkout Asaas ${icon('external-link')}</a>`:''}<button id="refreshBilling" class="billing-secondary">Já paguei · verificar novamente</button>`}<a class="billing-text-link" href="#plano-cobranca">Ver plano e cobrança</a></section>`,'confirmation');
     document.getElementById('refreshBilling')?.addEventListener('click',()=>void renderConfirmation());
-  }catch(cause){showError('Não foi possível confirmar a assinatura',cause,()=>void renderConfirmation(),'confirmation')}
+  }catch(cause){stopConfirmationPolling();showError('Não foi possível confirmar a assinatura',cause,()=>void renderConfirmation(),'confirmation')}
 }
 
 const statusLabel=(status:string)=>({created:'Criado',pending:'Aguardando pagamento',paid:'Pago',overdue:'Em atraso',canceled:'Cancelado',refunded:'Estornado',failed:'Falhou'}[status]||status);
