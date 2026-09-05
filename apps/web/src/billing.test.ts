@@ -15,11 +15,12 @@ const plans=[
 describe('billing commercial screens',()=>{
   beforeEach(()=>{vi.resetAllMocks();document.body.innerHTML='';sessionStorage.clear();client.getUser.mockResolvedValue({userId:'u1',name:'Cliente',email:'cliente@example.test'});client.get.mockResolvedValue({data:{plans}})});
 
-  it('renders the real catalog with desktop sidebar and mobile navigation',async()=>{
+  it('renders the real catalog in the portal shell and mobile navigation',async()=>{
     location.hash='#planos';await mountBillingRoute();
     expect(document.querySelectorAll('.billing-plan')).toHaveLength(3);
-    expect(document.querySelector('.billing-sidebar')).not.toBeNull();
-    expect(Array.from(document.querySelectorAll('.billing-bottom span')).map(node=>node.textContent)).toEqual(['Planos','Cobrança','Início']);
+    expect(document.querySelector('.billing-sidebar')).toBeNull();
+    expect(document.querySelector('.cp-header')).not.toBeNull();
+    expect(Array.from(document.querySelectorAll('.billing-bottom span')).map(node=>node.textContent)).toEqual(['Início','Planos','Cobrança']);
     expect(document.body.textContent).toContain('Desktop e PWA/mobile incluídos');
   });
 
