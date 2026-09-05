@@ -29,7 +29,7 @@
     const actions=content.querySelector(':scope > .premium-quick-actions');
     if(!actions)return;
     actions.classList.add('day-focus-actions');
-    actions.querySelectorAll('[data-screen="team"],[data-screen="more"],[data-screen="settings"]').forEach(button=>button.remove());
+    actions.querySelectorAll('[data-screen="more"],[data-screen="settings"]').forEach(button=>button.remove());
   }
   function shiftSecondaryActionsToObra360(actions){
     if(!actions)return;
@@ -160,10 +160,8 @@
     if(content.childElementCount>0)document.body.classList.remove('field-booting');
   }
 
-  const observer=new MutationObserver(()=>queueMicrotask(enhance));
-  observer.observe(content,{childList:true});
-  const sheetObserver=new MutationObserver(()=>queueMicrotask(enhanceSheet));
-  if(sheet)sheetObserver.observe(sheet,{childList:true,subtree:true});
-  document.addEventListener('click',event=>{if(event.target?.closest?.('[data-screen]'))requestAnimationFrame(enhance)},true);
+  document.addEventListener('field:rendered',enhance);
+  document.addEventListener('field:sheet-rendered',enhanceSheet);
   enhance();
 })();
+

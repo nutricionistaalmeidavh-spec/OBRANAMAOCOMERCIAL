@@ -44,6 +44,7 @@ describe('Portal overview permissions and read model', () => {
     const html=await loadPortalOverview(admin);
     expect(request).toHaveBeenCalledWith('/api/portal/overview');
     expect(html).toContain('54.000,00');expect(html).toContain('6 medições em aberto');expect(html).toContain('Desktop ·');
+    expect(html).toContain('./gestao.html#gestao/measurements');
   });
   it('removes the summary on revoked access and offers retry only for operational failure', async () => {
     request.mockRejectedValueOnce({response:{status:403}});

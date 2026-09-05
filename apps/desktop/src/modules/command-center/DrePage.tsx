@@ -1,3 +1,4 @@
+import { useWorkContext } from '../../hooks/useWorkContext'
 import { Download, TrendingDown, TrendingUp } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Button, Card, Empty, ErrorState, Field, Loading, Segmented } from '../../components/ui'
@@ -6,9 +7,9 @@ import { brl, competenceLabel, currentCompetence } from '../../utils/format'
 
 export default function DrePage() {
   const [mode, setMode] = useState('mensal')
-  const [competencia, setCompetencia] = useState(currentCompetence())
+  const { competencia, setCompetencia, empresaId, obraId } = useWorkContext()
   const [ano, setAno] = useState(String(new Date().getFullYear()))
-  const { data = [], loading, error, reload } = useAsync(() => window.fluxoDre.relatorios.dre(mode === 'mensal' ? { competencia } : { ano }), [mode, competencia, ano])
+  const { data = [], loading, error, reload } = useAsync(() => window.fluxoDre.relatorios.dre(mode === 'mensal' ? { competencia, empresa_id:empresaId || undefined, obra_id:obraId || undefined } : { ano, empresa_id:empresaId || undefined, obra_id:obraId || undefined }), [mode, competencia, ano, empresaId, obraId])
   const totals = useMemo(() => (data || []).reduce((acc:any, row:any) => { acc[row.tipo] = (acc[row.tipo] || 0) + row.valor; return acc }, {pagar:0, receber:0}), [data])
   const result = totals.receber - totals.pagar
 

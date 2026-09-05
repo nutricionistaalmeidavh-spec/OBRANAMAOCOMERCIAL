@@ -123,8 +123,8 @@
     enhanceAccountSheet();
   }
 
-  const observer=new MutationObserver(()=>queueMicrotask(enhance));
-  observer.observe(content,{childList:true,subtree:true});
-  if(sheet)new MutationObserver(()=>queueMicrotask(enhanceAccountSheet)).observe(sheet,{childList:true,subtree:true});
+  document.addEventListener('field:rendered',enhance);
+  document.addEventListener('field:sheet-rendered',enhanceAccountSheet);
   enhance();
 })();
+

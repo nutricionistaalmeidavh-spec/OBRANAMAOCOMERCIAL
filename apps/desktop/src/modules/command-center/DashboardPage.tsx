@@ -1,25 +1,29 @@
+import { Link } from 'react-router-dom'
+import { financialMargin } from '../../utils/ux'
+import { useWorkContext } from '../../hooks/useWorkContext'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import {
   BanknoteArrowDown, BanknoteArrowUp, BriefcaseBusiness, CircleAlert,
   HardHat, Landmark, RefreshCw, Scale,
 } from 'lucide-react'
-import { useState } from 'react'
 import { Card, Empty, ErrorState, Loading } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
-import { brl, competenceLabel, currentCompetence } from '../../utils/format'
+import { brl, competenceLabel } from '../../utils/format'
 
 const percentage = (value: number, total: number) => total > 0 ? Math.max(0, Math.min(100, (value / total) * 100)) : 0
 
 export default function DashboardPage() {
-  const [competencia, setCompetencia] = useState(currentCompetence())
-  const { data, loading, error, reload } = useAsync(() => window.fluxoDre.relatorios.dashboard({ competencia }), [competencia])
+  const { competencia, setCompetencia, empresaId } = useWorkContext()
+  const { data, loading, error, reload } = useAsync(() => window.fluxoDre.relatorios.dashboard({ competencia, empresa_id:empresaId || undefined }), [competencia, empresaId])
 
+  const financeLink = (tipo: string, status = '') => `/financeiro?${new URLSearchParams({tipo,status,competencia,empresa:empresaId,obra:''})}`
+  const margin = data ? financialMargin(data.resultado, data.receitas) : null
   return <>
     <header className="command-header">
       <div>
         <span className="command-eyebrow">Visao financeira e operacional</span>
         <h1>Painel de comando</h1>
-        <p>Caixa, resultado e execucao das obras em uma leitura executiva do periodo.</p>
+        <p>Caixa, resultado e execução consolidados de todas as obras da empresa no período.</p>
       </div>
       <div className="command-header-actions">
         {data?.vencidos > 0 && <div className="command-alert"><CircleAlert size={17}/><div><span>Atencao</span><strong>{brl(data.vencidos)} vencidos</strong></div></div>}
@@ -30,11 +34,11 @@ export default function DashboardPage() {
 
     {loading ? <Card><Loading/></Card> : error ? <Card><ErrorState error={error} retry={reload}/></Card> : data && <>
       <div className="command-kpi-grid">
-        <Card className="command-kpi command-kpi-positive"><div className="command-kpi-heading"><BanknoteArrowUp size={17}/><span>Receitas totais</span></div><strong>{brl(data.receitas)}</strong><div className="metric-track"><i style={{width:'100%'}}/></div></Card>
-        <Card className="command-kpi command-kpi-negative"><div className="command-kpi-heading"><BanknoteArrowDown size={17}/><span>Despesas totais</span></div><strong>{brl(data.despesas)}</strong><div className="metric-track"><i style={{width:`${percentage(data.despesas, data.receitas)}%`}}/></div></Card>
-        <Card className={`command-kpi ${data.resultado >= 0 ? 'command-kpi-primary' : 'command-kpi-warning'}`}><div className="command-kpi-heading"><Scale size={17}/><span>Resultado operacional</span></div><strong>{brl(data.resultado)}</strong><small>Margem {percentage(data.resultado, data.receitas).toFixed(1).replace('.', ',')}%</small></Card>
-        <Card className="command-kpi"><div className="command-kpi-heading"><Landmark size={17}/><span>Contas pendentes</span></div><strong>{brl(data.pagar + data.receber)}</strong><small>{brl(data.pagar)} a pagar</small></Card>
-        <Card className="command-kpi command-kpi-warning"><div className="command-kpi-heading"><CircleAlert size={17}/><span>Valores vencidos</span></div><strong>{brl(data.vencidos)}</strong><small>{data.vencidos > 0 ? 'Acao necessaria' : 'Sem atrasos no periodo'}</small></Card>
+        <Card className="command-kpi command-kpi-positive"><div className="command-kpi-heading"><BanknoteArrowUp size={17}/><span>Receitas totais</span></div><strong>{brl(data.receitas)}</strong><small><Link to={financeLink('receber')}>Ver contas a receber →</Link></small><div className="metric-track"><i style={{width:'100%'}}/></div></Card>
+        <Card className="command-kpi command-kpi-negative"><div className="command-kpi-heading"><BanknoteArrowDown size={17}/><span>Despesas totais</span></div><strong>{brl(data.despesas)}</strong><small><Link to={financeLink('pagar')}>Ver contas a pagar →</Link></small><div className="metric-track"><i style={{width:`${percentage(data.despesas, data.receitas)}%`}}/></div></Card>
+        <Card className={`command-kpi ${data.resultado >= 0 ? 'command-kpi-primary' : 'command-kpi-warning'}`}><div className="command-kpi-heading"><Scale size={17}/><span>Resultado operacional</span></div><strong>{brl(data.resultado)}</strong><small>Margem {margin === null ? 'não calculável sem receita' : `${margin.toFixed(1).replace('.', ',')}%`}</small></Card>
+        <Card className="command-kpi"><div className="command-kpi-heading"><Landmark size={17}/><span>Contas pendentes</span></div><strong>{brl(data.pagar + data.receber)}</strong><small><Link to={financeLink('pagar', 'pendente')}>{brl(data.pagar)} a pagar →</Link></small><small><Link to={financeLink('receber', 'pendente')}>{brl(data.receber)} a receber →</Link></small></Card>
+        <Card className="command-kpi command-kpi-warning"><div className="command-kpi-heading"><CircleAlert size={17}/><span>Valores vencidos</span></div><strong>{brl(data.vencidos)}</strong><small><Link to={financeLink('todos', 'vencido')}>Revisar contas vencidas →</Link></small></Card>
       </div>
 
       <div className="command-dashboard-grid">

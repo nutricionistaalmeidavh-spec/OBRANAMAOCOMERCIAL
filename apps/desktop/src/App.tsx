@@ -1,3 +1,4 @@
+import { WorkContextProvider } from './hooks/useWorkContext'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ReactNode, useEffect, useState } from 'react'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -60,7 +61,7 @@ export default function App() {
   const DrePage = isClassic ? ClassicDrePage : CommandCenterDrePage
   const FinancePage = isClassic ? ClassicFinancePage : CommandCenterFinancePage
 
-  return <ErrorBoundary><Shell><RouteBoundary><Routes>
+  return <ErrorBoundary><WorkContextProvider><Shell><RouteBoundary><Routes>
     <Route path="/" element={<DashboardPage/>}/>
     <Route path="/assistente-ia" element={<AiAssistantPage/>}/>
     <Route path="/dre" element={<DrePage/>}/>
@@ -86,7 +87,7 @@ export default function App() {
     <Route path="/importacao" element={<ImportPage/>}/>
     <Route path="/configuracoes" element={<SettingsPage/>}/>
     <Route path="*" element={<Navigate to="/" replace/>}/>
-  </Routes></RouteBoundary></Shell></ErrorBoundary>
+  </Routes></RouteBoundary></Shell></WorkContextProvider></ErrorBoundary>
 }
 
 function RouteBoundary({ children }: { children: ReactNode }) {

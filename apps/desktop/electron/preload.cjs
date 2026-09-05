@@ -22,6 +22,10 @@ contextBridge.exposeInMainWorld('fluxoDre', {
   importadorUniversal: { choose: () => call('universal-import:choose'), preview: (token, options) => call('universal-import:preview', { token, options }), commit: (token, options) => call('universal-import:commit', { token, options }) },
   relatorios: { dashboard: (filters) => call('dashboard:get', filters), dre: (filters) => call('dre:get', filters) },
   online: {
+    syncState: () => call('online:sync-state'),
+    configureSync: (scope) => call('online:sync-configure', scope),
+    syncNow: () => call('online:sync-now'),
+    resolveLocalConflict: (id, resolution) => call('online:sync-resolve-local', { id, resolution }),
     state: () => call('online:state'),
     setBaseUrl: (baseUrl) => call('online:set-base-url', { baseUrl }),
     start: (activationCode) => call('online:start', { activationCode }),

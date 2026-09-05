@@ -6,12 +6,14 @@ on:
     branches: [main]
     paths:
       - 'package.json'
+      - 'packages/**'
       - 'apps/web/**'
       - '.github/workflows/commercial-cloudflare-ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'package.json'
+      - 'packages/**'
       - 'apps/web/**'
       - '.github/workflows/commercial-cloudflare-ci.yml'
 

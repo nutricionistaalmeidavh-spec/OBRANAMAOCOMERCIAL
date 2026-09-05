@@ -1,5 +1,14 @@
 # Mapa do projeto — Fluxo DRE
 
+## Entrega comercial — 2026-09-05
+
+- `electron/services/sync-coordinator.cjs` e migration `017_desktop_sync.sql`: vínculo explícito empresa/obra/dispositivo, outbox SQLite, repetição idempotente, leitura de bridge e revisão de conflitos. Não associa pessoas por nome nem mistura obras.
+- IPC/preload: `online:sync-state`, `online:sync-configure`, `online:sync-now`, `online:sync-resolve-local`. `src/components/SyncSettings.tsx` em Configurações confirma o vínculo e mostra estado/pendências. Alteração de conexão, restauração e encerramento aguardam a sincronização em andamento.
+- `useWorkContext.tsx`/`WorkContextBar.tsx`: competência e contexto persistidos. Dashboard consolidado por empresa; DRE/Contas usam empresa/obra; folha e ponto usam competência. O contexto não implica que todas as telas tenham filtro global.
+- Shell: busca, grupos recolhíveis e favoritos; RH com jornada e links semânticos. Assinaturas continuam conferidas manualmente.
+- Contrato `packages/contracts/src/desktop-sync.ts`: tipos do renderer e validação de entrada do backend Cloudflare.
+- Validação: testes reais SQLite do coordenador, regressões de UX, testes web de persistência/reenvio/lifecycle. Não substituem instalação Windows/macOS e ensaio real entre dois dispositivos.
+
 Última revisão estrutural: 2026-08-04.
 
 Este documento é o ponto de partida para alterações. Leia a seção afetada e abra apenas os arquivos diretamente relacionados; evite uma nova varredura global.

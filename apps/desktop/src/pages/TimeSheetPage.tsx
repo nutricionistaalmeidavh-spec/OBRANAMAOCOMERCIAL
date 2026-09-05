@@ -1,3 +1,4 @@
+import { useWorkContext } from '../hooks/useWorkContext'
 import { FileDown, Printer, RotateCcw, Save, Sparkles, UsersRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button, Card, Empty, Field, Loading, PageHeader, Status } from '../components/ui'
@@ -7,7 +8,7 @@ import { competenceLabel, currentCompetence, today } from '../utils/format'
 const typeLabels:Record<string,string>={trabalho:'Trabalho',falta:'Falta',ferias:'Férias',feriado:'Feriado',folga:'Folga',afastado:'Afastado',sabado:'Sábado',domingo:'Domingo'}
 
 export default function TimeSheetPage(){
-  const [competencia,setCompetencia]=useState(currentCompetence())
+  const { competencia, setCompetencia, empresaId, obraId } = useWorkContext()
   const [employee,setEmployee]=useState('')
   const [version,setVersion]=useState(0)
   const [marks,setMarks]=useState<any[]>([])

@@ -432,6 +432,20 @@ describe('P0 critical web flows', () => {
     });
     expect(mobileUpdate.status).toBe(200);
 
+    // A lost acknowledgement must never replay the old Desktop payload over a mobile edit.
+    const retry = await last(routes['POST /api/desktop/sync/push'])({
+      body:{deviceToken,changes:[{
+        changeId:'change-sync-000001',entity:'tarefas_obra',action:'upsert',localId:101,baseMobileRevision:0,
+        payload:{titulo:'Instalar prumada',status:'open',responsavel:'Equipe A'}
+      }]},query:{},params:{},
+    });
+    expect(retry.status).toBe(200);
+    const retried = (await body(retry)).accepted[0];
+    expect(retried.status).toBe('duplicate');
+    expect(retried.conflict).not.toBe(true);
+    const conflicts = await last(routes['POST /api/desktop/sync/conflicts'])({body:{deviceToken},query:{},params:{}});
+    expect((await body(conflicts)).conflicts).toHaveLength(0);
+
     const pull = await last(routes['POST /api/desktop/sync/pull'])({
       body:{deviceToken,sinceRevision:0},query:{},params:{},
     });

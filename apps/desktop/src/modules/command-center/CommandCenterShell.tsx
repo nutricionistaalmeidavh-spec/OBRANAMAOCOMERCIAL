@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import artisysLogo from '../../assets/artisys-logo.svg'
 import artisysIcon from '../../assets/artisys-icon.svg'
+import { WorkContextBar } from '../../components/WorkContextBar'
+import { matchesNavigation } from '../../utils/ux'
 
 const groups = [
   { label: 'Visao geral', items: [
@@ -76,6 +78,16 @@ const routeLabels:Record<string,{section:string;label:string}> = {
 
 export default function CommandCenterShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
+  const [search, setSearch] = useState('')
+  const [closedGroups, setClosedGroups] = useState<string[]>([])
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try { const value = JSON.parse(localStorage.getItem('artisys.commercial.favorites') || '[]'); return Array.isArray(value) ? value.filter(item => typeof item === 'string') : [] } catch { return [] }
+  })
+  const toggleFavorite = (to: string) => setFavorites(previous => {
+    const next = previous.includes(to) ? previous.filter(item => item !== to) : [...previous, to]
+    try { localStorage.setItem('artisys.commercial.favorites', JSON.stringify(next)) } catch { /* Keep session preference. */ }
+    return next
+  })
   const location = useLocation()
   const route = useMemo(() => {
     if (location.pathname.startsWith('/obras/')) return {section:'Operacao', label:'Detalhes da obra'}
@@ -92,12 +104,23 @@ export default function CommandCenterShell({ children }: { children: ReactNode }
         <img src={collapsed?artisysIcon:artisysLogo} alt="ArtiSys" style={collapsed?{width:38,height:38}:{}}/>
         <span className="artisys-edition">DESKTOP</span>
       </div>
-      <nav>{groups.map((group) => <div className="nav-group" key={group.label}>
-        {group.to?<NavLink className="nav-label" to={group.to} title={collapsed?group.label:undefined}>{group.label}</NavLink>:<span className="nav-label">{group.label}</span>}
-        {group.items.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} end={to === '/'} title={collapsed ? label : undefined}>
-          <Icon size={17}/><span>{label}</span>
-        </NavLink>)}
-      </div>)}</nav>
+      {!collapsed && <input className="nav-search" aria-label="Buscar página no menu" placeholder="Buscar página…" value={search} onChange={event => setSearch(event.target.value)}/>}
+      <nav aria-label="Menu principal">
+        {!collapsed && !search && favorites.length > 0 && <div className="nav-group"><span className="nav-label">Favoritos</span>{groups.flatMap(group => group.items).filter(item => favorites.includes(item.to)).map(({to,label,icon:Icon}) => <NavLink key={to} to={to} end={to === '/'}><Icon size={17}/><span>{label}</span></NavLink>)}</div>}
+        {groups.map((group) => {
+          const items = group.items.filter(item => matchesNavigation(`${group.label} ${item.label}`, search))
+          if (search && !items.length) return null
+          const expanded = collapsed || !!search || !closedGroups.includes(group.label)
+          return <div className="nav-group" key={group.label}>
+            {!collapsed && <button className="nav-group-toggle" aria-expanded={expanded} onClick={() => setClosedGroups(previous => previous.includes(group.label) ? previous.filter(label => label !== group.label) : [...previous, group.label])}>{group.label}<span aria-hidden="true">{expanded ? '−' : '+'}</span></button>}
+            {expanded && <>{group.to && <NavLink to={group.to} title="Central de RH"><UsersRound size={17}/><span>Central de RH</span></NavLink>}{items.map(({ to, label, icon: Icon }) => <div className="nav-item-row" key={to}>
+              <NavLink to={to} end={to === '/'} title={collapsed ? label : undefined}><Icon size={17}/><span>{label}</span></NavLink>
+              {!collapsed && <button className="nav-favorite" aria-label={`${favorites.includes(to) ? 'Remover' : 'Adicionar'} ${label} ${favorites.includes(to) ? 'dos' : 'aos'} favoritos`} aria-pressed={favorites.includes(to)} onClick={() => toggleFavorite(to)}>{favorites.includes(to) ? '★' : '☆'}</button>}
+            </div>)}</>}
+          </div>
+        })}
+        {search && !groups.some(group => group.items.some(item => matchesNavigation(`${group.label} ${item.label}`, search))) && <p role="status">Nenhuma página encontrada.</p>}
+      </nav>
       <div className="artisys-sidebar-foot">
         <div className="artisys-product-state"><i/><span><strong>Comercial</strong><small>Ambiente local seguro</small></span></div>
         <button className="collapse-button" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}>
@@ -110,7 +133,7 @@ export default function CommandCenterShell({ children }: { children: ReactNode }
         <div className="artisys-breadcrumb"><span>{route.section}</span><i>/</i><strong>{route.label}</strong></div>
         <div className="artisys-topbar-status"><span className="artisys-sync-dot"/>ArtiSys Desktop <b>Comercial</b></div>
       </header>
-      <div className="content-wrap">{children}</div>
+      <div className="content-wrap"><WorkContextBar/>{children}</div>
     </main>
   </div>
 }

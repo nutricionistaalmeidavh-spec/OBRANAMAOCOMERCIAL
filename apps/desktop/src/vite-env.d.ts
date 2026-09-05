@@ -12,6 +12,10 @@ interface Window { fluxoDre: {
   catalogo: { list():Promise<any>; saveCargo(data:any):Promise<any>; saveBenefit(data:any):Promise<any>; saveLink(data:any):Promise<any>; deactivate(type:string,id:number):Promise<any> }
   importacoes: EntityApi & { preview():Promise<any>; commit(token:string):Promise<any> }; importadorUniversal:{choose():Promise<any>;preview(token:string,options:any):Promise<any>;commit(token:string,options:any):Promise<any>}; relatorios:{dashboard(filters?:any):Promise<any>;dre(filters?:any):Promise<any[]>};
   online:{
+    syncState():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
+    configureSync(scope:{companyId:number;workId:number}):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
+    syncNow():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
+    resolveLocalConflict(id:number,resolution:import('../../../packages/contracts/src/desktop-sync').LocalConflictResolution):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     state():Promise<{baseUrl:string;installationId:string;linked:boolean;linkedAt:string|null;pending:{expiresAt:string|null}|null}>;
     setBaseUrl(baseUrl:string):Promise<any>;
     start(activationCode?:string):Promise<{approvalUrl:string;expiresAt:string}>;

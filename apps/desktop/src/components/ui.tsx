@@ -1,3 +1,4 @@
+import { statusTone } from '../utils/ux'
 import { AlertTriangle, Check, ChevronDown, FileQuestion, LoaderCircle, Search, X } from 'lucide-react'
 import { FormEvent, ReactNode, useEffect, useRef } from 'react'
 
@@ -31,10 +32,37 @@ export function Field({ label, children, required = false, wide = false, hint }:
 
 export function Modal({ open, title, children, onClose, size = 'md' }: { open: boolean; title: string; children: ReactNode; onClose: () => void; size?: 'sm'|'md'|'lg'|'xl' }) {
   const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => { if (open) setTimeout(() => ref.current?.querySelector<HTMLElement>('input,button,select,textarea')?.focus(), 0) }, [open])
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
+  useEffect(() => {
+    if (!open || !ref.current) return
+    const dialog = ref.current
+    const origin = document.activeElement as HTMLElement | null
+    const focusable = () => Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex]:not([tabindex="-1"])')).filter(el => !el.hidden && el.getAttribute('aria-hidden') !== 'true' && el.getClientRects().length > 0)
+    const topmost = () => Array.from(document.querySelectorAll('[aria-modal="true"]')).at(-1) === dialog
+    const keydown = (event: KeyboardEvent) => {
+      if (!topmost()) return
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeRef.current(); return }
+      if (event.key !== 'Tab') return
+      const items = focusable(), first = items[0], last = items.at(-1)
+      if (!first) { event.preventDefault(); dialog.focus(); return }
+      if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) { event.preventDefault(); first.focus() }
+    }
+    const containFocus = (event: FocusEvent) => { if (topmost() && !dialog.contains(event.target as Node)) (focusable()[0] || dialog).focus() }
+    const timer = window.setTimeout(() => (focusable()[0] || dialog).focus(), 0)
+    document.addEventListener('keydown', keydown, true)
+    document.addEventListener('focusin', containFocus)
+    return () => {
+      window.clearTimeout(timer)
+      document.removeEventListener('keydown', keydown, true)
+      document.removeEventListener('focusin', containFocus)
+      if (origin?.isConnected) origin.focus()
+    }
+  }, [open])
   if (!open) return null
   return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-    <div ref={ref} className={`modal modal-${size}`} role="dialog" aria-modal="true" aria-label={title}>
+    <div ref={ref} tabIndex={-1} className={`modal modal-${size}`} role="dialog" aria-modal="true" aria-label={title}>
       <div className="modal-header"><h2>{title}</h2><button className="icon-button" onClick={onClose} aria-label="Fechar"><X size={19}/></button></div>
       {children}
     </div>
@@ -54,7 +82,7 @@ export function Segmented({ options, value, onChange }: { options: { value: stri
 }
 
 export function Status({ value }: { value: string }) {
-  const tone = /pago|recebido|ativo|conclu|assinado/i.test(value) ? 'success' : /vencido|cancelado|inativo/i.test(value) ? 'danger' : /parcial|pendente|rascunho|aberta/i.test(value) ? 'warning' : 'neutral'
+  const tone = statusTone(value)
   return <span className={`status status-${tone}`}>{String(value || '—').replaceAll('_',' ')}</span>
 }
 

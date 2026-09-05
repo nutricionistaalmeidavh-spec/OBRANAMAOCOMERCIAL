@@ -20,9 +20,28 @@ const { ProductService } = require('./services/product-service.cjs')
 const { DemoDataService } = require('./services/demo-data-service.cjs')
 const { UiPreferencesService } = require('./services/ui-preferences-service.cjs')
 const { OnlineService } = require('./services/online-service.cjs')
+const { SyncCoordinator } = require('./services/sync-coordinator.cjs')
 
 let mainWindow
 let services
+let connectionMaintenance = false
+let quitting = false
+
+async function withSyncStopped(operation, restart = true) {
+  if (connectionMaintenance) throw new Error('Aguarde a manutenção da conexão terminar.')
+  connectionMaintenance = true
+  try {
+    await services.sync.stop()
+    return await operation()
+  } finally {
+    connectionMaintenance = false
+    if (restart && !quitting) services.sync.start()
+  }
+}
+
+function requireSyncAvailable() {
+  if (connectionMaintenance || quitting) throw new Error('Sincronização pausada durante manutenção.')
+}
 
 function resolvePaths() {
   const dataDir = process.env.OBRA_NA_MAO_DATA_DIR || path.join(app.getPath('appData'), 'obra-na-mao-comercial')
@@ -37,6 +56,8 @@ function createServices() {
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
   const product = new ProductService({ db })
   const uiPreferences = new UiPreferencesService({ db })
+  const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
+  const sync = new SyncCoordinator({ database: db, online })
   return {
     paths, db, files, documentRoot,
     backup: new BackupService({ db, ...paths }),
@@ -48,7 +69,7 @@ function createServices() {
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
     works: new WorksService({ db }), planning: new PlanningService({ db }), field: new FieldService({ db }),
-    product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product }), online: new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
+    product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product }), online, sync
   }
 }
 
@@ -64,7 +85,7 @@ function envelope(fn) {
 
 function registerIpc() {
   ipcMain.handle('app:bootstrap', envelope(() => ({ dataPath: services.paths.dataDir, documentsPath: services.documentRoot.getRoot(), databasePath: services.db.dbPath, firstRun: services.db.list('empresas').length === 0, version: app.getVersion(), product: services.product.getEdition(), layout: services.uiPreferences.getLayout() })))
-  ipcMain.handle('app:retry-database', envelope(() => { services.db.close(); services.db.open(); return true }))
+  ipcMain.handle('app:retry-database', envelope(() => withSyncStopped(() => { services.db.close(); services.db.open(); return true })))
   ipcMain.handle('app:get-layout', envelope(() => services.uiPreferences.getLayout()))
   ipcMain.handle('app:set-layout', envelope(({ layout }) => services.uiPreferences.setLayout(layout)))
   ipcMain.handle('entity:list', envelope(({ table, filters }) => services.db.list(table, filters)))
@@ -110,7 +131,12 @@ function registerIpc() {
   ipcMain.handle('universal-import:preview', envelope(({ token, options }) => services.universalImport.preview(token, options)))
   ipcMain.handle('universal-import:commit', envelope(({ token, options }) => services.universalImport.commit(token, options)))
   ipcMain.handle('backup:create', envelope(() => services.backup.create()))
-  ipcMain.handle('backup:restore', envelope(() => services.backup.restore()))
+  ipcMain.handle('backup:restore', envelope(() => withSyncStopped(async () => {
+    const result = await services.backup.restore()
+    // Restored queues must not resume against the current device without an explicit new binding.
+    if (result?.restored) services.db.db.prepare('DELETE FROM desktop_sync_scope WHERE id=1').run()
+    return result
+  })))
   ipcMain.handle('backup:open-data-folder', envelope(() => services.backup.openDataFolder()))
   ipcMain.handle('payroll:employee', envelope((payload) => services.payroll.getEmployee(payload)))
   ipcMain.handle('payroll:save-variable', envelope((payload) => services.payroll.saveVariable(payload)))
@@ -136,11 +162,15 @@ function registerIpc() {
   ipcMain.handle('catalog:save-link', envelope((data) => services.catalog.saveLink(data)))
   ipcMain.handle('catalog:deactivate', envelope((data) => services.catalog.deactivate(data.type, data.id)))
   ipcMain.handle('online:state', envelope(() => services.online.state()))
-  ipcMain.handle('online:set-base-url', envelope(({ baseUrl }) => services.online.setBaseUrl(baseUrl)))
+  ipcMain.handle('online:set-base-url', envelope(({ baseUrl }) => withSyncStopped(() => services.online.setBaseUrl(baseUrl))))
   ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
   ipcMain.handle('online:status', envelope(() => services.online.status()))
   ipcMain.handle('online:session', envelope(() => services.online.session()))
-  ipcMain.handle('online:disconnect', envelope(() => services.online.disconnect()))
+  ipcMain.handle('online:disconnect', envelope(() => withSyncStopped(() => services.online.disconnect())))
+  ipcMain.handle('online:sync-state', envelope(() => services.sync.state()))
+  ipcMain.handle('online:sync-configure', envelope((scope) => withSyncStopped(() => services.sync.configure(scope))))
+  ipcMain.handle('online:sync-now', envelope(() => { requireSyncAvailable(); return services.sync.run({ retryNow: true }) }))
+  ipcMain.handle('online:sync-resolve-local', envelope(({ id, resolution }) => withSyncStopped(() => services.sync.resolveLocalConflict(id, resolution))))
   ipcMain.handle('online:sync-pull', envelope(({ sinceRevision }) => services.online.syncPull(sinceRevision)))
   ipcMain.handle('online:sync-push', envelope(({ changes }) => services.online.syncPush(changes)))
   ipcMain.handle('online:mobile-summary', envelope(({ summary }) => services.online.publishMobileSummary(summary)))
@@ -167,12 +197,17 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  try { services = createServices(); registerIpc(); await createWindow() }
+  try { services = createServices(); registerIpc(); await createWindow(); services.sync.start() }
   catch (error) { console.error(error); mainWindow = new BrowserWindow({ width: 900, height: 650, backgroundColor: '#f3f5f8' }); await mainWindow.loadURL(fallbackPage('Não foi possível abrir o banco de dados local.', error.stack)) }
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 })
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
-app.on('before-quit', () => services?.db?.close())
+app.on('before-quit', (event) => {
+  if (quitting || !services) return
+  event.preventDefault()
+  quitting = true
+  Promise.resolve(services.sync.stop()).finally(() => { services.db.close(); app.quit() })
+})
 process.on('uncaughtException', (error) => { console.error(error); dialog.showErrorBox('Erro inesperado', error.message) })
 process.on('unhandledRejection', (error) => console.error(error))

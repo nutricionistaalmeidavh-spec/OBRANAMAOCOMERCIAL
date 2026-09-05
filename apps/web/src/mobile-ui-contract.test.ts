@@ -44,7 +44,7 @@ describe('mobile premium UI contract',()=>{
     expect(day).toContain('data-screen="issues"');
     expect(day).toContain('Próximas ações');
     expect(enhancer).toContain("active==='today'");
-    expect(enhancer).toContain("[data-screen=\"team\"],[data-screen=\"more\"],[data-screen=\"settings\"]");
+    expect(enhancer).toContain("[data-screen=\"more\"],[data-screen=\"settings\"]");
     expect(enhancer).toContain("dayButton.dataset.screen='settings'");
     expect(enhancer).toContain("title.textContent='Configurações'");
     expect(enhancer).toContain("meta.textContent='Checklists e horários'");
@@ -58,7 +58,8 @@ describe('mobile premium UI contract',()=>{
     for(const surface of ['floors','floor-detail','issues','planning','settings'])expect(enhancer).toContain(`'${surface}'`);
     expect(enhancer).toContain('enhanceInternalSurface');
     expect(enhancer).toContain('enhanceSheet');
-    expect(enhancer).toContain("sheetObserver.observe(sheet");
+    expect(enhancer).toContain("document.addEventListener('field:sheet-rendered',enhanceSheet)");
+    expect(enhancer).not.toContain('MutationObserver');
 
     for(const selector of [
       '.internal-hero{',
