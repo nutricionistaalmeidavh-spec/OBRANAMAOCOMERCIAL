@@ -1,10 +1,11 @@
-import { db } from '../cloudflare/sdk';
+import { db, runtimeEnv } from '../cloudflare/sdk';
 import { PROJECT_STATE_VERSION } from '../shared/version';
 
 export type ProjectRecord={companyId:string;name:string;customer?:string;createdAt:string;createdBy:string};
 export type ProjectMetaRecord={id?:string;state:Record<string,unknown>;dayKeys:string[];revision:number;updatedAt:string;updatedBy:string};
 type DayRecord={id?:string;day:Record<string,unknown>;updatedAt:string;updatedBy:string};
 type FloorRecord={id?:string;number:number;floor:Record<string,unknown>;updatedAt:string;updatedBy:string};
+export class SnapshotRevisionConflict extends Error { constructor(){super('O estado da obra foi alterado em outra sessão. Recarregue antes de salvar novamente.');this.name='SnapshotRevisionConflict'} }
 
 const now=()=>new Date().toISOString();
 const safe=(value:string)=>value.replace(/[^a-zA-Z0-9_-]/g,'_');
@@ -32,17 +33,8 @@ export async function saveDay(projectId:string,date:string,day:Record<string,unk
   else await db.add(table,[next as Record<string,unknown>]);
 }
 
-export async function saveSnapshot(projectId:string,snapshot:Record<string,unknown>,actor:string){
-  const current=await getMeta(projectId),revision=(current?.revision||0)+1,days=record(snapshot.days),floors=list(snapshot.floors),dayKeys=Array.from(new Set([...(current?.dayKeys||[]),...Object.keys(days)])).sort();
-  const stateMeta:Record<string,unknown>={};
-  for(const[k,v]of Object.entries(snapshot))if(k!=='floors'&&k!=='days'&&k!=='desktopBridge')stateMeta[k]=v;
-  stateMeta.desktopBridge=current?.state?.desktopBridge||{};
-  stateMeta.version=Math.max(Number(stateMeta.version||0),PROJECT_STATE_VERSION);
-  const next:ProjectMetaRecord={state:stateMeta,dayKeys,revision,updatedAt:now(),updatedBy:actor};
-  if(current)await db.update(metaTable(projectId),[{id:String(current.id),record:next as unknown as Record<string,unknown>}]);
-  else await db.add(metaTable(projectId),[next as unknown as Record<string,unknown>]);
-
-  const table=floorsTable(projectId),existing=(await db.list<FloorRecord>(table,{limit:50})).items,byNumber=new Map(existing.map(item=>[item.number,item]));
+async function saveSnapshotParts(projectId:string,snapshot:Record<string,unknown>,actor:string){
+  const floors=list(snapshot.floors),days=record(snapshot.days),table=floorsTable(projectId),existing=(await db.list<FloorRecord>(table,{limit:50})).items,byNumber=new Map(existing.map(item=>[item.number,item]));
   for(const value of floors){
     const floor=record(value),number=Number(floor.number);if(!Number.isFinite(number))continue;
     const item:FloorRecord={number,floor,updatedAt:now(),updatedBy:actor},old=byNumber.get(number);
@@ -50,6 +42,24 @@ export async function saveSnapshot(projectId:string,snapshot:Record<string,unkno
     else await db.add(table,[item as unknown as Record<string,unknown>]);
   }
   for(const[date,value]of Object.entries(days))await saveDay(projectId,date,record(value),actor);
+}
+
+export async function saveSnapshot(projectId:string,snapshot:Record<string,unknown>,actor:string){
+  const current=await getMeta(projectId),expectedRaw=record(snapshot._remote).revision,hasExpected=expectedRaw!==undefined&&expectedRaw!==null,expectedRevision=Number(expectedRaw),revision=(current?.revision||0)+1,days=record(snapshot.days),dayKeys=Array.from(new Set([...(current?.dayKeys||[]),...Object.keys(days)])).sort();
+  const stateMeta:Record<string,unknown>={};
+  for(const[k,v]of Object.entries(snapshot))if(k!=='floors'&&k!=='days'&&k!=='desktopBridge'&&k!=='_remote')stateMeta[k]=v;
+  stateMeta.desktopBridge=current?.state?.desktopBridge||{};
+  stateMeta.version=Math.max(Number(stateMeta.version||0),PROJECT_STATE_VERSION);
+  const next:ProjectMetaRecord={state:stateMeta,dayKeys,revision,updatedAt:now(),updatedBy:actor};
+  if(current&&hasExpected){
+    if(!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw new SnapshotRevisionConflict();
+    const clean={...next} as Record<string,unknown>;delete clean.id;
+    const result=await runtimeEnv().DB.prepare("UPDATE kv_records SET record_json=?,updated_at=? WHERE collection=? AND id=? AND CAST(json_extract(record_json,'$.revision') AS INTEGER)=?")
+      .bind(JSON.stringify(clean),next.updatedAt,metaTable(projectId),String(current.id),expectedRevision).run();
+    if(Number(result.meta?.changes||0)!==1)throw new SnapshotRevisionConflict();
+  } else if(current)await db.update(metaTable(projectId),[{id:String(current.id),record:next as unknown as Record<string,unknown>}]);
+  else await db.add(metaTable(projectId),[next as unknown as Record<string,unknown>]);
+  await saveSnapshotParts(projectId,snapshot,actor);
   return revision;
 }
 
