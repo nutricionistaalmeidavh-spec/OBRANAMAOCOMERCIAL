@@ -1,0 +1,72 @@
+name: Temporary auth codemod
+
+on:
+  push:
+    branches: [feat/unify-license-access]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-index:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/unify-license-access
+      - name: Apply deterministic authorization patch
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('apps/web/backend/index.ts')
+          s = p.read_text()
+          replacements = [
+            (
+              "import { PLATFORM_ACCESS_ROUTES, ensurePlatformAccessForMember, getPlatformAccess, getPlatformAccessById, platformAccessView, platformSystemRole } from './platform-access';",
+              "import { PLATFORM_ACCESS_ROUTES, configurePlatformEntitlementResolver, ensurePlatformAccessForMember, getPlatformAccess, getPlatformAccessById, platformAccessView, platformSystemRole } from './platform-access';\nimport { canUseFinanceAi } from './authorization-policy';"
+            ),
+            (
+              "const MODULES=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents'];",
+              "const MODULES=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'];"
+            ),
+            (
+              "async function memberEntitlements(member:Member){",
+              "configurePlatformEntitlementResolver(async(companyId:string)=>{const entitlement=await companyEntitlements(companyId);if(!entitlement)return null;const active=entitlement.status==='active'&&(!entitlement.expiresAt||entitlement.expiresAt>=now())&&entitlement.modules.length>0;return{active,modules:entitlement.modules}});async function memberEntitlements(member:Member){"
+            ),
+            (
+              "const entitlement=await memberEntitlements(member),platform=await ensurePlatformAccessForMember({email:member.email||user.email||'',name:member.name||user.name,companyId:member.companyId,projectId:member.projectId,employeeId:member.employeeId,role:member.role,modules:entitlement.modules,isSuperadmin:isOwner||member.canonicalOwner===true});if(platform.status!=='active'||!platform.systems.finance.enabled)return null;",
+              "const entitlement=await memberEntitlements(member);if(!isOwner&&!entitlement.modules.includes('finance'))return null;const platform=await ensurePlatformAccessForMember({email:member.email||user.email||'',name:member.name||user.name,companyId:member.companyId,projectId:member.projectId,employeeId:member.employeeId,role:member.role,modules:entitlement.modules,isSuperadmin:isOwner||member.canonicalOwner===true});if(platform.status!=='active'||!platform.systems.finance.enabled)return null;"
+            ),
+            (
+              "const entitlement=await memberEntitlements(member),platform=await ensurePlatformAccessForMember({email:member.email||user.email||'',name:member.name||user.name,companyId:member.companyId,projectId:member.projectId,employeeId:member.employeeId,role:member.role,modules:entitlement.modules,isSuperadmin:isOwner||member.canonicalOwner===true});if(platform.status!=='active')return null;const company=await getCompany(member.companyId),project=await getProject(member.projectId);return{userId:user.userId,email:user.email,platformRole:platform.platformRole,role:member.role,companyId:member.companyId,companyName:String(company?.name||'Empresa'),projectId:member.projectId,projectName:String(project?.name||'Obra'),employeeId:member.employeeId,systems:platform.systems,channels:entitlement.channels,modules:entitlement.modules}",
+              "const entitlement=await memberEntitlements(member);if(!isOwner&&!entitlement.modules.length)return null;const platform=await ensurePlatformAccessForMember({email:member.email||user.email||'',name:member.name||user.name,companyId:member.companyId,projectId:member.projectId,employeeId:member.employeeId,role:member.role,modules:entitlement.modules,isSuperadmin:isOwner||member.canonicalOwner===true});if(platform.status!=='active')return null;const systems=structuredClone(platform.systems);if(!isOwner){systems.finance.enabled=systems.finance.enabled&&entitlement.modules.includes('finance');systems.obra360.enabled=systems.obra360.enabled&&entitlement.modules.includes('obra360');systems.universidade.enabled=systems.universidade.enabled&&entitlement.modules.includes('universidade')}const company=await getCompany(member.companyId),project=await getProject(member.projectId);return{userId:user.userId,email:user.email,platformRole:platform.platformRole,role:member.role,companyId:member.companyId,companyName:String(company?.name||'Empresa'),projectId:member.projectId,projectName:String(project?.name||'Obra'),employeeId:member.employeeId,systems,channels:entitlement.channels,modules:entitlement.modules}"
+            ),
+            (
+              "if(access.status!=='active'||!access.systems.universidade.enabled)return error('Universidade não liberada para esta credencial.',403);",
+              "if(access.status!=='active'||!access.systems.universidade.enabled||!(await memberEntitlements(member)).modules.includes('universidade'))return error('Universidade não liberada para esta credencial.',403);"
+            ),
+            (
+              "if(obra.enabled)modules.push('obra360','rdo');const member=await upsertMember",
+              "if(obra.enabled)modules.push('obra360','rdo');if(access.systems.universidade.enabled)modules.push('universidade');const member=await upsertMember"
+            ),
+            (
+              "if(!session||!session.device.companyId)return error('Desktop sem empresa vinculada.',403);try{const output=await desktopAiAnalyze(session.device.companyId,body);",
+              "if(!session||!session.device.companyId)return error('Desktop sem empresa vinculada.',403);const explicitAdmin=norm(session.device.email)===ownerEmail();if(!canUseFinanceAi({licenseActive:session.access.status==='active',licenseModules:session.access.modules,isExplicitAdmin:explicitAdmin}))return error('IA Financeira não está liberada para esta licença.',403);try{const output=await desktopAiAnalyze(session.device.companyId,body);"
+            )
+          ]
+          for old, new in replacements:
+            count = s.count(old)
+            if count != 1:
+              raise SystemExit(f'Expected exactly one match, got {count}: {old[:100]}')
+            s = s.replace(old, new, 1)
+          p.write_text(s)
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/backend/index.ts
+          git diff --cached --check
+          git commit -m "security(auth): enforce license in backend routes"
+          git push origin HEAD:feat/unify-license-access
