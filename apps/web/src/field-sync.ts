@@ -33,7 +33,8 @@ export function createFieldSync(options: { key: string; storage: Storage; baseli
           if (!same(remote, draft.base) && !same(remote, draft.state)) { options.status('conflict'); return; }
           if (!same(remote, draft.state)) await options.send(draft.state);
           if (disposed) return;
-          base = draft.state;
+          base = same(remote, draft.state) ? remote : await options.readRemote();
+          if (disposed) return;
           const latest = read();
           if (latest && !same(latest, draft)) {
             options.storage.setItem(options.key, JSON.stringify({ ...latest, base }));
