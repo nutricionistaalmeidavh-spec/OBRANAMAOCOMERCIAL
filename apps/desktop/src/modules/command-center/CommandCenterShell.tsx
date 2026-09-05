@@ -81,8 +81,12 @@ export default function CommandCenterShell({ children }: { children: ReactNode }
     if (location.pathname.startsWith('/obras/')) return {section:'Operacao', label:'Detalhes da obra'}
     return routeLabels[location.pathname] || {section:'ArtiSys', label:'Desktop'}
   }, [location.pathname])
+  const routeClass = useMemo(() => {
+    const key = location.pathname === '/' ? 'painel' : location.pathname.replace(/^\/+|\/+$/g, '').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()
+    return `route-${key || 'painel'}`
+  }, [location.pathname])
 
-  return <div className={`app-shell command-center-shell artisys-desktop-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
+  return <div className={`app-shell command-center-shell artisys-desktop-shell ${routeClass} ${collapsed ? 'sidebar-collapsed' : ''}`}>
     <aside className="sidebar command-sidebar">
       <div className="brand artisys-brand">
         <img src={collapsed?artisysIcon:artisysLogo} alt="ArtiSys" style={collapsed?{width:38,height:38}:{}}/>
