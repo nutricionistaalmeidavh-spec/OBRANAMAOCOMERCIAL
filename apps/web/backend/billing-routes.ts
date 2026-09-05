@@ -20,7 +20,7 @@ export const BILLING_ROUTES:RouterRoutes={
   }],
   'GET /api/billing/status':[...secured,async c=>json(await billingStatus(c.env as BillingRuntime,c.user!.userId))],
   'POST /api/billing/checkout':[...secured,async c=>{
-    const body=rec(c.body),idempotencyKey=String(c.request.headers.get('idempotency-key')||body.idempotencyKey||'').trim(),result=await checkoutForUser(c.env as BillingRuntime,c.user!,{planCode:String(body.planCode||''),companyName:String(body.companyName||''),idempotencyKey})
+    const body=rec(c.body),idempotencyKey=String(c.request.headers.get('idempotency-key')||body.idempotencyKey||'').trim(),callbackBaseUrl=new URL(c.request.url).origin,result=await checkoutForUser(c.env as BillingRuntime,c.user!,{planCode:String(body.planCode||''),companyName:String(body.companyName||''),idempotencyKey,callbackBaseUrl})
     if(!result.ok)return error(result.error,result.status);return json({order:result.order,reused:result.reused},result.reused?200:201)
   }],
   'POST /api/billing/admin/plans':[...secured,async c=>{
