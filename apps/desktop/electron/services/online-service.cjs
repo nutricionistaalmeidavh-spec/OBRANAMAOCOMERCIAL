@@ -94,11 +94,11 @@ class OnlineService {
     return this.state()
   }
 
-  async request(route, payload) {
+  async request(route, payload, timeoutMs = 15000) {
     if (!this.baseUrl) throw new Error('Configure o endereço online do Obra na Mão em Configurações.')
     if (typeof this.fetchImpl !== 'function') throw new Error('Este ambiente não possui suporte HTTP.')
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000)
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
     try {
       const response = await this.fetchImpl(this.baseUrl + route, {
         method: 'POST',
@@ -111,7 +111,7 @@ class OnlineService {
       if (!response.ok) throw new Error(data.error || data.message || `Falha online (HTTP ${response.status}).`)
       return data
     } catch (error) {
-      if (error?.name === 'AbortError') throw new Error('A conexão online excedeu 15 segundos.')
+      if (error?.name === 'AbortError') throw new Error(`A conexão online excedeu ${Math.round(timeoutMs / 1000)} segundos.`)
       throw error
     } finally {
       clearTimeout(timeout)
@@ -199,7 +199,7 @@ class OnlineService {
   }
 
   async aiAnalyze(input) {
-    return this.request('/api/desktop/ai/analyze', { deviceToken: this.requireToken(), ...input })
+    return this.request('/api/desktop/ai/analyze', { deviceToken: this.requireToken(), ...input }, 90000)
   }
 
   async conflicts() {
