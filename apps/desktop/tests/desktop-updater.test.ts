@@ -9,17 +9,19 @@ const read = (relative:string) => readFileSync(resolve(here, relative), 'utf8')
 describe('commercial desktop auto-updater contract', () => {
   it('ships electron-updater with a GitHub release provider', () => {
     const pkg = JSON.parse(read('../package.json'))
+    expect(pkg.main).toBe('electron/updater-main.cjs')
     expect(pkg.dependencies['electron-updater']).toBeTruthy()
     expect(pkg.build.publish).toEqual(expect.arrayContaining([
       expect.objectContaining({ provider: 'github', owner: 'nutricionistaalmeidavh-spec', repo: 'OBRANAMAOCOMERCIAL' })
     ]))
   })
 
-  it('registers updater lifecycle and IPC in the Electron main process', () => {
-    const main = read('../electron/main.cjs')
-    expect(main).toContain("require('./services/updater-service.cjs')")
+  it('wraps the existing Electron main process without replacing its behavior', () => {
+    const wrapper = read('../electron/updater-main.cjs')
+    expect(wrapper).toContain("require('./main.cjs')")
+    expect(wrapper).toContain("require('./services/updater-service.cjs')")
     for (const channel of ['updater:state', 'updater:check', 'updater:download', 'updater:install']) {
-      expect(main).toContain(channel)
+      expect(wrapper).toContain(channel)
     }
   })
 
