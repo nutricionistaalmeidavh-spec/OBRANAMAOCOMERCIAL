@@ -36,11 +36,16 @@ describe('billing/licensing stages 2-6 integration contract',()=>{
     expect(service).toContain('const companyId=`billing_${order.id}`')
   })
 
-  it('fails uncertain provider calls into reconciliation instead of issuing a duplicate charge',()=>{
+  it('recovers uncertain hosted checkouts before any safe retry and preserves the same order',()=>{
     const service=backend('billing-service.ts'),routes=backend('billing-routes.ts')
-    expect(service).toContain('reconciliation_required=1')
-    expect(service).toContain('if(existing)return{ok:true')
-    expect(routes).toContain('events/retry')
+    expect(service).toContain('isUnknownAsaasOutcome')
+    expect(service).toContain('recoverHostedCheckoutOrder')
+    expect(service).toContain("event_type IN ('CHECKOUT_CREATED','CHECKOUT_UPDATED','CHECKOUT_PAID')")
+    expect(service).toContain("provider_checkout_id IS NULL AND financial_status IN ('created','failed')")
+    expect(service).toContain('if(existing)return resumeExistingCheckout')
+    expect(routes).toContain("'POST /api/billing/checkout/status'")
+    expect(routes).toContain('result.state===\'verifying\'?202')
+    expect(service).not.toContain('Checkout criado com estado incerto')
   })
 
   it('persists provider events before business processing and validates payment binding',()=>{
@@ -48,6 +53,7 @@ describe('billing/licensing stages 2-6 integration contract',()=>{
     expect(service.indexOf('INSERT OR IGNORE INTO billing_provider_events')).toBeLessThan(service.indexOf("if(next==='paid')"))
     expect(service).toContain('validatePaidOrder')
     expect(service).toContain("throw new Error('Pagamento sem ordem/assinatura vinculada.')")
+    expect(service).toContain("eventType.startsWith('CHECKOUT_')")
     expect(webhook).toContain("if(!env.DB)return json({error:'Persistência de cobrança indisponível.'},503)")
   })
 
