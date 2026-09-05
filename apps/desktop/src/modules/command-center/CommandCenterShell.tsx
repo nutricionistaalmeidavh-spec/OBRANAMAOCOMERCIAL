@@ -7,6 +7,7 @@ import {
   Sparkles, UsersRound, WalletCards,
 } from 'lucide-react'
 import artisysLogo from '../../assets/artisys-logo.svg'
+import artisysIcon from '../../assets/artisys-icon.svg'
 
 const groups = [
   { label: 'Visao geral', items: [
@@ -84,7 +85,7 @@ export default function CommandCenterShell({ children }: { children: ReactNode }
   return <div className={`app-shell command-center-shell artisys-desktop-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
     <aside className="sidebar command-sidebar">
       <div className="brand artisys-brand">
-        <img src={artisysLogo} alt="ArtiSys"/>
+        <img src={collapsed?artisysIcon:artisysLogo} alt="ArtiSys" style={collapsed?{width:38,height:38}:{}}/>
         <span className="artisys-edition">DESKTOP</span>
       </div>
       <nav>{groups.map((group) => <div className="nav-group" key={group.label}>
