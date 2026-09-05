@@ -1,5 +1,5 @@
 import { error, json, requireAuth, withScopes, type RouterRoutes, type RuntimeEnv } from '../cloudflare/sdk'
-import { billingStatus, checkoutForUser, createPlanVersion, listActivePlans, processAsaasWebhookPayload } from './billing-service'
+import { billingStatus, checkoutForUser, checkoutStatusForUser, createPlanVersion, listActivePlans, processAsaasWebhookPayload } from './billing-service'
 import { reconcileBillingOrder } from './billing-reconciliation'
 import { catalogPublicView, commercialPlan } from './commercial-plan-catalog'
 
@@ -21,7 +21,13 @@ export const BILLING_ROUTES:RouterRoutes={
   'GET /api/billing/status':[...secured,async c=>json(await billingStatus(c.env as BillingRuntime,c.user!.userId))],
   'POST /api/billing/checkout':[...secured,async c=>{
     const body=rec(c.body),idempotencyKey=String(c.request.headers.get('idempotency-key')||body.idempotencyKey||'').trim(),callbackBaseUrl=new URL(c.request.url).origin,result=await checkoutForUser(c.env as BillingRuntime,c.user!,{planCode:String(body.planCode||''),companyName:String(body.companyName||''),idempotencyKey,callbackBaseUrl})
-    if(!result.ok)return error(result.error,result.status);return json({order:result.order,reused:result.reused},result.reused?200:201)
+    if(!result.ok)return error(result.error,result.status)
+    return json({order:result.order,reused:result.reused,state:result.state},result.state==='verifying'?202:result.reused?200:201)
+  }],
+  'POST /api/billing/checkout/status':[...secured,async c=>{
+    const orderId=String(rec(c.body).orderId||'').trim(),result=await checkoutStatusForUser(c.env as BillingRuntime,c.user!,orderId)
+    if(!result.ok)return error(result.error,result.status)
+    return json({order:result.order,state:result.state},result.state==='verifying'?202:200)
   }],
   'POST /api/billing/admin/plans':[...secured,async c=>{
     if(!owner(c.user!.email,c.env))return error('Apenas o proprietário pode alterar o catálogo comercial.',403)
