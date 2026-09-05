@@ -8,6 +8,9 @@ export type RuntimeEnv = {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GEMINI_API_KEY?: string;
+  ASAAS_API_KEY?: string;
+  ASAAS_API_BASE_URL?: string;
+  ASAAS_WEBHOOK_TOKEN?: string;
   OWNER_EMAIL?: string;
   OWNER_COMPANY?: string;
   OWNER_PROJECT?: string;
@@ -156,6 +159,7 @@ export function rateLimitPolicy(method:string,pathname:string):RateLimitPolicy|n
     'POST /api/access/claim':{scope:'member-claim',limit:10,windowSeconds:900},
     'POST /api/license/claim':{scope:'license-claim',limit:10,windowSeconds:900},
     'POST /api/bootstrap/claim':{scope:'bootstrap-claim',limit:8,windowSeconds:900},
+    'POST /api/billing/checkout':{scope:'billing-checkout',limit:8,windowSeconds:900},
     'POST /api/desktop/start':{scope:'desktop-start',limit:20,windowSeconds:300},
     'POST /api/desktop/status':{scope:'desktop-status',limit:60,windowSeconds:300},
     'POST /api/desktop/approve':{scope:'desktop-approve',limit:20,windowSeconds:300}
