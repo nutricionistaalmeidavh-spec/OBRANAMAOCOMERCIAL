@@ -1,0 +1,58 @@
+name: Commercial Desktop macOS Apple Silicon
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - '.nvmrc'
+      - '.github/workflows/commercial-desktop-macos-arm64.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - '.nvmrc'
+      - '.github/workflows/commercial-desktop-macos-arm64.yml'
+
+jobs:
+  macos-arm64:
+    runs-on: macos-14-arm64
+    timeout-minutes: 35
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install Desktop dependencies
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Test Desktop
+        run: npm test
+      - name: Build Desktop
+        run: npm run build
+      - name: Generate Apple Silicon DMG
+        run: npx electron-builder --mac dmg --arm64 --publish never
+      - name: Validate Apple Silicon artifact
+        shell: bash
+        run: |
+          DMG=$(find release -maxdepth 1 -type f -name '*.dmg' | head -n 1)
+          test -n "$DMG"
+          hdiutil verify "$DMG"
+          file "$DMG"
+          shasum -a 256 "$DMG"
+          echo "DMG_PATH=$DMG" >> "$GITHUB_ENV"
+      - name: Upload macOS M1 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-Commercial-${{ github.sha }}-macOS-M1
+          path: apps/desktop/${{ env.DMG_PATH }}
+          if-no-files-found: error
+          retention-days: 90
