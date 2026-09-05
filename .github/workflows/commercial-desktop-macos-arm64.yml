@@ -20,7 +20,7 @@ on:
 
 jobs:
   macos-arm64:
-    runs-on: macos-14-arm64
+    runs-on: macos-14
     timeout-minutes: 35
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
