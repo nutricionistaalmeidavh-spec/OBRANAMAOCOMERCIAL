@@ -30,7 +30,12 @@ function portalGreeting(name:string){
 
 function setBody(html:string){document.body.className='mh-portal-body';document.body.innerHTML=`<div id="mhPortal">${html}</div><div id="mhToast" class="mh-toast" role="status" aria-live="polite"></div>`;createIcons({icons});}
 function toast(text:string){const e=document.getElementById('mhToast');if(!e)return;e.textContent=text;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4500)}
-function card(key:string,title:string,text:string,href:string,_icon:string,role?:string){const names:Record<string,string>={gestao:'file-text',obra:'hard-hat',universidade:'graduation-cap',acessos:'shield-check',ativar:'plus'};return `<a class="cp-module" data-resource="${esc(key)}" href="${esc(href)}" aria-label="${esc(title)}${role?` — ${esc(role)}`:''}" title="${esc(text)}">${icon(names[key]||'file-text')}<span>${esc(title)}</span>${icon('chevron-right')}</a>`}
+function card(key:string,title:string,text:string,href:string,_icon:string,role?:string){const names:Record<string,string>={gestao:'file-text',obra:'hard-hat',universidade:'graduation-cap',acessos:'shield-check',ativar:'plus',cobranca:'file-text'};return `<a class="cp-module" data-resource="${esc(key)}" href="${esc(href)}" aria-label="${esc(title)}${role?` — ${esc(role)}`:''}" title="${esc(text)}">${icon(names[key]||'file-text')}<span>${esc(title)}</span>${icon('chevron-right')}</a>`}
+
+export function shouldRouteCorporateToPlans(b:Pick<Bootstrap,'needsClaim'|'isOwner'|'platformRole'|'platformAccess'>){
+  const status=b.platformAccess?.status;
+  return !!b.needsClaim&&!b.isOwner&&b.platformRole!=='superadmin'&&status!=='pending'&&status!=='blocked';
+}
 
 function publicHome(){
   setBody(`<main class="cp-login">
@@ -122,12 +127,10 @@ async function renderCorporatePortal(){
       portalShell(user.name||user.email||'Usuário','Credencial provisória pendente','<article class="mh-empty"><h3>Ativar credencial</h3><p>Informe o código provisório fornecido pelo administrador.</p><input id="platformCode" maxlength="12" placeholder="CÓDIGO"><button id="claimPlatform" class="mh-primary">Ativar acesso</button></article>');
       document.getElementById('claimPlatform')?.addEventListener('click',async()=>{try{const code=(document.getElementById('platformCode') as HTMLInputElement).value.trim().toUpperCase();await api.post('/api/platform/claim',{code});await renderCorporatePortal()}catch(e){toast(apiErr(e))}});return
     }
+    if(shouldRouteCorporateToPlans(b)){location.hash='#planos';await import('./billing').then(module=>module.mountBillingRoute());return}
     const systems=pa?.systems;let cards='';
     if(systems?.gestao?.enabled&&b.role==='admin'&&!b.needsClaim&&b.access?.modules?.some(module=>['rh','dre','contracts','procurement','measurements','documents'].includes(module)))cards+=card('gestao','Gestão','RH, documentos, contratos, compras, medições e visão administrativa.','./gestao.html#gestao','▥',systems.gestao.role);
     if(systems?.obra360?.enabled&&!b.needsClaim)cards+=card('obra','Obra360','Dias, frentes, equipe, tarefas, RDO e rotina de campo.','./obra.html#obra','⌂',systems.obra360.role);
-    // O portal exibe a Universidade pela permissão da plataforma. A própria Universidade
-    // cria/recupera a sessão educacional ao abrir, evitando esconder o módulo por uma
-    // falha transitória na criação antecipada da sessão.
     if(systems?.universidade?.enabled)cards+=card('universidade','Universidade','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱',systems.universidade.role);
     if(b.platformRole==='superadmin'||b.isOwner)cards+=card('acessos','Administração de acessos','Usuários, perfis, empresas, obras e sessões.','./index.html#owner','◇','superadmin');
     if(b.needsClaim)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');

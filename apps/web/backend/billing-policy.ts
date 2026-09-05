@@ -35,3 +35,10 @@ export function validatePaidOrder(input:{orderAmountCents:number;providerAmountC
   if(input.orderId&&input.externalReference!==input.orderId)return{ok:false as const,reason:'external_reference_mismatch' as const}
   return{ok:true as const}
 }
+
+export function validatePaidCheckout(input:{orderAmountCents:number;providerAmountCents:number;providerCheckoutId:string;expectedCheckoutId:string;externalReference?:string;orderId?:string}){
+  if(!input.expectedCheckoutId||input.providerCheckoutId!==input.expectedCheckoutId)return{ok:false as const,reason:'checkout_mismatch' as const}
+  if(!Number.isInteger(input.providerAmountCents)||input.providerAmountCents!==input.orderAmountCents)return{ok:false as const,reason:'amount_mismatch' as const}
+  if(input.orderId&&input.externalReference!==input.orderId)return{ok:false as const,reason:'external_reference_mismatch' as const}
+  return{ok:true as const}
+}
