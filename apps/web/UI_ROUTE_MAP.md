@@ -15,6 +15,9 @@ Atualizado em 2026-09-03. Este arquivo é o inventário visual obrigatório ante
 | Gestão | `gestao.html#gestao` / `#gestao*` | Consulta administrativa móvel | Em migração premium |
 | Financeiro | `#finance` | Redireciona para o portal / superfície financeira autorizada | Rota de compatibilidade |
 | Ativação | `#activate=<código>` | Ativação de operação/licença | Premium Bloco 2 |
+| Planos e checkout | `#planos` / `#checkout?plano=<código>` | Contratação comercial responsiva | Premium cobrança |
+| Confirmação de assinatura | `#assinatura?pedido=<id>` | Pagamento Asaas e ativação | Premium cobrança |
+| Plano e cobrança | `#plano-cobranca` | Consulta da assinatura e financeiro | Premium cobrança |
 | Desktop bridge | `#desktop-bridge` | Ponte com Desktop | Estado técnico |
 | Autorização Desktop | `#desktop-auth=<token>` | Login e pareamento do computador | Estado técnico |
 

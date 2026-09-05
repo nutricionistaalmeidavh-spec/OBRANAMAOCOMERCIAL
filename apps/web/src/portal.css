@@ -81,7 +81,7 @@
 .cp-module:hover{background:#f7f9fa;border-color:#7f9db2}
 .cp-module>svg:first-child{color:#007f90;width:26px;height:26px}
 .cp-module>svg:last-child{margin-left:auto;width:16px;height:16px}
-.cp-module[data-resource="universidade"],.cp-module[data-resource="acessos"],.cp-module[data-resource="ativar"]{grid-column:1/-1;min-height:62px}
+.cp-module[data-resource="universidade"],.cp-module[data-resource="acessos"],.cp-module[data-resource="ativar"],.cp-module[data-resource="cobranca"]{grid-column:1/-1;min-height:62px}
 .cp-module span{overflow-wrap:anywhere;min-width:0}
 .cp-empty-inline,.cp-loading{padding:16px;color:#40586b;font-size:14px}
 .mh-empty{grid-column:1/-1;padding:22px;border:1px solid #bfceda;background:#f0f4f7;border-radius:10px}
