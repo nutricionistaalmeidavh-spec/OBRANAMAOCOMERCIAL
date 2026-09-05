@@ -13,10 +13,11 @@ describe('desktop navigation hubs',()=>{
     for(const route of ['/dre','/financeiro','/orcamento','/medicoes','/compras-contratos','/obras','/frentes','/planejamento','/rdo','/tarefas','/rh','/folha','/configuracoes'])expect(shell).toContain(`'${route}'`)
   })
 
-  it('keeps the current AI entry available until the global assistant phase',()=>{
+  it('uses the global AI entry while preserving the full assistant route',()=>{
     const shell=read('../src/modules/command-center/CommandCenterShell.tsx')
     const app=read('../src/App.tsx')
-    expect(shell).toContain("to: '/assistente-ia'")
+    expect(shell).toContain('GlobalAiAssistant')
+    expect(shell).not.toContain("{ to: '/assistente-ia'")
     expect(app).toContain('path="/assistente-ia"')
   })
 

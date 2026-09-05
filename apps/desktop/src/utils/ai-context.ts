@@ -9,6 +9,10 @@ type AiContextInput = {
   people?: AnyRow[] | null
   tasks?: AnyRow[] | null
   today?: string
+  screen?: string
+  pathname?: string
+  empresaId?: string
+  obraId?: string
 }
 
 const DOMAIN_RULES: Array<[string, RegExp]> = [
@@ -89,11 +93,21 @@ export function buildAiAnalysisPayload(input: AiContextInput) {
     workId: row.obra_id == null ? undefined : String(row.obra_id),
   }))
 
-  const domains = inferAiDomains(input.question)
+  const domains = inferAiDomains(`${input.screen || ''} ${input.question}`)
+  const field = [
+    `competencia:${input.competence}`,
+    input.empresaId ? `empresa:${input.empresaId}` : '',
+    input.obraId ? `obra:${input.obraId}` : '',
+  ].filter(Boolean).join('|')
+
   return {
     question: input.question.trim(),
     route: { primary: domains[0] || 'executive', domains },
-    context: { screen: 'Assistente IA', field: `competencia:${input.competence}` },
+    context: {
+      screen: input.screen || 'Assistente IA',
+      field,
+      pathname: input.pathname || '/assistente-ia',
+    },
     facts,
     alerts,
     ranking,
