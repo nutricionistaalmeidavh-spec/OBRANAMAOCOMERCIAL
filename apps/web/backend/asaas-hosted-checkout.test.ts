@@ -1,5 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createAsaasCheckout } from './asaas-client';
+import { createAsaasCheckout, isUnknownAsaasOutcome } from './asaas-client';
+
+const env={
+  ASAAS_API_KEY:'test-key',
+  ASAAS_API_BASE_URL:'https://api-sandbox.asaas.com/v3',
+};
+const input={
+  orderId:'order_123',
+  amountCents:29900,
+  planName:'Pro',
+  interval:'monthly' as const,
+  callbackBaseUrl:'https://app.example.test',
+};
 
 describe('Asaas hosted checkout', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -13,16 +25,7 @@ describe('Asaas hosted checkout', () => {
     }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    const result = await createAsaasCheckout({
-      ASAAS_API_KEY: 'test-key',
-      ASAAS_API_BASE_URL: 'https://api-sandbox.asaas.com/v3',
-    }, {
-      orderId: 'order_123',
-      amountCents: 29900,
-      planName: 'Pro',
-      interval: 'monthly',
-      callbackBaseUrl: 'https://app.example.test',
-    });
+    const result = await createAsaasCheckout(env, input);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -43,5 +46,29 @@ describe('Asaas hosted checkout', () => {
     expect(body.customer).toBeUndefined();
     expect(body.customerData).toBeUndefined();
     expect(result).toMatchObject({ checkoutId: 'chk_123', checkoutUrl: 'https://sandbox.asaas.com/checkoutSession/show/chk_123', providerStatus: 'ACTIVE' });
+  });
+
+  it('classifies validation failures as definitive instead of unknown', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({errors:[{description:'invalid'}]}), { status: 422 })));
+    let failure:unknown;
+    try{await createAsaasCheckout(env,input)}catch(error){failure=error}
+    expect(failure).toBeInstanceOf(Error);
+    expect(isUnknownAsaasOutcome(failure)).toBe(false);
+  });
+
+  it('classifies provider 5xx failures as an unknown outcome', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 503 })));
+    let failure:unknown;
+    try{await createAsaasCheckout(env,input)}catch(error){failure=error}
+    expect(failure).toBeInstanceOf(Error);
+    expect(isUnknownAsaasOutcome(failure)).toBe(true);
+  });
+
+  it('classifies a network interruption as an unknown outcome', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network interrupted')));
+    let failure:unknown;
+    try{await createAsaasCheckout(env,input)}catch(error){failure=error}
+    expect(failure).toBeInstanceOf(Error);
+    expect(isUnknownAsaasOutcome(failure)).toBe(true);
   });
 });
