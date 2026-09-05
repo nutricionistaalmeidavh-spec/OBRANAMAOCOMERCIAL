@@ -9,7 +9,7 @@ describe('P2 maintenance boundaries', () => {
   it('keeps explicit application and schema versions', () => {
     expect(APP_VERSION).toBe('0.2.0');
     expect(API_CONTRACT_VERSION).toBeGreaterThanOrEqual(3);
-    expect(DB_SCHEMA_VERSION).toBe(2);
+    expect(DB_SCHEMA_VERSION).toBe(6);
     expect(PROJECT_STATE_VERSION).toBeGreaterThanOrEqual(7);
   });
 
