@@ -1,6 +1,6 @@
 {
   "name": "obra-na-mao-desktop-commercial",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "Obra na Mão Desktop — edição comercial independente",
   "author": "Fluxo DRE",
   "main": "electron/updater-main.cjs",
@@ -63,4 +63,3 @@
     "wait-on": "^9.1.0"
   }
 }
-
