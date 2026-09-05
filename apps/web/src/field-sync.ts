@@ -4,7 +4,7 @@ export function syncScope(b: any): string | null {
   const ids = [b?.user?.userId || b?.membership?.email, b?.membership?.companyId || b?.company?.id, b?.membership?.projectId || b?.project?.id];
   return ids.every(Boolean) ? `artisys:field-draft:${ids.map(encodeURIComponent).join(':')}` : null;
 }
-export function createFieldSync(options: { key: string; storage: Storage; baseline: unknown; readRemote: () => Promise<unknown>; send: (state: any) => Promise<unknown>; status: (value: 'saving' | 'pending' | 'conflict' | 'idle') => void }) {
+export function createFieldSync(options: { key: string; storage: Storage; baseline: unknown; readRemote: () => Promise<unknown>; send: (state: any, base: any) => Promise<unknown>; status: (value: 'saving' | 'pending' | 'conflict' | 'idle') => void }) {
   let base = options.baseline, running: Promise<void> | null = null, disposed = false;
   const read = (): Draft | null => {
     const raw = options.storage.getItem(options.key);
@@ -31,9 +31,10 @@ export function createFieldSync(options: { key: string; storage: Storage; baseli
           const remote = await options.readRemote();
           if (disposed) return;
           if (!same(remote, draft.base) && !same(remote, draft.state)) { options.status('conflict'); return; }
-          if (!same(remote, draft.state)) await options.send(draft.state);
+          if (!same(remote, draft.state)) await options.send(draft.state, draft.base);
           if (disposed) return;
-          base = draft.state;
+          base = same(remote, draft.state) ? remote : await options.readRemote();
+          if (disposed) return;
           const latest = read();
           if (latest && !same(latest, draft)) {
             options.storage.setItem(options.key, JSON.stringify({ ...latest, base }));
