@@ -39,7 +39,7 @@ export async function checkoutForUser(env:BillingEnv,user:AuthUser,input:{planCo
   try{
     const provider=await createAsaasCheckout(env,{orderId,customerName:String(user.name||email.split('@')[0]),customerEmail:email,amountCents:plan.price_cents,planName:plan.name,interval:plan.interval_code}),updated=now()
     await env.DB.prepare(`UPDATE billing_orders SET financial_status='pending',provider_customer_id=?,provider_payment_id=?,provider_subscription_id=?,provider_status=?,checkout_url=?,updated_at=? WHERE id=? AND financial_status='created'`).bind(provider.customerId,provider.paymentId,provider.subscriptionId||null,provider.providerStatus,provider.checkoutUrl,updated,orderId).run()
-    if(provider.subscriptionId){await env.DB.prepare(`INSERT OR IGNORE INTO billing_subscriptions(id,user_id,user_email,plan_version_id,provider,provider_customer_id,provider_subscription_id,financial_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'pending',?,?)`).bind(id(),user.userId,email,plan.id,'asaas',provider.customerId,provider.subscriptionId,stamp,updated).run()}
+    if(provider.subscriptionId)await env.DB.prepare(`INSERT OR IGNORE INTO billing_subscriptions(id,user_id,user_email,plan_version_id,provider,provider_customer_id,provider_subscription_id,financial_status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'pending',?,?)`).bind(id(),user.userId,email,plan.id,'asaas',provider.customerId,provider.subscriptionId,stamp,updated).run()
     return{ok:true as const,order:await orderById(env,orderId),reused:false}
   }catch(cause){await env.DB.prepare(`UPDATE billing_orders SET reconciliation_required=1,provider_status='UNKNOWN',updated_at=? WHERE id=?`).bind(now(),orderId).run();return{ok:false as const,status:502,error:'Cobrança criada com estado incerto. Não tente novamente com outra chave; a reconciliação é necessária.',orderId,details:cause instanceof Error?cause.message:'provider_error'}}
 }
@@ -57,7 +57,6 @@ async function bindCompanyLicense(env:BillingEnv,companyId:string,licenseId:stri
 }
 
 function providerData(payload:ProviderPayload){const payment=rec(payload.payment),checkout=rec(payload.checkout),subscription=rec(payload.subscription),paymentId=String(payment.id||checkout.paymentId||''),subscriptionId=String(payment.subscription||subscription.id||checkout.subscriptionId||''),externalReference=String(payment.externalReference||checkout.externalReference||subscription.externalReference||''),value=Number(payment.value||checkout.value||0);return{payment,paymentId,subscriptionId,externalReference,amountCents:Number.isFinite(value)?Math.round(value*100):0}}
-
 async function markEvent(env:BillingEnv,eventId:string,status:string,errorMessage?:string){await env.DB.prepare(`UPDATE billing_provider_events SET processing_status=?,attempt_count=attempt_count+1,last_error=?,processed_at=CASE WHEN ?='processed' THEN ? ELSE processed_at END,updated_at=? WHERE provider='asaas' AND provider_event_id=?`).bind(status,errorMessage||null,status,now(),now(),eventId).run()}
 
 async function activateOrder(env:BillingEnv,order:Order,plan:Plan,eventId:string,data:ReturnType<typeof providerData>){
@@ -65,17 +64,38 @@ async function activateOrder(env:BillingEnv,order:Order,plan:Plan,eventId:string
   const companyId=await ensureCompany(env,order,plan),sub=order.provider_subscription_id?await subscriptionByProvider(env,order.provider_subscription_id):null,license=await activateOrRenewBillingLicense({licenseId:order.license_id||sub?.license_id||undefined,email:order.user_email,companyId,plan:plan.plan_code,modules:arr(plan.modules_json),channels:arr(plan.channels_json),maxUsers:plan.max_users,maxProjects:plan.max_projects,maxDevices:plan.max_devices,interval:plan.interval_code,orderId:order.id,userId:order.user_id},{DB:env.DB})
   await bindCompanyLicense(env,companyId,license.id!,plan);const stamp=now()
   await env.DB.prepare(`UPDATE billing_orders SET company_id=?,license_id=?,financial_status='paid',provider_status='PAID',reconciliation_required=0,updated_at=? WHERE id=?`).bind(companyId,license.id,stamp,order.id).run()
-  await env.DB.prepare(`INSERT INTO billing_payments(id,order_id,subscription_id,provider,provider_payment_id,provider_status,financial_status,amount_cents,paid_at,created_at,updated_at) VALUES(?,?,?,?,?,?, 'paid',?,?,?,?) ON CONFLICT(provider,provider_payment_id) DO UPDATE SET financial_status='paid',provider_status=excluded.provider_status,paid_at=excluded.paid_at,updated_at=excluded.updated_at`).bind(id(),order.id,sub?.id||null,'asaas',data.paymentId,String(data.payment.status||'PAID'),order.amount_cents,stamp,stamp,stamp).run()
-  if(order.provider_subscription_id){await env.DB.prepare(`UPDATE billing_subscriptions SET company_id=?,license_id=?,financial_status='paid',current_period_end=?,updated_at=? WHERE provider='asaas' AND provider_subscription_id=?`).bind(companyId,license.id,license.expiresAt||null,stamp,order.provider_subscription_id).run()}
+  await env.DB.prepare(`INSERT INTO billing_payments(id,order_id,subscription_id,provider,provider_payment_id,provider_status,financial_status,amount_cents,paid_at,created_at,updated_at) VALUES(?,?,?,?,?,?,'paid',?,?,?,?) ON CONFLICT(provider,provider_payment_id) DO UPDATE SET financial_status='paid',provider_status=excluded.provider_status,paid_at=excluded.paid_at,updated_at=excluded.updated_at`).bind(id(),order.id,sub?.id||null,'asaas',data.paymentId,String(data.payment.status||'PAID'),order.amount_cents,stamp,stamp,stamp).run()
+  if(order.provider_subscription_id)await env.DB.prepare(`UPDATE billing_subscriptions SET company_id=?,license_id=?,financial_status='paid',current_period_end=?,updated_at=? WHERE provider='asaas' AND provider_subscription_id=?`).bind(companyId,license.id,license.expiresAt||null,stamp,order.provider_subscription_id).run()
   return license
 }
 
 async function processRenewal(env:BillingEnv,subscription:Subscription,plan:Plan,eventId:string,data:ReturnType<typeof providerData>){
-  if(!subscription.company_id||!subscription.license_id)throw new Error('Assinatura sem empresa/licença vinculada.');if(data.amountCents!==plan.price_cents)throw new Error('Valor de renovação divergente.')
-  const existing=await first<{id:string}>(env,'SELECT id FROM billing_payments WHERE provider=? AND provider_payment_id=?','asaas',data.paymentId);if(existing)return
+  if(!subscription.company_id||!subscription.license_id)throw new Error('Assinatura sem empresa/licença vinculada.')
+  if(!data.paymentId||data.amountCents!==plan.price_cents)throw new Error('Valor ou cobrança de renovação divergente.')
+  const existing=await first<{id:string;financial_status:FinancialStatus}>(env,'SELECT id,financial_status FROM billing_payments WHERE provider=? AND provider_payment_id=?','asaas',data.paymentId)
+  if(existing?.financial_status==='paid'||existing?.financial_status==='refunded')return
   const license=await activateOrRenewBillingLicense({licenseId:subscription.license_id,email:subscription.user_email,companyId:subscription.company_id,plan:plan.plan_code,modules:arr(plan.modules_json),channels:arr(plan.channels_json),maxUsers:plan.max_users,maxProjects:plan.max_projects,maxDevices:plan.max_devices,interval:plan.interval_code,orderId:`renewal:${eventId}`,userId:subscription.user_id},{DB:env.DB}),stamp=now()
-  await env.DB.prepare(`INSERT INTO billing_payments(id,subscription_id,provider,provider_payment_id,provider_status,financial_status,amount_cents,paid_at,created_at,updated_at) VALUES(?,?, 'asaas',?,?, 'paid',?,?,?,?)`).bind(id(),subscription.id,data.paymentId,String(data.payment.status||'PAID'),plan.price_cents,stamp,stamp,stamp).run()
+  if(existing)await env.DB.prepare(`UPDATE billing_payments SET provider_status=?,financial_status='paid',amount_cents=?,paid_at=?,updated_at=? WHERE id=?`).bind(String(data.payment.status||'PAID'),plan.price_cents,stamp,stamp,existing.id).run()
+  else await env.DB.prepare(`INSERT INTO billing_payments(id,subscription_id,provider,provider_payment_id,provider_status,financial_status,amount_cents,paid_at,created_at,updated_at) VALUES(?,?,'asaas',?,?,'paid',?,?,?,?)`).bind(id(),subscription.id,data.paymentId,String(data.payment.status||'PAID'),plan.price_cents,stamp,stamp,stamp).run()
   await env.DB.prepare(`UPDATE billing_subscriptions SET financial_status='paid',current_period_end=?,updated_at=? WHERE id=?`).bind(license.expiresAt||null,stamp,subscription.id).run()
+}
+
+async function processSubscriptionPaymentState(env:BillingEnv,subscription:Subscription,plan:Plan,next:FinancialStatus,eventType:string,data:ReturnType<typeof providerData>){
+  if(!data.paymentId)return
+  if(data.amountCents>0&&data.amountCents!==plan.price_cents)throw new Error('Valor da cobrança da assinatura divergente.')
+  const existing=await first<{id:string;financial_status:FinancialStatus;paid_at:string|null}>(env,'SELECT id,financial_status,paid_at FROM billing_payments WHERE provider=? AND provider_payment_id=?','asaas',data.paymentId)
+  if(existing&&!canApplyProviderTransition(existing.financial_status,next))return
+  const stamp=now(),amount=data.amountCents||plan.price_cents
+  if(existing)await env.DB.prepare('UPDATE billing_payments SET provider_status=?,financial_status=?,amount_cents=?,updated_at=? WHERE id=?').bind(eventType,next,amount,stamp,existing.id).run()
+  else await env.DB.prepare(`INSERT INTO billing_payments(id,subscription_id,provider,provider_payment_id,provider_status,financial_status,amount_cents,created_at,updated_at) VALUES(?,?,'asaas',?,?,?,?,?,?)`).bind(id(),subscription.id,data.paymentId,eventType,next,amount,stamp,stamp).run()
+  if(next==='overdue'){
+    const dueDate=String(data.payment.dueDate||'').slice(0,10),currentEnd=String(subscription.current_period_end||'').slice(0,10)
+    if(!currentEnd||!dueDate||dueDate>=currentEnd)await env.DB.prepare(`UPDATE billing_subscriptions SET financial_status='overdue',updated_at=? WHERE id=?`).bind(stamp,subscription.id).run()
+  }
+  if(next==='refunded'&&subscription.license_id){
+    const latest=await first<{provider_payment_id:string}>(env,`SELECT provider_payment_id FROM billing_payments WHERE subscription_id=? AND financial_status IN ('paid','refunded') ORDER BY COALESCE(paid_at,updated_at) DESC LIMIT 1`,subscription.id)
+    if(latest?.provider_payment_id===data.paymentId){await env.DB.prepare(`UPDATE billing_subscriptions SET financial_status='refunded',updated_at=? WHERE id=?`).bind(stamp,subscription.id).run();await revokeBillingLicense(subscription.license_id,{source:'billing',email:subscription.user_email,userId:subscription.user_id,orderId:`refund:${data.paymentId}`},'Renovação estornada',{DB:env.DB})}
+  }
 }
 
 export async function processAsaasWebhookPayload(env:BillingEnv,payload:ProviderPayload){
@@ -94,7 +114,8 @@ export async function processAsaasWebhookPayload(env:BillingEnv,payload:Provider
       await env.DB.prepare('UPDATE billing_orders SET financial_status=?,provider_status=?,updated_at=? WHERE id=?').bind(next,eventType,now(),order.id).run()
       if(next==='refunded'&&order.license_id)await revokeBillingLicense(order.license_id,{source:'billing',orderId:order.id,email:order.user_email,userId:order.user_id},'Pagamento estornado',{DB:env.DB})
     }
-    if(eventType==='SUBSCRIPTION_INACTIVATED'&&subscription){await env.DB.prepare(`UPDATE billing_subscriptions SET financial_status='canceled',updated_at=? WHERE id=?`).bind(now(),subscription.id).run();if(subscription.license_id)await revokeBillingLicense(subscription.license_id,{source:'billing',email:subscription.user_email,userId:subscription.user_id},'Assinatura cancelada',{DB:env.DB})}
+    if(next&&subscription&&next!=='paid'){const plan=await planById(env,subscription.plan_version_id);if(!plan)throw new Error('Plano da assinatura não encontrado.');await processSubscriptionPaymentState(env,subscription,plan,next,eventType,data)}
+    if(eventType==='SUBSCRIPTION_INACTIVATED'&&subscription){await env.DB.prepare(`UPDATE billing_subscriptions SET financial_status='canceled',updated_at=? WHERE id=?`).bind(now(),subscription.id).run();if(subscription.license_id)await revokeBillingLicense(subscription.license_id,{source:'billing',email:subscription.user_email,userId:subscription.user_id,orderId:`cancel:${eventId}`},'Assinatura cancelada',{DB:env.DB})}
     await markEvent(env,eventId,'processed');return{duplicate:false,processed:true}
   }catch(cause){const message=(cause instanceof Error?cause.message:String(cause)).slice(0,500);await markEvent(env,eventId,'failed',message);throw cause}
 }
