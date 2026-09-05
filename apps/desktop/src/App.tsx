@@ -38,7 +38,10 @@ export default function App() {
     }
     if (layoutPreference.data === 'command-center') {
       setCommandCenterStylesReady(false)
-      void import('./modules/command-center/command-center.css').finally(() => {
+      void Promise.all([
+        import('./modules/command-center/command-center.css'),
+        import('./modules/command-center/artisys-desktop.css'),
+      ]).finally(() => {
         if (active) setCommandCenterStylesReady(true)
       })
     }
