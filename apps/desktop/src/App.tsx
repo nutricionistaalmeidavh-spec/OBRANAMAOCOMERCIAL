@@ -88,7 +88,7 @@ export default function App() {
     <Route path="/rh/modelos" element={<HrTemplatesPage/>}/>
     <Route path="/documentos" element={<DocumentsPage/>}/>
     <Route path="/importacao" element={<ImportPage/>}/>
-    <Route path="/configuracoes" element={<SettingsHubPage/>}/>
+    <Route path="/configuracoes" element={isClassic ? <SettingsPage/> : <SettingsHubPage/>}/>
     <Route path="/configuracoes/sistema" element={<SettingsPage/>}/>
     <Route path="*" element={<Navigate to="/" replace/>}/>
   </Routes></RouteBoundary></Shell></WorkContextProvider></ErrorBoundary>
