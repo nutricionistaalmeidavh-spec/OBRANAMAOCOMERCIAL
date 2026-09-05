@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/write-build-meta.mjs && npm run assets:verify && vite build",
-    "postbuild": "node scripts/sync-runtime-secrets.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "pages:dev": "npm run build && wrangler pages dev dist --compatibility-date=2026-09-02 --compatibility-flag=nodejs_compat",
