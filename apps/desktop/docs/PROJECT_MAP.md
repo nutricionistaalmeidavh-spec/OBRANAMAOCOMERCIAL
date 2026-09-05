@@ -5,11 +5,11 @@
 - `electron/services/sync-coordinator.cjs` e migration `017_desktop_sync.sql`: vínculo explícito empresa/obra/dispositivo, outbox SQLite, repetição idempotente, leitura de bridge e revisão de conflitos. Não associa pessoas por nome nem mistura obras.
 - IPC/preload: `online:sync-state`, `online:sync-configure`, `online:sync-now`, `online:sync-resolve-local`. `src/components/SyncSettings.tsx` em Configurações confirma o vínculo e mostra estado/pendências. Alteração de conexão, restauração e encerramento aguardam a sincronização em andamento.
 - `useWorkContext.tsx`/`WorkContextBar.tsx`: competência e contexto persistidos. Dashboard consolidado por empresa; DRE/Contas usam empresa/obra; folha e ponto usam competência. O contexto não implica que todas as telas tenham filtro global.
-- Shell: busca, grupos recolhíveis e favoritos; RH com jornada e links semânticos. Assinaturas continuam conferidas manualmente.
+- Shell: busca, grupos recolhíveis e favoritos; navegação compacta por Financeiro, Obras, Pessoas & RH e Configurações. Compras/Contratos e Configurações usam páginas-hub sem remover as rotas diretas dos módulos.
 - Contrato `packages/contracts/src/desktop-sync.ts`: tipos do renderer e validação de entrada do backend Cloudflare.
 - Validação: testes reais SQLite do coordenador, regressões de UX, testes web de persistência/reenvio/lifecycle. Não substituem instalação Windows/macOS e ensaio real entre dois dispositivos.
 
-Última revisão estrutural: 2026-08-04.
+Última revisão estrutural: 2026-09-05.
 
 Este documento é o ponto de partida para alterações. Leia a seção afetada e abra apenas os arquivos diretamente relacionados; evite uma nova varredura global.
 
@@ -34,10 +34,12 @@ Ao mudar uma operação que cruza camadas, confira apenas os pontos corresponden
 
 - `src/main.tsx`: inicialização do renderer.
 - `src/App.tsx`: tabela de rotas.
-- `src/components/AppShell.tsx`: navegação e estrutura visual global.
+- `src/components/AppShell.tsx`: navegação e estrutura visual global do layout clássico.
 - `src/components/ui.tsx`: componentes reutilizáveis de interface.
-- `src/modules/command-center/`: interface ativa em tema dark, incluindo shell e versões especializadas de Painel, DRE e Financeiro.
-- `src/modules/classic-ui/`: interface anterior preservada como módulo sem rota ativa para restauração ou consulta.
+- `src/modules/command-center/`: interface ativa, incluindo o shell ArtiSys e versões especializadas de Painel, DRE e Financeiro.
+- `src/modules/classic-ui/`: interface anterior preservada como fallback de compatibilidade.
+- `src/pages/ProcurementContractsHubPage.tsx`: hub de Compras e Contratos com acesso aos módulos existentes.
+- `src/pages/SettingsHubPage.tsx`: hub de Documentos, Importação e Configurações do sistema.
 - `src/hooks/useAsync.ts`: carregamento assíncrono usado pelas páginas.
 - `src/utils/format.ts`: datas, competências e valores monetários.
 - `src/pages/`: telas por domínio.
@@ -55,23 +57,33 @@ Ao mudar uma operação que cruza camadas, confira apenas os pontos corresponden
 | Rota | Arquivo | Domínio |
 |---|---|---|
 | `/` | `DashboardPage.tsx` | Resumo financeiro e operacional |
+| `/assistente-ia` | `AiAssistantPage.tsx` | Assistente IA atual; permanece acessível até a fase de IA global |
 | `/dre` | `DrePage.tsx` | DRE mensal/anual e CSV |
 | `/financeiro` | `FinancePage.tsx` | Contas e pagamentos |
 | `/folha` | `PayrollPage.tsx` | Folha por competência |
+| `/orcamento` | `BudgetPage.tsx` | Itens orçamentários; navegação no hub Financeiro |
+| `/medicoes` | `MeasurementsPage.tsx` | Medições; navegação no hub Financeiro |
+| `/compras-contratos` | `ProcurementContractsHubPage.tsx` | Hub financeiro de compras, contratos e parceiros |
+| `/compras` | `ProcurementPage.tsx` | Compras, materiais, recebimentos e estoque |
+| `/contratos` | `ContractsPage.tsx` | Contratos e aditivos |
+| `/cadastros` | `RegistriesPage.tsx` | Empresas, clientes e fornecedores |
 | `/obras` | `WorksPage.tsx` | Obras |
-| `/orcamento` | `BudgetPage.tsx` | Itens orçamentários |
 | `/obras/:id` | `WorkDetailPage.tsx` | Visão consolidada Obra 360 |
 | `/frentes` | `FrontsPage.tsx` | Frentes de serviço por obra |
 | `/planejamento` | `SchedulePage.tsx` | Cronograma físico-financeiro |
 | `/rdo` | `DailyReportPage.tsx` | Diário de obra, equipe e ocorrências |
-| `/medicoes` | `MeasurementsPage.tsx` | Medições |
+| `/tarefas` | `TasksPage.tsx` | Tarefas e pendências operacionais |
+| `/rh` | `RhHubPage.tsx` | Hub de Pessoas & RH |
 | `/funcionarios` | `EmployeesPage.tsx` | Funcionários |
 | `/registro-funcionario` | `EmployeeRegistrationPage.tsx` | Admissão e documentos |
 | `/ponto` | `TimeSheetPage.tsx` | Ponto mensal |
-| `/documentos` | `DocumentsPage.tsx` | Arquivos e documentos |
-| `/cadastros` | `RegistriesPage.tsx` | Empresas, clientes e fornecedores |
-| `/importacao` | `ImportPage.tsx` | Importadores legado 2026 e universal por mapeamento |
-| `/configuracoes` | `SettingsPage.tsx` | Pastas, backup e configurações |
+| `/rh/modelos` | `HrTemplatesPage.tsx` | Modelos e regras documentais de RH |
+| `/documentos` | `DocumentsPage.tsx` | Arquivos e documentos; acesso pelo hub Configurações |
+| `/importacao` | `ImportPage.tsx` | Importadores legado 2026 e universal por mapeamento; acesso pelo hub Configurações |
+| `/configuracoes` | `SettingsHubPage.tsx` | Hub de documentos, importação e configurações |
+| `/configuracoes/sistema` | `SettingsPage.tsx` | Pastas, backup, integrações, produto, layout, cargos e benefícios |
+
+As rotas diretas dos módulos continuam registradas para preservar favoritos, links internos e compatibilidade. A reorganização de 2026-09-05 muda apenas os pontos de entrada da navegação.
 
 ## Serviços do processo principal
 
@@ -141,7 +153,6 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - `compras.moveStock`: registra saida ou ajuste de estoque com bloqueio de saldo negativo.
 - `importadorUniversal`: reconhece financeiro, obras, orcamento, funcionarios, compras, contratos, aditivos, medicoes, ponto, documentos e estoque.
 
-
 ## Adendo 2026-09-02 — ponte online
 
 - `electron/services/online-service.cjs`: cliente HTTP do Desktop para o backend Obra na Mão.
@@ -153,3 +164,13 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - Override de ambiente: `FLUXO_DRE_PLATFORM_URL`.
 - O renderer continua sem acesso direto a Node ou ao token do dispositivo.
 - Rotas suportadas incluem sessão, sync pull/push, publicação de resumo mobile, leitura/escrita financeira, publicação de obrigações, IA estruturada e resolução de conflitos.
+
+## Adendo 2026-09-05 — hubs de navegação
+
+- `CommandCenterShell.tsx` concentra DRE, Contas, Orçamento, Medições e `Compras e Contratos` em Financeiro.
+- Obras contém Obras, Frentes de serviço, Planejamento, Diário de obra e Tarefas.
+- Pessoas & RH expõe o hub de RH e Folha e pagamentos; as subtelas continuam acessíveis pelo hub e por suas rotas diretas.
+- `ProcurementContractsHubPage.tsx` reúne Compras e materiais, Contratos e aditivos e Empresas e parceiros sem fundir serviços, dados ou contratos internos.
+- `SettingsHubPage.tsx` substitui Configurações como ponto de entrada e direciona para Documentos, Importar planilha e `/configuracoes/sistema`.
+- A rota e a entrada atuais de `Assistente IA` permanecem intactas nesta etapa. A IA global é uma fase separada e não faz parte desta refatoração.
+- Nenhuma migration, API do preload, handler IPC, serviço Electron ou contrato de banco foi alterado por esta reorganização.

@@ -16,13 +16,16 @@ describe('commercial RH navigation contract',()=>{
     expect(app).toContain('path="/rh/modelos"')
   })
 
-  it('keeps the four direct RH links while making the group navigable',()=>{
+  it('keeps the sidebar compact while the RH hub exposes its direct destinations',()=>{
     const shell=read('../src/modules/command-center/CommandCenterShell.tsx')
-    expect(shell).toContain("label: 'RH', to: '/rh'")
-    expect(shell).toContain("to: '/funcionarios'")
-    expect(shell).toContain("to: '/registro-funcionario'")
-    expect(shell).toContain("to: '/ponto'")
-    expect(shell).toContain("to: '/rh/modelos'")
+    const hub=read('../src/pages/RhHubPage.tsx')
+    expect(shell).toContain("label: 'Pessoas & RH'")
+    expect(shell).toContain("to: '/rh'")
+    expect(shell).toContain("to: '/folha'")
+    expect(hub).toContain("to:'/funcionarios'")
+    expect(hub).toContain("to:'/registro-funcionario'")
+    expect(hub).toContain("to:'/ponto'")
+    expect(hub).toContain("to:'/rh/modelos'")
   })
 
   it('shows the document center and collapsible monthly editor',()=>{
