@@ -30,11 +30,23 @@ describe('commercial desktop auto-updater contract', () => {
     for (const channel of ['updater:state', 'updater:check', 'updater:download', 'updater:install']) {
       expect(preload).toContain(channel)
     }
+    expect(preload).toContain('updater:state-changed')
   })
 
   it('publishes updater metadata alongside the Windows installer', () => {
     const workflow = read('../../../.github/workflows/commercial-desktop-ci.yml')
     expect(workflow).toContain('*.blockmap')
     expect(workflow).toContain('latest.yml')
+  })
+
+  it('surfaces updater status and actions in Settings', () => {
+    const settings = read('../src/pages/SettingsPage.tsx')
+    const types = read('../src/vite-env.d.ts')
+    expect(settings).toContain('Atualizações do aplicativo')
+    expect(settings).toContain('window.fluxoDre.updater.check()')
+    expect(settings).toContain('window.fluxoDre.updater.download()')
+    expect(settings).toContain('window.fluxoDre.updater.install()')
+    expect(types).toContain('updater:')
+    expect(types).toContain('onStateChanged')
   })
 })
