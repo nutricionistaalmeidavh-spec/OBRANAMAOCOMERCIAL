@@ -1,0 +1,149 @@
+/* ArtiSys Desktop — derived from the commercial web visual system.
+   This file is intentionally loaded after command-center.css. */
+:root{
+  --artisys-navy:#071a46;
+  --artisys-navy-2:#0a2d78;
+  --artisys-blue:#0b59f5;
+  --artisys-cyan:#0bb8f0;
+  --artisys-ink:#101936;
+  --artisys-muted:#69758f;
+  --artisys-line:rgba(177,190,216,.55);
+  --artisys-bg:#f5f7fc;
+  --artisys-surface:#fff;
+  --sidebar:#071a46;
+  --primary:#0b59f5;
+  --primary-dark:#0849ca;
+  --positive:#0c929d;
+  --negative:#d64555;
+  --warning:#d77724;
+  --border:rgba(177,190,216,.55);
+  --muted:#69758f;
+  --canvas:#f5f7fc;
+  --panel:#fff;
+  --panel-elevated:#f7f9ff;
+  --divider:#e6ebf3;
+  --heading:#101936;
+  --radius:16px;
+  color:#101936;
+  background:#f5f7fc;
+}
+html{scrollbar-color:#bcc7d8 transparent}
+body{color:#101936;background:linear-gradient(180deg,#fbfcff 0%,#f4f7fc 58%,#f9fbff 100%);color-scheme:light}
+::selection{background:#d9e6ff;color:#071a46}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#bcc7d8;border-color:transparent}
+
+/* Shell */
+.command-center-shell{background:transparent;grid-template-columns:252px 1fr}
+.command-sidebar{
+  width:252px;
+  border:0;
+  background:radial-gradient(circle at 75% 13%,rgba(11,184,240,.16),transparent 26%),linear-gradient(180deg,#06183f 0%,#08255f 64%,#0a3d9c 140%);
+  box-shadow:18px 0 48px rgba(7,26,70,.13);
+}
+.command-sidebar .artisys-brand{height:82px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-color:rgba(255,255,255,.09)}
+.artisys-brand img{width:132px;height:auto;display:block}
+.artisys-edition{padding:4px 6px;border:1px solid rgba(255,255,255,.16);border-radius:6px;color:rgba(255,255,255,.55);font-size:7px;font-weight:800;letter-spacing:.12em}
+.command-sidebar nav{padding:14px 10px 8px;scrollbar-color:rgba(255,255,255,.18) transparent}
+.command-sidebar nav::-webkit-scrollbar-track{background:transparent}
+.command-sidebar nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-color:transparent}
+.command-sidebar .nav-group{margin-bottom:12px}
+.command-sidebar .nav-label{padding:4px 11px 5px;color:rgba(224,234,255,.42);font-size:8px;font-weight:750;letter-spacing:.115em}
+.command-sidebar a{height:36px;margin:2px 0;padding:0 11px;border:1px solid transparent;border-left:1px solid transparent;border-radius:11px;color:rgba(232,239,255,.7);font-size:12px;font-weight:620;transition:background 150ms,color 150ms,border-color 150ms,transform 150ms}
+.command-sidebar a:hover{color:#fff;background:rgba(255,255,255,.07);transform:translateX(1px)}
+.command-sidebar a.active{color:#fff;background:linear-gradient(145deg,rgba(66,124,255,.32),rgba(23,84,220,.22));border-color:rgba(151,183,255,.28);border-left-color:rgba(151,183,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.command-sidebar a.active svg{color:#8edcff}
+.artisys-sidebar-foot{border-top:1px solid rgba(255,255,255,.09)}
+.artisys-product-state{height:54px;display:flex;align-items:center;gap:9px;padding:0 15px;color:#fff}
+.artisys-product-state>i{width:7px;height:7px;border-radius:50%;background:#39d5cf;box-shadow:0 0 0 4px rgba(57,213,207,.11)}
+.artisys-product-state span{min-width:0}
+.artisys-product-state strong{display:block;font-size:10px;font-weight:700}
+.artisys-product-state small{display:block;margin-top:2px;color:rgba(255,255,255,.44);font-size:8px}
+.command-sidebar .collapse-button{height:42px;border-color:rgba(255,255,255,.09);color:rgba(232,239,255,.55)}
+.command-sidebar .collapse-button:hover{color:#fff;background:rgba(255,255,255,.055)}
+.sidebar-collapsed{grid-template-columns:76px 1fr}.sidebar-collapsed .command-sidebar{width:76px}
+.sidebar-collapsed .artisys-brand{justify-content:center;padding:0}.sidebar-collapsed .artisys-brand img{width:44px;object-fit:cover;object-position:left}.sidebar-collapsed .artisys-edition,.sidebar-collapsed .artisys-product-state span{display:none}.sidebar-collapsed .artisys-product-state{justify-content:center;padding:0}
+
+.main-content{background:linear-gradient(180deg,#fbfcff 0%,#f4f7fc 62%,#f9fbff 100%)}
+.artisys-topbar{height:66px;position:sticky;top:0;z-index:12;display:flex;align-items:center;justify-content:space-between;padding:0 30px;background:rgba(255,255,255,.88);backdrop-filter:blur(16px);border-bottom:1px solid rgba(210,218,233,.72);box-shadow:0 7px 26px rgba(23,43,88,.045)}
+.artisys-breadcrumb{display:flex;align-items:center;gap:8px;color:#77839b;font-size:11px}.artisys-breadcrumb i{font-style:normal;color:#c1c9d8}.artisys-breadcrumb strong{color:#101936;font-weight:700}
+.artisys-topbar-status{display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #dce4f1;border-radius:999px;background:#f8faff;color:#68748e;font-size:10px}.artisys-topbar-status b{color:#174fcf;font-weight:750}.artisys-sync-dot{width:7px;height:7px;border-radius:50%;background:#0c929d;box-shadow:0 0 0 3px #e6f7f7}
+.content-wrap{max-width:1580px;padding:28px 30px 50px}
+
+/* Page hierarchy */
+.page-header,.command-header{padding:0 0 20px;margin-bottom:20px;border-bottom:1px solid #e4e9f2}
+.page-header h1,.command-header h1{color:#101936;font-size:24px;font-weight:730;line-height:1.15;letter-spacing:-.035em}
+.page-header p,.command-header p{color:#69758f;font-size:12px;line-height:1.45}
+.command-eyebrow,.eyebrow{color:#1c5ee8;font-size:8px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
+.section-heading h2,.section-title,.setting-card h3,.work-card h3,.payroll-period-header h2{color:#101936}
+.section-heading p,.setting-card p,.work-card p,.muted-text,.path-text{color:#69758f}
+.command-header-actions{gap:9px}.command-period{min-width:156px}
+
+/* Core surfaces */
+.card,.fatal-card,.measurement-grid-wrap,.work-hero{
+  background:linear-gradient(145deg,#fff,#fbfcff);
+  border:1px solid rgba(177,190,216,.55);
+  border-radius:16px;
+  box-shadow:0 14px 30px rgba(26,50,100,.065),0 3px 8px rgba(26,50,100,.035),inset 0 1px 0 #fff;
+}
+.card-header{border-color:#e6ebf3}.card-header h2,.card-header h3{color:#34425d}.card-body{color:#101936}
+.command-panel{overflow:hidden}.command-card-header{min-height:58px;padding:10px 17px}.command-card-header h2{color:#101936;font-size:12px;font-weight:700;letter-spacing:-.01em}
+
+/* Inputs and actions */
+.button{height:36px;border-radius:11px;font-size:11px;font-weight:700;transition:transform 150ms,box-shadow 150ms,background 150ms}
+.button-primary{background:linear-gradient(145deg,#2f73ff,#0b59f5 72%,#0041cb);color:#fff;box-shadow:0 8px 18px rgba(11,89,245,.2),inset 0 1px 0 rgba(255,255,255,.28)}
+.button-primary:hover{background:linear-gradient(145deg,#3a7cff,#0b59f5);transform:translateY(-1px);box-shadow:0 11px 23px rgba(11,89,245,.24)}
+.button-secondary{background:#f3f6ff;color:#174fcf;border-color:#d9e4fb;box-shadow:inset 0 1px 0 #fff}.button-secondary:hover{background:#eaf1ff}
+.button-ghost{color:#58657d}.button-danger{background:#c84151}.icon-button{color:#69758f;border-radius:10px}.icon-button:hover{background:#edf3ff;color:#1557e8}.danger-icon:hover{background:#fff0f1;color:#c84151}
+.field>span{color:#5c6881;font-size:9px}.field>small{color:#7a859b}
+.field input,.field select,.field textarea,.search,.search input,.rdo-row input,.rdo-row select,.benefit-config input,.benefit-config select,.time-table input,.time-table select{
+  background:#fff;color:#101936;border-color:#d8e0ec;border-radius:10px
+}
+.field input:focus,.field select:focus,.field textarea:focus,.search:focus-within{border-color:#6b9dff;box-shadow:0 0 0 3px rgba(50,101,242,.1)}
+input::placeholder,textarea::placeholder{color:#9aa5b8}.search{color:#7d889e}
+.segmented{background:#edf1f7;border:1px solid #dbe2ed;border-radius:11px}.segmented button{color:#69758f;border-radius:8px}.segmented button.active{background:#fff;color:#174fcf;box-shadow:0 2px 7px rgba(27,53,104,.09)}
+.tabs{border-color:#e2e8f1}.tabs button{color:#69758f}.tabs button.active{color:#0b59f5;border-color:#0b59f5}
+.command-filter-band{background:linear-gradient(145deg,#fff,#f8faff);border:1px solid rgba(177,190,216,.5);border-radius:14px;box-shadow:0 8px 20px rgba(26,50,100,.045)}
+
+/* KPI language mirrors premium web management surfaces. */
+.command-kpi-grid{gap:11px;margin-bottom:20px}.command-kpi{min-height:108px;padding:15px 16px;border-left:0;border-top:3px solid #dce4f1;box-shadow:0 12px 27px rgba(29,52,103,.07),0 3px 8px rgba(29,52,103,.04),inset 0 1px 0 #fff}
+.command-kpi-heading{color:#69758f}.command-kpi-heading span{font-size:8px;font-weight:800;letter-spacing:.07em}.command-kpi-heading svg{padding:5px;width:27px;height:27px;border-radius:50%;background:#edf3ff;color:#1557e8}
+.command-kpi strong{margin-top:9px;color:#101936;font-size:21px;font-weight:740;letter-spacing:-.035em}.command-kpi small{color:#7a859b;font-size:9px}
+.command-kpi-positive{border-top-color:#0b59f5}.command-kpi-positive strong{color:#101936}.command-kpi-positive .command-kpi-heading svg{color:#1659f5;background:#ebf2ff}
+.command-kpi-negative{border-top-color:#0c929d}.command-kpi-negative strong{color:#101936}.command-kpi-negative .command-kpi-heading svg{color:#0c929d;background:#e9f8f8}
+.command-kpi-primary{border-top-color:#6e2bd0}.command-kpi-primary strong{color:#101936}.command-kpi-primary .command-kpi-heading svg{color:#6e2bd0;background:#f2ebff}
+.command-kpi-warning{border-top-color:#d77724}.command-kpi-warning strong{color:#101936}.command-kpi-warning .command-kpi-heading svg{color:#d77724;background:#fff2e8}
+.metric-track{height:3px;background:#e7ebf2}.metric-track i{background:linear-gradient(90deg,#0b59f5,#0bb8f0)}
+
+/* Dashboard */
+.command-dashboard-grid{gap:16px}.command-chart-body{height:340px;padding:18px}.chart-legend{color:#69758f}.chart-legend b{background:#f3f6fb;border-color:#dfe6f0;color:#53617a;border-radius:6px}.legend-positive::before{background:#0b59f5}.legend-negative::before{background:#0c929d}
+.command-alert{background:#fff5ea;border-color:#f0d1ad;color:#b45c18;border-radius:11px}.command-alert strong{color:#7e4218}
+.command-contract-summary,.command-work-metrics{border-color:#e6ebf3}.command-contract-summary>div,.command-work-metrics>div{border-color:#e6ebf3}.command-contract-summary span,.command-work-metrics span,.progress-values{color:#7a859b}.command-contract-summary strong,.command-work-metrics strong{color:#101936}.command-progress{background:#e8edf6}.command-progress>div{background:linear-gradient(90deg,#1b66ff,#0bb8f0)}.command-info{background:#f4f7ff;border-color:#dde7fb;color:#66738d}
+
+/* Tables */
+.data-table th,.measurement-grid th{background:#f7f9fc;color:#68748a;border-color:#e1e7f0}
+.data-table td,.measurement-grid td{color:#2e3a50;border-color:#e8ecf3;background:#fff}.data-table tbody tr:hover td,.selected-row td,.selected-row-block{background:#f5f8ff!important}.data-table td small{color:#7c879c}.measurement-grid-wrap{background:#fff}.measurement-grid th.sticky-col{background:#f7f9fc}.measurement-grid .sticky-col{background:#fff}.measurement-grid tfoot td,.measurement-grid tfoot .sticky-col{background:#f5f7fb;color:#101936}
+.command-data-table th{padding-top:11px;padding-bottom:11px}.command-data-table td{padding-top:11px;padding-bottom:11px}.row-overdue td{background:#fff9f5!important}.command-table-wrap{border-top:1px solid #e6ebf3}
+.command-summary-strip{background:#f8faff;border-color:#e6ebf3}.command-summary-strip>div{border-color:#e6ebf3}.command-summary-strip span{color:#7a859b}.command-summary-strip strong{color:#101936}.command-summary-strip .positive strong{color:#0c8290}.command-summary-strip .negative strong{color:#c84151}.command-summary-strip .warning strong{color:#bd641e}
+
+/* DRE */
+.dre-command-body{background:#fff}.dre-command-group{border-color:#e7ebf2}.dre-command-subtotal{background:#f8faff;border-color:#e7ebf2}.dre-command-subtotal strong{color:#101936}.dre-row{border-color:#e9edf3;color:#344057}.dre-row small{color:#7a859b}.dre-command-result{border-color:#dbe4f2}.dre-command-result.positive{background:#eff9f8;color:#087b83}.dre-command-result.negative{background:#fff1f2;color:#c84151}
+
+/* Status and semantic colors */
+.status{border:1px solid transparent;border-radius:999px}.status-success{background:#e9f8f8;color:#087b83;border-color:#c7ebeb}.status-danger{background:#fff0f1;color:#c84151;border-color:#f2cfd4}.status-warning{background:#fff3e8;color:#b95f1c;border-color:#f0d6bd}.status-neutral{background:#f0f3f7;color:#667188;border-color:#e0e6ee}.amount-positive{color:#087f87!important}.amount-negative,.danger-text{color:#c84151!important}
+.notice,.fixed-benefit-notice{background:#fff6ea;color:#8c541f;border-color:#efd6b8}.success-box,.paid-confirmation{background:#edf9f8!important;color:#087b83!important;border-color:#c7ebeb}.error-inline{background:#fff0f1;color:#c84151;border-color:#f0ccd2}.benefit-chip{background:#edf3ff;color:#1557e8}.link-button{color:#1557e8}
+
+/* Modals, wizard and legacy-heavy pages */
+.modal-backdrop{background:rgba(7,18,45,.55);backdrop-filter:blur(5px)}.modal{background:linear-gradient(145deg,#fff,#fbfcff);border:1px solid rgba(177,190,216,.6);border-radius:18px;box-shadow:0 30px 80px rgba(12,29,67,.28)}.modal-header,.form-actions{background:rgba(255,255,255,.96);border-color:#e4e9f2}.modal-header h2{color:#101936}
+.wizard{background:#fff}.wizard-steps{background:#f6f8fc;border-color:#e0e6ef}.wizard-step{color:#69758f}.wizard-step b{border-color:#cbd4e2}.wizard-step.active{background:#edf3ff;color:#1557e8}.wizard-step.active b{background:#0b59f5;border-color:#0b59f5}.doc-option{background:#fbfcff;border-color:#dfe5ef;color:#354158;border-radius:11px}
+.setting-card-feature{background:linear-gradient(145deg,#fff,#f6f9ff);border-color:#cfddf4}.benefit-config,.benefit-config.enabled{background:#f8faff;border-color:#dfe6f0}.benefit-config.enabled{border-color:#9ebdfd}.role-preview{background:#edf3ff;border-color:#d5e3ff}.input-locked,.locked-value,.readonly-person{background:#f2f4f8!important;color:#59667e!important;border-color:#dde3ec}
+.employee-payroll-banner,.time-banner{background:linear-gradient(135deg,#071a46 0%,#0a307a 65%,#0a59ef 140%);border:1px solid rgba(76,136,255,.5);box-shadow:0 18px 36px rgba(13,42,82,.15);color:#fff}.employee-payroll-banner>div>span,.banner-total small{color:rgba(255,255,255,.72)}.payroll-summary-grid .card{background:#fff}.payroll-summary-grid span,.payroll-period-header p,.locked-value small{color:#7a859b}.payroll-period-body h3,.variable-heading h3{color:#59667e}.variable-row{background:#fbfcff;border-color:#e4e9f2}.payroll-total-bar{background:#f7f9fc;border-color:#e3e8f0}.payroll-payable strong,.pending-card .money-cell{color:#1557e8}.time-table .non-workday,.time-table .non-workday td{background:#f7f8fb}
+
+/* Works and operational modules */
+.work-hero{background:linear-gradient(145deg,#fff,#f8faff)}.progress{background:#e8edf6}.progress>div{background:linear-gradient(90deg,#1b66ff,#0bb8f0)}.curve-bars span{background:#edf3ff;color:#1557e8}.curve-bars span+span{background:#e9f8f8;color:#087b83}.attention-list>div,.stage-list>div,.rdo-section{border-color:#e6ebf3}.attention-list span,.stage-list span{color:#7a859b}.rdo-section h3{color:#53617a}.work-metrics div,.work-financial-summary>div,.import-month{background:#f8faff;border-color:#e3e8f1}.work-card:hover{border-color:#a9c3f5;box-shadow:0 17px 34px rgba(28,59,126,.09)}
+
+/* State surfaces */
+.state{color:#748099}.state svg{color:#94a2b7}.state strong{color:#344158}.state p{color:#748099}.fatal{background:#f5f7fc}.fatal-card h1{color:#101936}
+
+@media(max-width:1280px){.command-kpi-grid{grid-template-columns:repeat(3,minmax(155px,1fr))}.command-dashboard-grid{grid-template-columns:1fr}.content-wrap{padding-inline:24px}}
+@media(max-width:1100px){.command-center-shell{grid-template-columns:76px 1fr}.command-sidebar{width:76px}.command-sidebar .artisys-brand{justify-content:center;padding:0}.command-sidebar .artisys-brand img{width:44px;object-fit:cover;object-position:left}.command-sidebar .artisys-edition,.command-sidebar .nav-label,.command-sidebar a span,.command-sidebar .collapse-button span,.artisys-product-state span{display:none}.command-sidebar a{justify-content:center}.artisys-product-state{justify-content:center;padding:0}.artisys-topbar{padding-inline:22px}}
