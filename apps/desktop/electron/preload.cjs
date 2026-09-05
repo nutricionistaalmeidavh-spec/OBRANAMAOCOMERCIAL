@@ -42,5 +42,16 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     conflicts: () => call('online:conflicts'),
     resolveConflict: (conflictId, resolution) => call('online:resolve-conflict', { conflictId, resolution })
   },
+  updater: {
+    state: () => call('updater:state'),
+    check: () => call('updater:check'),
+    download: () => call('updater:download'),
+    install: () => call('updater:install'),
+    onStateChanged: (listener) => {
+      const handler = (_event, state) => listener(state)
+      ipcRenderer.on('updater:state-changed', handler)
+      return () => ipcRenderer.removeListener('updater:state-changed', handler)
+    }
+  },
   backup: { create: () => call('backup:create'), restore: () => call('backup:restore'), openDataFolder: () => call('backup:open-data-folder') }
 })
