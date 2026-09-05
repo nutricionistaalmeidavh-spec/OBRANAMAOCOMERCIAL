@@ -15,13 +15,13 @@ describe('ArtiSys desktop final visual pass',()=>{
     expect(app).toContain("./modules/command-center/artisys-utilities.css")
   })
 
-  it('scopes the final visual layer to the four utility routes',()=>{
+  it('scopes the final visual layer to the utility routes and shared hub cards',()=>{
     const shell=read('../src/modules/command-center/CommandCenterShell.tsx')
     const css=read('../src/modules/command-center/artisys-utilities.css')
     expect(shell).toContain('routeClass')
     expect(shell).toContain('location.pathname')
     for(const route of ['documentos','cadastros','importacao','configuracoes'])expect(css).toContain(`.route-${route}`)
-    for(const selector of ['.settings-grid','.setting-card','.import-months','.locked-value','.benefit-config'])expect(css).toContain(selector)
+    for(const selector of ['.settings-grid','.setting-card','.import-months','.locked-value','.benefit-config','.artisys-hub-grid','.artisys-hub-card'])expect(css).toContain(selector)
   })
 
   it('preserves document file operations and filters',()=>{
@@ -41,9 +41,9 @@ describe('ArtiSys desktop final visual pass',()=>{
     for(const contract of ['backup.create','backup.restore','online.setBaseUrl','online.start','online.status','online.session','online.disconnect','catalogo.saveCargo','catalogo.saveBenefit',"changeLayout('command-center')","changeLayout('classic')"])expect(settings).toContain(contract)
   })
 
-  it('keeps every desktop destination in the route map',()=>{
+  it('keeps every desktop destination and the new hub routes in the route map',()=>{
     const app=read('../src/App.tsx')
-    const routes=['/','/assistente-ia','/dre','/financeiro','/folha','/obras','/obras/:id','/frentes','/orcamento','/planejamento','/rdo','/compras','/contratos','/tarefas','/medicoes','/rh','/funcionarios','/registro-funcionario','/ponto','/rh/modelos','/documentos','/cadastros','/importacao','/configuracoes']
+    const routes=['/','/assistente-ia','/dre','/financeiro','/folha','/orcamento','/medicoes','/compras-contratos','/compras','/contratos','/cadastros','/obras','/obras/:id','/frentes','/planejamento','/rdo','/tarefas','/rh','/funcionarios','/registro-funcionario','/ponto','/rh/modelos','/documentos','/importacao','/configuracoes','/configuracoes/sistema']
     for(const route of routes)expect(app).toContain(`path="${route}"`)
   })
 })
