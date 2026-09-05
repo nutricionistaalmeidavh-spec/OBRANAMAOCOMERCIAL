@@ -3,7 +3,7 @@
   "version": "1.0.12",
   "description": "Obra na Mão Desktop — edição comercial independente",
   "author": "Fluxo DRE",
-  "main": "electron/main.cjs",
+  "main": "electron/updater-main.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
