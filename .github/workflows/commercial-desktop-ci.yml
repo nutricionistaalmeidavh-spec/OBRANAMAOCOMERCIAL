@@ -18,6 +18,7 @@ on:
     paths:
       - 'apps/desktop/**'
       - 'packages/**'
+      - '.github/workflows/commercial-desktop-ci.yml'
 
 jobs:
   desktop:
@@ -45,11 +46,26 @@ jobs:
         run: |
           $version = (Get-Content apps/desktop/package.json | ConvertFrom-Json).version
           "DESKTOP_VERSION=$version" >> $env:GITHUB_ENV
-      - name: Upload installer
+      - name: Verify updater artifacts
+        shell: pwsh
+        run: |
+          $release = "apps/desktop/release"
+          $required = @(
+            "$release/Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe",
+            "$release/Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe.blockmap",
+            "$release/latest.yml"
+          )
+          foreach ($file in $required) {
+            if (-not (Test-Path $file)) { throw "Updater artifact missing: $file" }
+          }
+      - name: Upload installer and updater metadata
         uses: actions/upload-artifact@v4
         with:
           name: Obra-na-Mao-Desktop-Commercial-${{ env.DESKTOP_VERSION }}-Windows
-          path: apps/desktop/release/Obra-na-Mao-Desktop-Setup-${{ env.DESKTOP_VERSION }}.exe
+          path: |
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-${{ env.DESKTOP_VERSION }}.exe
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/latest.yml
           if-no-files-found: error
           retention-days: 90
       - name: Publish GitHub release
@@ -59,10 +75,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "desktop-commercial-v$env:DESKTOP_VERSION"
-          $asset = "apps/desktop/release/Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe"
+          $release = "apps/desktop/release"
+          $assets = @(
+            "$release/Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe",
+            "$release/Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe.blockmap",
+            "$release/latest.yml"
+          )
           gh release view $tag --repo "${{ github.repository }}" *> $null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag $asset --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "Obra na Mão Desktop Comercial v$env:DESKTOP_VERSION" --notes "Instalador Windows da edição comercial validado pelo CI."
+            gh release create $tag $assets --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "Obra na Mão Desktop Comercial v$env:DESKTOP_VERSION" --notes "Instalador Windows e metadados de atualização automática validados pelo CI."
           } else {
-            gh release upload $tag $asset --repo "${{ github.repository }}" --clobber
+            gh release upload $tag $assets --repo "${{ github.repository }}" --clobber
           }
