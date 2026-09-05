@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 type EntityApi = { list(filters?: Record<string, unknown>): Promise<any[]>; get(id: number): Promise<any>; save(data: Record<string, unknown>): Promise<any>; remove(id: number): Promise<boolean> }
+type UpdaterState = { status:'idle'|'checking'|'current'|'available'|'downloading'|'downloaded'|'error'|'unsupported'; currentVersion:string; availableVersion:string|null; progress:number|null; error:string|null; supported:boolean }
 interface Window { fluxoDre: {
   app: { bootstrap(): Promise<any>; retryDatabase(): Promise<boolean>; getLayout(): Promise<'command-center'|'classic'>; setLayout(layout:'command-center'|'classic'): Promise<'command-center'|'classic'> }; product:{getEdition():Promise<{edition:'construtora'|'empreiteira';locked:boolean}>;setEdition(edition:'construtora'|'empreiteira'):Promise<any>}; demo:{seed():Promise<any>}
   empresas: EntityApi; clientes: EntityApi; fornecedores: EntityApi; obras: EntityApi & { importSpreadsheets(): Promise<any>; overview(obra_id:number): Promise<any>; timeline(obra_id:number): Promise<any[]> }; etapas: EntityApi; locais: EntityApi; orcamentos: EntityApi; cronograma: EntityApi; rdos: EntityApi; rdoEquipe: EntityApi; rdoEquipamentos: EntityApi; rdoOcorrencias: EntityApi; rdoAnexos: EntityApi; arquivos: EntityApi
@@ -24,5 +25,6 @@ interface Window { fluxoDre: {
     publishMobileSummary(summary:any):Promise<any>;financeRead(view:string):Promise<any>;financeWrite(action:string,input:any):Promise<any>;
     publishFinanceReference(obligations:any[]):Promise<any>;aiAnalyze(input:any):Promise<any>;conflicts():Promise<any>;resolveConflict(conflictId:string,resolution:'accept_desktop'|'keep_mobile'):Promise<any>
   };
+  updater:{state():Promise<UpdaterState>;check():Promise<UpdaterState>;download():Promise<UpdaterState>;install():Promise<boolean>;onStateChanged(listener:(state:UpdaterState)=>void):()=>void};
   backup:{create():Promise<any>;restore():Promise<any>;openDataFolder():Promise<any>}
 } }
