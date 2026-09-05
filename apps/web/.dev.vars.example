@@ -8,3 +8,8 @@ OWNER_EMAIL=nutricionistaalmeidavh@gmail.com
 OWNER_COMPANY=Obra na Mão
 OWNER_PROJECT=Operação Comercial
 OWNER_CUSTOMER=Obra na Mão
+
+# ArtiSys Payments / Asaas
+ASAAS_ENVIRONMENT=production
+ASAAS_API_KEY=
+ASAAS_WEBHOOK_TOKEN=
