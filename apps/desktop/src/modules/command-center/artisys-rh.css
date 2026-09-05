@@ -1,0 +1,29 @@
+/* ArtiSys Desktop — RH layer. Loaded after the shared ArtiSys desktop skin. */
+.artisys-rh-hub{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.artisys-rh-card{position:relative;min-height:132px;padding:20px;cursor:pointer;overflow:hidden;transition:transform 160ms,border-color 160ms,box-shadow 160ms}
+.artisys-rh-card:before{content:'';position:absolute;right:-38px;top:-48px;width:132px;height:132px;border-radius:50%;background:radial-gradient(circle,rgba(11,89,245,.12),rgba(11,184,240,.035) 58%,transparent 70%);pointer-events:none}
+.artisys-rh-card:hover{transform:translateY(-2px);border-color:#abc4f5;box-shadow:0 19px 38px rgba(26,50,100,.1),0 4px 10px rgba(26,50,100,.045)}
+.artisys-rh-card-body{position:relative;display:flex;gap:14px;align-items:flex-start;z-index:1}
+.artisys-rh-card-icon{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:14px;background:linear-gradient(145deg,#eef3ff,#e8f1ff);color:#1557e8;box-shadow:inset 0 1px 0 #fff,0 7px 16px rgba(29,52,103,.07)}
+.artisys-rh-card:nth-child(2) .artisys-rh-card-icon{background:#e9f8f8;color:#087f87}.artisys-rh-card:nth-child(3) .artisys-rh-card-icon{background:#f2ebff;color:#6e2bd0}.artisys-rh-card:nth-child(4) .artisys-rh-card-icon{background:#fff2e8;color:#c7651d}
+.artisys-rh-card-copy{min-width:0}.artisys-rh-card-copy h2{margin:1px 0 6px;color:#101936;font-size:15px;line-height:1.2;letter-spacing:-.02em}.artisys-rh-card-copy p{margin:0;max-width:390px;color:#69758f;font-size:11px;line-height:1.48}.artisys-rh-card-arrow{position:absolute;right:18px;bottom:16px;color:#99a8c0;font-size:20px;line-height:1}
+
+/* Employees */
+.employee-name{gap:10px}.employee-name .avatar,.avatar{width:32px;height:32px;background:linear-gradient(145deg,#edf3ff,#e6eeff);color:#1557e8;border:1px solid #dbe6fb;box-shadow:inset 0 1px 0 #fff;font-weight:800}.employee-name strong{color:#101936}.data-table td .employee-name+small{color:#7a859b}
+
+/* Admission wizard */
+.wizard{border:1px solid rgba(177,190,216,.55);border-radius:17px;box-shadow:0 15px 34px rgba(26,50,100,.07);background:#fff}
+.wizard-steps{padding:17px 13px;background:linear-gradient(180deg,#f8faff,#f3f6fc);border-color:#e2e8f1}.wizard-step{min-height:42px;margin-bottom:3px;border:1px solid transparent;border-radius:11px;padding:8px 10px}.wizard-step b{width:25px;height:25px;background:#fff}.wizard-step.active{background:linear-gradient(145deg,#edf3ff,#e7efff);border-color:#d3e0fb;color:#1557e8;box-shadow:inset 0 1px 0 #fff}.wizard-step.active b{box-shadow:0 5px 12px rgba(11,89,245,.18)}
+.wizard-content{background:#fff}.wizard-content .section-title{margin-bottom:17px;color:#101936;font-size:13px;font-weight:730;letter-spacing:-.01em}.role-preview{margin-top:15px;padding:13px 14px;border-radius:12px;background:linear-gradient(145deg,#f4f7ff,#edf3ff);border-color:#d5e2fb}.doc-option{min-height:57px;align-items:center;padding:11px 12px;border-radius:12px;transition:border-color 150ms,background 150ms}.doc-option:hover{border-color:#b6ccf7;background:#f7f9ff}
+
+/* Time sheet */
+.time-filter{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px;padding:15px 16px;background:linear-gradient(145deg,#fff,#f8faff)}
+.time-banner{min-height:76px;padding:15px 17px;border-radius:16px;background:radial-gradient(circle at 89% 18%,rgba(11,184,240,.22),transparent 31%),linear-gradient(135deg,#071a46 0%,#0a2d78 64%,#0a59ef 142%);box-shadow:0 18px 38px rgba(13,42,82,.17),inset 0 1px 0 rgba(255,255,255,.17)}
+.time-banner>div>strong{font-size:14px;letter-spacing:-.015em}.time-banner>div>span{margin-top:4px;color:rgba(255,255,255,.69);font-size:10px}.time-schedule{padding:8px 12px;border:1px solid rgba(255,255,255,.13);border-radius:11px;background:rgba(255,255,255,.07)}.time-schedule span{color:rgba(255,255,255,.58)!important}.time-schedule b{color:#fff}
+.print-batch-card{border-color:#cbdaf7;background:linear-gradient(145deg,#fff,#f5f8ff)}.print-batch-card .card-header{background:linear-gradient(145deg,#f8faff,#f0f5ff)}.print-batch-card label{padding:10px 11px;border:1px solid #e1e7f0;border-radius:11px;background:#fff}.print-batch-card label small{color:#78849a}
+.time-table{border-top:1px solid #e5eaf2}.time-table table{width:100%;border-collapse:separate;border-spacing:0}.time-table th{height:34px;background:#f7f9fc;color:#68748a;font-size:8px;text-transform:uppercase;letter-spacing:.06em}.time-table td{border-bottom:1px solid #e9edf3;background:#fff}.time-table tbody tr:hover td{background:#f8faff}.time-table td:first-child strong{color:#101936}.time-table td:first-child small{color:#8a95a8}.time-table .non-workday td{background:#f5f6f9;color:#758096}
+
+/* RH document/configuration surfaces */
+.benefit-config-list{gap:9px}.benefit-config{border-radius:12px;padding:11px 12px}.benefit-config.enabled{background:linear-gradient(145deg,#f9fbff,#f0f5ff);box-shadow:inset 3px 0 0 #0b59f5}.fixed-benefit-notice{border-radius:12px}.setting-card-feature{box-shadow:0 13px 29px rgba(29,52,103,.055)}
+
+@media(max-width:1180px){.artisys-rh-hub{grid-template-columns:1fr}.time-filter{grid-template-columns:1fr 190px}}
