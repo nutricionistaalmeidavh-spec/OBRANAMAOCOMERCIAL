@@ -1,6 +1,7 @@
 import { error, json, requireAuth, withScopes, type RouterRoutes, type RuntimeEnv } from '../cloudflare/sdk'
 import { billingStatus, checkoutForUser, createPlanVersion, listActivePlans, processAsaasWebhookPayload } from './billing-service'
 import { reconcileBillingOrder } from './billing-reconciliation'
+import { catalogPublicView, commercialPlan } from './commercial-plan-catalog'
 
 type BillingRuntime=RuntimeEnv&{ASAAS_API_KEY?:string;ASAAS_API_BASE_URL?:string;ASAAS_WEBHOOK_TOKEN?:string}
 const secured=[requireAuth(),withScopes('email','profile')] as const
@@ -9,7 +10,14 @@ const arr=(v:unknown)=>Array.isArray(v)?v.map(String):[]
 const owner=(email:string|undefined,env:RuntimeEnv)=>String(email||'').trim().toLowerCase()===String(env.OWNER_EMAIL||'').trim().toLowerCase()&&!!String(env.OWNER_EMAIL||'').trim()
 
 export const BILLING_ROUTES:RouterRoutes={
-  'GET /api/billing/plans':[...secured,async c=>json({plans:await listActivePlans(c.env as BillingRuntime)})],
+  'GET /api/billing/plans':[...secured,async c=>{
+    const rows=await listActivePlans(c.env as BillingRuntime)
+    const plans=rows.map(row=>{
+      const canonical=commercialPlan(String(row.plan_code||''))
+      return canonical?{id:row.id,version:row.version,...catalogPublicView(canonical)}:row
+    })
+    return json({plans})
+  }],
   'GET /api/billing/status':[...secured,async c=>json(await billingStatus(c.env as BillingRuntime,c.user!.userId))],
   'POST /api/billing/checkout':[...secured,async c=>{
     const body=rec(c.body),idempotencyKey=String(c.request.headers.get('idempotency-key')||body.idempotencyKey||'').trim(),result=await checkoutForUser(c.env as BillingRuntime,c.user!,{planCode:String(body.planCode||''),companyName:String(body.companyName||''),idempotencyKey})
