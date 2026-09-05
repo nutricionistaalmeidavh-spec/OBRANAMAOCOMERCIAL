@@ -9,7 +9,7 @@ OWNER_COMPANY=Obra na Mão
 OWNER_PROJECT=Operação Comercial
 OWNER_CUSTOMER=Obra na Mão
 
-# ArtiSys Payments / Asaas
-ASAAS_ENVIRONMENT=production
+# ArtiSys Payments / Asaas. Use somente um host oficial permitido pelo adapter.
+ASAAS_API_BASE_URL=https://api-sandbox.asaas.com/v3
 ASAAS_API_KEY=
 ASAAS_WEBHOOK_TOKEN=
