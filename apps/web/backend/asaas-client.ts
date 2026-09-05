@@ -9,7 +9,7 @@ function providerConfig(env:AsaasClientEnv){
   if(!credential||!configuredBase)throw new Error('Asaas não configurado.')
   let parsed:URL;try{parsed=new URL(configuredBase)}catch{throw new Error('Endpoint Asaas inválido.')}
   if(parsed.protocol!=='https:'||!['api.asaas.com','api-sandbox.asaas.com'].includes(parsed.hostname)||!(parsed.pathname==='/v3'||parsed.pathname.startsWith('/v3/')))throw new Error('Endpoint Asaas não permitido.')
-  return{credential,base:parsed.toString().replace(/\/$/='')}
+  return{credential,base:parsed.toString().replace(/\/$/,'')}
 }
 
 async function providerRequest(env:AsaasClientEnv,path:string,init:RequestInit={}){
