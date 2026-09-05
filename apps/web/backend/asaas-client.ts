@@ -19,7 +19,12 @@ async function providerRequest(env:AsaasClientEnv,path:string,init:RequestInit={
 }
 const rows=(body:RecordValue)=>Array.isArray(body.data)?body.data.map(asRecord):[]
 const isoDate=()=>new Date().toISOString().slice(0,10)
-function checkoutLink(id:string,body:RecordValue){const returned=String(body.link||body.url||'').trim();return returned||`https://asaas.com/checkoutSession/show?id=${encodeURIComponent(id)}`}
+function checkoutLink(id:string,body:RecordValue,env:AsaasClientEnv){
+  const cfg=providerConfig(env),sandbox=new URL(cfg.base).hostname==='api-sandbox.asaas.com',fallback=sandbox?`https://sandbox.asaas.com/checkoutSession/show/${encodeURIComponent(id)}`:`https://asaas.com/checkoutSession/show?id=${encodeURIComponent(id)}`,candidate=String(body.link||body.url||fallback).trim()
+  let parsed:URL;try{parsed=new URL(candidate)}catch{throw new Error('Asaas retornou link de checkout inválido.')}
+  if(parsed.protocol!=='https:'||!['asaas.com','sandbox.asaas.com'].includes(parsed.hostname)||!parsed.pathname.startsWith('/checkoutSession/'))throw new Error('Asaas retornou link de checkout não permitido.')
+  return parsed.toString()
+}
 function safeCallbackBase(value:string){let url:URL;try{url=new URL(value)}catch{throw new Error('Origem de callback inválida.')};if(url.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(url.hostname))throw new Error('Origem de callback insegura.');return url.origin}
 
 export async function createAsaasCheckout(env:AsaasClientEnv,input:{orderId:string;amountCents:number;planName:string;interval:'monthly'|'yearly'|'one_time';callbackBaseUrl:string}):Promise<AsaasCheckoutResult>{
@@ -29,6 +34,7 @@ export async function createAsaasCheckout(env:AsaasClientEnv,input:{orderId:stri
   const body:RecordValue={
     billingTypes:recurring?['CREDIT_CARD']:['PIX','CREDIT_CARD'],
     chargeTypes:[recurring?'RECURRENT':'DETACHED'],
+    minutesToExpire:60,
     externalReference:orderId,
     items:[{name:input.planName.slice(0,120),quantity:1,value:input.amountCents/100}],
     callback:{
@@ -40,7 +46,7 @@ export async function createAsaasCheckout(env:AsaasClientEnv,input:{orderId:stri
   if(recurring)body.subscription={cycle:input.interval==='yearly'?'YEARLY':'MONTHLY',nextDueDate:isoDate()}
   const checkout=await providerRequest(env,'/checkouts',{method:'POST',body:JSON.stringify(body)}),checkoutId=String(checkout.id||'').trim()
   if(!checkoutId)throw new Error('Asaas não retornou o checkout.')
-  return{checkoutId,checkoutUrl:checkoutLink(checkoutId,checkout),providerStatus:String(checkout.status||'ACTIVE')}
+  return{checkoutId,checkoutUrl:checkoutLink(checkoutId,checkout,env),providerStatus:String(checkout.status||'ACTIVE')}
 }
 
 function reconciliationResult(payment:RecordValue,subscriptionId?:string):AsaasReconciliationResult|null{
