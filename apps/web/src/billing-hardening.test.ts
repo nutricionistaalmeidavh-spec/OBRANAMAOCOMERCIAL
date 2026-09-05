@@ -39,6 +39,17 @@ describe('billing hardening',()=>{
     expect(client.post.mock.calls[0][1].idempotencyKey).toBe(client.post.mock.calls[1][1].idempotencyKey);
   });
 
+  it('shows a safe verifying state and asks the server to recover an uncertain hosted checkout',async()=>{
+    location.hash='#assinatura?pedido=order_unknown';
+    const order={id:'order_unknown',plan_version_id:'plan1',amount_cents:29900,currency:'BRL',financial_status:'created',checkout_url:null,reconciliation_required:1,created_at:'2026-09-05T12:00:00Z',updated_at:'2026-09-05T12:00:00Z',plan_code:'pro_monthly'};
+    client.get.mockResolvedValue({data:{orders:[order],subscriptions:[],payments:[],usage:{users:0,projects:0,devices:0}}});
+    client.post.mockResolvedValue({data:{state:'verifying',order}});
+    await mountBillingRoute();
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/billing/checkout/status',{orderId:'order_unknown'}));
+    expect(document.body.textContent).toContain('Estamos confirmando seu checkout');
+    expect(document.body.textContent).not.toContain('Checkout criado com estado incerto');
+  });
+
   it('shows license usage, modules and payment history on plan and billing',async()=>{
     location.hash='#plano-cobranca';
     client.get.mockResolvedValue({data:{
