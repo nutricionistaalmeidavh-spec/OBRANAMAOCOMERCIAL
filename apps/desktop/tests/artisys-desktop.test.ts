@@ -22,13 +22,14 @@ describe('ArtiSys commercial desktop redesign contract',()=>{
     expect(css).toContain('.data-table')
   })
 
-  it('brands the desktop shell as ArtiSys while preserving the complete navigation map',()=>{
+  it('brands the desktop shell as ArtiSys with the compact hub navigation',()=>{
     const shell=read('../src/modules/command-center/CommandCenterShell.tsx')
     expect(shell).toContain('ArtiSys')
     expect(shell).toContain('artisys-brand')
     expect(shell).toContain('artisys-topbar')
     expect(shell).toContain('artisysIcon')
-    for(const route of ['/', '/assistente-ia', '/dre', '/financeiro', '/folha', '/obras', '/frentes', '/orcamento', '/planejamento', '/rdo', '/medicoes', '/compras', '/contratos', '/tarefas', '/rh', '/funcionarios', '/registro-funcionario', '/ponto', '/rh/modelos', '/documentos', '/cadastros', '/importacao', '/configuracoes'])expect(shell).toContain(`'${route}'`)
+    for(const route of ['/', '/assistente-ia', '/dre', '/financeiro', '/orcamento', '/medicoes', '/compras-contratos', '/obras', '/frentes', '/planejamento', '/rdo', '/tarefas', '/rh', '/folha', '/configuracoes'])expect(shell).toContain(`'${route}'`)
+    for(const group of ['Financeiro','Obras','Pessoas & RH','Configuracoes'])expect(shell).toContain(group)
   })
 
   it('gives RH a dedicated visual layer without changing its direct routes',()=>{
