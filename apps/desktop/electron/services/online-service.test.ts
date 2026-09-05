@@ -13,6 +13,7 @@ function response(status: number, body: any) {
 }
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.restoreAllMocks()
   for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true })
 })
@@ -67,5 +68,35 @@ describe('OnlineService', () => {
     dirs.push(dir)
     const service = new OnlineService({ dataDir: dir, fetchImpl: vi.fn(), baseUrl: 'https://example.test' })
     await expect(service.financeRead('dashboard')).rejects.toThrow(/vinculado/i)
+  })
+
+  it('mantém a chamada de IA ativa por até 90 segundos', async () => {
+    vi.useFakeTimers()
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fluxo-online-'))
+    dirs.push(dir)
+    let aborts = 0
+    const fetchImpl = vi.fn((_url: string, init: any) => new Promise((_resolve, reject) => {
+      init.signal.addEventListener('abort', () => {
+        aborts++
+        const error = new Error('aborted')
+        error.name = 'AbortError'
+        reject(error)
+      })
+    }))
+    const service = new OnlineService({ dataDir: dir, fetchImpl, baseUrl: 'https://example.test' })
+    service.storeToken('device-token-test')
+
+    const outcome = service.aiAnalyze({ question: 'teste de timeout' }).then(
+      (value: unknown) => ({ value }),
+      (error: Error) => ({ error })
+    )
+
+    await vi.advanceTimersByTimeAsync(15001)
+    expect(aborts).toBe(0)
+
+    await vi.advanceTimersByTimeAsync(75000)
+    const result = await outcome
+    expect(aborts).toBe(1)
+    expect('error' in result ? result.error.message : '').toMatch(/90 segundos/i)
   })
 })
