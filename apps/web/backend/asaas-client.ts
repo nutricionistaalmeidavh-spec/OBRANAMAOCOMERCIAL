@@ -1,8 +1,17 @@
 export type AsaasClientEnv={ASAAS_API_KEY?:string;ASAAS_API_BASE_URL?:string}
 export type AsaasCheckoutResult={checkoutId:string;checkoutUrl:string;providerStatus:string}
 export type AsaasReconciliationResult={customerId:string;paymentId:string;subscriptionId?:string;checkoutUrl:string;providerStatus:string;amountCents:number;externalReference:string}
+export type AsaasFailureKind='definitive'|'unknown'
+
 type RecordValue=Record<string,unknown>
 const asRecord=(value:unknown):RecordValue=>value&&typeof value==='object'&&!Array.isArray(value)?value as RecordValue:{}
+
+export class AsaasRequestError extends Error{
+  readonly kind:AsaasFailureKind
+  readonly status?:number
+  constructor(message:string,kind:AsaasFailureKind,status?:number){super(message);this.name='AsaasRequestError';this.kind=kind;this.status=status}
+}
+export const isUnknownAsaasOutcome=(cause:unknown)=>cause instanceof AsaasRequestError&&cause.kind==='unknown'
 
 function providerConfig(env:AsaasClientEnv){
   const credential=String(env.ASAAS_API_KEY||'').trim(),configuredBase=String(env.ASAAS_API_BASE_URL||'').trim().replace(/\/$/,'')
@@ -12,10 +21,14 @@ function providerConfig(env:AsaasClientEnv){
   return{credential,base:parsed.toString().replace(/\/$/,'')}
 }
 
+function unknownHttpStatus(status:number){return status===408||status===425||status===429||status>=500}
 async function providerRequest(env:AsaasClientEnv,path:string,init:RequestInit={}){
   const cfg=providerConfig(env),headers=new Headers(init.headers);headers.set('accept','application/json');headers.set('content-type','application/json');headers.set('access_token',cfg.credential)
-  const response=await fetch(cfg.base+path,{...init,headers}),raw=await response.text();let data:RecordValue={};try{data=asRecord(JSON.parse(raw))}catch{}
-  if(!response.ok)throw new Error(`Asaas recusou a operação (${response.status}).`);return data
+  let response:Response
+  try{response=await fetch(cfg.base+path,{...init,headers})}catch{throw new AsaasRequestError('Não foi possível confirmar a resposta do Asaas.','unknown')}
+  const raw=await response.text();let data:RecordValue={};try{data=asRecord(JSON.parse(raw))}catch{}
+  if(!response.ok)throw new AsaasRequestError(`Asaas recusou a operação (${response.status}).`,unknownHttpStatus(response.status)?'unknown':'definitive',response.status)
+  return data
 }
 const rows=(body:RecordValue)=>Array.isArray(body.data)?body.data.map(asRecord):[]
 const isoDate=()=>new Date().toISOString().slice(0,10)
@@ -25,6 +38,7 @@ function checkoutLink(id:string,body:RecordValue,env:AsaasClientEnv){
   if(parsed.protocol!=='https:'||!['asaas.com','sandbox.asaas.com'].includes(parsed.hostname)||!parsed.pathname.startsWith('/checkoutSession/'))throw new Error('Asaas retornou link de checkout não permitido.')
   return parsed.toString()
 }
+export function asaasCheckoutUrl(env:AsaasClientEnv,checkoutId:string,candidate?:string){return checkoutLink(checkoutId,candidate?{link:candidate}:{},env)}
 function safeCallbackBase(value:string){let url:URL;try{url=new URL(value)}catch{throw new Error('Origem de callback inválida.')};if(url.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(url.hostname))throw new Error('Origem de callback insegura.');return url.origin}
 
 export async function createAsaasCheckout(env:AsaasClientEnv,input:{orderId:string;amountCents:number;planName:string;interval:'monthly'|'yearly'|'one_time';callbackBaseUrl:string}):Promise<AsaasCheckoutResult>{
@@ -45,7 +59,7 @@ export async function createAsaasCheckout(env:AsaasClientEnv,input:{orderId:stri
   }
   if(recurring)body.subscription={cycle:input.interval==='yearly'?'YEARLY':'MONTHLY',nextDueDate:isoDate()}
   const checkout=await providerRequest(env,'/checkouts',{method:'POST',body:JSON.stringify(body)}),checkoutId=String(checkout.id||'').trim()
-  if(!checkoutId)throw new Error('Asaas não retornou o checkout.')
+  if(!checkoutId)throw new AsaasRequestError('Asaas não retornou o checkout.','unknown')
   return{checkoutId,checkoutUrl:checkoutLink(checkoutId,checkout,env),providerStatus:String(checkout.status||'ACTIVE')}
 }
 
