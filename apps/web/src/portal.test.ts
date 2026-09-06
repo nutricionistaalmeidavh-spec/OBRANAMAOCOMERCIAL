@@ -16,19 +16,26 @@ describe('Commercial login and overview DOM flows', () => {
     vi.resetAllMocks();localStorage.clear();document.body.innerHTML='';location.hash='#portal';
     client.isSignedIn.mockReturnValue(false);client.getUser.mockResolvedValue(null);
   });
-  it('renders the approved login, supports password visibility and reports Google errors', async () => {
+  it('renders the corporate login without phone fields and keeps phone controls on the collaborator route', async () => {
     await mountMhPortal();
     expect(document.querySelector('h1')?.textContent).toBe('Acesse sua operação');
     expect(document.querySelector('.cp-login-brand img')?.getAttribute('src')).toContain('canteiro360-logo.png');
     expect(document.querySelector('.cp-google-mark')).not.toBeNull();
     expect(document.querySelector('.cp-vendor img')?.getAttribute('src')).toContain('artisys-icon.svg');
     expect(document.body.textContent).not.toContain('SISTEMA LIBERADO');
-    byId<HTMLButtonElement>('togglePassword').click();expect(byId<HTMLInputElement>('phonePassword').type).toBe('text');
-    expect(byId('togglePassword').getAttribute('aria-label')).toBe('Ocultar senha');
-    byId<HTMLButtonElement>('togglePassword').click();expect(byId<HTMLInputElement>('phonePassword').type).toBe('password');
+    expect(document.getElementById('phoneLogin')).toBeNull();
+    expect(document.querySelector<HTMLAnchorElement>('.cp-login-switch')?.getAttribute('href')).toContain('#colaborador');
     client.signIn.mockRejectedValue(new Error('Login indisponível'));
     byId<HTMLButtonElement>('googleLogin').click();
     await vi.waitFor(()=>expect(byId('mhToast').textContent).toBe('Login indisponível'));
+
+    location.hash='#colaborador';await mountMhPortal();
+    expect(document.querySelector('h1')?.textContent).toBe('Acesso do colaborador');
+    expect(document.getElementById('googleLogin')).toBeNull();
+    byId<HTMLButtonElement>('togglePassword').click();expect(byId<HTMLInputElement>('phonePassword').type).toBe('text');
+    expect(byId('togglePassword').getAttribute('aria-label')).toBe('Ocultar senha');
+    byId<HTMLButtonElement>('togglePassword').click();expect(byId<HTMLInputElement>('phonePassword').type).toBe('password');
+    expect(document.querySelector<HTMLAnchorElement>('.cp-login-switch')?.getAttribute('href')).toContain('#portal');
   });
   it('recovers a valid server session when the readable auth hint is missing', async () => {
     client.isSignedIn.mockReturnValue(false);
@@ -74,9 +81,9 @@ describe('Commercial login and overview DOM flows', () => {
     expect(document.body.textContent).not.toContain('54.000,00');
     expect(document.querySelector('#portalOverview')).toBeNull();
   });
-  it('completes first access through form submission and keeps phone users outside management', async () => {
+  it('completes first access through the collaborator route and keeps phone users outside management', async () => {
     client.post.mockImplementation(async path => ({data:path==='/api/edu/access-status'?{needsPasswordSetup:true}:path==='/api/edu/first-access'?{token:'test-phone-session',participant:{id:'p1',name:'Colaborador Teste',phone:'11999990000',jobRole:'Encarregado'}}:{company:{name:'Empresa teste'},access:{modules:['obra360']}}}));
-    await mountMhPortal();byId<HTMLInputElement>('phoneIdentity').value='11999990000';byId<HTMLButtonElement>('phoneFirst').click();
+    location.hash='#colaborador';await mountMhPortal();byId<HTMLInputElement>('phoneIdentity').value='11999990000';byId<HTMLButtonElement>('phoneFirst').click();
     await vi.waitFor(()=>expect(document.getElementById('phoneSetup')).not.toBeNull());
     byId<HTMLInputElement>('newPassword').value='test-password-only';byId<HTMLInputElement>('confirmPassword').value='different';
     byId<HTMLFormElement>('phoneSetup').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
