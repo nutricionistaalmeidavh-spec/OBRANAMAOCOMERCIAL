@@ -1,6 +1,6 @@
 # ArtiSys / Operação Comercial — mapa de páginas e superfícies
 
-Atualizado em 2026-09-03. Este arquivo é o inventário visual obrigatório antes de qualquer rodada de redesign.
+Atualizado em 2026-09-06. Este arquivo é o inventário visual obrigatório antes de qualquer rodada de redesign.
 
 ## 1. Entradas públicas e roteamento
 
@@ -8,7 +8,8 @@ Atualizado em 2026-09-03. Este arquivo é o inventário visual obrigatório ante
 |---|---|---|---|
 | Site público ArtiSys | `index.html` + hashes `#topo`, `#conteudo`, `#servicos`, `#prova`, `#processo`, `#contato` | Landing page | Premium atual |
 | Aplicação / roteador | `sistema.html` | Decide portal, owner, universidade, finanças, bridge, ativação e módulos | Infraestrutura |
-| Portal | `#portal` | Login ou dashboard geral conforme sessão | Premium atual |
+| Portal | `#portal` | Login corporativo ou dashboard geral conforme sessão | Premium atual |
+| Login exclusivo de colaborador | `#colaborador` | Celular, senha e primeiro acesso do colaborador | Premium atual |
 | Administração comercial | `#owner` | Licenças, clientes, acessos e dispositivos | Revisar em rodada própria |
 | Universidade | `universidade.html#universidade` / `#universidade*` | Ambiente educacional | Premium Bloco 3 |
 | Obra360 | `obra.html#obra` / `#obra*` | PWA operacional de campo | Em migração premium |
@@ -27,10 +28,11 @@ Regra da landing: apenas os hashes de seção pública permanecem no site; qualq
 
 Superfícies possíveis em `portal.ts`:
 
-- Login público.
-- Login com Google.
-- Login por celular.
-- Primeiro acesso por celular / criação de senha.
+- Login corporativo com Google, sem campos de celular.
+- Alternância discreta para `#colaborador`.
+- Login exclusivo de colaborador por celular e senha.
+- Primeiro acesso por celular / criação de senha dentro da superfície do colaborador.
+- Retorno discreto para o acesso da empresa.
 - Visão geral corporativa.
 - Visão geral por acesso de colaborador.
 - Resumo executivo carregando / carregado / erro com tentar novamente.
@@ -39,6 +41,8 @@ Superfícies possíveis em `portal.ts`:
 - Estado sem módulos liberados.
 - Menu da conta / logout.
 - Cards de módulo: Gestão, Obra360, Universidade, Administração de acessos e Ativar operação.
+
+Os hashes legados `#phone-login` e `#celular` são normalizados para `#colaborador` para preservar atalhos antigos sem reintroduzir o login por celular no portal corporativo.
 
 ## 3. Obra360 — navegação principal
 
