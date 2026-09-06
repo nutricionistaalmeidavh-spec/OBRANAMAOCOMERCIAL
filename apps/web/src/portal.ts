@@ -41,18 +41,27 @@ function publicHome(){
   setBody(`<main class="cp-login">
     <a class="cp-back" href="./">${icon('arrow-left')}<span>Página principal</span></a>
     <div class="cp-login-content"><div class="cp-login-brand"><img src="./canteiro360-logo.png" alt="Canteiro360 — controle total da obra" width="1448" height="1086"></div>
-    <section class="cp-login-form" aria-labelledby="loginTitle"><h1 id="loginTitle">Acesse sua operação</h1><p>Entre para continuar seu trabalho.</p>
-    <button id="googleLogin" type="button" class="cp-google">${googleMark()}<span>Continuar com Google</span></button>
-    <div class="cp-divider"><span>ou entre com celular</span></div>
+    <section class="cp-login-form" aria-labelledby="loginTitle"><h1 id="loginTitle">Acesse sua operação</h1><p>Entre com a conta responsável pela sua empresa.</p>
+    <button id="googleLogin" type="button" class="cp-google">${googleMark()}<span>Continuar com Google</span></button></section></div>
+    <a class="cp-login-switch" href="./sistema.html#colaborador"><span>Acesso do colaborador</span>${icon('chevron-right')}</a>
+    <footer class="cp-login-footer"><span>Controle total da obra <small class="cp-version">v${APP_VERSION}</small></span>${vendor()}</footer>
+  </main>`);
+  document.getElementById('googleLogin')?.addEventListener('click',async()=>{try{await auth.signIn({scope:'openid email profile'})}catch(e){toast(apiErr(e))}});
+}
+function collaboratorHome(){
+  setBody(`<main class="cp-login cp-collaborator-login">
+    <a class="cp-back" href="./">${icon('arrow-left')}<span>Página principal</span></a>
+    <div class="cp-login-content"><div class="cp-login-brand"><img src="./canteiro360-logo.png" alt="Canteiro360 — controle total da obra" width="1448" height="1086"></div>
+    <section class="cp-login-form" aria-labelledby="collaboratorLoginTitle"><h1 id="collaboratorLoginTitle">Acesso do colaborador</h1><p>Use o celular liberado pela sua empresa e a sua senha.</p>
     <form id="phoneLogin">
       <label for="phoneIdentity">Celular</label><input id="phoneIdentity" type="tel" inputmode="tel" autocomplete="username" placeholder="(11) 99999-9999" required maxlength="22">
       <label for="phonePassword">Senha</label><div class="cp-password"><input id="phonePassword" type="password" autocomplete="current-password" required><button id="togglePassword" type="button" aria-label="Mostrar senha" aria-pressed="false">${icon('eye')}</button></div>
       <button class="mh-primary" id="phoneSubmit" type="submit">Entrar</button>
       <button class="cp-text-button" type="button" id="phoneFirst">Primeiro acesso</button>
     </form></section></div>
-    <footer class="cp-login-footer"><span>Controle total da obra <small class="cp-version">v${APP_VERSION}</small></span>${vendor()}</footer>
+    <a class="cp-login-switch" href="./sistema.html#portal"><span>Acesso da empresa</span>${icon('chevron-right')}</a>
+    <footer class="cp-login-footer"><span>Acesso exclusivo de colaboradores <small class="cp-version">v${APP_VERSION}</small></span>${vendor()}</footer>
   </main>`);
-  document.getElementById('googleLogin')?.addEventListener('click',async()=>{try{await auth.signIn({scope:'openid email profile'})}catch(e){toast(apiErr(e))}});
   document.getElementById('togglePassword')?.addEventListener('click',()=>{
     const input=document.getElementById('phonePassword') as HTMLInputElement,button=document.getElementById('togglePassword')!;
     const visible=input.type==='password';input.type=visible?'text':'password';button.setAttribute('aria-pressed',String(visible));button.setAttribute('aria-label',visible?'Ocultar senha':'Mostrar senha');button.innerHTML=icon(visible?'eye-off':'eye');createIcons({icons});
@@ -78,7 +87,7 @@ async function showFirstAccess(){
     if(!state.needsPasswordSetup)return toast('Este celular já possui senha.');
     const form=document.getElementById('phoneLogin') as HTMLFormElement|null;if(!form)return;
     form.outerHTML=`<form id="phoneSetup"><label>Celular<input value="${esc(identifier)}" disabled></label><label>Crie sua senha<input id="newPassword" type="password" minlength="8" autocomplete="new-password" required></label><label>Confirme a senha<input id="confirmPassword" type="password" minlength="8" autocomplete="new-password" required></label><button type="submit" class="mh-primary" id="createPassword">Criar senha e entrar</button><button type="button" class="cp-text-button" id="backToLogin">Voltar ao login</button></form>`;
-    document.getElementById('backToLogin')?.addEventListener('click',publicHome);
+    document.getElementById('backToLogin')?.addEventListener('click',collaboratorHome);
     (document.getElementById('newPassword') as HTMLInputElement)?.focus();
     document.getElementById('phoneSetup')?.addEventListener('submit',async(event)=>{
       event.preventDefault();
@@ -147,5 +156,25 @@ async function openPortal(){
   if(token){try{const data=(await api.post('/api/edu/me',{token})).data as {participant:Participant};await renderPhonePortal(data.participant);return}catch{localStorage.removeItem(SESSION)}}
   publicHome()
 }
-async function logout(){localStorage.removeItem(SESSION);const hinted=auth.isSignedIn();publicHome();if(hinted){await auth.signOut();return}if(await auth.getUser()){await auth.signOut();return}location.hash=''}
-export async function mountMhPortal(){document.title='Canteiro360 — Acesso e visão geral';if(location.hash==='#portal'){await openPortal();return}if(await auth.getUser()){location.hash='#portal';await renderCorporatePortal();return}publicHome()}
+async function openCollaborator(){
+  if(location.hash!=='#colaborador')location.hash='#colaborador';
+  const token=localStorage.getItem(SESSION);
+  if(token){try{const data=(await api.post('/api/edu/me',{token})).data as {participant:Participant};location.hash='#portal';await renderPhonePortal(data.participant);return}catch{localStorage.removeItem(SESSION)}}
+  collaboratorHome()
+}
+async function logout(){
+  const hadPhoneSession=!!localStorage.getItem(SESSION);localStorage.removeItem(SESSION);
+  const hinted=auth.isSignedIn();
+  if(hinted){publicHome();await auth.signOut();return}
+  if(await auth.getUser()){publicHome();await auth.signOut();return}
+  if(hadPhoneSession){location.hash='#colaborador';collaboratorHome();return}
+  location.hash='';publicHome()
+}
+export async function mountMhPortal(){
+  document.title='Canteiro360 — Acesso e visão geral';
+  if(['#phone-login','#celular'].includes(location.hash))location.hash='#colaborador';
+  if(location.hash==='#colaborador'){await openCollaborator();return}
+  if(location.hash==='#portal'){await openPortal();return}
+  if(await auth.getUser()){location.hash='#portal';await renderCorporatePortal();return}
+  publicHome()
+}
