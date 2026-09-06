@@ -38,7 +38,11 @@
 .cp-password button{position:absolute;right:3px;top:3px;width:44px;height:44px;border:0;background:transparent;color:#27445c;display:grid;place-items:center;border-radius:8px}
 .cp-text-button{min-height:44px;background:none;border:0;color:#006d7c;padding:10px 12px;font-weight:600;font-size:14px}
 .cp-text-button:hover{text-decoration:underline}
-.cp-login-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #bfced9;margin-top:38px;padding:14px 0 max(16px,env(safe-area-inset-bottom));color:#40586b;font-size:13px}
+.cp-login-switch{align-self:flex-end;display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;min-height:40px;margin:16px 0 2px auto;padding:8px 10px;border:1px solid #c3d0da;border-radius:9px;background:#edf3f680;color:#40586b!important;font-size:12px;font-weight:600;backdrop-filter:blur(6px)}
+.cp-login-switch:hover{background:#f3f7f9;border-color:#9db2c1;color:#0a6473!important}
+.cp-login-switch svg{width:15px;height:15px}
+.cp-collaborator-login .cp-login-form>p{margin-bottom:20px}
+.cp-login-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #bfced9;margin-top:10px;padding:14px 0 max(16px,env(safe-area-inset-bottom));color:#40586b;font-size:13px}
 .cp-vendor{display:grid;place-items:center;min-height:44px;min-width:44px}
 .cp-vendor img{width:25px;height:25px;object-fit:contain}
 .cp-header{background:#0a2e51;color:#f3f7fa}
