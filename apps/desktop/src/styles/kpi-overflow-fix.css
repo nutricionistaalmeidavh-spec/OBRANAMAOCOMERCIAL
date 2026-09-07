@@ -1,0 +1,27 @@
+.kpi {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.kpi > div:last-child {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.kpi strong {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(12px, 1.15vw, 18px);
+  line-height: 1.2;
+}
+
+/* Unidade gerencial da tela de Obras: permita que as duas colunas
+   encolham dentro do card em vez de forcar overflow horizontal. */
+.content-wrap:has(.work-cards) .dashboard-grid > .card:nth-child(2) .kpi-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
