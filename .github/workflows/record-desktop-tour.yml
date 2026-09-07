@@ -27,8 +27,9 @@ jobs:
         working-directory: apps/desktop
         run: |
           unset ELECTRON_SKIP_BINARY_DOWNLOAD
-          npm install --no-save --no-audit --no-fund --legacy-peer-deps playwright electron@43.4.1
+          npm install --no-save --no-audit --no-fund --legacy-peer-deps playwright electron@43.4.1 react-is@19
           node -e "const p=require('electron'); console.log('Electron:',p); if(!p || !require('fs').existsSync(p)) process.exit(1)"
+          node -e "console.log('react-is:',require.resolve('react-is'))"
           npx playwright install-deps chromium
           sudo apt-get update
           sudo apt-get install -y xvfb ffmpeg
@@ -38,6 +39,7 @@ jobs:
         shell: bash
         run: |
           xvfb-run -a -s "-screen 0 1440x900x24 -ac +extension RANDR" bash -lc '
+            rm -rf node_modules/.vite
             npm run dev -- --host 127.0.0.1 > /tmp/artisys-vite.log 2>&1 &
             VITE_PID=$!
             npx wait-on http://127.0.0.1:5173
