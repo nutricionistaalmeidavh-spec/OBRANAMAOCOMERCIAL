@@ -34,12 +34,25 @@ await app.evaluate(({ BrowserWindow }) => {
 })
 
 await page.waitForFunction(() => Boolean(window.fluxoDre?.app), null, { timeout: 30_000 })
-await page.evaluate(async () => {
+const seedResult = await page.evaluate(async () => {
   await window.fluxoDre.app.setLayout('command-center')
-  await window.fluxoDre.demo.seed()
+  return window.fluxoDre.demo.seed()
 })
+if (seedResult?.ok === false) {
+  throw new Error(`Demo database seed failed: ${seedResult.error || 'unknown error'}`)
+}
+
 await page.reload()
-await page.waitForSelector('.command-center-shell', { timeout: 30_000 })
+await page.waitForFunction(() => {
+  const text = document.body?.innerText || ''
+  return Boolean(document.querySelector('.command-center-shell')) || /não conseguiu iniciar|não foi possível abrir o banco de dados local/i.test(text)
+}, null, { timeout: 30_000 })
+
+const bootText = await page.locator('body').innerText()
+if (/não conseguiu iniciar|não foi possível abrir o banco de dados local/i.test(bootText)) {
+  throw new Error(`Desktop boot failed before recording: ${bootText.slice(0, 500)}`)
+}
+await page.waitForSelector('.command-center-shell', { timeout: 5_000 })
 await page.waitForTimeout(1500)
 
 const routes = [
@@ -63,6 +76,10 @@ for (const [label, route] of routes) {
   const body = await page.locator('body').innerText()
   const broken = /erro inesperado|não foi possível carregar a preferência|não conseguiu iniciar|interface não pôde ser carregada/i.test(body)
   if (!broken) stable.push([label, route])
+}
+
+if (stable.length < 4) {
+  throw new Error(`Not enough stable desktop routes to record: ${stable.length}`)
 }
 
 await page.evaluate(() => { location.hash = '#/' })
