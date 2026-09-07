@@ -21,12 +21,12 @@ jobs:
 
       - name: Install desktop dependencies
         working-directory: apps/desktop
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Install recorder tooling
         working-directory: apps/desktop
         run: |
-          npm install --no-save playwright
+          npm install --no-save --no-audit --no-fund playwright
           npx playwright install-deps chromium
           sudo apt-get update
           sudo apt-get install -y xvfb ffmpeg
