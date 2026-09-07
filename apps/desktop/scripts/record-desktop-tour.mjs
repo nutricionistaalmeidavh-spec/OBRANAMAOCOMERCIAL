@@ -1,16 +1,23 @@
 import { _electron as electron } from 'playwright'
+import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
+const require = createRequire(import.meta.url)
+const electronPath = require('electron')
 const outDir = path.resolve('tour-output')
 const dataDir = path.resolve('.tour-data')
 fs.rmSync(dataDir, { recursive: true, force: true })
 fs.mkdirSync(outDir, { recursive: true })
 
+if (!electronPath || !fs.existsSync(electronPath)) {
+  throw new Error(`Electron executable not found: ${electronPath || 'empty path'}`)
+}
+
 const app = await electron.launch({
-  executablePath: path.resolve('node_modules/electron/dist/electron'),
-  args: ['.', '--no-sandbox'],
+  executablePath: electronPath,
+  args: ['--no-sandbox', '.'],
   env: {
     ...process.env,
     VITE_DEV_SERVER_URL: 'http://127.0.0.1:5173',
