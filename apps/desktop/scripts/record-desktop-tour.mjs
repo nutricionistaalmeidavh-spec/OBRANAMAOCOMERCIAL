@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url)
 const electronPath = require('electron')
 const outDir = path.resolve('tour-output')
 const dataDir = path.resolve('.tour-data')
+const devUrl = 'http://127.0.0.1:5173'
 fs.rmSync(dataDir, { recursive: true, force: true })
 fs.mkdirSync(outDir, { recursive: true })
 
@@ -20,18 +21,28 @@ const app = await electron.launch({
   args: ['--no-sandbox', '.'],
   env: {
     ...process.env,
-    VITE_DEV_SERVER_URL: 'http://127.0.0.1:5173',
+    VITE_DEV_SERVER_URL: devUrl,
     OBRA_NA_MAO_DATA_DIR: dataDir,
     ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
   },
 })
 
-const page = await app.firstWindow()
-await app.evaluate(({ BrowserWindow }) => {
-  const win = BrowserWindow.getAllWindows()[0]
-  win.setBounds({ x: 0, y: 0, width: 1440, height: 900 })
-  win.focus()
-})
+let page = await app.firstWindow()
+await page.waitForTimeout(1000)
+const rendererWindow = app.windows().find((candidate) => candidate.url().startsWith(devUrl))
+if (rendererWindow) page = rendererWindow
+
+await app.evaluate(({ BrowserWindow }, expectedUrl) => {
+  const windows = BrowserWindow.getAllWindows()
+  const healthy = windows.find((win) => win.webContents.getURL().startsWith(expectedUrl))
+  if (!healthy) throw new Error('Healthy desktop renderer window was not found.')
+  for (const win of windows) {
+    if (win !== healthy && win.webContents.getURL().startsWith('data:text/html')) win.destroy()
+  }
+  healthy.setBounds({ x: 0, y: 0, width: 1440, height: 900 })
+  healthy.show()
+  healthy.focus()
+}, devUrl)
 
 await page.waitForFunction(() => Boolean(window.fluxoDre?.app), null, { timeout: 30_000 })
 const seedResult = await page.evaluate(async () => {
@@ -39,20 +50,15 @@ const seedResult = await page.evaluate(async () => {
   return window.fluxoDre.demo.seed()
 })
 if (seedResult?.ok === false) {
-  throw new Error(`Demo database seed failed: ${seedResult.error || 'unknown error'}`)
+  throw new Error(`Demo database seed failed: ${seedResult.error?.message || seedResult.error || 'unknown error'}`)
 }
 
 await page.reload()
-await page.waitForFunction(() => {
-  const text = document.body?.innerText || ''
-  return Boolean(document.querySelector('.command-center-shell')) || /não conseguiu iniciar|não foi possível abrir o banco de dados local/i.test(text)
-}, null, { timeout: 30_000 })
-
+await page.waitForFunction(() => Boolean(document.querySelector('.command-center-shell')), null, { timeout: 30_000 })
 const bootText = await page.locator('body').innerText()
-if (/não conseguiu iniciar|não foi possível abrir o banco de dados local/i.test(bootText)) {
+if (/não conseguiu iniciar|não foi possível abrir o banco de dados local|interface não pôde ser carregada/i.test(bootText)) {
   throw new Error(`Desktop boot failed before recording: ${bootText.slice(0, 500)}`)
 }
-await page.waitForSelector('.command-center-shell', { timeout: 5_000 })
 await page.waitForTimeout(1500)
 
 const routes = [
@@ -84,6 +90,10 @@ if (stable.length < 4) {
 
 await page.evaluate(() => { location.hash = '#/' })
 await page.waitForTimeout(1200)
+await app.evaluate(({ BrowserWindow }, expectedUrl) => {
+  const healthy = BrowserWindow.getAllWindows().find((win) => win.webContents.getURL().startsWith(expectedUrl))
+  if (healthy) { healthy.show(); healthy.focus(); healthy.setBounds({ x: 0, y: 0, width: 1440, height: 900 }) }
+}, devUrl)
 
 const display = process.env.DISPLAY || ':99'
 const output = path.join(outDir, 'ArtiSys-Desktop-Tour-Real.mp4')
