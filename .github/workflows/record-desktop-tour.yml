@@ -1,0 +1,58 @@
+name: Record desktop tour
+
+on:
+  push:
+    branches:
+      - chore/record-desktop-tour
+  workflow_dispatch:
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Install desktop dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Install recorder tooling
+        working-directory: apps/desktop
+        run: |
+          npm install --no-save playwright
+          npx playwright install-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y xvfb ffmpeg
+
+      - name: Run real Chromium/Electron tour
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          xvfb-run -a -s "-screen 0 1440x900x24 -ac +extension RANDR" bash -lc '
+            npm run dev -- --host 127.0.0.1 > /tmp/artisys-vite.log 2>&1 &
+            VITE_PID=$!
+            npx wait-on http://127.0.0.1:5173
+            node scripts/record-desktop-tour.mjs
+            STATUS=$?
+            kill $VITE_PID || true
+            cat /tmp/artisys-vite.log || true
+            exit $STATUS
+          '
+
+      - name: Upload tour video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artisys-desktop-tour-real
+          path: |
+            apps/desktop/tour-output/*.mp4
+            apps/desktop/tour-output/*.json
+          if-no-files-found: warn
+          retention-days: 7
