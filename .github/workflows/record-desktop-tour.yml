@@ -23,10 +23,13 @@ jobs:
           rm -f package-lock.json
           npm install --no-audit --no-fund --legacy-peer-deps
 
-      - name: Install recorder tooling
+      - name: Install recorder tooling and Electron Chromium
         working-directory: apps/desktop
         run: |
-          npm install --no-save --no-audit --no-fund --legacy-peer-deps playwright
+          unset ELECTRON_SKIP_BINARY_DOWNLOAD
+          npm install --no-save --no-audit --no-fund --legacy-peer-deps playwright electron@43.4.1
+          node node_modules/electron/install.js
+          node -e "const p=require('electron'); console.log('Electron:',p); if(!require('fs').existsSync(p)) process.exit(1)"
           npx playwright install-deps chromium
           sudo apt-get update
           sudo apt-get install -y xvfb ffmpeg
