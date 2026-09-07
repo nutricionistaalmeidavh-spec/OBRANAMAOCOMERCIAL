@@ -16,17 +16,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: apps/desktop/package-lock.json
 
-      - name: Install desktop dependencies
+      - name: Install desktop dependencies in isolated runner
         working-directory: apps/desktop
-        run: npm install --no-audit --no-fund
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Install recorder tooling
         working-directory: apps/desktop
         run: |
-          npm install --no-save --no-audit --no-fund playwright
+          npm install --no-save --no-audit --no-fund --legacy-peer-deps playwright
           npx playwright install-deps chromium
           sudo apt-get update
           sudo apt-get install -y xvfb ffmpeg
