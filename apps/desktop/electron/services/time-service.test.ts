@@ -65,6 +65,8 @@ describe('folha de ponto mensal comercial',()=>{
     const result=await time.generateDocuments({funcionario_id:employee.id,competencia:'2026-08',paymentDate:'2026-08-15',point:false,receipts:true})
     expect(result.point).toBeUndefined()
     expect(result.receipt?.path).toBeTruthy()
+    expect(result.receipt.path).toContain(path.join('08 - agosto','Não assinados'))
+    expect(fs.existsSync(result.signedFolder)).toBe(true)
     const receipt=fs.readFileSync(result.receipt.path,'utf8')
     expect(receipt).toContain('Café')
     expect(receipt).toContain('Vale-alimentação')
@@ -78,6 +80,9 @@ describe('folha de ponto mensal comercial',()=>{
     time.printHtml=async(html:string,destination:string)=>{fs.mkdirSync(path.dirname(destination),{recursive:true});fs.writeFileSync(destination,html,'utf8')}
     const result=await time.generateDocuments({funcionario_id:employee.id,competencia:'2026-08',paymentDate:'2026-08-15',point:true,receipts:false})
     expect(result.point?.path).toBeTruthy()
+    expect(result.point.path).toContain(path.join('08 - agosto','Não assinados'))
+    expect(result.unsignedFolder).toContain(path.join('08 - agosto','Não assinados'))
+    expect(result.signedFolder).toContain(path.join('08 - agosto','Assinados'))
     expect(result.receipt).toBeUndefined()
   })
 
