@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 async function call(channel, payload) {
   const response = await ipcRenderer.invoke(channel, payload)
@@ -14,6 +14,29 @@ contextBridge.exposeInMainWorld('fluxoDre', {
   categorias: entity('categorias_financeiras'), cargos: entity('cargos'), funcionarios: entity('funcionarios'), folhas: entity('folhas_pagamento'), lancamentosFolha: entity('folha_lancamentos'), pagamentosFuncionario: entity('pagamentos_funcionario'), beneficios: entity('beneficios'),
   epis: entity('epis'), funcionarioEpis: entity('funcionario_epis'), arquivos: entity('arquivos'), fontes: entity('fontes_documentais'), pastas: entity('pastas_vinculadas'),
   documentos: { ...entity('documentos'), generate: (data) => call('documents:generate', data), templates: () => call('documents:templates'), saveTemplate: (data) => call('documents:save-template', data), chooseLocalTemplate: () => call('documents:choose-local-template'), setDefaultTemplate: (data) => call('documents:set-default-template', data), importForEmployee: (data) => call('files:import-employee', data), importForWork: (data) => call('files:import-work-document', data), open: (path) => call('files:open', { path }), reveal: (path) => call('files:reveal', { path }), copyPath: (path) => call('files:copy-path', { path }), openFolder: () => call('files:open-folder'), chooseRoot: () => call('files:choose-root'), getRoot: () => call('files:get-root'), delete: (data) => call('documents:delete', data) },
+  explorador: {
+    list: (rootId, relativePath = '') => call('explorer:list', { rootId, relativePath }),
+    preview: (rootId, relativePath) => call('explorer:preview', { rootId, relativePath }),
+    open: (rootId, relativePath = '') => call('explorer:open', { rootId, relativePath }),
+    createFolder: (rootId, parentRelativePath, name) => call('explorer:create-folder', { rootId, parentRelativePath, name }),
+    rename: (rootId, relativePath, newName) => call('explorer:rename', { rootId, relativePath, newName }),
+    move: (rootId, relativePath, destinationRelativePath) => call('explorer:move', { rootId, relativePath, destinationRelativePath }),
+    remove: (rootId, relativePath, recursive = false) => call('explorer:remove', { rootId, relativePath, recursive }),
+    pickImport: (rootId, destinationRelativePath = '') => call('explorer:pick-import', { rootId, destinationRelativePath }),
+    importFiles: (rootId, destinationRelativePath, sourcePaths) => call('explorer:import', { rootId, destinationRelativePath, sourcePaths }),
+    pathForFile: (file) => webUtils.getPathForFile(file),
+    context: (rootId, relativePath) => call('explorer:context', { rootId, relativePath }),
+    index: (rootId) => call('explorer:index', { rootId }),
+    moveToSigned: (rootId, relativePath) => call('explorer:move-to-signed', { rootId, relativePath })
+  },
+  scanner: {
+    capabilities: () => call('scanner:capabilities'),
+    start: (data) => call('scanner:start', data),
+    addPage: (data) => call('scanner:add-page', data),
+    redoPage: (data) => call('scanner:redo-page', data),
+    discard: (data) => call('scanner:discard', data),
+    saveSigned: (data) => call('scanner:save-signed', data)
+  },
   planejamento: { overview: (obra_id) => call('planning:overview', { obra_id }) }, campo: { saveRdo: (data) => call('field:save-rdo', data) }, tarefas: entity('tarefas_obra'), compras: { ...entity('solicitacoes_compra'), cotacoes: entity('cotacoes_compra'), pedidos: entity('pedidos_compra'), itens: entity('pedido_compra_itens'), recebimentos: entity('recebimentos_materiais'), estoque: entity('movimentacoes_estoque'), summary: (obra_id) => call('procurement:summary', { obra_id }), createOrder: (data) => call('procurement:create-order', data), receiveMaterial: (data) => call('procurement:receive-material', data), moveStock: (data) => call('procurement:move-stock', data) }, contratos: { ...entity('contratos_obra'), aditivos: entity('contrato_aditivos'), create: (data) => call('contracts:create', data), addendum: (data) => call('contracts:addendum', data) }, frentes: entity('frentes_obra'), subfrentes: entity('subfrentes_obra'), checklistFrente: entity('checklist_frente_itens'),
   folha: { employee: (data) => call('payroll:employee', data), saveVariable: (data) => call('payroll:save-variable', data), removeVariable: (id) => call('payroll:remove-variable', { id }), confirm: (data) => call('payroll:confirm', data), pending: (competencia) => call('payroll:pending', { competencia }) },
   ponto: { get: (data) => call('time:get', data), autoFill: (data) => call('time:auto-fill', data), save: (data) => call('time:save', data), generate: (data) => call('time:generate', data), generateAll: (data) => call('time:generate-all', data) },
