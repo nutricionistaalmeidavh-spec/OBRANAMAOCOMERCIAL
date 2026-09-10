@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "systemId": "obra-na-mao-comercial-desktop",
+  "mode": "electron",
+  "defaultEnvironment": "ci",
+  "defaultFlow": "smoke",
+  "defaultDemo": "quick-30s",
+  "defaultViewport": "desktop",
+  "capture": {
+    "video": true,
+    "screenshotEachStep": true,
+    "fps": 4
+  },
+  "demoCaptureViewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "electron": {
+    "entry": "../apps/desktop/electron/main.cjs",
+    "executablePath": "../apps/desktop/node_modules/electron/dist/electron"
+  },
+  "environments": {
+    "ci": {
+      "env": {
+        "NODE_ENV": "test",
+        "ARTISYS_QA": "1"
+      }
+    }
+  },
+  "flows": {
+    "smoke": "flows/smoke.json"
+  },
+  "demos": {
+    "quick-30s": {
+      "file": "demo/quick-30s.json",
+      "preset": "reels-9x16",
+      "durationTargetSec": 30
+    },
+    "overview-60s": {
+      "file": "demo/overview-60s.json",
+      "preset": "reels-9x16",
+      "durationTargetSec": 60
+    }
+  }
+}
