@@ -1,0 +1,136 @@
+name: ArtiSys QA Demo Capture
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Tipo de captura
+        required: true
+        default: demo
+        type: choice
+        options:
+          - demo
+          - qa
+      demo:
+        description: Demo Flow
+        required: true
+        default: quick-30s
+        type: choice
+        options:
+          - quick-30s
+          - overview-60s
+      preset:
+        description: Formato do video
+        required: true
+        default: reels-9x16
+        type: choice
+        options:
+          - reels-9x16
+          - landscape-16x9
+          - square-1x1
+      flow:
+        description: QA Flow
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+  pull_request:
+    branches: [main]
+    paths:
+      - 'qa/**'
+      - 'apps/desktop/tests/artisys-qa-integration.test.ts'
+      - '.github/workflows/artisys-qa-demo.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OBRA_NA_MAO_DATA_DIR: ${{ runner.temp }}/obra-na-mao-artisys-demo
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install Desktop dependencies
+        working-directory: apps/desktop
+        run: npm install --workspaces=false --no-audit --no-fund
+
+      - name: Verify Desktop
+        working-directory: apps/desktop
+        run: |
+          npm run lint
+          npm test
+          npm run build
+
+      - name: Install pinned ArtiSys QA runtime
+        run: npm install --prefix qa/runtime --no-audit --no-fund
+
+      - name: Install visual capture dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ffmpeg xvfb
+          npx --prefix qa/runtime playwright install-deps chromium
+
+      - name: Reset isolated demo data
+        run: rm -rf "$OBRA_NA_MAO_DATA_DIR"
+
+      - name: Capture real Electron flow
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            MODE="demo"
+            DEMO="quick-30s"
+            PRESET="reels-9x16"
+          else
+            MODE="${{ inputs.mode }}"
+            DEMO="${{ inputs.demo }}"
+            PRESET="${{ inputs.preset }}"
+          fi
+
+          if [ "$MODE" = "demo" ]; then
+            xvfb-run -a node qa/runtime/artisys-qa.mjs demo \
+              --config qa/artisys-qa.config.json \
+              --demo "$DEMO" \
+              --preset "$PRESET" \
+              --environment ci \
+              --output qa-artifacts
+          else
+            xvfb-run -a node qa/runtime/artisys-qa.mjs run \
+              --config qa/artisys-qa.config.json \
+              --flow "${{ inputs.flow || 'smoke' }}" \
+              --environment ci \
+              --viewport desktop \
+              --output qa-artifacts
+          fi
+
+      - name: Verify Reels artifact
+        if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'demo' && inputs.preset == 'reels-9x16') }}
+        shell: bash
+        run: |
+          VIDEO="$(find qa-artifacts -name demo-video.mp4 -print -quit)"
+          test -n "$VIDEO"
+          DIMENSIONS="$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$VIDEO")"
+          test "$DIMENSIONS" = "1080x1920"
+          DURATION="$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$VIDEO")"
+          echo "Demo video: ${DIMENSIONS}, ${DURATION}s"
+          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.demo }}" = "quick-30s" ]; then
+            awk -v d="$DURATION" 'BEGIN { exit (d >= 29.8 && d <= 30.2) ? 0 : 1 }'
+          fi
+
+      - name: Upload QA and Demo artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obra-na-mao-artisys-${{ github.run_number }}
+          path: qa-artifacts/
+          if-no-files-found: warn
+          retention-days: 7
