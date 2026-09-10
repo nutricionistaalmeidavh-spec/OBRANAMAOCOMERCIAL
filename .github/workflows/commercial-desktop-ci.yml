@@ -87,3 +87,50 @@ jobs:
           } else {
             gh release upload $tag $assets --repo "${{ github.repository }}" --clobber
           }
+
+  qa-demo-validation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OBRA_NA_MAO_DATA_DIR: ${{ runner.temp }}/obra-na-mao-artisys-demo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install and build Desktop
+        working-directory: apps/desktop
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run build
+      - name: Install QA runtime and Linux capture dependencies
+        run: |
+          npm install --prefix qa/runtime --no-audit --no-fund
+          sudo apt-get update -y
+          sudo apt-get install -y ffmpeg xvfb
+          npx --prefix qa/runtime playwright install-deps chromium
+      - name: Capture real Electron quick demo
+        run: |
+          rm -rf "$OBRA_NA_MAO_DATA_DIR"
+          xvfb-run -a node qa/runtime/artisys-qa.mjs demo \
+            --config qa/artisys-qa.config.json \
+            --demo quick-30s \
+            --preset reels-9x16 \
+            --environment ci \
+            --output qa-artifacts
+      - name: Verify 30s Reels media
+        run: |
+          VIDEO="$(find qa-artifacts -name demo-video.mp4 -print -quit)"
+          test -n "$VIDEO"
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$VIDEO")" = "1080x1920"
+          DURATION="$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$VIDEO")"
+          awk -v d="$DURATION" 'BEGIN { exit (d >= 29.8 && d <= 30.2) ? 0 : 1 }'
+      - name: Upload demo validation artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obra-na-mao-demo-validation-${{ github.run_number }}
+          path: qa-artifacts/
+          if-no-files-found: warn
+          retention-days: 7
