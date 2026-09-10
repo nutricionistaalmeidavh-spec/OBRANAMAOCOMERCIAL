@@ -1,0 +1,6 @@
+{
+  "id": "common/logout",
+  "steps": [
+    { "action": "capability", "name": "auth.logout" }
+  ]
+}

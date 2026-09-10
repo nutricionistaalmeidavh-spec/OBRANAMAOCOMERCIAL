@@ -18,11 +18,25 @@ export function buildDemoSummary({ qaSummary, demoName, preset, durationTargetSe
     actualDurationSec: Number(actualDurationSec.toFixed(3)),
     videoDurationSec: videoDurationSec == null ? null : Number(videoDurationSec.toFixed(3)),
     timingDeviationSec,
+    demoProfile: qaSummary.demoProfile || null,
     status: qaSummary.status,
   };
 }
 
-export async function runDemoFlow({ manifest, rootDir, environmentName, environment, demoName, demoFile, presetName, durationTargetSec, captureViewport, outputRoot = 'qa-artifacts' }) {
+export async function runDemoFlow({
+  manifest,
+  rootDir,
+  environmentName,
+  environment,
+  demoName,
+  demoFile,
+  presetName,
+  durationTargetSec,
+  captureViewport,
+  outputRoot = 'qa-artifacts',
+  demoProfile = null,
+  demoAdapter = null,
+}) {
   const preset = resolveDemoPreset(presetName);
   const viewport = captureViewport
     ? { name: preset.name, width: captureViewport.width, height: captureViewport.height }
@@ -44,6 +58,8 @@ export async function runDemoFlow({ manifest, rootDir, environmentName, environm
     flowFile: demoFile,
     viewport,
     outputRoot,
+    demoProfile,
+    demoAdapter,
   });
   const actualDurationSec = (Date.now() - started) / 1000;
   const sourceVideo = result.summary.video ? path.join(result.outputDir, result.summary.video) : null;

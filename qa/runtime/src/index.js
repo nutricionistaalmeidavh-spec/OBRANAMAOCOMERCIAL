@@ -36,7 +36,12 @@ export async function withTerminals(browser, { count = 2, contextOptions = {} } 
 }
 
 export { createQaConfig, VIEWPORTS, DEMO_PRESETS } from './config.js';
-export { loadQaManifest, validateQaManifest, resolveEnvironment, resolveFlow, resolveViewport, resolveDemo, resolveDemoPreset } from './manifest.js';
+export { loadQaManifest, validateQaManifest, resolveEnvironment, resolveFlow, resolveViewport, resolveDemo, resolveDemoPreset, resolveDemoProfile } from './manifest.js';
+export { loadDemoAdapter, validateDemoAdapter } from './adapters.js';
+export { prepareDemoProfile, resetDemoProfile, getDemoProfileStatus, finalizeDemoProfile, resolveDemoCredentials } from './demo-profile.js';
+export { createFixtureRegistry, resolveFixturePacks, listBuiltInFixturePacks } from './fixture-registry.js';
+export { resolveFlowComposition, loadFlowFile, BUILTIN_FLOW_ROOT } from './flow-library.js';
+export { redactSecrets, collectProfileSecretValues } from './redaction.js';
 export { runQaFlow } from './runner.js';
 export { runDemoFlow, buildDemoSummary } from './demo.js';
 export { executeStep } from './steps.js';

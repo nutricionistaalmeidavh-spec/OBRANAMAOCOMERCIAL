@@ -10,7 +10,7 @@ function locator(page, step) {
   throw new Error(`Step ${step.action} requires selector, testId, role, text or label`);
 }
 
-export async function executeStep({ page, step, index, screenshotsDir, baseURL, env = process.env }) {
+export async function executeStep({ page, step, index, screenshotsDir, baseURL, env = process.env, adapter = null, runtimeContext = null }) {
   const label = stepLabel(step, index);
   switch (step.action) {
     case 'goto': {
@@ -46,6 +46,13 @@ export async function executeStep({ page, step, index, screenshotsDir, baseURL, 
     }
     case 'screenshot': {
       await page.screenshot({ path: path.join(screenshotsDir, `${label}.png`), fullPage: step.fullPage ?? false });
+      break;
+    }
+    case 'capability': {
+      if (!step.name || typeof step.name !== 'string') throw new Error('capability requires name');
+      const capability = adapter?.capabilities?.[step.name];
+      if (typeof capability !== 'function') throw new Error(`Missing demo adapter capability: ${step.name}`);
+      await capability({ page, step, runtimeContext });
       break;
     }
     default: throw new Error(`Unsupported QA action: ${step.action}`);
