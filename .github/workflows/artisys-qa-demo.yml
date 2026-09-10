@@ -55,8 +55,6 @@ jobs:
   capture:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      OBRA_NA_MAO_DATA_DIR: ${{ runner.temp }}/obra-na-mao-artisys-demo
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -86,8 +84,12 @@ jobs:
           sudo apt-get install -y ffmpeg xvfb
           npx --prefix qa/runtime playwright install-deps chromium
 
-      - name: Reset isolated demo data
-        run: rm -rf "$OBRA_NA_MAO_DATA_DIR"
+      - name: Prepare isolated demo data
+        shell: bash
+        run: |
+          DATA_DIR="${{ runner.temp }}/obra-na-mao-artisys-demo"
+          rm -rf "$DATA_DIR"
+          echo "OBRA_NA_MAO_DATA_DIR=$DATA_DIR" >> "$GITHUB_ENV"
 
       - name: Capture real Electron flow
         shell: bash
