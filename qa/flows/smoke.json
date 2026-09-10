@@ -1,0 +1,9 @@
+{
+  "name": "Obra na Mão Comercial Desktop smoke",
+  "steps": [
+    {"name": "shell-ready", "action": "waitFor", "selector": ".artisys-desktop-shell", "timeoutMs": 20000},
+    {"name": "brand-visible", "action": "expectVisible", "selector": ".artisys-brand"},
+    {"name": "dashboard-visible", "action": "expectVisible", "selector": ".route-painel"},
+    {"name": "desktop-smoke", "action": "screenshot", "selector": "body"}
+  ]
+}

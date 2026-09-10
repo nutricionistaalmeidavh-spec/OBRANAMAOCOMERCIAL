@@ -1,0 +1,24 @@
+{
+  "name": "Obra na Mão Comercial — visão geral 60s",
+  "durationTargetSec": 60,
+  "steps": [
+    {"name": "shell-ready", "action": "waitFor", "selector": ".artisys-desktop-shell", "timeoutMs": 20000},
+    {"name": "abrir-configuracoes", "action": "click", "selector": "a[href='#/configuracoes']"},
+    {"name": "abrir-configuracoes-sistema", "action": "click", "selector": "a[href='#/configuracoes/sistema']"},
+    {"name": "carregar-dados-demo", "action": "click", "text": "Carregar demo", "holdMs": 1200},
+    {"name": "painel", "action": "click", "selector": "a[href='#/']", "holdMs": 4300},
+    {"name": "obras", "action": "click", "selector": "a[href='#/obras']", "holdMs": 4300},
+    {"name": "frentes", "action": "click", "selector": "a[href='#/frentes']", "holdMs": 4000},
+    {"name": "planejamento", "action": "click", "selector": "a[href='#/planejamento']", "holdMs": 4000},
+    {"name": "diario-de-obra", "action": "click", "selector": "a[href='#/rdo']", "holdMs": 4000},
+    {"name": "tarefas", "action": "click", "selector": "a[href='#/tarefas']", "holdMs": 4000},
+    {"name": "medicoes", "action": "click", "selector": "a[href='#/medicoes']", "holdMs": 4000},
+    {"name": "compras-e-contratos", "action": "click", "selector": "a[href='#/compras-contratos']", "holdMs": 4000},
+    {"name": "dre", "action": "click", "selector": "a[href='#/dre']", "holdMs": 4000},
+    {"name": "contas", "action": "click", "selector": "a[href='#/financeiro']", "holdMs": 4000},
+    {"name": "rh", "action": "click", "selector": "a[href='#/rh']", "holdMs": 4000},
+    {"name": "folha", "action": "click", "selector": "a[href='#/folha']", "holdMs": 4000},
+    {"name": "configuracoes", "action": "click", "selector": "a[href='#/configuracoes']", "holdMs": 3000},
+    {"name": "overview-final", "action": "screenshot", "selector": "body"}
+  ]
+}

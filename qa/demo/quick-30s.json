@@ -1,0 +1,19 @@
+{
+  "name": "Obra na Mão Comercial — Reels 30s",
+  "durationTargetSec": 30,
+  "steps": [
+    {"name": "shell-ready", "action": "waitFor", "selector": ".artisys-desktop-shell", "timeoutMs": 20000},
+    {"name": "abrir-configuracoes", "action": "click", "selector": "a[href='#/configuracoes']"},
+    {"name": "abrir-configuracoes-sistema", "action": "click", "selector": "a[href='#/configuracoes/sistema']"},
+    {"name": "carregar-dados-demo", "action": "click", "text": "Carregar demo", "holdMs": 1200},
+    {"name": "painel", "action": "click", "selector": "a[href='#/']", "holdMs": 3300},
+    {"name": "obras", "action": "click", "selector": "a[href='#/obras']", "holdMs": 3300},
+    {"name": "frentes", "action": "click", "selector": "a[href='#/frentes']", "holdMs": 3200},
+    {"name": "planejamento", "action": "click", "selector": "a[href='#/planejamento']", "holdMs": 3200},
+    {"name": "diario-de-obra", "action": "click", "selector": "a[href='#/rdo']", "holdMs": 3200},
+    {"name": "medicoes", "action": "click", "selector": "a[href='#/medicoes']", "holdMs": 3200},
+    {"name": "dre", "action": "click", "selector": "a[href='#/dre']", "holdMs": 3200},
+    {"name": "tarefas", "action": "click", "selector": "a[href='#/tarefas']", "holdMs": 2800},
+    {"name": "reels-final", "action": "screenshot", "selector": "body"}
+  ]
+}

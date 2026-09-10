@@ -9,7 +9,7 @@
 - Contrato `packages/contracts/src/desktop-sync.ts`: tipos do renderer e validação de entrada do backend Cloudflare.
 - Validação: testes reais SQLite do coordenador, regressões de UX, testes web de persistência/reenvio/lifecycle. Não substituem instalação Windows/macOS e ensaio real entre dois dispositivos.
 
-Última revisão estrutural: 2026-09-05.
+Última revisão estrutural: 2026-09-10.
 
 Este documento é o ponto de partida para alterações. Leia a seção afetada e abra apenas os arquivos diretamente relacionados; evite uma nova varredura global.
 
@@ -174,3 +174,12 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - `SettingsHubPage.tsx` substitui Configurações como ponto de entrada e direciona para Documentos, Importar planilha e `/configuracoes/sistema`.
 - A rota e a entrada atuais de `Assistente IA` permanecem intactas nesta etapa. A IA global é uma fase separada e não faz parte desta refatoração.
 - Nenhuma migration, API do preload, handler IPC, serviço Electron ou contrato de banco foi alterado por esta reorganização.
+
+## Adendo 2026-09-10 — ArtiSys QA e Demo Flows
+
+- `qa/artisys-qa.config.json`: integra o Desktop ao `@artisys/qa` 1.1.1 em modo Electron, mantendo QA técnico e fluxos de demonstração separados.
+- `qa/flows/smoke.json`: smoke visual do aplicativo desktop real.
+- `qa/demo/quick-30s.json` e `qa/demo/overview-60s.json`: tours reutilizáveis; `quick-30s` usa Reels 9:16 (1080×1920) e duração-alvo de 30 s.
+- `qa/runtime/` e `qa/artisys-qa.lock.json`: snapshot vendorizado, fixado no commit `572dc87c9a3702f089788bc5cf7912ef0e63a41f` do repositório privado `utilidades`; o repositório comercial não recebe credenciais para consumir código privado em runtime.
+- `.github/workflows/artisys-qa-demo.yml`: executa lint/test/build, inicia o Electron real sob Xvfb, captura vídeo/trace/telemetria e publica os artefatos de QA/Demo.
+- A demonstração usa o `DemoDataService` já existente e redireciona `OBRA_NA_MAO_DATA_DIR` para `${{ runner.temp }}`, garantindo que dados reais do Desktop não sejam lidos nem alterados durante a captura.
