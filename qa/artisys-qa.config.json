@@ -16,7 +16,7 @@
     "height": 900
   },
   "electron": {
-    "entry": "../apps/desktop/electron/main.cjs",
+    "entry": "../apps/desktop",
     "executablePath": "../apps/desktop/node_modules/electron/dist/electron"
   },
   "environments": {
