@@ -177,9 +177,9 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 
 ## Adendo 2026-09-10 — ArtiSys QA e Demo Flows
 
-- `qa/artisys-qa.config.json`: integra o Desktop ao `@artisys/qa` 1.1.1 em modo Electron, mantendo QA técnico e fluxos de demonstração separados.
+- `qa/artisys-qa.config.json`: integra o Desktop ao `@artisys/qa` 1.2.0 em modo Electron, mantendo QA técnico e fluxos de demonstração separados.
 - `qa/flows/smoke.json`: smoke visual do aplicativo desktop real.
 - `qa/demo/quick-30s.json` e `qa/demo/overview-60s.json`: tours reutilizáveis; `quick-30s` usa Reels 9:16 (1080×1920) e duração-alvo de 30 s.
-- `qa/runtime/` e `qa/artisys-qa.lock.json`: snapshot vendorizado, fixado no commit `572dc87c9a3702f089788bc5cf7912ef0e63a41f` do repositório privado `utilidades`; o repositório comercial não recebe credenciais para consumir código privado em runtime.
+- `qa/runtime/` e `qa/artisys-qa.lock.json`: snapshot vendorizado, fixado no commit `2af6556937c7a4074f641069a2e1a6bb02bf942f` do repositório privado `utilidades`; inclui Demo Profiles, adapters, fixtures, redaction e biblioteca de flows comuns do núcleo 1.2, sem expor credenciais do repositório central.
 - `.github/workflows/artisys-qa-demo.yml`: executa lint/test/build, inicia o Electron real sob Xvfb, captura vídeo/trace/telemetria e publica os artefatos de QA/Demo.
 - A demonstração usa o `DemoDataService` já existente e redireciona `OBRA_NA_MAO_DATA_DIR` para `${{ runner.temp }}`, garantindo que dados reais do Desktop não sejam lidos nem alterados durante a captura.
