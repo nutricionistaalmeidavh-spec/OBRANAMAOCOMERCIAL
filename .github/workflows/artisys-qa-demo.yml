@@ -41,6 +41,12 @@ on:
       - 'qa/**'
       - 'apps/desktop/tests/artisys-qa-integration.test.ts'
       - '.github/workflows/artisys-qa-demo.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'qa/**'
+      - 'apps/desktop/tests/artisys-qa-integration.test.ts'
+      - '.github/workflows/artisys-qa-demo.yml'
 
 permissions:
   contents: read
@@ -86,14 +92,16 @@ jobs:
       - name: Capture real Electron flow
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            MODE="demo"
-            DEMO="quick-30s"
-            PRESET="reels-9x16"
-          else
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MODE="${{ inputs.mode }}"
             DEMO="${{ inputs.demo }}"
             PRESET="${{ inputs.preset }}"
+            FLOW="${{ inputs.flow }}"
+          else
+            MODE="demo"
+            DEMO="quick-30s"
+            PRESET="reels-9x16"
+            FLOW="smoke"
           fi
 
           if [ "$MODE" = "demo" ]; then
@@ -106,14 +114,14 @@ jobs:
           else
             xvfb-run -a node qa/runtime/artisys-qa.mjs run \
               --config qa/artisys-qa.config.json \
-              --flow "${{ inputs.flow || 'smoke' }}" \
+              --flow "$FLOW" \
               --environment ci \
               --viewport desktop \
               --output qa-artifacts
           fi
 
       - name: Verify Reels artifact
-        if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'demo' && inputs.preset == 'reels-9x16') }}
+        if: ${{ github.event_name != 'workflow_dispatch' || (inputs.mode == 'demo' && inputs.preset == 'reels-9x16') }}
         shell: bash
         run: |
           VIDEO="$(find qa-artifacts -name demo-video.mp4 -print -quit)"
@@ -122,7 +130,7 @@ jobs:
           test "$DIMENSIONS" = "1080x1920"
           DURATION="$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$VIDEO")"
           echo "Demo video: ${DIMENSIONS}, ${DURATION}s"
-          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.demo }}" = "quick-30s" ]; then
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ] || [ "${{ inputs.demo }}" = "quick-30s" ]; then
             awk -v d="$DURATION" 'BEGIN { exit (d >= 29.8 && d <= 30.2) ? 0 : 1 }'
           fi
 
