@@ -10,19 +10,36 @@ function readJson(relativePath: string) {
 }
 
 describe('ArtiSys QA / Demo Flows integration', () => {
-  it('pins the reusable QA runtime and launches Electron from the real app root', () => {
+  it('pins ArtiSys QA 1.2.0 and launches Electron from the real app root', () => {
     const lock = readJson('qa/artisys-qa.lock.json')
     const config = readJson('qa/artisys-qa.config.json')
     const desktopPackage = readJson('apps/desktop/package.json')
 
     expect(lock.module).toBe('@artisys/qa')
-    expect(lock.version).toBe('1.1.1')
-    expect(lock.sourceCommit).toBe('572dc87c9a3702f089788bc5cf7912ef0e63a41f')
+    expect(lock.version).toBe('1.2.0')
+    expect(lock.sourceCommit).toBe('2af6556937c7a4074f641069a2e1a6bb02bf942f')
     expect(config.systemId).toBe('obra-na-mao-comercial-desktop')
     expect(config.mode).toBe('electron')
     expect(config.defaultDemo).toBe('quick-30s')
     expect(config.electron.entry).toBe('../apps/desktop')
     expect(desktopPackage.main).toBe('electron/updater-main.cjs')
+  })
+
+  it('vendors the 1.2 demo-platform runtime and reusable flow library', () => {
+    for (const relativePath of [
+      'qa/runtime/src/adapters.js',
+      'qa/runtime/src/demo-profile.js',
+      'qa/runtime/src/fixture-registry.js',
+      'qa/runtime/src/flow-library.js',
+      'qa/runtime/src/redaction.js',
+      'qa/runtime/flows/common/login.json',
+      'qa/runtime/flows/common/dashboard-tour.json',
+    ]) {
+      expect(fs.existsSync(path.join(repoRoot, relativePath)), relativePath).toBe(true)
+    }
+
+    const runtimePackage = readJson('qa/runtime/package.json')
+    expect(runtimePackage.version).toBe('1.2.0')
   })
 
   it('ships reusable 30s Reels and 60s overview demo flows', () => {
