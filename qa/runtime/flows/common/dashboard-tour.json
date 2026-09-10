@@ -1,0 +1,6 @@
+{
+  "id": "common/dashboard-tour",
+  "steps": [
+    { "action": "capability", "name": "navigation.dashboard" }
+  ]
+}

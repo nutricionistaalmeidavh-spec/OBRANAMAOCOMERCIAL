@@ -6,18 +6,40 @@ import { executeStep } from './steps.js';
 import { createFrameRecorder } from './video.js';
 import { startConsumerProcess } from './process.js';
 import { ensureDir, sanitizeName, writeJson } from './helpers.js';
-
-async function loadFlow(file) {
-  const parsed = JSON.parse(await fs.readFile(file, 'utf8'));
-  if (!parsed || !Array.isArray(parsed.steps) || parsed.steps.length === 0) throw new TypeError(`Flow must contain steps: ${file}`);
-  return parsed;
-}
+import { loadFlowFile, resolveFlowComposition } from './flow-library.js';
+import { prepareDemoProfile, finalizeDemoProfile } from './demo-profile.js';
+import { collectProfileSecretValues, redactSecrets } from './redaction.js';
 
 function runId({ systemId, flowName, viewportName }) {
   return `${sanitizeName(systemId)}-${sanitizeName(flowName)}-${sanitizeName(viewportName || 'viewport')}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 }
 
-export async function runQaFlow({ manifest, rootDir, environmentName, environment, flowName, flowFile, viewport, outputRoot = 'qa-artifacts' }) {
+function profileRuntimeContext({ manifest, rootDir, environmentName, environment, demoProfile, preparedProfile }) {
+  return {
+    manifest,
+    rootDir,
+    environmentName,
+    environment,
+    profile: demoProfile,
+    credentials: preparedProfile?.credentials || {},
+    account: preparedProfile?.account || null,
+    workspace: preparedProfile?.workspace || null,
+    fixtures: preparedProfile?.fixtures || [],
+  };
+}
+
+export async function runQaFlow({
+  manifest,
+  rootDir,
+  environmentName,
+  environment,
+  flowName,
+  flowFile,
+  viewport,
+  outputRoot = 'qa-artifacts',
+  demoProfile = null,
+  demoAdapter = null,
+}) {
   const id = runId({ systemId: manifest.systemId, flowName, viewportName: viewport.name });
   const outputDir = path.resolve(outputRoot, id);
   const screenshotsDir = await ensureDir(path.join(outputDir, 'screenshots'));
@@ -25,7 +47,9 @@ export async function runQaFlow({ manifest, rootDir, environmentName, environmen
   const telemetry = [];
   const stepsLog = [];
   const startedAt = new Date().toISOString();
-  const flow = await loadFlow(flowFile);
+  const loaded = await loadFlowFile(flowFile);
+  const flow = await resolveFlowComposition(loaded.flow, { rootDir, sourceFile: loaded.file });
+  const profileSecretValues = demoProfile ? collectProfileSecretValues(demoProfile, process.env) : [];
   let status = 'passed';
   let failure = null;
   let browser;
@@ -36,8 +60,19 @@ export async function runQaFlow({ manifest, rootDir, environmentName, environmen
   let nativeVideo;
   let consumerProcess;
   let videoFile = null;
+  let preparedProfile = null;
 
   try {
+    if (demoProfile) {
+      if (!demoAdapter) throw new Error('Demo profile requires a demo adapter');
+      preparedProfile = await prepareDemoProfile({
+        profile: demoProfile,
+        adapter: demoAdapter,
+        env: process.env,
+        context: { manifest, rootDir, environmentName, environment },
+      });
+    }
+
     if (environment.startCommand) {
       consumerProcess = await startConsumerProcess({
         command: environment.startCommand,
@@ -83,11 +118,21 @@ export async function runQaFlow({ manifest, rootDir, environmentName, environmen
       await page.goto(environment.baseURL, { waitUntil: flow.waitUntil || 'domcontentloaded' });
     }
 
+    const runtimeContext = profileRuntimeContext({ manifest, rootDir, environmentName, environment, demoProfile, preparedProfile });
     for (let index = 0; index < flow.steps.length; index++) {
       const step = flow.steps[index];
       const stepStart = Date.now();
       try {
-        const label = await executeStep({ page, step, index, screenshotsDir, baseURL: environment.baseURL, env: process.env });
+        const label = await executeStep({
+          page,
+          step,
+          index,
+          screenshotsDir,
+          baseURL: environment.baseURL,
+          env: process.env,
+          adapter: demoAdapter,
+          runtimeContext,
+        });
         if (manifest.capture?.screenshotEachStep) {
           await page.screenshot({ path: path.join(screenshotsDir, `${label}-after.png`), fullPage: false });
         }
@@ -96,6 +141,15 @@ export async function runQaFlow({ manifest, rootDir, environmentName, environmen
         stepsLog.push({ index, action: step.action, name: step.name || null, status: 'failed', durationMs: Date.now() - stepStart, error: error.message });
         throw error;
       }
+    }
+
+    if (preparedProfile) {
+      await finalizeDemoProfile({
+        profile: demoProfile,
+        adapter: demoAdapter,
+        prepared: preparedProfile,
+        context: runtimeContext,
+      });
     }
   } catch (error) {
     status = 'failed';
@@ -116,13 +170,14 @@ export async function runQaFlow({ manifest, rootDir, environmentName, environmen
     }
     if (browser) await browser.close().catch(() => {});
     if (consumerProcess) {
-      await fs.writeFile(path.join(outputDir, 'process.log'), consumerProcess.logs.join(''), 'utf8').catch(() => {});
+      const processLog = redactSecrets(consumerProcess.logs.join(''), profileSecretValues);
+      await fs.writeFile(path.join(outputDir, 'process.log'), processLog, 'utf8').catch(() => {});
       await consumerProcess.stop().catch(() => {});
     }
     await fs.rm(path.join(outputDir, '.native-video'), { recursive: true, force: true }).catch(() => {});
   }
 
-  const summary = {
+  const summary = redactSecrets({
     schemaVersion: 1,
     runId: id,
     systemId: manifest.systemId,
@@ -137,10 +192,12 @@ export async function runQaFlow({ manifest, rootDir, environmentName, environmen
     trace: 'trace.zip',
     screenshots: 'screenshots',
     telemetryCount: telemetry.length,
+    demoProfile: preparedProfile?.metadata || null,
     steps: stepsLog,
     failure,
-  };
-  await writeJson(path.join(outputDir, 'telemetry.json'), telemetry);
+  }, profileSecretValues);
+  const safeTelemetry = redactSecrets(telemetry, profileSecretValues);
+  await writeJson(path.join(outputDir, 'telemetry.json'), safeTelemetry);
   await writeJson(path.join(outputDir, 'run-summary.json'), summary);
   if (status !== 'passed') {
     const error = new Error(`QA flow failed: ${manifest.systemId}/${flowName}`);
