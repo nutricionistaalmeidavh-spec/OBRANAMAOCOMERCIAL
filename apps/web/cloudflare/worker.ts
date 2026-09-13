@@ -15,7 +15,7 @@ async function provisionReservedLifetimeLicense(env:any){
   const email=fromHex(RESERVED_EMAIL_HEX).trim().toLowerCase();
   const collection=`license_email_${safeKey(email.slice(0,28))}_${hashKey(email)}`;
   const stamp=new Date().toISOString();
-  const existing=await env.DB.prepare("SELECT record_json FROM kv_records WHERE collection='licenses' AND id=?").bind(RESERVED_LICENSE_ID).first<{record_json:string}>();
+  const existing=await env.DB.prepare("SELECT record_json FROM kv_records WHERE collection='licenses' AND id=?").bind(RESERVED_LICENSE_ID).first() as {record_json?:string}|null;
   let valid=false;
   if(existing?.record_json){try{const record=JSON.parse(existing.record_json);valid=record.email===email&&record.status==='active'&&record.plan==='lifetime-manual'&&!record.expiresAt}catch{}}
   if(!valid){
