@@ -3,6 +3,11 @@
   const sheet=document.getElementById('sheet');
   if(!content)return;
 
+  // Portal and superadmin routes render through lazy modules. Do not keep the
+  // legacy boot mask active while those modules mount, otherwise #owner can
+  // render correctly in the DOM and still remain completely invisible.
+  if(location.hash==='#owner'||location.hash==='#portal')document.body.classList.remove('field-booting');
+
   const accessSurfaces=['login','claim','migration','preparing','mobile-unavailable','employee','error'];
   const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
   const lower=value=>clean(value).toLowerCase();
