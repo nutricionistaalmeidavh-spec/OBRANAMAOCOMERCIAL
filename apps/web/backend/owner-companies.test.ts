@@ -1,0 +1,9 @@
+import {describe,it,expect} from 'vitest';
+import {companyViews} from './owner-companies';
+describe('Central Artisys company inventory',()=>{
+ it('excludes operator tenant and preserves isolated reserved licenses without exposing codes',()=>{
+ const result=companyViews([{id:'own',name:'Artisys',licenseId:'owner'},{id:'customer',name:'Cliente',licenseId:'lc',principalEmail:'c@test.com'}],[{id:'lc',companyId:'customer',email:'c@test.com',status:'active',claimedBy:'u',modules:['rh'],channels:['desktop'],code:'SECRET'},{id:'everton',email:'everton.eng@hotmail.com',status:'active',modules:['rh'],channels:['desktop'],code:'RESERVED'}],[{id:'u',email:'c@test.com',platformRole:'user',companyIds:['customer'],status:'active',provisionalCode:'PRIVATE'},{id:'owner',email:'owner@test.com',platformRole:'superadmin',companyIds:['own']}],[{id:'p-own',companyId:'own',name:'Interna'},{id:'p',companyId:'customer',name:'Cliente'}],[{id:'d-own',companyId:'own',name:'Interno'},{id:'d',companyId:'customer',name:'Cliente',deviceToken:'SECRET'}],[{email:'c@test.com',created_at:'2026-09-13'}],'owner@test.com');
+ expect(result.companies).toHaveLength(2);const c=result.companies.find(c=>c.id==='customer')!;expect(c.projects.map(p=>p.id)).toEqual(['p']);expect(c.devices.map(d=>d.id)).toEqual(['d']);expect(c.passwordCreatedAt).toBe('2026-09-13');const r=result.companies.find(c=>c.reserved)!;expect(r.id).toBe('license:everton');expect(r.status).toBe('pending');expect(r.projectsCount).toBe(0);expect(JSON.stringify(result)).not.toContain('SECRET');expect(JSON.stringify(result)).not.toContain('PRIVATE');
+ });
+ it('reports suspension and expiry independently from password creation',()=>{const views=companyViews([],[{id:'x',email:'x@x.com',status:'revoked',claimedBy:'u'},{id:'e',email:'e@x.com',status:'active',expiresAt:'2000-01-01'}],[],[],[],[],'owner@x.com').companies;expect(views.map(v=>v.status)).toEqual(['suspended','expired']);});
+});

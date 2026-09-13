@@ -1,8 +1,8 @@
 import { createPasswordRecord, sha256Hex, type PasswordRecord, verifyPasswordRecord } from './password-credentials';
 
 type Env={DB:D1Database;OWNER_EMAIL?:string};
-type PlatformAccess={id:string;email:string;name?:string;platformRole:'superadmin'|'user';status:'pending'|'active'|'blocked';companyIds:string[];projectIds:string[];systems:Record<string,{enabled:boolean;role:string}>;provisionalCode?:string;claimedBy?:string;sessionVersion?:number;createdAt:string;updatedAt:string};
-type License={id:string;email?:string;code:string;status:'active'|'revoked';expiresAt?:string;claimedBy?:string;companyId?:string;updatedAt?:string};
+type PlatformAccess={snapshot:string;id:string;email:string;name?:string;platformRole:'superadmin'|'user';status:'pending'|'active'|'blocked';companyIds:string[];projectIds:string[];systems:Record<string,{enabled:boolean;role:string}>;provisionalCode?:string;claimedBy?:string;sessionVersion?:number;createdAt:string;updatedAt:string};
+type License={snapshot:string;id:string;email?:string;code:string;status:'active'|'revoked';expiresAt?:string;claimedBy?:string;companyId?:string;updatedAt?:string};
 const SESSION_TTL_MS=24*60*60*1000;
 const SESSION_MAX_AGE=Math.floor(SESSION_TTL_MS/1000);
 const RESERVED_FIRST_ACCESS_HASH='1ba29e33d79d9ce2d61ffd872689fd0df6287a9a99f8a639968b86e480b2d560';
@@ -46,17 +46,13 @@ async function platformAccess(env:Env,email:string):Promise<PlatformAccess|null>
   const ref=await env.DB.prepare('SELECT record_json FROM kv_records WHERE collection=? ORDER BY updated_at DESC LIMIT 1').bind(platformEmailIndex(email)).first<{record_json:string}>();
   if(!ref?.record_json)return null;let accessId='';try{accessId=String(JSON.parse(ref.record_json).accessId||'')}catch{}if(!accessId)return null;
   const row=await env.DB.prepare("SELECT id,record_json FROM kv_records WHERE collection='platform_accesses' AND id=?").bind(accessId).first<{id:string;record_json:string}>();
-  if(!row)return null;try{return{...JSON.parse(row.record_json),id:row.id} as PlatformAccess}catch{return null}
-}
-async function savePlatformAccess(env:Env,access:PlatformAccess){
-  const{id,...record}=access,stamp=now();await env.DB.prepare("UPDATE kv_records SET record_json=?,updated_at=? WHERE collection='platform_accesses' AND id=?").bind(JSON.stringify({...record,updatedAt:stamp}),stamp,id).run();
+  if(!row)return null;try{return{...JSON.parse(row.record_json),id:row.id,snapshot:row.record_json} as PlatformAccess}catch{return null}
 }
 async function licenseByEmail(env:Env,email:string):Promise<License|null>{
   const refs=await env.DB.prepare('SELECT record_json FROM kv_records WHERE collection=? ORDER BY updated_at DESC LIMIT 5').bind(licenseEmailIndex(email)).all<{record_json:string}>();
-  for(const row of refs.results||[]){let licenseId='';try{licenseId=String(JSON.parse(row.record_json).licenseId||'')}catch{}if(!licenseId)continue;const lic=await env.DB.prepare("SELECT id,record_json FROM kv_records WHERE collection='licenses' AND id=?").bind(licenseId).first<{id:string;record_json:string}>();if(!lic)continue;try{const parsed={...JSON.parse(lic.record_json),id:lic.id} as License;if(norm(parsed.email)===norm(email)&&parsed.status==='active'&&(!parsed.expiresAt||parsed.expiresAt>=now()))return parsed}catch{}}
+  for(const row of refs.results||[]){let licenseId='';try{licenseId=String(JSON.parse(row.record_json).licenseId||'')}catch{}if(!licenseId)continue;const lic=await env.DB.prepare("SELECT id,record_json FROM kv_records WHERE collection='licenses' AND id=?").bind(licenseId).first<{id:string;record_json:string}>();if(!lic)continue;try{const parsed={...JSON.parse(lic.record_json),id:lic.id,snapshot:lic.record_json} as License;if(norm(parsed.email)===norm(email)&&parsed.status==='active'&&(!parsed.expiresAt||parsed.expiresAt>=now()))return parsed}catch{}}
   return null;
 }
-async function saveLicense(env:Env,license:License){const{id,...record}=license,stamp=now();await env.DB.prepare("UPDATE kv_records SET record_json=?,updated_at=? WHERE collection='licenses' AND id=?").bind(JSON.stringify({...record,updatedAt:stamp}),stamp,id).run()}
 async function sessionUser(env:Env,request:Request){
   const sessionId=cookie(request,'obn_session');if(!sessionId)return null;
   const row=await env.DB.prepare('SELECT user_id,email,name,expires_at FROM auth_sessions WHERE id=?').bind(sessionId).first<{user_id:string;email:string;name:string;expires_at:string}>();
@@ -94,9 +90,29 @@ async function firstAccess(request:Request,env:Env){
   const access=await platformAccess(env,email);if(access?.platformRole==='superadmin')return fail('Use o método administrativo de autenticação.',403);if(access?.status==='blocked')return fail('Acesso bloqueado. Procure o administrador.',403);
   const license=await licenseByEmail(env,email),legacyMatch=!!access?.provisionalCode&&access.provisionalCode===code,licenseMatch=!!license&&await validLicenseCode(license,code);if(!legacyMatch&&!licenseMatch)return fail('Código de liberação inválido.',401);
   const userId=await stableUserId(email);if(license?.claimedBy&&license.claimedBy!==userId)return fail('Este código de liberação já foi utilizado.',409);
-  await saveCredential(env,email,await createPasswordRecord(password));
-  if(access&&legacyMatch){const next={...access,status:'active' as const,claimedBy:userId,provisionalCode:undefined,updatedAt:now()};await savePlatformAccess(env,next);const ref=await env.DB.prepare('SELECT id FROM kv_records WHERE collection=? LIMIT 1').bind(legacyCodeIndex(code)).first<{id:string}>();if(ref?.id)await env.DB.prepare('DELETE FROM kv_records WHERE collection=? AND id=?').bind(legacyCodeIndex(code),ref.id).run()}
-  if(license&&!license.claimedBy)await saveLicense(env,{...license,claimedBy:userId,updatedAt:now()});
+  const record=await createPasswordRecord(password),stamp=now();
+  // D1 batch is transactional. The insert is the single winner, and every mutation
+  // is tied to its fresh salted hash. Re-read snapshots atomically to reject a code
+  // revoked, claimed or rebound while password hashing was in progress.
+  const source=licenseMatch?license!:access!;
+  const sourceCollection=licenseMatch?'licenses':'platform_accesses';
+  const statements=[env.DB.prepare(`INSERT INTO password_credentials(email,algorithm,salt,password_hash,iterations,created_at,updated_at)
+    SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM kv_records WHERE collection=? AND id=? AND record_json=?)
+    AND (? IS NULL OR EXISTS(SELECT 1 FROM kv_records WHERE collection='platform_accesses' AND id=? AND record_json=?))
+    ON CONFLICT(email) DO NOTHING`).bind(email,record.algorithm,record.salt,record.hash,record.iterations,record.createdAt,record.updatedAt,
+      sourceCollection,source.id,source.snapshot,access?.id||null,access?.id||null,access?.snapshot||null)];
+  const winner=`EXISTS(SELECT 1 FROM password_credentials WHERE email=? AND password_hash=? AND salt=?)`;
+  if(access&&legacyMatch){
+    statements.push(env.DB.prepare(`UPDATE kv_records SET record_json=json_set(json_remove(record_json,'$.provisionalCode'),'$.status','active','$.claimedBy',?,'$.updatedAt',?),updated_at=?
+      WHERE collection='platform_accesses' AND id=? AND ${winner}`).bind(userId,stamp,stamp,access.id,email,record.hash,record.salt));
+    statements.push(env.DB.prepare(`DELETE FROM kv_records WHERE collection=? AND ${winner}`).bind(legacyCodeIndex(code),email,record.hash,record.salt));
+  }
+  if(licenseMatch&&!license!.claimedBy){
+    statements.push(env.DB.prepare(`UPDATE kv_records SET record_json=json_set(record_json,'$.claimedBy',?,'$.updatedAt',?),updated_at=?
+      WHERE collection='licenses' AND id=? AND ${winner}`).bind(userId,stamp,stamp,license!.id,email,record.hash,record.salt));
+  }
+  const results=await env.DB.batch(statements);
+  if(Number(results[0]?.meta?.changes||0)!==1)return fail('Primeiro acesso j� conclu�do ou libera��o alterada. Entre com sua senha ou consulte o administrador.',409);
   return createSession(env,email,access?.name);
 }
 async function changePassword(request:Request,env:Env){

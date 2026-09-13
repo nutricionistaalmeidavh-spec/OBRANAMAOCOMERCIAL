@@ -50,6 +50,8 @@ interface Window { fluxoDre: {
   catalogo: { list():Promise<any>; saveCargo(data:any):Promise<any>; saveBenefit(data:any):Promise<any>; saveLink(data:any):Promise<any>; deactivate(type:string,id:number):Promise<any> }
   importacoes: EntityApi & { preview():Promise<any>; commit(token:string):Promise<any> }; importadorUniversal:{choose():Promise<any>;preview(token:string,options:any):Promise<any>;commit(token:string,options:any):Promise<any>}; relatorios:{dashboard(filters?:any):Promise<any>;dre(filters?:any):Promise<any[]>};
   online:{
+    passwordAuth(input:{email:string;password:string;code?:string;firstAccess:boolean}):Promise<{linked:boolean;needsSetup:boolean;company?:{id:string;name:string};project?:{id:string;name:string}}>;
+    passwordSetup(input:{companyName:string;projectName:string}):Promise<{linked:boolean;needsSetup:boolean;company?:{id:string;name:string};project?:{id:string;name:string}}>;
     syncState():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     configureSync(scope:{companyId:number;workId:number}):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     syncNow():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;

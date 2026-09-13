@@ -79,6 +79,7 @@ class OnlineService {
   }
 
   setBaseUrl(value) {
+    this.passwordSession = null
     const next = String(value || '').trim().replace(/\/$/, '')
     if (!/^https?:\/\//i.test(next)) throw new Error('Informe uma URL online válida, começando por https://.')
     const current = this.readConfig()
@@ -94,21 +95,27 @@ class OnlineService {
     return this.state()
   }
 
-  async request(route, payload, timeoutMs = 15000) {
+  async request(route, payload, timeoutMs = 15000, auth = null) {
     if (!this.baseUrl) throw new Error('Configure o endereço online do Obra na Mão em Configurações.')
     if (typeof this.fetchImpl !== 'function') throw new Error('Este ambiente não possui suporte HTTP.')
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), timeoutMs)
     try {
       const response = await this.fetchImpl(this.baseUrl + route, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload || {}),
+        method: payload === undefined ? 'GET' : 'POST',
+        headers: { 'content-type': 'application/json', ...(auth?.cookie ? { cookie: auth.cookie } : {}) },
+        body: payload === undefined ? undefined : JSON.stringify(payload || {}),
+        redirect: 'error',
         signal: controller.signal
       })
       let data = {}
       try { data = await response.json() } catch {}
       if (!response.ok) throw new Error(data.error || data.message || `Falha online (HTTP ${response.status}).`)
+      if (auth) {
+        const cookies = response.headers?.getSetCookie?.() || [response.headers?.get?.('set-cookie') || '']
+        const session = cookies.join('; ').match(/(?:^|[;,]\s*)obn_session=([^; ,]+)/)
+        if (session) auth.cookie = `obn_session=${session[1]}`
+      }
       return data
     } catch (error) {
       if (error?.name === 'AbortError') throw new Error(`A conexão online excedeu ${Math.round(timeoutMs / 1000)} segundos.`)
@@ -116,6 +123,53 @@ class OnlineService {
     } finally {
       clearTimeout(timeout)
     }
+  }
+
+  async passwordAuth({ email, password, code, firstAccess = false } = {}) {
+    if (!this.baseUrl.startsWith('https://')) throw new Error('O acesso por senha exige uma conexão HTTPS segura.')
+    if (this.passwordBusy) throw new Error('Aguarde a autenticação em andamento.')
+    this.passwordBusy = true
+    this.passwordSession = null
+    try {
+      const auth = {}
+      await this.request(`/api/auth/password/${firstAccess ? 'first-access' : 'login'}`, {
+        email: String(email || '').trim().toLowerCase(), password: String(password || ''),
+        ...(firstAccess ? { code: String(code || '').trim().toUpperCase() } : {})
+      }, 15000, auth)
+      if (!auth.cookie) throw new Error('O servidor não retornou uma sessão de autenticação válida.')
+      this.passwordSession = { ...auth, baseUrl: this.baseUrl }
+      return await this.completePasswordLink()
+    } finally { this.passwordBusy = false }
+  }
+
+  async completePasswordLink(setup) {
+    const auth = this.passwordSession
+    if (!auth || auth.baseUrl !== this.baseUrl) throw new Error('Entre novamente para continuar a configuração.')
+    if (setup) await this.request('/api/desktop/claim', { companyName: String(setup.companyName || '').trim(), projectName: String(setup.projectName || '').trim() }, 15000, auth)
+    const bootstrap = await this.request('/api/desktop/bootstrap', undefined, 15000, auth)
+    if (bootstrap.needsClaim) {
+      if (!bootstrap.authorized) throw new Error('Sua licença não permite acesso ao Desktop.')
+      return { linked: false, needsSetup: true }
+    }
+    if (!bootstrap.company?.id) throw new Error('A conta não possui uma empresa vinculada.')
+    this.assertTenant(bootstrap.company.id)
+    const requestId = crypto.randomBytes(18).toString('hex'), secret = crypto.randomBytes(24).toString('hex')
+    await this.request('/api/desktop/start', { requestId, secret, installationId: this.installationId(), deviceName: os.hostname() || 'Computador', platform: process.platform })
+    await this.request('/api/desktop/approve', { requestId, secret }, 15000, auth)
+    const result = await this.request('/api/desktop/status', { requestId, secret })
+    if (result.status !== 'approved' || !result.deviceToken) throw new Error('Não foi possível concluir o vínculo deste computador.')
+    const session = await this.request('/api/desktop/session', { deviceToken: result.deviceToken })
+    if (!session.authorized || String(session.company?.id) !== String(bootstrap.company.id)) throw new Error('A empresa da sessão não corresponde à conta autenticada.')
+    this.assertTenant(session.company.id)
+    this.writeConfig({ tenant: { companyId: String(session.company.id), companyName: session.company.name || '', baseUrl: this.baseUrl } })
+    this.storeToken(result.deviceToken)
+    this.passwordSession = null
+    return { linked: true, needsSetup: false, company: session.company, project: session.project }
+  }
+
+  assertTenant(companyId) {
+    const tenant = this.readConfig().tenant
+    if (tenant && (tenant.companyId !== String(companyId) || tenant.baseUrl !== this.baseUrl)) throw new Error('Este perfil local pertence a outra empresa. Use um perfil Windows separado para acessar outra empresa sem misturar os dados.')
   }
 
   async start({ activationCode = '' } = {}) {
@@ -148,6 +202,10 @@ class OnlineService {
       secret: cfg.pending.secret
     })
     if (result.status === 'approved' && result.deviceToken) {
+      const session = await this.request('/api/desktop/session', { deviceToken: result.deviceToken })
+      if (!session.authorized || !session.company?.id) throw new Error('Conclua o vínculo da sua empresa antes de autorizar este computador.')
+      this.assertTenant(session.company.id)
+      this.writeConfig({ tenant: { companyId: String(session.company.id), companyName: session.company.name || '', baseUrl: this.baseUrl } })
       this.storeToken(result.deviceToken)
       return { status: 'approved', linked: true, deviceId: result.deviceId }
     }
@@ -165,6 +223,7 @@ class OnlineService {
   }
 
   disconnect() {
+    this.passwordSession = null
     const cfg = this.readConfig()
     delete cfg.tokenValue
     delete cfg.tokenEncoding

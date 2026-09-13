@@ -183,3 +183,11 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - `qa/runtime/` e `qa/artisys-qa.lock.json`: snapshot vendorizado, fixado no commit `2af6556937c7a4074f641069a2e1a6bb02bf942f` do repositório privado `utilidades`; inclui Demo Profiles, adapters, fixtures, redaction e biblioteca de flows comuns do núcleo 1.2, sem expor credenciais do repositório central.
 - `.github/workflows/artisys-qa-demo.yml`: executa lint/test/build, inicia o Electron real sob Xvfb, captura vídeo/trace/telemetria e publica os artefatos de QA/Demo.
 - A demonstração usa o `DemoDataService` já existente e redireciona `OBRA_NA_MAO_DATA_DIR` para `${{ runner.temp }}`, garantindo que dados reais do Desktop não sejam lidos nem alterados durante a captura.
+
+## Adendo 2026-09-13 — autenticação comercial central
+
+- `src/components/DesktopLogin.tsx`: entrada por e-mail/senha, primeiro acesso por código e configuração de empresa/obra dentro do Desktop; Google permanece via navegador.
+- `electron/services/online-service.cjs`: usa as mesmas rotas de senha do Worker, cookie de sessão somente em memória no processo principal, seguido de `/api/desktop/bootstrap`, `/api/desktop/claim` e autorização de dispositivo. Senha/código/cookie não são gravados nem retornados ao renderer.
+- IPC/preload/tipagem: `online:password-auth` / `passwordAuth` e `online:password-setup` / `passwordSetup`.
+- Perfil local fixa empresa e endpoint após autenticação. Desconectar não remove essa proteção; outra empresa exige perfil Windows separado. Vincular não configura nem inicia publicação de dados locais automaticamente; o vínculo explícito empresa/obra do coordenador continua obrigatório.
+- `App.tsx`: oferece login ao computador sem vínculo; computadores já vinculados mantêm operação local offline.

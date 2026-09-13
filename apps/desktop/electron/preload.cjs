@@ -45,6 +45,8 @@ contextBridge.exposeInMainWorld('fluxoDre', {
   importadorUniversal: { choose: () => call('universal-import:choose'), preview: (token, options) => call('universal-import:preview', { token, options }), commit: (token, options) => call('universal-import:commit', { token, options }) },
   relatorios: { dashboard: (filters) => call('dashboard:get', filters), dre: (filters) => call('dre:get', filters) },
   online: {
+    passwordAuth: (input) => call('online:password-auth', input),
+    passwordSetup: (input) => call('online:password-setup', input),
     syncState: () => call('online:sync-state'),
     configureSync: (scope) => call('online:sync-configure', scope),
     syncNow: () => call('online:sync-now'),

@@ -39,7 +39,7 @@ describe('OnlineService', () => {
       }
       if (route === '/api/desktop/session') {
         expect(body.deviceToken).toBe('device-token-test')
-        return response(200, { authorized: true, company: { name: 'Empresa Teste' } })
+        return response(200, { authorized: true, company: { id: 'tenant-test', name: 'Empresa Teste' } })
       }
       return response(404, { error: 'rota inesperada' })
     })
@@ -98,5 +98,53 @@ describe('OnlineService', () => {
     const result = await outcome
     expect(aborts).toBe(1)
     expect('error' in result ? result.error.message : '').toMatch(/90 segundos/i)
+  })
+})
+
+
+describe('autenticação central', () => {
+  function fixture(needsClaim = false) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'commercial-auth-')); dirs.push(dir)
+    let needsSetup = needsClaim
+    const fetchImpl = vi.fn(async (url: string, init: any) => {
+      const route = new URL(url).pathname
+      if (route.startsWith('/api/auth/password/')) return { ...response(200, {}), headers: { getSetCookie: () => ['obn_session=secret-cookie; HttpOnly; Secure'] } }
+      if (['/api/desktop/bootstrap', '/api/desktop/claim', '/api/desktop/approve'].includes(route)) expect(init.headers.cookie).toBe('obn_session=secret-cookie')
+      if (route === '/api/desktop/bootstrap') return response(200, { needsClaim: needsSetup, authorized: true, company: needsSetup ? undefined : { id: 'tenant-a' } })
+      if (route === '/api/desktop/claim') { expect(JSON.parse(init.body)).toEqual({ companyName: 'Empresa A', projectName: 'Obra A' }); needsSetup = false; return response(201, {}) }
+      if (route === '/api/desktop/status') return response(200, { status: 'approved', deviceToken: 'device-a' })
+      if (route === '/api/desktop/session') return response(200, { authorized: true, company: { id: 'tenant-a' }, project: { id: 'project-a' } })
+      return response(200, {})
+    })
+    const shell = { openExternal: vi.fn() }
+    return { service: new OnlineService({ dataDir: dir, baseUrl: 'https://example.test', fetchImpl, shell }), fetchImpl, shell, dir }
+  }
+  it('ativa e configura empresa sem navegador ou persistir credenciais', async () => {
+    const { service, fetchImpl, shell, dir } = fixture(true)
+    expect(await service.passwordAuth({ email: 'CLIENTE@EXAMPLE.COM', password: 'private-password', code: ' access ', firstAccess: true })).toEqual({ linked: false, needsSetup: true })
+    expect(service.state().linked).toBe(false)
+    expect(await service.completePasswordLink({ companyName: 'Empresa A', projectName: 'Obra A' })).toMatchObject({ linked: true, company: { id: 'tenant-a' } })
+    expect(shell.openExternal).not.toHaveBeenCalled()
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ email: 'cliente@example.com', password: 'private-password', code: 'ACCESS' })
+    const saved = fs.readFileSync(path.join(dir, 'online-connection.json'), 'utf8')
+    for (const secret of ['private-password', 'secret-cookie', 'ACCESS']) expect(saved).not.toContain(secret)
+    expect(service.passwordSession).toBeNull()
+  })
+  it('login não publica dados locais', async () => {
+    const { service, fetchImpl } = fixture()
+    expect(await service.passwordAuth({ email: 'a@example.com', password: 'password' })).toMatchObject({ linked: true })
+    expect(fetchImpl.mock.calls.some(([url]) => /sync|publish/.test(url))).toBe(false)
+  })
+  it('recusa trocar tenant após desconectar', async () => {
+    const { service, fetchImpl } = fixture()
+    service.writeConfig({ tenant: { companyId: 'tenant-original', baseUrl: 'https://example.test' } }); service.disconnect()
+    await expect(service.passwordAuth({ email: 'a@example.com', password: 'password' })).rejects.toThrow(/outra empresa/)
+    expect(service.state().linked).toBe(false)
+    expect(fetchImpl.mock.calls.some(([url]) => url.endsWith('/api/desktop/approve'))).toBe(false)
+  })
+  it('bloqueia senha via HTTP', async () => {
+    const { service, fetchImpl } = fixture(); service.setBaseUrl('http://example.test')
+    await expect(service.passwordAuth({ email: 'a@example.com', password: 'password' })).rejects.toThrow(/HTTPS/)
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 })

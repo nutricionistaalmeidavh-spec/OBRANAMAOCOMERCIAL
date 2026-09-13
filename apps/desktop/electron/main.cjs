@@ -190,6 +190,8 @@ function registerIpc() {
   ipcMain.handle('catalog:save-link', envelope((data) => services.catalog.saveLink(data)))
   ipcMain.handle('catalog:deactivate', envelope((data) => services.catalog.deactivate(data.type, data.id)))
   ipcMain.handle('online:state', envelope(() => services.online.state()))
+  ipcMain.handle('online:password-auth', envelope((payload) => withSyncStopped(() => services.online.passwordAuth(payload))))
+  ipcMain.handle('online:password-setup', envelope((payload) => withSyncStopped(() => services.online.completePasswordLink(payload))))
   ipcMain.handle('online:set-base-url', envelope(({ baseUrl }) => withSyncStopped(() => services.online.setBaseUrl(baseUrl))))
   ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
   ipcMain.handle('online:status', envelope(() => services.online.status()))

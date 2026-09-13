@@ -28,8 +28,10 @@ import RhHubPage from './pages/RhHubPage'
 import FrontsPage from './pages/FrontsPage'
 import ContractsPage from './pages/ContractsPage'
 import TasksPage from './pages/TasksPage'
+import { DesktopLogin } from './components/DesktopLogin'
 
 export default function App() {
+  const connection = useAsync(() => window.fluxoDre.online.state(), [])
   const layoutPreference = useAsync(() => window.fluxoDre.app.getLayout(), [])
   const [commandCenterStylesReady, setCommandCenterStylesReady] = useState(false)
 
@@ -56,6 +58,10 @@ export default function App() {
 
   if (layoutPreference.error) return <div className="app-loading">Nao foi possivel carregar a preferencia de layout.</div>
   if (layoutPreference.loading || !layoutPreference.data || !commandCenterStylesReady) return <div className="app-loading">Carregando interface...</div>
+
+  if (connection.loading) return <div className="app-loading">Carregando acesso...</div>
+  if (connection.error) return <div className="app-loading">Não foi possível carregar o acesso. Reinicie o aplicativo.</div>
+  if (!connection.data?.linked) return <DesktopLogin onLinked={() => { void connection.reload() }}/>
 
   const isClassic = layoutPreference.data === 'classic'
   const Shell = isClassic ? ClassicAppShell : CommandCenterShell

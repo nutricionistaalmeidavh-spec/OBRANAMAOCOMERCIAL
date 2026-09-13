@@ -16,7 +16,7 @@ export default function SettingsPage(){
   const connectOnline=async()=>{setMessage('Abrindo autorização do Desktop no navegador...');try{await window.fluxoDre.online.start();await online.reload();setMessage('Autorize este computador no navegador e depois clique em Verificar autorização.')}catch(error:any){setMessage(error.message)}}
   const checkOnline=async()=>{setMessage('Verificando autorização...');try{const status=await window.fluxoDre.online.status();await online.reload();setMessage(status.linked?'Desktop vinculado com sucesso. Agora você pode testar a conexão online.':'A autorização ainda está pendente.')}catch(error:any){setMessage(error.message)}}
   const testOnline=async()=>{setMessage('Testando conexão online...');try{const session=await window.fluxoDre.online.session();setMessage(`Conexão online ativa${session?.company?.name?` — ${session.company.name}`:''}.`);await online.reload()}catch(error:any){setMessage(error.message)}}
-  const disconnectOnline=async()=>{try{await window.fluxoDre.online.disconnect();await online.reload();setMessage('Vínculo online removido deste computador.')}catch(error:any){setMessage(error.message)}}
+  const disconnectOnline=async()=>{try{await window.fluxoDre.online.disconnect();await online.reload();window.location.reload()}catch(error:any){setMessage(error.message)}}
   const [cargo,setCargo]=useState<any>(null)
   const [benefit,setBenefit]=useState<any>(null)
   const [remove,setRemove]=useState<any>(null)
