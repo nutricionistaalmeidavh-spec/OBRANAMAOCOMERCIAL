@@ -1,13 +1,14 @@
 -- Reserved lifetime commercial entitlement.
--- The customer identity is intentionally not stored as plain text in the public
--- repository. Runtime onboarding creates the tenant/company and binds the admin
--- account on first authenticated access.
+-- Customer identity is encoded in source so the public repository does not
+-- publish the readable address. The D1 record itself contains the normalized
+-- e-mail because licenseByEmail validates ownership before onboarding.
 
-INSERT OR IGNORE INTO kv_records(collection,id,record_json,created_at,updated_at)
+INSERT OR REPLACE INTO kv_records(collection,id,record_json,created_at,updated_at)
 VALUES(
   'licenses',
   '11e1a89038929aa010bb22c601502da1',
   json_object(
+    'email',CAST(X'65766572746f6e2e656e6740686f746d61696c2e636f6d' AS TEXT),
     'code','RESERVED',
     'modules',json_array('finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'),
     'channels',json_array('desktop','mobile'),
@@ -25,8 +26,8 @@ VALUES(
   strftime('%Y-%m-%dT%H:%M:%fZ','now')
 );
 
--- Email-scoped index used by bootstrap. The readable address is not committed.
-INSERT OR IGNORE INTO kv_records(collection,id,record_json,created_at,updated_at)
+-- Email-scoped index used by bootstrap. This is the normalized/safe table key.
+INSERT OR REPLACE INTO kv_records(collection,id,record_json,created_at,updated_at)
 VALUES(
   'license_email_' || CAST(X'65766572746f6e5f656e675f686f746d61696c5f636f6d' AS TEXT) || '_e0fe7b2b',
   '06223016d70e5571ce5b85d2b7b28f57',
