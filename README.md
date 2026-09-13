@@ -56,6 +56,15 @@ O build executa `npm run assets:verify` e falha se houver imagem, ID ou entrada 
 
 ## Desktop
 
+### Correção de primeiro acesso no Cloudflare
+
+O PBKDF2 de novas senhas usa 100.000 iterações, respeitando o limite do Web Crypto do Workers.
+Os testes de ativação simulam esse limite, que o Node não impõe, e verificam login,
+concorrência e revogação. Não é necessário recriar a licença nem migrar o banco.
+Para publicar sem Actions: em `apps/web`, execute `npm ci --no-audit --no-fund`
+e `npm run worker:deploy` (Wrangler deve estar autenticado).
+Após publicar, confirme o primeiro acesso no servidor; os testes locais não consultam a conta do cliente.
+
 O Desktop não é enviado ao Cloudflare.
 
 O GitHub Actions gera o instalador Windows a partir de `apps/desktop`.

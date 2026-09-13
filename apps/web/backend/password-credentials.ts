@@ -7,7 +7,9 @@ export type PasswordRecord={
   updatedAt:string;
 };
 
-const ITERATIONS=210_000;
+// Cloudflare Workers Web Crypto rejects PBKDF2 above 100,000 iterations.
+// Node's Web Crypto does not enforce this limit; keep the runtime-cap regression test.
+const ITERATIONS=100_000;
 const encoder=new TextEncoder();
 
 function b64url(bytes:Uint8Array){

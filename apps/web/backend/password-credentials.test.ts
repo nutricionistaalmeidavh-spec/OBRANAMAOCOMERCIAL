@@ -5,7 +5,7 @@ describe('corporate e-mail/password credentials', () => {
   it('stores only a password derivation and does not add an expiry deadline', async () => {
     const record = await createPasswordRecord('SenhaForte#2026');
     expect(record.algorithm).toBe('PBKDF2-SHA256');
-    expect(record.iterations).toBeGreaterThanOrEqual(200_000);
+    expect(record.iterations).toBe(100_000);
     expect(record.salt).toBeTruthy();
     expect(record.hash).toBeTruthy();
     expect(record).not.toHaveProperty('expiresAt');
