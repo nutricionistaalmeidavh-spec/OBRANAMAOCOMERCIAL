@@ -20,12 +20,16 @@ describe('owner portal boot and reserved tenant access',()=>{
   });
 
   it('keeps the reserved lifetime entitlement tenant-scoped and out of global superadmin data',async()=>{
-    const migration=await read('cloudflare/migrations/0007_reserved_lifetime_license.sql');
+    const [migration,worker]=await Promise.all([read('cloudflare/migrations/0007_reserved_lifetime_license.sql'),read('cloudflare/worker.ts')]);
     expect(migration).toContain("'plan','lifetime-manual'");
     expect(migration).toContain("'status','active'");
     expect(migration).toContain("json_array('desktop','mobile')");
     expect(migration).not.toContain('@hotmail.com');
     expect(migration).not.toContain('platform_accesses');
     expect(migration).not.toContain("'companies'");
+    expect(worker).toContain('ensureReservedLifetimeLicense');
+    expect(worker).toContain("plan:'lifetime-manual'");
+    expect(worker).toContain("channels:['desktop','mobile']");
+    expect(worker).not.toContain('@hotmail.com');
   });
 });
