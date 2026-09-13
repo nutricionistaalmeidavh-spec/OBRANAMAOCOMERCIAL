@@ -1,6 +1,14 @@
 # Desktop Windows — releases
 
-## Atual — v1.0.1
+## Atual — v1.0.19
+
+- Instalador completo: [Obra-na-Mao-Desktop-Setup-1.0.19.exe](https://drive.google.com/file/d/1QmjxuBMfCAgjeg0gzGjUZKRfIgnxr04x/view)
+- SHA-256: `23ec25780d889c9852da78e4832bef63f78a3e67df062e66a44933368f505013`
+- Tamanho: 125560559 bytes
+- Primeiro acesso e login por e-mail/senha diretamente no desktop, vínculo ao tenant e Google preservado.
+- Detalhes de validação em `ENTREGA_COMERCIAL_1.0.19.md`.
+
+## Anterior — v1.0.1
 
 - Produto: Obra na Mão Desktop Comercial
 - Instalador: `Obra-na-Mao-Desktop-Setup-1.0.1.exe`

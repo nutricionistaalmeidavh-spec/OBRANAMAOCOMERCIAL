@@ -141,7 +141,7 @@ async function renderCorporatePortal(){
     if(systems?.gestao?.enabled&&b.role==='admin'&&!b.needsClaim&&b.access?.modules?.some(module=>['rh','dre','contracts','procurement','measurements','documents'].includes(module)))cards+=card('gestao','Gestão','RH, documentos, contratos, compras, medições e visão administrativa.','./gestao.html#gestao','▥',systems.gestao.role);
     if(systems?.obra360?.enabled&&!b.needsClaim)cards+=card('obra','Obra360','Dias, frentes, equipe, tarefas, RDO e rotina de campo.','./obra.html#obra','⌂',systems.obra360.role);
     if(systems?.universidade?.enabled)cards+=card('universidade','Universidade','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱',systems.universidade.role);
-    if(b.platformRole==='superadmin'||b.isOwner)cards+=card('acessos','Administração de acessos','Usuários, perfis, empresas, obras e sessões.','./index.html#owner','◇','superadmin');
+    if(b.platformRole==='superadmin'||b.isOwner)cards+=card('acessos','Central Artisys','Empresas clientes, licenças e ativações independentes.','./index.html#owner','◇','superadmin');
     if(b.needsClaim)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
     if(b.role==='admin'||b.platformRole==='superadmin'||b.isOwner)cards+=card('cobranca','Plano e cobrança','Consulte sua assinatura, pagamentos ou conheça outros planos.','./sistema.html#plano-cobranca','▤');
     if(!cards)cards='<article class="mh-empty"><h3>Nenhum sistema liberado</h3><p>Seu login está válido, mas ainda não há módulos liberados para este perfil.</p></article>';
