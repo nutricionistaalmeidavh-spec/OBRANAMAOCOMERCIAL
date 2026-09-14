@@ -90,9 +90,10 @@ async function start(request: Request, env: OwnerSsoEnv) {
   google.searchParams.set('state', state);
   google.searchParams.set('prompt', 'select_account');
 
-  const response = Response.redirect(google.toString(), 302);
-  response.headers.set('cache-control', 'no-store');
-  return response;
+  return new Response(null, {
+    status: 302,
+    headers: { location: google.toString(), 'cache-control': 'no-store' },
+  });
 }
 
 async function callback(request: Request, env: OwnerSsoEnv) {
