@@ -9,7 +9,8 @@
   "keep_vars": true,
   "secrets": {
     "required": [
-      "GEMINI_API_KEY"
+      "GEMINI_API_KEY",
+      "DEBORA_LICENSE_ADMIN_SECRET"
     ]
   },
   "assets": {
@@ -37,6 +38,7 @@
     "OWNER_COMPANY": "Obra na Mão",
     "OWNER_PROJECT": "Operação Comercial",
     "OWNER_CUSTOMER": "Obra na Mão",
-    "GOOGLE_CLIENT_ID": "826322917381-ia1khl7es1gqddv6jsmg8p75m7amfle5.apps.googleusercontent.com"
+    "GOOGLE_CLIENT_ID": "826322917381-ia1khl7es1gqddv6jsmg8p75m7amfle5.apps.googleusercontent.com",
+    "DEBORA_LICENSE_API_URL": "https://zxowxdfhtksevhnjmeyu.supabase.co/functions/v1/saas-manual-license"
   }
 }
