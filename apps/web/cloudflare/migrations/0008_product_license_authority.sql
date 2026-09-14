@@ -1,3 +1,16 @@
+CREATE TABLE IF NOT EXISTS product_accounts (
+  product_code TEXT NOT NULL,
+  email TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'commercial' CHECK (status IN ('commercial','disabled')),
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (product_code,email)
+);
+
+CREATE INDEX IF NOT EXISTS product_accounts_status_idx
+  ON product_accounts(product_code,status,email);
+
 CREATE TABLE IF NOT EXISTS product_licenses (
   id TEXT PRIMARY KEY,
   product_code TEXT NOT NULL,
