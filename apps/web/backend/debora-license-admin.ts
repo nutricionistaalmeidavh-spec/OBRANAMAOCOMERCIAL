@@ -2,6 +2,7 @@ import { error, json, runtimeEnv, type RouterRoutes } from '../cloudflare/sdk';
 
 const MANUAL_PLAN_CODE = 'pro_6m';
 const MANUAL_PLAN_MONTHS = 6;
+type DeboraLicenseEnv = { DEBORA_LICENSE_API_URL?: string; DEBORA_LICENSE_ADMIN_SECRET?: string };
 
 export function normalizeDeboraLicenseEmail(value: unknown) {
   return String(value || '').trim().toLowerCase();
@@ -19,12 +20,16 @@ export function buildDeboraGrantPayload(value: unknown) {
   };
 }
 
+function licenseEnv() {
+  return runtimeEnv() as unknown as DeboraLicenseEnv;
+}
+
 function endpoint() {
-  return String(runtimeEnv().DEBORA_LICENSE_API_URL || '').trim().replace(/\/$/, '');
+  return String(licenseEnv().DEBORA_LICENSE_API_URL || '').trim().replace(/\/$/, '');
 }
 
 function secret() {
-  return String(runtimeEnv().DEBORA_LICENSE_ADMIN_SECRET || '').trim();
+  return String(licenseEnv().DEBORA_LICENSE_ADMIN_SECRET || '').trim();
 }
 
 async function callDebora(body: Record<string, unknown>) {
