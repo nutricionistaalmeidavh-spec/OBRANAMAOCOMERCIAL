@@ -1,10 +1,10 @@
 import { auth, api } from './cloudflare-client';
 
-type Company = {id:string;name:string;adminEmail:string;status:string;reserved?:boolean;modules:string[];channels:string[];passwordCreatedAt?:string;usersCount:number;projectsCount:number;devicesCount:number;license?:{id:string;plan?:string;expiresAt?:string;code?:string};users?:Array<{email:string;name?:string;role?:string}>;projects?:Array<{name:string}>;devices?:Array<{name:string;status:string}>};
+type Company = {id:string;name:string;adminEmail:string;status:string;reserved?:boolean;modules:string[];channels:string[];passwordCreatedAt?:string;usersCount:number;projectsCount:number;devicesCount:number;license?:{id:string;plan?:string;expiresAt?:string;code?:string};users?:Array<{email:string;name?:string;role?:string}>;projects?:Array<{name:string}>;devices?:Array<{name:string;status?:string}>};
 type DeboraLicenseResponse={state?:string;activation?:string;grant?:{email?:string;status?:string;expires_at?:string;plan_code?:string}|null};
 const modules=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'];
 const labels:Record<string,string>={finance:'Financeiro',rh:'RH',contracts:'Contratos',rdo:'RDO',obra360:'Obra360',dre:'DRE',procurement:'Compras',measurements:'Medições',documents:'Documentos',universidade:'Universidade',ai:'IA',desktop:'Desktop',mobile:'Web / mobile'};
-const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]!));
+const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const root=()=>document.getElementById('content')!;
 const message=(e:unknown)=>(e as {message?:string}).message||'Não foi possível concluir.';
 const state=(c:Company)=>c.status==='expired'?'Vencida':c.status==='suspended'||c.status==='revoked'?'Suspensa':c.status==='active'?'Ativa':'Aguardando ativação';
