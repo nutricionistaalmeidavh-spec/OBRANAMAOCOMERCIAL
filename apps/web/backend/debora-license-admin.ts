@@ -1,24 +1,7 @@
 import { error, json, runtimeEnv, type RouterRoutes } from '../cloudflare/sdk';
+import { buildDeboraGrantPayload, normalizeDeboraLicenseEmail } from './debora-license-policy';
 
-const MANUAL_PLAN_CODE = 'pro_6m';
-const MANUAL_PLAN_MONTHS = 6;
 type DeboraLicenseEnv = { DEBORA_LICENSE_API_URL?: string; DEBORA_LICENSE_ADMIN_SECRET?: string };
-
-export function normalizeDeboraLicenseEmail(value: unknown) {
-  return String(value || '').trim().toLowerCase();
-}
-
-export function buildDeboraGrantPayload(value: unknown) {
-  const email = normalizeDeboraLicenseEmail(value);
-  if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error('Informe um e-mail válido.');
-  return {
-    action: 'grant' as const,
-    email,
-    planCode: MANUAL_PLAN_CODE,
-    months: MANUAL_PLAN_MONTHS,
-    source: 'mercado_livre_manual' as const,
-  };
-}
 
 function licenseEnv() {
   return runtimeEnv() as unknown as DeboraLicenseEnv;
