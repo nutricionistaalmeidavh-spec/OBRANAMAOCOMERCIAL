@@ -25,7 +25,7 @@ export function accessForLicense(license:Pick<LicenseRow,'plan_code'|'status'|'e
   const expiresAt=license&&('expires_at'in license?license.expires_at:license.expiresAt)||null;
   const source=license?.source||'cloudflare_d1';
   const end=expiresAt?Date.parse(expiresAt):null;
-  const active=!!license&&['active','trialing'].includes(status)&&(!expiresAt||(Number.isFinite(end)&&end>Date.parse(now)))&&planCode.startsWith('pro_');
+  const active=!!license&&['active','trialing'].includes(status)&&(!expiresAt||(typeof end==='number'&&Number.isFinite(end)&&end>Date.parse(now)))&&planCode.startsWith('pro_');
   return active
     ?{productCode:DEBORA_PRODUCT_CODE,planCode,active:true,commercial:true,enforceLimits:true,patientLimit:null,mediaUpload:true,expiresAt,source,status}
     :{productCode:DEBORA_PRODUCT_CODE,planCode:'freemium',active:false,commercial:true,enforceLimits:true,patientLimit:3,mediaUpload:false,expiresAt:null,source:'cloudflare_d1',status:'freemium'};
