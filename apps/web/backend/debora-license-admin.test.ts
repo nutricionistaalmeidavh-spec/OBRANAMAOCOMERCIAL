@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDeboraGrantPayload, normalizeDeboraLicenseEmail } from './debora-license-admin';
+import { buildDeboraGrantPayload, normalizeDeboraLicenseEmail } from './debora-license-policy';
 
 describe('Debora manual license admin contract', () => {
   it('normalizes buyer email without coupling it to the CEO identity', () => {
