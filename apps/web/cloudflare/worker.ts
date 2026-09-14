@@ -2,6 +2,7 @@ import { handler } from '../backend/index';
 import { handleAsaasWebhook } from '../backend/asaas-webhook';
 import { ensureBillingSchema } from '../backend/billing-schema-runtime';
 import { handleCorporatePasswordAuth } from '../backend/corporate-password-auth';
+import { handleProductLicenseInternal } from '../backend/product-license-internal';
 
 const RESERVED_LICENSE_ID='11e1a89038929aa010bb22c601502da1';
 const RESERVED_EMAIL_HEX='65766572746f6e2e656e6740686f746d61696c2e636f6d';
@@ -34,6 +35,8 @@ export default {
   async fetch(request: Request, env: any) {
     await ensureBillingSchema(env);
     await ensureReservedLifetimeLicense(env);
+    const licensing=await handleProductLicenseInternal(request,env);
+    if(licensing)return licensing;
     const passwordAuth=await handleCorporatePasswordAuth(request,env);
     if(passwordAuth)return passwordAuth;
     const url = new URL(request.url);
