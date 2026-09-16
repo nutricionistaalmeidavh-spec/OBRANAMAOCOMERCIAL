@@ -1,0 +1,10 @@
+{
+  "module": "artisys-seo",
+  "sourceRepository": "nutricionistaalmeidavh-spec/utilidades",
+  "sourcePath": "modules/artisys-seo",
+  "sourceBranch": "feat/artisys-seo",
+  "sourceCommit": "5da17811ed0f1ea7e6dd0f279cbb25f557f74f5c",
+  "consumption": "pinned-vendored-runtime",
+  "scope": ["config", "technical", "audit"],
+  "note": "Snapshot mínimo usado pela landing ArtiSys; sem dependência runtime externa."
+}
