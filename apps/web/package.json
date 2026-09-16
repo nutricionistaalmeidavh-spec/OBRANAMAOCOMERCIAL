@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/write-build-meta.mjs && npm run assets:verify && vite build",
+    "build": "node scripts/write-build-meta.mjs && npm run seo:generate && npm run seo:verify && npm run assets:verify && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "seo:generate": "node scripts/generate-seo.mjs",
+    "seo:verify": "node scripts/verify-seo.mjs",
     "pages:dev": "npm run build && wrangler pages dev dist --compatibility-date=2026-09-02 --compatibility-flag=nodejs_compat",
     "worker:dev": "npm run build && wrangler dev",
     "worker:deploy": "npm run build && wrangler deploy",
