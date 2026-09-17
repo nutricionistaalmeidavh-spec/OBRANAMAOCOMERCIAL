@@ -1,8 +1,9 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const root=resolve(new URL('..',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1'));
+const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 const readJson=async(path:string)=>JSON.parse(await readFile(path,'utf8'));
 
 const expectedFlows=['owner-shell','owner-overview','loja-online','clientes','licencas','auditoria','obra-regression','debora-regression'];
