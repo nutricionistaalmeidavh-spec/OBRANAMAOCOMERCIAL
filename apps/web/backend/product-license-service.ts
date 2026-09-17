@@ -4,8 +4,9 @@ export const DEBORA_MANUAL_SOURCE='mercado_livre_manual';
 
 type LicenseRow={id:string;product_code:string;email:string;plan_code:string;status:string;starts_at:string;expires_at:string|null;source:string;external_ref:string;metadata_json:string;created_at:string;updated_at:string};
 export type ProductAccess={productCode:string;planCode:string;active:boolean;commercial:boolean;enforceLimits:boolean;patientLimit:number|null;mediaUpload:boolean;expiresAt:string|null;source:string;status:string};
-type OverviewAccount={email:string;status:string};
-type OverviewLicense={email:string;plan_code:string;status:string;expires_at:string|null;updated_at?:string};
+type OverviewAccount={email:string;status:string;source?:string};
+type OverviewLicense={email:string;plan_code:string;status:string;expires_at:string|null;source?:string;updated_at?:string};
+export type DeboraAdminClient={email:string;planCode:string;status:'active'|'freemium'|'revoked'|'expired';expiresAt:string|null;source:string;expiring:boolean};
 
 export function normalizeLicenseEmail(value:unknown){return String(value||'').trim().toLowerCase()}
 
@@ -33,24 +34,29 @@ export function accessForLicense(license:Pick<LicenseRow,'plan_code'|'status'|'e
     :{productCode:DEBORA_PRODUCT_CODE,planCode:'freemium',active:false,commercial:true,enforceLimits:true,patientLimit:3,mediaUpload:false,expiresAt:null,source:'cloudflare_d1',status:'freemium'};
 }
 
-export function summarizeDeboraLicenseOverview(accounts:OverviewAccount[],licenses:OverviewLicense[],now=new Date().toISOString()){
+export function buildDeboraAdminClients(accounts:OverviewAccount[],licenses:OverviewLicense[],now=new Date().toISOString()):DeboraAdminClient[]{
   const current=Date.parse(now),expiringLimit=current+30*24*60*60*1000;
-  const emails=[...new Set(accounts.filter(account=>account.status==='commercial').map(account=>normalizeLicenseEmail(account.email)).filter(Boolean))];
-  let pro=0,freemium=0,expiring=0,revoked=0;
-  for(const email of emails){
+  const commercial=[...new Map(accounts.filter(account=>account.status==='commercial').map(account=>[normalizeLicenseEmail(account.email),account])).entries()].filter(([email])=>Boolean(email));
+  return commercial.map(([email,account])=>{
     const own=licenses.filter(license=>normalizeLicenseEmail(license.email)===email).sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||'')));
     const active=own.find(license=>{
       const expiry=license.expires_at?Date.parse(license.expires_at):null;
       return license.plan_code.startsWith('pro_')&&['active','trialing'].includes(license.status)&&(!license.expires_at||(typeof expiry==='number'&&Number.isFinite(expiry)&&expiry>current));
     });
-    if(active){
-      pro+=1;
-      const expiry=active.expires_at?Date.parse(active.expires_at):null;
-      if(typeof expiry==='number'&&Number.isFinite(expiry)&&expiry>current&&expiry<=expiringLimit)expiring+=1;
-    }else freemium+=1;
-    if(!active&&own[0]?.status==='revoked')revoked+=1;
-  }
-  return{clients:emails.length,pro,freemium,expiring,revoked};
+    const latest=active||own[0]||null;
+    const latestExpiry=latest?.expires_at?Date.parse(latest.expires_at):null;
+    const status:DeboraAdminClient['status']=active?'active':latest?.status==='revoked'?'revoked':latest?.expires_at&&typeof latestExpiry==='number'&&Number.isFinite(latestExpiry)&&latestExpiry<=current?'expired':'freemium';
+    const expiring=Boolean(active?.expires_at&&typeof latestExpiry==='number'&&Number.isFinite(latestExpiry)&&latestExpiry>current&&latestExpiry<=expiringLimit);
+    return{email,planCode:active?.plan_code||latest?.plan_code||'freemium',status,expiresAt:latest?.expires_at||null,source:latest?.source||account.source||'cloudflare_d1',expiring};
+  }).sort((a,b)=>a.email.localeCompare(b.email));
+}
+
+export function summarizeDeboraLicenseOverview(accounts:OverviewAccount[],licenses:OverviewLicense[],now=new Date().toISOString()){
+  const clients=buildDeboraAdminClients(accounts,licenses,now);
+  const pro=clients.filter(client=>client.status==='active').length;
+  const expiring=clients.filter(client=>client.expiring).length;
+  const revoked=clients.filter(client=>client.status==='revoked').length;
+  return{clients:clients.length,pro,freemium:clients.length-pro,expiring,revoked};
 }
 
 async function commercialAccount(db:D1Database,productCode:string,email:string){return db.prepare('SELECT product_code,email,status,source,created_at,updated_at FROM product_accounts WHERE product_code=? AND email=? LIMIT 1').bind(productCode,email).first<any>()}
