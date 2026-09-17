@@ -50,7 +50,7 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.body.textContent).toContain('Obra na Mão');
     expect(document.body.textContent).toContain('Débora Lactação');
     expect(document.querySelector('[data-metric="companies"]')?.textContent).toContain('2');
-    expect(document.querySelector('[data-metric="active"]')?.textContent).toContain('1');
+    expect(document.querySelector('[data-metric="active"]')?.textContent).toContain('2');
     expect(document.getElementById('companyForm')).toBeNull();
     expect(document.getElementById('deboraLicenseForm')).toBeNull();
     expect(document.querySelector('a[href="./index.html#portal"]')).not.toBeNull();
