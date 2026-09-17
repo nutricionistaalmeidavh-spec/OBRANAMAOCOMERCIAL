@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addCalendarMonths, accessForLicense, normalizeLicenseEmail, summarizeDeboraLicenseOverview, unmanagedAccess } from './product-license-service';
+import { addCalendarMonths, accessForLicense, buildDeboraAdminClients, normalizeLicenseEmail, summarizeDeboraLicenseOverview, unmanagedAccess } from './product-license-service';
 
 describe('Cloudflare product license authority', () => {
   it('normalizes license e-mails independently from the CEO identity', () => {
@@ -46,6 +46,29 @@ describe('Cloudflare product license authority', () => {
     expect(accessForLicense(license, '2026-09-14T12:00:00.000Z').mediaUpload).toBe(true);
     expect(accessForLicense(license, '2026-09-14T12:00:00.000Z').commercial).toBe(true);
     expect(accessForLicense(license, '2027-03-15T12:00:00.000Z').planCode).toBe('freemium');
+  });
+
+  it('builds the admin client list with active, freemium, revoked, expired and expiring states', () => {
+    const accounts=[
+      {email:'pro@example.test',status:'commercial',source:'saas_onboarding'},
+      {email:'free@example.test',status:'commercial',source:'saas_onboarding'},
+      {email:'revoked@example.test',status:'commercial',source:'mercado_livre_manual'},
+      {email:'expired@example.test',status:'commercial',source:'mercado_livre_manual'},
+      {email:'expiring@example.test',status:'commercial',source:'mercado_livre_manual'},
+    ];
+    const licenses=[
+      {email:'pro@example.test',plan_code:'pro_6m',status:'active',expires_at:'2027-03-14T12:00:00.000Z',source:'mercado_livre_manual',updated_at:'2026-09-14T12:00:00.000Z'},
+      {email:'revoked@example.test',plan_code:'pro_6m',status:'revoked',expires_at:'2027-01-01T00:00:00.000Z',source:'mercado_livre_manual',updated_at:'2026-09-15T12:00:00.000Z'},
+      {email:'expired@example.test',plan_code:'pro_6m',status:'active',expires_at:'2026-09-10T12:00:00.000Z',source:'mercado_livre_manual',updated_at:'2026-09-10T12:00:00.000Z'},
+      {email:'expiring@example.test',plan_code:'pro_6m',status:'active',expires_at:'2026-09-30T12:00:00.000Z',source:'mercado_livre_manual',updated_at:'2026-09-14T12:00:00.000Z'},
+    ];
+    expect(buildDeboraAdminClients(accounts,licenses,'2026-09-16T12:00:00.000Z')).toEqual([
+      expect.objectContaining({email:'expired@example.test',status:'expired',planCode:'pro_6m',expiring:false}),
+      expect.objectContaining({email:'expiring@example.test',status:'active',planCode:'pro_6m',expiring:true}),
+      expect.objectContaining({email:'free@example.test',status:'freemium',planCode:'freemium',expiring:false}),
+      expect.objectContaining({email:'pro@example.test',status:'active',planCode:'pro_6m',expiring:false}),
+      expect.objectContaining({email:'revoked@example.test',status:'revoked',planCode:'pro_6m',expiring:false}),
+    ]);
   });
 
   it('summarizes Debora clients without changing license-generation semantics', () => {
