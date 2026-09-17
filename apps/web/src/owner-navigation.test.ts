@@ -84,4 +84,17 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.body.textContent).toContain('Cliente Pendente');
     expect(document.getElementById('deboraLicenseForm')).toBeNull();
   });
+
+  it('keeps the Obra na Mão admin usable when Debora overview metrics are unavailable',async()=>{
+    document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
+    client.hasSession.mockResolvedValue(true);
+    client.get.mockImplementation(async(path:string)=>{
+      if(path==='/api/owner/debora-overview')throw new Error('Debora metrics unavailable');
+      return {data:{companies}};
+    });
+    await mountOwnerPortal();
+    expect(document.querySelector('[data-owner-shell]')).not.toBeNull();
+    clickView('obra');
+    expect(document.getElementById('companyForm')).not.toBeNull();
+  });
 });
