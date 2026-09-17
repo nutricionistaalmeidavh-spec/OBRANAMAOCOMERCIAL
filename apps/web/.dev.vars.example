@@ -13,3 +13,8 @@ OWNER_CUSTOMER=Obra na Mão
 ASAAS_API_BASE_URL=https://api-sandbox.asaas.com/v3
 ASAAS_API_KEY=
 ASAAS_WEBHOOK_TOKEN=
+
+# Loja Online na Central Artisys.
+# Em produção use Service Binding LOJAONLINE_LICENSING; esta URL é somente fallback local.
+LOJAONLINE_LICENSE_SERVICE_SECRET=
+LOJAONLINE_LICENSE_BASE_URL=http://127.0.0.1:4173

@@ -10,9 +10,16 @@
   "secrets": {
     "required": [
       "GEMINI_API_KEY",
-      "LICENSE_SERVICE_SECRET"
+      "LICENSE_SERVICE_SECRET",
+      "LOJAONLINE_LICENSE_SERVICE_SECRET"
     ]
   },
+  "services": [
+    {
+      "binding": "LOJAONLINE_LICENSING",
+      "service": "artisys-lojaonline"
+    }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
