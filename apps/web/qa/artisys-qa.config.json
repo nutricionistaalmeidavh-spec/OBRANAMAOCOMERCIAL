@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "systemId": "artisys-central-owner",
   "mode": "web",
-  "defaultEnvironment": "production",
+  "defaultEnvironment": "local",
   "defaultFlow": "owner-shell",
   "defaultViewport": "desktop",
   "capture": {
@@ -11,11 +11,11 @@
     "fps": 4
   },
   "environments": {
-    "production": {
-      "baseURL": "https://artisys.dev/sistema#owner"
-    },
     "local": {
       "baseURL": "http://127.0.0.1:4174/sistema#owner"
+    },
+    "production": {
+      "baseURL": "https://artisys.dev/sistema#owner"
     }
   },
   "flows": {
