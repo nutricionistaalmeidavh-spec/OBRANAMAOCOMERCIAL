@@ -35,9 +35,9 @@ export function accessForLicense(license:Pick<LicenseRow,'plan_code'|'status'|'e
 }
 
 export function buildDeboraAdminClients(accounts:OverviewAccount[],licenses:OverviewLicense[],now=new Date().toISOString()):DeboraAdminClient[]{
-  const current=Date.parse(now),expiringLimit=current+30*24*60*60*1000;
-  const commercial=[...new Map(accounts.filter(account=>account.status==='commercial').map(account=>[normalizeLicenseEmail(account.email),account])).entries()].filter(([email])=>Boolean(email));
-  return commercial.map(([email,account])=>{
+  const current=Date.parse(now),expiringLimit=current+30*24*60*60*1000,byEmail=new Map<string,OverviewAccount>();
+  for(const account of accounts){if(account.status!=='commercial')continue;const email=normalizeLicenseEmail(account.email);if(email)byEmail.set(email,account)}
+  return [...byEmail.entries()].map(([email,account])=>{
     const own=licenses.filter(license=>normalizeLicenseEmail(license.email)===email).sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||'')));
     const active=own.find(license=>{
       const expiry=license.expires_at?Date.parse(license.expires_at):null;
