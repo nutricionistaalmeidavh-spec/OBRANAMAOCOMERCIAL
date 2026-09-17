@@ -18,7 +18,12 @@
     "smoke:production": "node scripts/smoke-production.mjs",
     "d1:migrate:local": "wrangler d1 migrations apply obra-na-mao-comercial --local --config wrangler.jsonc",
     "d1:migrate:remote": "wrangler d1 migrations apply obra-na-mao-comercial --remote --config wrangler.jsonc",
-    "ux:verify": "node scripts/verify-ui-contract.mjs"
+    "ux:verify": "node scripts/verify-ui-contract.mjs",
+    "qa:prepare": "node scripts/sync-artisys-qa.mjs && npm install --prefix qa/runtime --no-audit --no-fund && node qa/runtime/node_modules/playwright/cli.js install chromium",
+    "qa:quick": "npm run qa:prepare && node scripts/run-artisys-qa.mjs quick",
+    "qa:full": "npm run qa:prepare && node scripts/run-artisys-qa.mjs full",
+    "qa:release": "npm run qa:prepare && npm test && npm run build && npm run ux:verify && node scripts/run-artisys-qa.mjs release",
+    "qa:cross-system": "node scripts/qa-cross-system.mjs"
   },
   "dependencies": {
     "lucide": "^0.469.0",
