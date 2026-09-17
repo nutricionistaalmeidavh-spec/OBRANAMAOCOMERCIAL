@@ -13,11 +13,12 @@ const companies=[
   {id:'c1',name:'Cliente Ativo',adminEmail:'ativo@example.test',status:'active',modules:['finance','obra360'],channels:['desktop','mobile'],usersCount:3,projectsCount:2,devicesCount:1,license:{id:'l1',plan:'manual'}},
   {id:'c2',name:'Cliente Pendente',adminEmail:'pendente@example.test',status:'pending',modules:['obra360'],channels:['desktop'],usersCount:1,projectsCount:0,devicesCount:0,license:{id:'l2',plan:'manual'}}
 ];
+const deboraOverview={clients:5,pro:2,freemium:2,expiring:1,revoked:1};
 
 async function mount(){
   document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
   client.hasSession.mockResolvedValue(true);
-  client.get.mockResolvedValue({data:{companies}});
+  client.get.mockImplementation(async(path:string)=>path==='/api/owner/debora-overview'?{data:{overview:deboraOverview}}:{data:{companies}});
   await mountOwnerPortal();
 }
 
@@ -61,6 +62,11 @@ describe('Central Artisys owner navigation',()=>{
     const form=document.getElementById('deboraLicenseForm') as HTMLFormElement;
     expect(form).not.toBeNull();
     expect(document.body.textContent).toContain('Pro 6 meses');
+    expect(document.querySelector('[data-debora-metric="clients"]')?.textContent).toContain('5');
+    expect(document.querySelector('[data-debora-metric="pro"]')?.textContent).toContain('2');
+    expect(document.querySelector('[data-debora-metric="freemium"]')?.textContent).toContain('2');
+    expect(document.querySelector('[data-debora-metric="expiring"]')?.textContent).toContain('1');
+    expect(document.querySelector('[data-debora-metric="revoked"]')?.textContent).toContain('1');
     (form.elements.namedItem('email') as HTMLInputElement).value='consultora@example.test';
     client.post.mockResolvedValue({data:{state:'active',grant:{email:'consultora@example.test',status:'active',plan_code:'pro_6m'}}});
     form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
