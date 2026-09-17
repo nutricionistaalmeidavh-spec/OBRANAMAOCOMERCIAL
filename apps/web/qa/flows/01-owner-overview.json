@@ -1,0 +1,9 @@
+{
+  "name": "01-owner-overview",
+  "steps": [
+    {"action":"goto","path":"/sistema#owner","name":"open-owner"},
+    {"action":"waitFor","selector":"#content","state":"visible","timeoutMs":10000,"name":"owner-content"},
+    {"action":"expectURL","includes":"#owner","name":"owner-hash"},
+    {"action":"screenshot","name":"owner-overview","fullPage":true}
+  ]
+}
