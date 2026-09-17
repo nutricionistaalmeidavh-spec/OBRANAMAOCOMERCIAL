@@ -1,0 +1,9 @@
+{
+  "name": "00-owner-shell",
+  "steps": [
+    {"action":"expectVisible","selector":"body","name":"body-visible"},
+    {"action":"expectVisible","selector":"#content","name":"central-content-visible"},
+    {"action":"expectURL","includes":"/sistema","name":"sistema-route"},
+    {"action":"screenshot","name":"owner-shell","fullPage":true}
+  ]
+}
