@@ -1,6 +1,6 @@
 # ArtiSys / Operação Comercial — mapa de páginas e superfícies
 
-Atualizado em 2026-09-06. Este arquivo é o inventário visual obrigatório antes de qualquer rodada de redesign.
+Atualizado em 2026-09-17. Este arquivo é o inventário visual obrigatório antes de qualquer rodada de redesign.
 
 ## 1. Entradas públicas e roteamento
 
@@ -10,7 +10,7 @@ Atualizado em 2026-09-06. Este arquivo é o inventário visual obrigatório ante
 | Aplicação / roteador | `sistema.html` | Decide portal, owner, universidade, finanças, bridge, ativação e módulos | Infraestrutura |
 | Portal | `#portal` | Login corporativo ou dashboard geral conforme sessão | Premium atual |
 | Login exclusivo de colaborador | `#colaborador` | Celular, senha e primeiro acesso do colaborador | Premium atual |
-| Administração comercial | `#owner` | Licenças, clientes, acessos e dispositivos | Revisar em rodada própria |
+| Administração comercial | `#owner` | Central Artisys: Obra na Mão, Débora Lactação e Loja Online; clientes, licenças e auditoria | Central multproduto atual |
 | Universidade | `universidade.html#universidade` / `#universidade*` | Ambiente educacional | Premium Bloco 3 |
 | Obra360 | `obra.html#obra` / `#obra*` | PWA operacional de campo | Em migração premium |
 | Gestão | `gestao.html#gestao` / `#gestao*` | Consulta administrativa móvel | Em migração premium |
@@ -136,3 +136,15 @@ Antes de publicar uma fase de redesign:
 5. Atualizar a coluna de status deste mapa.
 
 Objetivo: evitar que uma aba principal fique premium enquanto uma rota interna ou estado intermediário continue com o shell antigo.
+
+## 10. Central Artisys — produtos e licenciamento
+
+A rota `sistema.html#owner` mantém uma única operação administrativa, mas respeita a autoridade de dados de cada produto.
+
+| Produto | Modelo de licença | Ações na Central | Fonte de verdade |
+|---|---|---|---|
+| Obra na Mão | Empresa/tenant | criar empresa, módulos, canais, suspender/reativar | D1 do Obra na Mão |
+| Débora Lactação | E-mail individual | liberar/renovar 6 meses, consultar, revogar | autoridade de produto no D1 central |
+| Loja Online | Empresa/tenant | criar loja + admin + licença, editar limite, estender, bloquear, desbloquear | D1 da Loja Online |
+
+A Loja Online aparece em **Visão geral**, **Clientes**, **Licenças/Auditoria** e em uma área própria de gerenciamento. O browser chama somente `/api/owner/loja-online/*`; a Central chama a API interna da Loja Online por Service Binding com segredo server-only. O login, portal e licenciamento existentes de Obra na Mão e Débora não são alterados por essa integração.
