@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addCalendarMonths, accessForLicense, normalizeLicenseEmail, unmanagedAccess } from './product-license-service';
+import { addCalendarMonths, accessForLicense, normalizeLicenseEmail, summarizeDeboraLicenseOverview, unmanagedAccess } from './product-license-service';
 
 describe('Cloudflare product license authority', () => {
   it('normalizes license e-mails independently from the CEO identity', () => {
@@ -46,5 +46,26 @@ describe('Cloudflare product license authority', () => {
     expect(accessForLicense(license, '2026-09-14T12:00:00.000Z').mediaUpload).toBe(true);
     expect(accessForLicense(license, '2026-09-14T12:00:00.000Z').commercial).toBe(true);
     expect(accessForLicense(license, '2027-03-15T12:00:00.000Z').planCode).toBe('freemium');
+  });
+
+  it('summarizes Debora clients without changing license-generation semantics', () => {
+    const accounts=[
+      {email:'pro@example.test',status:'commercial'},
+      {email:'free@example.test',status:'commercial'},
+      {email:'revoked@example.test',status:'commercial'},
+      {email:'expiring@example.test',status:'commercial'},
+    ];
+    const licenses=[
+      {email:'pro@example.test',plan_code:'pro_6m',status:'active',expires_at:'2027-03-14T12:00:00.000Z',updated_at:'2026-09-14T12:00:00.000Z'},
+      {email:'revoked@example.test',plan_code:'pro_6m',status:'revoked',expires_at:'2027-01-01T00:00:00.000Z',updated_at:'2026-09-15T12:00:00.000Z'},
+      {email:'expiring@example.test',plan_code:'pro_6m',status:'active',expires_at:'2026-09-30T12:00:00.000Z',updated_at:'2026-09-14T12:00:00.000Z'},
+    ];
+    expect(summarizeDeboraLicenseOverview(accounts,licenses,'2026-09-16T12:00:00.000Z')).toEqual({
+      clients:4,
+      pro:2,
+      freemium:2,
+      expiring:1,
+      revoked:1,
+    });
   });
 });
