@@ -3,6 +3,9 @@ dist/
 build/
 release/
 qa-artifacts/
+qa/runtime/
+qa/.runtime-data/
+qa/artisys-qa.lock.json
 .env
 .env.*
 !.env.example
