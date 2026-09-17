@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { lojaOnlineRequest, createLojaOnlineAdminRoutes } from './loja-online-admin';
-import type { RuntimeEnv } from '../cloudflare/sdk';
+import { lojaOnlineRequest, createLojaOnlineAdminRoutes, type LojaOnlineRuntimeEnv } from './loja-online-admin';
 
-function envWith(fetchImpl:(request:Request)=>Promise<Response>):RuntimeEnv{
+function envWith(fetchImpl:(request:Request)=>Promise<Response>):LojaOnlineRuntimeEnv{
   return {
     DB:{} as D1Database,
     LOJAONLINE_LICENSE_SERVICE_SECRET:'segredo-central',
@@ -26,7 +25,7 @@ describe('Loja Online admin adapter',()=>{
   });
 
   it('falha fechado quando segredo ou destino não estão configurados',async()=>{
-    const base={DB:{} as D1Database} as RuntimeEnv;
+    const base={DB:{} as D1Database} as LojaOnlineRuntimeEnv;
     await expect(lojaOnlineRequest('/api/internal/artisys/loja-online/companies',{},base)).rejects.toThrow('LOJAONLINE_LICENSE_SERVICE_SECRET');
     await expect(lojaOnlineRequest('/api/internal/artisys/loja-online/companies',{}, {...base,LOJAONLINE_LICENSE_SERVICE_SECRET:'x'})).rejects.toThrow('Binding/URL');
   });
