@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "systemId": "artisys-central-owner",
+  "mode": "web",
+  "defaultEnvironment": "production",
+  "defaultFlow": "owner-shell",
+  "defaultViewport": "desktop",
+  "capture": {
+    "video": true,
+    "screenshotEachStep": true,
+    "fps": 4
+  },
+  "environments": {
+    "production": {
+      "baseURL": "https://artisys.dev/sistema#owner"
+    },
+    "local": {
+      "baseURL": "http://127.0.0.1:4174/sistema#owner"
+    }
+  },
+  "flows": {
+    "owner-shell": "flows/00-owner-shell.json",
+    "owner-overview": "flows/01-owner-overview.json",
+    "loja-online": "flows/02-loja-online.json",
+    "clientes": "flows/03-clientes.json",
+    "licencas": "flows/04-licencas.json",
+    "auditoria": "flows/05-auditoria.json",
+    "obra-regression": "flows/06-obra-regression.json",
+    "debora-regression": "flows/07-debora-regression.json"
+  },
+  "qaProfiles": {
+    "quick": {
+      "flows": ["owner-shell", "loja-online"],
+      "criticalFlows": ["owner-shell"],
+      "includeVisual": false,
+      "includeDesktop": false,
+      "includeNetwork": false
+    },
+    "full": {
+      "flows": ["owner-shell", "owner-overview", "loja-online", "clientes", "licencas", "auditoria", "obra-regression", "debora-regression"],
+      "criticalFlows": ["owner-shell", "loja-online", "obra-regression", "debora-regression"],
+      "includeVisual": false,
+      "includeDesktop": false,
+      "includeNetwork": false
+    },
+    "release": {
+      "flows": ["owner-shell", "owner-overview", "loja-online", "clientes", "licencas", "auditoria", "obra-regression", "debora-regression"],
+      "criticalFlows": ["owner-shell", "owner-overview", "loja-online", "clientes", "licencas", "auditoria", "obra-regression", "debora-regression"],
+      "includeVisual": false,
+      "includeDesktop": false,
+      "includeNetwork": false
+    }
+  }
+}
