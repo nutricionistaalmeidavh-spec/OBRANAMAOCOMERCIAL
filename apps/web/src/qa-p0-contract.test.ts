@@ -24,7 +24,7 @@ describe('Central Artisys shared QA P0 contract',()=>{
     expect(manifest.schemaVersion).toBe(1);
     expect(manifest.systemId).toBe('artisys-central-owner');
     expect(manifest.mode).toBe('web');
-    expect(manifest.defaultEnvironment).toBe('production');
+    expect(manifest.defaultEnvironment).toBe('local');
     expect(Object.keys(manifest.flows)).toEqual(expectedFlows);
     for(const profile of ['quick','full','release']){
       expect(Array.isArray(manifest.qaProfiles?.[profile]?.flows)).toBe(true);
