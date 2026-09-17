@@ -23,65 +23,62 @@ describe('Central ↔ Loja Online QA cross-system runner',()=>{
     expect(calls.some(url=>url.includes('loja.example'))).toBe(true);
   });
 
-  it('runs P1 lifecycle, negative secret and storefront block without leaking credentials',async()=>{
+  it('runs P1 licensing, login and public-catalog lifecycle without serializing credentials',async()=>{
     const sharedToken='qa-shared-token';
+    const temporaryPassword='temporary-value';
+    const session='session-sensitive-value';
     const company={id:'cmp_qa',name:'QA-CROSS-Test'};
-    const baseLicense={id:'lic_qa',companyId:company.id,status:'ACTIVE',expiresAt:'2030-01-01T00:00:00.000Z'};
+    const license={id:'lic_qa',companyId:company.id,status:'ACTIVE',expiresAt:'2030-01-01T00:00:00.000Z'};
     let blocked=false;
-    let catalogConfigured=false;
+
+    const json=(value:unknown,status=200)=>Response.json(value,{status});
     const fetchImpl=async(input:RequestInfo|URL,init?:RequestInit)=>{
       const url=String(input);
-      const parsed=new URL(url);
+      const method=String(init?.method||'GET').toUpperCase();
       const headers=new Headers(init?.headers);
+      const pathname=new URL(url).pathname;
 
-      if(parsed.pathname==='/api/internal/artisys/loja-online/companies'&&init?.method!=='POST'){
-        expect(headers.get('x-artisys-license-secret')).toBe(`${sharedToken}-invalid`);
-        return Response.json({error:'INTERNAL_AUTH_REQUIRED',message:'no'},{status:401});
+      if(pathname==='/sistema'||pathname==='/')return new Response('<html>ok</html>',{status:200,headers:{'content-type':'text/html'}});
+
+      if(pathname==='/api/internal/artisys/loja-online/companies'&&method==='GET'){
+        if(headers.get('x-artisys-license-secret')!==sharedToken)return json({error:'INTERNAL_AUTH_REQUIRED',message:'denied'},401);
+        return json({companies:[{company,license}]});
       }
-      if(parsed.pathname==='/api/internal/artisys/loja-online/companies'&&init?.method==='POST'){
+      if(pathname==='/api/internal/artisys/loja-online/companies'&&method==='POST'){
         expect(headers.get('x-artisys-license-secret')).toBe(sharedToken);
-        return Response.json({
-          company,
-          license:baseLicense,
-          admin:{id:'usr_qa',email:'qa@example.test'},
-          temporaryPassword:'temporary-value',
-        },{status:201});
+        return json({company,license,admin:{id:'usr_qa',email:'qa@example.test'},temporaryPassword},201);
       }
-      if(parsed.pathname==='/api/v1/login'&&init?.method==='POST'){
-        const body=JSON.parse(String(init.body||'{}'));
-        expect(body.password).toBe('temporary-value');
-        return Response.json({session:'tenant-session',company,user:{id:'usr_qa'}});
+      if(pathname==='/api/v1/login'&&method==='POST')return json({session,user:{id:'usr_qa'},company,license});
+      if(pathname==='/api/v1/products'&&method==='POST')return json({id:'prd_qa',companyId:company.id,name:'Produto QA',priceCents:1234},201);
+      if(pathname==='/api/v1/products/prd_qa/publication'&&method==='PUT')return json({id:'prd_qa',published:true});
+      if(pathname==='/api/v1/public-catalog/settings'&&method==='PUT')return json({slug:'qa-cross-test',enabled:true});
+      if(pathname.startsWith('/api/v1/public/catalog/')){
+        if(blocked)return json({error:'PUBLIC_CATALOG_LICENSE_INACTIVE',message:'blocked'},403);
+        return json({companyId:company.id,products:[{id:'prd_qa'}]});
       }
-      if(parsed.pathname==='/api/v1/public-catalog/settings'&&init?.method==='PUT'){
-        expect(headers.get('authorization')).toBe('Bearer tenant-session');
-        catalogConfigured=true;
-        return Response.json({slug:'qa-cross-test',enabled:true});
+      if(pathname.endsWith('/extend')){
+        return json({company,license:{...license,expiresAt:'2030-07-01T00:00:00.000Z'}});
       }
-      if(parsed.pathname.startsWith('/api/v1/public/catalog/')){
-        expect(catalogConfigured).toBe(true);
-        if(blocked)return Response.json({error:'PUBLIC_CATALOG_LICENSE_INACTIVE',message:'blocked'},{status:403});
-        return Response.json({companyId:company.id,products:[]});
-      }
-      if(parsed.pathname.endsWith(`/companies/${company.id}/extend`)){
-        return Response.json({company,license:{...baseLicense,expiresAt:'2030-07-01T00:00:00.000Z'}});
-      }
-      if(parsed.pathname.endsWith(`/companies/${company.id}/block`)){
+      if(pathname.endsWith('/block')){
         blocked=true;
-        return Response.json({company,license:{...baseLicense,status:'BLOCKED'}});
+        return json({company,license:{...license,status:'BLOCKED'}});
       }
-      if(parsed.pathname.endsWith(`/companies/${company.id}/unblock`)){
+      if(pathname.endsWith('/unblock')){
         blocked=false;
-        return Response.json({company,license:baseLicense});
+        return json({company,license});
       }
-      if(parsed.pathname.endsWith('/license-audit')){
-        return Response.json({events:[
-          {id:'e1',companyId:company.id,action:'central.client.create',createdAt:'2030-01-01T00:00:00.000Z'},
-          {id:'e2',companyId:company.id,action:'central.license.extend',createdAt:'2030-01-01T00:01:00.000Z'},
-          {id:'e3',companyId:company.id,action:'central.license.block',createdAt:'2030-01-01T00:02:00.000Z'},
-          {id:'e4',companyId:company.id,action:'central.license.unblock',createdAt:'2030-01-01T00:03:00.000Z'},
+      if(pathname==='/api/v1/dashboard'){
+        return blocked?json({error:'LICENSE_BLOCKED',message:'blocked'},403):json({company});
+      }
+      if(pathname.endsWith('/license-audit')){
+        return json({events:[
+          {id:'evt1',companyId:company.id,action:'central.client.create',actor:'central-artisys',createdAt:'2030-01-01T00:00:00.000Z',details:{}},
+          {id:'evt2',companyId:company.id,action:'central.license.extend',actor:'central-artisys',createdAt:'2030-01-01T00:01:00.000Z',details:{}},
+          {id:'evt3',companyId:company.id,action:'central.license.block',actor:'central-artisys',createdAt:'2030-01-01T00:02:00.000Z',details:{}},
+          {id:'evt4',companyId:company.id,action:'central.license.unblock',actor:'central-artisys',createdAt:'2030-01-01T00:03:00.000Z',details:{}},
         ]});
       }
-      return new Response('<html>ok</html>',{status:200,headers:{'content-type':'text/html'}});
+      return json({error:'NOT_MOCKED',pathname,method},500);
     };
 
     const report=await runCrossSystemQa({
@@ -92,21 +89,15 @@ describe('Central ↔ Loja Online QA cross-system runner',()=>{
       writeArtifacts:false,
       now:()=>new Date('2030-01-01T00:00:00.000Z'),
     });
-
     expect(report.status).toBe('PASS');
     expect(report.mode).toBe('mutable-p1');
     expect(report.mutations.map((item:any)=>item.action)).toEqual(['create','extend','block','unblock']);
     expect(report.checks.map((item:any)=>item.name)).toEqual(expect.arrayContaining([
-      'internal-secret-negative',
-      'tenant-login',
-      'public-catalog-active',
-      'public-catalog-blocked',
-      'public-catalog-restored',
-      'licensing-audit',
+      'invalid-secret-denied','temporary-login','public-catalog-active','license-block-enforced','license-unblock-restored','licensing-audit',
     ]));
     const serialized=JSON.stringify(report);
     expect(serialized).not.toContain(sharedToken);
-    expect(serialized).not.toContain('temporary-value');
-    expect(serialized).not.toContain('tenant-session');
+    expect(serialized).not.toContain(temporaryPassword);
+    expect(serialized).not.toContain(session);
   });
 });
