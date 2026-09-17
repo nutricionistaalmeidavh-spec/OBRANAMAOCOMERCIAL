@@ -95,3 +95,22 @@ O Desktop comercial já usa por padrão:
 Também é possível alterar o endpoint em Configurações → Conexão Obra na Mão.
 
 O Financeiro não aparece na interface web comercial. Ele permanece no Desktop, consumindo as APIs do Worker.
+
+## 7. Loja Online na Central Artisys
+
+A Central Artisys gerencia a Loja Online sem copiar tenants ou licenças para o D1 do Obra na Mão.
+
+Configuração de produção obrigatória:
+
+1. Gere um segredo forte aleatório para `LOJAONLINE_LICENSE_SERVICE_SECRET`.
+2. Cadastre **o mesmo valor** como secret no Worker `artisys-lojaonline` e no Worker `obra-na-mao-comercial`.
+3. Publique primeiro o Worker da Loja Online contendo `/api/internal/artisys/loja-online/*`.
+4. Confirme o Service Binding `LOJAONLINE_LICENSING -> artisys-lojaonline` no Worker da Central.
+5. Publique o Worker `obra-na-mao-comercial`.
+6. Abra `https://artisys.dev/sistema#owner` e confirme o card **Loja Online**.
+7. Crie um tenant descartável, estenda +6 meses, bloqueie e desbloqueie.
+8. Confirme que a aba Clientes e a auditoria exibem a Loja Online sem alterar Obra na Mão ou Débora Lactação.
+
+Nunca coloque o valor de `LOJAONLINE_LICENSE_SERVICE_SECRET` em `wrangler.jsonc`, documentação, Git ou frontend.
+
+Para desenvolvimento local, o adapter aceita `LOJAONLINE_LICENSE_BASE_URL` como fallback; em produção o caminho preferido é o Service Binding.
