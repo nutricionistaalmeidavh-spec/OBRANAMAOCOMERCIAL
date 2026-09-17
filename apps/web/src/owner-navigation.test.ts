@@ -13,12 +13,25 @@ const companies=[
   {id:'c1',name:'Cliente Ativo',adminEmail:'ativo@example.test',status:'active',modules:['finance','obra360'],channels:['desktop','mobile'],usersCount:3,projectsCount:2,devicesCount:1,license:{id:'l1',plan:'manual'}},
   {id:'c2',name:'Cliente Pendente',adminEmail:'pendente@example.test',status:'pending',modules:['obra360'],channels:['desktop'],usersCount:1,projectsCount:0,devicesCount:0,license:{id:'l2',plan:'manual'}}
 ];
-const deboraOverview={clients:5,pro:2,freemium:2,expiring:1,revoked:1};
+const deboraOverview={clients:3,pro:1,freemium:2,expiring:1,revoked:1};
+const deboraClients=[
+  {email:'pro@debora.test',planCode:'pro_6m',status:'active',expiresAt:'2027-03-16T12:00:00.000Z',source:'mercado_livre_manual',expiring:false},
+  {email:'expira@debora.test',planCode:'pro_6m',status:'active',expiresAt:'2026-09-30T12:00:00.000Z',source:'mercado_livre_manual',expiring:true},
+  {email:'revogada@debora.test',planCode:'pro_6m',status:'revoked',expiresAt:'2027-01-01T12:00:00.000Z',source:'mercado_livre_manual',expiring:false},
+];
+const licenseEvents=[
+  {id:'ev1',product:'obra-na-mao',email:'ativo@example.test',action:'created',source:'manual',actor:'owner@example.test',createdAt:'2026-09-16T10:00:00.000Z'},
+  {id:'ev2',product:'debora-lactacao',email:'pro@debora.test',action:'grant',source:'mercado_livre_manual',actor:'owner@example.test',createdAt:'2026-09-16T11:00:00.000Z'},
+];
 
 async function mount(){
   document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
   client.hasSession.mockResolvedValue(true);
-  client.get.mockImplementation(async(path:string)=>path==='/api/owner/debora-overview'?{data:{overview:deboraOverview}}:{data:{companies}});
+  client.get.mockImplementation(async(path:string)=>{
+    if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
+    if(path==='/api/owner/license-audit')return {data:{events:licenseEvents}};
+    return {data:{companies}};
+  });
   await mountOwnerPortal();
 }
 
@@ -27,7 +40,7 @@ function clickView(view:string){
 }
 
 describe('Central Artisys owner navigation',()=>{
-  beforeEach(()=>{vi.resetAllMocks();document.body.innerHTML='';});
+  beforeEach(()=>{vi.resetAllMocks();document.body.innerHTML='';vi.restoreAllMocks();});
 
   it('opens on a compact overview with product cards and operational metrics',async()=>{
     await mount();
@@ -56,40 +69,64 @@ describe('Central Artisys owner navigation',()=>{
     await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/owner/companies',expect.objectContaining({name:'Nova Empresa',adminEmail:'nova@example.test'})));
   });
 
-  it('keeps Débora licensing in a dedicated product view and endpoint',async()=>{
+  it('keeps Débora licensing in a dedicated product view, exposes SEO and preserves its endpoint',async()=>{
     await mount();
     clickView('debora');
     const form=document.getElementById('deboraLicenseForm') as HTMLFormElement;
     expect(form).not.toBeNull();
     expect(document.body.textContent).toContain('Pro 6 meses');
-    expect(document.querySelector('[data-debora-metric="clients"]')?.textContent).toContain('5');
-    expect(document.querySelector('[data-debora-metric="pro"]')?.textContent).toContain('2');
-    expect(document.querySelector('[data-debora-metric="freemium"]')?.textContent).toContain('2');
-    expect(document.querySelector('[data-debora-metric="expiring"]')?.textContent).toContain('1');
-    expect(document.querySelector('[data-debora-metric="revoked"]')?.textContent).toContain('1');
+    expect(document.querySelector('[data-debora-metric="clients"]')?.textContent).toContain('3');
+    expect(document.querySelector('a[href="https://deboralactacao.com/admin/seo/"]')).not.toBeNull();
     (form.elements.namedItem('email') as HTMLInputElement).value='consultora@example.test';
     client.post.mockResolvedValue({data:{state:'active',grant:{email:'consultora@example.test',status:'active',plan_code:'pro_6m'}}});
     form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
     await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/owner/debora-license',{action:'grant',email:'consultora@example.test'}));
   });
 
-  it('exposes dedicated Clientes and Licenças views without duplicating provisioning forms',async()=>{
+  it('renders a unified client list with product and status filters',async()=>{
     await mount();
     clickView('clients');
-    expect(document.body.textContent).toContain('Clientes do Obra na Mão');
+    expect(document.body.textContent).toContain('Todos os clientes');
     expect(document.body.textContent).toContain('Cliente Ativo');
-    expect(document.getElementById('companyForm')).toBeNull();
-    clickView('licenses');
-    expect(document.body.textContent).toContain('Licenças do Obra na Mão');
-    expect(document.body.textContent).toContain('Cliente Pendente');
-    expect(document.getElementById('deboraLicenseForm')).toBeNull();
+    expect(document.body.textContent).toContain('pro@debora.test');
+    const product=document.getElementById('ownerClientProduct') as HTMLSelectElement;
+    product.value='debora-lactacao';
+    product.dispatchEvent(new Event('change',{bubbles:true}));
+    expect((document.querySelector('[data-owner-client][data-product="obra-na-mao"]') as HTMLElement).hidden).toBe(true);
+    expect((document.querySelector('[data-owner-client][data-product="debora-lactacao"]') as HTMLElement).hidden).toBe(false);
+    const search=document.getElementById('ownerClientSearch') as HTMLInputElement;
+    search.value='revogada';
+    search.dispatchEvent(new Event('input',{bubbles:true}));
+    expect(Array.from(document.querySelectorAll<HTMLElement>('[data-owner-client]')).filter(node=>!node.hidden)).toHaveLength(1);
   });
 
-  it('keeps the Obra na Mão admin usable when Debora overview metrics are unavailable',async()=>{
+  it('renders unified license status, expiring licenses and combined history',async()=>{
+    await mount();
+    clickView('licenses');
+    expect(document.body.textContent).toContain('Todas as licenças');
+    expect(document.body.textContent).toContain('Expira em breve');
+    expect(document.body.textContent).toContain('Histórico de alterações');
+    expect(document.body.textContent).toContain('pro@debora.test');
+    expect(document.body.textContent).toContain('ativo@example.test');
+    expect(document.getElementById('ownerLicenseStatus')).not.toBeNull();
+  });
+
+  it('requires confirmation before revoking a Debora license',async()=>{
+    await mount();
+    clickView('debora');
+    const form=document.getElementById('deboraLicenseForm') as HTMLFormElement;
+    (form.elements.namedItem('email') as HTMLInputElement).value='pro@debora.test';
+    const confirm=vi.spyOn(window,'confirm').mockReturnValue(false);
+    (document.getElementById('deboraLicenseRevoke') as HTMLButtonElement).click();
+    expect(confirm).toHaveBeenCalled();
+    expect(client.post).not.toHaveBeenCalledWith('/api/owner/debora-license',expect.objectContaining({action:'revoke'}));
+  });
+
+  it('keeps the Obra na Mão admin usable when Debora reads are unavailable',async()=>{
     document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
     client.hasSession.mockResolvedValue(true);
     client.get.mockImplementation(async(path:string)=>{
-      if(path==='/api/owner/debora-overview')throw new Error('Debora metrics unavailable');
+      if(path==='/api/owner/debora-overview'||path==='/api/owner/license-audit')throw new Error('optional admin data unavailable');
       return {data:{companies}};
     });
     await mountOwnerPortal();
