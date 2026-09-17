@@ -101,4 +101,4 @@ async function render(){
   if(!await auth.hasSession()){showOwnerLogin();return}
   try{await refreshCompanies();renderCurrentView()}catch(e){root().innerHTML=`<section class="card"><h1>Central Artisys</h1><p>${esc(message(e))}</p><a href="./index.html#portal">Voltar à minha operação</a></section>`}
 }
-export async function mountOwnerPortal(){await render()}
+export async function mountOwnerPortal(){ownerView='overview';createMessage='';await render()}
