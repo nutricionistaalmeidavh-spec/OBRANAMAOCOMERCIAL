@@ -49,7 +49,7 @@ function showGoogleButton(){
   const overlay=document.createElement('div');overlay.id='obn-google-chooser';
   overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:24px';
   const box=document.createElement('div');box.style.cssText='background:#fff;border-radius:18px;padding:24px;max-width:360px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3);text-align:center';
-  const title=document.createElement('div');title.textContent='Entrar no Obra na Mão';title.style.cssText='font:600 18px system-ui;color:#111;margin-bottom:16px';
+  const title=document.createElement('div');title.textContent=location.hash==='#owner'?'Entrar na Central Artisys':'Entrar no Obra na Mão';title.style.cssText='font:600 18px system-ui;color:#111;margin-bottom:16px';
   const target=document.createElement('div');target.style.cssText='display:flex;justify-content:center';
   const cancel=document.createElement('button');cancel.textContent='Cancelar';cancel.type='button';cancel.style.cssText='margin-top:16px;border:0;background:transparent;color:#555;font:14px system-ui;padding:8px 12px';cancel.onclick=removeGoogleChooser;
   box.append(title,target,cancel);overlay.appendChild(box);overlay.addEventListener('click',e=>{if(e.target===overlay)removeGoogleChooser()});document.body.appendChild(overlay);
