@@ -75,7 +75,7 @@ function bindDeboraLicense(){
   const form=document.getElementById('deboraLicenseForm') as HTMLFormElement|null,result=document.getElementById('deboraLicenseResult');
   if(!form||!result)return;
   const email=()=>String(new FormData(form).get('email')||'').trim();
-  const run=async(action:'grant'|'status'|'revoke',button:HTMLButtonElement)=>{button.disabled=true;result.textContent=action==='grant'?'Liberando acesso...':action==='revoke'?'Revogando licença...':'Consultando licença...';try{const {data}=await api.post<DeboraLicenseResponse>('/api/owner/debora-license',{action,email:email()});result.textContent=describeDeboraLicense(data);if(action!=='status'){await refreshDeboraOverview();updateDeboraMetrics()}}catch(error){result.textContent=message(error)}finally{button.disabled=false}};
+  const run=async(action:'grant'|'status'|'revoke',button:HTMLButtonElement)=>{button.disabled=true;result.textContent=action==='grant'?'Liberando acesso...':action==='revoke'?'Revogando licença...':'Consultando licença...';try{const {data}=await api.post<DeboraLicenseResponse>('/api/owner/debora-license',{action,email:email()});result.textContent=describeDeboraLicense(data);if(action!=='status'){try{await refreshDeboraOverview();updateDeboraMetrics()}catch{}}}catch(error){result.textContent=message(error)}finally{button.disabled=false}};
   form.onsubmit=e=>{e.preventDefault();void run('grant',form.querySelector<HTMLButtonElement>('button[type="submit"]')!)};
   const status=document.getElementById('deboraLicenseStatus') as HTMLButtonElement|null,revoke=document.getElementById('deboraLicenseRevoke') as HTMLButtonElement|null;
   if(status)status.onclick=()=>void run('status',status);
@@ -107,6 +107,6 @@ async function detail(id:string){
 async function render(){
   document.querySelector('.nav')?.setAttribute('style','display:none');document.querySelector('.top')?.setAttribute('style','display:none');document.title='Central Artisys — Superadmin';
   if(!await auth.hasSession()){showOwnerLogin();return}
-  try{await Promise.all([refreshCompanies(),refreshDeboraOverview()]);renderCurrentView()}catch(e){root().innerHTML=`<section class="card"><h1>Central Artisys</h1><p>${esc(message(e))}</p><a href="./index.html#portal">Voltar à minha operação</a></section>`}
+  try{await refreshCompanies();try{await refreshDeboraOverview()}catch{deboraOverview=emptyDeboraOverview()}renderCurrentView()}catch(e){root().innerHTML=`<section class="card"><h1>Central Artisys</h1><p>${esc(message(e))}</p><a href="./index.html#portal">Voltar à minha operação</a></section>`}
 }
 export async function mountOwnerPortal(){ownerView='overview';createMessage='';deboraOverview=emptyDeboraOverview();await render()}
