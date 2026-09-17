@@ -1,19 +1,21 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
-const source=()=>readFile(new URL('./owner.ts',import.meta.url),'utf8');
+const integration=()=>readFile(new URL('./owner-loja-online.ts',import.meta.url),'utf8');
+const shell=()=>readFile(new URL('../sistema.html',import.meta.url),'utf8');
 
 describe('Central Artisys Loja Online contract',()=>{
-  it('expõe Loja Online como terceiro produto gerenciado',async()=>{
-    const text=await source();
-    expect(text).toContain("'loja'");
+  it('carrega Loja Online como terceiro produto gerenciado no owner existente',async()=>{
+    const [text,html]=await Promise.all([integration(),shell()]);
+    expect(html).toContain('/src/owner-loja-online.ts');
+    expect(text).toContain("dataset.ownerView='loja'");
     expect(text).toContain('Loja Online');
     expect(text).toContain('/api/owner/loja-online/overview');
     expect(text).toContain('/api/owner/loja-online/companies');
   });
 
   it('mantém provisionamento empresarial e ações de licença na Central',async()=>{
-    const text=await source();
+    const text=await integration();
     expect(text).toContain('Criar loja e liberar licença');
     expect(text).toContain('Estender +6 meses');
     expect(text).toContain('Bloquear');
@@ -22,9 +24,9 @@ describe('Central Artisys Loja Online contract',()=>{
   });
 
   it('inclui Loja Online nos clientes e auditoria unificados',async()=>{
-    const text=await source();
-    expect(text).toContain('value="loja-online"');
-    expect(text).toContain("'loja-online'");
+    const text=await integration();
+    expect(text).toContain("option.value='loja-online'");
+    expect(text).toContain('data-product="loja-online"');
     expect(text).toContain('/api/owner/loja-online/license-audit');
   });
 });
