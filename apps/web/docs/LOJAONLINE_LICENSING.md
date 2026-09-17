@@ -118,3 +118,21 @@ Com o secret presente, o runner:
 O relatório é salvo em `qa-artifacts/cross-system/<timestamp>/report.json`. O valor do secret e a senha temporária devolvida na criação não são gravados no relatório.
 
 Como ainda não existe endpoint administrativo seguro de exclusão de tenant, o runner não inventa deleção: tenants `QA-CROSS-*` ficam identificados para limpeza administrativa posterior.
+
+## QA P1
+
+O hardening P1 adiciona três camadas sobre o P0:
+
+1. `npm run qa:p1:security` executa as políticas P1 existentes, o adapter de licenciamento, contratos do owner e o runner cross-system em teste isolado;
+2. `npm run qa:p1:matrix` executa o smoke local da Central em desktop, tablet e mobile usando o runtime compartilhado;
+3. `npm run qa:cross-system`, quando recebe `LOJAONLINE_LICENSE_SERVICE_SECRET`, também valida secret inválido, login do tenant criado com a senha temporária apenas em memória, catálogo público ativo, bloqueio 403 e restauração após desbloqueio.
+
+O relatório cross-system não serializa o secret, a senha temporária nem a sessão do tenant. O modo sem secret continua read-only.
+
+Comandos:
+
+```sh
+npm run qa:p1
+npm run qa:cross-system
+npm run qa:release
+```
