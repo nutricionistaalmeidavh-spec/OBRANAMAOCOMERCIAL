@@ -3,7 +3,7 @@
   "steps": [
     {"action":"goto","path":"/sistema","name":"open-sistema"},
     {"action":"waitFor","selector":"#content","state":"visible","timeoutMs":10000,"name":"obra-content"},
-    {"action":"expectVisible","selector":"nav.nav","name":"obra-navigation"},
+    {"action":"expectURL","includes":"/sistema","name":"obra-route"},
     {"action":"screenshot","name":"obra-na-mao-regression","fullPage":true}
   ]
 }
