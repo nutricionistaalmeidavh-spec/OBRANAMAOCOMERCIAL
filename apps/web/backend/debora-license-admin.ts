@@ -1,9 +1,21 @@
 import { error, json, runtimeEnv, type RouterRoutes } from '../cloudflare/sdk';
 import { normalizeDeboraLicenseEmail } from './debora-license-policy';
-import { getManualDeboraLicense, grantManualDeboraLicense, resolveProductAccess, revokeManualDeboraLicense } from './product-license-service';
+import { DEBORA_PRODUCT_CODE, getManualDeboraLicense, grantManualDeboraLicense, resolveProductAccess, revokeManualDeboraLicense, summarizeDeboraLicenseOverview } from './product-license-service';
 
 export function createDeboraLicenseAdminRoutes(secured: RouterRoutes[string]): RouterRoutes {
   return {
+    'GET /api/owner/debora-overview': [
+      ...secured,
+      async () => {
+        const db=runtimeEnv().DB;
+        const [accountsResult,licensesResult]=await Promise.all([
+          db.prepare('SELECT email,status FROM product_accounts WHERE product_code=?').bind(DEBORA_PRODUCT_CODE).all<{email:string;status:string}>(),
+          db.prepare('SELECT email,plan_code,status,expires_at,updated_at FROM product_licenses WHERE product_code=? ORDER BY updated_at DESC').bind(DEBORA_PRODUCT_CODE).all<{email:string;plan_code:string;status:string;expires_at:string|null;updated_at:string}>(),
+        ]);
+        const overview=summarizeDeboraLicenseOverview(accountsResult.results||[],licensesResult.results||[]);
+        return json({overview});
+      },
+    ],
     'POST /api/owner/debora-license': [
       ...secured,
       async (ctx) => {
