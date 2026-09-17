@@ -78,3 +78,43 @@ Sem Service Binding, o adapter pode usar `LOJAONLINE_LICENSE_BASE_URL` para apon
 - auditoria contém criação, extensão, bloqueio e desbloqueio;
 - controles existentes do Obra na Mão continuam operacionais;
 - controles existentes da Débora Lactação continuam operacionais.
+
+## QA compartilhado P0
+
+A Central e a Loja Online consomem o mesmo runtime `@artisys/qa` mantido em `utilidades/modules/artisys-qa`. Na Central, os comandos são:
+
+```sh
+npm run qa:quick
+npm run qa:full
+npm run qa:release
+npm run qa:cross-system
+```
+
+`qa:release` mantém os gates nativos `npm test`, `npm run build` e `npm run ux:verify` antes do profile compartilhado. Os artefatos ficam em `qa-artifacts/` com screenshots, vídeo, trace, telemetria e relatórios JSON/HTML conforme o runtime compartilhado.
+
+### Cross-system
+
+Sem secret, `npm run qa:cross-system` é read-only: confirma que `artisys.dev/sistema` e o Worker da Loja Online respondem.
+
+Para executar o ciclo mutável completo, fornecer o secret apenas na variável de ambiente da sessão:
+
+```text
+ARTISYS_CENTRAL_BASE_URL=https://artisys.dev
+ARTISYS_LOJAONLINE_BASE_URL=https://artisys-lojaonline.nutricionistaalmeidavh.workers.dev
+LOJAONLINE_LICENSE_SERVICE_SECRET=<secret existente nos dois Workers>
+```
+
+Com o secret presente, o runner:
+
+1. cria um tenant descartável identificado pelo prefixo `QA-CROSS-`;
+2. confirma licença ativa;
+3. estende seis meses;
+4. bloqueia;
+5. confirma estado bloqueado;
+6. desbloqueia;
+7. confirma restauração;
+8. consulta a auditoria.
+
+O relatório é salvo em `qa-artifacts/cross-system/<timestamp>/report.json`. O valor do secret e a senha temporária devolvida na criação não são gravados no relatório.
+
+Como ainda não existe endpoint administrativo seguro de exclusão de tenant, o runner não inventa deleção: tenants `QA-CROSS-*` ficam identificados para limpeza administrativa posterior.
