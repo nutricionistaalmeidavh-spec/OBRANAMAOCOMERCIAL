@@ -40,7 +40,7 @@ function clickView(view:string){
 }
 
 describe('Central Artisys owner navigation',()=>{
-  beforeEach(()=>{vi.resetAllMocks();document.body.innerHTML='';vi.restoreAllMocks();});
+  beforeEach(()=>{vi.restoreAllMocks();vi.resetAllMocks();document.body.innerHTML='';});
 
   it('opens on a compact overview with product cards and operational metrics',async()=>{
     await mount();
@@ -74,7 +74,7 @@ describe('Central Artisys owner navigation',()=>{
     clickView('debora');
     const form=document.getElementById('deboraLicenseForm') as HTMLFormElement;
     expect(form).not.toBeNull();
-    expect(document.body.textContent).toContain('Pro 6 meses');
+    expect(document.body.textContent).toContain('Liberar / renovar 6 meses');
     expect(document.querySelector('[data-debora-metric="clients"]')?.textContent).toContain('3');
     expect(document.querySelector('a[href="https://deboralactacao.com/admin/seo/"]')).not.toBeNull();
     (form.elements.namedItem('email') as HTMLInputElement).value='consultora@example.test';
