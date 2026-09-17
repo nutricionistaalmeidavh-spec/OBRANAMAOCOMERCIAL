@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const client=vi.hoisted(()=>({hasSession:vi.fn(),signOut:vi.fn(),get:vi.fn(),post:vi.fn(),put:vi.fn()}));
+const client=vi.hoisted(()=>({hasSession:vi.fn(),signIn:vi.fn(),signOut:vi.fn(),get:vi.fn(),post:vi.fn(),put:vi.fn()}));
 vi.mock('./cloudflare-client',()=>({
-  auth:{hasSession:client.hasSession,signOut:client.signOut},
+  auth:{hasSession:client.hasSession,signIn:client.signIn,signOut:client.signOut},
   api:{get:client.get,post:client.post,put:client.put}
 }));
 
@@ -41,6 +41,19 @@ function clickView(view:string){
 
 describe('Central Artisys owner navigation',()=>{
   beforeEach(()=>{vi.restoreAllMocks();vi.resetAllMocks();document.body.innerHTML='';});
+
+  it('restores Google sign-in when the owner has no active session',async()=>{
+    document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
+    client.hasSession.mockResolvedValue(false);
+    client.signIn.mockResolvedValue(undefined);
+    await mountOwnerPortal();
+    const button=document.getElementById('centralGoogleLogin') as HTMLButtonElement;
+    expect(button).not.toBeNull();
+    expect(button.textContent).toContain('Entrar com Google');
+    expect(document.querySelector('input[type="password"]')).toBeNull();
+    button.click();
+    await vi.waitFor(()=>expect(client.signIn).toHaveBeenCalledWith({scope:'openid email profile offline_access'}));
+  });
 
   it('opens on a compact overview with product cards and operational metrics',async()=>{
     await mount();
