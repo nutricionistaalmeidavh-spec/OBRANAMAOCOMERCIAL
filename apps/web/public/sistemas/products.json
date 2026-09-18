@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "products": [
+    {
+      "slug": "pdv-artisys",
+      "name": "PDV ArtiSys",
+      "category": "Comércio",
+      "type": "desktop",
+      "status": "available",
+      "priceLabel": "R$ 189",
+      "summary": "PDV para operação de caixa, produtos, vendas e rotina comercial em Windows.",
+      "features": ["Caixa e vendas", "Cadastro de produtos", "Relatórios operacionais", "Uso em desktop"],
+      "featured": true
+    },
+    {
+      "slug": "obra-na-mao",
+      "name": "Obra na Mão",
+      "category": "Construção",
+      "type": "saas",
+      "status": "available",
+      "priceLabel": "Sob consulta",
+      "summary": "Gestão de obras, equipe, campo, RDO, administração e capacitação em uma operação integrada.",
+      "features": ["Obra360 e rotina de campo", "Gestão administrativa", "Universidade empresarial", "Acesso web e mobile"],
+      "featured": true,
+      "accessHref": "/sistema.html#portal"
+    },
+    {
+      "slug": "loja-online",
+      "name": "Loja Online",
+      "category": "Comércio",
+      "type": "saas",
+      "status": "managed",
+      "priceLabel": "Sob consulta",
+      "summary": "Vitrine online por empresa, com tenant próprio, administração e licenciamento centralizado pela ArtiSys.",
+      "features": ["Vitrine por empresa", "Gestão de catálogo", "Tenant e administrador próprios", "Licenciamento central"],
+      "featured": true
+    },
+    {
+      "slug": "debora-lactacao",
+      "name": "Débora Lactação",
+      "category": "Saúde",
+      "type": "web",
+      "status": "managed",
+      "priceLabel": "Sob consulta",
+      "summary": "Sistema especializado para organização de atendimentos de consultoria em amamentação.",
+      "features": ["Prontuário mãe e bebê", "Agenda e histórico", "Curvas e acompanhamento", "Documentos de atendimento"],
+      "featured": false,
+      "accessHref": "https://deboralactacao.com/"
+    },
+    {
+      "slug": "oficina-agricola",
+      "name": "Oficina Agrícola",
+      "category": "Agro",
+      "type": "desktop",
+      "status": "available",
+      "priceLabel": "Sob consulta",
+      "summary": "Sistema desktop para organizar a rotina de oficinas e serviços ligados a máquinas e operações agrícolas.",
+      "features": ["Ordens e serviços", "Cadastros operacionais", "Rotina de oficina", "Uso offline em desktop"],
+      "featured": false
+    }
+  ]
+}
