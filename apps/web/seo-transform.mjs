@@ -1,4 +1,5 @@
 import { artisysSeoConfig } from './seo.config.mjs';
+import { injectHomeCatalogSection } from './home-catalog.mjs';
 import { buildPageSeo, renderHeadTags } from './vendor/artisys-seo/technical.mjs';
 
 const SEO_TAGS = [
@@ -16,7 +17,7 @@ function stripSeoTags(html) {
 }
 
 export function applyPublicSeoHtml(html) {
-  const clean = stripSeoTags(html);
+  const clean = injectHomeCatalogSection(stripSeoTags(html));
   const tags = renderHeadTags(buildPageSeo(artisysSeoConfig, '/'));
   if (!/<\/head>/i.test(clean)) throw new Error('HTML sem </head> para injeção SEO.');
   return clean.replace(/<\/head>/i, `${tags}\n</head>`);
