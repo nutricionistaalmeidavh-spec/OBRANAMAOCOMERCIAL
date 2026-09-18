@@ -22,12 +22,10 @@
 
   function marketplaceCategory(item) {
     const categories = { agro: 'Agro', negocios: 'Negócios', saude: 'Saúde' };
-    if (item.pageMode === 'digital') return 'Produtos digitais';
     return categories[item.collection] || 'ArtiSys';
   }
 
   function marketplaceProduct(item) {
-    const pageMode = item.pageMode === 'digital' ? 'external' : item.pageMode;
     return {
       slug: String(item.slug || item.item_id || '').trim(),
       name: String(item.name || 'Produto ArtiSys').trim(),
@@ -35,15 +33,13 @@
       type: 'marketplace',
       status: 'available',
       priceLabel: priceLabel(item),
-      summary: item.pageMode === 'digital'
-        ? 'Produto digital comercializado pela ArtiSys com dados sincronizados do anúncio atual.'
-        : 'Solução comercializada pela ArtiSys com fotos, preço e disponibilidade sincronizados do Mercado Livre.',
+      summary: 'Solução comercializada pela ArtiSys com fotos, preço e disponibilidade sincronizados do Mercado Livre.',
       audience: 'Consulte os detalhes do produto e do anúncio para confirmar se esta solução atende à sua operação.',
       features: [],
       featured: Boolean(item.featured),
-      pageMode,
+      pageMode: item.pageMode,
       collections: item.collection ? [item.collection] : [],
-      externalHref: pageMode === 'external' ? item.permalink : undefined,
+      externalHref: item.pageMode === 'external' ? item.permalink : undefined,
       marketplaceOnly: true,
       marketplaceItemId: String(item.item_id || ''),
       permalink: String(item.permalink || ''),
@@ -68,6 +64,8 @@
     const result = (staticProducts || []).map((product) => ({ ...product }));
     const bySlug = new Map(result.map((product, index) => [String(product.slug || ''), index]));
     for (const item of feedItems || []) {
+      if (item.pageMode === 'digital') continue;
+      if (item.pageMode === 'collection' && item.collection !== 'agro') continue;
       const slug = String(item.slug || '').trim();
       if (!slug) continue;
       if (bySlug.has(slug)) {
