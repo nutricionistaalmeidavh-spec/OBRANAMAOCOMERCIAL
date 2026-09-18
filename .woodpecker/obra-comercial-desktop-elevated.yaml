@@ -1,1 +1,67 @@
-# Elevated desktop workflow placeholder; implementation follows contract test.
+labels:
+  platform: windows/amd64
+  backend: local
+  privilege: elevated
+  owner: artisys
+
+when:
+  - event: manual
+  - event: push
+    branch:
+      - main
+
+steps:
+  - name: ambiente-elevado
+    image: powershell.exe
+    commands:
+      - '$ErrorActionPreference = "Stop"'
+      - 'Write-Host "[Obra Comercial Desktop] Agent elevado: $env:COMPUTERNAME"'
+      - 'if (-not $env:ARTISYS_UTILIDADES_PATH) { throw "ARTISYS_UTILIDADES_PATH ausente no Agent elevado." }'
+      - '$policy = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-windows-ci\bin\artisys-windows-ci.mjs"'
+      - 'if (-not (Test-Path $policy)) { throw "artisys-windows-ci ausente: $policy" }'
+      - 'node $policy verify-elevated'
+      - 'if ($LASTEXITCODE -ne 0) { throw "Contexto elevado recusado." }'
+      - 'node --version'
+      - 'npm --version'
+      - 'git --version'
+
+  - name: desktop-elevado
+    image: powershell.exe
+    commands:
+      - '$ErrorActionPreference = "Stop"'
+      - 'if (-not (Test-Path ".\scripts\woodpecker-desktop-elevated.ps1")) { throw "Runner Desktop elevado ausente." }'
+      - '& .\scripts\woodpecker-desktop-elevated.ps1'
+
+  - name: reportar-sucesso-github
+    image: powershell.exe
+    environment:
+      ARTISYS_STATUS_CONTEXT: 'ci/woodpecker/obra-comercial-desktop-elevated'
+      ARTISYS_COMMENT_SUCCESS: 'false'
+    commands:
+      - '$ErrorActionPreference = "Continue"'
+      - '$reporter = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs"'
+      - 'if (-not (Test-Path $reporter)) { Write-Warning "artisys-ci-reporter ausente em $reporter"; exit 0 }'
+      - '$env:ARTISYS_CI_RESULT = "success"'
+      - '$log = ".\qa-artifacts\woodpecker\obra-comercial-desktop-elevated.log"; if (Test-Path $log) { $env:ARTISYS_LOG_PATH = (Resolve-Path $log).Path }'
+      - 'node $reporter'
+    when:
+      - event: [push, manual]
+        status: [success]
+    failure: ignore
+
+  - name: reportar-falha-github
+    image: powershell.exe
+    environment:
+      ARTISYS_STATUS_CONTEXT: 'ci/woodpecker/obra-comercial-desktop-elevated'
+    commands:
+      - '$ErrorActionPreference = "Continue"'
+      - '$reporter = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs"'
+      - 'if (-not (Test-Path $reporter)) { Write-Warning "artisys-ci-reporter ausente em $reporter"; exit 0 }'
+      - '$failurePath = ".\qa-artifacts\woodpecker\obra-comercial-desktop-elevated-failure.json"; if (Test-Path $failurePath) { $failure = Get-Content $failurePath -Raw | ConvertFrom-Json; $env:ARTISYS_FAILED_STEP = [string]$failure.step; $env:ARTISYS_FAILURE_MESSAGE = [string]$failure.message }'
+      - '$log = ".\qa-artifacts\woodpecker\obra-comercial-desktop-elevated.log"; if (Test-Path $log) { $env:ARTISYS_LOG_PATH = (Resolve-Path $log).Path }'
+      - '$env:ARTISYS_CI_RESULT = "failure"'
+      - 'node $reporter'
+    when:
+      - event: [push, manual]
+        status: [failure]
+    failure: ignore
