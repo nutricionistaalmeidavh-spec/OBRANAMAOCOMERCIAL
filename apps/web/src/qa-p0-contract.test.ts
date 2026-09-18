@@ -11,12 +11,14 @@ const expectedFlows=['owner-shell','owner-overview','loja-online','clientes','li
 describe('Central Artisys shared QA P0 contract',()=>{
   it('declares quick/full/release scripts and keeps native gates in release',async()=>{
     const pkg=await readJson(resolve(root,'package.json'));
-    for(const name of ['qa:prepare','qa:quick','qa:full','qa:release','qa:cross-system']){
+    for(const name of ['qa:prepare','qa:quick','qa:full','qa:p2','qa:release','qa:cross-system']){
       expect(typeof pkg.scripts?.[name]).toBe('string');
     }
-    expect(pkg.scripts['qa:release']).toContain('npm test');
-    expect(pkg.scripts['qa:release']).toContain('npm run build');
-    expect(pkg.scripts['qa:release']).toContain('npm run ux:verify');
+    expect(pkg.scripts['qa:release']).toContain('qa:p2');
+    const p2=await readFile(resolve(root,'scripts/qa-p2-release.mjs'),'utf8');
+    expect(p2).toContain("npmCommand,['test']");
+    expect(p2).toContain("['run','build']");
+    expect(p2).toContain("['run','ux:verify']");
   });
 
   it('declares the owner-focused ArtiSys QA manifest and P0 flows',async()=>{
