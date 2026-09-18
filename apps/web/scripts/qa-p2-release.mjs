@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolveCommandInvocation } from './qa-command.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const runtimeRoot=path.join(root,'qa','runtime');
@@ -9,16 +10,32 @@ const { buildProductQaSummary, writeProductQaBundle }=await import(pathToFileURL
 const npmCommand=process.platform==='win32'?'npm.cmd':'npm';
 const p2StartedAt=Date.now();
 
+function tail(value,max=6000){
+  const text=String(value||'').trim();
+  return text.length>max?text.slice(text.length-max):text;
+}
+
 function run(name,command,args,{env=process.env}={}){
   const started=Date.now();
-  const result=spawnSync(command,args,{cwd:root,env,stdio:'inherit',shell:false});
+  const resolved=resolveCommandInvocation(command,args,process.platform,env);
+  const result=spawnSync(resolved.command,resolved.args,{
+    cwd:root,
+    env,
+    encoding:'utf8',
+    shell:resolved.shell,
+    windowsHide:true,
+    maxBuffer:16*1024*1024,
+  });
+  if(result.stdout)process.stdout.write(result.stdout);
+  if(result.stderr)process.stderr.write(result.stderr);
+  const output=[result.stderr,result.stdout].filter(Boolean).join('\n');
   return {
     name,
     category:name.startsWith('native:')?'native':name.startsWith('cross:')?'cross-system':'p1',
     status:result.status===0?'passed':'failed',
     critical:true,
     durationMs:Date.now()-started,
-    error:result.error?.message||(result.status===0?null:'exit '+String(result.status)),
+    error:result.error?.message||(result.status===0?null:(tail(output)||'exit '+String(result.status))),
   };
 }
 async function readJson(file,fallback=null){
