@@ -94,6 +94,27 @@ try {
   Invoke-Gate 'web-dependencies' { npm --prefix apps/web ci --no-audit --no-fund }
   Invoke-Gate 'desktop-dependencies' { npm --prefix apps/desktop ci --no-audit --no-fund }
 
+  # Electron e requerido por alguns testes Desktop. Em workspace efemero do
+  # backend local do Woodpecker, deixe a extracao terminar uma unica vez antes
+  # de o Vitest abrir workers em paralelo. Isso evita corrida em dist/locales.
+  Invoke-Gate 'electron-binary-prepare' {
+    $electronRoot = Join-Path $repoRoot 'apps\desktop\node_modules\electron'
+    $pathFile = Join-Path $electronRoot 'path.txt'
+    $installScript = Join-Path $electronRoot 'install.js'
+    if (-not (Test-Path $installScript)) {
+      Write-Error "Electron install.js ausente em $installScript"
+      $global:LASTEXITCODE = 1
+    } else {
+      if (-not (Test-Path $pathFile)) {
+        Remove-Item (Join-Path $electronRoot 'dist') -Recurse -Force -ErrorAction SilentlyContinue
+        & node $installScript
+      }
+      if ($LASTEXITCODE -eq 0) {
+        & node -e "const fs=require('node:fs'),path=require('node:path');const root=path.resolve('apps/desktop/node_modules/electron'),pf=path.join(root,'path.txt');if(!fs.existsSync(pf)){console.error('Electron path.txt ausente');process.exit(1)}const rel=fs.readFileSync(pf,'utf8').trim(),bin=path.resolve(root,'dist',rel);if(!fs.existsSync(bin)){console.error('Electron binary ausente: '+bin);process.exit(1)}console.log('Electron preparado: '+bin)"
+      }
+    }
+  }
+
   Invoke-Gate 'contracts-typecheck' { npm run typecheck:contracts }
   Invoke-Gate 'web-tests' { npm run test:web }
   Invoke-Gate 'web-ux-contract' { npm --prefix apps/web run ux:verify }
