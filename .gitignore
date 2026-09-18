@@ -18,3 +18,4 @@ apps/web/qa/artisys-qa.lock.json
 *.sqlite3
 *.db
 *.tsbuildinfo
+qa-delivery-artifacts/
