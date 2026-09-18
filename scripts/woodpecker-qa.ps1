@@ -64,6 +64,7 @@ try {
   Invoke-Gate 'node-version' { node -e "const [a,b]=process.versions.node.split('.').map(Number); if(a!==22 || b<12){console.error('Node 22.12+ e <23 obrigatorio; atual='+process.versions.node); process.exit(1)} console.log('Node '+process.versions.node)" }
   Invoke-Gate 'git-version' { git --version }
   Invoke-Gate 'npm-version' { npm --version }
+  Invoke-Gate 'woodpecker-split-contract' { node scripts/verify-woodpecker-split.mjs }
   Invoke-Gate 'catalog-contract' { node apps/web/scripts/verify-public-catalog.mjs }
   Invoke-Gate 'web-dependencies' { npm --prefix apps/web ci --no-audit --no-fund }
   Invoke-Gate 'contracts-typecheck' { npm run typecheck:contracts }
