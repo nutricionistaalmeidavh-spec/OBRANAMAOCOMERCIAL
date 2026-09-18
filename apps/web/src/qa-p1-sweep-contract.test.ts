@@ -6,7 +6,7 @@ describe('Central Artisys P1 automatic sweeps',()=>{
     const pkg=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));
     expect(typeof pkg.scripts?.['qa:p1:sweep']).toBe('string');
     expect(pkg.scripts['qa:p1']).toContain('qa:p1:sweep');
-    expect(pkg.scripts['qa:release']).toContain('qa:p1');
+    expect(pkg.scripts['qa:release']).toContain('qa:p2');
 
     const source=await readFile(new URL('../scripts/qa-p1-sweep.mjs',import.meta.url),'utf8');
     expect(source).toContain('runUiSweep');
