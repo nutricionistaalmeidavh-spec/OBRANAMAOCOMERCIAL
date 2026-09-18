@@ -17,41 +17,54 @@ steps:
       - '$ErrorActionPreference = "Stop"'
       - 'Set-Location .\apps\web'
       - 'New-Item -ItemType Directory -Force -Path ".\artifacts" | Out-Null'
+      - '"ambiente" | Set-Content -Path ".\artifacts\current-step.txt" -Encoding utf8'
       - '$logPath = ".\artifacts\woodpecker-qa.log"'
       - '"=== ambiente ===" | Set-Content -Path $logPath -Encoding utf8'
       - '$out = @(node --version 2>&1); $out | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
       - '$out = @(npm --version 2>&1); $out | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
+      - 'Remove-Item ".\artifacts\current-step.txt" -ErrorAction SilentlyContinue'
 
   - name: dependencias
     image: powershell.exe
     commands:
       - '$ErrorActionPreference = "Stop"'
       - 'Set-Location .\apps\web'
+      - '"dependencias" | Set-Content -Path ".\artifacts\current-step.txt" -Encoding utf8'
       - '$logPath = ".\artifacts\woodpecker-qa.log"'
       - '"=== dependencias ===" | Add-Content -Path $logPath -Encoding utf8'
       - '$npm = (Get-Command npm.cmd -ErrorAction Stop).Source'
       - '& $npm install *>&1 | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
       - 'if ($LASTEXITCODE -ne 0) { throw "npm install falhou com exit $LASTEXITCODE" }'
+      - 'Remove-Item ".\artifacts\current-step.txt" -ErrorAction SilentlyContinue'
 
   - name: qa-p2
     image: powershell.exe
     commands:
       - '$ErrorActionPreference = "Stop"'
       - 'Set-Location .\apps\web'
+      - '"qa-p2" | Set-Content -Path ".\artifacts\current-step.txt" -Encoding utf8'
       - '$logPath = ".\artifacts\woodpecker-qa.log"'
       - '"=== qa-p2 ===" | Add-Content -Path $logPath -Encoding utf8'
       - '$npm = (Get-Command npm.cmd -ErrorAction Stop).Source'
       - '& $npm run qa:p2 *>&1 | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
       - 'if ($LASTEXITCODE -ne 0) { throw "npm run qa:p2 falhou com exit $LASTEXITCODE" }'
+      - 'Remove-Item ".\artifacts\current-step.txt" -ErrorAction SilentlyContinue'
 
   - name: verificar-evidencias
     image: powershell.exe
     commands:
       - '$ErrorActionPreference = "Stop"'
       - 'Set-Location .\apps\web'
+      - '"verificar-evidencias" | Set-Content -Path ".\artifacts\current-step.txt" -Encoding utf8'
       - '$reportPath = ".\artifacts\woodpecker-qa-report.json"'
       - 'node .\scripts\woodpecker-qa-report.mjs --output $reportPath'
       - 'if ($LASTEXITCODE -ne 0) { throw "Adaptador QA P2 reportou falha." }'
+      - 'if (-not (Test-Path $reportPath)) { throw "Relatorio normalizado nao foi gerado." }'
+      - '$report = Get-Content $reportPath -Raw | ConvertFrom-Json'
+      - 'if ($report.status -ne "pass") { throw "QA P2 terminou com status $($report.status); failedStep=$($report.failedStep)." }'
+      - 'Write-Host "[Central Woodpecker] QA-SUMMARY: $($report.sourceSummary)"'
+      - 'Write-Host "[Central Woodpecker] Gate: PASS"'
+      - 'Remove-Item ".\artifacts\current-step.txt" -ErrorAction SilentlyContinue'
 
   - name: reportar-sucesso-github
     image: powershell.exe
@@ -62,11 +75,19 @@ steps:
       ARTISYS_STATUS_CONTEXT: 'ci/woodpecker/central-qa'
       ARTISYS_CI_RESULT: 'success'
       ARTISYS_COMMENT_SUCCESS: 'false'
+      ARTISYS_INSTALLER_REQUIRED: 'false'
     commands:
       - '$ErrorActionPreference = "Continue"'
       - 'Set-Location .\apps\web'
-      - '$reporter = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs"'
+      - 'git -C $env:ARTISYS_UTILIDADES_PATH fetch origin main'
+      - '$tmp = Join-Path $env:TEMP ("artisys-reporter-" + $env:CI_PIPELINE_NUMBER + "-" + [guid]::NewGuid().ToString("N"))'
+      - 'git -C $env:ARTISYS_UTILIDADES_PATH worktree add --detach $tmp origin/main'
+      - '$reporter = Join-Path $tmp "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs"'
+      - 'if (-not (Test-Path $reporter)) { $reporter = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs" }'
       - 'node $reporter'
+      - '$reporterExit = $LASTEXITCODE'
+      - 'git -C $env:ARTISYS_UTILIDADES_PATH worktree remove --force $tmp 2>$null'
+      - 'if ($reporterExit -ne 0) { exit $reporterExit }'
     when:
       - event: [push, manual]
         status: [success]
@@ -80,12 +101,21 @@ steps:
       ARTISYS_LOG_PATH: '.\artifacts\woodpecker-qa.log'
       ARTISYS_STATUS_CONTEXT: 'ci/woodpecker/central-qa'
       ARTISYS_CI_RESULT: 'failure'
+      ARTISYS_INSTALLER_REQUIRED: 'false'
     commands:
       - '$ErrorActionPreference = "Continue"'
       - 'Set-Location .\apps\web'
+      - 'if (Test-Path ".\artifacts\current-step.txt") { $env:ARTISYS_FAILED_STEP = (Get-Content ".\artifacts\current-step.txt" -Raw).Trim() }'
       - 'if (-not (Test-Path $env:ARTISYS_REPORT_PATH)) { node .\scripts\woodpecker-qa-report.mjs --output $env:ARTISYS_REPORT_PATH }'
-      - '$reporter = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs"'
+      - 'git -C $env:ARTISYS_UTILIDADES_PATH fetch origin main'
+      - '$tmp = Join-Path $env:TEMP ("artisys-reporter-" + $env:CI_PIPELINE_NUMBER + "-" + [guid]::NewGuid().ToString("N"))'
+      - 'git -C $env:ARTISYS_UTILIDADES_PATH worktree add --detach $tmp origin/main'
+      - '$reporter = Join-Path $tmp "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs"'
+      - 'if (-not (Test-Path $reporter)) { $reporter = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs" }'
       - 'node $reporter'
+      - '$reporterExit = $LASTEXITCODE'
+      - 'git -C $env:ARTISYS_UTILIDADES_PATH worktree remove --force $tmp 2>$null'
+      - 'if ($reporterExit -ne 0) { exit $reporterExit }'
     when:
       - event: [push, manual]
         status: [failure]
