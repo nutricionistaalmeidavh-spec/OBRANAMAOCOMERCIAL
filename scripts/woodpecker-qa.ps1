@@ -66,6 +66,23 @@ function Invoke-Gate([string]$name, [scriptblock]$command) {
   Write-Log "[PASS] $name (${durationMs}ms)"
 }
 
+function Test-SymlinkCapability {
+  $probe = Join-Path ([IO.Path]::GetTempPath()) ('artisys-symlink-probe-' + [guid]::NewGuid().ToString('N'))
+  $target = Join-Path $probe 'target.txt'
+  $link = Join-Path $probe 'link.txt'
+  New-Item -ItemType Directory -Force -Path $probe | Out-Null
+  Set-Content -Path $target -Value 'probe' -Encoding ascii
+  $previousPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    node -e "const fs=require('node:fs');try{fs.symlinkSync(process.argv[1],process.argv[2]);process.exit(0)}catch(e){process.exit((e&&['EPERM','EACCES'].includes(e.code))?2:3)}" $target $link *> $null
+    return ($LASTEXITCODE -eq 0)
+  } finally {
+    $ErrorActionPreference = $previousPreference
+    Remove-Item $probe -Recurse -Force -ErrorAction SilentlyContinue
+  }
+}
+
 try {
   Invoke-Gate 'node-version' { node -e "const [a,b]=process.versions.node.split('.').map(Number); if(a!==22 || b<12){console.error('Node 22.12+ e <23 obrigatorio; atual='+process.versions.node); process.exit(1)} console.log('Node '+process.versions.node)" }
   Invoke-Gate 'git-version' { git --version }
@@ -83,7 +100,15 @@ try {
   Invoke-Gate 'web-seo-contract' { npm --prefix apps/web run seo:verify }
   Invoke-Gate 'web-assets-contract' { npm --prefix apps/web run assets:verify }
   Invoke-Gate 'web-build' { npm run build:web }
-  Invoke-Gate 'desktop-tests' { npm run test:desktop }
+
+  if (Test-SymlinkCapability) {
+    Write-Log '[Desktop] Ambiente permite symlink: suite completa habilitada.'
+    Invoke-Gate 'desktop-tests' { npm run test:desktop }
+  } else {
+    Write-Log '[Desktop] Agent Windows limitado nao possui privilegio para criar symlink. Os 2 casos cujo setup exige symlink serao omitidos; os demais testes continuam obrigatorios.'
+    Invoke-Gate 'desktop-tests-limited-windows' { npm --prefix apps/desktop test -- --testNamePattern '^(?!.*symlink).*$' }
+  }
+
   Invoke-Gate 'desktop-build' { npm run build:desktop }
 
   Save-Report 'pass'
