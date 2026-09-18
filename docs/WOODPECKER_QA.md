@@ -1,10 +1,10 @@
 # Woodpecker QA — Obra na Mão Comercial
 
-O repositório usa o Agent Windows local já existente da ArtiSys para validar mudanças automaticamente antes de merge/deploy.
+O repositório usa dois Agents Windows locais da ArtiSys com responsabilidades separadas.
 
-## Workflow
+## 1. Agent normal — Web, catálogo e contratos
 
-Arquivo: `.woodpecker/obra-comercial-qa.yaml`
+Workflow: `.woodpecker/obra-comercial-qa.yaml`
 
 Eventos:
 
@@ -12,63 +12,109 @@ Eventos:
 - `pull_request`;
 - execução `manual`.
 
-O Agent atual mantém o label histórico `pilot=pdv-artisys`; o workflow deste repositório reutiliza esse mesmo label para não exigir alteração/restart da infraestrutura local.
+Labels:
 
-## Gates
+```yaml
+platform: windows/amd64
+backend: local
+pilot: pdv-artisys
+```
 
-O runner `scripts/woodpecker-qa.ps1` executa, em ordem:
+O runner `scripts/woodpecker-qa.ps1` executa:
 
-1. Node 22.12+ e <23;
-2. Git/NPM disponíveis;
-3. contrato do catálogo público (`verify-public-catalog.mjs`);
-4. `npm ci` da aplicação web;
-5. `npm ci` do Desktop;
-6. typecheck dos contratos compartilhados;
-7. testes web;
-8. contrato UX;
-9. contrato SEO;
-10. verificação dos assets da Universidade;
-11. build web;
-12. testes Desktop;
-13. build Desktop.
+1. Node/Git/NPM;
+2. contrato de separação dos workflows;
+3. contrato do catálogo público;
+4. dependências web;
+5. typecheck dos contratos compartilhados;
+6. testes web;
+7. contrato UX;
+8. contrato SEO;
+9. verificação de assets;
+10. build web.
 
-O Agent Windows persistente roda com privilégios limitados. Quando o host não permite criar symbolic links (`EPERM`/`EACCES`), o runner registra explicitamente essa limitação e omite apenas os dois casos de teste cujo próprio setup depende da criação de symlink. Todos os demais testes Desktop continuam obrigatórios.
+O Agent normal não executa testes/build Desktop privilegiados.
+
+## 2. Agent elevado — Desktop completo
+
+Workflow: `.woodpecker/obra-comercial-desktop-elevated.yaml`
+
+Eventos:
+
+- `manual` em qualquer branch confiável;
+- `push` apenas em `main`.
+
+Pull requests não entram no caminho elevado.
+
+Labels obrigatórios:
+
+```yaml
+platform: windows/amd64
+backend: local
+privilege: elevated
+owner: artisys
+```
+
+O runner `scripts/woodpecker-desktop-elevated.ps1` executa:
+
+1. validação do token administrativo real do Windows;
+2. allowlist/identidade via `artisys-windows-ci` do repo `utilidades`;
+3. Node/Git/NPM;
+4. `npm ci` Desktop;
+5. preparação serial do Electron;
+6. prova real de criação de symbolic link;
+7. suíte Desktop completa (`npm run test:desktop`);
+8. build Desktop (`npm run build:desktop`).
+
+Não há filtro de testes de symlink no caminho elevado.
+
+## Allowlist compartilhada
+
+O módulo `modules/artisys-windows-ci` no repo `utilidades` mantém a allowlist em código e não permite que um pipeline de produto amplie a lista por variável de ambiente.
+
+Allowlist inicial:
+
+- `nutricionistaalmeidavh-spec/OBRANAMAOCOMERCIAL`;
+- `nutricionistaalmeidavh-spec/PDV-ARTISYS`;
+- `nutricionistaalmeidavh-spec/OficinaAgricola`;
+- `nutricionistaalmeidavh-spec/SistemaLavoura`;
+- `nutricionistaalmeidavh-spec/frota-e-manutencao`;
+- `nutricionistaalmeidavh-spec/pecuaria`;
+- `nutricionistaalmeidavh-spec/maquinasagricolas`.
 
 ## Evidências
 
-Durante a execução são gerados em `qa-artifacts/woodpecker/`:
+Agent normal:
 
-- `obra-comercial-qa.log`;
+- `qa-artifacts/woodpecker/obra-comercial-qa.log`;
 - `obra-comercial-qa-report.json`;
-- `obra-comercial-failure.json` quando houver falha.
+- `obra-comercial-failure.json` em falha.
 
-`qa-artifacts/` já é ignorado pelo Git.
+Agent elevado:
 
-O módulo compartilhado `artisys-ci-reporter`, em `C:\VICTOR\Artisys\AgroFrota\utilidades`, publica o resultado no GitHub usando o contexto:
+- `qa-artifacts/woodpecker/obra-comercial-desktop-elevated.log`;
+- `obra-comercial-desktop-elevated-report.json`;
+- `obra-comercial-desktop-elevated-failure.json` em falha.
 
-`ci/woodpecker/obra-comercial-qa`
+O `artisys-ci-reporter` publica status separados:
 
-Falhas recebem diagnóstico com step e trecho final do log; sucesso publica status sem comentário por padrão.
+- `ci/woodpecker/obra-comercial-qa`;
+- `ci/woodpecker/obra-comercial-desktop-elevated`.
 
 ## Segurança
 
-Este workflow é exclusivamente de validação. Ele **não** executa:
+Nenhum dos dois workflows executa:
 
 - `wrangler deploy`;
-- migrations D1 locais ou remotas;
-- publicação de releases;
-- criação de instalador;
-- alterações de banco;
-- alterações em produção.
+- migration D1;
+- publicação de GitHub Release;
+- criação/publicação de instalador;
+- alteração de produção.
 
-Deploy continua sendo uma ação separada e explícita.
+Deploy/release continuam explícitos e separados.
 
-## Execução manual no PC
+## Ativação do Agent elevado
 
-A partir da raiz do repositório:
+A infraestrutura fica em `PDV-ARTISYS`, branch `feat/woodpecker-elevated-agent`. O registro de uma tarefa com `RunLevel Highest` precisa ser executado uma vez em PowerShell como Administrador no host Windows.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\woodpecker-qa.ps1
-```
-
-No Woodpecker, o workflow também pode ser disparado manualmente pela interface de `ci.artisys.dev`.
+Após a ativação, o Agent elevado usa workspace próprio e uma cópia isolada do `utilidades`; o Agent normal continua funcionando sem alteração.
