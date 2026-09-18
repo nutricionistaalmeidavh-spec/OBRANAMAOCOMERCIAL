@@ -9,6 +9,7 @@ when:
   - event: push
     branch:
       - main
+      - feat/artisys-catalog-final
 
 steps:
   - name: ambiente-elevado
