@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="Conheça os sistemas ArtiSys para comércio, construção, agro, saúde e serviços.">
+  <title>ArtiSys | Sistemas para empresas</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/artisys-favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../icons/artisys-apple-touch-icon.png">
+  <link rel="stylesheet" href="./catalog.css">
+</head>
+<body>
+  <header class="catalog-header">
+    <a class="brand" href="/" aria-label="Voltar para a página inicial da ArtiSys">
+      <img src="../artisys-logo.svg" alt="ArtiSys">
+    </a>
+    <a class="header-link" href="/sistema.html#portal">Já sou cliente</a>
+  </header>
+
+  <main>
+    <section class="catalog-hero" aria-labelledby="catalog-title">
+      <p class="eyebrow">Sistemas ArtiSys</p>
+      <h1 id="catalog-title">Software pronto para sair do improviso.</h1>
+      <p class="hero-copy">Encontre a solução certa para sua operação. Produtos desktop, web e SaaS organizados em um único catálogo.</p>
+      <div class="hero-stats" aria-label="Resumo do catálogo">
+        <div><strong id="product-count">5</strong><span>sistemas iniciais</span></div>
+        <div><strong>5</strong><span>segmentos atendidos</span></div>
+        <div><strong>1</strong><span>ecossistema ArtiSys</span></div>
+      </div>
+    </section>
+
+    <section class="catalog-controls" aria-label="Busca e filtros">
+      <label class="search-box" for="catalog-search">
+        <span>Buscar sistema</span>
+        <input id="catalog-search" type="search" autocomplete="off" placeholder="Ex.: PDV, construção, agro...">
+      </label>
+      <div id="catalog-filters" class="filter-row" role="group" aria-label="Filtrar por categoria"></div>
+    </section>
+
+    <section class="catalog-section" aria-labelledby="results-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Catálogo</p>
+          <h2 id="results-title">Soluções disponíveis</h2>
+        </div>
+        <p id="catalog-result-count" class="result-count" aria-live="polite"></p>
+      </div>
+      <div id="catalog-grid" class="catalog-grid" aria-live="polite"></div>
+      <div id="catalog-empty" class="catalog-empty" hidden>
+        <strong>Nenhum sistema encontrado.</strong>
+        <span>Tente outro termo ou selecione a categoria “Todos”.</span>
+      </div>
+      <div id="catalog-error" class="catalog-error" hidden>
+        <strong>Não foi possível carregar o catálogo.</strong>
+        <span>Atualize a página para tentar novamente.</span>
+      </div>
+    </section>
+
+    <section class="catalog-note" aria-label="Sobre o catálogo">
+      <div>
+        <p class="eyebrow">ArtiSys</p>
+        <h2>Um catálogo público. Sistemas separados e protegidos.</h2>
+      </div>
+      <p>Esta área apresenta os produtos. Login, dados, licenças e operações continuam nos ambientes próprios de cada sistema.</p>
+    </section>
+  </main>
+
+  <footer class="catalog-footer">
+    <span>ArtiSys</span>
+    <a href="/">Página inicial</a>
+    <a href="/sistema.html#portal">Acessar sistema</a>
+  </footer>
+
+  <dialog id="product-dialog" class="product-dialog" aria-labelledby="dialog-title">
+    <form method="dialog" class="dialog-shell">
+      <button class="dialog-close" value="close" aria-label="Fechar">×</button>
+      <p id="dialog-category" class="eyebrow"></p>
+      <h2 id="dialog-title"></h2>
+      <p id="dialog-summary" class="dialog-summary"></p>
+      <div class="dialog-meta">
+        <span id="dialog-type"></span>
+        <strong id="dialog-price"></strong>
+      </div>
+      <ul id="dialog-features" class="dialog-features"></ul>
+      <div id="dialog-actions" class="dialog-actions"></div>
+    </form>
+  </dialog>
+
+  <script src="./catalog.js" defer></script>
+</body>
+</html>
