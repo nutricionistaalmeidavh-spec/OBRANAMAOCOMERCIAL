@@ -15,7 +15,7 @@
   const dialogPrice = document.getElementById('dialog-price');
   const dialogFeatures = document.getElementById('dialog-features');
   const dialogActions = document.getElementById('dialog-actions');
-  const typeLabel = { desktop: 'Desktop', web: 'Web', saas: 'SaaS' };
+  const typeLabel = { desktop: 'Desktop', web: 'Web', saas: 'SaaS', marketplace: 'ArtiSys' };
   const statusLabel = { available: 'Disponível', managed: 'Integrado à Central', coming_soon: 'Em breve' };
 
   function normalize(value) {
@@ -30,7 +30,13 @@
   }
 
   function productDestination(product) {
-    if (product.pageMode === 'external') return { href: product.externalHref, label: 'Conhecer sistema', external: true };
+    if (product.marketplaceOnly && product.pageMode === 'individual') {
+      return { href: `./produto/?item=${encodeURIComponent(product.marketplaceItemId)}`, label: 'Ver sistema', external: false };
+    }
+    if (product.pageMode === 'external') {
+      const href = product.externalHref || product.permalink || './';
+      return { href, label: product.marketplaceOnly ? 'Ver produto' : 'Conhecer sistema', external: href.startsWith('https://') };
+    }
     if (product.pageMode === 'collection') {
       const collection = product.collections?.[0];
       return { href: collection ? `./${collection}/#${product.slug}` : './', label: 'Ver na coleção', external: false };
@@ -71,11 +77,20 @@
     dialogType.textContent = typeLabel[product.type] || product.type;
     dialogPrice.textContent = product.priceLabel;
     dialogFeatures.replaceChildren();
-    for (const feature of product.features || []) dialogFeatures.appendChild(element('li', '', feature));
+    const features = product.features || [];
+    if (features.length) {
+      for (const feature of features) dialogFeatures.appendChild(element('li', '', feature));
+    } else {
+      dialogFeatures.appendChild(element('li', '', 'Fotos, preço e disponibilidade sincronizados do anúncio aprovado.'));
+    }
 
     dialogActions.replaceChildren();
     const destination = productDestination(product);
     dialogActions.appendChild(createLink('', destination.label, destination));
+
+    if (product.permalink && product.marketplaceItemId) {
+      dialogActions.appendChild(createLink('secondary', 'Ver anúncio', { href: product.permalink, external: true }));
+    }
 
     const access = createAccessLink(product);
     if (access) dialogActions.appendChild(access);
@@ -90,10 +105,20 @@
   function createCard(product) {
     const card = element('article', 'product-card');
     card.dataset.product = product.slug;
+    if (product.marketplaceItemId) card.dataset.marketplaceItem = product.marketplaceItemId;
+
+    if (Array.isArray(product.pictures) && product.pictures[0]) {
+      const image = document.createElement('img');
+      image.className = 'product-media';
+      image.src = product.pictures[0];
+      image.alt = `Foto real de ${product.name}`;
+      image.loading = 'lazy';
+      card.appendChild(image);
+    }
 
     const top = element('div', 'product-topline');
     top.appendChild(element('span', 'product-category', product.category));
-    top.appendChild(element('span', 'product-status', statusLabel[product.status] || product.status));
+    top.appendChild(element('span', 'product-status', product.marketplaceItemId ? 'Sincronizado' : (statusLabel[product.status] || product.status)));
     card.appendChild(top);
 
     card.appendChild(element('h3', '', product.name));
@@ -142,6 +167,19 @@
     }
   }
 
+  async function enrichWithMarketplace() {
+    if (!window.ArtiSysMarketplace) return;
+    try {
+      const approvedItems = await window.ArtiSysMarketplace.loadApprovedFeed();
+      state.products = window.ArtiSysMarketplace.mergeApprovedFeed(state.products, approvedItems);
+      productCount.textContent = String(state.products.length);
+      renderFilters();
+      renderProducts();
+    } catch (cause) {
+      console.info('Feed Mercado Livre indisponível; mantendo catálogo estático ArtiSys.', cause?.message || cause);
+    }
+  }
+
   async function loadCatalog() {
     try {
       const response = await fetch('./products.json');
@@ -153,6 +191,7 @@
       productCount.textContent = String(state.products.length);
       renderFilters();
       renderProducts();
+      await enrichWithMarketplace();
     } catch (cause) {
       console.error('Falha ao carregar catálogo público ArtiSys.', cause);
       error.hidden = false;

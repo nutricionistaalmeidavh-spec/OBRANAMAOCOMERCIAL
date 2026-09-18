@@ -103,11 +103,13 @@ function renderCollectionPage(collection, products) {
   <!-- artisys-generated:collection -->
   <header class="catalog-header"><a class="brand" href="/" aria-label="ArtiSys, página inicial"><img src="/artisys-logo.svg" alt="ArtiSys"></a><a class="header-link" href="/sistemas/">Todos os sistemas</a></header>
   <main>
-    <section class="catalog-hero" aria-labelledby="collection-title"><p class="eyebrow">${escapeHtml(collection.category)} · Coleção ArtiSys</p><h1 id="collection-title">${escapeHtml(collection.name)}</h1><p class="hero-copy">${escapeHtml(collection.summary)}</p><div class="hero-stats"><div><strong>${products.length}</strong><span>sistemas nesta coleção</span></div><div><strong>1</strong><span>página para comparar o portfólio</span></div><div><strong>Agro</strong><span>segmento especializado</span></div></div></section>
-    <section class="catalog-section" aria-labelledby="collection-products-title"><div class="section-heading"><div><p class="eyebrow">Portfólio</p><h2 id="collection-products-title">Soluções para diferentes rotinas do agro</h2></div><p class="result-count">${products.length} sistemas</p></div><div class="catalog-grid">${products.map(renderCollectionCard).join('')}</div></section>
-    <section class="catalog-note"><div><p class="eyebrow">ArtiSys</p><h2>Escolha pelo tipo de operação.</h2></div><p>Oficina Agrícola mantém uma página individual completa e também aparece aqui. Os demais sistemas desta coleção ficam agrupados enquanto não precisam de uma landing própria.</p></section>
+    <section class="catalog-hero" aria-labelledby="collection-title"><p class="eyebrow">${escapeHtml(collection.category)} · Coleção ArtiSys</p><h1 id="collection-title">${escapeHtml(collection.name)}</h1><p class="hero-copy">${escapeHtml(collection.summary)}</p><div class="hero-stats"><div><strong>${products.length}+</strong><span>sistemas nesta coleção</span></div><div><strong>1</strong><span>página para comparar o portfólio</span></div><div><strong>Agro</strong><span>segmento especializado</span></div></div></section>
+    <section class="catalog-section" aria-labelledby="collection-products-title"><div class="section-heading"><div><p class="eyebrow">Portfólio</p><h2 id="collection-products-title">Soluções para diferentes rotinas do agro</h2></div><p class="result-count">Portfólio ArtiSys + aprovados no Mercado Livre</p></div><div class="catalog-grid">${products.map(renderCollectionCard).join('')}</div><div id="marketplace-collection-extra" data-collection="${escapeHtml(collection.slug)}" class="catalog-grid marketplace-extra" hidden></div></section>
+    <section class="catalog-note"><div><p class="eyebrow">ArtiSys</p><h2>Escolha pelo tipo de operação.</h2></div><p>Oficina Agrícola mantém uma página individual completa e também aparece aqui. Outros produtos aprovados para esta coleção podem ser sincronizados automaticamente a partir do catálogo comercial.</p></section>
   </main>
   <footer class="catalog-footer"><span>ArtiSys</span><a href="/sistemas/">Catálogo completo</a><a href="/">Página inicial</a></footer>
+  <script src="../marketplace-feed.js" defer></script>
+  <script src="../marketplace-collection.js" defer></script>
 </body>
 </html>
 `;
