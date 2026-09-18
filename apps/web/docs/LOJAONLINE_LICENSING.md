@@ -136,3 +136,9 @@ npm run qa:p1
 npm run qa:cross-system
 npm run qa:release
 ```
+
+## QA P2 — release gate
+
+`npm run qa:p2` prepara o runtime compartilhado 2.6.0 e executa testes nativos, build, `ux:verify`, segurança P1, sweep P1, matriz desktop/tablet/mobile e cross-system em modo read-only. O resultado é consolidado em `qa-delivery-artifacts/artisys-central-owner-<run>/` com `QA-SUMMARY.json/txt`, HTML, cobertura, endpoints, erros e findings. `npm run qa:release` aponta para esse gate.
+
+O cross-system mutável continua separado e exige `LOJAONLINE_LICENSE_SERVICE_SECRET` explícito; o release P2 remove esse secret do ambiente para garantir que a etapa cross-system do release seja somente leitura.
