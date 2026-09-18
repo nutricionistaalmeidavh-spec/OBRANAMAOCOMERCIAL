@@ -1,0 +1,92 @@
+labels:
+  platform: windows/amd64
+  backend: local
+
+when:
+  - event: manual
+  - event: push
+    branch:
+      - feat/qa-p2-loja-central
+
+steps:
+  - name: ambiente
+    image: powershell.exe
+    environment:
+      ARTISYS_UTILIDADES_PATH: 'C:\VICTOR\Artisys\AgroFrota\utilidades'
+    commands:
+      - '$ErrorActionPreference = "Stop"'
+      - 'Set-Location .\apps\web'
+      - 'New-Item -ItemType Directory -Force -Path ".\artifacts" | Out-Null'
+      - '$logPath = ".\artifacts\woodpecker-qa.log"'
+      - '"=== ambiente ===" | Set-Content -Path $logPath -Encoding utf8'
+      - '$out = @(node --version 2>&1); $out | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
+      - '$out = @(npm --version 2>&1); $out | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
+
+  - name: dependencias
+    image: powershell.exe
+    commands:
+      - '$ErrorActionPreference = "Stop"'
+      - 'Set-Location .\apps\web'
+      - '$logPath = ".\artifacts\woodpecker-qa.log"'
+      - '"=== dependencias ===" | Add-Content -Path $logPath -Encoding utf8'
+      - '$npm = (Get-Command npm.cmd -ErrorAction Stop).Source'
+      - '& $npm install *>&1 | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
+      - 'if ($LASTEXITCODE -ne 0) { throw "npm install falhou com exit $LASTEXITCODE" }'
+
+  - name: qa-p2
+    image: powershell.exe
+    commands:
+      - '$ErrorActionPreference = "Stop"'
+      - 'Set-Location .\apps\web'
+      - '$logPath = ".\artifacts\woodpecker-qa.log"'
+      - '"=== qa-p2 ===" | Add-Content -Path $logPath -Encoding utf8'
+      - '$npm = (Get-Command npm.cmd -ErrorAction Stop).Source'
+      - '& $npm run qa:p2 *>&1 | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
+      - 'if ($LASTEXITCODE -ne 0) { throw "npm run qa:p2 falhou com exit $LASTEXITCODE" }'
+
+  - name: verificar-evidencias
+    image: powershell.exe
+    commands:
+      - '$ErrorActionPreference = "Stop"'
+      - 'Set-Location .\apps\web'
+      - '$reportPath = ".\artifacts\woodpecker-qa-report.json"'
+      - 'node .\scripts\woodpecker-qa-report.mjs --output $reportPath'
+      - 'if ($LASTEXITCODE -ne 0) { throw "Adaptador QA P2 reportou falha." }'
+
+  - name: reportar-sucesso-github
+    image: powershell.exe
+    environment:
+      ARTISYS_UTILIDADES_PATH: 'C:\VICTOR\Artisys\AgroFrota\utilidades'
+      ARTISYS_REPORT_PATH: '.\artifacts\woodpecker-qa-report.json'
+      ARTISYS_LOG_PATH: '.\artifacts\woodpecker-qa.log'
+      ARTISYS_STATUS_CONTEXT: 'ci/woodpecker/central-qa'
+      ARTISYS_CI_RESULT: 'success'
+      ARTISYS_COMMENT_SUCCESS: 'false'
+    commands:
+      - '$ErrorActionPreference = "Continue"'
+      - 'Set-Location .\apps\web'
+      - '$reporter = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs"'
+      - 'node $reporter'
+    when:
+      - event: [push, manual]
+        status: [success]
+    failure: ignore
+
+  - name: reportar-falha-github
+    image: powershell.exe
+    environment:
+      ARTISYS_UTILIDADES_PATH: 'C:\VICTOR\Artisys\AgroFrota\utilidades'
+      ARTISYS_REPORT_PATH: '.\artifacts\woodpecker-qa-report.json'
+      ARTISYS_LOG_PATH: '.\artifacts\woodpecker-qa.log'
+      ARTISYS_STATUS_CONTEXT: 'ci/woodpecker/central-qa'
+      ARTISYS_CI_RESULT: 'failure'
+    commands:
+      - '$ErrorActionPreference = "Continue"'
+      - 'Set-Location .\apps\web'
+      - 'if (-not (Test-Path $env:ARTISYS_REPORT_PATH)) { node .\scripts\woodpecker-qa-report.mjs --output $env:ARTISYS_REPORT_PATH }'
+      - '$reporter = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs"'
+      - 'node $reporter'
+    when:
+      - event: [push, manual]
+        status: [failure]
+    failure: ignore
