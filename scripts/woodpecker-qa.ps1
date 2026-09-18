@@ -11,7 +11,7 @@ $failurePath = Join-Path $artifactsDir 'obra-comercial-failure.json'
 
 New-Item -ItemType Directory -Force -Path $artifactsDir | Out-Null
 Remove-Item $failurePath -Force -ErrorAction SilentlyContinue
-"=== Obra na Mao Comercial / Woodpecker QA ===" | Set-Content -Path $logPath -Encoding utf8
+"=== Obra na Mao Comercial / Woodpecker Web QA ===" | Set-Content -Path $logPath -Encoding utf8
 
 $script:results = @()
 
@@ -47,9 +47,6 @@ function Invoke-Gate([string]$name, [scriptblock]$command) {
   $previousPreference = $ErrorActionPreference
   $exitCode = 0
   try {
-    # Windows PowerShell 5 pode transformar stderr de executaveis nativos em
-    # NativeCommandError. O codigo de saida do processo continua sendo a fonte
-    # de verdade para npm/node/git.
     $ErrorActionPreference = 'Continue'
     & $command 2>&1 | Tee-Object -FilePath $logPath -Append | ForEach-Object { Write-Host $_ }
     $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
@@ -58,63 +55,17 @@ function Invoke-Gate([string]$name, [scriptblock]$command) {
   }
 
   $durationMs = [int]((Get-Date) - $started).TotalMilliseconds
-  if ($exitCode -ne 0) {
-    Fail-Gate $name $exitCode "$name falhou com codigo $exitCode."
-  }
-
+  if ($exitCode -ne 0) { Fail-Gate $name $exitCode "$name falhou com codigo $exitCode." }
   $script:results += [ordered]@{ name = $name; status = 'pass'; exitCode = 0; durationMs = $durationMs }
   Write-Log "[PASS] $name (${durationMs}ms)"
-}
-
-function Test-SymlinkCapability {
-  $probe = Join-Path ([IO.Path]::GetTempPath()) ('artisys-symlink-probe-' + [guid]::NewGuid().ToString('N'))
-  $target = Join-Path $probe 'target.txt'
-  $link = Join-Path $probe 'link.txt'
-  New-Item -ItemType Directory -Force -Path $probe | Out-Null
-  Set-Content -Path $target -Value 'probe' -Encoding ascii
-  $previousPreference = $ErrorActionPreference
-  try {
-    $ErrorActionPreference = 'Continue'
-    node -e "const fs=require('node:fs');try{fs.symlinkSync(process.argv[1],process.argv[2]);process.exit(0)}catch(e){process.exit((e&&['EPERM','EACCES'].includes(e.code))?2:3)}" $target $link *> $null
-    return ($LASTEXITCODE -eq 0)
-  } finally {
-    $ErrorActionPreference = $previousPreference
-    Remove-Item $probe -Recurse -Force -ErrorAction SilentlyContinue
-  }
 }
 
 try {
   Invoke-Gate 'node-version' { node -e "const [a,b]=process.versions.node.split('.').map(Number); if(a!==22 || b<12){console.error('Node 22.12+ e <23 obrigatorio; atual='+process.versions.node); process.exit(1)} console.log('Node '+process.versions.node)" }
   Invoke-Gate 'git-version' { git --version }
   Invoke-Gate 'npm-version' { npm --version }
-
-  # Fase 0-3 do catalogo: falha rapido antes de baixar dependencias pesadas.
   Invoke-Gate 'catalog-contract' { node apps/web/scripts/verify-public-catalog.mjs }
-
   Invoke-Gate 'web-dependencies' { npm --prefix apps/web ci --no-audit --no-fund }
-  Invoke-Gate 'desktop-dependencies' { npm --prefix apps/desktop ci --no-audit --no-fund }
-
-  # Electron e requerido por alguns testes Desktop. Em workspace efemero do
-  # backend local do Woodpecker, deixe a extracao terminar uma unica vez antes
-  # de o Vitest abrir workers em paralelo. Isso evita corrida em dist/locales.
-  Invoke-Gate 'electron-binary-prepare' {
-    $electronRoot = Join-Path $repoRoot 'apps\desktop\node_modules\electron'
-    $pathFile = Join-Path $electronRoot 'path.txt'
-    $installScript = Join-Path $electronRoot 'install.js'
-    if (-not (Test-Path $installScript)) {
-      Write-Error "Electron install.js ausente em $installScript"
-      $global:LASTEXITCODE = 1
-    } else {
-      if (-not (Test-Path $pathFile)) {
-        Remove-Item (Join-Path $electronRoot 'dist') -Recurse -Force -ErrorAction SilentlyContinue
-        & node $installScript
-      }
-      if ($LASTEXITCODE -eq 0) {
-        & node -e "const fs=require('node:fs'),path=require('node:path');const root=path.resolve('apps/desktop/node_modules/electron'),pf=path.join(root,'path.txt');if(!fs.existsSync(pf)){console.error('Electron path.txt ausente');process.exit(1)}const rel=fs.readFileSync(pf,'utf8').trim(),bin=path.resolve(root,'dist',rel);if(!fs.existsSync(bin)){console.error('Electron binary ausente: '+bin);process.exit(1)}console.log('Electron preparado: '+bin)"
-      }
-    }
-  }
-
   Invoke-Gate 'contracts-typecheck' { npm run typecheck:contracts }
   Invoke-Gate 'web-tests' { npm run test:web }
   Invoke-Gate 'web-ux-contract' { npm --prefix apps/web run ux:verify }
@@ -122,19 +73,9 @@ try {
   Invoke-Gate 'web-assets-contract' { npm --prefix apps/web run assets:verify }
   Invoke-Gate 'web-build' { npm run build:web }
 
-  if (Test-SymlinkCapability) {
-    Write-Log '[Desktop] Ambiente permite symlink: suite completa habilitada.'
-    Invoke-Gate 'desktop-tests' { npm run test:desktop }
-  } else {
-    Write-Log '[Desktop] Agent Windows limitado nao possui privilegio para criar symlink. Os 2 casos cujo setup exige symlink serao omitidos; os demais testes continuam obrigatorios.'
-    Invoke-Gate 'desktop-tests-limited-windows' { npm --prefix apps/desktop test -- --testNamePattern '^(?!.*symlink).*$' }
-  }
-
-  Invoke-Gate 'desktop-build' { npm run build:desktop }
-
   Save-Report 'pass'
   Write-Log ""
-  Write-Log "QA COMPLETO: PASS"
+  Write-Log "WEB QA COMPLETO: PASS"
   Write-Log "Relatorio: $reportPath"
   exit 0
 } catch {
