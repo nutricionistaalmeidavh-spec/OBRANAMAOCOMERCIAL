@@ -1,0 +1,71 @@
+labels:
+  platform: windows/amd64
+  backend: local
+  # Mantem o label historico do Agent Windows ja usado pelo PDV ArtiSys.
+  # Assim este repositorio reutiliza o mesmo Agent sem exigir reconfiguracao local.
+  pilot: pdv-artisys
+
+when:
+  - event: manual
+  - event: push
+  - event: pull_request
+
+steps:
+  - name: ambiente
+    image: powershell.exe
+    environment:
+      ARTISYS_UTILIDADES_PATH: 'C:\VICTOR\Artisys\AgroFrota\utilidades'
+    commands:
+      - '$ErrorActionPreference = "Stop"'
+      - 'Write-Host "[Obra Comercial] Woodpecker QA no Agent Windows local"'
+      - 'Write-Host "[Obra Comercial] Repo: $env:CI_REPO"'
+      - 'Write-Host "[Obra Comercial] Commit: $env:CI_COMMIT_SHA"'
+      - 'if (-not (Test-Path ".\scripts\woodpecker-qa.ps1")) { throw "scripts/woodpecker-qa.ps1 ausente." }'
+      - 'if (-not (Test-Path $env:ARTISYS_UTILIDADES_PATH)) { throw "ARTISYS_UTILIDADES_PATH ausente no Agent Windows: $env:ARTISYS_UTILIDADES_PATH" }'
+      - 'node --version'
+      - 'npm --version'
+      - 'git --version'
+
+  - name: qa-completo
+    image: powershell.exe
+    environment:
+      ARTISYS_UTILIDADES_PATH: 'C:\VICTOR\Artisys\AgroFrota\utilidades'
+    commands:
+      - '$ErrorActionPreference = "Stop"'
+      - '& .\scripts\woodpecker-qa.ps1'
+
+  - name: reportar-sucesso-github
+    image: powershell.exe
+    environment:
+      ARTISYS_UTILIDADES_PATH: 'C:\VICTOR\Artisys\AgroFrota\utilidades'
+      ARTISYS_STATUS_CONTEXT: 'ci/woodpecker/obra-comercial-qa'
+      ARTISYS_COMMENT_SUCCESS: 'false'
+    commands:
+      - '$ErrorActionPreference = "Continue"'
+      - '$reporter = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs"'
+      - 'if (-not (Test-Path $reporter)) { Write-Warning "artisys-ci-reporter nao encontrado em $reporter"; exit 0 }'
+      - '$env:ARTISYS_CI_RESULT = "success"'
+      - '$log = ".\qa-artifacts\woodpecker\obra-comercial-qa.log"; if (Test-Path $log) { $env:ARTISYS_LOG_PATH = (Resolve-Path $log).Path }'
+      - 'node $reporter'
+    when:
+      - event: [push, pull_request, manual]
+        status: [success]
+    failure: ignore
+
+  - name: reportar-falha-github
+    image: powershell.exe
+    environment:
+      ARTISYS_UTILIDADES_PATH: 'C:\VICTOR\Artisys\AgroFrota\utilidades'
+      ARTISYS_STATUS_CONTEXT: 'ci/woodpecker/obra-comercial-qa'
+    commands:
+      - '$ErrorActionPreference = "Continue"'
+      - '$reporter = Join-Path $env:ARTISYS_UTILIDADES_PATH "modules\artisys-ci-reporter\bin\artisys-ci-reporter.mjs"'
+      - 'if (-not (Test-Path $reporter)) { Write-Warning "artisys-ci-reporter nao encontrado em $reporter"; exit 0 }'
+      - '$failurePath = ".\qa-artifacts\woodpecker\obra-comercial-failure.json"; if (Test-Path $failurePath) { $failure = Get-Content $failurePath -Raw | ConvertFrom-Json; $env:ARTISYS_FAILED_STEP = [string]$failure.step; $env:ARTISYS_FAILURE_MESSAGE = [string]$failure.message }'
+      - '$log = ".\qa-artifacts\woodpecker\obra-comercial-qa.log"; if (Test-Path $log) { $env:ARTISYS_LOG_PATH = (Resolve-Path $log).Path }'
+      - '$env:ARTISYS_CI_RESULT = "failure"'
+      - 'node $reporter'
+    when:
+      - event: [push, pull_request, manual]
+        status: [failure]
+    failure: ignore
