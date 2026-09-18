@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import { applyPrivateNoindexHtml, applyPublicSeoHtml } from './seo-transform.mjs';
 
 const PRIVATE_HTML = ['sistema.html', 'gestao.html', 'obra.html', 'universidade.html'];
@@ -17,6 +18,9 @@ export default defineConfig({
       }
     }
   ],
+  test: {
+    exclude: [...configDefaults.exclude, 'qa/runtime/**']
+  },
   build: {
     rollupOptions: {
       input: ['index.html', 'sistema.html', 'gestao.html', 'obra.html', 'universidade.html'],
