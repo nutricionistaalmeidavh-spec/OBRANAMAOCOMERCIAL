@@ -8,7 +8,7 @@ const repoRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const runtimeDir=path.join(repoRoot,'qa','runtime');
 const lockFile=path.join(repoRoot,'qa','artisys-qa.lock.json');
 const sourceRepository='https://github.com/nutricionistaalmeidavh-spec/utilidades.git';
-const defaultRef = '01f1c865e5bb3f1fdc8418473b4eaf0141a0cc88';
+const defaultRef = 'aaba3c4c1fdaf6e9817f1c147dc3d89bbd57ff24';
 
 function arg(name){const index=process.argv.indexOf(name);return index>=0?process.argv[index+1]:null}
 function git(cwd,...args){return execFileSync('git',['-C',cwd,...args],{encoding:'utf8',stdio:['ignore','pipe','pipe'],windowsHide:true}).trim()}
