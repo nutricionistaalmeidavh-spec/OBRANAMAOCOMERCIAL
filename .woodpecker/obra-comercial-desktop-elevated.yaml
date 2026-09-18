@@ -9,7 +9,6 @@ when:
   - event: push
     branch:
       - main
-      - feat/artisys-catalog-final
 
 steps:
   - name: ambiente-elevado
@@ -25,14 +24,12 @@ steps:
       - 'node --version'
       - 'npm --version'
       - 'git --version'
-
   - name: desktop-elevado
     image: powershell.exe
     commands:
       - '$ErrorActionPreference = "Stop"'
       - 'if (-not (Test-Path ".\scripts\woodpecker-desktop-elevated.ps1")) { throw "Runner Desktop elevado ausente." }'
       - '& .\scripts\woodpecker-desktop-elevated.ps1'
-
   - name: reportar-sucesso-github
     image: powershell.exe
     environment:
@@ -49,7 +46,6 @@ steps:
       - event: [push, manual]
         status: [success]
     failure: ignore
-
   - name: reportar-falha-github
     image: powershell.exe
     environment:
