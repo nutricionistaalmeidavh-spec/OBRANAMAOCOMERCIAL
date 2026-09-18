@@ -86,16 +86,48 @@ assert.match(html, /<title>.*ArtiSys.*Sistemas.*<\/title>/i);
 assert.match(html, /id="product-count">11</i);
 assert.match(html, /rel="canonical" href="https:\/\/artisys\.dev\/sistemas\/"/i);
 assert.match(html, /id="catalog-grid"/i);
+assert.match(html, /src="\.\/marketplace-feed\.js"/i, 'catalog must load shared approved marketplace feed client');
 assert.match(js, /fetch\(['"]\.\/products\.json['"]\)/i);
 assert.match(js, /function productDestination/i);
-assert.doesNotMatch(js, /cloudflare-client|\/api\/|portal\.ts|owner\.ts|field\.ts/i);
+assert.match(js, /ArtiSysMarketplace/i, 'catalog must enrich static products from approved marketplace feed');
+assert.doesNotMatch(js, /fetch\(['"]\/api\//i, 'site must never call a local private API route');
+assert.doesNotMatch(js, /cloudflare-client|portal\.ts|owner\.ts|field\.ts/i);
 assert.ok(css.length > 3000);
 new Function(js);
+
+assert.ok(existsSync(new URL('sistemas/marketplace-feed.js', publicRoot)), 'shared marketplace feed client missing');
+const feedClient = readCatalog('marketplace-feed.js');
+assert.match(feedClient, /artisys-mercadolivre\.nutricionistaalmeidavh\.workers\.dev\/api\/site-catalog\/feed/i);
+assert.match(feedClient, /AbortController/i, 'marketplace feed must have a timeout/fallback boundary');
+assert.match(feedClient, /mergeApprovedFeed/i, 'approved marketplace data must merge without duplicating static slugs');
+assert.doesNotMatch(feedClient, /ADMIN_|password|token|authorization/i, 'public feed client must not contain credentials');
+new Function(feedClient);
+
+assert.match(agro, /id="marketplace-collection-extra"/i, 'Agro collection must have a dynamic approved-feed slot');
+assert.match(agro, /src="\.\.\/marketplace-feed\.js"/i);
+assert.match(agro, /src="\.\.\/marketplace-collection\.js"/i);
+const collectionClient = readCatalog('marketplace-collection.js');
+assert.match(collectionClient, /marketplace-collection-extra/);
+assert.match(collectionClient, /collection === collectionSlug/);
+new Function(collectionClient);
+
+assert.ok(existsSync(new URL('sistemas/produto/index.html', publicRoot)), 'generic approved marketplace product page missing');
+const marketplacePage = readCatalog('produto/index.html');
+assert.match(marketplacePage, /<meta name="robots" content="noindex,follow">/i, 'query-based marketplace product detail must stay noindex');
+assert.match(marketplacePage, /src="\.\.\/marketplace-feed\.js"/i);
+assert.match(marketplacePage, /src="\.\.\/marketplace-product\.js"/i);
+const productClient = readCatalog('marketplace-product.js');
+assert.match(productClient, /URLSearchParams/);
+assert.match(productClient, /item_id/);
+assert.match(productClient, /pictures/);
+assert.match(productClient, /permalink/);
+new Function(productClient);
 
 console.log('Public catalog contract OK:', {
   products: catalog.products.length,
   individualPages: individual.length,
   collections: catalog.collections.length,
   externalProducts: catalog.products.filter((product) => product.pageMode === 'external').length,
+  marketplaceFeed: true,
   isolated: true
 });
