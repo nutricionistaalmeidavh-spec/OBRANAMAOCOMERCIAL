@@ -83,7 +83,7 @@ main{width:min(calc(100% - 32px),var(--max));margin:0 auto}
 .dialog-features li{position:relative;padding-left:22px;color:#dfe8f4;line-height:1.45}
 .dialog-features li::before{content:"";position:absolute;left:0;top:.55em;width:8px;height:8px;border-radius:50%;background:var(--accent)}
 .dialog-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px}
-.dialog-actions a{min-height:44px;padding:0 16px;border-radius:13px;display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#04130e;text-decoration:none;font-weight:850}
+.dialog-actions a,.dialog-actions button{min-height:44px;padding:0 16px;border-radius:13px;display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#04130e;text-decoration:none;font-weight:850}
 .dialog-actions .secondary{background:transparent;color:var(--text);border:1px solid var(--line)}
 @media (min-width:620px){
   .hero-stats{grid-template-columns:repeat(3,1fr)}
