@@ -20,9 +20,33 @@
     "smoke:production": "node scripts/smoke-production.mjs",
     "d1:migrate:local": "wrangler d1 migrations apply obra-na-mao-comercial --local --config wrangler.jsonc",
     "d1:migrate:remote": "wrangler d1 migrations apply obra-na-mao-comercial --remote --config wrangler.jsonc",
-    "ux:verify": "node scripts/verify-ui-contract.mjs"
+    "ux:verify": "node scripts/verify-ui-contract.mjs",
+    "qa:prepare": "node scripts/sync-artisys-qa.mjs && npm install --prefix qa/runtime --no-audit --no-fund && node qa/runtime/node_modules/playwright/cli.js install chromium",
+    "qa:quick": "npm run qa:prepare && node scripts/run-artisys-qa.mjs quick",
+    "qa:full": "npm run qa:prepare && node scripts/run-artisys-qa.mjs full",
+    "qa:release": "npm run qa:p2",
+    "qa:cross-system": "node scripts/qa-cross-system.mjs",
+    "qa:p1:security": "vitest run backend/p1-security.test.ts backend/loja-online-admin.test.ts src/owner-loja-online-contract.test.ts src/qa-p1-owner-hardening.test.ts src/qa-p1-sweep-contract.test.ts src/qa-cross-system-contract.test.ts",
+    "qa:p1:matrix": "npm run qa:prepare && node scripts/qa-p1-matrix.mjs",
+    "qa:p1": "npm run qa:p1:security && npm run qa:p1:sweep && npm run qa:p1:matrix",
+    "qa:p1:sweep": "npm run qa:prepare && node scripts/qa-p1-sweep.mjs",
+    "qa:p2": "npm run qa:prepare && node scripts/qa-p2-release.mjs"
   },
-  "dependencies": {"lucide":"^0.469.0","pdfjs-dist":"^4.10.38"},
-  "optionalDependencies": {"@rollup/rollup-linux-x64-gnu":"^4.0.0"},
-  "devDependencies": {"autoprefixer":"^10.4.0","happy-dom":"^20.13.2","postcss":"^8.4.0","tailwindcss":"^3.4.0","typescript":"^5.7.0","vite":"^6.0.0","vitest":"^2.1.8","wrangler":"^4.0.0"}
+  "dependencies": {
+    "lucide": "^0.469.0",
+    "pdfjs-dist": "^4.10.38"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.0.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.0",
+    "happy-dom": "^20.13.2",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.8",
+    "wrangler": "^4.0.0"
+  }
 }

@@ -1,0 +1,9 @@
+{
+  "name": "04-licencas",
+  "steps": [
+    {"action":"goto","path":"/sistema#owner","name":"open-owner"},
+    {"action":"waitFor","selector":"#content","state":"visible","timeoutMs":10000,"name":"central-content"},
+    {"action":"waitForTimeout","timeoutMs":750,"name":"owner-hydration"},
+    {"action":"screenshot","name":"owner-licencas-surface","fullPage":true}
+  ]
+}
