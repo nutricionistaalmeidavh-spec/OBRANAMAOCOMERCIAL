@@ -14,12 +14,15 @@ function arg(name){const index=process.argv.indexOf(name);return index>=0?proces
 function git(cwd,...args){return execFileSync('git',['-C',cwd,...args],{encoding:'utf8',stdio:['ignore','pipe','pipe'],windowsHide:true}).trim()}
 function localSource(){
   const explicit=arg('--source')||process.env.ARTISYS_QA_SOURCE;
+  if(explicit){
+    if(!fs.existsSync(path.join(explicit,'package.json')))throw new Error(`ARTISYS_QA_SOURCE does not contain package.json: ${explicit}`);
+    return explicit;
+  }
   const candidates=[
-    explicit,
     path.resolve(repoRoot,'..','..','..','utilidades','modules','artisys-qa'),
     path.resolve(repoRoot,'..','..','utilidades','modules','artisys-qa'),
     path.join(os.homedir(),'utilidades','modules','artisys-qa'),
-  ].filter(Boolean);
+  ];
   return candidates.find(candidate=>fs.existsSync(path.join(candidate,'package.json')))||null;
 }
 function cachedSource(ref){
