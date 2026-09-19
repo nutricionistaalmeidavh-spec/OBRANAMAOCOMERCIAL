@@ -28,13 +28,13 @@ function invocation(command, args) {
   return { command: comspec, args: ['/d', '/s', '/c', [command, ...args].map(quote).join(' ')] };
 }
 
-function run(label, command, args, cwd = root) {
+function run(label, command, args, cwd = root, env = process.env) {
   return new Promise((resolve, reject) => {
     append(`\n--- ${label} ---\n`);
     const resolved = invocation(command, args);
     const child = spawn(resolved.command, resolved.args, {
       cwd,
-      env: process.env,
+      env,
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -50,11 +50,31 @@ function run(label, command, args, cwd = root) {
   });
 }
 
+function createAskPass() {
+  const token = String(process.env.GITHUB_REPORT_TOKEN || '').trim();
+  if (!token) throw new Error('GITHUB_REPORT_TOKEN ausente para acessar utilidades privado no runner.');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'artisys-git-askpass-'));
+  const file = path.join(dir, process.platform === 'win32' ? 'askpass.cmd' : 'askpass.sh');
+  if (process.platform === 'win32') {
+    fs.writeFileSync(file, '@echo off\r\necho %~1 | findstr /I "Username" >nul\r\nif %errorlevel%==0 (echo x-access-token) else (echo %GITHUB_REPORT_TOKEN%)\r\n', 'utf8');
+  } else {
+    fs.writeFileSync(file, '#!/bin/sh\ncase "$1" in *Username*) printf "%s\\n" "x-access-token" ;; *) printf "%s\\n" "$GITHUB_REPORT_TOKEN" ;; esac\n', { encoding: 'utf8', mode: 0o700 });
+  }
+  return { dir, file };
+}
+
 const worktree = path.join(os.tmpdir(), `artisys-qa-source-${process.pid}-${Date.now()}`);
 let worktreeCreated = false;
+let askPass = null;
 let exitCode = 0;
 try {
-  await run('utilidades-fetch', 'git', ['-C', utilidades, 'fetch', 'origin', 'main']);
+  askPass = createAskPass();
+  const gitEnv = {
+    ...process.env,
+    GIT_ASKPASS: askPass.file,
+    GIT_TERMINAL_PROMPT: '0',
+  };
+  await run('utilidades-fetch', 'git', ['-C', utilidades, 'fetch', '--force', 'origin', 'main'], root, gitEnv);
   await run('utilidades-worktree', 'git', ['-C', utilidades, 'worktree', 'add', '--detach', worktree, 'FETCH_HEAD']);
   worktreeCreated = true;
   const source = path.join(worktree, 'modules', 'artisys-qa');
@@ -71,6 +91,7 @@ try {
     try { await run('utilidades-worktree-cleanup', 'git', ['-C', utilidades, 'worktree', 'remove', '--force', worktree]); }
     catch (error) { append(`cleanup warning: ${error?.message || error}\n`); }
   }
+  if (askPass) fs.rmSync(askPass.dir, { recursive: true, force: true });
   fs.writeFileSync(exitPath, `${exitCode}\n`, 'ascii');
 }
 process.exitCode = exitCode;
