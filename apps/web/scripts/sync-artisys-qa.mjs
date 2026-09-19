@@ -65,10 +65,10 @@ const requestedRef=arg('--ref')||process.env.ARTISYS_QA_REF||defaultRef;
 const source=localSource()||cachedSource(requestedRef);
 const pkg=JSON.parse(fs.readFileSync(path.join(source,'package.json'),'utf8'));
 if(pkg.name!=='@artisys/qa')throw new Error(`Unexpected QA package: ${pkg.name||'unknown'}`);
-const sourceRepoRoot=git(source,'rev-parse','--show-toplevel');
-const sourceCommit=git(sourceRepoRoot,'rev-parse','HEAD');
-const sourcePath=path.relative(sourceRepoRoot,source).split(path.sep).join('/');
-const sourceTree=git(sourceRepoRoot,'rev-parse',`HEAD:${sourcePath}`);
+const sourceCommit=git(source,'rev-parse','HEAD');
+const sourcePath=git(source,'rev-parse','--show-prefix').replace(/\\/g,'/').replace(/\/$/,'');
+if(!sourcePath)throw new Error('Could not resolve ArtiSys QA path inside utilidades repository.');
+const sourceTree=git(source,'rev-parse',`HEAD:${sourcePath}`);
 let previous={};if(fs.existsSync(lockFile)){try{previous=JSON.parse(fs.readFileSync(lockFile,'utf8'))}catch{}}
 if(previous.sourceTree===sourceTree&&fs.existsSync(path.join(runtimeDir,'src','cli.mjs'))){console.log(`@artisys/qa ${pkg.version} already synced (${sourceCommit.slice(0,12)}).`);process.exit(0)}
 fs.rmSync(runtimeDir,{recursive:true,force:true});copyTree(source,runtimeDir);
