@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
+import { productBelongsToCollection, withCanonicalCollections } from './catalog-collections.mjs';
 
-const catalog = JSON.parse(readFileSync(new URL('./public/sistemas/products.json', import.meta.url), 'utf8'));
+const catalog = withCanonicalCollections(JSON.parse(readFileSync(new URL('./public/sistemas/products.json', import.meta.url), 'utf8')));
 
 function escapeHtml(value) {
   return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
@@ -27,7 +28,10 @@ export function renderHomeCatalogSection() {
     return `<article class="artisys-product-card"><div class="artisys-product-meta"><span>${escapeHtml(product.category)}</span><span>${escapeHtml(typeLabel(product.type))}</span></div><h3>${escapeHtml(product.name)}</h3><p>${escapeHtml(product.summary)}</p><div class="artisys-product-card-bottom"><strong>${escapeHtml(product.priceLabel)}</strong><a href="${escapeHtml(href)}"${externalAttrs(href)}>Ver sistema <span aria-hidden="true">↗</span></a></div></article>`;
   });
 
-  const collectionCards = catalog.collections.filter((collection) => collection.featured).map((collection) => `<article class="artisys-product-card"><div class="artisys-product-meta"><span>Coleção</span><span>${escapeHtml(collection.category)}</span></div><h3>${escapeHtml(collection.name)}</h3><p>${escapeHtml(collection.summary)}</p><div class="artisys-product-card-bottom"><strong>${catalog.products.filter((product) => product.collections?.includes(collection.slug)).length} sistemas</strong><a href="/sistemas/${escapeHtml(collection.slug)}/">Explorar coleção <span aria-hidden="true">↗</span></a></div></article>`);
+  const collectionCards = catalog.collections.filter((collection) => collection.featured).map((collection) => {
+    const count = catalog.products.filter((product) => productBelongsToCollection(product, collection)).length;
+    return `<article class="artisys-product-card"><div class="artisys-product-meta"><span>Coleção</span><span>${escapeHtml(collection.category)}</span></div><h3>${escapeHtml(collection.name)}</h3><p>${escapeHtml(collection.summary)}</p><div class="artisys-product-card-bottom"><strong>${count} sistemas</strong><a href="/sistemas/${escapeHtml(collection.slug)}/">Explorar coleção <span aria-hidden="true">↗</span></a></div></article>`;
+  });
 
   const cards = [...productCards, ...collectionCards].join('');
   return `<section class="artisys-products-home" id="sistemas-catalogo" aria-labelledby="sistemas-catalogo-title"><div class="artisys-products-shell"><div class="artisys-products-heading"><div><p class="artisys-products-kicker">Sistemas ArtiSys</p><h2 id="sistemas-catalogo-title">Produtos prontos para entrar na operação.</h2></div><div class="artisys-products-intro"><p>Além de projetos sob medida, a ArtiSys mantém sistemas que já podem ser apresentados, contratados e implantados.</p><a href="/sistemas/">Ver todos os sistemas <span aria-hidden="true">→</span></a></div></div><div class="artisys-products-grid">${cards}</div><div class="artisys-products-footer"><span>${catalog.products.length} sistemas no catálogo atual</span><a href="/sistemas/">Explorar catálogo completo</a></div></div></section>`;

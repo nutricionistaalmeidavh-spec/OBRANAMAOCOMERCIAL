@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { artisysSeoConfig } from '../seo.config.mjs';
+import { productBelongsToCollection, withCanonicalCollections } from '../catalog-collections.mjs';
 import { buildPageSeo, renderHeadTags } from '../vendor/artisys-seo/technical.mjs';
 
 const catalogUrl = new URL('../public/sistemas/products.json', import.meta.url);
@@ -88,6 +89,7 @@ function renderCollectionCard(product) {
 
 function renderCollectionPage(collection, products) {
   const seo = buildPageSeo(artisysSeoConfig, `/sistemas/${collection.slug}`);
+  const segmentLabel = collection.category || collection.name;
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -103,9 +105,9 @@ function renderCollectionPage(collection, products) {
   <!-- artisys-generated:collection -->
   <header class="catalog-header"><a class="brand" href="/" aria-label="ArtiSys, página inicial"><img src="/artisys-logo.svg" alt="ArtiSys"></a><a class="header-link" href="/sistemas/">Todos os sistemas</a></header>
   <main>
-    <section class="catalog-hero" aria-labelledby="collection-title"><p class="eyebrow">${escapeHtml(collection.category)} · Coleção ArtiSys</p><h1 id="collection-title">${escapeHtml(collection.name)}</h1><p class="hero-copy">${escapeHtml(collection.summary)}</p><div class="hero-stats"><div><strong>${products.length}+</strong><span>sistemas nesta coleção</span></div><div><strong>1</strong><span>página para comparar o portfólio</span></div><div><strong>Agro</strong><span>segmento especializado</span></div></div></section>
-    <section class="catalog-section" aria-labelledby="collection-products-title"><div class="section-heading"><div><p class="eyebrow">Portfólio</p><h2 id="collection-products-title">Soluções para diferentes rotinas do agro</h2></div><p class="result-count">Portfólio ArtiSys + aprovados no Mercado Livre</p></div><div class="catalog-grid">${products.map(renderCollectionCard).join('')}</div><div id="marketplace-collection-extra" data-collection="${escapeHtml(collection.slug)}" class="catalog-grid marketplace-extra" hidden></div></section>
-    <section class="catalog-note"><div><p class="eyebrow">ArtiSys</p><h2>Escolha pelo tipo de operação.</h2></div><p>Oficina Agrícola mantém uma página individual completa e também aparece aqui. Outros produtos aprovados para esta coleção podem ser sincronizados automaticamente a partir do catálogo comercial.</p></section>
+    <section class="catalog-hero" aria-labelledby="collection-title"><p class="eyebrow">${escapeHtml(segmentLabel)} · Coleção ArtiSys</p><h1 id="collection-title">${escapeHtml(collection.name)}</h1><p class="hero-copy">${escapeHtml(collection.summary)}</p><div class="hero-stats"><div><strong>${products.length}+</strong><span>sistemas nesta coleção</span></div><div><strong>1</strong><span>página para comparar o portfólio</span></div><div><strong>${escapeHtml(segmentLabel)}</strong><span>segmento especializado</span></div></div></section>
+    <section class="catalog-section" aria-labelledby="collection-products-title"><div class="section-heading"><div><p class="eyebrow">Portfólio</p><h2 id="collection-products-title">Soluções para diferentes rotinas de ${escapeHtml(segmentLabel.toLowerCase())}</h2></div><p class="result-count">Portfólio ArtiSys + aprovados no Mercado Livre</p></div><div class="catalog-grid">${products.map(renderCollectionCard).join('')}</div><div id="marketplace-collection-extra" data-collection="${escapeHtml(collection.slug)}" class="catalog-grid marketplace-extra" hidden></div></section>
+    <section class="catalog-note"><div><p class="eyebrow">ArtiSys</p><h2>Escolha pelo tipo de operação.</h2></div><p>Os produtos do portfólio ArtiSys aparecem aqui junto dos itens aprovados para esta coleção no catálogo comercial conectado.</p></section>
   </main>
   <footer class="catalog-footer"><span>ArtiSys</span><a href="/sistemas/">Catálogo completo</a><a href="/">Página inicial</a></footer>
   <script src="../marketplace-feed.js" defer></script>
@@ -123,7 +125,7 @@ function cleanGeneratedTargets(catalog) {
 }
 
 export function generateCatalogPages() {
-  const catalog = JSON.parse(readFileSync(catalogUrl, 'utf8'));
+  const catalog = withCanonicalCollections(JSON.parse(readFileSync(catalogUrl, 'utf8')));
   if (!Array.isArray(catalog.products) || !Array.isArray(catalog.collections)) throw new Error('Catálogo de produtos inválido.');
   cleanGeneratedTargets(catalog);
 
@@ -135,7 +137,7 @@ export function generateCatalogPages() {
   }
 
   for (const collection of catalog.collections) {
-    const products = catalog.products.filter((product) => product.collections?.includes(collection.slug));
+    const products = catalog.products.filter((product) => productBelongsToCollection(product, collection));
     const dir = new URL(`./${collection.slug}/`, outputRoot);
     mkdirSync(dir, { recursive: true });
     writeFileSync(new URL('index.html', dir), renderCollectionPage(collection, products), 'utf8');

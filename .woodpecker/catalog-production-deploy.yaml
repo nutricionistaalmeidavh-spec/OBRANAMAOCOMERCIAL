@@ -1,0 +1,18 @@
+labels:
+  platform: windows/amd64
+  backend: local
+
+when:
+  - event: push
+    branch:
+      - main
+
+steps:
+  - name: deploy-catalog-production
+    image: powershell.exe
+    commands:
+      - '$ErrorActionPreference = "Stop"'
+      - 'if ($env:CI_COMMIT_MESSAGE -notmatch "\[catalog-deploy\]") { Write-Host "Deploy ignorado: commit sem marcador [catalog-deploy]."; exit 0 }'
+      - 'Write-Host "Iniciando deploy seguro do catálogo ArtiSys + Mercado Livre para $env:CI_COMMIT_SHA"'
+      - '& powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-deploy-catalog-production.ps1'
+      - 'if ($LASTEXITCODE -ne 0) { throw "Deploy seguro falhou com exit $LASTEXITCODE" }'

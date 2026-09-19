@@ -38,9 +38,10 @@ steps:
       - '$logPath = ".\artifacts\woodpecker-qa.log"'
       - '"=== dependencias ===" | Add-Content -Path $logPath -Encoding utf8'
       - '$npm = (Get-Command npm.cmd -ErrorAction Stop).Source'
-      - '& $npm install *>&1 | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
+      - '$env:NPM_CONFIG_AUDIT = "false"; $env:NPM_CONFIG_FUND = "false"; $env:NPM_CONFIG_FETCH_RETRIES = "3"; $env:NPM_CONFIG_FETCH_RETRY_MINTIMEOUT = "10000"; $env:NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT = "60000"'
+      - '$out = @(& $npm ci --no-audit --no-fund 2>&1); $out | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
       - '$depsExit = $LASTEXITCODE; "dependencias exit=$depsExit" | Add-Content -Path $logPath -Encoding utf8'
-      - 'if ($depsExit -ne 0) { throw "npm install falhou com exit $depsExit" }'
+      - 'if ($depsExit -ne 0) { throw "npm ci falhou com exit $depsExit" }'
       - 'Remove-Item ".\artifacts\current-step.txt" -ErrorAction SilentlyContinue'
 
   - name: qa-p2

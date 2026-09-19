@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "npm run catalog:generate && vite",
-    "build": "node scripts/write-build-meta.mjs && npm run seo:generate && npm run seo:verify && npm run assets:verify && vite build",
+    "build": "node scripts/write-build-meta.mjs && npm run seo:generate && node scripts/verify-canonical-collections.mjs && npm run seo:verify && npm run assets:verify && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "catalog:generate": "node scripts/run-generate-product-pages.mjs",
-    "catalog:verify": "npm run catalog:generate && node scripts/verify-public-catalog.mjs",
+    "catalog:verify": "npm run catalog:generate && node scripts/verify-public-catalog.mjs && node scripts/verify-canonical-collections.mjs",
     "seo:generate": "node scripts/generate-seo.mjs",
     "seo:verify": "node scripts/verify-seo.mjs",
     "pages:dev": "npm run build && wrangler pages dev dist --compatibility-date=2026-09-02 --compatibility-flag=nodejs_compat",
