@@ -8,6 +8,7 @@ const root=path.resolve(here,'..');
 const INTERNAL_PREFIX='/api/internal/artisys/loja-online';
 
 function safeBase(value,fallback){return new URL(String(value||fallback)).toString().replace(/\/$/,'')}
+function safeTarget(value,fallback){const url=new URL(String(value||fallback));if(!['https:','http:'].includes(url.protocol))throw new Error('QA target precisa usar HTTP/HTTPS');return url.toString()}
 function centralHealthUrl(base){return new URL('/sistema',base+'/').toString()}
 function lojaHealthUrl(base){return new URL('/',base+'/').toString()}
 function timestamp(date){return date.toISOString().replace(/[:.]/g,'-')}
@@ -24,6 +25,13 @@ async function responseJson(response){
 async function assertHttpOk(fetchImpl,url,label){
   const response=await fetchImpl(url,{headers:{accept:'text/html,application/json'}});
   if(!response.ok)throw new Error(label+' respondeu HTTP '+response.status);
+  return response.status;
+}
+async function assertSeoPanel(fetchImpl,url){
+  const response=await fetchImpl(url,{headers:{accept:'text/html'}});
+  if(!response.ok)throw new Error('Painel SEO respondeu HTTP '+response.status);
+  const html=await response.text();
+  if(!/Painel SEO/i.test(html)||!/admin\/seo\/app\.js/i.test(html))throw new Error('Painel SEO respondeu sem o shell administrativo esperado');
   return response.status;
 }
 async function requestJson({fetchImpl,baseURL,pathName,method='GET',headers={},body,expectedStatus=[200]}){
@@ -62,6 +70,7 @@ async function persistReport(report,now){
 export async function runCrossSystemQa({
   centralBaseUrl=process.env.ARTISYS_CENTRAL_BASE_URL||'https://artisys.dev',
   lojaBaseUrl=process.env.ARTISYS_LOJAONLINE_BASE_URL||'https://artisys-lojaonline.nutricionistaalmeidavh.workers.dev',
+  seoPanelUrl=process.env.ARTISYS_SEO_PANEL_URL||'https://deboralactacao.com/admin/seo/?context=loja-online',
   secret=process.env.LOJAONLINE_LICENSE_SERVICE_SECRET||'',
   fetchImpl=fetch,
   writeArtifacts=true,
@@ -70,13 +79,14 @@ export async function runCrossSystemQa({
   const started=now();
   const central=safeBase(centralBaseUrl,'https://artisys.dev');
   const loja=safeBase(lojaBaseUrl,'https://artisys-lojaonline.nutricionistaalmeidavh.workers.dev');
+  const seo=safeTarget(seoPanelUrl,'https://deboralactacao.com/admin/seo/?context=loja-online');
   const report={
-    schemaVersion:2,
+    schemaVersion:3,
     startedAt:started.toISOString(),
     finishedAt:null,
     status:'PASS',
     mode:secret?'mutable-p1':'read-only',
-    targets:{central,loja},
+    targets:{central,loja,seo},
     checks:[],
     mutations:[],
     auditActions:[],
@@ -89,6 +99,8 @@ export async function runCrossSystemQa({
     report.checks.push({name:'central-http',status:'PASS',httpStatus:centralStatus});
     const lojaStatus=await assertHttpOk(fetchImpl,lojaHealthUrl(loja),'Loja Online');
     report.checks.push({name:'loja-http',status:'PASS',httpStatus:lojaStatus});
+    const seoStatus=await assertSeoPanel(fetchImpl,seo);
+    report.checks.push({name:'seo-panel-http',status:'PASS',httpStatus:seoStatus});
 
     if(secret){
       const invalid=await requestJson({
