@@ -12,7 +12,9 @@ if (!utilidades) throw new Error('ARTISYS_UTILIDADES_PATH ausente.');
 const artifacts = path.join(root, 'artifacts');
 const logPath = path.join(artifacts, 'woodpecker-qa.log');
 const exitPath = path.join(artifacts, 'qa-p2-exit.txt');
+const failurePath = path.join(artifacts, 'qa-p2-failure.json');
 fs.mkdirSync(artifacts, { recursive: true });
+fs.rmSync(failurePath, { force: true });
 fs.appendFileSync(logPath, '=== qa-p2 wrapper ===\n', 'utf8');
 
 function append(text) {
@@ -40,19 +42,34 @@ function run(label, command, args, cwd = root, env = process.env) {
     });
     child.stdout.on('data', chunk => append(String(chunk)));
     child.stderr.on('data', chunk => append(String(chunk)));
-    child.on('error', reject);
+    child.on('error', error => reject(Object.assign(error, { qaStage: label })));
     child.on('close', code => {
       const exitCode = Number.isInteger(code) ? code : 1;
       append(`\n${label} exit=${exitCode}\n`);
       if (exitCode === 0) resolve();
-      else reject(Object.assign(new Error(`${label} falhou com exit ${exitCode}`), { exitCode }));
+      else reject(Object.assign(new Error(`${label} falhou com exit ${exitCode}`), { exitCode, qaStage: label }));
     });
   });
 }
 
+async function runWithRetry(label, command, args, { attempts = 2, cwd = root, env = process.env } = {}) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      if (attempt > 1) append(`\n${label}: retry ${attempt}/${attempts}\n`);
+      await run(label, command, args, cwd, env);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) throw error;
+    }
+  }
+  throw lastError;
+}
+
 function createAskPass() {
   const token = String(process.env.GITHUB_REPORT_TOKEN || '').trim();
-  if (!token) throw new Error('GITHUB_REPORT_TOKEN ausente para acessar utilidades privado no runner.');
+  if (!token) return null;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'artisys-git-askpass-'));
   const file = path.join(dir, process.platform === 'win32' ? 'askpass.cmd' : 'askpass.sh');
   if (process.platform === 'win32') {
@@ -69,29 +86,34 @@ let askPass = null;
 let exitCode = 0;
 try {
   askPass = createAskPass();
-  const gitEnv = {
-    ...process.env,
-    GIT_ASKPASS: askPass.file,
-    GIT_TERMINAL_PROMPT: '0',
-  };
-  await run('utilidades-fetch', 'git', ['-C', utilidades, 'fetch', '--force', 'origin', 'main'], root, gitEnv);
+  const gitEnv = askPass
+    ? { ...process.env, GIT_ASKPASS: askPass.file, GIT_TERMINAL_PROMPT: '0' }
+    : process.env;
+  append(`Git auth mode: ${askPass ? 'GITHUB_REPORT_TOKEN' : 'runner credential manager'}\n`);
+  await runWithRetry('utilidades-fetch', 'git', ['-C', utilidades, 'fetch', '--force', 'origin', 'main'], root, gitEnv);
   await run('utilidades-worktree', 'git', ['-C', utilidades, 'worktree', 'add', '--detach', worktree, 'FETCH_HEAD']);
   worktreeCreated = true;
   const source = path.join(worktree, 'modules', 'artisys-qa');
   const packagePath = path.join(source, 'package.json');
   const productReportPath = path.join(source, 'src', 'product-report.js');
-  if (!fs.existsSync(packagePath)) throw new Error(`Runtime source ausente: ${source}`);
+  if (!fs.existsSync(packagePath)) throw Object.assign(new Error(`Runtime source ausente: ${source}`), { qaStage: 'runtime-validate' });
   const runtimePackage = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
   append(`Runtime source: @artisys/qa ${runtimePackage.version || 'unknown'}\n`);
-  if (runtimePackage.version !== '2.6.0') throw new Error(`Runtime esperado 2.6.0, recebido ${runtimePackage.version || 'unknown'}.`);
-  if (!fs.existsSync(productReportPath)) throw new Error(`Runtime 2.6 incompleto: ${productReportPath} ausente.`);
+  if (runtimePackage.version !== '2.6.0') throw Object.assign(new Error(`Runtime esperado 2.6.0, recebido ${runtimePackage.version || 'unknown'}.`), { qaStage: 'runtime-validate' });
+  if (!fs.existsSync(productReportPath)) throw Object.assign(new Error(`Runtime 2.6 incompleto: ${productReportPath} ausente.`), { qaStage: 'runtime-validate' });
   await run('runtime-sync', process.execPath, ['scripts/sync-artisys-qa.mjs', '--source', source]);
-  await run('runtime-install', process.platform === 'win32' ? 'npm.cmd' : 'npm', ['install', '--prefix', 'qa/runtime', '--no-audit', '--no-fund']);
-  await run('chromium-install', process.execPath, ['qa/runtime/node_modules/playwright/cli.js', 'install', 'chromium']);
+  const runtimeInstallArgs = fs.existsSync(path.join(root, 'qa', 'runtime', 'package-lock.json'))
+    ? ['ci', '--prefix', 'qa/runtime', '--no-audit', '--no-fund']
+    : ['install', '--prefix', 'qa/runtime', '--no-audit', '--no-fund'];
+  await runWithRetry('runtime-install', process.platform === 'win32' ? 'npm.cmd' : 'npm', runtimeInstallArgs, { attempts: 2 });
+  await runWithRetry('chromium-install', process.execPath, ['qa/runtime/node_modules/playwright/cli.js', 'install', 'chromium'], { attempts: 2 });
   await run('qa-p2-release', process.execPath, ['scripts/qa-p2-release.mjs']);
 } catch (error) {
   exitCode = Number.isInteger(error?.exitCode) ? error.exitCode : 1;
-  append(`\nQA P2 wrapper error: ${error?.stack || error}\n`);
+  const stage = error?.qaStage || 'qa-p2-wrapper';
+  const message = error?.message || String(error);
+  fs.writeFileSync(failurePath, `${JSON.stringify({ stage, exitCode, message }, null, 2)}\n`, 'utf8');
+  append(`\nQA P2 wrapper error [${stage}]: ${error?.stack || error}\n`);
 } finally {
   if (worktreeCreated) {
     try { await run('utilidades-worktree-cleanup', 'git', ['-C', utilidades, 'worktree', 'remove', '--force', worktree]); }
