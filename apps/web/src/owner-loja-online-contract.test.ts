@@ -29,4 +29,11 @@ describe('Central Artisys Loja Online contract',()=>{
     expect(text).toContain('data-product="loja-online"');
     expect(text).toContain('/api/owner/loja-online/license-audit');
   });
+
+  it('abre o painel SEO compartilhado já filtrado para Loja Online sem alterar o fluxo do Obra na Mão',async()=>{
+    const text=await integration();
+    expect(text).toContain('https://deboralactacao.com/admin/seo/?context=loja-online');
+    expect(text).toContain('Abrir painel SEO');
+    expect(text).not.toContain('apps/web/src/owner.ts');
+  });
 });
