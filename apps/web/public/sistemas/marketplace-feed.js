@@ -65,7 +65,6 @@
     const bySlug = new Map(result.map((product, index) => [String(product.slug || ''), index]));
     for (const item of feedItems || []) {
       if (item.pageMode === 'digital') continue;
-      if (item.pageMode === 'collection' && item.collection !== 'agro') continue;
       const slug = String(item.slug || '').trim();
       if (!slug) continue;
       if (bySlug.has(slug)) {
