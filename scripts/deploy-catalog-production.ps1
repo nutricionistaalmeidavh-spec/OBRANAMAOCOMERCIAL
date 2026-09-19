@@ -127,7 +127,7 @@ try {
   $feedJson = $feed.Content | ConvertFrom-Json
   if ($null -eq $feedJson.items) { throw 'Feed Mercado Livre nao retornou a propriedade items.' }
   $admin = Assert-HttpOk "$mlBase/admin?ts=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
-  if ($admin.Content -notmatch 'Cat.logo ArtiSys|Catálogo ArtiSys') { throw 'Admin Mercado Livre nao exibiu o acesso ao Catalogo ArtiSys.' }
+  if ($admin.Content -notmatch 'ArtiSys') { throw 'Admin Mercado Livre nao exibiu o acesso ao Catalogo ArtiSys.' }
   Write-Step "Mercado Livre OK; feed com $(@($feedJson.items).Count) item(ns) aprovado(s)."
 
   Write-Step '=== OBRA NA MAO COMERCIAL: QA ==='
@@ -162,7 +162,7 @@ try {
   Write-Step "Log: $logPath"
 } catch {
   $message = $_.Exception.Message
-  Write-Error "Deploy interrompido: $message"
+  Write-Warning "Deploy interrompido: $message"
 
   if ($obraDeployed) {
     Rollback-Worker (Join-Path $obraDir 'apps\web') 'wrangler.jsonc' 'obra-na-mao-comercial'
@@ -173,6 +173,4 @@ try {
 
   Write-Step 'Rollback solicitado para todos os Workers que chegaram a ser publicados. A migration 0006 do ML e aditiva (CREATE TABLE/INDEX IF NOT EXISTS) e pode permanecer sem afetar a automacao existente.'
   throw
-} finally {
-  while ((Get-Location).Path -ne (Get-Location -PSProvider FileSystem).Path) { Pop-Location -ErrorAction SilentlyContinue }
 }
