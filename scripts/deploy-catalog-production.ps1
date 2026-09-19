@@ -57,6 +57,11 @@ function Get-OptionalProperty($Object, [string]$Name) {
   return $property.Value
 }
 
+function Test-PropertyExists($Object, [string]$Name) {
+  if ($null -eq $Object) { return $false }
+  return $null -ne $Object.PSObject.Properties[$Name]
+}
+
 function Rollback-Worker([string]$Directory, [string]$Config, [string]$Name) {
   try {
     Push-Location $Directory
@@ -134,11 +139,11 @@ try {
   if ($healthError) { throw "Mercado Livre /api/health retornou erro: $healthError" }
   $feed = Assert-HttpOk "$mlBase/api/site-catalog/feed?ts=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
   $feedJson = $feed.Content | ConvertFrom-Json
-  $feedItems = Get-OptionalProperty $feedJson 'items'
-  if ($null -eq $feedItems) { throw 'Feed Mercado Livre nao retornou a propriedade items.' }
+  if (-not (Test-PropertyExists $feedJson 'items')) { throw 'Feed Mercado Livre nao retornou a propriedade items.' }
+  $feedItems = @($feedJson.PSObject.Properties['items'].Value)
   $admin = Assert-HttpOk "$mlBase/admin?ts=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
   if ($admin.Content -notmatch 'ArtiSys') { throw 'Admin Mercado Livre nao exibiu o acesso ao Catalogo ArtiSys.' }
-  Write-Step "Mercado Livre OK; feed com $(@($feedItems).Count) item(ns) aprovado(s)."
+  Write-Step "Mercado Livre OK; feed com $($feedItems.Count) item(ns) aprovado(s)."
 
   Write-Step '=== OBRA NA MAO COMERCIAL: QA ==='
   Push-Location $obraDir
