@@ -86,7 +86,8 @@ try {
 
   Write-Step '=== MERCADO LIVRE: QA ==='
   Push-Location $mlDir
-  Invoke-Native 'npm.cmd' @('ci','--no-audit','--no-fund')
+  Write-Step 'MercadoLivre nao possui package-lock; usando o mesmo npm install do CI oficial.'
+  Invoke-Native 'npm.cmd' @('install','--no-audit','--no-fund')
   Invoke-Native 'npm.cmd' @('run','check')
   Invoke-Native 'npm.cmd' @('test')
 
