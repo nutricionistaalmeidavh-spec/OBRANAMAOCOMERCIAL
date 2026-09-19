@@ -21,24 +21,41 @@ $mlConfig = $null
 function Write-Step([string]$Message) {
   $line = "[$(Get-Date -Format 'HH:mm:ss')] $Message"
   Write-Host $line
-  Add-Content -Path $logPath -Value $line
+  Add-Content -Path $logPath -Value $line -Encoding UTF8
 }
 
 function Invoke-Native([string]$File, [string[]]$Arguments) {
   Write-Step ("RUN: {0} {1}" -f $File, ($Arguments -join ' '))
-  & $File @Arguments
-  if ($LASTEXITCODE -ne 0) {
-    throw "Falha ($LASTEXITCODE): $File $($Arguments -join ' ')"
+  $previousPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    & $File @Arguments 2>&1 | Tee-Object -FilePath $logPath -Append | ForEach-Object { Write-Host $_ }
+    $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
+  } finally {
+    $ErrorActionPreference = $previousPreference
+  }
+  if ($exitCode -ne 0) {
+    $tail = (Get-Content $logPath -Tail 30 -ErrorAction SilentlyContinue) -join "`n"
+    throw "Falha ($exitCode): $File $($Arguments -join ' ')`n--- ultimas linhas ---`n$tail"
   }
 }
 
 function Invoke-NativeCapture([string]$File, [string[]]$Arguments) {
   Write-Step ("RUN: {0} {1}" -f $File, ($Arguments -join ' '))
-  $output = & $File @Arguments
-  if ($LASTEXITCODE -ne 0) {
-    throw "Falha ($LASTEXITCODE): $File $($Arguments -join ' ')"
+  $previousPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = 'Continue'
+    $output = & $File @Arguments
+    $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
+  } finally {
+    $ErrorActionPreference = $previousPreference
   }
-  return ($output -join "`n")
+  if ($exitCode -ne 0) {
+    throw "Falha ($exitCode): $File $($Arguments -join ' ')"
+  }
+  $text = ($output -join "`n")
+  if ($text) { Add-Content -Path $logPath -Value $text -Encoding UTF8 }
+  return $text
 }
 
 function Assert-HttpOk([string]$Url) {
@@ -66,7 +83,7 @@ function Rollback-Worker([string]$Directory, [string]$Config, [string]$Name) {
   try {
     Push-Location $Directory
     Write-Step "ROLLBACK: $Name"
-    & npx.cmd -y wrangler@4 rollback --config $Config --message "ArtiSys automatic rollback after failed catalog production smoke"
+    & npx.cmd -y wrangler@4 rollback --yes --config $Config --message "ArtiSys automatic rollback after failed catalog production smoke"
     if ($LASTEXITCODE -ne 0) {
       Write-Warning "Rollback de $Name retornou exit code $LASTEXITCODE. Verifique Cloudflare imediatamente."
     }
@@ -83,11 +100,11 @@ New-Item -ItemType File -Path $logPath -Force | Out-Null
 try {
   Write-Step '=== PRE-FLIGHT ==='
   Invoke-Native 'git.exe' @('--version')
-  Invoke-Native 'node.exe' @('--version')
+  Invoke-Native 'node.exe' @('-e', "const [a,b]=process.versions.node.split('.').map(Number); if(a!==22 || b<12){console.error('Node 22.12+ e <23 obrigatorio; atual='+process.versions.node); process.exit(1)} console.log('Node '+process.versions.node)")
   Invoke-Native 'npm.cmd' @('--version')
   Invoke-Native 'npx.cmd' @('-y','wrangler@4','whoami')
 
-  Write-Step 'Clonando somente main dos dois repositorios.'
+  Write-Step 'Clonando somente main dos dois repositorios em workspace limpo.'
   Invoke-Native 'git.exe' @('clone','--depth','1','--branch','main','--single-branch',$mlRepo,$mlDir)
   Invoke-Native 'git.exe' @('clone','--depth','1','--branch','main','--single-branch',$obraRepo,$obraDir)
 
@@ -96,13 +113,29 @@ try {
   Write-Step "MercadoLivre main: $mlSha"
   Write-Step "OBRANAMAOCOMERCIAL main: $obraSha"
 
-  Write-Step '=== MERCADO LIVRE: QA ==='
+  Write-Step '=== FASE 1: QA LOCAL COMPLETO - NENHUMA MUTACAO DE PRODUCAO AINDA ==='
+
+  Write-Step '=== MERCADO LIVRE: QA LOCAL ==='
   Push-Location $mlDir
   Write-Step 'MercadoLivre nao possui package-lock; usando o mesmo npm install do CI oficial.'
   Invoke-Native 'npm.cmd' @('install','--no-audit','--no-fund')
   Invoke-Native 'npm.cmd' @('run','check')
   Invoke-Native 'npm.cmd' @('test')
+  Pop-Location
 
+  Write-Step '=== OBRA NA MAO COMERCIAL: QA LOCAL EM CLONE LIMPO ==='
+  Push-Location $obraDir
+  Invoke-Native 'npm.cmd' @('--prefix','apps/web','ci','--no-audit','--no-fund')
+  Invoke-Native 'npm.cmd' @('--prefix','apps/web','run','catalog:verify')
+  Invoke-Native 'npm.cmd' @('--prefix','apps/web','test')
+  Invoke-Native 'npm.cmd' @('--prefix','apps/web','run','ux:verify')
+  Invoke-Native 'npm.cmd' @('--prefix','apps/web','run','build')
+  Pop-Location
+
+  Write-Step 'QA LOCAL COMPLETO: PASS. A partir daqui o script pode alterar producao.'
+  Write-Step '=== FASE 2: PREPARAR E PUBLICAR MERCADO LIVRE ==='
+
+  Push-Location $mlDir
   Write-Step 'Resolvendo o D1 artisys-mercadolivre pelo nome.'
   $d1Json = Invoke-NativeCapture 'npx.cmd' @('-y','wrangler@4','d1','list','--json')
   $dbs = $d1Json | ConvertFrom-Json
@@ -123,7 +156,7 @@ try {
   }
   Set-Content -Path $mlConfig -Value $configText -Encoding UTF8
 
-  Write-Step 'Aplicando migrations remotas do Mercado Livre antes do Worker.'
+  Write-Step 'Aplicando migrations remotas do Mercado Livre.'
   Invoke-Native 'npx.cmd' @('-y','wrangler@4','d1','migrations','apply','artisys-mercadolivre','--remote','--config',$mlConfig)
   Invoke-Native 'npx.cmd' @('-y','wrangler@4','d1','migrations','list','artisys-mercadolivre','--remote','--config',$mlConfig)
 
@@ -132,28 +165,24 @@ try {
   $mlDeployed = $true
   Pop-Location
 
-  Write-Step '=== MERCADO LIVRE: SMOKE ==='
+  Write-Step '=== MERCADO LIVRE: SMOKE DE PRODUCAO ==='
   $health = Assert-HttpOk "$mlBase/api/health?ts=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
   $healthJson = $health.Content | ConvertFrom-Json
   $healthError = Get-OptionalProperty $healthJson 'error'
   if ($healthError) { throw "Mercado Livre /api/health retornou erro: $healthError" }
+
   $feed = Assert-HttpOk "$mlBase/api/site-catalog/feed?ts=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
   $feedJson = $feed.Content | ConvertFrom-Json
   if (-not (Test-PropertyExists $feedJson 'items')) { throw 'Feed Mercado Livre nao retornou a propriedade items.' }
   $feedItems = @($feedJson.PSObject.Properties['items'].Value)
+
   $admin = Assert-HttpOk "$mlBase/admin?ts=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
   if ($admin.Content -notmatch 'ArtiSys') { throw 'Admin Mercado Livre nao exibiu o acesso ao Catalogo ArtiSys.' }
   Write-Step "Mercado Livre OK; feed com $($feedItems.Count) item(ns) aprovado(s)."
 
-  Write-Step '=== OBRA NA MAO COMERCIAL: QA ==='
+  Write-Step '=== FASE 3: PUBLICAR SOMENTE O WEB/WORKER DO OBRA NA MAO COMERCIAL ==='
   Push-Location $obraDir
-  Invoke-Native 'npm.cmd' @('--prefix','apps/web','ci','--no-audit','--no-fund')
-  Invoke-Native 'npm.cmd' @('--prefix','apps/web','run','catalog:verify')
-  Invoke-Native 'npm.cmd' @('--prefix','apps/web','test')
-  Invoke-Native 'npm.cmd' @('--prefix','apps/web','run','ux:verify')
-  Invoke-Native 'npm.cmd' @('--prefix','apps/web','run','build')
-
-  Write-Step 'Publicando somente o Worker/web obra-na-mao-comercial. O Worker/D1 config e o backend nao foram alterados por esta entrega.'
+  Write-Step 'O backend operacional, bindings, D1, login e licenciamento nao foram alterados por esta entrega.'
   Invoke-Native 'npm.cmd' @('--prefix','apps/web','run','worker:deploy')
   $obraDeployed = $true
 
@@ -186,6 +215,12 @@ try {
     Rollback-Worker $mlDir $mlConfig 'artisys-mercadolivre'
   }
 
-  Write-Step 'Rollback solicitado para todos os Workers que chegaram a ser publicados. A migration 0006 do ML e aditiva (CREATE TABLE/INDEX IF NOT EXISTS) e pode permanecer sem afetar a automacao existente.'
+  if (-not $obraDeployed -and -not $mlDeployed) {
+    Write-Step 'Falha ocorreu antes de qualquer deploy: producao permaneceu intocada.'
+  } else {
+    Write-Step 'Rollback automatico solicitado para todos os Workers que chegaram a ser publicados.'
+  }
+  Write-Step 'A migration 0006 do ML e aditiva (CREATE TABLE/INDEX IF NOT EXISTS) e pode permanecer sem afetar a automacao existente.'
+  Write-Step "Log completo: $logPath"
   throw
 }
