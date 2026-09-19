@@ -50,6 +50,13 @@ function Assert-HttpOk([string]$Url) {
   return $response
 }
 
+function Get-OptionalProperty($Object, [string]$Name) {
+  if ($null -eq $Object) { return $null }
+  $property = $Object.PSObject.Properties[$Name]
+  if ($null -eq $property) { return $null }
+  return $property.Value
+}
+
 function Rollback-Worker([string]$Directory, [string]$Config, [string]$Name) {
   try {
     Push-Location $Directory
@@ -94,10 +101,10 @@ try {
   Write-Step 'Resolvendo o D1 artisys-mercadolivre pelo nome.'
   $d1Json = Invoke-NativeCapture 'npx.cmd' @('-y','wrangler@4','d1','list','--json')
   $dbs = $d1Json | ConvertFrom-Json
-  $db = @($dbs) | Where-Object { $_.name -eq 'artisys-mercadolivre' } | Select-Object -First 1
+  $db = @($dbs) | Where-Object { (Get-OptionalProperty $_ 'name') -eq 'artisys-mercadolivre' } | Select-Object -First 1
   if (-not $db) { throw 'D1 artisys-mercadolivre nao encontrado na conta Cloudflare autenticada.' }
-  $dbId = [string]$db.uuid
-  if (-not $dbId) { $dbId = [string]$db.id }
+  $dbId = [string](Get-OptionalProperty $db 'uuid')
+  if (-not $dbId) { $dbId = [string](Get-OptionalProperty $db 'id') }
   if (-not $dbId) { throw 'D1 artisys-mercadolivre encontrado, mas sem uuid/id.' }
   Write-Step "D1 localizado: $($dbId.Substring(0,[Math]::Min(8,$dbId.Length)))..."
 
@@ -123,13 +130,15 @@ try {
   Write-Step '=== MERCADO LIVRE: SMOKE ==='
   $health = Assert-HttpOk "$mlBase/api/health?ts=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
   $healthJson = $health.Content | ConvertFrom-Json
-  if ($healthJson.error) { throw "Mercado Livre /api/health retornou erro: $($healthJson.error)" }
+  $healthError = Get-OptionalProperty $healthJson 'error'
+  if ($healthError) { throw "Mercado Livre /api/health retornou erro: $healthError" }
   $feed = Assert-HttpOk "$mlBase/api/site-catalog/feed?ts=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
   $feedJson = $feed.Content | ConvertFrom-Json
-  if ($null -eq $feedJson.items) { throw 'Feed Mercado Livre nao retornou a propriedade items.' }
+  $feedItems = Get-OptionalProperty $feedJson 'items'
+  if ($null -eq $feedItems) { throw 'Feed Mercado Livre nao retornou a propriedade items.' }
   $admin = Assert-HttpOk "$mlBase/admin?ts=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
   if ($admin.Content -notmatch 'ArtiSys') { throw 'Admin Mercado Livre nao exibiu o acesso ao Catalogo ArtiSys.' }
-  Write-Step "Mercado Livre OK; feed com $(@($feedJson.items).Count) item(ns) aprovado(s)."
+  Write-Step "Mercado Livre OK; feed com $(@($feedItems).Count) item(ns) aprovado(s)."
 
   Write-Step '=== OBRA NA MAO COMERCIAL: QA ==='
   Push-Location $obraDir
