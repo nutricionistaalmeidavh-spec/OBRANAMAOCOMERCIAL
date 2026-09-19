@@ -45,17 +45,27 @@ steps:
 
   - name: qa-p2
     image: powershell.exe
+    environment:
+      ARTISYS_UTILIDADES_PATH: 'C:\VICTOR\Artisys\AgroFrota\utilidades'
     commands:
       - '$ErrorActionPreference = "Stop"'
       - 'Set-Location .\apps\web'
       - '"qa-p2" | Set-Content -Path ".\artifacts\current-step.txt" -Encoding utf8'
       - '$logPath = ".\artifacts\woodpecker-qa.log"'
       - '"=== qa-p2 ===" | Add-Content -Path $logPath -Encoding utf8'
+      - 'git -C $env:ARTISYS_UTILIDADES_PATH fetch origin main'
+      - '$qaSourceRoot = Join-Path $env:TEMP ("artisys-qa-source-" + $env:CI_PIPELINE_NUMBER + "-" + [guid]::NewGuid().ToString("N"))'
+      - 'git -C $env:ARTISYS_UTILIDADES_PATH worktree add --detach $qaSourceRoot origin/main'
+      - '$env:ARTISYS_QA_SOURCE = Join-Path $qaSourceRoot "modules\artisys-qa"'
       - '$npm = (Get-Command npm.cmd -ErrorAction Stop).Source'
       - '$cmd = (Get-Command cmd.exe -ErrorAction Stop).Source'
       - '$command = (''"{0}" run qa:p2 2>&1'' -f $npm)'
+      - '$ErrorActionPreference = "Continue"'
       - '& $cmd /d /c $command | ForEach-Object { Write-Host $_; Add-Content -Path $logPath -Value ([string]$_) -Encoding utf8 }'
-      - '$qaExit = $LASTEXITCODE; $qaExit | Set-Content -Path ".\artifacts\qa-p2-exit.txt" -Encoding ascii; "qa-p2 exit=$qaExit" | Add-Content -Path $logPath -Encoding utf8'
+      - '$qaExit = $LASTEXITCODE'
+      - '$ErrorActionPreference = "Stop"'
+      - 'git -C $env:ARTISYS_UTILIDADES_PATH worktree remove --force $qaSourceRoot 2>$null'
+      - '$qaExit | Set-Content -Path ".\artifacts\qa-p2-exit.txt" -Encoding ascii; "qa-p2 exit=$qaExit" | Add-Content -Path $logPath -Encoding utf8'
       - 'if ($qaExit -ne 0) { throw "npm run qa:p2 falhou com exit $qaExit" }'
       - 'Remove-Item ".\artifacts\current-step.txt" -ErrorAction SilentlyContinue'
 
