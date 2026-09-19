@@ -1,17 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { runCrossSystemQa } from '../scripts/qa-cross-system.mjs';
 
-describe('Central ↔ Loja Online QA cross-system runner',()=>{
-  it('runs read-only smoke without a licensing secret',async()=>{
+describe('Central ↔ Loja Online ↔ SEO QA cross-system runner',()=>{
+  it('runs read-only smoke across Central, Loja Online and the shared SEO panel without a licensing secret',async()=>{
     const calls:string[]=[];
     const fetchImpl=async(input:RequestInfo|URL)=>{
       const url=String(input);
       calls.push(url);
-      return new Response('<html>ok</html>',{status:200,headers:{'content-type':'text/html'}});
+      return new Response('<html><title>Painel SEO</title><script src="/admin/seo/app.js"></script></html>',{status:200,headers:{'content-type':'text/html'}});
     };
     const report=await runCrossSystemQa({
       centralBaseUrl:'https://central.example',
       lojaBaseUrl:'https://loja.example',
+      seoPanelUrl:'https://seo.example/admin/seo/?context=loja-online',
       secret:'',
       fetchImpl,
       writeArtifacts:false,
@@ -19,8 +20,11 @@ describe('Central ↔ Loja Online QA cross-system runner',()=>{
     expect(report.status).toBe('PASS');
     expect(report.mode).toBe('read-only');
     expect(report.mutations).toHaveLength(0);
+    expect(report.targets.seo).toBe('https://seo.example/admin/seo/?context=loja-online');
+    expect(report.checks.map((item:any)=>item.name)).toEqual(expect.arrayContaining(['central-http','loja-http','seo-panel-http']));
     expect(calls.some(url=>url.includes('central.example/sistema'))).toBe(true);
     expect(calls.some(url=>url.includes('loja.example'))).toBe(true);
+    expect(calls.some(url=>url.includes('seo.example/admin/seo/?context=loja-online'))).toBe(true);
   });
 
   it('runs P1 licensing, login and public-catalog lifecycle without serializing credentials',async()=>{
@@ -36,8 +40,10 @@ describe('Central ↔ Loja Online QA cross-system runner',()=>{
       const url=String(input);
       const method=String(init?.method||'GET').toUpperCase();
       const headers=new Headers(init?.headers);
-      const pathname=new URL(url).pathname;
+      const parsed=new URL(url);
+      const pathname=parsed.pathname;
 
+      if(parsed.hostname==='seo.example')return new Response('<html><title>Painel SEO</title><script src="/admin/seo/app.js"></script></html>',{status:200,headers:{'content-type':'text/html'}});
       if(pathname==='/sistema'||pathname==='/')return new Response('<html>ok</html>',{status:200,headers:{'content-type':'text/html'}});
 
       if(pathname==='/api/internal/artisys/loja-online/companies'&&method==='GET'){
@@ -56,20 +62,10 @@ describe('Central ↔ Loja Online QA cross-system runner',()=>{
         if(blocked)return json({error:'PUBLIC_CATALOG_LICENSE_INACTIVE',message:'blocked'},403);
         return json({companyId:company.id,products:[{id:'prd_qa'}]});
       }
-      if(pathname.endsWith('/extend')){
-        return json({company,license:{...license,expiresAt:'2030-07-01T00:00:00.000Z'}});
-      }
-      if(pathname.endsWith('/block')){
-        blocked=true;
-        return json({company,license:{...license,status:'BLOCKED'}});
-      }
-      if(pathname.endsWith('/unblock')){
-        blocked=false;
-        return json({company,license});
-      }
-      if(pathname==='/api/v1/dashboard'){
-        return blocked?json({error:'LICENSE_BLOCKED',message:'blocked'},403):json({company});
-      }
+      if(pathname.endsWith('/extend'))return json({company,license:{...license,expiresAt:'2030-07-01T00:00:00.000Z'}});
+      if(pathname.endsWith('/block')){blocked=true;return json({company,license:{...license,status:'BLOCKED'}})}
+      if(pathname.endsWith('/unblock')){blocked=false;return json({company,license})}
+      if(pathname==='/api/v1/dashboard')return blocked?json({error:'LICENSE_BLOCKED',message:'blocked'},403):json({company});
       if(pathname.endsWith('/license-audit')){
         return json({events:[
           {id:'evt1',companyId:company.id,action:'central.client.create',actor:'central-artisys',createdAt:'2030-01-01T00:00:00.000Z',details:{}},
@@ -84,6 +80,7 @@ describe('Central ↔ Loja Online QA cross-system runner',()=>{
     const report=await runCrossSystemQa({
       centralBaseUrl:'https://central.example',
       lojaBaseUrl:'https://loja.example',
+      seoPanelUrl:'https://seo.example/admin/seo/?context=loja-online',
       secret:sharedToken,
       fetchImpl,
       writeArtifacts:false,
@@ -93,7 +90,7 @@ describe('Central ↔ Loja Online QA cross-system runner',()=>{
     expect(report.mode).toBe('mutable-p1');
     expect(report.mutations.map((item:any)=>item.action)).toEqual(['create','extend','block','unblock']);
     expect(report.checks.map((item:any)=>item.name)).toEqual(expect.arrayContaining([
-      'invalid-secret-denied','temporary-login','public-catalog-active','license-block-enforced','license-unblock-restored','licensing-audit',
+      'seo-panel-http','invalid-secret-denied','temporary-login','public-catalog-active','license-block-enforced','license-unblock-restored','licensing-audit',
     ]));
     const serialized=JSON.stringify(report);
     expect(serialized).not.toContain(sharedToken);
