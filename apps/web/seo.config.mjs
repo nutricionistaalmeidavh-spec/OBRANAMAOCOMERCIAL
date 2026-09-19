@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { defineSeoConfig } from './vendor/artisys-seo/config.mjs';
+import { productBelongsToCollection, withCanonicalCollections } from './catalog-collections.mjs';
 
-const catalog = JSON.parse(readFileSync(new URL('./public/sistemas/products.json', import.meta.url), 'utf8'));
+const catalog = withCanonicalCollections(JSON.parse(readFileSync(new URL('./public/sistemas/products.json', import.meta.url), 'utf8')));
 const applicationCategory = {
   'Comércio': 'BusinessApplication',
   'Construção': 'BusinessApplication',
@@ -54,7 +55,7 @@ const productPages = individualProducts.map((product) => {
 });
 
 const collectionPages = catalog.collections.map((collection) => {
-  const products = catalog.products.filter((product) => product.collections?.includes(collection.slug));
+  const products = catalog.products.filter((product) => productBelongsToCollection(product, collection));
   return {
     path: `/sistemas/${collection.slug}`,
     canonical: `https://artisys.dev/sistemas/${collection.slug}/`,
