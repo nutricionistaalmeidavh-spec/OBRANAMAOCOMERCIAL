@@ -100,6 +100,7 @@ const feedClient = readCatalog('marketplace-feed.js');
 assert.match(feedClient, /artisys-mercadolivre\.nutricionistaalmeidavh\.workers\.dev\/api\/site-catalog\/feed/i);
 assert.match(feedClient, /AbortController/i, 'marketplace feed must have a timeout/fallback boundary');
 assert.match(feedClient, /mergeApprovedFeed/i, 'approved marketplace data must merge without duplicating static slugs');
+assert.doesNotMatch(feedClient, /item\.collection\s*!==\s*['"]agro['"]/i, 'marketplace feed must accept every published canonical collection');
 assert.doesNotMatch(feedClient, /ADMIN_|password|token|authorization/i, 'public feed client must not contain credentials');
 new Function(feedClient);
 
