@@ -78,7 +78,13 @@ try {
   await run('utilidades-worktree', 'git', ['-C', utilidades, 'worktree', 'add', '--detach', worktree, 'FETCH_HEAD']);
   worktreeCreated = true;
   const source = path.join(worktree, 'modules', 'artisys-qa');
-  if (!fs.existsSync(path.join(source, 'package.json'))) throw new Error(`Runtime source ausente: ${source}`);
+  const packagePath = path.join(source, 'package.json');
+  const productReportPath = path.join(source, 'src', 'product-report.js');
+  if (!fs.existsSync(packagePath)) throw new Error(`Runtime source ausente: ${source}`);
+  const runtimePackage = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  append(`Runtime source: @artisys/qa ${runtimePackage.version || 'unknown'}\n`);
+  if (runtimePackage.version !== '2.6.0') throw new Error(`Runtime esperado 2.6.0, recebido ${runtimePackage.version || 'unknown'}.`);
+  if (!fs.existsSync(productReportPath)) throw new Error(`Runtime 2.6 incompleto: ${productReportPath} ausente.`);
   await run('runtime-sync', process.execPath, ['scripts/sync-artisys-qa.mjs', '--source', source]);
   await run('runtime-install', process.platform === 'win32' ? 'npm.cmd' : 'npm', ['install', '--prefix', 'qa/runtime', '--no-audit', '--no-fund']);
   await run('chromium-install', process.execPath, ['qa/runtime/node_modules/playwright/cli.js', 'install', 'chromium']);
