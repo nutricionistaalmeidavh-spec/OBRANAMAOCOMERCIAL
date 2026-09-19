@@ -1,12 +1,14 @@
 (() => {
   const state = { products: [], collections: [], category: 'Todos', query: '' };
   const grid = document.getElementById('catalog-grid');
+  const collectionGrid = document.getElementById('collection-grid');
   const filters = document.getElementById('catalog-filters');
   const search = document.getElementById('catalog-search');
   const empty = document.getElementById('catalog-empty');
   const error = document.getElementById('catalog-error');
   const count = document.getElementById('catalog-result-count');
   const productCount = document.getElementById('product-count');
+  const collectionCount = document.getElementById('collection-count');
   const dialog = document.getElementById('product-dialog');
   const dialogCategory = document.getElementById('dialog-category');
   const dialogTitle = document.getElementById('dialog-title');
@@ -144,6 +146,26 @@
     return card;
   }
 
+  function createCollectionCard(collection) {
+    const card = element('article', 'product-card');
+    card.dataset.collection = collection.slug;
+    const top = element('div', 'product-topline');
+    top.appendChild(element('span', 'product-category', 'Coleção'));
+    top.appendChild(element('span', 'product-status', collection.category));
+    card.appendChild(top);
+    card.appendChild(element('h3', '', collection.name));
+    card.appendChild(element('p', 'product-summary', collection.summary));
+    const actions = element('div', 'product-actions');
+    actions.appendChild(createLink('product-button', 'Explorar coleção', { href: `./${collection.slug}/`, external: false }));
+    card.appendChild(actions);
+    return card;
+  }
+
+  function renderCollections() {
+    collectionGrid?.replaceChildren(...state.collections.map(createCollectionCard));
+    if (collectionCount) collectionCount.textContent = String(state.collections.length);
+  }
+
   function renderProducts() {
     const products = visibleProducts();
     grid.replaceChildren(...products.map(createCard));
@@ -182,13 +204,19 @@
 
   async function loadCatalog() {
     try {
-      const response = await fetch('./products.json');
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      if (!data || !Array.isArray(data.products) || !Array.isArray(data.collections)) throw new Error('Catálogo inválido');
+      const [productsResponse, collectionsResponse] = await Promise.all([
+        fetch('./products.json'),
+        fetch('./collections.json')
+      ]);
+      if (!productsResponse.ok) throw new Error(`products HTTP ${productsResponse.status}`);
+      if (!collectionsResponse.ok) throw new Error(`collections HTTP ${collectionsResponse.status}`);
+      const [data, collectionSource] = await Promise.all([productsResponse.json(), collectionsResponse.json()]);
+      if (!data || !Array.isArray(data.products)) throw new Error('Catálogo inválido');
+      if (!collectionSource || !Array.isArray(collectionSource.collections)) throw new Error('Coleções inválidas');
       state.products = data.products;
-      state.collections = data.collections;
+      state.collections = collectionSource.collections;
       productCount.textContent = String(state.products.length);
+      renderCollections();
       renderFilters();
       renderProducts();
       await enrichWithMarketplace();
