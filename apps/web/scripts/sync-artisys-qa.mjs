@@ -8,24 +8,39 @@ const repoRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const runtimeDir=path.join(repoRoot,'qa','runtime');
 const lockFile=path.join(repoRoot,'qa','artisys-qa.lock.json');
 const sourceRepository='https://github.com/nutricionistaalmeidavh-spec/utilidades.git';
-const defaultRef = '4a138a9d77775f5be1e43244b9d45ca8586742c5';
+const defaultRef='4a138a9d77775f5be1e43244b9d45ca8586742c5';
 
 function arg(name){const index=process.argv.indexOf(name);return index>=0?process.argv[index+1]:null}
 function git(cwd,...args){return execFileSync('git',['-C',cwd,...args],{encoding:'utf8',stdio:['ignore','pipe','pipe'],windowsHide:true}).trim()}
-function localSource(){
+function localSourceCandidates(){
   const explicit=arg('--source')||process.env.ARTISYS_QA_SOURCE;
   const utilidadesPath=process.env.ARTISYS_UTILIDADES_PATH;
-  if(explicit){
-    if(!fs.existsSync(path.join(explicit,'package.json')))throw new Error(`ARTISYS_QA_SOURCE does not contain package.json: ${explicit}`);
-    return explicit;
-  }
-  const candidates=[
+  return [
+    explicit,
     utilidadesPath?path.join(utilidadesPath,'modules','artisys-qa'):null,
     path.resolve(repoRoot,'..','..','..','utilidades','modules','artisys-qa'),
     path.resolve(repoRoot,'..','..','utilidades','modules','artisys-qa'),
     path.join(os.homedir(),'utilidades','modules','artisys-qa'),
   ].filter(Boolean);
-  return candidates.find(candidate=>fs.existsSync(path.join(candidate,'package.json')))||null;
+}
+function pinnedLocalSource(ref){
+  const candidate=localSourceCandidates().find(item=>fs.existsSync(path.join(item,'package.json')));
+  if(!candidate)return null;
+  const repo=git(candidate,'rev-parse','--show-toplevel');
+  let resolvedRef;
+  try{resolvedRef=git(repo,'rev-parse','--verify',`${ref}^{commit}`)}catch{
+    throw new Error(`ArtiSys QA ref ${ref} is not available in local utilidades repository ${repo}. Update that local repository before running QA.`);
+  }
+  const head=git(repo,'rev-parse','HEAD');
+  if(head===resolvedRef)return{source:candidate,cleanup:()=>{}};
+  const worktree=path.join(os.tmpdir(),`artisys-qa-${process.pid}-${Date.now()}`);
+  git(repo,'worktree','add','--detach',worktree,resolvedRef);
+  const source=path.join(worktree,'modules','artisys-qa');
+  if(!fs.existsSync(path.join(source,'package.json'))){
+    try{git(repo,'worktree','remove','--force',worktree)}catch{}
+    throw new Error(`ArtiSys QA module was not found in local ref ${resolvedRef}.`);
+  }
+  return{source,cleanup:()=>{try{git(repo,'worktree','remove','--force',worktree)}catch{}}};
 }
 function cachedSource(ref){
   const cacheRoot=path.join(os.homedir(),'.artisys','cache','utilidades');
@@ -39,7 +54,7 @@ function cachedSource(ref){
   git(cacheRoot,'checkout','--detach','--force','FETCH_HEAD');
   const source=path.join(cacheRoot,'modules','artisys-qa');
   if(!fs.existsSync(path.join(source,'package.json')))throw new Error('Cached ArtiSys QA module was not found after checkout.');
-  return source;
+  return{source,cleanup:()=>{}};
 }
 function shouldSkip(relative){
   const normalized=relative.split(path.sep).join('/');
@@ -62,17 +77,23 @@ function copyTree(source,destination,relative=''){
 }
 
 const requestedRef=arg('--ref')||process.env.ARTISYS_QA_REF||defaultRef;
-const source=localSource()||cachedSource(requestedRef);
-const pkg=JSON.parse(fs.readFileSync(path.join(source,'package.json'),'utf8'));
-if(pkg.name!=='@artisys/qa')throw new Error(`Unexpected QA package: ${pkg.name||'unknown'}`);
-const sourceCommit=git(source,'rev-parse','HEAD');
-const sourcePath=git(source,'rev-parse','--show-prefix').replace(/\\/g,'/').replace(/\/$/,'');
-if(!sourcePath)throw new Error('Could not resolve ArtiSys QA path inside utilidades repository.');
-const sourceTree=git(source,'rev-parse',`HEAD:${sourcePath}`);
-let previous={};if(fs.existsSync(lockFile)){try{previous=JSON.parse(fs.readFileSync(lockFile,'utf8'))}catch{}}
-if(previous.sourceTree===sourceTree&&fs.existsSync(path.join(runtimeDir,'src','cli.mjs'))){console.log(`@artisys/qa ${pkg.version} already synced (${sourceCommit.slice(0,12)}).`);process.exit(0)}
-fs.rmSync(runtimeDir,{recursive:true,force:true});copyTree(source,runtimeDir);
-fs.writeFileSync(path.join(runtimeDir,'artisys-qa.mjs'),"#!/usr/bin/env node\nimport './src/cli.mjs';\n",'utf8');
-const lock={schemaVersion:2,module:'@artisys/qa',version:pkg.version,sourceRepository:'nutricionistaalmeidavh-spec/utilidades',requestedRef,sourcePath,sourceCommit,sourceTree,consumption:'full-vendored-runtime',policy:{consumerConfig:'qa/artisys-qa.config.json',runtimeSelection:'qaProfiles',ciNeedsSourceRepositoryAccess:false,excludedTransientState:['bridge/projects.json','bridge/jobs/pending/*.json']}};
-fs.writeFileSync(lockFile,`${JSON.stringify(lock,null,2)}\n`,'utf8');
-console.log(`Synced @artisys/qa ${pkg.version} from ${sourceCommit.slice(0,12)} (${sourceTree.slice(0,12)}).`);
+const selected=pinnedLocalSource(requestedRef)||cachedSource(requestedRef);
+const{source,cleanup}=selected;
+try{
+  const pkg=JSON.parse(fs.readFileSync(path.join(source,'package.json'),'utf8'));
+  if(pkg.name!=='@artisys/qa')throw new Error(`Unexpected QA package: ${pkg.name||'unknown'}`);
+  const sourceCommit=git(source,'rev-parse','HEAD');
+  const sourcePath=git(source,'rev-parse','--show-prefix').replace(/\\/g,'/').replace(/\/$/,'');
+  if(!sourcePath)throw new Error('Could not resolve ArtiSys QA path inside utilidades repository.');
+  const sourceTree=git(source,'rev-parse',`HEAD:${sourcePath}`);
+  let previous={};if(fs.existsSync(lockFile)){try{previous=JSON.parse(fs.readFileSync(lockFile,'utf8'))}catch{}}
+  if(previous.sourceTree===sourceTree&&fs.existsSync(path.join(runtimeDir,'src','cli.mjs'))){
+    console.log(`@artisys/qa ${pkg.version} already synced (${sourceCommit.slice(0,12)}).`);
+  }else{
+    fs.rmSync(runtimeDir,{recursive:true,force:true});copyTree(source,runtimeDir);
+    fs.writeFileSync(path.join(runtimeDir,'artisys-qa.mjs'),"#!/usr/bin/env node\nimport './src/cli.mjs';\n",'utf8');
+    const lock={schemaVersion:2,module:'@artisys/qa',version:pkg.version,sourceRepository:'nutricionistaalmeidavh-spec/utilidades',requestedRef,sourcePath,sourceCommit,sourceTree,consumption:'full-vendored-runtime',policy:{consumerConfig:'qa/artisys-qa.config.json',runtimeSelection:'qaProfiles',ciNeedsSourceRepositoryAccess:false,excludedTransientState:['bridge/projects.json','bridge/jobs/pending/*.json']}};
+    fs.writeFileSync(lockFile,`${JSON.stringify(lock,null,2)}\n`,'utf8');
+    console.log(`Synced @artisys/qa ${pkg.version} from ${sourceCommit.slice(0,12)} (${sourceTree.slice(0,12)}).`);
+  }
+}finally{cleanup()}
