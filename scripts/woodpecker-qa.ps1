@@ -19,7 +19,7 @@ try{
   Invoke-Gate 'git-version' { git --version }
   Invoke-Gate 'npm-version' { npm --version }
   Invoke-Gate 'woodpecker-split-contract' { node scripts/verify-woodpecker-split.mjs }
-  Invoke-Gate 'deploy-script-syntax' { $files=@('scripts\deploy-catalog-production.ps1','scripts\run-deploy-catalog-production.ps1','scripts\repair-d1-migration-tracking.ps1');foreach($file in $files){$tokens=$null;$errors=$null;$path=Join-Path $repoRoot $file;[System.Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count -gt 0){$errors|ForEach-Object{Write-Error "$file: $($_.Message)"};exit 1}else{Write-Host "$file syntax OK"}} }
+  Invoke-Gate 'deploy-script-syntax' { $files=@('scripts\deploy-catalog-production.ps1','scripts\run-deploy-catalog-production.ps1','scripts\repair-d1-migration-tracking.ps1');foreach($file in $files){$tokens=$null;$errors=$null;$path=Join-Path $repoRoot $file;[System.Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count -gt 0){$errors|ForEach-Object{Write-Error "${file}: $($_.Message)"};exit 1}else{Write-Host "$file syntax OK"}} }
   Invoke-Gate 'web-dependencies' { npm --prefix apps/web ci --no-audit --no-fund }
   Invoke-Gate 'catalog-contract' { npm --prefix apps/web run catalog:verify }
   Invoke-Gate 'contracts-typecheck' { npm run typecheck:contracts }
