@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07111f">
+  <title>Produto ArtiSys</title>
+  <meta name="description" content="Detalhes de um produto aprovado no catálogo comercial ArtiSys.">
+  <meta name="robots" content="noindex,follow">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/artisys-favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/artisys-apple-touch-icon.png">
+  <link rel="stylesheet" href="../product-page.css">
+  <style>
+    .marketplace-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:26px 0 0}.marketplace-gallery img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:18px;border:1px solid rgba(255,255,255,.11);background:#0d1a2a}.marketplace-state{padding:24px 0 72px;color:#9fb0c6}.marketplace-state[hidden]{display:none}@media(min-width:760px){.marketplace-gallery{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  </style>
+</head>
+<body>
+  <header class="product-header"><a class="brand" href="/" aria-label="ArtiSys, página inicial"><img src="/artisys-logo.svg" alt="ArtiSys"></a><a class="back-link" href="/sistemas/">Todos os sistemas</a></header>
+  <main>
+    <section id="marketplace-loading" class="marketplace-state">Carregando produto aprovado…</section>
+    <section id="marketplace-error" class="marketplace-state" hidden><h1>Produto não disponível.</h1><p>Este item não está publicado no catálogo ArtiSys ou o serviço de sincronização está temporariamente indisponível.</p><p><a class="button secondary" href="/sistemas/">Voltar ao catálogo</a></p></section>
+    <section id="marketplace-product" class="product-hero" hidden aria-labelledby="product-title">
+      <div class="hero-copy"><p class="eyebrow">ArtiSys · Mercado Livre</p><h1 id="product-title"></h1><p id="product-summary" class="hero-summary"></p><div id="product-gallery" class="marketplace-gallery"></div><div class="hero-actions"><a id="product-marketplace-link" class="button primary" target="_blank" rel="noopener noreferrer">Ver anúncio no Mercado Livre</a><a class="button secondary" href="/sistemas/">Ver outros sistemas</a></div></div>
+      <aside class="product-facts" aria-label="Resumo comercial"><div><span>Preço</span><strong id="product-price"></strong></div><div><span>Vendas</span><strong id="product-sold"></strong></div><div><span>Origem</span><strong>Mercado Livre</strong></div></aside>
+    </section>
+  </main>
+  <footer class="product-footer"><span>ArtiSys</span><a href="/sistemas/">Catálogo de sistemas</a><a href="/">Página inicial</a></footer>
+  <script src="../marketplace-feed.js" defer></script>
+  <script src="../marketplace-product.js" defer></script>
+</body>
+</html>

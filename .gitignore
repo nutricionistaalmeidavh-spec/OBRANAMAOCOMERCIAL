@@ -11,3 +11,8 @@ qa-artifacts/
 *.sqlite3
 *.db
 *.tsbuildinfo
+apps/web/public/sistemas/pdv-artisys/
+apps/web/public/sistemas/obra-na-mao/
+apps/web/public/sistemas/loja-online/
+apps/web/public/sistemas/debora-lactacao/
+apps/web/public/sistemas/oficina-agricola/
