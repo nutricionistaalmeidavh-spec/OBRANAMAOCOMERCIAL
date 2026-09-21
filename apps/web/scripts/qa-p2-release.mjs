@@ -74,27 +74,33 @@ checks.push(run('native:test',npmCommand,['test']));
 checks.push(run('native:build',npmCommand,['run','build']));
 checks.push(run('native:ux-verify',npmCommand,['run','ux:verify']));
 checks.push(run('p1:security',npmCommand,['run','qa:p1:security']));
+checks.push(run('p1:owner-transactional',process.execPath,[path.join(root,'scripts','qa-owner-transactional.mjs')]));
 checks.push(run('p1:sweep',process.execPath,[path.join(root,'scripts','qa-p1-sweep.mjs')]));
 checks.push(run('p1:matrix',process.execPath,[path.join(root,'scripts','qa-p1-matrix.mjs')]));
 const readOnlyEnv={...process.env,LOJAONLINE_LICENSE_SERVICE_SECRET:''};
 checks.push(run('cross:read-only',process.execPath,[path.join(root,'scripts','qa-cross-system.mjs')],{env:readOnlyEnv}));
 
-const manifest=await readJson(path.join(root,'qa','artisys-qa.config.json'),{flows:{},qaProfiles:{release:{flows:[],criticalFlows:[]}}});
-const declared=Object.keys(manifest.flows||{});
-const releaseFlows=new Set(manifest.qaProfiles?.release?.flows||[]);
-const critical=new Set(manifest.qaProfiles?.release?.criticalFlows||[]);
-const uncovered=declared.filter(name=>!releaseFlows.has(name));
+const capabilityManifest=await readJson(path.join(root,'qa','business-capabilities.json'),{capabilities:[]});
+const statusByCheck=new Map(checks.map(check=>[check.name,check.status]));
+const capabilities=(capabilityManifest.capabilities||[]).map(item=>{
+  const required=Array.isArray(item.checks)?item.checks:[];
+  const missing=required.filter(name=>statusByCheck.get(name)!=='passed');
+  return {...item,passed:missing.length===0,missingChecks:missing};
+});
+const uncovered=capabilities.filter(item=>!item.passed);
 const coverage={
-  basis:'declared-release-flows',
-  discovered:declared.length,
-  covered:declared.length-uncovered.length,
+  basis:'business-capabilities',
+  discovered:capabilities.length,
+  covered:capabilities.length-uncovered.length,
   uncovered:uncovered.length,
-  uncoveredItems:uncovered,
-  uncoveredCritical:uncovered.filter(name=>critical.has(name)).length,
+  uncoveredItems:uncovered.map(item=>item.id),
+  uncoveredCritical:uncovered.filter(item=>item.critical).length,
+  capabilities,
 };
 
 const sweep=await readJson(path.join(root,'qa-artifacts','p1-sweep','report.json'),{});
 const matrix=await readJson(path.join(root,'qa-artifacts','p1-matrix','report.json'),{});
+const ownerTransactional=await readJson(path.join(root,'qa-artifacts','owner-transactional','report.json'),{});
 const endpoints=(sweep.api?.results||[]).map(item=>({
   name:item.name,method:item.method,path:item.path,status:item.status,expectedStatus:item.expectedStatus,passed:item.passed,
 }));
@@ -109,6 +115,7 @@ for(const page of sweep.ui?.pages||[]){
   for(const item of page.unlabeledControls||[])findings.push({severity:'warning',type:'unlabeled-control',page:page.url,name:item.name,controlType:item.type});
 }
 if(matrix.status&&matrix.status!=='passed')findings.push({severity:'critical',type:'viewport-matrix',name:'viewport matrix failed'});
+if(ownerTransactional.status&&ownerTransactional.status!=='passed')findings.push({severity:'critical',type:'owner-transactional',name:'owner transactional flow failed'});
 const evidence=await collectEvidence(path.join(root,'qa-artifacts'),p2StartedAt-2000);
 
 const summary=buildProductQaSummary({
@@ -118,7 +125,11 @@ const summary=buildProductQaSummary({
   metadata:{
     qaRuntime:'2.6.0',
     p2:true,
+    coverageBasis:'business-capabilities',
     crossSystemReleaseMode:'read-only',
+    ownerTransactionalStatus:ownerTransactional.status||null,
+    ownerTransactionalEmailFirst:ownerTransactional.emailFirst??null,
+    ownerTransactionalLicenseSuspensions:ownerTransactional.licenseSuspensionsPerformed??null,
     p1SweepStatus:sweep.status||null,
     p1MatrixStatus:matrix.status||null,
   },
@@ -129,5 +140,5 @@ const bundle=await writeProductQaBundle({
   summary,coverage,endpoints,consoleErrors,networkErrors,findings,evidence,
 });
 console.log('ARTISYS_QA_P2_BUNDLE='+bundle.outputDir);
-console.log(JSON.stringify({status:summary.status,counts:summary.counts,gate:summary.gate.allowed,blockers:summary.gate.blockers},null,2));
+console.log(JSON.stringify({status:summary.status,counts:summary.counts,gate:summary.gate.allowed,blockers:summary.gate.blockers,coverage:{basis:coverage.basis,covered:coverage.covered,discovered:coverage.discovered,uncoveredCritical:coverage.uncoveredCritical}},null,2));
 if(!summary.gate.allowed)process.exitCode=1;
