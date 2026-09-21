@@ -14,6 +14,16 @@ export function createFieldSync(options: { key: string; storage: Storage; baseli
     return draft;
   };
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const plainObject = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
+  const containsRemoteChanges = (baseline: unknown, remote: unknown, draft: unknown): boolean => {
+    if (same(baseline, remote) || same(remote, draft)) return true;
+    if (!plainObject(baseline) || !plainObject(remote) || !plainObject(draft)) return false;
+    const keys = new Set([...Object.keys(baseline), ...Object.keys(remote)]);
+    for (const key of keys) {
+      if (!containsRemoteChanges(baseline[key], remote[key], draft[key])) return false;
+    }
+    return true;
+  };
   const save = (state: unknown) => {
     if (disposed) throw new Error('Sessão encerrada. Entre novamente antes de salvar.');
     const existing = read();
@@ -30,7 +40,7 @@ export function createFieldSync(options: { key: string; storage: Storage; baseli
         try {
           const remote = await options.readRemote();
           if (disposed) return;
-          if (!same(remote, draft.base) && !same(remote, draft.state)) { options.status('conflict'); return; }
+          if (!same(remote, draft.base) && !same(remote, draft.state) && !containsRemoteChanges(draft.base, remote, draft.state)) { options.status('conflict'); return; }
           if (!same(remote, draft.state)) await options.send(draft.state);
           if (disposed) return;
           base = same(remote, draft.state) ? remote : await options.readRemote();
