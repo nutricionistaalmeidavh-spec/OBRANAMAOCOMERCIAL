@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "capabilities": [
+    {"id":"owner-google-auth","critical":true,"checks":["native:test"],"description":"Superadmin continua autenticando pela conta Google autorizada."},
+    {"id":"company-provision-email","critical":true,"checks":["native:test","p1:owner-transactional"],"description":"Criação comercial vincula o acesso ao e-mail principal; código permanece contingência."},
+    {"id":"company-license-controls","critical":true,"checks":["native:test","p1:owner-transactional"],"description":"Plano, validade, módulos, canais e limites são administráveis na Central."},
+    {"id":"device-independent-control","critical":true,"checks":["native:test","p1:owner-transactional"],"description":"Dispositivo pode ser revogado/reativado sem alterar a licença da empresa."},
+    {"id":"owner-license-audit","critical":true,"checks":["p1:owner-transactional"],"description":"Alterações comerciais aparecem no histórico de licenciamento."},
+    {"id":"role-admin-foreman-employee","critical":true,"checks":["native:test"],"description":"Permissões Admin, Encarregado e Funcionário são exercitadas no backend."},
+    {"id":"field-attendance","critical":true,"checks":["native:test"],"description":"Presença e escopo de obra são persistidos sob autorização."},
+    {"id":"desktop-pairing","critical":true,"checks":["native:test"],"description":"Pareamento Desktop cria sessão limitada e segredo armazenado por hash."},
+    {"id":"desktop-mobile-sync","critical":true,"checks":["native:test"],"description":"Sincronização Desktop ↔ mobile cobre idempotência e edição concorrente."},
+    {"id":"api-security","critical":true,"checks":["p1:security"],"description":"Rotas sensíveis e políticas de segurança mantêm os contratos P1."},
+    {"id":"responsive-browser-matrix","critical":false,"checks":["p1:matrix"],"description":"Fluxos de browser são exercitados em desktop, tablet e mobile."},
+    {"id":"cross-system-read-only","critical":false,"checks":["cross:read-only"],"description":"Integrações cross-system são validadas em modo somente leitura."}
+  ]
+}
