@@ -27,7 +27,7 @@ try{
   await waitFor(`${base}/sistema.html`);
   browser=await chromium.launch({headless:true});
   for(const viewport of viewports){
-    const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height}});
+    const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height},serviceWorkers:'block'});
     const page=await context.newPage();
     const requests=[];
     let sequence=1;
@@ -63,7 +63,8 @@ try{
     await page.locator('[data-owner-view="obra"]').click();const form=page.locator('#companyForm');await form.waitFor({state:'visible'});
     await form.locator('input[name="name"]').fill('Construtora QA');await form.locator('input[name="adminEmail"]').fill('cliente.qa@example.test');await form.locator('input[name="plan"]').fill('pro');await form.locator('input[name="expiresAt"]').fill('2027-12-31');await form.locator('input[name="maxUsers"]').fill('20');await form.locator('input[name="maxProjects"]').fill('8');await form.locator('input[name="maxDevices"]').fill('4');await shot('02-company-form-filled');
     await form.locator('button[type="submit"]').click();await page.locator('#createResult').filter({hasText:'primeiro acesso é reconhecido por esse e-mail'}).waitFor({state:'visible'});await page.waitForFunction(()=>{const button=document.querySelector('#companyForm button[type="submit"]');return button instanceof HTMLButtonElement&&!button.disabled});await shot('03-company-created-by-email');
-    await page.locator('[data-owner-view="clients"]').click();await page.locator('[data-owner-current="clients"]').waitFor({state:'visible'});await page.getByText('cliente.qa@example.test',{exact:true}).waitFor({state:'visible'});await shot('04-created-company-visible-in-clients');
+    const creationIndex=requests.findIndex(item=>item.method==='POST'&&item.pathname==='/api/owner/companies');if(creationIndex<0)throw new Error(`${viewport.name}: company provisioning request was not emitted`);if(!requests.slice(creationIndex+1).some(item=>item.method==='GET'&&item.pathname==='/api/owner/companies'))throw new Error(`${viewport.name}: company provisioning was not re-read from the server`);
+    await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-owner-shell]').waitFor({state:'visible'});await page.locator('[data-owner-view="clients"]').click();await page.locator('[data-owner-current="clients"]').waitFor({state:'visible'});await page.getByText('cliente.qa@example.test',{exact:true}).waitFor({state:'visible'});await shot('04-created-company-visible-in-clients');
     await page.locator('[data-company="qa-company-existing"]').click();const licenseForm=page.locator('#licenseForm');await licenseForm.waitFor({state:'visible'});await shot('05-company-license-detail');
     await licenseForm.locator('input[name="maxUsers"]').fill('25');await licenseForm.locator('input[name="maxProjects"]').fill('9');await licenseForm.locator('button.owner-primary').click();await page.locator('#licenseResult').filter({hasText:'Licença atualizada.'}).waitFor({state:'visible'});await shot('06-license-limits-updated');
     await page.locator('[data-device-id="qa-device-existing"]').click();await page.locator('[data-device-id="qa-device-existing"]').filter({hasText:'Reativar dispositivo'}).waitFor({state:'visible'});await shot('07-device-revoked-license-untouched');
