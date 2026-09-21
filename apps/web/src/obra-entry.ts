@@ -1,2 +1,2 @@
 import './field-storage-compat';
-await import('./main');
+import './main';
