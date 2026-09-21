@@ -62,10 +62,12 @@ jobs:
           node-version: 22
       - name: Install web dependencies
         run: npm ci --no-audit --no-fund
-      - name: Prepare pinned Playwright QA runtime
-        run: npm run qa:prepare
+      - name: Install Playwright core
+        run: npm install --no-save --package-lock=false playwright@1.62.1
       - name: Install Chromium system dependencies
-        run: npx --prefix qa/runtime playwright install-deps chromium
+        run: npx playwright install-deps chromium
+      - name: Install Chromium
+        run: npx playwright install chromium
       - name: Run capability-gated P2 release QA
         run: node scripts/qa-p2-release.mjs
       - name: Upload Playwright screenshots and QA evidence
