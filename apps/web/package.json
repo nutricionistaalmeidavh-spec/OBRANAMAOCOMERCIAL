@@ -25,6 +25,7 @@
     "qa:quick": "npm run qa:prepare && node scripts/run-artisys-qa.mjs quick",
     "qa:full": "npm run qa:prepare && node scripts/run-artisys-qa.mjs full",
     "qa:release": "npm run qa:p2",
+    "qa:owner:transactional": "npm run qa:prepare && node scripts/qa-owner-transactional.mjs",
     "qa:cross-system": "node scripts/qa-cross-system.mjs",
     "qa:p1:security": "vitest run backend/p1-security.test.ts backend/loja-online-admin.test.ts src/owner-loja-online-contract.test.ts src/qa-p1-owner-hardening.test.ts src/qa-p1-sweep-contract.test.ts src/qa-cross-system-contract.test.ts",
     "qa:p1:matrix": "npm run qa:prepare && node scripts/qa-p1-matrix.mjs",
