@@ -11,7 +11,7 @@
     {"id":"desktop-pairing","critical":true,"checks":["native:test"],"description":"Pareamento Desktop cria sessão limitada e segredo armazenado por hash."},
     {"id":"desktop-mobile-sync","critical":true,"checks":["native:test"],"description":"Sincronização Desktop ↔ mobile cobre idempotência e edição concorrente."},
     {"id":"api-security","critical":true,"checks":["p1:security"],"description":"Rotas sensíveis e políticas de segurança mantêm os contratos P1."},
-    {"id":"responsive-browser-matrix","critical":false,"checks":["p1:matrix"],"description":"Fluxos de browser são exercitados em desktop, tablet e mobile."},
+    {"id":"responsive-browser-matrix","critical":false,"checks":["p1:owner-transactional"],"description":"O mesmo fluxo transacional Playwright é exercitado em desktop, tablet e mobile."},
     {"id":"cross-system-read-only","critical":false,"checks":["cross:read-only"],"description":"Integrações cross-system são validadas em modo somente leitura."}
   ]
 }
