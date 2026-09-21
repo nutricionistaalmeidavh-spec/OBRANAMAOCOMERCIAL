@@ -48,9 +48,40 @@ jobs:
       - name: Bundle Cloudflare Worker
         run: npx wrangler deploy --dry-run --config wrangler.ci.jsonc
 
+  qa-release:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install web dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Prepare pinned Playwright QA runtime
+        run: npm run qa:prepare
+      - name: Install Chromium system dependencies
+        run: npx --prefix qa/runtime playwright install-deps chromium
+      - name: Run capability-gated P2 release QA
+        run: node scripts/qa-p2-release.mjs
+      - name: Upload Playwright screenshots and QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obra-na-mao-web-qa-${{ github.run_number }}
+          path: |
+            apps/web/qa-artifacts/
+            apps/web/qa-delivery-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
+
   production-migrate:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: validate
+    needs: [validate, qa-release]
     runs-on: ubuntu-latest
     timeout-minutes: 8
     defaults:
@@ -78,7 +109,7 @@ jobs:
 
   production-smoke:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [validate, production-migrate]
+    needs: [qa-release, production-migrate]
     runs-on: ubuntu-latest
     timeout-minutes: 8
     defaults:
