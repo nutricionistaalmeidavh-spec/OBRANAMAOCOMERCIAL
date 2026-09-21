@@ -30,8 +30,8 @@ try{
     const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height}});
     const page=await context.newPage();
     const requests=[];
-    let sequence=0;
-    const companies=[];
+    let sequence=1;
+    const companies=[{id:'qa-company-existing',name:'Cliente QA existente',adminEmail:'existente.qa@example.test',status:'active',modules:['obra360','rdo','finance'],channels:['desktop','mobile'],usersCount:2,projectsCount:1,devicesCount:1,passwordCreatedAt:'2026-09-20T12:00:00.000Z',license:{id:'qa-license-existing',plan:'pro',expiresAt:'2027-12-31',maxUsers:12,maxProjects:6,maxDevices:3,code:'EXISTINGQA'},users:[{email:'existente.qa@example.test',name:'Admin QA',role:'admin'}],projects:[{name:'Obra QA'}],devices:[{id:'qa-device-existing',name:'Desktop QA',status:'active'}]}];
     const audit=[];
     page.on('dialog',dialog=>dialog.accept());
     await page.route('**/api/**',async route=>{
@@ -47,7 +47,7 @@ try{
       if(pathname==='/api/owner/companies'&&request.method()==='GET')return json({companies});
       if(pathname==='/api/owner/companies'&&request.method()==='POST'){
         sequence+=1;
-        const company={id:`qa-company-${sequence}`,name:String(body.name),adminEmail:String(body.adminEmail).toLowerCase(),status:'pending',modules:body.modules||[],channels:body.channels||[],usersCount:0,projectsCount:0,devicesCount:1,passwordCreatedAt:null,license:{id:`qa-license-${sequence}`,plan:body.plan||'manual',expiresAt:body.expiresAt||undefined,maxUsers:Number(body.maxUsers)||10,maxProjects:Number(body.maxProjects)||5,maxDevices:Number(body.maxDevices)||2,code:'QAEMAIL2026'},users:[],projects:[],devices:[{id:`qa-device-${sequence}`,name:'Desktop QA',status:'active'}]};
+        const company={id:`qa-company-${sequence}`,name:String(body.name),adminEmail:String(body.adminEmail).toLowerCase(),status:'pending',modules:body.modules||[],channels:body.channels||[],usersCount:0,projectsCount:0,devicesCount:0,passwordCreatedAt:null,license:{id:`qa-license-${sequence}`,plan:body.plan||'manual',expiresAt:body.expiresAt||undefined,maxUsers:Number(body.maxUsers)||10,maxProjects:Number(body.maxProjects)||5,maxDevices:Number(body.maxDevices)||2,code:'QAEMAIL2026'},users:[],projects:[],devices:[]};
         companies.push(company);audit.unshift({id:`qa-audit-${sequence}`,product:'obra-na-mao',email:company.adminEmail,action:'created',source:'manual',actor:'qa.owner@example.test',createdAt:new Date().toISOString()});
         return json({company,license:{...company.license,email:company.adminEmail,status:'active',code:'QAEMAIL2026'}},201);
       }
@@ -63,16 +63,16 @@ try{
     await page.locator('[data-owner-view="obra"]').click();const form=page.locator('#companyForm');await form.waitFor({state:'visible'});
     await form.locator('input[name="name"]').fill('Construtora QA');await form.locator('input[name="adminEmail"]').fill('cliente.qa@example.test');await form.locator('input[name="plan"]').fill('pro');await form.locator('input[name="expiresAt"]').fill('2027-12-31');await form.locator('input[name="maxUsers"]').fill('20');await form.locator('input[name="maxProjects"]').fill('8');await form.locator('input[name="maxDevices"]').fill('4');await shot('02-company-form-filled');
     await form.locator('button[type="submit"]').click();await page.locator('#createResult').filter({hasText:'primeiro acesso é reconhecido por esse e-mail'}).waitFor({state:'visible'});await page.waitForFunction(()=>{const button=document.querySelector('#companyForm button[type="submit"]');return button instanceof HTMLButtonElement&&!button.disabled});await shot('03-company-created-by-email');
-    await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-owner-shell]').waitFor({state:'visible'});await page.locator('[data-owner-view="clients"]').click();await page.locator('[data-company="qa-company-1"]').click();const licenseForm=page.locator('#licenseForm');await licenseForm.waitFor({state:'visible'});await shot('04-company-license-detail');
+    await page.locator('[data-owner-view="clients"]').click();await page.locator('[data-company="qa-company-existing"]').click();const licenseForm=page.locator('#licenseForm');await licenseForm.waitFor({state:'visible'});await shot('04-company-license-detail');
     await licenseForm.locator('input[name="maxUsers"]').fill('25');await licenseForm.locator('input[name="maxProjects"]').fill('9');await licenseForm.locator('button.owner-primary').click();await page.locator('#licenseResult').filter({hasText:'Licença atualizada.'}).waitFor({state:'visible'});await shot('05-license-limits-updated');
-    await page.locator('[data-device-id="qa-device-1"]').click();await page.locator('[data-device-id="qa-device-1"]').filter({hasText:'Reativar dispositivo'}).waitFor({state:'visible'});await shot('06-device-revoked-license-untouched');
+    await page.locator('[data-device-id="qa-device-existing"]').click();await page.locator('[data-device-id="qa-device-existing"]').filter({hasText:'Reativar dispositivo'}).waitFor({state:'visible'});await shot('06-device-revoked-license-untouched');
     await page.locator('[data-owner-view="licenses"]').click();await page.locator('h2',{hasText:'Histórico de alterações'}).waitFor({state:'visible'});await shot('07-license-audit');
     const creation=requests.find(item=>item.method==='POST'&&item.pathname==='/api/owner/companies');if(!creation||creation.body.adminEmail!=='cliente.qa@example.test')throw new Error(`${viewport.name}: company provisioning was not bound to the requested email`);
     if(Number(creation.body.maxUsers)!==20||Number(creation.body.maxProjects)!==8||Number(creation.body.maxDevices)!==4)throw new Error(`${viewport.name}: commercial limits were not submitted by the UI`);
-    const companyUpdates=requests.filter(item=>item.method==='PUT'&&item.pathname==='/api/owner/companies/qa-company-1');if(!companyUpdates.some(item=>Number(item.body.maxUsers)===25&&Number(item.body.maxProjects)===9))throw new Error(`${viewport.name}: license limits update was not exercised`);if(companyUpdates.some(item=>item.body.status==='suspended'))throw new Error(`${viewport.name}: transactional QA must never suspend a license`);
-    const deviceUpdate=requests.find(item=>item.method==='PUT'&&item.pathname==='/api/owner/devices/qa-device-1');if(!deviceUpdate||deviceUpdate.body.status!=='revoked')throw new Error(`${viewport.name}: device-only revocation was not exercised`);
+    const companyUpdates=requests.filter(item=>item.method==='PUT'&&item.pathname==='/api/owner/companies/qa-company-existing');if(!companyUpdates.some(item=>Number(item.body.maxUsers)===25&&Number(item.body.maxProjects)===9))throw new Error(`${viewport.name}: license limits update was not exercised`);if(companyUpdates.some(item=>item.body.status==='suspended'))throw new Error(`${viewport.name}: transactional QA must never suspend a license`);
+    const deviceUpdate=requests.find(item=>item.method==='PUT'&&item.pathname==='/api/owner/devices/qa-device-existing');if(!deviceUpdate||deviceUpdate.body.status!=='revoked')throw new Error(`${viewport.name}: device-only revocation was not exercised`);
     await context.close();
   }
-  const report={schemaVersion:2,status:'passed',generatedAt:new Date().toISOString(),emailFirst:true,googleAuthPreserved:true,licenseSuspensionsPerformed:0,viewports:viewports.map(v=>v.name),requests:allRequests,screenshots};
+  const report={schemaVersion:3,status:'passed',generatedAt:new Date().toISOString(),emailFirst:true,googleAuthPreserved:true,licenseSuspensionsPerformed:0,viewports:viewports.map(v=>v.name),requests:allRequests,screenshots};
   await fs.writeFile(path.join(outDir,'report.json'),JSON.stringify(report,null,2)+'\n','utf8');console.log(`OWNER_TRANSACTIONAL_QA=${path.join(outDir,'report.json')}`);
 }finally{if(browser)await browser.close().catch(()=>{});server.kill('SIGTERM');await new Promise(resolve=>setTimeout(resolve,300))}
