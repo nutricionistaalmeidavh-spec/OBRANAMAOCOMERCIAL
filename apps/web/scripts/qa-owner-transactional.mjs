@@ -17,14 +17,14 @@ const viewports=[
 const port=await freePort();
 const base=`http://127.0.0.1:${port}`;
 const viteCli=path.join(root,'node_modules','vite','bin','vite.js');
-const server=spawn(process.execPath,[viteCli,'--host','127.0.0.1','--port',String(port)],{cwd:root,env:process.env,stdio:'inherit',shell:false});
+const server=spawn(process.execPath,[viteCli,'preview','--host','127.0.0.1','--port',String(port)],{cwd:root,env:process.env,stdio:'inherit',shell:false});
 const outDir=path.join(root,'qa-artifacts','owner-transactional');
 await fs.mkdir(outDir,{recursive:true});
 let browser;
 const allRequests=[];
 const screenshots=[];
 try{
-  await waitFor(`${base}/sistema`);
+  await waitFor(`${base}/sistema.html`);
   browser=await chromium.launch({headless:true});
   for(const viewport of viewports){
     const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height}});
@@ -58,15 +58,16 @@ try{
       return json({error:`Unhandled QA route ${request.method()} ${pathname}`},404);
     });
     const shot=async name=>{const filename=`${viewport.name}-${name}.png`;screenshots.push(filename);await page.screenshot({path:path.join(outDir,filename),fullPage:true})};
-    await page.goto(`${base}/sistema#owner`,{waitUntil:'domcontentloaded'});
+    await page.goto(`${base}/sistema.html#owner`,{waitUntil:'domcontentloaded'});
     await page.locator('[data-owner-shell]').waitFor({state:'visible'});await shot('01-owner-overview');
     await page.locator('[data-owner-view="obra"]').click();const form=page.locator('#companyForm');await form.waitFor({state:'visible'});
     await form.locator('input[name="name"]').fill('Construtora QA');await form.locator('input[name="adminEmail"]').fill('cliente.qa@example.test');await form.locator('input[name="plan"]').fill('pro');await form.locator('input[name="expiresAt"]').fill('2027-12-31');await form.locator('input[name="maxUsers"]').fill('20');await form.locator('input[name="maxProjects"]').fill('8');await form.locator('input[name="maxDevices"]').fill('4');await shot('02-company-form-filled');
     await form.locator('button[type="submit"]').click();await page.locator('#createResult').filter({hasText:'primeiro acesso é reconhecido por esse e-mail'}).waitFor({state:'visible'});await page.waitForFunction(()=>{const button=document.querySelector('#companyForm button[type="submit"]');return button instanceof HTMLButtonElement&&!button.disabled});await shot('03-company-created-by-email');
-    await page.locator('[data-owner-view="clients"]').click();await page.locator('[data-company="qa-company-existing"]').click();const licenseForm=page.locator('#licenseForm');await licenseForm.waitFor({state:'visible'});await shot('04-company-license-detail');
-    await licenseForm.locator('input[name="maxUsers"]').fill('25');await licenseForm.locator('input[name="maxProjects"]').fill('9');await licenseForm.locator('button.owner-primary').click();await page.locator('#licenseResult').filter({hasText:'Licença atualizada.'}).waitFor({state:'visible'});await shot('05-license-limits-updated');
-    await page.locator('[data-device-id="qa-device-existing"]').click();await page.locator('[data-device-id="qa-device-existing"]').filter({hasText:'Reativar dispositivo'}).waitFor({state:'visible'});await shot('06-device-revoked-license-untouched');
-    await page.locator('[data-owner-view="licenses"]').click();await page.locator('h2',{hasText:'Histórico de alterações'}).waitFor({state:'visible'});await shot('07-license-audit');
+    await page.locator('[data-owner-view="clients"]').click();await page.locator('[data-owner-current="clients"]').waitFor({state:'visible'});await page.getByText('cliente.qa@example.test',{exact:true}).waitFor({state:'visible'});await shot('04-created-company-visible-in-clients');
+    await page.locator('[data-company="qa-company-existing"]').click();const licenseForm=page.locator('#licenseForm');await licenseForm.waitFor({state:'visible'});await shot('05-company-license-detail');
+    await licenseForm.locator('input[name="maxUsers"]').fill('25');await licenseForm.locator('input[name="maxProjects"]').fill('9');await licenseForm.locator('button.owner-primary').click();await page.locator('#licenseResult').filter({hasText:'Licença atualizada.'}).waitFor({state:'visible'});await shot('06-license-limits-updated');
+    await page.locator('[data-device-id="qa-device-existing"]').click();await page.locator('[data-device-id="qa-device-existing"]').filter({hasText:'Reativar dispositivo'}).waitFor({state:'visible'});await shot('07-device-revoked-license-untouched');
+    await page.locator('[data-owner-view="licenses"]').click();await page.locator('h2',{hasText:'Histórico de alterações'}).waitFor({state:'visible'});await shot('08-license-audit');
     const creation=requests.find(item=>item.method==='POST'&&item.pathname==='/api/owner/companies');if(!creation||creation.body.adminEmail!=='cliente.qa@example.test')throw new Error(`${viewport.name}: company provisioning was not bound to the requested email`);
     if(Number(creation.body.maxUsers)!==20||Number(creation.body.maxProjects)!==8||Number(creation.body.maxDevices)!==4)throw new Error(`${viewport.name}: commercial limits were not submitted by the UI`);
     const companyUpdates=requests.filter(item=>item.method==='PUT'&&item.pathname==='/api/owner/companies/qa-company-existing');if(!companyUpdates.some(item=>Number(item.body.maxUsers)===25&&Number(item.body.maxProjects)===9))throw new Error(`${viewport.name}: license limits update was not exercised`);if(companyUpdates.some(item=>item.body.status==='suspended'))throw new Error(`${viewport.name}: transactional QA must never suspend a license`);
