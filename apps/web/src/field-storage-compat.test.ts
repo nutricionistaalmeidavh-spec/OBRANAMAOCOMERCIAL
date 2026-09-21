@@ -8,8 +8,11 @@ describe('Obra360 canonical storage bridge',()=>{
     const compat=readFileSync('src/field-storage-compat.ts','utf8');
     expect(html).toContain('./src/obra-entry.ts');
     expect(html).not.toContain('src="./src/main.ts"');
-    expect(entry.indexOf("import './field-storage-compat'")) .toBeGreaterThanOrEqual(0);
-    expect(entry.indexOf("await import('./main')")).toBeGreaterThan(entry.indexOf("import './field-storage-compat'"));
+    const compatImport=entry.indexOf("import './field-storage-compat'");
+    const mainImport=entry.indexOf("import './main'");
+    expect(compatImport).toBeGreaterThanOrEqual(0);
+    expect(mainImport).toBeGreaterThan(compatImport);
+    expect(entry).not.toContain("await import('./main')");
     expect(compat).toContain("LEGACY_FIELD_DB='fluxodre-campo-standalone'");
     expect(compat).toContain("CANONICAL_FIELD_DB='obra-na-mao-comercial'");
     expect(compat).toContain('name===LEGACY_FIELD_DB?CANONICAL_FIELD_DB:name');
