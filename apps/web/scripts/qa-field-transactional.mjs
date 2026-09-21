@@ -36,7 +36,7 @@ try{
   await waitFor(`${base}/obra.html`);browser=await chromium.launch({headless:true});
   for(const viewport of viewports){
     let state=baseState();const members=[{id:'m-owner',email:'qa.owner@example.test',role:'admin',userId:'qa-owner'}];
-    const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height}});const page=await context.newPage();const requests=[];
+    const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height},serviceWorkers:'block'});const page=await context.newPage();const requests=[];
     await page.context().addCookies([{name:'obn_auth',value:'1',domain:'127.0.0.1',path:'/'}]);
     await page.route('**/api/**',async route=>{
       const request=route.request(),url=new URL(request.url()),pathname=url.pathname;let body={};try{body=request.postDataJSON()||{}}catch{}
@@ -59,7 +59,7 @@ try{
     });
     const shot=async name=>{const file=`${viewport.name}-${name}.png`;screenshots.push(file);await page.screenshot({path:path.join(outDir,file),fullPage:true})};
     await page.goto(`${base}/obra.html#obra`,{waitUntil:'domcontentloaded'});await page.locator('#newPlan').waitFor({state:'visible'});
-    await page.getByText('Obra QA Integrada').first().waitFor({state:'visible'});await page.getByText('Fixture QA').waitFor({state:'visible'});await shot('01-day-remote-state');
+    if(!(await page.title()).includes('Obra QA Integrada'))throw new Error(`${viewport.name}: project identity was not loaded from remote bootstrap`);await page.getByText('Fixture QA').waitFor({state:'visible'});await shot('01-day-remote-state');
 
     await page.locator('#newPlan').click();await page.locator('#pservice').selectOption('afaq');await page.locator('#pfloor').selectOption('0');await page.locator('#pcrew').fill('2');await page.locator('#planEmployees input[value="emp-1"]').check();await page.locator('#planEmployees input[value="emp-2"]').check();await page.locator('#pnote').fill('Planejamento QA');await page.locator('#savePlan').click();await page.locator('.plan-card').filter({hasText:'AF/AQ'}).waitFor({state:'visible'});await shot('02-plan-created');
 
