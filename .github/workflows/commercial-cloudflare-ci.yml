@@ -76,9 +76,37 @@ jobs:
           npx wrangler d1 migrations apply obra-na-mao-comercial --remote --config wrangler.jsonc
           npx wrangler d1 migrations list obra-na-mao-comercial --remote --config wrangler.jsonc
 
-  production-smoke:
+  production-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [validate, production-migrate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install web dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Deploy production Worker
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare CI credentials are required for production deployment."
+            exit 1
+          fi
+          npm run build
+          npx wrangler deploy --config wrangler.jsonc
+
+  production-smoke:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [validate, production-migrate, production-deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 8
     defaults:
