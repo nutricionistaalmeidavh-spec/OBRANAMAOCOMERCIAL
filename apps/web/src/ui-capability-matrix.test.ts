@@ -8,9 +8,9 @@ const manifest=readJson<{capabilities:Capability[]}>('../qa/business-capabilitie
 const matrix=readJson<{entries:MatrixEntry[]}>('../qa/ui-capability-matrix.json');
 
 describe('UI capability matrix',()=>{
-  it('maps every critical release capability so none can become orphaned silently',()=>{
+  it('maps every release capability so none can become orphaned silently',()=>{
     const ids=new Set(matrix.entries.map(entry=>entry.id));
-    expect(manifest.capabilities.filter(capability=>capability.critical).filter(capability=>!ids.has(capability.id))).toEqual([]);
+    expect(manifest.capabilities.filter(capability=>!ids.has(capability.id))).toEqual([]);
   });
 
   it('requires every business UI capability to name its surface, action, profile and executable evidence',()=>{
@@ -29,6 +29,14 @@ describe('UI capability matrix',()=>{
       expect(entry?.uiRequired,id).toBe(true);
       expect(entry?.profiles,id).toContain('admin');
       expect(entry?.e2e,id).toContain('qa-admin-governance-transactional.mjs');
+    }
+  });
+
+  it('keeps Electron pairing and bidirectional sync bound to renderer E2E',()=>{
+    for(const id of ['desktop-pairing','desktop-mobile-sync']){
+      const entry=matrix.entries.find(item=>item.id===id);
+      expect(entry?.surface,id).toContain('Electron');
+      expect(entry?.e2e,id).toContain('qa-desktop-renderer-transactional.mjs');
     }
   });
 });
