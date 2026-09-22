@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "capabilities": [
     {"id":"owner-google-auth","critical":true,"checks":["native:test"],"description":"Superadmin continua autenticando pela conta Google autorizada."},
     {"id":"company-provision-email","critical":true,"checks":["native:test","p1:owner-transactional"],"description":"Criação comercial vincula o acesso ao e-mail principal; código permanece contingência."},
@@ -14,14 +14,15 @@
     {"id":"field-member-management","critical":true,"checks":["native:test","p1:field-transactional"],"description":"Admin gerencia usuários e perfis da obra pela interface."},
     {"id":"member-granular-entitlements-ui","critical":true,"checks":["native:test","p1:admin-governance-transactional"],"description":"Admin seleciona módulos e canais por usuário dentro dos limites da licença da empresa."},
     {"id":"tenant-device-management-ui","critical":true,"checks":["native:test","p1:admin-governance-transactional"],"description":"Admin da empresa lista, revoga e reativa apenas computadores do próprio tenant pela Web."},
-    {"id":"sync-observability-ui","critical":true,"checks":["native:test","p1:admin-governance-transactional"],"description":"Admin visualiza revisão servidor/Desktop, conflitos, dispositivos e última atividade de sincronização."},
+    {"id":"sync-observability-ui","critical":true,"checks":["native:test","p1:admin-governance-transactional","p1:desktop-renderer-transactional"],"description":"Admin visualiza revisão servidor/Desktop, conflitos, dispositivos e última atividade no Obra360; o Electron expõe estado, pendências e conflitos da sincronização local."},
     {"id":"role-admin-foreman-employee","critical":true,"checks":["native:test"],"description":"Permissões Admin, Encarregado e Funcionário são exercitadas no backend."},
-    {"id":"desktop-pairing","critical":true,"checks":["native:test"],"description":"Pareamento Desktop cria sessão limitada e segredo armazenado por hash."},
-    {"id":"desktop-mobile-sync","critical":true,"checks":["native:test","p1:field-transactional"],"description":"Sincronização Desktop ↔ mobile cobre idempotência no backend e atualização de item do Desktop pela UI."},
+    {"id":"desktop-pairing","critical":true,"checks":["native:test","desktop:test","desktop:build","p1:desktop-renderer-transactional"],"description":"Pareamento Desktop mantém backend seguro e a superfície Electron de conexão é exercitada no renderer real."},
+    {"id":"desktop-mobile-sync","critical":true,"checks":["native:test","desktop:test","desktop:build","p1:field-transactional","p1:desktop-renderer-transactional"],"description":"Sincronização Desktop ↔ mobile cobre backend, Obra360 e renderer Electron com configuração, sincronização manual e resolução de conflito."},
     {"id":"api-security","critical":true,"checks":["p1:security"],"description":"Rotas sensíveis e políticas de segurança mantêm os contratos P1."},
     {"id":"responsive-owner-browser-matrix","critical":false,"checks":["p1:owner-transactional"],"description":"Fluxo comercial é exercitado em desktop, tablet e mobile."},
     {"id":"responsive-field-browser-matrix","critical":false,"checks":["p1:field-transactional"],"description":"Fluxo operacional do Obra360 é exercitado em desktop e mobile."},
     {"id":"responsive-admin-governance-browser-matrix","critical":false,"checks":["p1:admin-governance-transactional"],"description":"Permissões, dispositivos e observabilidade são exercitados em desktop e mobile."},
+    {"id":"electron-renderer-settings-e2e","critical":false,"checks":["desktop:test","desktop:build","p1:desktop-renderer-transactional"],"description":"O bundle React carregado pelo Electron é exercitado em Configurações com bridge preload controlada."},
     {"id":"cross-system-read-only","critical":false,"checks":["cross:read-only"],"description":"Integrações cross-system são validadas em modo somente leitura."}
   ]
 }
