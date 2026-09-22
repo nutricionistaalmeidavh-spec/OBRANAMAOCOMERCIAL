@@ -8,6 +8,7 @@ on:
       - 'package.json'
       - 'packages/**'
       - 'apps/web/**'
+      - 'apps/desktop/**'
       - '.github/workflows/commercial-cloudflare-ci.yml'
   pull_request:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - 'package.json'
       - 'packages/**'
       - 'apps/web/**'
+      - 'apps/desktop/**'
       - '.github/workflows/commercial-cloudflare-ci.yml'
 
 permissions:
@@ -62,6 +64,8 @@ jobs:
           node-version: 22
       - name: Install web dependencies
         run: npm ci --no-audit --no-fund
+      - name: Install desktop dependencies
+        run: npm ci --prefix ../desktop --no-audit --no-fund
       - name: Install Playwright core
         run: npm install --no-save --package-lock=false playwright@1.62.1
       - name: Install Chromium system dependencies
