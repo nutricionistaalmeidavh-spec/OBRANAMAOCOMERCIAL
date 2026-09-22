@@ -49,6 +49,13 @@ describe('tenant admin governance HTTP',()=>{
     expect(activate?.status).toBe(200);expect(db.get('devices','device-a')?.status).toBe('active');expect(db.get('licenses','license-a')).toEqual(licenseBefore);
   });
 
+  it('blocks reactivation when the company already reached maxDevices',async()=>{
+    db.put('licenses','license-a',{status:'active',maxDevices:1});
+    db.put('devices','device-disabled',{companyId:'company-a',projectId:'project-a',name:'Notebook reserva',status:'revoked'});
+    const response=await handleAdminGovernanceRequest(request('/api/mobile/admin/devices/device-disabled',{method:'PUT',body:JSON.stringify({status:'active'})}),{DB:db as unknown as D1Database},async()=>adminBootstrap());
+    expect(response?.status).toBe(409);expect(db.get('devices','device-disabled')?.status).toBe('revoked');
+  });
+
   it('reports independent Web/Desktop revisions, open conflicts and tenant device activity',async()=>{
     const response=await handleAdminGovernanceRequest(request('/api/mobile/admin/sync-status'),{DB:db as unknown as D1Database},async()=>adminBootstrap());
     expect(response?.status).toBe(200);const data=await response!.json() as Record<string,unknown>;
@@ -59,5 +66,12 @@ describe('tenant admin governance HTTP',()=>{
   it('requires the canonical bootstrap role to be admin',async()=>{
     const response=await handleAdminGovernanceRequest(request('/api/mobile/admin/devices'),{DB:db as unknown as D1Database},async()=>adminBootstrap({role:'foreman'}));
     expect(response?.status).toBe(403);
+  });
+
+  it('requires Obra360 on the mobile channel for governance surfaces',async()=>{
+    const noMobile=await handleAdminGovernanceRequest(request('/api/mobile/admin/devices'),{DB:db as unknown as D1Database},async()=>adminBootstrap({access:{licenseId:'license-a',modules:['obra360'],channels:['desktop'],status:'active'}}));
+    expect(noMobile?.status).toBe(403);
+    const noObra360=await handleAdminGovernanceRequest(request('/api/mobile/admin/devices'),{DB:db as unknown as D1Database},async()=>adminBootstrap({access:{licenseId:'license-a',modules:['rdo'],channels:['desktop','mobile'],status:'active'}}));
+    expect(noObra360?.status).toBe(403);
   });
 });
