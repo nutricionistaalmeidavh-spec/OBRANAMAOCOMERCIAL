@@ -35,7 +35,7 @@ let browser;const allRequests=[];const screenshots=[];
 try{
   await waitFor(`${base}/obra.html`);browser=await chromium.launch({headless:true});
   for(const viewport of viewports){
-    let state=baseState();const members=[{id:'m-owner',email:'qa.owner@example.test',role:'admin',userId:'qa-owner'}];
+    let state=baseState();const members=[{id:'m-owner',email:'qa.owner@example.test',role:'admin',userId:'qa-owner',modules:['obra360','rdo'],channels:['desktop','mobile']}];
     const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height},serviceWorkers:'block'});const page=await context.newPage();const requests=[];
     await page.context().addCookies([{name:'obn_auth',value:'1',domain:'127.0.0.1',path:'/'}]);
     await page.route('**/api/**',async route=>{
@@ -50,8 +50,8 @@ try{
       if(pathname==='/api/attendance'&&request.method()==='POST'){
         const day=state.days[today];day.attendance=day.attendance||{};day.attendance[body.employeeId]=body.status;day.presentCount=Object.values(day.attendance).filter(value=>value==='present').length;day.absentCount=Object.values(day.attendance).filter(value=>value==='absent').length;const employee=state.employees.find(item=>item.id===body.employeeId);if(employee)employee.attendance=body.status;return json({day,employee});
       }
-      if(pathname==='/api/members'&&request.method()==='GET')return json({members});
-      if(pathname==='/api/members'&&request.method()==='POST'){const member={id:`member-${members.length+1}`,email:String(body.email),role:String(body.role),employeeId:body.employeeId,joinCode:'QAJOIN01'};members.push(member);return json({member});}
+      if(pathname==='/api/members'&&request.method()==='GET')return json({members,companyAccess:{modules:['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'],channels:['desktop','mobile']}});
+      if(pathname==='/api/members'&&request.method()==='POST'){const member={id:`member-${members.length+1}`,email:String(body.email),role:String(body.role),employeeId:body.employeeId,joinCode:'QAJOIN01',modules:[...(body.modules||[])],channels:[...(body.channels||[])]};members.push(member);return json({member});}
       if(pathname==='/api/mobile/bridge/update'&&request.method()==='POST'){
         const item=state.desktopBridge.tasks.find(task=>Number(task.localId)===Number(body.localId)&&task.sourceDeviceId===body.sourceDeviceId);if(!item)return json({error:'Item não encontrado.'},404);item.payload={...item.payload,...body.patch};item.mobileRevision=Number(item.mobileRevision||0)+1;return json({ok:true,item});
       }
@@ -75,7 +75,7 @@ try{
 
     await page.locator('[data-screen="issues"]').first().click();await page.locator('#newIssue').click();await page.locator('#itype').selectOption('blocked');await page.locator('#ititle').fill('Material pendente QA');await page.locator('#ireason').fill('Aguardando material de teste');const issueSync=nextSnapshotSync();await page.locator('#saveIssue').click();await page.getByText('Material pendente QA').waitFor({state:'visible'});await waitForSnapshotSync('issue creation',issueSync);await shot('07-issue-created');
 
-    await page.locator('[data-screen="obra360"]').first().click();await page.locator('[data-screen="more"]').first().click();await page.locator('[data-screen="settings"]').first().click();await page.locator('#defaultStart').fill('08:00');const settingsSync=nextSnapshotSync();await page.locator('#saveDefaultStart').click();await waitForSnapshotSync('settings update',settingsSync);await page.locator('#openUsersBtn').waitFor({state:'visible'});await page.locator('#openUsersBtn').click();await page.locator('#memberEmail').fill('encarregado.qa@example.test');await page.locator('#memberRole').selectOption('foreman');await page.locator('#saveMemberBtn').click();await page.getByText('encarregado.qa@example.test').waitFor({state:'visible'});await shot('08-user-created');await page.locator('#sheet .close').click();
+    await page.locator('[data-screen="obra360"]').first().click();await page.locator('[data-screen="more"]').first().click();await page.locator('[data-screen="settings"]').first().click();await page.locator('#defaultStart').fill('08:00');const settingsSync=nextSnapshotSync();await page.locator('#saveDefaultStart').click();await waitForSnapshotSync('settings update',settingsSync);await page.locator('#governancePermissionsBtn').waitFor({state:'visible'});await page.locator('#governancePermissionsBtn').click();await page.locator('#govMemberEmail').fill('encarregado.qa@example.test');await page.locator('#govMemberRole').selectOption('foreman');await page.locator('#saveGovMemberBtn').click();await page.getByText('encarregado.qa@example.test').waitFor({state:'visible'});await shot('08-user-created');await page.locator('#sheet .close').click();
 
     await page.locator('[data-screen="obra360"]').first().click();await page.getByText('Instalar prumada QA').waitFor({state:'visible'});await page.locator('.bridge-action').click();await page.getByText('concluida').waitFor({state:'visible'});await shot('09-desktop-bridge-updated');
 
