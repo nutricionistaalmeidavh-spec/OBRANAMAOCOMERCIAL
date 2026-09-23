@@ -8,6 +8,7 @@ on:
       - 'package.json'
       - 'packages/**'
       - 'apps/web/**'
+      - 'apps/desktop/**'
       - '.github/workflows/commercial-cloudflare-ci.yml'
   pull_request:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - 'package.json'
       - 'packages/**'
       - 'apps/web/**'
+      - 'apps/desktop/**'
       - '.github/workflows/commercial-cloudflare-ci.yml'
 
 permissions:
@@ -48,9 +50,44 @@ jobs:
       - name: Bundle Cloudflare Worker
         run: npx wrangler deploy --dry-run --config wrangler.ci.jsonc
 
+  qa-release:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install web dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install desktop dependencies
+        run: npm ci --prefix ../desktop --no-audit --no-fund
+      - name: Install Playwright core
+        run: npm install --no-save --package-lock=false playwright@1.62.1
+      - name: Install Chromium system dependencies
+        run: npx playwright install-deps chromium
+      - name: Install Chromium
+        run: npx playwright install chromium
+      - name: Run capability-gated P2 release QA
+        run: node scripts/qa-p2-release.mjs
+      - name: Upload Playwright screenshots and QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obra-na-mao-web-qa-${{ github.run_number }}
+          path: |
+            apps/web/qa-artifacts/
+            apps/web/qa-delivery-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
+
   production-migrate:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: validate
+    needs: [validate, qa-release]
     runs-on: ubuntu-latest
     timeout-minutes: 8
     defaults:
@@ -70,7 +107,7 @@ jobs:
         shell: bash
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::warning::Cloudflare CI credentials are not configured; production smoke will still verify the real persisted D1 schema."
+            echo "::warning::Cloudflare CI credentials are not configured; remote migration is skipped."
             exit 0
           fi
           npx wrangler d1 migrations apply obra-na-mao-comercial --remote --config wrangler.jsonc
@@ -78,9 +115,11 @@ jobs:
 
   production-deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [validate, production-migrate]
+    needs: [validate, qa-release, production-migrate]
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      deployed: ${{ steps.deploy.outputs.deployed }}
     defaults:
       run:
         working-directory: apps/web
@@ -94,19 +133,22 @@ jobs:
           node-version: 22
       - name: Install web dependencies
         run: npm ci --no-audit --no-fund
-      - name: Deploy production Worker
+      - name: Deploy production Worker when Cloudflare publishing is enabled
+        id: deploy
         shell: bash
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::error::Cloudflare CI credentials are required for production deployment."
-            exit 1
+            echo "::warning::Cloudflare production publishing is currently disabled; deploy and production smoke are skipped."
+            echo "deployed=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           npm run build
           npx wrangler deploy --config wrangler.jsonc
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
 
   production-smoke:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [validate, production-migrate, production-deploy]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.production-deploy.outputs.deployed == 'true'
+    needs: [qa-release, production-migrate, production-deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 8
     defaults:

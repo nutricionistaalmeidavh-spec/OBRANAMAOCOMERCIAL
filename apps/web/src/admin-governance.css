@@ -1,0 +1,5 @@
+/* The legacy admin-users card remains a safe fallback in field.js.
+   Hide it only when the unified governance surface is actually mounted. */
+#content:has(#adminGovernanceCard) #multiuserAdminCard {
+  display: none !important;
+}

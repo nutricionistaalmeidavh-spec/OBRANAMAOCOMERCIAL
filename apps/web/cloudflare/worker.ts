@@ -3,6 +3,7 @@ import { handleAsaasWebhook } from '../backend/asaas-webhook';
 import { ensureBillingSchema } from '../backend/billing-schema-runtime';
 import { handleCorporatePasswordAuth } from '../backend/corporate-password-auth';
 import { handleProductLicenseInternal } from '../backend/product-license-internal';
+import { handleAdminGovernanceRequest } from '../backend/admin-governance-http';
 import { handlePublicDownload } from './public-downloads';
 
 const RESERVED_LICENSE_ID='11e1a89038929aa010bb22c601502da1';
@@ -46,6 +47,11 @@ export default {
     if (url.pathname === '/api/webhooks/asaas') {
       return handleAsaasWebhook(request, env);
     }
+    const governance=await handleAdminGovernanceRequest(request,env,()=>{
+      const bootstrapUrl=new URL(request.url);bootstrapUrl.pathname='/api/bootstrap';bootstrapUrl.search='';
+      return handler.fetch(new Request(bootstrapUrl,{method:'GET',headers:request.headers}),env);
+    });
+    if(governance)return governance;
     return handler.fetch(request, env);
   }
 };

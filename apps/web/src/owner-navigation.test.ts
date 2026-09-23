@@ -10,8 +10,8 @@ vi.mock('./cloudflare-client',()=>({
 import { mountOwnerPortal } from './owner';
 
 const companies=[
-  {id:'c1',name:'Cliente Ativo',adminEmail:'ativo@example.test',status:'active',modules:['finance','obra360'],channels:['desktop','mobile'],usersCount:3,projectsCount:2,devicesCount:1,license:{id:'l1',plan:'manual'}},
-  {id:'c2',name:'Cliente Pendente',adminEmail:'pendente@example.test',status:'pending',modules:['obra360'],channels:['desktop'],usersCount:1,projectsCount:0,devicesCount:0,license:{id:'l2',plan:'manual'}}
+  {id:'c1',name:'Cliente Ativo',adminEmail:'ativo@example.test',status:'active',modules:['finance','obra360'],channels:['desktop','mobile'],usersCount:3,projectsCount:2,devicesCount:1,license:{id:'l1',plan:'manual',expiresAt:'2027-09-30T23:59:59.000Z',maxUsers:12,maxProjects:6,maxDevices:3},devices:[{id:'d1',name:'PC Administrativo',status:'active'}]},
+  {id:'c2',name:'Cliente Pendente',adminEmail:'pendente@example.test',status:'pending',modules:['obra360'],channels:['desktop'],usersCount:1,projectsCount:0,devicesCount:0,license:{id:'l2',plan:'manual',maxUsers:5,maxProjects:2,maxDevices:1}}
 ];
 const deboraOverview={clients:3,pro:1,freemium:2,expiring:1,revoked:1};
 const deboraClients=[
@@ -30,6 +30,7 @@ async function mount(){
   client.get.mockImplementation(async(path:string)=>{
     if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
     if(path==='/api/owner/license-audit')return {data:{events:licenseEvents}};
+    if(path==='/api/owner/companies/c1')return {data:{company:companies[0]}};
     return {data:{companies}};
   });
   await mountOwnerPortal();
@@ -69,17 +70,54 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.querySelector('a[href="./index.html#portal"]')).not.toBeNull();
   });
 
-  it('keeps Obra na Mão provisioning isolated and preserves its license-generation endpoint',async()=>{
+  it('provisions Obra na Mão by email and keeps the code only as contingency',async()=>{
     await mount();
     clickView('obra');
     const form=document.getElementById('companyForm') as HTMLFormElement;
     expect(form).not.toBeNull();
-    expect(document.body.textContent).toContain('Nova empresa cliente');
+    expect(document.body.textContent).toContain('liberação principal fica vinculada ao e-mail');
     (form.elements.namedItem('name') as HTMLInputElement).value='Nova Empresa';
     (form.elements.namedItem('adminEmail') as HTMLInputElement).value='nova@example.test';
+    (form.elements.namedItem('plan') as HTMLInputElement).value='pro';
+    (form.elements.namedItem('expiresAt') as HTMLInputElement).value='2027-12-31';
+    (form.elements.namedItem('maxUsers') as HTMLInputElement).value='20';
+    (form.elements.namedItem('maxProjects') as HTMLInputElement).value='8';
+    (form.elements.namedItem('maxDevices') as HTMLInputElement).value='4';
     client.post.mockResolvedValue({data:{license:{code:'ABC123'}}});
     form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
-    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/owner/companies',expect.objectContaining({name:'Nova Empresa',adminEmail:'nova@example.test'})));
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/owner/companies',expect.objectContaining({name:'Nova Empresa',adminEmail:'nova@example.test',plan:'pro',expiresAt:'2027-12-31',maxUsers:20,maxProjects:8,maxDevices:4})));
+    expect(document.getElementById('createResult')?.textContent).toContain('primeiro acesso é reconhecido por esse e-mail');
+    expect(document.getElementById('createResult')?.textContent).toContain('Código de contingência');
+  });
+
+  it('exposes plan, expiry and license limits in the company detail',async()=>{
+    await mount();
+    clickView('clients');
+    (document.querySelector('[data-company="c1"]') as HTMLButtonElement).click();
+    await vi.waitFor(()=>expect(document.getElementById('licenseForm')).not.toBeNull());
+    const form=document.getElementById('licenseForm') as HTMLFormElement;
+    expect((form.elements.namedItem('plan') as HTMLInputElement).value).toBe('manual');
+    expect((form.elements.namedItem('expiresAt') as HTMLInputElement).value).toBe('2027-09-30');
+    expect((form.elements.namedItem('maxUsers') as HTMLInputElement).value).toBe('12');
+    expect((form.elements.namedItem('maxProjects') as HTMLInputElement).value).toBe('6');
+    expect((form.elements.namedItem('maxDevices') as HTMLInputElement).value).toBe('3');
+    client.put.mockResolvedValue({data:{ok:true}});
+    (form.elements.namedItem('maxUsers') as HTMLInputElement).value='15';
+    form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await vi.waitFor(()=>expect(client.put).toHaveBeenCalledWith('/api/owner/companies/c1',expect.objectContaining({status:'active',plan:'manual',maxUsers:15,maxProjects:6,maxDevices:3})));
+  });
+
+  it('manages a device independently without changing the company license',async()=>{
+    await mount();
+    clickView('clients');
+    (document.querySelector('[data-company="c1"]') as HTMLButtonElement).click();
+    await vi.waitFor(()=>expect(document.querySelector('[data-device-id="d1"]')).not.toBeNull());
+    const confirm=vi.spyOn(window,'confirm').mockReturnValue(true);
+    client.put.mockResolvedValue({data:{ok:true,status:'revoked'}});
+    (document.querySelector('[data-device-id="d1"]') as HTMLButtonElement).click();
+    await vi.waitFor(()=>expect(client.put).toHaveBeenCalledWith('/api/owner/devices/d1',{status:'revoked'}));
+    expect(confirm).toHaveBeenCalledWith('Revogar somente este computador? A licença da empresa permanecerá inalterada.');
+    expect(client.put).not.toHaveBeenCalledWith('/api/owner/companies/c1',expect.anything());
   });
 
   it('keeps Débora licensing in a dedicated product view, exposes SEO and preserves its endpoint',async()=>{

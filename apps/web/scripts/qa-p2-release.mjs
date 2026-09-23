@@ -1,133 +1,78 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { resolveCommandInvocation } from './qa-command.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const runtimeRoot=path.join(root,'qa','runtime');
-const { buildProductQaSummary, writeProductQaBundle }=await import(pathToFileURL(path.join(runtimeRoot,'src','product-report.js')).href);
 const npmCommand=process.platform==='win32'?'npm.cmd':'npm';
-const p2StartedAt=Date.now();
-
-function tail(value,max=6000){
-  const text=String(value||'').trim();
-  return text.length>max?text.slice(text.length-max):text;
-}
-
-function run(name,command,args,{env=process.env}={}){
-  const started=Date.now();
-  const resolved=resolveCommandInvocation(command,args,process.platform,env);
-  const result=spawnSync(resolved.command,resolved.args,{
-    cwd:root,
-    env,
-    encoding:'utf8',
-    shell:resolved.shell,
-    windowsHide:true,
-    maxBuffer:16*1024*1024,
-  });
-  if(result.stdout)process.stdout.write(result.stdout);
-  if(result.stderr)process.stderr.write(result.stderr);
+const startedAt=Date.now();
+function tail(value,max=6000){const text=String(value||'').trim();return text.length>max?text.slice(text.length-max):text}
+function run(name,command,args,{env=process.env,critical=true}={}){
+  const started=Date.now();const resolved=resolveCommandInvocation(command,args,process.platform,env);
+  const result=spawnSync(resolved.command,resolved.args,{cwd:root,env,encoding:'utf8',shell:resolved.shell,windowsHide:true,maxBuffer:32*1024*1024});
+  if(result.stdout)process.stdout.write(result.stdout);if(result.stderr)process.stderr.write(result.stderr);
   const output=[result.stderr,result.stdout].filter(Boolean).join('\n');
-  return {
-    name,
-    category:name.startsWith('native:')?'native':name.startsWith('cross:')?'cross-system':'p1',
-    status:result.status===0?'passed':'failed',
-    critical:true,
-    durationMs:Date.now()-started,
-    error:result.error?.message||(result.status===0?null:(tail(output)||'exit '+String(result.status))),
-  };
+  return{name,status:result.status===0?'passed':'failed',critical,durationMs:Date.now()-started,error:result.error?.message||(result.status===0?null:(tail(output)||'exit '+String(result.status)))};
 }
-async function readJson(file,fallback=null){
-  try{return JSON.parse(await fs.readFile(file,'utf8'))}catch{return fallback}
-}
-
-async function collectEvidence(dir,sinceMs,limit=1000){
-  const out=[];
-  async function walk(current){
-    if(out.length>=limit)return;
-    let entries=[];
-    try{entries=await fs.readdir(current,{withFileTypes:true})}catch{return}
-    for(const entry of entries){
-      if(out.length>=limit)break;
-      const full=path.join(current,entry.name);
-      if(entry.isDirectory()){await walk(full);continue}
-      if(!entry.isFile())continue;
-      let stat;try{stat=await fs.stat(full)}catch{continue}
-      if(stat.mtimeMs<sinceMs)continue;
-      const lower=entry.name.toLowerCase();
-      let type='artifact';
-      if(/\.(png|jpg|jpeg|webp)$/.test(lower))type='screenshot';
-      else if(/\.(webm|mp4)$/.test(lower))type='video';
-      else if(lower==='trace.zip')type='trace';
-      else if(lower==='telemetry.json')type='telemetry';
-      else if(lower.endsWith('.json'))type='json';
-      out.push({type,path:path.relative(root,full).split(path.sep).join('/'),size:stat.size,modifiedAt:new Date(stat.mtimeMs).toISOString()});
-    }
-  }
-  await walk(dir);
-  return out;
-}
+async function readJson(file,fallback=null){try{return JSON.parse(await fs.readFile(file,'utf8'))}catch{return fallback}}
+async function collectEvidence(dir,sinceMs,limit=1000){const out=[];async function walk(current){if(out.length>=limit)return;let entries=[];try{entries=await fs.readdir(current,{withFileTypes:true})}catch{return}for(const entry of entries){if(out.length>=limit)break;const full=path.join(current,entry.name);if(entry.isDirectory()){await walk(full);continue}if(!entry.isFile())continue;let stat;try{stat=await fs.stat(full)}catch{continue}if(stat.mtimeMs<sinceMs)continue;const lower=entry.name.toLowerCase();let type='artifact';if(/\.(png|jpg|jpeg|webp)$/.test(lower))type='screenshot';else if(/\.(webm|mp4)$/.test(lower))type='video';else if(lower==='trace.zip')type='trace';else if(lower.endsWith('.json'))type='json';out.push({type,path:path.relative(root,full).split(path.sep).join('/'),size:stat.size,modifiedAt:new Date(stat.mtimeMs).toISOString()})}}await walk(dir);return out}
 
 const checks=[];
 checks.push(run('native:test',npmCommand,['test']));
 checks.push(run('native:build',npmCommand,['run','build']));
 checks.push(run('native:ux-verify',npmCommand,['run','ux:verify']));
+checks.push(run('desktop:test',npmCommand,['--prefix','../desktop','test']));
+checks.push(run('desktop:build',npmCommand,['--prefix','../desktop','run','build']));
 checks.push(run('p1:security',npmCommand,['run','qa:p1:security']));
-checks.push(run('p1:sweep',process.execPath,[path.join(root,'scripts','qa-p1-sweep.mjs')]));
-checks.push(run('p1:matrix',process.execPath,[path.join(root,'scripts','qa-p1-matrix.mjs')]));
-const readOnlyEnv={...process.env,LOJAONLINE_LICENSE_SERVICE_SECRET:''};
-checks.push(run('cross:read-only',process.execPath,[path.join(root,'scripts','qa-cross-system.mjs')],{env:readOnlyEnv}));
+checks.push(run('p1:owner-transactional',process.execPath,[path.join(root,'scripts','qa-owner-transactional.mjs')]));
+checks.push(run('p1:field-transactional',process.execPath,[path.join(root,'scripts','qa-field-transactional.mjs')]));
+checks.push(run('p1:admin-governance-transactional',process.execPath,[path.join(root,'scripts','qa-admin-governance-transactional.mjs')]));
+checks.push(run('p1:desktop-renderer-transactional',process.execPath,[path.join(root,'scripts','qa-desktop-renderer-transactional.mjs')]));
+checks.push(run('cross:read-only',process.execPath,[path.join(root,'scripts','qa-cross-system.mjs')],{env:{...process.env,LOJAONLINE_LICENSE_SERVICE_SECRET:''},critical:false}));
 
-const manifest=await readJson(path.join(root,'qa','artisys-qa.config.json'),{flows:{},qaProfiles:{release:{flows:[],criticalFlows:[]}}});
-const declared=Object.keys(manifest.flows||{});
-const releaseFlows=new Set(manifest.qaProfiles?.release?.flows||[]);
-const critical=new Set(manifest.qaProfiles?.release?.criticalFlows||[]);
-const uncovered=declared.filter(name=>!releaseFlows.has(name));
-const coverage={
-  basis:'declared-release-flows',
-  discovered:declared.length,
-  covered:declared.length-uncovered.length,
-  uncovered:uncovered.length,
-  uncoveredItems:uncovered,
-  uncoveredCritical:uncovered.filter(name=>critical.has(name)).length,
-};
-
-const sweep=await readJson(path.join(root,'qa-artifacts','p1-sweep','report.json'),{});
-const matrix=await readJson(path.join(root,'qa-artifacts','p1-matrix','report.json'),{});
-const endpoints=(sweep.api?.results||[]).map(item=>({
-  name:item.name,method:item.method,path:item.path,status:item.status,expectedStatus:item.expectedStatus,passed:item.passed,
-}));
-const consoleErrors=sweep.ui?.consoleErrors||[];
-const networkErrors=[
-  ...(sweep.ui?.requestFailures||[]).map(item=>({...item,type:'requestfailed'})),
-  ...(sweep.ui?.httpErrors||[]).map(item=>({...item,type:'http'})),
-];
-const findings=[];
-for(const page of sweep.ui?.pages||[]){
-  for(const item of page.suspiciousLinks||[])findings.push({severity:'warning',type:'suspicious-link',page:page.url,href:item.href,text:item.text});
-  for(const item of page.unlabeledControls||[])findings.push({severity:'warning',type:'unlabeled-control',page:page.url,name:item.name,controlType:item.type});
-}
-if(matrix.status&&matrix.status!=='passed')findings.push({severity:'critical',type:'viewport-matrix',name:'viewport matrix failed'});
-const evidence=await collectEvidence(path.join(root,'qa-artifacts'),p2StartedAt-2000);
-
-const summary=buildProductQaSummary({
-  systemId:'artisys-central-owner',
-  profile:'release-p2',
-  checks,coverage,endpoints,consoleErrors,networkErrors,findings,evidence,
-  metadata:{
-    qaRuntime:'2.6.0',
-    p2:true,
-    crossSystemReleaseMode:'read-only',
-    p1SweepStatus:sweep.status||null,
-    p1MatrixStatus:matrix.status||null,
-  },
-  policy:{maxHttp5xx:0,maxRequestFailures:0,maxConsoleErrors:0,maxUncoveredCritical:0},
-});
-const bundle=await writeProductQaBundle({
-  outputRoot:path.join(root,'qa-delivery-artifacts'),
-  summary,coverage,endpoints,consoleErrors,networkErrors,findings,evidence,
-});
-console.log('ARTISYS_QA_P2_BUNDLE='+bundle.outputDir);
-console.log(JSON.stringify({status:summary.status,counts:summary.counts,gate:summary.gate.allowed,blockers:summary.gate.blockers},null,2));
-if(!summary.gate.allowed)process.exitCode=1;
+const capabilityManifest=await readJson(path.join(root,'qa','business-capabilities.json'),{capabilities:[]});
+const statusByCheck=new Map(checks.map(check=>[check.name,check.status]));
+const capabilities=(capabilityManifest.capabilities||[]).map(item=>{const required=Array.isArray(item.checks)?item.checks:[];const missing=required.filter(name=>statusByCheck.get(name)!=='passed');return{...item,passed:missing.length===0,missingChecks:missing}});
+const uncovered=capabilities.filter(item=>!item.passed);
+const coverage={basis:'business-capabilities',discovered:capabilities.length,covered:capabilities.length-uncovered.length,uncovered:uncovered.length,uncoveredItems:uncovered.map(item=>item.id),uncoveredCritical:uncovered.filter(item=>item.critical).length,capabilities};
+const ownerTransactional=await readJson(path.join(root,'qa-artifacts','owner-transactional','report.json'),{});
+const fieldTransactional=await readJson(path.join(root,'qa-artifacts','field-transactional','report.json'),{});
+const governanceTransactional=await readJson(path.join(root,'qa-artifacts','admin-governance-transactional','report.json'),{});
+const desktopTransactional=await readJson(path.join(root,'qa-artifacts','desktop-renderer-transactional','report.json'),{});
+const invariantErrors=[];
+const ownerReportPassed=ownerTransactional.status==='passed';
+if(!ownerReportPassed)invariantErrors.push('owner transactional report not passed');
+if(ownerTransactional.emailFirst!==true)invariantErrors.push('email-first provisioning was not proven');
+if(ownerTransactional.googleAuthPreserved!==true)invariantErrors.push('Google auth preservation was not proven');
+if(ownerReportPassed&&Number(ownerTransactional.licenseSuspensionsPerformed)>0)invariantErrors.push('transactional owner QA suspended a license');
+else if(!ownerReportPassed||ownerTransactional.licenseSuspensionsPerformed===undefined)invariantErrors.push('owner license-suspension isolation invariant was not proven');
+const expectedViewports=['desktop','tablet','mobile'];const actualViewports=Array.isArray(ownerTransactional.viewports)?ownerTransactional.viewports:[];for(const viewport of expectedViewports)if(!actualViewports.includes(viewport))invariantErrors.push(`missing ${viewport} owner browser coverage`);
+const fieldReportPassed=fieldTransactional.status==='passed';
+if(!fieldReportPassed)invariantErrors.push('field transactional report not passed');
+if(fieldTransactional.remoteStateRendered!==true)invariantErrors.push('Obra360 did not prove canonical remote state rendering');
+if(fieldReportPassed&&Number(fieldTransactional.licenseMutationsPerformed)>0)invariantErrors.push('field transactional QA touched commercial licensing');
+else if(!fieldReportPassed||fieldTransactional.licenseMutationsPerformed===undefined)invariantErrors.push('Obra360 commercial-license isolation invariant was not proven');
+const fieldViewports=Array.isArray(fieldTransactional.viewports)?fieldTransactional.viewports:[];for(const viewport of ['desktop','mobile'])if(!fieldViewports.includes(viewport))invariantErrors.push(`missing ${viewport} Obra360 browser coverage`);
+const governanceReportPassed=governanceTransactional.status==='passed';
+if(!governanceReportPassed)invariantErrors.push('admin governance transactional report not passed');
+if(governanceTransactional.granularPermissions!==true)invariantErrors.push('granular member permissions were not proven in the UI');
+if(governanceTransactional.tenantDeviceControl!==true)invariantErrors.push('tenant-scoped device control was not proven in the UI');
+if(governanceTransactional.syncObservability!==true)invariantErrors.push('sync observability was not proven in the UI');
+if(governanceTransactional.ownerApisTouched!==false)invariantErrors.push('client governance isolation from owner APIs was not proven');
+if(governanceTransactional.legacyUsersCardVisible!==false)invariantErrors.push('legacy user-management card remained visible beside unified governance');
+const governanceViewports=Array.isArray(governanceTransactional.viewports)?governanceTransactional.viewports:[];for(const viewport of ['desktop','mobile'])if(!governanceViewports.includes(viewport))invariantErrors.push(`missing ${viewport} admin-governance browser coverage`);
+const desktopReportPassed=desktopTransactional.status==='passed';
+if(!desktopReportPassed)invariantErrors.push('Electron renderer transactional report not passed');
+if(desktopTransactional.surface!=='electron-renderer')invariantErrors.push('Electron renderer surface was not proven');
+if(desktopTransactional.linkingVisible!==true)invariantErrors.push('Electron linking UI was not proven');
+if(desktopTransactional.syncObservabilityVisible!==true)invariantErrors.push('Electron sync observability UI was not proven');
+if(desktopTransactional.syncConfiguration!==true)invariantErrors.push('Electron sync configuration transaction was not proven');
+if(desktopTransactional.manualSync!==true)invariantErrors.push('Electron manual sync transaction was not proven');
+if(desktopTransactional.conflictResolution!==true)invariantErrors.push('Electron conflict resolution was not proven');
+const criticalCheckFailures=checks.filter(check=>check.critical&&check.status!=='passed');
+const allowed=criticalCheckFailures.length===0&&coverage.uncoveredCritical===0&&invariantErrors.length===0;
+const evidence=await collectEvidence(path.join(root,'qa-artifacts'),startedAt-2000);
+const summary={schemaVersion:5,systemId:'obra-na-mao-commercial',profile:'release-p2-core',generatedAt:new Date().toISOString(),status:allowed?'passed':'failed',gate:{allowed,blockers:[...criticalCheckFailures.map(c=>`${c.name}: ${c.error||'failed'}`),...uncovered.filter(item=>item.critical).map(item=>`capability:${item.id}`),...invariantErrors]},checks,coverage,metadata:{qaEngine:'playwright-1.62.1-direct',coreDependencyMode:'self-contained-open-source',emailFirst:ownerTransactional.emailFirst??null,googleAuthPreserved:ownerTransactional.googleAuthPreserved??null,licenseSuspensionsPerformed:ownerTransactional.licenseSuspensionsPerformed??null,ownerViewports:actualViewports,fieldRemoteStateRendered:fieldTransactional.remoteStateRendered??null,fieldLicenseMutationsPerformed:fieldTransactional.licenseMutationsPerformed??null,fieldViewports,governanceGranularPermissions:governanceTransactional.granularPermissions??null,governanceTenantDeviceControl:governanceTransactional.tenantDeviceControl??null,governanceSyncObservability:governanceTransactional.syncObservability??null,governanceOwnerApisTouched:governanceTransactional.ownerApisTouched??null,governanceLegacyUsersCardVisible:governanceTransactional.legacyUsersCardVisible??null,governanceViewports,desktopRendererPassed:desktopReportPassed,desktopLinkingVisible:desktopTransactional.linkingVisible??null,desktopSyncObservabilityVisible:desktopTransactional.syncObservabilityVisible??null,desktopSyncConfiguration:desktopTransactional.syncConfiguration??null,desktopManualSync:desktopTransactional.manualSync??null,desktopConflictResolution:desktopTransactional.conflictResolution??null},evidence};
+const stamp=new Date().toISOString().replace(/[:.]/g,'-');const outDir=path.join(root,'qa-delivery-artifacts',stamp);await fs.mkdir(outDir,{recursive:true});await fs.writeFile(path.join(outDir,'summary.json'),JSON.stringify(summary,null,2)+'\n','utf8');await fs.writeFile(path.join(outDir,'coverage.json'),JSON.stringify(coverage,null,2)+'\n','utf8');await fs.writeFile(path.join(outDir,'evidence.json'),JSON.stringify(evidence,null,2)+'\n','utf8');
+console.log('ARTISYS_QA_P2_BUNDLE='+outDir);console.log(JSON.stringify({status:summary.status,gate:allowed,blockers:summary.gate.blockers,coverage:{basis:coverage.basis,covered:coverage.covered,discovered:coverage.discovered,uncoveredCritical:coverage.uncoveredCritical},ownerViewports:actualViewports,fieldViewports,governanceViewports,desktopRendererPassed:desktopReportPassed},null,2));if(!allowed)process.exitCode=1;

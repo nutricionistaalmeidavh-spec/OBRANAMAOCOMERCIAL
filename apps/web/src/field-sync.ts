@@ -1,4 +1,4 @@
-/** Durable, identity-scoped drafts. Whole-project snapshots stop on remote divergence. */
+/** Durable, identity-scoped drafts. Whole-project snapshots stop on overlapping remote divergence. */
 export type Draft = { base: unknown; state: unknown; savedAt: string };
 export function syncScope(b: any): string | null {
   const ids = [b?.user?.userId || b?.membership?.email, b?.membership?.companyId || b?.company?.id, b?.membership?.projectId || b?.project?.id];
@@ -14,6 +14,21 @@ export function createFieldSync(options: { key: string; storage: Storage; baseli
     return draft;
   };
   const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const plainObject = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
+  type MergeResult = { ok: true; value: unknown } | { ok: false };
+  const mergeThreeWay = (baseline: unknown, remote: unknown, draft: unknown): MergeResult => {
+    if (same(draft, baseline)) return { ok: true, value: remote };
+    if (same(remote, baseline) || same(remote, draft)) return { ok: true, value: draft };
+    if (!plainObject(baseline) || !plainObject(remote) || !plainObject(draft)) return { ok: false };
+    const merged: Record<string, unknown> = {};
+    const keys = new Set([...Object.keys(baseline), ...Object.keys(remote), ...Object.keys(draft)]);
+    for (const key of keys) {
+      const next = mergeThreeWay(baseline[key], remote[key], draft[key]);
+      if (!next.ok) return { ok: false };
+      if (next.value !== undefined) merged[key] = next.value;
+    }
+    return { ok: true, value: merged };
+  };
   const save = (state: unknown) => {
     if (disposed) throw new Error('Sessão encerrada. Entre novamente antes de salvar.');
     const existing = read();
@@ -30,14 +45,16 @@ export function createFieldSync(options: { key: string; storage: Storage; baseli
         try {
           const remote = await options.readRemote();
           if (disposed) return;
-          if (!same(remote, draft.base) && !same(remote, draft.state)) { options.status('conflict'); return; }
-          if (!same(remote, draft.state)) await options.send(draft.state);
+          const merged = mergeThreeWay(draft.base, remote, draft.state);
+          if (!merged.ok) { options.status('conflict'); return; }
+          if (!same(remote, merged.value)) await options.send(merged.value);
           if (disposed) return;
-          base = same(remote, draft.state) ? remote : await options.readRemote();
+          base = same(remote, merged.value) ? remote : await options.readRemote();
           if (disposed) return;
           const latest = read();
           if (latest && !same(latest, draft)) {
-            options.storage.setItem(options.key, JSON.stringify({ ...latest, base }));
+            const rebased = mergeThreeWay(draft.state, base, latest.state);
+            options.storage.setItem(options.key, JSON.stringify(rebased.ok ? { ...latest, base, state: rebased.value } : latest));
             continue;
           }
           options.storage.removeItem(options.key); options.status('idle'); return;
