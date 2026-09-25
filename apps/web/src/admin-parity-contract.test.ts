@@ -21,10 +21,11 @@ describe('admin parity capability registry',()=>{
   it('classifies every owner admin route and requires explicit general-panel parity',()=>{
     const uiRoutes=new Set(ui.entries.flatMap((entry:any)=>entry.backend||[]));
     const registryRoutes=new Set(parity.capabilities.flatMap((entry:any)=>entry.authorityRoutes||[]));
-    for(const route of ownerRoutes())expect(uiRoutes.has(route)||registryRoutes.has(route),`unclassified owner route: ${route}`).toBe(true);
+    const missing=ownerRoutes().filter(route=>!uiRoutes.has(route)&&!registryRoutes.has(route));
+    expect(missing,'unclassified owner routes').toEqual([]);
     for(const entry of parity.capabilities){
-      if(entry.generalPanelRequired===false)expect(String(entry.reason||'').trim().length).toBeGreaterThan(0);
-      if(entry.generalPanelRequired===true)expect(String(entry.generalPanelCapability||'').trim().length).toBeGreaterThan(0);
+      if(entry.generalPanelRequired===false)expect(String(entry.reason||'').trim().length,entry.id).toBeGreaterThan(0);
+      if(entry.generalPanelRequired===true)expect(String(entry.generalPanelCapability||'').trim().length,entry.id).toBeGreaterThan(0);
     }
   });
 });
