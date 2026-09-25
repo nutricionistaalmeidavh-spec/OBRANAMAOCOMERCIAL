@@ -3,6 +3,7 @@ import { handleAsaasWebhook } from '../backend/asaas-webhook';
 import { ensureBillingSchema } from '../backend/billing-schema-runtime';
 import { handleCorporatePasswordAuth } from '../backend/corporate-password-auth';
 import { handleProductLicenseInternal } from '../backend/product-license-internal';
+import { handleLicenseCenterReadonlyInternal } from '../backend/license-center-readonly-internal';
 import { handleAdminGovernanceRequest } from '../backend/admin-governance-http';
 import { handlePublicDownload } from './public-downloads';
 
@@ -41,6 +42,8 @@ export default {
     await ensureReservedLifetimeLicense(env);
     const licensing=await handleProductLicenseInternal(request,env);
     if(licensing)return licensing;
+    const licenseCenter=await handleLicenseCenterReadonlyInternal(request,env);
+    if(licenseCenter)return licenseCenter;
     const passwordAuth=await handleCorporatePasswordAuth(request,env);
     if(passwordAuth)return passwordAuth;
     const url = new URL(request.url);
