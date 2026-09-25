@@ -1,7 +1,9 @@
+import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-import { DatabaseSync } from 'node:sqlite';
 import { fetchDeboraObservability } from '../backend/debora-observability-admin';
 import { grantManualDeboraLicenseWithSale } from '../backend/manual-license-sales';
+
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite');
 
 function licenseDb(){
   const sqlite=new DatabaseSync(':memory:');
