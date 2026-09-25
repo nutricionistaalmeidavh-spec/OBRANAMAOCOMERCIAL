@@ -1,6 +1,9 @@
 import { companyViews } from './owner-companies';
 import { buildDeboraAdminClients, DEBORA_PRODUCT_CODE, summarizeDeboraLicenseOverview } from './product-license-service';
+import { createDeboraObservabilityAdminRoutes, fetchDeboraObservability } from './debora-observability-admin';
+import { listManualSales, manualSalesSummary } from './manual-license-sales';
 import { lojaOnlineRequest, type LojaOnlineCompany, type LojaOnlineLicenseEvent, type LojaOnlineRuntimeEnv } from './loja-online-admin';
+import { router } from '../cloudflare/sdk';
 import parityRegistry from '../qa/admin-parity-capabilities.json';
 
 type ServiceBinding={fetch(input:RequestInfo|URL,init?:RequestInit):Promise<Response>};
@@ -12,11 +15,40 @@ type Env={
   LOJAONLINE_LICENSING?:ServiceBinding;
   LOJAONLINE_LICENSE_SERVICE_SECRET?:string;
   LOJAONLINE_LICENSE_BASE_URL?:string;
+  DEBORA_OBSERVABILITY?:ServiceBinding;
+  DEBORA_OBSERVABILITY_SECRET?:string;
 };
 type Row=Record<string,any>&{id:string};
+type ReadonlyDependencies={
+  consolidatedSummary:(env:Env)=>Promise<any>;
+  listConsolidatedUsers:(env:Env,query:Record<string,string>)=>Promise<any>;
+  mergedSales:(env:Env,query:Record<string,string>)=>Promise<any>;
+  fetchDeboraObservability:(path:string,env:Env)=>Promise<any>;
+  listManualSales:(db:D1Database,query:Record<string,string>)=>Promise<any>;
+  manualSalesSummary:(db:D1Database)=>Promise<any>;
+};
 
 const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const parseJson=(value:unknown)=>{try{return JSON.parse(String(value||'{}')) as Record<string,unknown>}catch{return{}}};
+const queryRecord=(url:URL)=>Object.fromEntries(url.searchParams.entries()) as Record<string,string>;
+const queryString=(query:Record<string,string>)=>{const value=new URLSearchParams(query).toString();return value?`?${value}`:''};
+
+async function ownerObservability(path:string,env:Env){
+  const bridge=router(createDeboraObservabilityAdminRoutes([]));
+  const response=await bridge.fetch(new Request(`https://license-center.internal${path}`),env as any);
+  const payload=await response.json().catch(()=>({})) as any;
+  if(!response.ok)throw new Error(String(payload?.error||`debora_observability_${response.status}`));
+  return payload;
+}
+
+const defaultDependencies:ReadonlyDependencies={
+  consolidatedSummary:env=>ownerObservability('/api/owner/debora-observability/summary',env),
+  listConsolidatedUsers:(env,query)=>ownerObservability(`/api/owner/debora-observability/users${queryString(query)}`,env),
+  mergedSales:(env,query)=>ownerObservability(`/api/owner/debora-observability/sales${queryString(query)}`,env),
+  fetchDeboraObservability:(path,env)=>fetchDeboraObservability(path,env as any),
+  listManualSales,
+  manualSalesSummary,
+};
 
 export function licenseCenterAdminParity(){
   return {
@@ -82,9 +114,34 @@ export async function buildLicenseCenterReadonlySnapshot(env:Env){
   return {generatedAt:new Date().toISOString(),mode:'read-only',adminParity:licenseCenterAdminParity(),obra,debora,lojaOnline,audit:{events:audit}};
 }
 
-export async function handleLicenseCenterReadonlyInternal(request:Request,env:Env):Promise<Response|null>{
-  const url=new URL(request.url);if(url.pathname!=='/api/internal/license-center/snapshot')return null;
+function isDeboraBridgeRead(path:string){
+  return path==='/api/internal/license-center/debora/observability/summary'
+    ||path==='/api/internal/license-center/debora/observability/users'
+    ||path==='/api/internal/license-center/debora/observability/sales'
+    ||/^\/api\/internal\/license-center\/debora\/observability\/users\/[^/]+\/sessions$/.test(path)
+    ||path==='/api/internal/license-center/debora/manual-sales'
+    ||path==='/api/internal/license-center/debora/manual-sales/summary';
+}
+
+export async function handleLicenseCenterReadonlyInternal(request:Request,env:Env,deps:ReadonlyDependencies=defaultDependencies):Promise<Response|null>{
+  const url=new URL(request.url),path=url.pathname;
+  if(path!=='/api/internal/license-center/snapshot'&&!isDeboraBridgeRead(path))return null;
   if(request.method!=='GET')return json(405,{error:'method_not_allowed'});
   if(!await sameSecret(request.headers.get('x-artisys-license-center-secret')||'',String(env.LICENSE_CENTER_READ_SECRET||'')))return json(401,{error:'unauthorized'});
-  try{return json(200,await buildLicenseCenterReadonlySnapshot(env))}catch(error){return json(500,{error:'license_center_read_failed',message:error instanceof Error?error.message:'Falha ao consultar a Central de Licenças.'})}
+  try{
+    if(path==='/api/internal/license-center/snapshot')return json(200,await buildLicenseCenterReadonlySnapshot(env));
+    if(path==='/api/internal/license-center/debora/observability/summary')return json(200,await deps.consolidatedSummary(env));
+    if(path==='/api/internal/license-center/debora/observability/users')return json(200,await deps.listConsolidatedUsers(env,queryRecord(url)));
+    if(path==='/api/internal/license-center/debora/observability/sales')return json(200,await deps.mergedSales(env,queryRecord(url)));
+    const sessions=path.match(/^\/api\/internal\/license-center\/debora\/observability\/users\/([^/]+)\/sessions$/);
+    if(sessions)return json(200,await deps.fetchDeboraObservability(`/api/internal/observability/users/${sessions[1]}/sessions${url.search}`,env));
+    if(path==='/api/internal/license-center/debora/manual-sales/summary')return json(200,await deps.manualSalesSummary(env.DB));
+    if(path==='/api/internal/license-center/debora/manual-sales')return json(200,await deps.listManualSales(env.DB,queryRecord(url)));
+    return json(404,{error:'not_found'});
+  }catch(error){
+    const message=error instanceof Error?error.message:'Falha ao consultar a Central de Licenças.';
+    if(message==='invalid_cursor'||message==='debora_observability_400')return json(400,{error:'invalid_cursor'});
+    if(message.startsWith('debora_observability_'))return json(503,{available:false,error:'debora_observability_unavailable'});
+    return json(500,{error:'license_center_read_failed',message});
+  }
 }
