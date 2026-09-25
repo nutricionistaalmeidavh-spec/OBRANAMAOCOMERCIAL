@@ -1,6 +1,7 @@
 import { ManagedAdminError, createManagedCompany, managedCompanyInventory, setManagedDeviceStatus, updateManagedCompany } from './owner-company-service';
 import { getManualDeboraLicense, grantManualDeboraLicense, resolveProductAccess, revokeManualDeboraLicense } from './product-license-service';
 import { classifyLegacyManualSale, grantManualDeboraLicenseWithSale } from './manual-license-sales';
+import { deboraPartnerAdminRequest } from './debora-partner-admin';
 import { lojaOnlineRequest, LojaOnlineUpstreamError, type LojaOnlineRuntimeEnv } from './loja-online-admin';
 
 type ServiceBinding={fetch(input:RequestInfo|URL,init?:RequestInit):Promise<Response>};
@@ -9,6 +10,9 @@ type Env=LojaOnlineRuntimeEnv&{
   LICENSE_CENTER_WRITE_SECRET?:string;
   LICENSE_CENTER_WRITE_ENABLED?:string|boolean;
   LOJAONLINE_LICENSING?:ServiceBinding;
+  DEBORA_OBSERVABILITY?:ServiceBinding;
+  DEBORA_OBSERVABILITY_SECRET?:string;
+  DEBORA_PARTNER_ADMIN_SECRET?:string;
 };
 
 type AdminDependencies={
@@ -22,9 +26,10 @@ type AdminDependencies={
   resolveProductAccess:typeof resolveProductAccess;
   revokeManualDeboraLicense:typeof revokeManualDeboraLicense;
   classifyLegacyManualSale:typeof classifyLegacyManualSale;
+  deboraPartnerAdminRequest:typeof deboraPartnerAdminRequest;
   lojaOnlineRequest:typeof lojaOnlineRequest;
 };
-const defaultDependencies:AdminDependencies={managedCompanyInventory,createManagedCompany,updateManagedCompany,setManagedDeviceStatus,getManualDeboraLicense,grantManualDeboraLicense,grantManualDeboraLicenseWithSale,resolveProductAccess,revokeManualDeboraLicense,classifyLegacyManualSale,lojaOnlineRequest};
+const defaultDependencies:AdminDependencies={managedCompanyInventory,createManagedCompany,updateManagedCompany,setManagedDeviceStatus,getManualDeboraLicense,grantManualDeboraLicense,grantManualDeboraLicenseWithSale,resolveProductAccess,revokeManualDeboraLicense,classifyLegacyManualSale,deboraPartnerAdminRequest,lojaOnlineRequest};
 
 const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const qaHeader='x-artisys-qa-run';
@@ -114,6 +119,7 @@ function manualSaleError(cause:unknown){
 function upstreamError(cause:unknown){
   if(cause instanceof ManagedAdminError)return json(cause.status,{error:'managed_admin_error',message:cause.message});
   if(cause instanceof LojaOnlineUpstreamError)return json(cause.status,{error:cause.code,message:cause.message});
+  if((cause as any)?.status&&String((cause as any)?.code||'').startsWith('debora_'))return json(Number((cause as any).status),{error:(cause as any).code,message:(cause as Error).message});
   return manualSaleError(cause)||json(500,{error:'license_center_write_failed',message:cause instanceof Error?cause.message:'Falha administrativa.'});
 }
 
@@ -151,6 +157,14 @@ export async function handleLicenseCenterAdminInternal(request:Request,env:Env,d
       if(!/^\S+@\S+\.\S+$/.test(email))return json(400,{error:'invalid_email',message:'Informe um e-mail válido.'});
       const sale=await deps.classifyLegacyManualSale(env.DB,email,input.sale,'general-panel-artisys');
       return json(200,{sale});
+    }
+    if(path==='/api/internal/license-center/debora/partners'){
+      if(request.method!=='POST')return json(405,{error:'method_not_allowed'});
+      return json(200,await deps.deboraPartnerAdminRequest('/api/admin/partners',{method:'POST',body:JSON.stringify(input)},env));
+    }
+    if(path==='/api/internal/license-center/debora/partner-commission'){
+      if(request.method!=='POST')return json(405,{error:'method_not_allowed'});
+      return json(200,await deps.deboraPartnerAdminRequest('/api/admin/partner-commission',{method:'POST',body:JSON.stringify(input)},env));
     }
     if(path==='/api/internal/license-center/loja-online/companies'){
       if(request.method!=='POST')return json(405,{error:'method_not_allowed'});
