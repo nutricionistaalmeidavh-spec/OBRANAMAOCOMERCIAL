@@ -1,12 +1,18 @@
 import { json, runtimeEnv, type RouterRoutes } from '../cloudflare/sdk';
-import { listManualSales, manualSalesSummary } from './manual-license-sales';
+import { manualSalesSummary } from './manual-license-sales';
 import { DEBORA_PRODUCT_CODE, normalizeLicenseEmail } from './product-license-service';
 
 type ServiceBinding={fetch(input:RequestInfo|URL,init?:RequestInit):Promise<Response>};
 type ObservabilityEnv={DB:D1Database;DEBORA_OBSERVABILITY?:ServiceBinding;DEBORA_OBSERVABILITY_SECRET?:string};
 type GlobalSaleKey={createdAt:string;sourceRank:number;id:string};
+type ConsolidatedUser={
+  userId?:string;email?:string;planCode?:string;subscriptionStatus?:string|null;online?:boolean;
+  effectiveLicense?:{planCode?:string;status?:string;source?:string;expiresAt?:string|null}|null;
+  manualSale?:{acquisitionChannel?:string;paymentStatus?:string;amountCents?:number|null;externalOrderRef?:string|null}|null;
+};
 
 const internalBase='https://debora-observability.internal';
+export const MAX_USER_SCAN=500;
 const unavailable=()=>json({available:false,error:'debora_observability_unavailable'},503);
 const pageLimit=(value:unknown,fallback=50)=>{const n=Number(value);return Number.isFinite(n)?Math.max(1,Math.min(100,Math.floor(n))):fallback};
 
@@ -75,6 +81,59 @@ async function enrichRemoteUsers(db:D1Database,remote:any){
   })};
 }
 
+function effectivePlan(user:ConsolidatedUser){return String(user.effectiveLicense?.planCode||user.planCode||'freemium')}
+function effectiveOrigin(user:ConsolidatedUser){
+  if(user.manualSale?.acquisitionChannel)return String(user.manualSale.acquisitionChannel);
+  if(user.effectiveLicense?.planCode==='pro_6m')return String(user.effectiveLicense.source||'mercado_livre_manual');
+  if(user.subscriptionStatus)return'asaas';
+  return'cadastro';
+}
+function effectivePayment(user:ConsolidatedUser){
+  if(user.manualSale?.paymentStatus)return String(user.manualSale.paymentStatus);
+  if(user.effectiveLicense?.planCode==='pro_6m')return'unknown';
+  const status=String(user.subscriptionStatus||'');
+  if(['active','trialing'].includes(status))return'paid';
+  if(status==='past_due')return'pending';
+  if(['cancelled','expired'].includes(status))return'unpaid';
+  return'';
+}
+function effectiveStatus(user:ConsolidatedUser){return String(user.effectiveLicense?.status||user.subscriptionStatus||(effectivePlan(user)==='freemium'?'freemium':''))}
+
+export function matchesConsolidatedUserFilters(user:ConsolidatedUser,query:Record<string,string|undefined>){
+  const plan=String(query.plan||'').trim(),origin=String(query.origin||'').trim(),payment=String(query.payment||'').trim(),status=String(query.status||'').trim();
+  if(plan&&effectivePlan(user)!==plan)return false;
+  if(origin&&effectiveOrigin(user)!==origin)return false;
+  if(payment&&effectivePayment(user)!==payment)return false;
+  if(status&&effectiveStatus(user)!==status)return false;
+  return true;
+}
+
+async function listConsolidatedUsers(env:ObservabilityEnv,query:Record<string,string>){
+  const limit=pageLimit(query.limit,50),items:any[]=[];
+  let remoteCursor=String(query.cursor||'').trim()||null,remoteHasMore=true,scanned=0;
+  const remoteFilters:Record<string,string>={};
+  for(const key of ['online','createdFrom','createdTo','lastSeenFrom','lastSeenTo','search']){const value=String(query[key]||'').trim();if(value)remoteFilters[key]=value}
+
+  while(items.length<limit&&remoteHasMore&&scanned<MAX_USER_SCAN){
+    const requestLimit=Math.min(100,limit-items.length,MAX_USER_SCAN-scanned);
+    const upstream=new URL('/api/internal/observability/users',internalBase);
+    upstream.searchParams.set('limit',String(requestLimit));
+    if(remoteCursor)upstream.searchParams.set('cursor',remoteCursor);
+    for(const [key,value] of Object.entries(remoteFilters))upstream.searchParams.set(key,value);
+    const remote=await fetchDeboraObservability(`${upstream.pathname}${upstream.search}`,env);
+    const rawItems=Array.isArray(remote?.items)?remote.items:[];
+    scanned+=rawItems.length;
+    const enriched=await enrichRemoteUsers(env.DB,{...remote,items:rawItems});
+    for(const user of enriched.items||[])if(matchesConsolidatedUserFilters(user,query))items.push(user);
+    remoteHasMore=Boolean(remote?.hasMore);
+    remoteCursor=remoteHasMore&&remote?.nextCursor?String(remote.nextCursor):null;
+    if(!remoteHasMore||!remoteCursor||rawItems.length===0)break;
+  }
+
+  const hasMore=Boolean(remoteHasMore&&remoteCursor);
+  return{items,hasMore,nextCursor:hasMore?remoteCursor:null,scanCapped:Boolean(scanned>=MAX_USER_SCAN&&hasMore)};
+}
+
 async function effectiveLicenseSummary(db:D1Database,now:string){
   const result=await db.prepare(`WITH ranked AS (
     SELECT email,plan_code,source,
@@ -137,10 +196,8 @@ export function createDeboraObservabilityAdminRoutes(secured:RouterRoutes[string
     ...secured,async()=>{try{return json(await consolidatedSummary(runtimeEnv() as unknown as ObservabilityEnv))}catch(error){console.error('debora observability summary unavailable',error);return unavailable()}},
   ],
   'GET /api/owner/debora-observability/users':[
-    ...secured,async(ctx)=>{try{
-      const env=runtimeEnv() as unknown as ObservabilityEnv,path=queryPath('/api/internal/observability/users',ctx.query,['limit','cursor','plan','status','online','createdFrom','createdTo','lastSeenFrom','lastSeenTo','search']);
-      return json(await enrichRemoteUsers(env.DB,await fetchDeboraObservability(path,env)));
-    }catch(error){console.error('debora observability users unavailable',error);return unavailable()}},
+    ...secured,async(ctx)=>{try{return json(await listConsolidatedUsers(runtimeEnv() as unknown as ObservabilityEnv,ctx.query))}
+    catch(error){console.error('debora observability users unavailable',error);return unavailable()}},
   ],
   'GET /api/owner/debora-observability/sales':[
     ...secured,async(ctx)=>{try{return json(await mergedSales(runtimeEnv() as unknown as ObservabilityEnv,ctx.query))}catch(error){if((error as Error)?.message==='invalid_cursor')return json({error:'invalid_cursor'},400);console.error('debora observability sales unavailable',error);return unavailable()}},
