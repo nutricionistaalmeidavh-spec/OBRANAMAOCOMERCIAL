@@ -34,6 +34,7 @@ export const runtimeEnv = () => {
   if (!state) throw new Error('Cloudflare runtime unavailable.');
   return state.env;
 };
+export const withCloudflareRuntime=<T>(request:Request,env:RuntimeEnv,operation:()=>T|Promise<T>)=>runtime.run({env,request},operation);
 
 const now=()=>new Date().toISOString();
 const parseJson=<T=Record<string,unknown>>(value:string|null, fallback:T={} as T):T=>{
@@ -155,9 +156,9 @@ export function rateLimitPolicy(method:string,pathname:string):RateLimitPolicy|n
     'POST /api/edu/login':{scope:'edu-login',limit:10,windowSeconds:600},
     'POST /api/edu/first-access':{scope:'edu-first-access',limit:6,windowSeconds:900},
     'POST /api/edu/access-status':{scope:'edu-access-status',limit:20,windowSeconds:600},
-    'POST /api/platform/claim':{scope:'platform-claim',limit:10,windowSeconds:900},
-    'POST /api/access/claim':{scope:'member-claim',limit:10,windowSeconds:900},
-    'POST /api/license/claim':{scope:'license-claim',limit:10,windowSeconds:900},
+    'POST /api/platform/claim':{scope:'platform-claim',limit:10,windowSeconds:600},
+    'POST /api/access/claim':{scope:'member-claim',limit:10,windowSeconds:600},
+    'POST /api/license/claim':{scope:'license-claim',limit:10,windowSeconds:600},
     'POST /api/bootstrap/claim':{scope:'bootstrap-claim',limit:8,windowSeconds:900},
     'POST /api/billing/checkout':{scope:'billing-checkout',limit:8,windowSeconds:900},
     'POST /api/desktop/start':{scope:'desktop-start',limit:20,windowSeconds:300},
