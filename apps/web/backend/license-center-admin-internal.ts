@@ -1,5 +1,6 @@
 import { ManagedAdminError, createManagedCompany, managedCompanyInventory, setManagedDeviceStatus, updateManagedCompany } from './owner-company-service';
 import { getManualDeboraLicense, grantManualDeboraLicense, resolveProductAccess, revokeManualDeboraLicense } from './product-license-service';
+import { classifyLegacyManualSale, grantManualDeboraLicenseWithSale } from './manual-license-sales';
 import { lojaOnlineRequest, LojaOnlineUpstreamError, type LojaOnlineRuntimeEnv } from './loja-online-admin';
 
 type ServiceBinding={fetch(input:RequestInfo|URL,init?:RequestInit):Promise<Response>};
@@ -17,11 +18,13 @@ type AdminDependencies={
   setManagedDeviceStatus:typeof setManagedDeviceStatus;
   getManualDeboraLicense:typeof getManualDeboraLicense;
   grantManualDeboraLicense:typeof grantManualDeboraLicense;
+  grantManualDeboraLicenseWithSale:typeof grantManualDeboraLicenseWithSale;
   resolveProductAccess:typeof resolveProductAccess;
   revokeManualDeboraLicense:typeof revokeManualDeboraLicense;
+  classifyLegacyManualSale:typeof classifyLegacyManualSale;
   lojaOnlineRequest:typeof lojaOnlineRequest;
 };
-const defaultDependencies:AdminDependencies={managedCompanyInventory,createManagedCompany,updateManagedCompany,setManagedDeviceStatus,getManualDeboraLicense,grantManualDeboraLicense,resolveProductAccess,revokeManualDeboraLicense,lojaOnlineRequest};
+const defaultDependencies:AdminDependencies={managedCompanyInventory,createManagedCompany,updateManagedCompany,setManagedDeviceStatus,getManualDeboraLicense,grantManualDeboraLicense,grantManualDeboraLicenseWithSale,resolveProductAccess,revokeManualDeboraLicense,classifyLegacyManualSale,lojaOnlineRequest};
 
 const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const qaHeader='x-artisys-qa-run';
@@ -84,7 +87,13 @@ async function deboraAction(env:Env,input:Record<string,unknown>,run:string,deps
   if(!/^\S+@\S+\.\S+$/.test(email))return json(400,{error:'invalid_email',message:'Informe um e-mail válido.'});
   if(!['grant','status','revoke'].includes(action))return json(400,{error:'invalid_action',message:'Ação de licença inválida.'});
   const actor='general-panel-artisys';
-  if(action==='grant')return json(200,{state:'active',activation:'cloudflare_d1',grant:await deps.grantManualDeboraLicense(env.DB,email,actor)});
+  if(action==='grant'){
+    if(input.sale&&typeof input.sale==='object'&&!Array.isArray(input.sale)){
+      const activated=await deps.grantManualDeboraLicenseWithSale(env.DB,email,input.sale,actor);
+      return json(200,{state:'active',activation:'cloudflare_d1',grant:activated.grant,sale:activated.sale});
+    }
+    return json(200,{state:'active',activation:'cloudflare_d1',grant:await deps.grantManualDeboraLicense(env.DB,email,actor)});
+  }
   if(action==='revoke'){
     const grant=await deps.revokeManualDeboraLicense(env.DB,email,actor);
     return grant?json(200,{state:'revoked',activation:'cloudflare_d1',grant}):json(404,{error:'not_found',message:'Não existe licença manual para este e-mail.'});
@@ -93,10 +102,19 @@ async function deboraAction(env:Env,input:Record<string,unknown>,run:string,deps
   return json(200,{state:grant?.status||(!access.commercial?'none':access.planCode),activation:'cloudflare_d1',grant,access});
 }
 
+function manualSaleError(cause:unknown){
+  const message=cause instanceof Error?cause.message:'';
+  if(message==='manual_license_not_found')return json(404,{error:'not_found',message:'Não existe licença manual para este e-mail.'});
+  if(message==='duplicate_legacy_classification')return json(409,{error:'duplicate_legacy_classification',message:'Esta referência já foi classificada para a licença.'});
+  if(message==='invalid_email')return json(400,{error:'invalid_email',message:'Informe um e-mail válido.'});
+  if(/Informe|referência/i.test(message))return json(400,{error:'invalid_sale',message});
+  return null;
+}
+
 function upstreamError(cause:unknown){
   if(cause instanceof ManagedAdminError)return json(cause.status,{error:'managed_admin_error',message:cause.message});
   if(cause instanceof LojaOnlineUpstreamError)return json(cause.status,{error:cause.code,message:cause.message});
-  return json(500,{error:'license_center_write_failed',message:cause instanceof Error?cause.message:'Falha administrativa.'});
+  return manualSaleError(cause)||json(500,{error:'license_center_write_failed',message:cause instanceof Error?cause.message:'Falha administrativa.'});
 }
 
 export async function handleLicenseCenterAdminInternal(request:Request,env:Env,deps:AdminDependencies=defaultDependencies):Promise<Response|null>{
@@ -125,6 +143,14 @@ export async function handleLicenseCenterAdminInternal(request:Request,env:Env,d
     if(path==='/api/internal/license-center/debora/license'){
       if(request.method!=='POST')return json(405,{error:'method_not_allowed'});
       return deboraAction(env,input,run,deps);
+    }
+    if(path==='/api/internal/license-center/debora/manual-sales/classify'){
+      if(request.method!=='POST')return json(405,{error:'method_not_allowed'});
+      const email=cleanEmail(input.email);
+      if(run&&(!validRun(run)||email!==expectedQaEmail(run)))return json(403,{error:'qa_scope_violation'});
+      if(!/^\S+@\S+\.\S+$/.test(email))return json(400,{error:'invalid_email',message:'Informe um e-mail válido.'});
+      const sale=await deps.classifyLegacyManualSale(env.DB,email,input.sale,'general-panel-artisys');
+      return json(200,{sale});
     }
     if(path==='/api/internal/license-center/loja-online/companies'){
       if(request.method!=='POST')return json(405,{error:'method_not_allowed'});
