@@ -131,7 +131,11 @@ describe('Central Artisys owner navigation',()=>{
     (form.elements.namedItem('email') as HTMLInputElement).value='consultora@example.test';
     client.post.mockResolvedValue({data:{state:'active',grant:{email:'consultora@example.test',status:'active',plan_code:'pro_6m'}}});
     form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
-    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/owner/debora-license',{action:'grant',email:'consultora@example.test'}));
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/owner/debora-license',{
+      action:'grant',
+      email:'consultora@example.test',
+      sale:{acquisitionChannel:'mercado_livre',paymentStatus:'paid',amountCents:null,externalOrderRef:null},
+    }));
   });
 
   it('renders a unified client list with product and status filters',async()=>{
