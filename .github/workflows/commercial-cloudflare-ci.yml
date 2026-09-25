@@ -35,6 +35,8 @@ jobs:
           node-version: 22
       - name: Install web dependencies
         run: npm ci --no-audit --no-fund
+      - name: Verify admin parity registry
+        run: npm run qa:admin-parity
       - name: Validate D1 migrations locally
         run: npx wrangler d1 migrations apply obra-na-mao-comercial --local --config wrangler.jsonc
       - name: Test critical web flows
@@ -64,6 +66,8 @@ jobs:
           node-version: 22
       - name: Install web dependencies
         run: npm ci --no-audit --no-fund
+      - name: Verify admin parity registry
+        run: npm run qa:admin-parity
       - name: Install desktop dependencies
         run: npm ci --prefix ../desktop --no-audit --no-fund
       - name: Install Playwright core
