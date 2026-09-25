@@ -1,6 +1,8 @@
+import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-import { DatabaseSync } from 'node:sqlite';
 import { grantManualDeboraLicenseWithSale, listManualSales, manualSalesSummary } from './manual-license-sales';
+
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite');
 
 function runtimeDb(){
   const sqlite=new DatabaseSync(':memory:');
