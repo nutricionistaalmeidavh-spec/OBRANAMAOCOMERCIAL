@@ -39,13 +39,14 @@ function ensureReservedLifetimeLicense(env:any){
 async function licenseCenterAdminWithRuntime(request:Request,env:any){
   const url=new URL(request.url);
   if(!url.pathname.startsWith('/api/internal/license-center/')||url.pathname==='/api/internal/license-center/snapshot')return null;
+  const bridgeRequest=request.clone();
   const bridge=router({
     [`${request.method} ${url.pathname}`]: [async ctx=>{
-      const response=await handleLicenseCenterAdminInternal(ctx.request,ctx.env as any);
+      const response=await handleLicenseCenterAdminInternal(request,ctx.env as any);
       return response||new Response(JSON.stringify({error:'not_found'}),{status:404,headers:{'content-type':'application/json; charset=utf-8'}});
     }]
   });
-  return bridge.fetch(request,env);
+  return bridge.fetch(bridgeRequest,env);
 }
 
 export default {
