@@ -21,6 +21,7 @@
     "d1:migrate:local": "wrangler d1 migrations apply obra-na-mao-comercial --local --config wrangler.jsonc",
     "d1:migrate:remote": "wrangler d1 migrations apply obra-na-mao-comercial --remote --config wrangler.jsonc",
     "ux:verify": "node scripts/verify-ui-contract.mjs",
+    "qa:admin-parity": "node scripts/verify-admin-parity.mjs",
     "qa:prepare": "node scripts/sync-artisys-qa.mjs && npm install --prefix qa/runtime --no-audit --no-fund && node qa/runtime/node_modules/playwright/cli.js install chromium",
     "qa:prepare:core": "npm install --no-save --package-lock=false playwright@1.62.1 && npx playwright install chromium",
     "qa:quick": "npm run qa:prepare && node scripts/run-artisys-qa.mjs quick",
