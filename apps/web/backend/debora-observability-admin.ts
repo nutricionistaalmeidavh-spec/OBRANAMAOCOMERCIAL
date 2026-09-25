@@ -165,7 +165,7 @@ async function consolidatedSummary(env:ObservabilityEnv){
 async function manualMergePage(db:D1Database,query:Record<string,string>,limit:number,cursor:GlobalSaleKey|null){
   const where=['product_code=?'],binds:any[]=[DEBORA_PRODUCT_CODE];
   const plan=String(query.plan||'').trim(),status=String(query.status||'').trim(),channel=String(query.channel||'').trim();
-  if(plan&&plan!=='pro_6m')return{items:[],hasMore:false};
+  if((plan&&plan!=='pro_6m')||channel==='asaas'||channel==='mercado_livre_manual')return{items:[],hasMore:false};
   if(status){where.push('payment_status=?');binds.push(status)}
   if(channel){where.push('acquisition_channel=?');binds.push(channel)}
   if(query.createdFrom){where.push('created_at>=?');binds.push(query.createdFrom)}
@@ -179,11 +179,14 @@ async function manualMergePage(db:D1Database,query:Record<string,string>,limit:n
 }
 
 async function mergedSales(env:ObservabilityEnv,query:Record<string,string>){
-  const limit=pageLimit(query.limit,50),cursor=query.cursor?decodeGlobalSalesCursor(query.cursor):null;
+  const limit=pageLimit(query.limit,50),cursor=query.cursor?decodeGlobalSalesCursor(query.cursor):null,channel=String(query.channel||'').trim();
   const upstream=new URL('/api/internal/observability/sales',internalBase);upstream.searchParams.set('limit',String(limit));
   for(const key of ['plan','status','createdFrom','createdTo']){const value=String(query[key]||'').trim();if(value)upstream.searchParams.set(key,value)}
   if(cursor){upstream.searchParams.set('mergeCreatedAt',cursor.createdAt);upstream.searchParams.set('mergeSourceRank',String(cursor.sourceRank));upstream.searchParams.set('mergeId',cursor.id)}
-  const [automaticPage,manualPage]=await Promise.all([fetchDeboraObservability(`${upstream.pathname}${upstream.search}`,env),manualMergePage(env.DB,query,limit,cursor)]);
+  const automaticPromise=channel&&channel!=='asaas'
+    ?Promise.resolve({items:[],hasMore:false,nextCursor:null})
+    :fetchDeboraObservability(`${upstream.pathname}${upstream.search}`,env);
+  const [automaticPage,manualPage]=await Promise.all([automaticPromise,manualMergePage(env.DB,query,limit,cursor)]);
   const automatic=(Array.isArray(automaticPage?.items)?automaticPage.items:[]).map((item:any)=>({
     ...item,id:String(item.checkoutId||item.id),source:'asaas',sourceRank:1,createdAt:String(item.createdAt||''),
   }));
@@ -197,15 +200,15 @@ export function createDeboraObservabilityAdminRoutes(secured:RouterRoutes[string
   ],
   'GET /api/owner/debora-observability/users':[
     ...secured,async(ctx)=>{try{return json(await listConsolidatedUsers(runtimeEnv() as unknown as ObservabilityEnv,ctx.query))}
-    catch(error){console.error('debora observability users unavailable',error);return unavailable()}},
+    catch(error){if((error as Error)?.message==='debora_observability_400')return json({error:'invalid_cursor'},400);console.error('debora observability users unavailable',error);return unavailable()}},
   ],
   'GET /api/owner/debora-observability/sales':[
-    ...secured,async(ctx)=>{try{return json(await mergedSales(runtimeEnv() as unknown as ObservabilityEnv,ctx.query))}catch(error){if((error as Error)?.message==='invalid_cursor')return json({error:'invalid_cursor'},400);console.error('debora observability sales unavailable',error);return unavailable()}},
+    ...secured,async(ctx)=>{try{return json(await mergedSales(runtimeEnv() as unknown as ObservabilityEnv,ctx.query))}catch(error){if(['invalid_cursor','debora_observability_400'].includes((error as Error)?.message||''))return json({error:'invalid_cursor'},400);console.error('debora observability sales unavailable',error);return unavailable()}},
   ],
   'GET /api/owner/debora-observability/users/:id/sessions':[
     ...secured,async(ctx)=>{try{
       const env=runtimeEnv() as unknown as ObservabilityEnv,path=queryPath(`/api/internal/observability/users/${encodeURIComponent(ctx.params.id)}/sessions`,ctx.query,['limit','cursor']);
       return json(await fetchDeboraObservability(path,env));
-    }catch(error){console.error('debora observability sessions unavailable',error);return unavailable()}},
+    }catch(error){if((error as Error)?.message==='debora_observability_400')return json({error:'invalid_cursor'},400);console.error('debora observability sessions unavailable',error);return unavailable()}},
   ],
 };}
