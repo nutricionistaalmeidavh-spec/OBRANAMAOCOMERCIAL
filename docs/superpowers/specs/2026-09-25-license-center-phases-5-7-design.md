@@ -1,73 +1,68 @@
 # Central de Licenças — Fases 5 a 7
 
 Data: 2026-09-25
-Status: design aprovado; aguardando revisão do documento antes do plano de implementação
-Branches de trabalho: `feat/license-center-phases-5-7` em `OBRANAMAOCOMERCIAL` e `MercadoLivre`
+Status: design aprovado; aguardando revisão deste documento antes do plano de implementação
+Branches: `feat/license-center-phases-5-7` em `OBRANAMAOCOMERCIAL` e `MercadoLivre`
 
 ## 1. Objetivo
 
-Levar a nova Central de Licenças, hoje disponível no painel geral do repositório `MercadoLivre` em modo somente leitura, até as fases 5, 6 e 7 do roadmap original:
+Levar a nova Central de Licenças, hoje disponível no painel geral do `MercadoLivre` em modo somente leitura, até as fases 5, 6 e 7 do roadmap original:
 
-- Fase 5: habilitar as ações administrativas reais de escrita.
-- Fase 6: comprovar paridade entre a Central antiga e a nova por testes transacionais e E2E.
-- Fase 7: operar a nova Central em paralelo com a Central antiga, mantendo a antiga disponível como fallback.
+- **Fase 5:** habilitar escrita administrativa real.
+- **Fase 6:** comprovar paridade entre a Central antiga e a nova por testes transacionais e E2E.
+- **Fase 7:** operar a nova Central em paralelo com a Central antiga, mantendo a antiga disponível como fallback.
 
-A regra central permanece a mesma das fases 1 a 4: **duplicar/substituir a interface administrativa, não duplicar o sistema de licenciamento**.
+Princípio obrigatório: **duplicar/substituir a interface administrativa, não duplicar o sistema de licenciamento**.
 
 ## 2. Restrições obrigatórias
 
 1. Nenhum cliente, licença, usuário, dispositivo ou loja preexistente pode ser alterado por testes automatizados.
 2. O E2E live pode escrever em produção somente em registros sintéticos criados pelo próprio run.
-3. `OBRANAMAOCOMERCIAL` continua sendo a autoridade central de licenciamento para Obra na Mão e Débora Lactação e o orquestrador da Loja Online.
+3. `OBRANAMAOCOMERCIAL` continua sendo a autoridade de licenciamento para Obra na Mão e Débora Lactação e o orquestrador da Loja Online.
 4. `MercadoLivre` não terá acesso direto aos D1 de licenciamento.
 5. A Loja Online continuará sendo administrada por sua API interna própria, acessada pelo Obra por Service Binding.
-6. Não haverá migração de dados, novo D1, cópia de clientes ou cópia de licenças.
-7. A Central antiga `artisys.dev/sistema#owner` permanece disponível durante toda a fase 7.
-8. A fase 8, incluindo remoção ou redirecionamento da Central antiga, está fora do escopo.
-9. A futura reorganização de URLs sob `artisys.dev` também está fora do escopo desta entrega.
+6. Não haverá novo D1, migração de dados, cópia de clientes ou cópia de licenças.
+7. `artisys.dev/sistema#owner` permanece disponível durante toda a fase 7.
+8. A fase 8 está fora do escopo.
+9. A reorganização futura de URLs sob `artisys.dev` está fora do escopo.
+10. Não será criado DELETE físico apenas para facilitar QA.
 
 ## 3. Estado atual
 
-As fases 1 a 4 já estão concluídas:
+As fases 1 a 4 já entregaram:
 
-- existe endpoint interno GET-only em `obra-na-mao-comercial` para gerar o snapshot da Central;
-- o `artisys-mercadolivre` consulta esse snapshot por `OBRA_LICENSING`;
-- a nova página `/licenses` exibe Obra na Mão, Débora Lactação, Loja Online e auditoria;
-- a leitura usa segredo dedicado e não expõe credenciais ao navegador;
-- a Central antiga e seus fluxos de escrita continuam intactos.
+- `GET /api/internal/license-center/snapshot` no `obra-na-mao-comercial`;
+- leitura server-to-server via `OBRA_LICENSING`;
+- página `/licenses` no `artisys-mercadolivre`;
+- visualização de Obra, Débora, Loja Online e auditoria;
+- segredo dedicado de leitura;
+- Central antiga intacta.
 
-Os fluxos administrativos existentes que devem ser reutilizados já incluem:
+As regras de escrita já existem e devem ser reutilizadas:
 
 ### Obra na Mão
 
-- criação de empresa/licença;
-- alteração de módulos;
-- alteração de canais;
-- alteração de plano;
-- alteração de validade;
-- alteração de limites de usuários, projetos e dispositivos;
-- suspensão/reativação por mutação do status da licença;
-- revogação/reativação de dispositivo sem alterar a licença da empresa.
+- criar empresa/licença;
+- alterar módulos, canais, plano, validade e limites;
+- suspender/reativar licença;
+- revogar/reativar dispositivo sem alterar a licença da empresa.
 
 ### Débora Lactação
 
 - `grant`;
 - `status`;
 - `revoke`;
-- renovação de 6 meses por reaplicação de `grant`, preservando a regra já existente de estender a partir da validade atual quando ela ainda estiver ativa.
+- renovação de 6 meses reaplicando `grant`, preservando a regra existente de extensão a partir da validade atual quando ainda ativa.
 
 ### Loja Online
 
-- criação de empresa + administrador + licença;
-- edição de plano/status/validade/limite de usuários;
-- extensão de validade;
-- bloqueio;
-- desbloqueio;
-- auditoria.
+- criar empresa + administrador + licença;
+- editar plano/status/validade/limite de usuários;
+- estender validade;
+- bloquear/desbloquear;
+- consultar auditoria.
 
-## 4. Arquitetura aprovada
-
-A nova Central não implementará lógica de licenciamento própria.
+## 4. Arquitetura
 
 ```text
 Browser
@@ -82,27 +77,32 @@ obra-na-mao-comercial
      artisys-lojaonline
 ```
 
-A Central antiga e a nova devem chegar às mesmas funções de domínio. Quando a lógica hoje estiver acoplada à rota HTTP antiga, ela será extraída para um serviço compartilhado antes de ser reutilizada pela nova superfície interna.
+A Central antiga e a nova devem convergir para as mesmas funções de domínio. Quando uma regra estiver acoplada à rota HTTP antiga, ela será extraída para função/serviço compartilhado antes de ser usada pela nova superfície interna.
 
-Não será criado proxy genérico para `/api/owner/*`, nem endpoint capaz de encaminhar caminhos arbitrários.
+É proibido:
 
-## 5. Superfície interna de escrita
+- copiar `createLicense`, `mutateLicense` ou regras equivalentes para `MercadoLivre`;
+- acessar D1 de licenciamento diretamente a partir de `MercadoLivre`;
+- criar proxy genérico para `/api/owner/*`;
+- criar endpoint que encaminhe um path arbitrário recebido do browser.
 
-O Worker `obra-na-mao-comercial` ganhará uma superfície server-to-server explícita para a nova Central. Os nomes abaixo são o contrato proposto e podem ser agrupados em um único módulo interno, desde que permaneçam allowlisted e tipados.
+## 5. Contrato interno de escrita no Obra
 
-### Snapshot
+O `obra-na-mao-comercial` ganhará somente operações allowlisted.
 
-- `GET /api/internal/license-center/snapshot` — já existente.
+### Snapshot existente
 
-### Obra na Mão
+- `GET /api/internal/license-center/snapshot`
+
+### Obra
 
 - `POST /api/internal/license-center/obra/companies`
 - `PUT /api/internal/license-center/obra/companies/:id`
 - `PUT /api/internal/license-center/obra/devices/:id`
 
-A criação e atualização devem chamar a mesma lógica usada por `POST /api/owner/companies` e `PUT /api/owner/companies/:id`. A atualização de dispositivo deve preservar a semântica atual de `PUT /api/owner/devices/:id`.
+Essas rotas reutilizam a lógica de `POST /api/owner/companies`, `PUT /api/owner/companies/:id` e `PUT /api/owner/devices/:id`.
 
-### Débora Lactação
+### Débora
 
 - `POST /api/internal/license-center/debora/license`
 
@@ -115,7 +115,7 @@ Payload:
 }
 ```
 
-A rota deve chamar as mesmas funções de `grant/status/revoke` usadas pela Central antiga.
+A rota reutiliza as mesmas funções de domínio da Central antiga.
 
 ### Loja Online
 
@@ -125,37 +125,33 @@ A rota deve chamar as mesmas funções de `grant/status/revoke` usadas pela Cent
 - `POST /api/internal/license-center/loja-online/companies/:id/block`
 - `POST /api/internal/license-center/loja-online/companies/:id/unblock`
 
-Essas rotas não devem reproduzir regras da Loja Online; devem reutilizar `lojaOnlineRequest` e a API interna já existente no Worker `artisys-lojaonline`.
+Essas rotas reutilizam `lojaOnlineRequest` e a API interna existente no `artisys-lojaonline`.
 
-## 6. Autenticação e autorização server-to-server
-
-Leitura e escrita terão credenciais independentes.
+## 6. Segredos e feature flag
 
 ### Obra
 
-- `LICENSE_CENTER_READ_SECRET` — já existente.
+- `LICENSE_CENTER_READ_SECRET` — existente.
 - `LICENSE_CENTER_WRITE_SECRET` — novo.
-- `LICENSE_CENTER_WRITE_ENABLED` — novo feature flag de emergência.
+- `LICENSE_CENTER_WRITE_ENABLED` — novo.
 
 ### MercadoLivre
 
-- `OBRA_LICENSE_CENTER_READ_SECRET` — já existente.
+- `OBRA_LICENSE_CENTER_READ_SECRET` — existente.
 - `OBRA_LICENSE_CENTER_WRITE_SECRET` — novo.
 
 Regras:
 
-1. endpoints GET de snapshot continuam aceitando apenas o segredo de leitura;
-2. endpoints mutáveis aceitam apenas o segredo de escrita;
-3. segredo de leitura nunca autoriza escrita;
-4. segredo de escrita nunca é enviado ao navegador;
-5. quando `LICENSE_CENTER_WRITE_ENABLED` não estiver habilitado, toda operação de escrita interna retorna erro de escrita desabilitada;
-6. a autenticação administrativa do browser continua sendo a sessão existente do painel `MercadoLivre`.
+1. snapshot aceita somente credencial de leitura;
+2. mutações aceitam somente credencial de escrita;
+3. leitura não autoriza escrita;
+4. o segredo de escrita nunca chega ao browser;
+5. com `LICENSE_CENTER_WRITE_ENABLED=false`, toda mutação interna retorna erro de escrita desabilitada;
+6. a sessão administrativa existente do MercadoLivre continua sendo a autenticação do operador humano.
 
 ## 7. API do painel geral
 
-O `MercadoLivre` continuará protegendo `/licenses` e suas APIs com o cookie administrativo existente.
-
-A API pública do painel será restrita à sessão de admin e poderá ser organizada como:
+A superfície do `MercadoLivre` fica restrita à sessão admin existente:
 
 - `GET /api/license-center`
 - `POST /api/license-center/obra/companies`
@@ -168,57 +164,29 @@ A API pública do painel será restrita à sessão de admin e poderá ser organi
 - `POST /api/license-center/loja-online/companies/:id/block`
 - `POST /api/license-center/loja-online/companies/:id/unblock`
 
-O Worker `artisys-mercadolivre` apenas valida sessão, valida formato de entrada, adiciona a credencial server-to-server e encaminha a ação allowlisted ao `OBRA_LICENSING`.
+O Worker valida sessão e formato de entrada, adiciona o segredo server-to-server e encaminha somente a operação allowlisted ao `OBRA_LICENSING`.
 
-Depois de qualquer mutação bem-sucedida, a interface deve refazer `GET /api/license-center` antes de considerar o estado final atualizado.
+Depois de qualquer mutação bem-sucedida, a UI deve refazer `GET /api/license-center`. O estado final exibido nunca será assumido apenas a partir da resposta do POST/PUT.
 
 ## 8. Interface da Central nova
 
 ### Obra na Mão
 
-A UI deve permitir:
-
-- criar empresa/licença;
-- editar plano;
-- editar validade;
-- editar módulos;
-- editar canais;
-- editar `maxUsers`;
-- editar `maxProjects`;
-- editar `maxDevices`;
-- suspender;
-- reativar;
-- revogar e reativar dispositivos individualmente.
+A UI deve permitir criar empresa/licença, editar plano/validade/módulos/canais/limites, suspender, reativar e administrar dispositivos individualmente.
 
 ### Débora Lactação
 
-A UI deve permitir:
-
-- consultar licença por e-mail;
-- liberar Pro;
-- renovar por mais 6 meses usando a mesma ação `grant` já existente;
-- revogar;
-- reativar por `grant`.
+A UI deve permitir consultar, liberar Pro, renovar por +6 meses via `grant`, revogar e reativar via `grant`.
 
 ### Loja Online
 
-A UI deve permitir:
+A UI deve permitir criar tenant, editar plano/validade/maxUsers, estender por 1/3/6/12 meses, bloquear e desbloquear.
 
-- criar empresa/tenant;
-- editar plano;
-- editar validade;
-- editar limite de usuários;
-- estender por 1, 3, 6 ou 12 meses;
-- bloquear;
-- desbloquear.
+A auditoria permanece visível e deve refletir as operações efetuadas.
 
-A auditoria deve continuar visível após as mutações.
+## 9. Identidade e isolamento do E2E live
 
-## 9. Proteção de E2E live
-
-O E2E live usará produção apenas para registros que ele próprio criar.
-
-Cada execução terá `qaRunId` único, por exemplo:
+Cada execução recebe `qaRunId` único, por exemplo:
 
 ```text
 20260925-173445-a8f3
@@ -232,132 +200,126 @@ Empresa Loja:  ARTISYS QA E2E LOJA <qaRunId>
 E-mail:        qa-license-<qaRunId>@example.test
 ```
 
-As chamadas automatizadas incluirão:
+As chamadas de QA carregam:
 
 ```text
 X-Artisys-QA-Run: <qaRunId>
 ```
 
-Quando o header existir, o backend entra em modo de guarda QA.
+### Guarda server-side
 
-### Regra de guarda
+Quando esse header existir, o backend deve validar o alvo a partir de dados **já persistidos**, e nunca apenas a partir do payload recebido.
 
-Uma mutação QA somente pode executar se o alvo comprovar pertencer ao mesmo run por identidade persistida e/ou campos canônicos do registro. Para registro já criado, a autorização deve verificar no servidor, antes da mutação:
+- Obra/empresa: o registro persistido deve ter nome com prefixo `ARTISYS QA E2E`, e o nome + e-mail persistidos devem conter o mesmo `qaRunId`.
+- Débora: o e-mail persistido/consultado deve ser exatamente o e-mail QA derivado daquele `qaRunId`.
+- Loja Online: nome da empresa e e-mail do administrador retornados pela autoridade da Loja devem conter o mesmo `qaRunId`.
+- Dispositivo: o dispositivo deve pertencer a uma empresa que passe a guarda QA do mesmo run; nunca basta o ID do dispositivo enviado pelo teste.
 
-- ID foi registrado como criado por este run durante a execução; e
-- e-mail contém exatamente o `qaRunId` esperado; e
-- nome, quando aplicável, usa o prefixo `ARTISYS QA E2E` e contém o mesmo `qaRunId`.
-
-Se qualquer verificação falhar:
+Falha em qualquer condição:
 
 ```text
 403 qa_scope_violation
 ```
 
-O servidor não deve confiar apenas em valores enviados pelo browser para decidir que um registro pertence ao QA.
+Essa guarda não exige tabela nova. Ela usa identidade canônica persistida na própria autoridade de cada produto.
 
-## 10. Baseline de segurança
+## 10. Baseline no test runner
 
-Antes do primeiro write do E2E live, o script captura um baseline de IDs e campos administrativos relevantes dos registros preexistentes.
+Antes do primeiro write, o E2E live captura um baseline dos IDs preexistentes e dos campos administrativos necessários para comparação.
 
-O teste mantém dois conjuntos:
+O runner mantém:
 
-- `baselineIds`: tudo que já existia antes do run;
-- `createdIds`: somente IDs retornados por criações efetuadas no run.
+- `baselineIds`: IDs existentes antes do run;
+- `createdIds`: IDs retornados por criações feitas pelo próprio run.
 
-Regra obrigatória:
+Uma mutação automatizada só pode ser emitida quando:
 
 ```text
-qualquer mutação E2E deve ter targetId ∈ createdIds
-e targetId ∉ baselineIds
+targetId ∈ createdIds
+targetId ∉ baselineIds
 ```
 
-O relatório final deve comprovar `existingIdsTouched = 0`.
+Essa é uma segunda barreira, independente da guarda server-side.
 
-Diferenças detectadas em registros preexistentes durante a janela do teste não autorizam rollback automático. Elas são reportadas para revisão, pois podem representar atividade legítima simultânea.
+O relatório final deve registrar `existingIdsTouched = 0`.
 
-## 11. Matriz E2E — Obra na Mão
+Se um registro preexistente mudar durante a janela do teste por atividade legítima, o teste reporta a diferença e não tenta restaurá-lo automaticamente.
 
-Fluxo live:
+## 11. Verificação independente da autoridade
+
+O E2E live terá duas leituras distintas após cada write:
+
+1. leitura pela nova Central, usando a sessão administrativa do `artisys-mercadolivre`;
+2. leitura direta da autoridade do `obra-na-mao-comercial` pelo próprio runner, usando `LICENSE_CENTER_READ_SECRET` em variável de ambiente e o endpoint interno de snapshot.
+
+O segredo de leitura da autoridade fica apenas no processo do runner e nunca é injetado no browser.
+
+Para Loja Online, a leitura independente continua sendo obtida pelo snapshot do Obra, que por sua vez consulta a autoridade da Loja via Service Binding. Não se criará acesso direto do runner ao D1 da Loja.
+
+## 12. Matriz E2E — Obra
 
 1. capturar baseline;
 2. criar empresa/licença QA pela nova Central;
-3. capturar IDs retornados;
-4. reler snapshot pela nova Central;
-5. confirmar mesmos IDs e estado na autoridade do Obra;
-6. alterar limites;
-7. reler e confirmar;
-8. alterar módulos e canais;
-9. reler e confirmar;
-10. alterar validade;
-11. reler e confirmar;
-12. suspender;
-13. reler e confirmar estado suspenso/revogado;
-14. reativar;
-15. reler e confirmar estado ativo;
-16. quando existir dispositivo QA criado pelo próprio fluxo, testar revogação e reativação apenas desse dispositivo;
-17. confirmar eventos de auditoria;
-18. terminar com a licença QA inativa/revogada.
-
-O teste de dispositivo não pode usar dispositivo preexistente. Se o fluxo não criar um dispositivo QA de forma segura, essa etapa será coberta por E2E isolado com ambiente controlado e não por produção.
-
-## 12. Matriz E2E — Débora Lactação
-
-Fluxo live:
-
-1. usar e-mail QA inexistente antes do run;
-2. `grant`;
-3. confirmar `active` por status e snapshot;
-4. executar novo `grant` para comprovar renovação de +6 meses segundo a regra existente;
-5. confirmar nova validade por releitura;
-6. `revoke`;
-7. confirmar `revoked`;
-8. `grant` novamente;
-9. confirmar `active`;
-10. confirmar auditoria;
-11. finalizar com `revoke`.
-
-## 13. Matriz E2E — Loja Online
-
-Fluxo live:
-
-1. criar empresa/administrador/licença QA;
-2. capturar companyId/licenseId;
-3. reler e confirmar `ACTIVE`;
-4. editar plano e `maxUsers`;
-5. reler e confirmar;
-6. estender validade;
-7. reler e confirmar;
-8. bloquear;
-9. reler e confirmar `BLOCKED`;
-10. desbloquear;
-11. reler e confirmar `ACTIVE`;
+3. capturar IDs retornados e adicioná-los a `createdIds`;
+4. reler pela nova Central;
+5. reler diretamente no snapshot da autoridade do Obra;
+6. comparar IDs, e-mail, status e limites;
+7. alterar limites e confirmar nas duas leituras;
+8. alterar módulos/canais e confirmar;
+9. alterar validade e confirmar;
+10. suspender e confirmar `suspended/revoked`;
+11. reativar e confirmar `active`;
 12. confirmar auditoria;
-13. finalizar com bloqueio do registro QA.
+13. se existir dispositivo criado pelo próprio fluxo QA, revogar/reativar apenas esse dispositivo e confirmar que a licença da empresa não mudou;
+14. finalizar com a licença QA inativa/revogada.
 
-## 14. E2E isolado
+Se não houver maneira segura de criar um dispositivo QA no próprio run, o fluxo de dispositivo é certificado apenas pelo E2E isolado, nunca por um dispositivo real preexistente.
 
-Antes do live, o repositório deve ter testes locais/CI que exercitem a mesma UI e contratos sem escrever em produção.
+## 13. Matriz E2E — Débora
 
-O E2E isolado deve usar Playwright e mocks/controladores de teste para comprovar:
+1. confirmar que o e-mail QA ainda não tem licença ativa;
+2. `grant`;
+3. confirmar `active` pela nova Central e pela autoridade;
+4. aplicar novo `grant`;
+5. confirmar renovação de +6 meses conforme a regra existente;
+6. `revoke` e confirmar `revoked`;
+7. `grant` novamente e confirmar `active`;
+8. confirmar auditoria;
+9. finalizar com `revoke`.
+
+## 14. Matriz E2E — Loja Online
+
+1. criar empresa/admin/licença QA;
+2. capturar IDs e adicioná-los a `createdIds`;
+3. confirmar `ACTIVE`;
+4. editar plano e `maxUsers` e confirmar;
+5. estender validade e confirmar;
+6. bloquear e confirmar `BLOCKED`;
+7. desbloquear e confirmar `ACTIVE`;
+8. confirmar auditoria;
+9. finalizar com o registro QA bloqueado.
+
+## 15. E2E isolado e CI
+
+Antes do live, Playwright e testes de contrato devem comprovar sem escrever em produção:
 
 - autenticação administrativa;
 - renderização da Central;
-- emissão dos requests esperados;
-- re-fetch após cada mutação;
+- emissão das operações corretas;
+- re-fetch após mutação;
 - mensagens de erro;
-- confirmações de ações destrutivas;
-- bloqueio de métodos/ações não allowlisted;
-- guarda `qa_scope_violation`;
-- desktop, tablet e mobile quando a superfície for responsiva.
+- confirmações destrutivas;
+- rejeição de método/rota não allowlisted;
+- separação entre segredo de leitura e escrita;
+- feature flag desligada;
+- `qa_scope_violation` para alvo não-QA;
+- desktop, tablet e mobile quando aplicável.
 
-O QA transacional existente do Obra deve ser reutilizado/estendido onde fizer sentido, evitando duplicar harness de Playwright sem necessidade.
+O harness transacional já existente do Obra deve ser reutilizado/estendido onde fizer sentido.
 
-## 15. Paridade da fase 6
+## 16. Critério de paridade da fase 6
 
-Uma operação não é considerada aprovada apenas porque o write retornou 2xx.
-
-Para cada mutação:
+2xx não é suficiente. Cada operação segue:
 
 ```text
 WRITE
@@ -371,9 +333,7 @@ AUDIT
 comparação
 ```
 
-A criação deve confirmar os mesmos IDs, e-mail e estado nas duas superfícies. Alterações devem confirmar os mesmos módulos, canais, limites, validade e status. Suspensão, bloqueio e reativação devem ser confirmados por nova leitura independente.
-
-O relatório final deve conter, no mínimo:
+O relatório mínimo:
 
 ```text
 Obra create .............. PASS/FAIL
@@ -396,103 +356,92 @@ Existing IDs touched ..... 0
 QA records active ........ 0
 ```
 
-## 16. Limpeza dos registros QA
+## 17. Limpeza lógica do QA
 
-Não será introduzido DELETE físico apenas para facilitar o teste.
+Não haverá DELETE físico nesta entrega.
 
-Ao final do live:
+Ao final:
 
-- Obra QA termina `suspended/revoked`;
-- Débora QA termina `revoked`;
-- Loja Online QA termina `BLOCKED`.
+- Obra QA → `suspended/revoked`;
+- Débora QA → `revoked`;
+- Loja Online QA → `BLOCKED`.
 
-Os registros permanecem identificáveis como QA e seus eventos continuam disponíveis para auditoria.
+Os eventos permanecem para auditoria. Um purge físico futuro, se desejado, será entrega separada e aceitará exclusivamente registros QA explicitamente identificados.
 
-Um mecanismo futuro de purge físico, caso desejado para CI recorrente, será uma entrega separada e deverá aceitar exclusivamente registros QA explicitamente marcados.
+## 18. Rollback
 
-## 17. Feature flag e rollback
+### Nível 1 — cortar escrita
 
-### Corte imediato de escrita
+`LICENSE_CENTER_WRITE_ENABLED=false` faz a nova Central voltar a um estado efetivamente read-only sem afetar a Central antiga.
 
-`LICENSE_CENTER_WRITE_ENABLED=false` deve fazer a nova Central voltar a um estado efetivamente read-only sem afetar a Central antiga.
+### Nível 2 — MercadoLivre
 
-### Rollback do MercadoLivre
+Rollback do `artisys-mercadolivre` remove a superfície nova. A Central antiga segue disponível.
 
-Reverter o Worker `artisys-mercadolivre` para a versão anterior remove a superfície de escrita nova. A Central antiga continua operacional.
+### Nível 3 — Obra
 
-### Rollback do Obra
+Rollback do `obra-na-mao-comercial` remove os endpoints internos novos. Como não há migração de schema, não existe migração reversa de banco.
 
-Reverter o Worker `obra-na-mao-comercial` para a versão anterior remove os endpoints internos novos. Como não há migração de schema, não existe migração reversa de banco.
+Rollback automatizado nunca pode alterar/apagar IDs de `baselineIds`; somente pode inativar registros pertencentes ao run atual.
 
-### Registros QA
+## 19. Ordem de implantação
 
-Rollback automatizado nunca pode restaurar, editar ou apagar IDs de `baselineIds`. Ele só pode inativar os registros pertencentes ao run atual.
-
-## 18. Ordem de implantação
-
-1. refatorar/expor as operações compartilhadas no Obra sem alterar a semântica da Central antiga;
-2. adicionar testes de contrato e segurança no Obra;
-3. adicionar a superfície de escrita e UI no MercadoLivre;
+1. extrair/reutilizar operações de domínio no Obra sem alterar a semântica das rotas antigas;
+2. adicionar superfície interna de escrita + testes de contrato e segurança;
+3. adicionar proxy allowlisted + UI de escrita no MercadoLivre;
 4. adicionar E2E isolado;
-5. executar CI completo dos repositórios envolvidos;
-6. deploy do Obra com endpoints internos e feature flag inicialmente controlada;
+5. executar CI relevante;
+6. deploy do Obra com escrita controlada por feature flag;
 7. deploy do MercadoLivre;
-8. configurar `LICENSE_CENTER_WRITE_SECRET` e `OBRA_LICENSE_CENTER_WRITE_SECRET` com o mesmo valor;
-9. habilitar a escrita para a execução controlada;
-10. executar E2E live;
-11. validar relatório de paridade e `existingIdsTouched = 0`;
-12. manter escrita habilitada para operação paralela da fase 7 somente após todos os gates passarem;
-13. manter a Central antiga disponível.
+8. configurar o mesmo valor em `LICENSE_CENTER_WRITE_SECRET` e `OBRA_LICENSE_CENTER_WRITE_SECRET`;
+9. executar E2E live com registros QA exclusivos;
+10. validar paridade, auditoria, `existingIdsTouched = 0` e `QA records active = 0`;
+11. manter escrita habilitada para operação paralela somente após todos os gates passarem;
+12. manter a Central antiga ativa.
 
-## 19. Critérios de conclusão
+## 20. Critérios de conclusão
 
 ### Fase 5
 
-Considerada concluída quando a nova Central consegue executar, através das autoridades existentes e sem acesso direto aos bancos:
+Nova Central consegue, pelas autoridades existentes:
 
-- Obra: criar, editar, alterar validade, suspender, reativar, alterar módulos, canais e limites; dispositivo somente quando alvo QA seguro estiver disponível;
+- Obra: criar, editar, validade, suspender, reativar, módulos, canais, limites e dispositivo somente quando houver alvo QA seguro;
 - Débora: liberar, consultar, renovar, revogar e reativar;
 - Loja Online: criar, editar, estender, bloquear e desbloquear.
 
 ### Fase 6
 
-Considerada concluída quando:
-
 - CI relevante passa;
 - E2E isolado passa;
 - E2E live passa;
-- writes são confirmados por releituras independentes;
+- writes são confirmados por duas leituras independentes;
 - auditoria corresponde às ações;
 - `existingIdsTouched = 0`;
 - todos os registros QA terminam inativos.
 
 ### Fase 7
 
-Considerada concluída quando:
+- nova Central permanece com escrita habilitada para operação real;
+- Central antiga continua íntegra e disponível;
+- rollback por feature flag permanece funcional;
+- nenhuma rota/autenticação/API antiga necessária é removida.
 
-- a nova Central permanece com escrita habilitada para operação real;
-- a Central antiga continua íntegra e disponível;
-- o rollback por feature flag permanece funcional;
-- nenhuma rota, autenticação ou API antiga necessária é removida.
-
-## 20. Fora do escopo
+## 21. Fora do escopo
 
 - fase 8;
-- remoção da Central antiga;
-- mudança do domínio `artisys.dev` para apontar a nova Central;
-- inventário/migração de todas as URLs do ecossistema;
-- alteração de D1/schema motivada apenas por esta entrega;
-- purge físico de registros QA;
-- reescrita da autoridade da Loja Online;
-- criação de um novo sistema de autenticação administrativa.
+- remover/redirecionar a Central antiga;
+- mover a nova Central para um path do `artisys.dev`;
+- inventariar/migrar URLs do ecossistema;
+- novo D1 ou migração de schema motivada apenas por esta entrega;
+- purge físico de QA;
+- reescrever a autoridade da Loja Online;
+- criar novo sistema de login administrativo.
 
-## 21. Resultado esperado
-
-Ao final, existirão duas interfaces administrativas operacionais sobre as mesmas autoridades de dados:
+## 22. Resultado esperado
 
 ```text
 Central nova     → leitura + escrita real → uso principal na fase 7
 Central antiga   → leitura + escrita real → fallback preservado
 ```
 
-As regras de negócio continuam centralizadas nos serviços existentes. O painel `MercadoLivre` funciona como interface/orquestrador administrativo, não como nova autoridade de licenças.
+As regras continuam centralizadas nas autoridades existentes. O `MercadoLivre` permanece uma interface/orquestrador administrativo, não uma nova autoridade de licenças.
