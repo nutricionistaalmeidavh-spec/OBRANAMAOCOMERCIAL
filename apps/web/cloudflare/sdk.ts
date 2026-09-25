@@ -34,7 +34,6 @@ export const runtimeEnv = () => {
   if (!state) throw new Error('Cloudflare runtime unavailable.');
   return state.env;
 };
-export const withCloudflareRuntime=<T>(request:Request,env:RuntimeEnv,operation:()=>T|Promise<T>)=>runtime.run({env,request},operation);
 
 const now=()=>new Date().toISOString();
 const parseJson=<T=Record<string,unknown>>(value:string|null, fallback:T={} as T):T=>{
