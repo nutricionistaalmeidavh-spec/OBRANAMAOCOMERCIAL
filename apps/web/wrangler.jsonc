@@ -13,13 +13,18 @@
       "LICENSE_SERVICE_SECRET",
       "LOJAONLINE_LICENSE_SERVICE_SECRET",
       "LICENSE_CENTER_READ_SECRET",
-      "LICENSE_CENTER_WRITE_SECRET"
+      "LICENSE_CENTER_WRITE_SECRET",
+      "DEBORA_OBSERVABILITY_SECRET"
     ]
   },
   "services": [
     {
       "binding": "LOJAONLINE_LICENSING",
       "service": "artisys-lojaonline"
+    },
+    {
+      "binding": "DEBORA_OBSERVABILITY",
+      "service": "consulroriaamamenta-o"
     }
   ],
   "assets": {

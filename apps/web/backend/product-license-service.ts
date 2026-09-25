@@ -62,9 +62,13 @@ export function summarizeDeboraLicenseOverview(accounts:OverviewAccount[],licens
 async function commercialAccount(db:D1Database,productCode:string,email:string){return db.prepare('SELECT product_code,email,status,source,created_at,updated_at FROM product_accounts WHERE product_code=? AND email=? LIMIT 1').bind(productCode,email).first<any>()}
 async function activeLicense(db:D1Database,productCode:string,email:string){return db.prepare("SELECT * FROM product_licenses WHERE product_code=? AND email=? AND status IN ('active','trialing') ORDER BY CASE WHEN expires_at IS NULL THEN 1 ELSE 0 END DESC, expires_at DESC, updated_at DESC LIMIT 1").bind(productCode,email).first<LicenseRow>()}
 
+function commercialAccountStatement(db:D1Database,productCode:string,email:string,source:string,at:string){
+  return db.prepare(`INSERT INTO product_accounts(product_code,email,status,source,created_at,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(product_code,email) DO UPDATE SET status='commercial',source=excluded.source,updated_at=excluded.updated_at`).bind(productCode,email,'commercial',source,at,at);
+}
+
 export async function registerCommercialAccount(db:D1Database,productCode:string,emailValue:unknown,source='saas_onboarding',at=new Date().toISOString()){
   const email=normalizeLicenseEmail(emailValue);if(!/^\S+@\S+\.\S+$/.test(email))throw new Error('invalid_email');
-  await db.prepare(`INSERT INTO product_accounts(product_code,email,status,source,created_at,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(product_code,email) DO UPDATE SET status='commercial',source=excluded.source,updated_at=excluded.updated_at`).bind(productCode,email,'commercial',source,at,at).run();
+  await commercialAccountStatement(db,productCode,email,source,at).run();
   return{productCode,email,commercial:true};
 }
 
@@ -76,21 +80,37 @@ export async function resolveProductAccess(db:D1Database,productCode:string,emai
   return accessForLicense(license,now);
 }
 
-async function event(db:D1Database,{licenseId=null,productCode,email,action,actor='',source='',details={}}:{licenseId?:string|null;productCode:string;email:string;action:string;actor?:string;source?:string;details?:Record<string,unknown>},at=new Date().toISOString()){
-  await db.prepare('INSERT INTO product_license_events(id,license_id,product_code,email,action,actor,source,details_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),licenseId,productCode,email,action,actor,source,JSON.stringify(details),at).run();
+function eventStatement(db:D1Database,{licenseId=null,productCode,email,action,actor='',source='',details={}}:{licenseId?:string|null;productCode:string;email:string;action:string;actor?:string;source?:string;details?:Record<string,unknown>},at:string){
+  return db.prepare('INSERT INTO product_license_events(id,license_id,product_code,email,action,actor,source,details_json,created_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),licenseId,productCode,email,action,actor,source,JSON.stringify(details),at);
 }
 
-export async function grantManualDeboraLicense(db:D1Database,emailValue:unknown,actor='central-artisys',now=new Date().toISOString()){
+async function event(db:D1Database,input:{licenseId?:string|null;productCode:string;email:string;action:string;actor?:string;source?:string;details?:Record<string,unknown>},at=new Date().toISOString()){
+  await eventStatement(db,input,at).run();
+}
+
+export async function prepareManualDeboraLicenseGrant(db:D1Database,emailValue:unknown,actor='central-artisys',now=new Date().toISOString()){
   const email=normalizeLicenseEmail(emailValue);if(!/^\S+@\S+\.\S+$/.test(email))throw new Error('invalid_email');
-  await registerCommercialAccount(db,DEBORA_PRODUCT_CODE,email,DEBORA_MANUAL_SOURCE,now);
   const existing=await db.prepare('SELECT * FROM product_licenses WHERE product_code=? AND email=? AND source=? AND external_ref=? LIMIT 1').bind(DEBORA_PRODUCT_CODE,email,DEBORA_MANUAL_SOURCE,'').first<LicenseRow>();
   const base=existing?.expires_at&&Date.parse(existing.expires_at)>Date.parse(now)?existing.expires_at:now;
   const expiresAt=addCalendarMonths(base,6);
   const id=existing?.id||crypto.randomUUID();
-  if(existing){await db.prepare("UPDATE product_licenses SET plan_code=?,status='active',starts_at=?,expires_at=?,metadata_json=?,updated_at=? WHERE id=?").bind(DEBORA_MANUAL_PLAN,now,expiresAt,JSON.stringify({months:6,manual:true}),now,id).run()}
-  else{await db.prepare('INSERT INTO product_licenses(id,product_code,email,plan_code,status,starts_at,expires_at,source,external_ref,metadata_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,DEBORA_PRODUCT_CODE,email,DEBORA_MANUAL_PLAN,'active',now,expiresAt,DEBORA_MANUAL_SOURCE,'',JSON.stringify({months:6,manual:true}),now,now).run()}
-  await event(db,{licenseId:id,productCode:DEBORA_PRODUCT_CODE,email,action:existing?'renew':'grant',actor,source:DEBORA_MANUAL_SOURCE,details:{planCode:DEBORA_MANUAL_PLAN,expiresAt}},now);
-  return{id,email,plan_code:DEBORA_MANUAL_PLAN,status:'active',expires_at:expiresAt,source:DEBORA_MANUAL_SOURCE};
+  const action=existing?'renew' as const:'grant' as const;
+  const result={id,email,plan_code:DEBORA_MANUAL_PLAN,status:'active' as const,expires_at:expiresAt,source:DEBORA_MANUAL_SOURCE};
+  const licenseStatement=existing
+    ?db.prepare("UPDATE product_licenses SET plan_code=?,status='active',starts_at=?,expires_at=?,metadata_json=?,updated_at=? WHERE id=?").bind(DEBORA_MANUAL_PLAN,now,expiresAt,JSON.stringify({months:6,manual:true}),now,id)
+    :db.prepare('INSERT INTO product_licenses(id,product_code,email,plan_code,status,starts_at,expires_at,source,external_ref,metadata_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,DEBORA_PRODUCT_CODE,email,DEBORA_MANUAL_PLAN,'active',now,expiresAt,DEBORA_MANUAL_SOURCE,'',JSON.stringify({months:6,manual:true}),now,now);
+  const statements=[
+    commercialAccountStatement(db,DEBORA_PRODUCT_CODE,email,DEBORA_MANUAL_SOURCE,now),
+    licenseStatement,
+    eventStatement(db,{licenseId:id,productCode:DEBORA_PRODUCT_CODE,email,action,actor,source:DEBORA_MANUAL_SOURCE,details:{planCode:DEBORA_MANUAL_PLAN,expiresAt}},now),
+  ];
+  return{action,result,statements};
+}
+
+export async function grantManualDeboraLicense(db:D1Database,emailValue:unknown,actor='central-artisys',now=new Date().toISOString()){
+  const prepared=await prepareManualDeboraLicenseGrant(db,emailValue,actor,now);
+  await db.batch(prepared.statements);
+  return prepared.result;
 }
 
 export async function getManualDeboraLicense(db:D1Database,emailValue:unknown){

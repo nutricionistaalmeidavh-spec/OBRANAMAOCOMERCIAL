@@ -1,6 +1,7 @@
 import { error, json, runtimeEnv, type RouterRoutes } from '../cloudflare/sdk';
 import { normalizeDeboraLicenseEmail } from './debora-license-policy';
-import { buildDeboraAdminClients, DEBORA_PRODUCT_CODE, getManualDeboraLicense, grantManualDeboraLicense, resolveProductAccess, revokeManualDeboraLicense, summarizeDeboraLicenseOverview } from './product-license-service';
+import { classifyLegacyManualSale, grantManualDeboraLicenseWithSale, listManualSales, manualSalesSummary } from './manual-license-sales';
+import { buildDeboraAdminClients, DEBORA_PRODUCT_CODE, getManualDeboraLicense, resolveProductAccess, revokeManualDeboraLicense, summarizeDeboraLicenseOverview } from './product-license-service';
 
 const parseJson=(value:unknown)=>{try{return JSON.parse(String(value||'{}')) as Record<string,unknown>}catch{return{}}};
 
@@ -37,6 +38,33 @@ export function createDeboraLicenseAdminRoutes(secured: RouterRoutes[string]): R
         return json({events});
       },
     ],
+    'GET /api/owner/debora-manual-sales/summary': [
+      ...secured,
+      async()=>json(await manualSalesSummary(runtimeEnv().DB)),
+    ],
+    'GET /api/owner/debora-manual-sales': [
+      ...secured,
+      async(ctx)=>{
+        try{return json(await listManualSales(runtimeEnv().DB,ctx.query))}
+        catch(cause){if((cause as Error)?.message==='invalid_cursor')return error('Cursor inválido.',400);throw cause}
+      },
+    ],
+    'POST /api/owner/debora-manual-sales/classify': [
+      ...secured,
+      async(ctx)=>{
+        const input=(ctx.body||{}) as Record<string,unknown>,email=normalizeDeboraLicenseEmail(input.email),actor=ctx.user?.email||'central-artisys';
+        if(!/^\S+@\S+\.\S+$/.test(email))return error('Informe um e-mail válido.',400);
+        try{return json({sale:await classifyLegacyManualSale(runtimeEnv().DB,email,input.sale,actor)})}
+        catch(cause){
+          const message=(cause as Error)?.message||'';
+          if(message==='manual_license_not_found')return error('Não existe licença manual para este e-mail.',404);
+          if(message==='duplicate_legacy_classification')return error('Esta referência já foi classificada para a licença.',409);
+          if(message==='invalid_email')return error('Informe um e-mail válido.',400);
+          if(/Informe|referência/i.test(message))return error(message,400);
+          throw cause;
+        }
+      },
+    ],
     'POST /api/owner/debora-license': [
       ...secured,
       async (ctx) => {
@@ -48,8 +76,8 @@ export function createDeboraLicenseAdminRoutes(secured: RouterRoutes[string]): R
         const db=runtimeEnv().DB,actor=ctx.user?.email||'central-artisys';
         try{
           if(action==='grant'){
-            const grant=await grantManualDeboraLicense(db,email,actor);
-            return json({state:'active',activation:'cloudflare_d1',grant});
+            const activated=await grantManualDeboraLicenseWithSale(db,email,input.sale,actor);
+            return json({state:'active',activation:'cloudflare_d1',grant:activated.grant,sale:activated.sale});
           }
           if(action==='revoke'){
             const grant=await revokeManualDeboraLicense(db,email,actor);
@@ -60,7 +88,9 @@ export function createDeboraLicenseAdminRoutes(secured: RouterRoutes[string]): R
           const access=await resolveProductAccess(db,'debora-lactacao',email);
           return json({state:grant?.status||(!access.commercial?'none':access.planCode),activation:'cloudflare_d1',grant,access});
         }catch(cause){
-          if((cause as Error)?.message==='invalid_email')return error('Informe um e-mail válido.',400);
+          const message=(cause as Error)?.message||'';
+          if(message==='invalid_email')return error('Informe um e-mail válido.',400);
+          if(/Informe|referência/i.test(message))return error(message,400);
           throw cause;
         }
       },
