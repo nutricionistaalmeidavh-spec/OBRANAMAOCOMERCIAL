@@ -1,30 +1,35 @@
 import fs from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
-import { router, runtimeEnv } from './sdk';
+import { runtimeEnv, withCloudflareRuntime } from './sdk';
 
 describe('license center Cloudflare runtime context', () => {
-  it('provides runtimeEnv while a bridged handler runs through router.fetch', async () => {
-    const statement = {
-      bind() { return this; },
-      async run() { return { meta: { changes: 0 } }; },
-      async all() { return { results: [] }; },
-      async first() { return null; },
-    };
-    const env = { DB: { prepare: () => statement } } as any;
-    const request = new Request('https://obra.test/runtime-probe');
-    const probe = router({
-      'GET /runtime-probe': [async () => new Response(runtimeEnv() === env ? 'ok' : 'bad')],
+  it('provides runtimeEnv without consuming the direct handler request body', async () => {
+    const env = { DB: {} as D1Database } as any;
+    const request = new Request('https://obra.test/api/internal/license-center/obra/companies', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'ARTISYS QA E2E run-123', adminEmail: 'qa-license-run-123@example.test' }),
     });
 
-    const response = await probe.fetch(request, env);
+    const resolved = await withCloudflareRuntime(request, env, async () => ({
+      env: runtimeEnv(),
+      payload: await request.json() as Record<string, unknown>,
+    }));
 
-    expect(await response.text()).toBe('ok');
+    expect(resolved.env).toBe(env);
+    expect(resolved.payload).toEqual({
+      name: 'ARTISYS QA E2E run-123',
+      adminEmail: 'qa-license-run-123@example.test',
+    });
   });
 
-  it('bridges the direct license-center admin gateway through router runtime context', async () => {
+  it('wraps the direct license-center admin gateway without routing the request body twice', async () => {
     const source = await fs.readFile(new URL('./worker.ts', import.meta.url), 'utf8');
 
-    expect(source).toContain("import { router } from './sdk';");
-    expect(source).toMatch(/router\(\{[\s\S]*handleLicenseCenterAdminInternal\(ctx\.request,\s*ctx\.env(?:\s+as\s+any)?\)[\s\S]*\}\)/);
+    expect(source).toContain("import { withCloudflareRuntime } from './sdk';");
+    expect(source).toMatch(
+      /withCloudflareRuntime\(\s*request\s*,\s*env\s*,\s*\(\)\s*=>\s*handleLicenseCenterAdminInternal\(request,\s*env\)\s*\)/,
+    );
+    expect(source).not.toContain('licenseCenterAdminWithRuntime');
   });
 });
