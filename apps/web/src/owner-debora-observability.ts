@@ -1,4 +1,4 @@
-type OwnerApi={get:<T=any>(path:string,query?:Record<string,unknown>)=>Promise<{data:T}>};
+type OwnerApi={get:<T=any>(path:string,query?:Record<string,unknown>)=>Promise<{data:T}>;post?:<T=any>(path:string,body?:unknown)=>Promise<{data:T}>};
 type Page<T>={items:T[];hasMore:boolean;nextCursor:string|null};
 type DeboraSummary={
   accounts?:{total?:number;createdToday?:number;created7d?:number;created30d?:number};
@@ -28,9 +28,10 @@ const num=(value:unknown)=>Number.isFinite(Number(value))?Number(value):0;
 const fmtMoney=(cents:unknown)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(num(cents)/100);
 const fmtDateTime=(value?:string|null)=>value?new Date(value).toLocaleString('pt-BR'):'—';
 export function formatUsageSeconds(value:unknown){const seconds=Math.max(0,Math.floor(num(value))),hours=Math.floor(seconds/3600),minutes=Math.floor((seconds%3600)/60);return hours?`${hours}h ${String(minutes).padStart(2,'0')}min`:`${minutes}min`}
-const channelLabel=(value?:string)=>({mercado_livre:'Mercado Livre',direct_sale:'Venda direta',shopee:'Shopee',gumroad:'Gumroad',courtesy:'Cortesia',partnership:'Parceria',other:'Outro',asaas:'Asaas'} as Record<string,string>)[String(value||'')]||String(value||'—');
+const channelLabel=(value?:string)=>({mercado_livre:'Mercado Livre',mercado_livre_manual:'Manual (legado)',direct_sale:'Venda direta',shopee:'Shopee',gumroad:'Gumroad',courtesy:'Cortesia',partnership:'Parceria',other:'Outro',asaas:'Asaas',cadastro:'Cadastro'} as Record<string,string>)[String(value||'')]||String(value||'—');
 const paymentLabel=(value?:string)=>({paid:'Pago',pending:'Pendente',unpaid:'Não pago',not_applicable:'Não se aplica',unknown:'Não informado',active:'Ativo',past_due:'Em atraso',cancelled:'Cancelado',expired:'Expirado',failed:'Falhou',checkout_created:'Checkout criado'} as Record<string,string>)[String(value||'')]||String(value||'—');
 const planLabel=(value?:string)=>({pro_monthly:'Pro mensal',pro_annual:'Pro anual',pro_6m:'Pro 6 meses',freemium:'Freemium'} as Record<string,string>)[String(value||'')]||String(value||'Freemium');
+function brlToCents(value:unknown){const text=String(value??'').trim();if(!text)return null;const normalized=(text.includes(',')?text.replace(/\./g,'').replace(',','.'):text).replace(/[^0-9.-]/g,'');const amount=Number(normalized);if(!Number.isFinite(amount)||amount<0)throw new Error('Informe um valor válido.');return Math.round(amount*100)}
 
 export function deboraObservabilitySection(){return `<section class="owner-section owner-debora-observability" data-debora-observability-root>
   <div class="owner-section-head"><div><span class="owner-eyebrow">USO E VENDAS</span><h2>Observabilidade da Débora</h2><p>Contas, presença, sessões e vendas. Dados clínicos não fazem parte deste painel.</p></div></div>
@@ -41,6 +42,7 @@ export function deboraObservabilitySection(){return `<section class="owner-secti
       <div class="owner-debora-observability-filters"><label>Buscar e-mail<input type="search" data-debora-users-search placeholder="cliente@exemplo.com"></label><label>Plano<select data-debora-users-plan><option value="">Todos</option><option value="freemium">Freemium</option><option value="pro_monthly">Pro mensal</option><option value="pro_annual">Pro anual</option><option value="pro_6m">Pro 6 meses</option></select></label><label>Presença<select data-debora-users-online><option value="">Todos</option><option value="true">Online</option><option value="false">Offline</option></select></label></div>
       <div class="owner-debora-table-wrap"><table class="owner-debora-table"><thead><tr><th>Usuário</th><th>Plano</th><th>Origem</th><th>Pagamento</th><th>Presença</th><th>Último acesso</th><th>Conta criada</th><th></th></tr></thead><tbody data-debora-users-body></tbody></table></div>
       <div class="owner-debora-observability-pager"><button type="button" class="owner-secondary" data-debora-users-prev>Anterior</button><button type="button" class="owner-secondary" data-debora-users-next>Próxima</button></div>
+      <div data-debora-classification-panel></div>
       <div data-debora-user-activity-panel></div>
     </section>
     <section class="owner-debora-observability-panel"><div class="owner-debora-observability-panel-head"><div><h3>Vendas</h3><small>Asaas e vendas manuais em uma linha do tempo única.</small></div></div>
@@ -75,15 +77,17 @@ function saleQuery(){
   const query:Record<string,unknown>={limit:50};const status=document.querySelector<HTMLSelectElement>('[data-debora-sales-status]')?.value;if(status)query.status=status;if(salesState.cursor)query.cursor=salesState.cursor;return query;
 }
 function effectivePlan(user:DeboraUser){return user.effectiveLicense?.planCode||user.planCode||'freemium'}
+function isLegacyManual(user:DeboraUser){return user.effectiveLicense?.planCode==='pro_6m'&&!user.manualSale}
 function userOrigin(user:DeboraUser){return user.manualSale?.acquisitionChannel||user.effectiveLicense?.source||(user.subscriptionStatus?'asaas':'cadastro')}
-function userPayment(user:DeboraUser){return user.manualSale?.paymentStatus||(user.subscriptionStatus?'paid':'')}
+function userPayment(user:DeboraUser){if(user.manualSale)return user.manualSale.paymentStatus||'unknown';if(isLegacyManual(user))return'unknown';return user.subscriptionStatus?'paid':''}
 
 async function loadUsers(){
   if(!activeApi)return;const {data}=await activeApi.get<Page<DeboraUser>>('/api/owner/debora-observability/users',userQuery());
   usersState.hasMore=Boolean(data.hasMore);usersState.nextCursor=data.nextCursor||null;
-  const body=document.querySelector<HTMLElement>('[data-debora-users-body]');if(body)body.innerHTML=(data.items||[]).map(user=>`<tr><td><strong>${esc(user.email)}</strong></td><td>${esc(planLabel(effectivePlan(user)))}</td><td>${esc(channelLabel(userOrigin(user)))}</td><td>${esc(paymentLabel(userPayment(user)))}</td><td><span class="owner-debora-presence ${user.online?'is-online':'is-offline'}">${user.online?'Online':'Offline'}</span></td><td>${esc(fmtDateTime(user.lastSeenAt||user.lastSignInAt))}</td><td>${esc(fmtDateTime(user.createdAt))}</td><td><button type="button" class="owner-secondary" data-debora-user-activity="${esc(user.userId)}" data-debora-user-email="${esc(user.email)}">Ver atividade</button></td></tr>`).join('')||'<tr><td colspan="8">Nenhum usuário encontrado.</td></tr>';
+  const body=document.querySelector<HTMLElement>('[data-debora-users-body]');if(body)body.innerHTML=(data.items||[]).map(user=>`<tr><td><strong>${esc(user.email)}</strong></td><td>${esc(planLabel(effectivePlan(user)))}</td><td>${esc(channelLabel(userOrigin(user)))}</td><td>${esc(paymentLabel(userPayment(user)))}</td><td><span class="owner-debora-presence ${user.online?'is-online':'is-offline'}">${user.online?'Online':'Offline'}</span></td><td>${esc(fmtDateTime(user.lastSeenAt||user.lastSignInAt))}</td><td>${esc(fmtDateTime(user.createdAt))}</td><td><div class="owner-debora-row-actions"><button type="button" class="owner-secondary" data-debora-user-activity="${esc(user.userId)}" data-debora-user-email="${esc(user.email)}">Ver atividade</button>${isLegacyManual(user)?`<button type="button" class="owner-secondary" data-debora-classify-manual="${esc(user.email)}">Classificar pagamento</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="8">Nenhum usuário encontrado.</td></tr>';
   const prev=document.querySelector<HTMLButtonElement>('[data-debora-users-prev]'),next=document.querySelector<HTMLButtonElement>('[data-debora-users-next]');if(prev)prev.disabled=!usersState.stack.length;if(next)next.disabled=!usersState.hasMore;
   document.querySelectorAll<HTMLButtonElement>('[data-debora-user-activity]').forEach(button=>button.onclick=()=>void loadActivity(button.dataset.deboraUserActivity||'',button.dataset.deboraUserEmail||''));
+  document.querySelectorAll<HTMLButtonElement>('[data-debora-classify-manual]').forEach(button=>button.onclick=()=>openLegacyClassification(button.dataset.deboraClassifyManual||''));
 }
 
 async function loadSales(){
@@ -96,6 +100,14 @@ async function loadSales(){
 async function loadActivity(userId:string,email:string){
   const panel=document.querySelector<HTMLElement>('[data-debora-user-activity-panel]');if(!panel||!activeApi||!userId)return;panel.innerHTML='<p>Carregando sessões…</p>';
   try{const {data}=await activeApi.get<Page<DeboraSession>>(`/api/owner/debora-observability/users/${encodeURIComponent(userId)}/sessions`,{limit:25});panel.innerHTML=`<div class="owner-debora-activity"><div class="owner-debora-observability-panel-head"><div><h4>Atividade · ${esc(email)}</h4><small>Histórico detalhado paginado, com duração aproximada.</small></div><button type="button" class="owner-secondary" data-debora-close-activity>Fechar</button></div>${(data.items||[]).map(session=>`<div class="owner-debora-activity-row"><span>${esc(fmtDateTime(session.startedAt))}</span><strong>${esc(formatUsageSeconds(session.durationSeconds))}</strong><small>${session.endedAt?'Encerrada':'Sessão atual/recentemente ativa'}</small></div>`).join('')||'<p>Nenhuma sessão registrada.</p>'}</div>`;document.querySelector<HTMLButtonElement>('[data-debora-close-activity]')!.onclick=()=>{panel.innerHTML=''}}catch{panel.innerHTML='<p>Atividade indisponível temporariamente.</p>'}
+}
+
+function openLegacyClassification(email:string){
+  const panel=document.querySelector<HTMLElement>('[data-debora-classification-panel]');if(!panel||!email)return;
+  panel.innerHTML=`<form class="owner-debora-classification" data-debora-classification-form><div class="owner-debora-observability-panel-head"><div><h4>Classificar venda manual antiga</h4><small>${esc(email)} · a classificação comercial não altera a licença.</small></div><button type="button" class="owner-secondary" data-debora-close-classification>Fechar</button></div><div class="owner-debora-observability-filters"><label>Origem<select name="acquisitionChannel" required><option value="mercado_livre">Mercado Livre</option><option value="direct_sale">Venda direta</option><option value="shopee">Shopee</option><option value="gumroad">Gumroad</option><option value="courtesy">Cortesia</option><option value="partnership">Parceria</option><option value="other">Outro</option></select></label><label>Pagamento<select name="paymentStatus" required><option value="paid">Pago</option><option value="pending">Pendente</option><option value="unpaid">Não pago</option><option value="not_applicable">Não se aplica</option></select></label><label>Valor<input name="amount" inputmode="decimal" placeholder="80,00"></label><label>Referência<input name="externalOrderRef" maxlength="160"></label></div><div class="owner-form-actions row"><button class="owner-primary" type="submit">Salvar classificação</button><span data-debora-classification-result role="status"></span></div></form>`;
+  panel.querySelector<HTMLButtonElement>('[data-debora-close-classification]')!.onclick=()=>{panel.innerHTML=''};
+  const form=panel.querySelector<HTMLFormElement>('[data-debora-classification-form]')!;
+  form.onsubmit=async event=>{event.preventDefault();const result=form.querySelector<HTMLElement>('[data-debora-classification-result]')!,button=form.querySelector<HTMLButtonElement>('button[type="submit"]')!;button.disabled=true;result.textContent='Salvando…';try{if(!activeApi?.post)throw new Error('Ação administrativa indisponível.');const values=new FormData(form);await activeApi.post('/api/owner/debora-manual-sales/classify',{email,sale:{acquisitionChannel:String(values.get('acquisitionChannel')||''),paymentStatus:String(values.get('paymentStatus')||''),amountCents:brlToCents(values.get('amount')),externalOrderRef:String(values.get('externalOrderRef')||'').trim()||null}});result.textContent='Classificação salva.';await bindDeboraObservability(activeApi)}catch(error){result.textContent=(error as {message?:string})?.message||'Não foi possível classificar.'}finally{button.disabled=false}};
 }
 
 function resetUsers(){usersState.cursor=null;usersState.stack=[];usersState.nextCursor=null;void loadUsers().catch(markUnavailable)}
