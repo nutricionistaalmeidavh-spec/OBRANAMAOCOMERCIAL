@@ -35,7 +35,7 @@
     "qa:p1:matrix": "npm run qa:prepare && node scripts/qa-p1-matrix.mjs",
     "qa:p1": "npm run qa:p1:security && npm run qa:p1:sweep && npm run qa:p1:matrix",
     "qa:p1:sweep": "npm run qa:prepare && node scripts/qa-p1-sweep.mjs",
-    "qa:p2": "npm run qa:prepare:core && node scripts/qa-p2-release.mjs"
+    "qa:p2": "npm run qa:admin-parity && npm run qa:prepare:core && node scripts/qa-p2-release.mjs"
   },
   "dependencies": {
     "lucide": "^0.469.0",
