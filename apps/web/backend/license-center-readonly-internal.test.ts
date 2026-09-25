@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { handleLicenseCenterReadonlyInternal } from './license-center-readonly-internal';
+import { handleLicenseCenterReadonlyInternal, licenseCenterAdminParity } from './license-center-readonly-internal';
 
 describe('license center internal endpoint',()=>{
   const env={DB:{} as D1Database,LICENSE_CENTER_READ_SECRET:'read-secret'} as any;
@@ -19,5 +19,12 @@ describe('license center internal endpoint',()=>{
     const response=await handleLicenseCenterReadonlyInternal(new Request('https://obra.test/api/internal/license-center/snapshot'),env);
     expect(response?.status).toBe(401);
     expect(await response?.json()).toEqual({error:'unauthorized'});
+  });
+
+  it('publishes the required general-panel capability handshake',()=>{
+    expect(licenseCenterAdminParity()).toEqual({
+      contractVersion:1,
+      requiredCapabilities:expect.arrayContaining(['obra.company.create','debora.license.manage','loja-online.license.update'])
+    });
   });
 });

@@ -114,3 +114,35 @@ Configuração de produção obrigatória:
 Nunca coloque o valor de `LOJAONLINE_LICENSE_SERVICE_SECRET` em `wrangler.jsonc`, documentação, Git ou frontend.
 
 Para desenvolvimento local, o adapter aceita `LOJAONLINE_LICENSE_BASE_URL` como fallback; em produção o caminho preferido é o Service Binding.
+
+## 8. Central de Licenças no Painel Geral — fases 5 a 7
+
+A nova Central do `artisys-mercadolivre` usa o Obra como autoridade e não recebe acesso direto aos D1 de licenciamento.
+
+Configure os segredos de escrita separadamente dos segredos de leitura:
+
+```bash
+npx wrangler secret put LICENSE_CENTER_WRITE_SECRET --config wrangler.jsonc
+```
+
+No `MercadoLivre`, configure o mesmo valor em `OBRA_LICENSE_CENTER_WRITE_SECRET`. Não reutilize o segredo de leitura.
+
+Antes do rollout, mantenha:
+
+```text
+LICENSE_CENTER_WRITE_ENABLED=false
+```
+
+Rode:
+
+```bash
+npm run qa:admin-parity
+```
+
+Depois siga o runbook completo em:
+
+`apps/web/docs/LICENSE_CENTER_PHASES_5_7_RUNBOOK.md`
+
+A escrita só deve ser habilitada depois do gate de paridade e do E2E isolado. O E2E live só pode criar/alterar registros QA do próprio `qaRunId`; clientes e licenças preexistentes são proibidos como alvo.
+
+Durante toda a fase 7, mantenha `https://artisys.dev/sistema#owner` disponível como fallback.

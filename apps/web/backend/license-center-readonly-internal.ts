@@ -1,6 +1,7 @@
 import { companyViews } from './owner-companies';
 import { buildDeboraAdminClients, DEBORA_PRODUCT_CODE, summarizeDeboraLicenseOverview } from './product-license-service';
 import { lojaOnlineRequest, type LojaOnlineCompany, type LojaOnlineLicenseEvent, type LojaOnlineRuntimeEnv } from './loja-online-admin';
+import parityRegistry from '../qa/admin-parity-capabilities.json';
 
 type ServiceBinding={fetch(input:RequestInfo|URL,init?:RequestInit):Promise<Response>};
 type Env={
@@ -16,6 +17,13 @@ type Row=Record<string,any>&{id:string};
 
 const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const parseJson=(value:unknown)=>{try{return JSON.parse(String(value||'{}')) as Record<string,unknown>}catch{return{}}};
+
+export function licenseCenterAdminParity(){
+  return {
+    contractVersion:Number(parityRegistry.contractVersion||1),
+    requiredCapabilities:parityRegistry.capabilities.filter(entry=>entry.generalPanelRequired===true&&entry.status==='active').map(entry=>String(entry.generalPanelCapability||entry.id)).sort(),
+  };
+}
 
 async function digest(value:string){return new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))}
 async function sameSecret(a:string,b:string){if(!a||!b)return false;const[x,y]=await Promise.all([digest(a),digest(b)]);if(x.length!==y.length)return false;let diff=0;for(let i=0;i<x.length;i++)diff|=x[i]^y[i];return diff===0}
@@ -71,7 +79,7 @@ async function lojaOnlineSnapshot(env:Env){
 
 export async function buildLicenseCenterReadonlySnapshot(env:Env){
   const [obra,debora,audit,lojaOnline]=await Promise.all([obraSnapshot(env),deboraSnapshot(env),licenseAudit(env),lojaOnlineSnapshot(env)]);
-  return {generatedAt:new Date().toISOString(),mode:'read-only',obra,debora,lojaOnline,audit:{events:audit}};
+  return {generatedAt:new Date().toISOString(),mode:'read-only',adminParity:licenseCenterAdminParity(),obra,debora,lojaOnline,audit:{events:audit}};
 }
 
 export async function handleLicenseCenterReadonlyInternal(request:Request,env:Env):Promise<Response|null>{
