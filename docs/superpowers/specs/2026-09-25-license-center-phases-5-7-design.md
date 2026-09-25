@@ -1,7 +1,7 @@
 # Central de Licenças — Fases 5 a 7
 
 Data: 2026-09-25
-Status: design aprovado; aguardando revisão deste documento antes do plano de implementação
+Status: design aprovado, incluindo governança de paridade futura; pronto para plano de implementação
 Branches: `feat/license-center-phases-5-7` em `OBRANAMAOCOMERCIAL` e `MercadoLivre`
 
 ## 1. Objetivo
@@ -389,15 +389,17 @@ Rollback automatizado nunca pode alterar/apagar IDs de `baselineIds`; somente po
 1. extrair/reutilizar operações de domínio no Obra sem alterar a semântica das rotas antigas;
 2. adicionar superfície interna de escrita + testes de contrato e segurança;
 3. adicionar proxy allowlisted + UI de escrita no MercadoLivre;
-4. adicionar E2E isolado;
-5. executar CI relevante;
-6. deploy do Obra com escrita controlada por feature flag;
-7. deploy do MercadoLivre;
-8. configurar o mesmo valor em `LICENSE_CENTER_WRITE_SECRET` e `OBRA_LICENSE_CENTER_WRITE_SECRET`;
-9. executar E2E live com registros QA exclusivos;
-10. validar paridade, auditoria, `existingIdsTouched = 0` e `QA records active = 0`;
-11. manter escrita habilitada para operação paralela somente após todos os gates passarem;
-12. manter a Central antiga ativa.
+4. adicionar governança de paridade futura e seus gates de CI/runtime;
+5. adicionar E2E isolado;
+6. executar CI relevante;
+7. deploy do Obra com escrita controlada por feature flag;
+8. deploy do MercadoLivre;
+9. configurar o mesmo valor em `LICENSE_CENTER_WRITE_SECRET` e `OBRA_LICENSE_CENTER_WRITE_SECRET`;
+10. executar gate live de paridade de capacidades;
+11. executar E2E live com registros QA exclusivos;
+12. validar paridade, auditoria, `existingIdsTouched = 0` e `QA records active = 0`;
+13. manter escrita habilitada para operação paralela somente após todos os gates passarem;
+14. manter a Central antiga ativa.
 
 ## 20. Critérios de conclusão
 
@@ -417,16 +419,145 @@ Nova Central consegue, pelas autoridades existentes:
 - writes são confirmados por duas leituras independentes;
 - auditoria corresponde às ações;
 - `existingIdsTouched = 0`;
-- todos os registros QA terminam inativos.
+- todos os registros QA terminam inativos;
+- gate de paridade administrativa não possui capacidade obrigatória ausente no Painel Geral.
 
 ### Fase 7
 
 - nova Central permanece com escrita habilitada para operação real;
 - Central antiga continua íntegra e disponível;
 - rollback por feature flag permanece funcional;
-- nenhuma rota/autenticação/API antiga necessária é removida.
+- nenhuma rota/autenticação/API antiga necessária é removida;
+- nenhuma capacidade administrativa obrigatória pode ficar silenciosamente disponível apenas na Central antiga.
 
-## 21. Fora do escopo
+## 21. Governança de paridade futura do painel administrativo
+
+A paridade futura é um requisito de arquitetura, não uma convenção humana. O objetivo é impedir que uma funcionalidade administrativa nova seja adicionada à autoridade/Central antiga e fique silenciosamente ausente do Painel Geral.
+
+### 21.1 Registro canônico de capacidades
+
+O `OBRANAMAOCOMERCIAL` manterá um registro canônico versionado:
+
+```text
+apps/web/qa/admin-parity-capabilities.json
+```
+
+Cada capacidade administrativa deve declarar, no mínimo:
+
+```json
+{
+  "id": "obra.company.update-license",
+  "authorityRoutes": ["PUT /api/owner/companies/:id"],
+  "legacySurface": "Central Artisys / Cliente / Licença",
+  "generalPanelRequired": true,
+  "generalPanelCapability": "obra.company.update-license",
+  "e2e": ["qa-license-center-isolated", "qa-license-center-live"],
+  "status": "active"
+}
+```
+
+Se uma capacidade for deliberadamente exclusiva da Central antiga ou infraestrutura interna, isso deve ser explícito:
+
+```json
+{
+  "generalPanelRequired": false,
+  "reason": "internal-only"
+}
+```
+
+`generalPanelRequired:false` sem `reason` é inválido.
+
+### 21.2 Scanner automático das rotas administrativas
+
+O CI do Obra terá um verificador que percorre recursivamente `apps/web/backend/**/*.ts`, extrai declarações de rota com `/api/owner/` e exige que toda rota administrativa encontrada esteja:
+
+1. associada a uma capacidade no registro; ou
+2. explicitamente classificada como não destinada ao Painel Geral, com justificativa.
+
+Adicionar uma nova rota `/api/owner/*` sem classificação faz o CI falhar.
+
+O verificador também cruza o registro com `apps/web/qa/ui-capability-matrix.json` e `apps/web/qa/business-capabilities.json`, reutilizando a governança já existente em vez de criar uma matriz paralela desconectada.
+
+### 21.3 Contrato de capacidades exposto pela autoridade
+
+O snapshot interno do Obra passará a expor metadados de paridade, sem segredos:
+
+```json
+{
+  "adminParity": {
+    "contractVersion": 1,
+    "requiredCapabilities": [
+      "obra.company.create",
+      "obra.company.update-license",
+      "debora.license.manage",
+      "loja-online.license.manage"
+    ]
+  }
+}
+```
+
+`contractVersion` deve ser incrementado quando o conjunto ou semântica de capacidades administrativas obrigatórias mudar.
+
+### 21.4 Capacidades suportadas pelo Painel Geral
+
+O `MercadoLivre` manterá uma lista explícita, exportada pelo código, das capacidades que a nova interface realmente implementa. Exemplo conceitual:
+
+```js
+export const SUPPORTED_LICENSE_CENTER_CAPABILITIES = new Set([
+  "obra.company.create",
+  "obra.company.update-license",
+  "debora.license.manage",
+  "loja-online.license.manage"
+]);
+```
+
+O endpoint `/api/license-center` compara a lista da autoridade com a lista suportada localmente e devolve:
+
+```json
+{
+  "parity": {
+    "status": "ok | incomplete",
+    "missing": []
+  }
+}
+```
+
+Uma capacidade obrigatória ausente nunca pode ficar invisível: a página `/licenses` deve mostrar um alerta administrativo de paridade incompleta com os IDs faltantes.
+
+### 21.5 Gate cross-repo antes da fase 7 e em releases futuras
+
+O `MercadoLivre` terá um script de verificação live que consulta o snapshot publicado do Obra com a credencial de leitura, compara `requiredCapabilities` com `SUPPORTED_LICENSE_CENTER_CAPABILITIES` e falha com saída explícita quando houver divergência.
+
+Exemplo esperado:
+
+```text
+ADMIN_PARITY_FAILURE
+missing: obra.company.change-admin-email
+```
+
+Esse gate é obrigatório antes de habilitar escrita na fase 7 e deve permanecer disponível para releases futuras.
+
+### 21.6 Regra para mudanças futuras
+
+Uma nova funcionalidade administrativa segue obrigatoriamente esta sequência:
+
+```text
+nova rota/regra administrativa
+        ↓
+capacidade registrada/classificada
+        ↓
+Painel Geral implementa ou exclusão é justificada
+        ↓
+teste/E2E associado
+        ↓
+gate de paridade passa
+        ↓
+release
+```
+
+Portanto a regra deixa de ser “lembrar de atualizar o painel novo” e passa a ser “o repositório não aceita silenciosamente uma capacidade administrativa não classificada, e a operação/release detecta quando uma capacidade obrigatória ainda não existe no Painel Geral”.
+
+## 22. Fora do escopo
 
 - fase 8;
 - remover/redirecionar a Central antiga;
@@ -437,7 +568,7 @@ Nova Central consegue, pelas autoridades existentes:
 - reescrever a autoridade da Loja Online;
 - criar novo sistema de login administrativo.
 
-## 22. Resultado esperado
+## 23. Resultado esperado
 
 ```text
 Central nova     → leitura + escrita real → uso principal na fase 7
@@ -445,3 +576,5 @@ Central antiga   → leitura + escrita real → fallback preservado
 ```
 
 As regras continuam centralizadas nas autoridades existentes. O `MercadoLivre` permanece uma interface/orquestrador administrativo, não uma nova autoridade de licenças.
+
+Além da paridade funcional inicial, futuras capacidades administrativas não podem ficar silenciosamente fora do Painel Geral: o registro canônico, o scanner de rotas, o handshake de capacidades e o gate live tornam qualquer divergência explícita e testável.
