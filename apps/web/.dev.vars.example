@@ -9,6 +9,13 @@ OWNER_COMPANY=Obra na Mão
 OWNER_PROJECT=Operação Comercial
 OWNER_CUSTOMER=Obra na Mão
 
+# Central de Licenças do Painel Geral.
+# Leitura e escrita usam segredos diferentes. Em produção, cadastre-os com `wrangler secret put`.
+LICENSE_CENTER_READ_SECRET=
+LICENSE_CENTER_WRITE_SECRET=
+# Fail-closed: mantenha false até paridade e E2E estarem aprovados.
+LICENSE_CENTER_WRITE_ENABLED=false
+
 # ArtiSys Payments / Asaas. Use somente um host oficial permitido pelo adapter.
 ASAAS_API_BASE_URL=https://api-sandbox.asaas.com/v3
 ASAAS_API_KEY=
