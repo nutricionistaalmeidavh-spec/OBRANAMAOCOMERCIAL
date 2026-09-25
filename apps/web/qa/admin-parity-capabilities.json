@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contractVersion": 2,
+  "contractVersion": 1,
   "capabilities": [
     {"id":"obra.company.read","authorityRoutes":["GET /api/owner/companies","GET /api/owner/companies/:id"],"legacySurface":"Central Artisys / Clientes","generalPanelRequired":true,"generalPanelCapability":"obra.company.read","e2e":["qa-license-center-isolated","qa-license-center-live"],"status":"active"},
     {"id":"obra.company.create","authorityRoutes":["POST /api/owner/companies"],"legacySurface":"Central Artisys / Clientes","generalPanelRequired":true,"generalPanelCapability":"obra.company.create","e2e":["qa-license-center-isolated","qa-license-center-live"],"status":"active"},
