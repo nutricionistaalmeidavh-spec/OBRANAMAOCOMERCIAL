@@ -7,6 +7,7 @@ import { handleLicenseCenterReadonlyInternal } from '../backend/license-center-r
 import { handleLicenseCenterAdminInternal } from '../backend/license-center-admin-internal';
 import { handleAdminGovernanceRequest } from '../backend/admin-governance-http';
 import { handlePublicDownload } from './public-downloads';
+import { router } from './sdk';
 
 const RESERVED_LICENSE_ID='11e1a89038929aa010bb22c601502da1';
 const RESERVED_EMAIL_HEX='65766572746f6e2e656e6740686f746d61696c2e636f6d';
@@ -35,6 +36,18 @@ function ensureReservedLifetimeLicense(env:any){
   return reservedLicenseReady;
 }
 
+async function licenseCenterAdminWithRuntime(request:Request,env:any){
+  const url=new URL(request.url);
+  if(!url.pathname.startsWith('/api/internal/license-center/')||url.pathname==='/api/internal/license-center/snapshot')return null;
+  const bridge=router({
+    [`${request.method} ${url.pathname}`]: [async ctx=>{
+      const response=await handleLicenseCenterAdminInternal(ctx.request,ctx.env as any);
+      return response||new Response(JSON.stringify({error:'not_found'}),{status:404,headers:{'content-type':'application/json; charset=utf-8'}});
+    }]
+  });
+  return bridge.fetch(request,env);
+}
+
 export default {
   async fetch(request: Request, env: any) {
     const publicDownload=await handlePublicDownload(request);
@@ -43,7 +56,7 @@ export default {
     await ensureReservedLifetimeLicense(env);
     const licensing=await handleProductLicenseInternal(request,env);
     if(licensing)return licensing;
-    const licenseCenterAdmin=await handleLicenseCenterAdminInternal(request,env);
+    const licenseCenterAdmin=await licenseCenterAdminWithRuntime(request,env);
     if(licenseCenterAdmin)return licenseCenterAdmin;
     const licenseCenter=await handleLicenseCenterReadonlyInternal(request,env);
     if(licenseCenter)return licenseCenter;
