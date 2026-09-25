@@ -1,5 +1,7 @@
 import { auth, api } from './cloudflare-client';
+import { bindDeboraObservability, deboraObservabilitySection, refreshDeboraObservability } from './owner-debora-observability';
 import './owner.css';
+import './owner-debora-observability.css';
 
 type Device={id:string;name:string;status?:string;email?:string;lastSeenAt?:string};
 type Company = {id:string;name:string;adminEmail:string;status:string;reserved?:boolean;modules:string[];channels:string[];passwordCreatedAt?:string;usersCount:number;projectsCount:number;devicesCount:number;license?:{id:string;plan?:string;expiresAt?:string;code?:string;maxUsers?:number;maxProjects?:number;maxDevices?:number};users?:Array<{email:string;name?:string;role?:string}>;projects?:Array<{name:string}>;devices?:Device[]};
@@ -24,6 +26,12 @@ const formatDate=(value?:string|null)=>value?new Date(value).toLocaleDateString(
 const dateInput=(value?:string|null)=>value?String(value).slice(0,10):'';
 function choices(name:string,items:string[],selected:string[]){return items.map(k=>`<label class="check"><input type="checkbox" name="${name}" value="${k}" ${selected.includes(k)?'checked':''}>${labels[k]||k}</label>`).join('')}
 function selected(form:HTMLFormElement,name:string){return [...form.querySelectorAll<HTMLInputElement>(`input[name="${name}"]:checked`)].map(x=>x.value)}
+function brlToCents(value:unknown){
+  const text=String(value??'').trim();if(!text)return null;
+  const normalized=(text.includes(',')?text.replace(/\./g,'').replace(',','.'):text).replace(/[^0-9.-]/g,'');
+  const amount=Number(normalized);if(!Number.isFinite(amount)||amount<0)throw new Error('Informe um valor válido.');
+  return Math.round(amount*100);
+}
 
 let ownerView:OwnerView='overview';
 let ownerCompanies:Company[]=[];
@@ -63,8 +71,8 @@ function companyForm(){return `<section class="owner-section owner-form-section"
 function obraView(companies:Company[]){return `<section class="owner-product-banner"><div><span class="owner-eyebrow">PRODUTO</span><h2>Obra na Mão</h2><p>Empresas, módulos, canais e liberação vinculada ao e-mail do administrador principal.</p></div><div class="owner-banner-stats"><strong>${companies.length}</strong><span>empresas clientes</span></div></section>${companyForm()}`}
 
 function deboraMetric(label:string,value:number,key:keyof DeboraOverview,detail:string){return `<article class="owner-metric" data-debora-metric="${key}"><span>${esc(label)}</span><strong>${value}</strong><small>${esc(detail)}</small></article>`}
-function deboraLicenseCard(){return `<section class="owner-section"><div class="owner-section-head"><div><span class="owner-eyebrow">DÉBORA LACTAÇÃO</span><h2>Licenciamento Pro</h2><p>A licença da Débora usa o e-mail da consultora e permanece separada das empresas do Obra na Mão.</p></div><a class="owner-secondary" href="https://deboralactacao.com/admin/seo/" target="_blank" rel="noopener">Abrir painel SEO</a></div><form id="deboraLicenseForm" class="owner-form-card owner-debora-card"><div class="owner-form-grid single"><label>E-mail da cliente<input name="email" type="email" required autocomplete="off" placeholder="cliente@exemplo.com"></label></div><div class="owner-form-actions row"><button class="owner-primary" type="submit">Liberar / renovar 6 meses</button><button class="owner-secondary" type="button" id="deboraLicenseStatus">Consultar</button><button class="owner-danger" type="button" id="deboraLicenseRevoke">Revogar</button></div><p id="deboraLicenseResult" role="status"></p></form></section>`}
-function deboraView(){return `<section class="owner-product-banner debora"><div><span class="owner-eyebrow">PRODUTO</span><h2>Débora Lactação</h2><p>Controle comercial da assinatura sem misturar com o provisionamento empresarial do Obra na Mão.</p></div><div class="owner-banner-actions"><div class="owner-banner-stats"><strong>${deboraOverview.pro}</strong><span>Pro ativo(s)</span></div><a class="owner-secondary" href="https://deboralactacao.com/admin/seo/" target="_blank" rel="noopener">SEO</a></div></section><section class="owner-section"><div class="owner-section-head"><div><span class="owner-eyebrow">CARTEIRA</span><h2>Clientes e status</h2><p>Contagens reais do D1 central da Artisys.</p></div></div><div class="owner-metrics owner-debora-metrics">${deboraMetric('Clientes',deboraOverview.clients,'clients','Contas comerciais')}${deboraMetric('Pro ativo',deboraOverview.pro,'pro','Acesso completo')}${deboraMetric('Freemium',deboraOverview.freemium,'freemium','Limite gratuito')}${deboraMetric('Expirando',deboraOverview.expiring,'expiring','Próximos 30 dias')}${deboraMetric('Revogadas',deboraOverview.revoked,'revoked','Sem Pro ativo')}</div></section>${deboraLicenseCard()}`}
+function deboraLicenseCard(){return `<section class="owner-section"><div class="owner-section-head"><div><span class="owner-eyebrow">DÉBORA LACTAÇÃO</span><h2>Licenciamento Pro</h2><p>A licença da Débora usa o e-mail da consultora e permanece separada das empresas do Obra na Mão.</p></div><a class="owner-secondary" href="https://deboralactacao.com/admin/seo/" target="_blank" rel="noopener">Abrir painel SEO</a></div><form id="deboraLicenseForm" class="owner-form-card owner-debora-card"><div class="owner-form-grid"><label>E-mail da cliente<input name="email" type="email" required autocomplete="off" placeholder="cliente@exemplo.com"></label><label>Origem<select name="acquisitionChannel" required><option value="mercado_livre">Mercado Livre</option><option value="direct_sale">Venda direta</option><option value="shopee">Shopee</option><option value="gumroad">Gumroad</option><option value="courtesy">Cortesia</option><option value="partnership">Parceria</option><option value="other">Outro</option></select></label><label>Pagamento<select name="paymentStatus" required><option value="paid">Pago</option><option value="pending">Pendente</option><option value="unpaid">Não pago</option><option value="not_applicable">Não se aplica</option></select></label><label>Valor recebido<input name="amount" inputmode="decimal" placeholder="80,00"></label><label>Referência do pedido<input name="externalOrderRef" maxlength="160" placeholder="MLB..., pedido, comprovante..."></label></div><p class="owner-form-note">Pagamento e origem são registros comerciais. A liberação Pro continua sendo uma ação administrativa separada.</p><div class="owner-form-actions row"><button class="owner-primary" type="submit">Liberar / renovar 6 meses</button><button class="owner-secondary" type="button" id="deboraLicenseStatus">Consultar</button><button class="owner-danger" type="button" id="deboraLicenseRevoke">Revogar</button></div><p id="deboraLicenseResult" role="status"></p></form></section>`}
+function deboraView(){return `<section class="owner-product-banner debora"><div><span class="owner-eyebrow">PRODUTO</span><h2>Débora Lactação</h2><p>Controle comercial da assinatura sem misturar com o provisionamento empresarial do Obra na Mão.</p></div><div class="owner-banner-actions"><div class="owner-banner-stats"><strong>${deboraOverview.pro}</strong><span>Pro ativo(s)</span></div><a class="owner-secondary" href="https://deboralactacao.com/admin/seo/" target="_blank" rel="noopener">SEO</a></div></section><section class="owner-section"><div class="owner-section-head"><div><span class="owner-eyebrow">CARTEIRA</span><h2>Clientes e status</h2><p>Contagens reais do D1 central da Artisys.</p></div></div><div class="owner-metrics owner-debora-metrics">${deboraMetric('Clientes',deboraOverview.clients,'clients','Contas comerciais')}${deboraMetric('Pro ativo',deboraOverview.pro,'pro','Acesso completo')}${deboraMetric('Freemium',deboraOverview.freemium,'freemium','Limite gratuito')}${deboraMetric('Expirando',deboraOverview.expiring,'expiring','Próximos 30 dias')}${deboraMetric('Revogadas',deboraOverview.revoked,'revoked','Sem Pro ativo')}</div></section>${deboraLicenseCard()}${deboraObservabilitySection()}`}
 
 function clientFilters(){return `<div class="owner-filterbar"><label class="owner-search">Buscar<input id="ownerClientSearch" type="search" placeholder="Nome ou e-mail"></label><label>Produto<select id="ownerClientProduct"><option value="all">Todos</option><option value="obra-na-mao">Obra na Mão</option><option value="debora-lactacao">Débora Lactação</option></select></label><label>Status<select id="ownerClientStatus"><option value="all">Todos</option><option value="active">Ativos</option><option value="pending">Pendentes</option><option value="freemium">Freemium</option><option value="expiring">Expirando</option><option value="expired">Vencidos</option><option value="revoked">Revogados</option></select></label></div>`}
 function obraClientCard(c:Company){const status=companyStatus(c);return `<article class="owner-client-card" data-owner-client data-product="obra-na-mao" data-status="${status}" data-search="${esc(`${c.name} ${c.adminEmail}`.toLowerCase())}"><div class="owner-client-main"><span class="owner-product-pill">Obra na Mão</span><span class="owner-status status-${status}">${statusLabel(status)}</span><h3>${esc(c.name)}</h3><p>${esc(c.adminEmail)}</p></div><div class="owner-client-meta"><span>${esc(c.license?.plan||'Manual')}</span><span>${c.usersCount} usuário(s)</span><span>${c.projectsCount} obra(s)</span></div><button class="owner-secondary" type="button" data-company="${esc(c.id)}">Ver empresa</button></article>`}
@@ -92,7 +100,26 @@ function bindDeboraLicense(){
   const form=document.getElementById('deboraLicenseForm') as HTMLFormElement|null,result=document.getElementById('deboraLicenseResult');
   if(!form||!result)return;
   const email=()=>String(new FormData(form).get('email')||'').trim();
-  const run=async(action:'grant'|'status'|'revoke',button:HTMLButtonElement)=>{if(action==='revoke'&&!window.confirm(`Revogar o acesso Pro de ${email()}?`))return;button.disabled=true;result.textContent=action==='grant'?'Liberando acesso...':action==='revoke'?'Revogando licença...':'Consultando licença...';try{const {data}=await api.post<DeboraLicenseResponse>('/api/owner/debora-license',{action,email:email()});result.textContent=describeDeboraLicense(data);if(action!=='status'){try{await Promise.all([refreshDeboraOverview(),refreshLicenseHistory()]);updateDeboraMetrics()}catch{}}}catch(error){result.textContent=message(error)}finally{button.disabled=false}};
+  const run=async(action:'grant'|'status'|'revoke',button:HTMLButtonElement)=>{
+    if(action==='revoke'&&!window.confirm(`Revogar o acesso Pro de ${email()}?`))return;
+    button.disabled=true;result.textContent=action==='grant'?'Liberando acesso...':action==='revoke'?'Revogando licença...':'Consultando licença...';
+    try{
+      const values=new FormData(form);
+      const payload:Record<string,unknown>={action,email:email()};
+      if(action==='grant')payload.sale={
+        acquisitionChannel:String(values.get('acquisitionChannel')||''),
+        paymentStatus:String(values.get('paymentStatus')||''),
+        amountCents:brlToCents(values.get('amount')),
+        externalOrderRef:String(values.get('externalOrderRef')||'').trim()||null,
+      };
+      const {data}=await api.post<DeboraLicenseResponse>('/api/owner/debora-license',payload);
+      result.textContent=describeDeboraLicense(data);
+      if(action!=='status'){
+        try{await Promise.all([refreshDeboraOverview(),refreshLicenseHistory()]);updateDeboraMetrics()}catch{}
+        void refreshDeboraObservability().catch(()=>{});
+      }
+    }catch(error){result.textContent=message(error)}finally{button.disabled=false}
+  };
   form.onsubmit=e=>{e.preventDefault();void run('grant',form.querySelector<HTMLButtonElement>('button[type="submit"]')!)};
   const status=document.getElementById('deboraLicenseStatus') as HTMLButtonElement|null,revoke=document.getElementById('deboraLicenseRevoke') as HTMLButtonElement|null;
   if(status)status.onclick=()=>void run('status',status);
@@ -109,7 +136,7 @@ function applyClientFilters(){const search=(document.getElementById('ownerClient
 function bindClientFilters(){['ownerClientSearch','ownerClientProduct','ownerClientStatus'].forEach(id=>{const node=document.getElementById(id);node?.addEventListener(id==='ownerClientSearch'?'input':'change',applyClientFilters)})}
 function applyLicenseFilters(){const product=(document.getElementById('ownerLicenseProduct') as HTMLSelectElement|null)?.value||'all',status=(document.getElementById('ownerLicenseStatus') as HTMLSelectElement|null)?.value||'all';let visible=0;document.querySelectorAll<HTMLElement>('[data-owner-license]').forEach(node=>{const show=(product==='all'||node.dataset.product===product)&&(status==='all'||String(node.dataset.status||'').split(' ').includes(status));node.hidden=!show;if(show)visible+=1});const empty=document.getElementById('ownerLicenseEmpty');if(empty)empty.hidden=visible>0}
 function bindLicenseFilters(){['ownerLicenseProduct','ownerLicenseStatus'].forEach(id=>document.getElementById(id)?.addEventListener('change',applyLicenseFilters))}
-function bindCurrentView(){logout();bindNavigation();bindDeboraLicense();bindCompanyCreation();bindCompanyButtons();bindDeboraClientButtons();bindClientFilters();bindLicenseFilters()}
+function bindCurrentView(){logout();bindNavigation();bindDeboraLicense();bindCompanyCreation();bindCompanyButtons();bindDeboraClientButtons();bindClientFilters();bindLicenseFilters();if(ownerView==='debora')void bindDeboraObservability(api)}
 
 function renderCurrentView(){
   const content=ownerView==='overview'?overviewView(ownerCompanies):ownerView==='obra'?obraView(ownerCompanies):ownerView==='debora'?deboraView():ownerView==='clients'?clientsView(ownerCompanies):licensesView(ownerCompanies);
