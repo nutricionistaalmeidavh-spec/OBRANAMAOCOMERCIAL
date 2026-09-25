@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
-import { DatabaseSync } from 'node:sqlite';
+import { describe, expect, it } from 'vitest';
 
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite');
 const migrationPath='cloudflare/migrations/0009_debora_manual_sales.sql';
 
 describe('Debora manual sale persistence schema',()=>{
