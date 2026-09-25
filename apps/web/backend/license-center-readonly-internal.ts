@@ -1,6 +1,7 @@
 import { companyViews } from './owner-companies';
 import { buildDeboraAdminClients, DEBORA_PRODUCT_CODE, summarizeDeboraLicenseOverview } from './product-license-service';
 import { createDeboraObservabilityAdminRoutes, fetchDeboraObservability } from './debora-observability-admin';
+import { deboraPartnerAdminRequest } from './debora-partner-admin';
 import { listManualSales, manualSalesSummary } from './manual-license-sales';
 import { lojaOnlineRequest, type LojaOnlineCompany, type LojaOnlineLicenseEvent, type LojaOnlineRuntimeEnv } from './loja-online-admin';
 import { router } from '../cloudflare/sdk';
@@ -17,6 +18,7 @@ type Env={
   LOJAONLINE_LICENSE_BASE_URL?:string;
   DEBORA_OBSERVABILITY?:ServiceBinding;
   DEBORA_OBSERVABILITY_SECRET?:string;
+  DEBORA_PARTNER_ADMIN_SECRET?:string;
 };
 type Row=Record<string,any>&{id:string};
 type ReadonlyDependencies={
@@ -24,6 +26,7 @@ type ReadonlyDependencies={
   listConsolidatedUsers:(env:Env,query:Record<string,string>)=>Promise<any>;
   mergedSales:(env:Env,query:Record<string,string>)=>Promise<any>;
   fetchDeboraObservability:(path:string,env:Env)=>Promise<any>;
+  fetchDeboraPartnerAdmin:(path:string,env:Env)=>Promise<any>;
   listManualSales:(db:D1Database,query:Record<string,string>)=>Promise<any>;
   manualSalesSummary:(db:D1Database)=>Promise<any>;
 };
@@ -46,6 +49,7 @@ const defaultDependencies:ReadonlyDependencies={
   listConsolidatedUsers:(env,query)=>ownerObservability(`/api/owner/debora-observability/users${queryString(query)}`,env),
   mergedSales:(env,query)=>ownerObservability(`/api/owner/debora-observability/sales${queryString(query)}`,env),
   fetchDeboraObservability:(path,env)=>fetchDeboraObservability(path,env as any),
+  fetchDeboraPartnerAdmin:(path,env)=>deboraPartnerAdminRequest(path,{},env),
   listManualSales,
   manualSalesSummary,
 };
@@ -120,7 +124,9 @@ function isDeboraBridgeRead(path:string){
     ||path==='/api/internal/license-center/debora/observability/sales'
     ||/^\/api\/internal\/license-center\/debora\/observability\/users\/[^/]+\/sessions$/.test(path)
     ||path==='/api/internal/license-center/debora/manual-sales'
-    ||path==='/api/internal/license-center/debora/manual-sales/summary';
+    ||path==='/api/internal/license-center/debora/manual-sales/summary'
+    ||path==='/api/internal/license-center/debora/partners'
+    ||path==='/api/internal/license-center/debora/partner-sales';
 }
 
 export async function handleLicenseCenterReadonlyInternal(request:Request,env:Env,deps:ReadonlyDependencies=defaultDependencies):Promise<Response|null>{
@@ -137,11 +143,14 @@ export async function handleLicenseCenterReadonlyInternal(request:Request,env:En
     if(sessions)return json(200,await deps.fetchDeboraObservability(`/api/internal/observability/users/${sessions[1]}/sessions${url.search}`,env));
     if(path==='/api/internal/license-center/debora/manual-sales/summary')return json(200,await deps.manualSalesSummary(env.DB));
     if(path==='/api/internal/license-center/debora/manual-sales')return json(200,await deps.listManualSales(env.DB,queryRecord(url)));
+    if(path==='/api/internal/license-center/debora/partners')return json(200,await deps.fetchDeboraPartnerAdmin('/api/admin/partners',env));
+    if(path==='/api/internal/license-center/debora/partner-sales')return json(200,await deps.fetchDeboraPartnerAdmin(`/api/admin/partner-sales${url.search}`,env));
     return json(404,{error:'not_found'});
   }catch(error){
     const message=error instanceof Error?error.message:'Falha ao consultar a Central de Licenças.';
     if(message==='invalid_cursor'||message==='debora_observability_400')return json(400,{error:'invalid_cursor'});
     if(message.startsWith('debora_observability_'))return json(503,{available:false,error:'debora_observability_unavailable'});
+    if(message.includes('partner'))return json(503,{available:false,error:'debora_partner_admin_unavailable'});
     return json(500,{error:'license_center_read_failed',message});
   }
 }
