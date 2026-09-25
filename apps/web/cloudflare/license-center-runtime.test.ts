@@ -25,6 +25,6 @@ describe('license center Cloudflare runtime context', () => {
     const source = await fs.readFile(new URL('./worker.ts', import.meta.url), 'utf8');
 
     expect(source).toContain("import { router } from './sdk';");
-    expect(source).toMatch(/router\(\{[\s\S]*handleLicenseCenterAdminInternal\(ctx\.request,\s*ctx\.env\)[\s\S]*\}\)/);
+    expect(source).toMatch(/router\(\{[\s\S]*handleLicenseCenterAdminInternal\(ctx\.request,\s*ctx\.env(?:\s+as\s+any)?\)[\s\S]*\}\)/);
   });
 });
