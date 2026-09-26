@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS billing_orders (
   provider_customer_id TEXT,
   provider_payment_id TEXT,
   provider_subscription_id TEXT,
+  provider_checkout_id TEXT,
   provider_status TEXT,
   checkout_url TEXT,
   license_id TEXT,
@@ -43,6 +44,7 @@ CREATE TABLE IF NOT EXISTS billing_orders (
 );
 CREATE INDEX IF NOT EXISTS idx_billing_orders_user ON billing_orders(user_id,created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_billing_orders_company ON billing_orders(company_id,created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_billing_orders_checkout ON billing_orders(provider,provider_checkout_id) WHERE provider_checkout_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS billing_subscriptions (
   id TEXT PRIMARY KEY,
@@ -56,11 +58,13 @@ CREATE TABLE IF NOT EXISTS billing_subscriptions (
   financial_status TEXT NOT NULL DEFAULT 'pending',
   current_period_end TEXT,
   license_id TEXT,
+  initial_order_id TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   UNIQUE(provider,provider_subscription_id)
 );
 CREATE INDEX IF NOT EXISTS idx_billing_subscriptions_company ON billing_subscriptions(company_id,updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_billing_subscriptions_initial_order ON billing_subscriptions(initial_order_id);
 
 CREATE TABLE IF NOT EXISTS billing_payments (
   id TEXT PRIMARY KEY,
