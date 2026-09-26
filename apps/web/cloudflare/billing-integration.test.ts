@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 const backend=(name:string)=>readFileSync(new URL(`../backend/${name}`,import.meta.url),'utf8')
-const migration=()=>readFileSync(new URL('./migrations/0004_billing_and_license_service.sql',import.meta.url),'utf8')
+const migration=(name='0004_billing_and_license_service.sql')=>readFileSync(new URL(`./migrations/${name}`,import.meta.url),'utf8')
 
 describe('billing/licensing stages 2-6 integration contract',()=>{
   it('uses the same audited license service for manual administration and billing',()=>{
@@ -63,5 +63,19 @@ describe('billing/licensing stages 2-6 integration contract',()=>{
     expect(service).toContain('revokeBillingLicense')
     expect(service).toContain('SUBSCRIPTION_INACTIVATED')
     expect(policy).toContain("paid:['refunded']")
+  })
+
+  it('keeps hosted checkout migration compatible with runtime-created columns',()=>{
+    const base=migration('0004_billing_and_license_service.sql')
+    const hosted=migration('0006_hosted_checkout.sql')
+    expect(base).toContain('provider_checkout_id TEXT')
+    expect(base).toContain('initial_order_id TEXT')
+    expect(base).toContain('idx_billing_orders_checkout')
+    expect(base).toContain('idx_billing_subscriptions_initial_order')
+    expect(hosted).not.toMatch(/ALTER TABLE billing_orders ADD COLUMN provider_checkout_id/i)
+    expect(hosted).not.toMatch(/ALTER TABLE billing_subscriptions ADD COLUMN initial_order_id/i)
+    expect(hosted).not.toContain('idx_billing_orders_checkout')
+    expect(hosted).not.toContain('idx_billing_subscriptions_initial_order')
+    expect(hosted).toContain("'schema_version','6'")
   })
 })
