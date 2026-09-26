@@ -1,7 +1,5 @@
-ALTER TABLE billing_orders ADD COLUMN provider_checkout_id TEXT;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_billing_orders_checkout ON billing_orders(provider,provider_checkout_id) WHERE provider_checkout_id IS NOT NULL;
-
-ALTER TABLE billing_subscriptions ADD COLUMN initial_order_id TEXT;
-CREATE INDEX IF NOT EXISTS idx_billing_subscriptions_initial_order ON billing_subscriptions(initial_order_id);
+-- Hosted checkout columns and indexes are part of the canonical billing schema in 0004.
+-- Existing databases may already have them because ensureBillingSchema() repairs schema drift at runtime.
+-- Keep this historical migration side-effect free so Wrangler can record it without duplicate-column failures.
 
 INSERT OR REPLACE INTO app_schema_meta(key,value,updated_at) VALUES ('schema_version','6',CURRENT_TIMESTAMP);
