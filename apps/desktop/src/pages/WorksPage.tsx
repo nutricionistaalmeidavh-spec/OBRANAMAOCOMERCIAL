@@ -6,6 +6,10 @@ import { useAsync } from '../hooks/useAsync'
 import { brDate, brl, toCents, today } from '../utils/format'
 
 const initial = { empresa_id: '', nome: '', codigo: '', cliente_id: '', endereco: '', responsavel: '', valor: '', data_inicio: today(), previsao_termino: '', status: 'planejada', observacoes: '' }
+type QuickRegistryKind = 'empresa' | 'cliente'
+
+const quickCompanyInitial = { razao_social: '', nome_fantasia: '', cnpj: '', telefone: '', email: '', endereco: '', observacoes: '' }
+const quickClientInitial = { nome: '', documento: '', telefone: '', email: '', observacoes: '' }
 
 export default function WorksPage() {
   const navigate = useNavigate()
@@ -18,6 +22,10 @@ export default function WorksPage() {
   const [remove, setRemove] = useState<any>(null)
   const [importing, setImporting] = useState(false)
   const [notice, setNotice] = useState('')
+  const [quickRegistry, setQuickRegistry] = useState<QuickRegistryKind | null>(null)
+  const [quickForm, setQuickForm] = useState<any>(null)
+  const [quickSaving, setQuickSaving] = useState(false)
+  const [quickError, setQuickError] = useState('')
   const overview = useAsync(() => selectedId ? window.fluxoDre.obras.overview(Number(selectedId)) : Promise.resolve(null), [selectedId])
   const selectedWork = useMemo(() => works.data?.find((work: any) => String(work.id) === selectedId), [works.data, selectedId])
 
@@ -38,6 +46,43 @@ export default function WorksPage() {
     setModal(false)
     setSelectedId(String(saved.id))
     works.reload()
+  }
+
+  const openQuickRegistry = (kind: QuickRegistryKind) => {
+    setQuickRegistry(kind)
+    setQuickForm(kind === 'empresa' ? { ...quickCompanyInitial } : { ...quickClientInitial })
+    setQuickError('')
+  }
+
+  const closeQuickRegistry = () => {
+    if (quickSaving) return
+    setQuickRegistry(null)
+    setQuickForm(null)
+    setQuickError('')
+  }
+
+  const submitQuickRegistry = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!quickRegistry || !quickForm) return
+    setQuickSaving(true)
+    setQuickError('')
+    try {
+      if (quickRegistry === 'empresa') {
+        const saved = await window.fluxoDre.empresas.save({ ...quickForm, status: 'ativa' })
+        companies.setData((previous: any) => [...(previous || []).filter((item: any) => item.id !== saved.id), saved])
+        setForm((current: any) => ({ ...current, empresa_id: String(saved.id) }))
+      } else {
+        const saved = await window.fluxoDre.clientes.save({ ...quickForm, status: 'ativa' })
+        clients.setData((previous: any) => [...(previous || []).filter((item: any) => item.id !== saved.id), saved])
+        setForm((current: any) => ({ ...current, cliente_id: String(saved.id) }))
+      }
+      setQuickRegistry(null)
+      setQuickForm(null)
+    } catch (error) {
+      setQuickError(error instanceof Error ? error.message : 'Nao foi possivel salvar o cadastro.')
+    } finally {
+      setQuickSaving(false)
+    }
   }
 
   const importSpreadsheets = async () => {
@@ -119,7 +164,57 @@ export default function WorksPage() {
       </div>
     </> : <Card><Empty title="Nenhuma obra cadastrada" description="Cadastre a primeira obra para organizar orcamento, medicao e resultado." action={<Button onClick={() => open()}>Cadastrar obra</Button>}/></Card>}
     {notice && <div className="success-box" style={{ marginTop: 14 }}>{notice}</div>}
-    <Modal open={modal} title={form.id ? 'Editar obra' : 'Nova obra'} onClose={() => setModal(false)} size="lg"><form onSubmit={submit}><div className="modal-body form-grid form-grid-3"><Field label="Nome" required><input required value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })}/></Field><Field label="Codigo"><input value={form.codigo || ''} onChange={(event) => setForm({ ...form, codigo: event.target.value })}/></Field><Field label="Empresa" required><select required value={form.empresa_id} onChange={(event) => setForm({ ...form, empresa_id: event.target.value })}><option value="">Selecione</option>{companies.data?.map((item: any) => <option value={item.id} key={item.id}>{item.nome_fantasia || item.razao_social}</option>)}</select></Field><Field label="Cliente"><select value={form.cliente_id || ''} onChange={(event) => setForm({ ...form, cliente_id: event.target.value })}><option value="">Sem cliente</option>{clients.data?.map((item: any) => <option value={item.id} key={item.id}>{item.nome}</option>)}</select></Field><Field label="Responsavel"><input value={form.responsavel || ''} onChange={(event) => setForm({ ...form, responsavel: event.target.value })}/></Field><Field label="Valor contratado"><input value={form.valor} onChange={(event) => setForm({ ...form, valor: event.target.value })} placeholder="0,00"/></Field><Field label="Data de inicio"><input type="date" value={form.data_inicio || ''} onChange={(event) => setForm({ ...form, data_inicio: event.target.value })}/></Field><Field label="Previsao de termino"><input type="date" value={form.previsao_termino || ''} onChange={(event) => setForm({ ...form, previsao_termino: event.target.value })}/></Field><Field label="Status"><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="planejada">Planejada</option><option value="ativa">Ativa</option><option value="pausada">Pausada</option><option value="concluida">Concluida</option></select></Field><Field label="Endereco" wide><input value={form.endereco || ''} onChange={(event) => setForm({ ...form, endereco: event.target.value })}/></Field><Field label="Observacoes" wide><textarea value={form.observacoes || ''} onChange={(event) => setForm({ ...form, observacoes: event.target.value })}/></Field></div><FormActions onCancel={() => setModal(false)}/></form></Modal>
+    <Modal open={modal} title={form.id ? 'Editar obra' : 'Nova obra'} onClose={() => setModal(false)} size="lg">
+      <form onSubmit={submit}>
+        <div className="modal-body form-grid form-grid-3">
+          <Field label="Nome" required><input required value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })}/></Field>
+          <Field label="Codigo"><input value={form.codigo || ''} onChange={(event) => setForm({ ...form, codigo: event.target.value })}/></Field>
+          <Field label="Empresa" required>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 8 }}>
+              <select required value={form.empresa_id} onChange={(event) => setForm({ ...form, empresa_id: event.target.value })}><option value="">Selecione</option>{companies.data?.map((item: any) => <option value={item.id} key={item.id}>{item.nome_fantasia || item.razao_social}</option>)}</select>
+              <button type="button" className="icon-button" onClick={() => openQuickRegistry('empresa')} title="Cadastrar nova empresa" aria-label="Cadastrar nova empresa"><Plus size={16}/></button>
+            </div>
+          </Field>
+          <Field label="Cliente">
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 8 }}>
+              <select value={form.cliente_id || ''} onChange={(event) => setForm({ ...form, cliente_id: event.target.value })}><option value="">Sem cliente</option>{clients.data?.map((item: any) => <option value={item.id} key={item.id}>{item.nome}</option>)}</select>
+              <button type="button" className="icon-button" onClick={() => openQuickRegistry('cliente')} title="Cadastrar novo cliente" aria-label="Cadastrar novo cliente"><Plus size={16}/></button>
+            </div>
+          </Field>
+          <Field label="Responsavel"><input value={form.responsavel || ''} onChange={(event) => setForm({ ...form, responsavel: event.target.value })}/></Field>
+          <Field label="Valor contratado"><input value={form.valor} onChange={(event) => setForm({ ...form, valor: event.target.value })} placeholder="0,00"/></Field>
+          <Field label="Data de inicio"><input type="date" value={form.data_inicio || ''} onChange={(event) => setForm({ ...form, data_inicio: event.target.value })}/></Field>
+          <Field label="Previsao de termino"><input type="date" value={form.previsao_termino || ''} onChange={(event) => setForm({ ...form, previsao_termino: event.target.value })}/></Field>
+          <Field label="Status"><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="planejada">Planejada</option><option value="ativa">Ativa</option><option value="pausada">Pausada</option><option value="concluida">Concluida</option></select></Field>
+          <Field label="Endereco" wide><input value={form.endereco || ''} onChange={(event) => setForm({ ...form, endereco: event.target.value })}/></Field>
+          <Field label="Observacoes" wide><textarea value={form.observacoes || ''} onChange={(event) => setForm({ ...form, observacoes: event.target.value })}/></Field>
+        </div>
+        <FormActions onCancel={() => setModal(false)}/>
+      </form>
+    </Modal>
+    <Modal open={!!quickRegistry} title={quickRegistry === 'empresa' ? 'Nova empresa' : 'Novo cliente'} onClose={closeQuickRegistry}>
+      <form onSubmit={submitQuickRegistry}>
+        <div className="modal-body form-grid">
+          {quickRegistry === 'empresa' ? <>
+            <Field label="Razao social" required><input required value={quickForm?.razao_social || ''} onChange={(event) => setQuickForm({ ...quickForm, razao_social: event.target.value })}/></Field>
+            <Field label="Nome fantasia"><input value={quickForm?.nome_fantasia || ''} onChange={(event) => setQuickForm({ ...quickForm, nome_fantasia: event.target.value })}/></Field>
+            <Field label="CNPJ"><input value={quickForm?.cnpj || ''} onChange={(event) => setQuickForm({ ...quickForm, cnpj: event.target.value })}/></Field>
+            <Field label="Telefone"><input value={quickForm?.telefone || ''} onChange={(event) => setQuickForm({ ...quickForm, telefone: event.target.value })}/></Field>
+            <Field label="E-mail"><input type="email" value={quickForm?.email || ''} onChange={(event) => setQuickForm({ ...quickForm, email: event.target.value })}/></Field>
+            <Field label="Endereco" wide><input value={quickForm?.endereco || ''} onChange={(event) => setQuickForm({ ...quickForm, endereco: event.target.value })}/></Field>
+            <Field label="Observacoes" wide><textarea value={quickForm?.observacoes || ''} onChange={(event) => setQuickForm({ ...quickForm, observacoes: event.target.value })}/></Field>
+          </> : <>
+            <Field label="Nome" required><input required value={quickForm?.nome || ''} onChange={(event) => setQuickForm({ ...quickForm, nome: event.target.value })}/></Field>
+            <Field label="CPF/CNPJ"><input value={quickForm?.documento || ''} onChange={(event) => setQuickForm({ ...quickForm, documento: event.target.value })}/></Field>
+            <Field label="Telefone"><input value={quickForm?.telefone || ''} onChange={(event) => setQuickForm({ ...quickForm, telefone: event.target.value })}/></Field>
+            <Field label="E-mail"><input type="email" value={quickForm?.email || ''} onChange={(event) => setQuickForm({ ...quickForm, email: event.target.value })}/></Field>
+            <Field label="Observacoes" wide><textarea value={quickForm?.observacoes || ''} onChange={(event) => setQuickForm({ ...quickForm, observacoes: event.target.value })}/></Field>
+          </>}
+          {quickError && <p role="alert" className="field-wide" style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{quickError}</p>}
+        </div>
+        <FormActions onCancel={closeQuickRegistry} submitLabel="Cadastrar" loading={quickSaving}/>
+      </form>
+    </Modal>
     <Confirm open={!!remove} title="Excluir obra" description="A obra sera removida logicamente. Os arquivos fisicos nao serao apagados." danger onCancel={() => setRemove(null)} onConfirm={async () => { await window.fluxoDre.obras.remove(remove.id); setRemove(null); works.reload(); overview.reload() }}/>
   </>
 }
