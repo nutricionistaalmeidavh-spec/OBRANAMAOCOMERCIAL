@@ -1,6 +1,18 @@
 # Desktop Windows — releases
 
-## Atual — v1.0.19
+## Atual — v2.0.0
+
+- Instalador oficial: [Obra-na-Mao-Desktop-Setup-2.0.0.exe](https://github.com/nutricionistaalmeidavh-spec/OBRANAMAOCOMERCIAL/releases/download/desktop-commercial-v2.0.0/Obra-na-Mao-Desktop-Setup-2.0.0.exe)
+- GitHub Release: https://github.com/nutricionistaalmeidavh-spec/OBRANAMAOCOMERCIAL/releases/tag/desktop-commercial-v2.0.0
+- Tag: `desktop-commercial-v2.0.0`
+- SHA-256: `e894ef01da18e056fb3a3d1c0dcdfb48df7f9d0cd06fead7d936282d8455541b`
+- Tamanho: 125560307 bytes
+- Metadados do atualizador (`latest.yml` e `.blockmap`) publicados junto com o instalador.
+- Cadastro rápido de empresa e cliente diretamente em Nova Obra, com seleção automática do registro criado.
+- Acesso direto a Clientes e empresas no grupo Obras do Command Center.
+- Primeiro acesso e login por e-mail/senha diretamente no desktop, vínculo ao tenant e Google preservado.
+
+## Anterior — v1.0.19
 
 - Instalador completo: [Obra-na-Mao-Desktop-Setup-1.0.19.exe](https://drive.google.com/file/d/1QmjxuBMfCAgjeg0gzGjUZKRfIgnxr04x/view)
 - SHA-256: `23ec25780d889c9852da78e4832bef63f78a3e67df062e66a44933368f505013`
