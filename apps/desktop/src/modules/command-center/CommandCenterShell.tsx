@@ -1,7 +1,7 @@
 import { ReactNode, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  BarChart3, CalendarClock, ChevronLeft, ChevronRight, ClipboardCheck,
+  BarChart3, Building2, CalendarClock, ChevronLeft, ChevronRight, ClipboardCheck,
   ClipboardList, FileSpreadsheet, HardHat, LayoutDashboard, PackageSearch,
   ReceiptText, Settings, UsersRound, WalletCards,
 } from 'lucide-react'
@@ -24,6 +24,7 @@ const groups = [
   ] },
   { label: 'Obras', items: [
     { to: '/obras', label: 'Obras', icon: HardHat },
+    { to: '/cadastros', label: 'Clientes e empresas', icon: Building2 },
     { to: '/frentes', label: 'Frentes de servico', icon: ClipboardCheck },
     { to: '/planejamento', label: 'Planejamento', icon: CalendarClock },
     { to: '/rdo', label: 'Diario de obra', icon: ClipboardList },
@@ -48,7 +49,7 @@ const routeLabels:Record<string,{section:string;label:string}> = {
   '/compras-contratos': {section:'Financeiro', label:'Compras e Contratos'},
   '/compras': {section:'Financeiro', label:'Compras e materiais'},
   '/contratos': {section:'Financeiro', label:'Contratos e aditivos'},
-  '/cadastros': {section:'Financeiro', label:'Empresas e parceiros'},
+  '/cadastros': {section:'Obras', label:'Clientes e empresas'},
   '/obras': {section:'Obras', label:'Obras'},
   '/frentes': {section:'Obras', label:'Frentes de servico'},
   '/planejamento': {section:'Obras', label:'Planejamento'},
