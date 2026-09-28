@@ -1,0 +1,41 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "obra-na-mao-comercial-sandbox",
+  "main": "cloudflare/worker.ts",
+  "compatibility_date": "2026-09-28",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "routes": [],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "obra-na-mao-comercial-sandbox",
+      "database_id": "c05643b3-c53a-4599-a73c-30b4e8a28c97",
+      "migrations_table": "d1_migrations",
+      "migrations_dir": "cloudflare/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "obra-na-mao-comercial-sandbox-files"
+    }
+  ],
+  "vars": {
+    "ENVIRONMENT": "sandbox",
+    "OWNER_EMAIL": "sandbox-owner@example.test",
+    "OWNER_COMPANY": "ArtiSys Sandbox",
+    "OWNER_PROJECT": "Homologacao Debora",
+    "OWNER_CUSTOMER": "Dados ficticios",
+    "LICENSE_CENTER_WRITE_ENABLED": "false"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
