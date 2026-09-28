@@ -5,10 +5,9 @@ labels:
   # Assim este repositorio reutiliza o mesmo Agent sem exigir reconfiguracao local.
   pilot: pdv-artisys
 
+# QA local sob demanda. Nao dispara automaticamente em push ou pull request.
 when:
   - event: manual
-  - event: push
-  - event: pull_request
 
 steps:
   - name: ambiente
@@ -48,7 +47,7 @@ steps:
       - '$log = ".\qa-artifacts\woodpecker\obra-comercial-qa.log"; if (Test-Path $log) { $env:ARTISYS_LOG_PATH = (Resolve-Path $log).Path }'
       - 'node $reporter'
     when:
-      - event: [push, pull_request, manual]
+      - event: [manual]
         status: [success]
     failure: ignore
 
@@ -66,6 +65,6 @@ steps:
       - '$env:ARTISYS_CI_RESULT = "failure"'
       - 'node $reporter'
     when:
-      - event: [push, pull_request, manual]
+      - event: [manual]
         status: [failure]
     failure: ignore
