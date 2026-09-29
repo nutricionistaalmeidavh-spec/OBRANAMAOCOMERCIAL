@@ -4,6 +4,11 @@ type UpdaterState = { status:'idle'|'checking'|'current'|'available'|'downloadin
 type OperationalStorageMode = 'local'|'lan-host'|'lan-client'|'remote'
 type StorageConnectionState = { mode:'local'|'server'; operationalMode:OperationalStorageMode; host:string; port:number; baseUrl:string }
 type StorageConnectionTest = { ok:true; baseUrl:string; latencyMs:number; health:{status:'ok';product:'Obra na Mão';apiVersion:'1'} }
+type LanMember = { memberId:string; email?:string; name?:string; role:string; modules?:string[]; channels?:string[]; status?:string }
+type LanCredentialState = { paired:boolean; serverKey?:string; deviceId?:string|null; member?:LanMember|null; pairedAt?:string|null }
+type LanHostState = { running:boolean; pid:number|null; startedAt:string|null; lastError:string|null; setupCode?:string|null }
+type LanSetupStatus = { serverId?:string|null; claimed?:boolean; company?:{id:string;name?:string}|null; credential?:LanCredentialState; host?:LanHostState }
+type LanAdminStatus = { company?:{id:string;name?:string}; revision?:string|null; lastCloudRefreshAt?:string|null; deviceCount?:number; stale?:boolean; paired?:LanCredentialState }
 type ExplorerEntry = { name:string; relativePath:string; kind:'folder'|'file'|'link'; extension:string; size:number|null; modifiedAt:string; canOpen:boolean }
 type ExplorerDirectory = { rootId:string; name:string; relativePath:string; parentRelativePath:string|null; items:ExplorerEntry[] }
 type ExplorerPreview = { rootId:string; name:string; relativePath:string; extension:string; size:number; modifiedAt:string; previewKind:'pdf'|'image'|'unsupported'; mimeType:string|null; dataUrl:string|null; previewBlockedReason:'size'|'type'|null }
@@ -41,7 +46,15 @@ type ScannerApi = {
 }
 interface Window { fluxoDre: {
   app: { bootstrap(): Promise<any>; retryDatabase(): Promise<boolean>; getLayout(): Promise<'command-center'|'classic'>; setLayout(layout:'command-center'|'classic'): Promise<'command-center'|'classic'> }; product:{getEdition():Promise<{edition:'construtora'|'empreiteira';locked:boolean}>;setEdition(edition:'construtora'|'empreiteira'):Promise<any>}; demo:{seed():Promise<any>}
-  storage:{state():Promise<StorageConnectionState>;configure(input:{mode:'local'|'server';host:string;port:number}):Promise<StorageConnectionState>;testConnection():Promise<StorageConnectionTest>}
+  storage:{state():Promise<StorageConnectionState>;configure(input:{mode?:'local'|'server';operationalMode?:OperationalStorageMode;host:string;port:number}):Promise<StorageConnectionState>;testConnection():Promise<StorageConnectionTest>}
+  lan:{
+    hostState():Promise<LanHostState>;startHost():Promise<LanHostState>;stopHost():Promise<LanHostState>;status():Promise<LanSetupStatus>;
+    claimHost(setupCode?:string):Promise<LanSetupStatus>;pair(code:string):Promise<LanCredentialState>;disconnect():Promise<LanCredentialState>;
+    adminStatus():Promise<LanAdminStatus>;createPairing(memberId:string):Promise<{code:string;expiresAt:string;member?:LanMember}>;
+    listDevices():Promise<Array<{id:string;memberId:string;installationId:string;deviceName:string;status:string;pairedAt?:string;lastSeenAt?:string}>>;
+    setDeviceStatus(deviceId:string,status:'active'|'revoked'):Promise<any>;refreshIdentity():Promise<LanAdminStatus>;
+    startAtLoginState():Promise<{enabled:boolean}>;setStartAtLogin(enabled:boolean):Promise<{enabled:boolean}>
+  }
   empresas: EntityApi; clientes: EntityApi; fornecedores: EntityApi; obras: EntityApi & { importSpreadsheets(): Promise<any>; overview(obra_id:number): Promise<any>; timeline(obra_id:number): Promise<any[]> }; etapas: EntityApi; locais: EntityApi; orcamentos: EntityApi; cronograma: EntityApi; rdos: EntityApi; rdoEquipe: EntityApi; rdoEquipamentos: EntityApi; rdoOcorrencias: EntityApi; rdoAnexos: EntityApi; arquivos: EntityApi
   medicoes: EntityApi & { saveWithItems(data:any):Promise<any>; anexos:EntityApi; itensMedidos:EntityApi; importAttachment(data:any):Promise<any>; mapa: EntityApi }; contas: EntityApi & { payment(id:number,payment:any):Promise<any> }
   categorias: EntityApi; cargos: EntityApi; funcionarios: EntityApi; folhas: EntityApi; lancamentosFolha: EntityApi; pagamentosFuncionario: EntityApi; beneficios: EntityApi; epis: EntityApi; funcionarioEpis: EntityApi; fontes: EntityApi; pastas: EntityApi
