@@ -1,12 +1,14 @@
 import http from 'node:http'
 import { createHash, randomBytes } from 'node:crypto'
 import { authenticateLanRequest, authorizeBusinessRoute, LanAuthorizationError } from './authorization.mjs'
+import { PairingError } from './pairing-service.mjs'
 
 export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.3.0'
 
 const MAX_BODY_BYTES = 1024 * 1024
 const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras)(?:\/(\d+))?\/?$/
+const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
 
 const digest = value => createHash('sha256').update(String(value)).digest('hex')
 const randomDeviceToken = () => randomBytes(32).toString('hex')
@@ -174,7 +176,7 @@ async function handleSetupClaim(request, response, { security, identity, cloudAu
   })
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '' } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null } = {}) {
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://localhost')
@@ -201,6 +203,44 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return await handleSetupClaim(request, response, { security, identity, cloudAuthority, cloudBaseUrl })
       }
 
+      if (url.pathname === '/api/v1/pair/claim') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!pairingService?.claim) return sendJson(response, 503, { error: 'pairing_unavailable' })
+        const body = await readJson(request)
+        const result = pairingService.claim({
+          code: body.code,
+          installationId: body.installationId,
+          deviceName: body.deviceName,
+          clientKey: request.socket?.remoteAddress || 'unknown'
+        })
+        return sendJson(response, 201, result)
+      }
+
+      if (url.pathname === '/api/v1/admin/pairing') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!pairingService?.createInvitation) return sendJson(response, 503, { error: 'pairing_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        const body = await readJson(request)
+        return sendJson(response, 201, pairingService.createInvitation({ actor, targetMemberId: body.targetMemberId }))
+      }
+
+      if (url.pathname === '/api/v1/admin/devices') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!pairingService?.listDevices) return sendJson(response, 503, { error: 'pairing_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        return sendJson(response, 200, { devices: pairingService.listDevices(actor) })
+      }
+
+      const adminDeviceMatch = url.pathname.match(ADMIN_DEVICE_ROUTE)
+      if (adminDeviceMatch) {
+        if (request.method !== 'PUT') return methodNotAllowed(response, ['PUT'])
+        if (!pairingService?.setDeviceStatus) return sendJson(response, 503, { error: 'pairing_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        const body = await readJson(request)
+        const device = pairingService.setDeviceStatus({ actor, deviceId: decodeURIComponent(adminDeviceMatch[1]), status: body.status })
+        return sendJson(response, 200, { device })
+      }
+
       const entityMatch = url.pathname.match(ENTITY_ROUTE)
       if (entityMatch) {
         const context = await authenticateLanRequest(request, security)
@@ -209,7 +249,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
 
       return sendJson(response, 404, { error: 'not_found' })
     } catch (error) {
-      if (error instanceof LanAuthorizationError) return sendJson(response, error.status, { error: error.code, message: error.message })
+      if (error instanceof LanAuthorizationError || error instanceof PairingError) return sendJson(response, error.status, { error: error.code, message: error.message })
       if (error?.code === 'invalid_json') return sendJson(response, 400, { error: 'invalid_json', message: error.message })
       if (error?.code === 'payload_too_large') return sendJson(response, 413, { error: 'payload_too_large', message: error.message })
       const message = error instanceof Error ? error.message : String(error)
