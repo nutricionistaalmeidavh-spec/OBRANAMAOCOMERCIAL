@@ -15,7 +15,7 @@ class LanHostService {
     this.child = null
     this.startedAt = null
     this.lastError = null
-    this.setupCode = null
+    this.setupCodeValue = ''
     this.stopping = false
   }
 
@@ -29,26 +29,30 @@ class LanHostService {
       pid: this.child?.pid || null,
       startedAt: this.startedAt,
       lastError: this.lastError,
-      setupCode: this.setupCode
+      setupCodeAvailable: !!this.setupCodeValue
     }
+  }
+
+  setupCode() {
+    return this.setupCodeValue
   }
 
   captureOutput(child) {
     child.stdout?.on?.('data', chunk => {
       const text = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk || '')
-      const match = text.match(/Código de configuração local:\s*([A-F0-9]{4}-[A-F0-9]{4})/i)
-      if (match) this.setupCode = match[1].toUpperCase()
+      const match = text.match(/Código de configuração LAN:\s*([A-Z0-9-]+)/i)
+      if (match?.[1]) this.setupCodeValue = match[1].toUpperCase()
     })
     child.stderr?.on?.('data', chunk => {
       const text = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk || '')
-      if (/EADDRINUSE|uncaught|error|falha/i.test(text) && !/token|setup|claim/i.test(text)) {
+      if (/EADDRINUSE|uncaught|error|falha/i.test(text) && !/token|setup|claim|código/i.test(text)) {
         this.lastError = text.trim().slice(0, 500) || this.lastError
       }
     })
   }
 
   clearSetupCode() {
-    this.setupCode = null
+    this.setupCodeValue = ''
     return this.state()
   }
 
@@ -75,7 +79,7 @@ class LanHostService {
     this.child = child
     this.startedAt = new Date().toISOString()
     this.lastError = null
-    this.setupCode = null
+    this.setupCodeValue = ''
     this.stopping = false
     this.captureOutput(child)
 
@@ -115,7 +119,7 @@ class LanHostService {
       }
     })
     if (this.child === child) this.child = null
-    this.setupCode = null
+    this.setupCodeValue = ''
     return this.state()
   }
 
