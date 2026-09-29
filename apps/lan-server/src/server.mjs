@@ -1,5 +1,6 @@
 import http from 'node:http'
 import { createHash, randomBytes } from 'node:crypto'
+import { authenticateLanRequest, authorizeBusinessRoute, LanAuthorizationError } from './authorization.mjs'
 
 export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.3.0'
@@ -50,11 +51,12 @@ async function readJson(request) {
   }
 }
 
-async function handleEntityRequest(request, response, url, repository, match) {
+async function handleEntityRequest(request, response, url, repository, match, context) {
   if (!repository) return sendJson(response, 503, { error: 'repository_unavailable', message: 'Banco central do servidor indisponível.' })
 
   const table = match[1]
   const id = match[2] ? Number(match[2]) : null
+  authorizeBusinessRoute(context, { table, method: request.method })
 
   if (id === null) {
     if (request.method === 'GET') {
@@ -200,10 +202,14 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       }
 
       const entityMatch = url.pathname.match(ENTITY_ROUTE)
-      if (entityMatch) return await handleEntityRequest(request, response, url, repository, entityMatch)
+      if (entityMatch) {
+        const context = await authenticateLanRequest(request, security)
+        return await handleEntityRequest(request, response, url, repository, entityMatch, context)
+      }
 
       return sendJson(response, 404, { error: 'not_found' })
     } catch (error) {
+      if (error instanceof LanAuthorizationError) return sendJson(response, error.status, { error: error.code, message: error.message })
       if (error?.code === 'invalid_json') return sendJson(response, 400, { error: 'invalid_json', message: error.message })
       if (error?.code === 'payload_too_large') return sendJson(response, 413, { error: 'payload_too_large', message: error.message })
       const message = error instanceof Error ? error.message : String(error)
