@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { once } from 'node:events'
 import test from 'node:test'
 import { createLanServer } from '../src/server.mjs'
+
+const LAN_TOKEN = 'test-device-token'
+const tokenHash = value => createHash('sha256').update(String(value)).digest('hex')
 
 function createRepository() {
   const rows = {
@@ -36,8 +40,21 @@ function createRepository() {
   }
 }
 
+function createSecurity() {
+  return {
+    serverState() { return { claimed: true, companyId: 'company-a' } },
+    deviceByTokenHash(value) {
+      return value === tokenHash(LAN_TOKEN) ? { id: 'device-a', memberId: 'member-a', status: 'active' } : null
+    },
+    member(id) {
+      return id === 'member-a' ? { memberId: id, email: 'admin@example.com', role: 'admin', modules: ['obra360'], channels: ['desktop'], status: 'active' } : null
+    },
+    touchDevice() {}
+  }
+}
+
 async function fixture() {
-  const server = createLanServer({ serverVersion: '0.2.0', repository: createRepository() })
+  const server = createLanServer({ serverVersion: '0.3.0', repository: createRepository(), security: createSecurity() })
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
   const address = server.address()
@@ -50,14 +67,22 @@ async function close(server) {
   await once(server, 'close')
 }
 
+function authHeaders(extra = {}) {
+  return { authorization: `Bearer ${LAN_TOKEN}`, ...extra }
+}
+
+async function authorizedFetch(url, options = {}) {
+  return fetch(url, { ...options, headers: authHeaders(options.headers || {}) })
+}
+
 async function jsonRequest(url, options = {}) {
   return fetch(url, {
     ...options,
-    headers: { 'content-type': 'application/json', ...(options.headers || {}) }
+    headers: authHeaders({ 'content-type': 'application/json', ...(options.headers || {}) })
   })
 }
 
-test('GET /health identifica a API LAN v1', async () => {
+test('GET /health identifica a API LAN v1 sem expor identidade', async () => {
   const { server, baseUrl } = await fixture()
   try {
     const response = await fetch(`${baseUrl}/health`)
@@ -66,29 +91,29 @@ test('GET /health identifica a API LAN v1', async () => {
   } finally { await close(server) }
 })
 
-test('GET /version informa a versao do processo servidor', async () => {
+test('GET /version informa somente a versao publica do processo servidor', async () => {
   const { server, baseUrl } = await fixture()
   try {
     const response = await fetch(`${baseUrl}/version`)
     assert.equal(response.status, 200)
-    assert.deepEqual(await response.json(), { product: 'Obra na Mão', apiVersion: '1', serverVersion: '0.2.0' })
+    assert.deepEqual(await response.json(), { product: 'Obra na Mão', apiVersion: '1', serverVersion: '0.3.0' })
   } finally { await close(server) }
 })
 
-test('CRUD HTTP funciona para empresas, clientes e obras', async () => {
+test('CRUD HTTP autenticado funciona para empresas, clientes e obras', async () => {
   const { server, baseUrl } = await fixture()
   try {
     for (const table of ['empresas', 'clientes', 'obras']) {
-      const list = await fetch(`${baseUrl}/api/v1/${table}`)
+      const list = await authorizedFetch(`${baseUrl}/api/v1/${table}`)
       assert.equal(list.status, 200)
       assert.ok(Array.isArray(await list.json()))
     }
 
-    const filtered = await fetch(`${baseUrl}/api/v1/clientes?empresa_id=1`)
+    const filtered = await authorizedFetch(`${baseUrl}/api/v1/clientes?empresa_id=1`)
     assert.equal(filtered.status, 200)
     assert.equal((await filtered.json()).length, 1)
 
-    const company = await fetch(`${baseUrl}/api/v1/empresas/1`)
+    const company = await authorizedFetch(`${baseUrl}/api/v1/empresas/1`)
     assert.equal(company.status, 200)
     assert.equal((await company.json()).razao_social, 'Empresa A')
 
@@ -107,9 +132,18 @@ test('CRUD HTTP funciona para empresas, clientes e obras', async () => {
     assert.equal(updated.status, 200)
     assert.equal((await updated.json()).nome, 'Obra Atualizada')
 
-    const removed = await fetch(`${baseUrl}/api/v1/clientes/${createdBody.id}`, { method: 'DELETE' })
+    const removed = await authorizedFetch(`${baseUrl}/api/v1/clientes/${createdBody.id}`, { method: 'DELETE' })
     assert.equal(removed.status, 200)
     assert.deepEqual(await removed.json(), { ok: true })
+  } finally { await close(server) }
+})
+
+test('business CRUD rejeita chamadas sem credencial de dispositivo', async () => {
+  const { server, baseUrl } = await fixture()
+  try {
+    const response = await fetch(`${baseUrl}/api/v1/empresas`)
+    assert.equal(response.status, 401)
+    assert.equal((await response.json()).error, 'missing_device_token')
   } finally { await close(server) }
 })
 
@@ -142,7 +176,7 @@ test('metodos fora do contrato retornam 405 com Allow correto', async () => {
     assert.equal(health.status, 405)
     assert.equal(health.headers.get('allow'), 'GET')
 
-    const collection = await fetch(`${baseUrl}/api/v1/empresas`, { method: 'PATCH' })
+    const collection = await authorizedFetch(`${baseUrl}/api/v1/empresas`, { method: 'PATCH' })
     assert.equal(collection.status, 405)
     assert.equal(collection.headers.get('allow'), 'GET, POST')
   } finally { await close(server) }
