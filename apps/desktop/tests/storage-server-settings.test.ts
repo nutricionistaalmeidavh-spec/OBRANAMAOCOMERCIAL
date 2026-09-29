@@ -19,4 +19,11 @@ describe('configuracao de dados e servidor', () => {
     expect(source).toContain('Testar conexão')
     expect(source).toContain('window.fluxoDre.storage.testConnection()')
   })
+
+  it('informa quais cadastros ja usam o servidor e preserva os demais como locais', () => {
+    expect(source).toContain('Empresas, clientes e obras usam o servidor')
+    expect(source).toContain('Os demais módulos continuam usando os dados locais')
+    expect(source).not.toContain('os cadastros existentes ainda continuam locais')
+    expect(source).not.toContain('o CRUD remoto será habilitado gradualmente nas próximas fases')
+  })
 })
