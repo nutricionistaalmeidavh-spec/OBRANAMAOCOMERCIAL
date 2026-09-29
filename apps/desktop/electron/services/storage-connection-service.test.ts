@@ -32,6 +32,33 @@ describe('StorageConnectionService', () => {
     expect(service.state()).toEqual({ mode: 'local', host: '127.0.0.1', port: 4732, baseUrl: 'http://127.0.0.1:4732' })
   })
 
+  it('expõe local como papel operacional de uma instalação nova', () => {
+    const { StorageConnectionService } = require('./storage-connection-service.cjs')
+    const service = new StorageConnectionService({ db: fakeDb(), fetchImpl: vi.fn() })
+    expect(service.state().operationalMode).toBe('local')
+  })
+
+  it('mapeia storage_mode server legado para lan-client sem alterar host e porta', () => {
+    const { StorageConnectionService } = require('./storage-connection-service.cjs')
+    const service = new StorageConnectionService({
+      db: fakeDb({ storage_mode: 'server', lan_server_host: '192.168.50.10', lan_server_port: '4810' }),
+      fetchImpl: vi.fn()
+    })
+    expect(service.state()).toMatchObject({
+      mode: 'server',
+      operationalMode: 'lan-client',
+      host: '192.168.50.10',
+      port: 4810,
+      baseUrl: 'http://192.168.50.10:4810'
+    })
+  })
+
+  it('rejeita papel operacional desconhecido', () => {
+    const { StorageConnectionService } = require('./storage-connection-service.cjs')
+    const service = new StorageConnectionService({ db: fakeDb(), fetchImpl: vi.fn() })
+    expect(() => service.validateOperationalMode('satellite')).toThrow(/operacional|armazenamento|inválido|invalido/i)
+  })
+
   it('persiste modo, host e porta do servidor da empresa', () => {
     const { StorageConnectionService } = require('./storage-connection-service.cjs')
     const db = fakeDb()
