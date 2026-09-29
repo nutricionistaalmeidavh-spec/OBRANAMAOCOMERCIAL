@@ -9,7 +9,7 @@
 - Contrato `packages/contracts/src/desktop-sync.ts`: tipos do renderer e validação de entrada do backend Cloudflare.
 - Validação: testes reais SQLite do coordenador, regressões de UX, testes web de persistência/reenvio/lifecycle. Não substituem instalação Windows/macOS e ensaio real entre dois dispositivos.
 
-Última revisão estrutural: 2026-09-10.
+Última revisão estrutural: 2026-09-29.
 
 Este documento é o ponto de partida para alterações. Leia a seção afetada e abra apenas os arquivos diretamente relacionados; evite uma nova varredura global.
 
@@ -23,10 +23,14 @@ Aplicativo desktop Windows e offline para gestão financeira e operacional de co
 - Comunicação: API restrita `window.fluxoDre`, definida no preload e atendida por IPC.
 - Dados de execução: `%APPDATA%\fluxo-dre` por padrão; podem ser redirecionados por `FLUXO_DRE_DATA_DIR`.
 - O núcleo continua offline-first em SQLite. A partir de 2026-09-02 existe uma ponte online opcional para vínculo de dispositivo, sincronização Obra360, Financeiro Inteligente e IA estruturada.
+- A partir de 2026-09-29 existe a fundação opcional de **Servidor da empresa**: a configuração de host/porta é persistida localmente e validada por HTTP, mas o CRUD continua local nesta etapa. A troca efetiva de Empresas/Clientes/Obras para HTTP começa nas fases 3–5.
+- `apps/lan-server/` é o processo HTTP mínimo destinado a rodar na infraestrutura já existente do cliente; por padrão escuta somente `127.0.0.1:4732` e expõe apenas `/health` e `/version` nesta fase.
 
 ## Fluxo entre camadas
 
 `src/pages/*` → `window.fluxoDre` → `electron/preload.cjs` → handlers em `electron/main.cjs` → `electron/services/*` → SQLite/arquivos locais.
+
+O CRUD genérico `entity:*` passa por `DataAccessService`, que atualmente delega 1:1 ao `DatabaseService`. Essa seam é o ponto previsto para roteamento Local/Servidor nas fases posteriores; não há CRUD HTTP ativo nas fases 0–2.
 
 Ao mudar uma operação que cruza camadas, confira apenas os pontos correspondentes desse fluxo. A tipagem pública do preload fica em `src/vite-env.d.ts`.
 
@@ -47,10 +51,13 @@ Ao mudar uma operação que cruza camadas, confira apenas os pontos corresponden
 - `electron/main.cjs`: janela, segurança, composição dos serviços e handlers IPC.
 - `electron/preload.cjs`: única API exposta ao renderer.
 - `electron/services/database.cjs`: CRUD genérico, relatórios, pagamentos e medições.
+- `electron/services/data-access-service.cjs`: seam do CRUD genérico; nesta etapa preserva SQLite local e não usa HTTP.
+- `electron/services/storage-connection-service.cjs`: configuração Local/Servidor, validação de host/porta e teste do `/health` LAN.
 - `electron/services/*-service.cjs`: serviços especializados.
 - `database/migrations/`: schema versionado e incremental.
 - `vite.config.ts`, `vitest.config.ts`, `tsconfig*.json`: build, testes e TypeScript.
 - `docs/UI_DESIGN_HISTORY.md`: histórico dos drafts preservados e da direção visual aprovada.
+- `../lan-server/`: serviço Node HTTP mínimo para execução no servidor já existente do cliente.
 
 ## Rotas e telas
 
@@ -88,6 +95,8 @@ As rotas diretas dos módulos continuam registradas para preservar favoritos, li
 ## Serviços do processo principal
 
 - `database.cjs`: migrations, CRUD permitido por whitelist, dashboard, DRE, pagamentos e medições.
+- `data-access-service.cjs`: interface única para `list/get/save/remove`; nesta fase delega integralmente ao banco local.
+- `storage-connection-service.cjs`: persiste `storage_mode`, `lan_server_host` e `lan_server_port` em `configuracoes`, mantendo `local` como padrão, e testa compatibilidade do serviço LAN v1.
 - `works-service.cjs`, `planning-service.cjs`, `field-service.cjs`, `procurement-service.cjs` e `contracts-service.cjs`: serviços modulares para operação, planejamento, RDO, compras e contratos.
 - `payroll-service.cjs`: lançamentos e confirmação de folha.
 - `time-service.cjs`: ponto e documentos mensais.
@@ -116,7 +125,7 @@ Novas mudanças devem ser adicionadas em uma migration numerada posterior. O ser
 
 ## API do renderer
 
-Os grupos expostos por `window.fluxoDre` são: `app`, `product`, `empresas`, `clientes`, `fornecedores`, `obras`, `frentes`, `etapas`, `locais`, `orcamentos`, `cronograma`, `rdos`, `rdoEquipe`, `rdoEquipamentos`, `rdoOcorrencias`, `medicoes`, `contas`, `categorias`, `cargos`, `funcionarios`, `folhas`, `lancamentosFolha`, `pagamentosFuncionario`, `beneficios`, `epis`, `funcionarioEpis`, `arquivos`, `fontes`, `pastas`, `documentos`, `folha`, `ponto`, `catalogo`, `compras`, `contratos`, `importacoes`, `relatorios` e `backup`.
+Os grupos expostos por `window.fluxoDre` são: `app`, `storage`, `product`, `empresas`, `clientes`, `fornecedores`, `obras`, `frentes`, `etapas`, `locais`, `orcamentos`, `cronograma`, `rdos`, `rdoEquipe`, `rdoEquipamentos`, `rdoOcorrencias`, `medicoes`, `contas`, `categorias`, `cargos`, `funcionarios`, `folhas`, `lancamentosFolha`, `pagamentosFuncionario`, `beneficios`, `epis`, `funcionarioEpis`, `arquivos`, `fontes`, `pastas`, `documentos`, `folha`, `ponto`, `catalogo`, `compras`, `contratos`, `importacoes`, `relatorios` e `backup`.
 
 Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 
@@ -134,6 +143,7 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - `npm test`: testes Vitest uma vez.
 - `npm run build`: TypeScript e bundle de produção.
 - `npm run dist`: build e instalador NSIS x64 em `release/`.
+- `npm --prefix ../lan-server test` a partir de `apps/desktop`: testes do contrato HTTP LAN; a partir da raiz use `npm --prefix apps/lan-server test`.
 
 ## Estratégia de inspeção por tipo de alteração
 
@@ -191,3 +201,12 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - IPC/preload/tipagem: `online:password-auth` / `passwordAuth` e `online:password-setup` / `passwordSetup`.
 - Perfil local fixa empresa e endpoint após autenticação. Desconectar não remove essa proteção; outra empresa exige perfil Windows separado. Vincular não configura nem inicia publicação de dados locais automaticamente; o vínculo explícito empresa/obra do coordenador continua obrigatório.
 - `App.tsx`: oferece login ao computador sem vínculo; computadores já vinculados mantêm operação local offline.
+
+## Adendo 2026-09-29 — fundação Servidor da empresa (fases 0–2)
+
+- `DataAccessService` passou a intermediar o CRUD genérico `entity:*`, ainda delegando integralmente ao SQLite local. Esta mudança cria a seam necessária para roteamento remoto posterior sem alterar as páginas atuais.
+- `StorageConnectionService` persiste modo `local|server`, host e porta na tabela `configuracoes`, valida a entrada e consulta `/health` com timeout de 3 segundos. Instalações sem configuração continuam em `local`.
+- IPC/preload/tipagem: `storage:state`, `storage:configure`, `storage:test-connection` / `window.fluxoDre.storage`.
+- `SettingsPage.tsx` ganhou **Dados e servidor**, com `Neste computador` e `Servidor da empresa`, host, porta e teste de conexão. A UI informa explicitamente que o CRUD ainda não migra nesta fase.
+- `apps/lan-server/` usa apenas módulos nativos do Node 22, responde `GET /health` e `GET /version`, retorna 404/405 em JSON e escuta `127.0.0.1:4732` por padrão. `OBRA_NA_MAO_LAN_HOST` e `OBRA_NA_MAO_LAN_PORT` permitem configuração de implantação.
+- Não há abertura automática de firewall, exposição à internet, autenticação de terminal, migração de banco, sincronização offline ou CRUD HTTP nas fases 0–2.
