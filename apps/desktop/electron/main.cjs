@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage } = require('electron')
 const path = require('node:path')
 const { DatabaseService } = require('./services/database-safe.cjs')
+const { DataAccessService } = require('./services/data-access-service.cjs')
+const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
 const { FileService } = require('./services/file-service.cjs')
 const { ManagedDirectoryService } = require('./services/managed-directory-service.cjs')
 const { DocumentExplorerContextService } = require('./services/document-explorer-context-service.cjs')
@@ -56,6 +58,8 @@ function createServices() {
   const paths = resolvePaths()
   const db = new DatabaseService(paths)
   db.open()
+  const dataAccess = new DataAccessService({ db })
+  const storage = new StorageConnectionService({ db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
   const explorer = new ManagedDirectoryService({
@@ -69,7 +73,7 @@ function createServices() {
   const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
   const sync = new SyncCoordinator({ database: db, online })
   return {
-    paths, db, files, documentRoot, explorer, explorerContext,
+    paths, db, dataAccess, storage, files, documentRoot, explorer, explorerContext,
     backup: new BackupService({ db, ...paths }),
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
@@ -99,10 +103,13 @@ function registerIpc() {
   ipcMain.handle('app:retry-database', envelope(() => withSyncStopped(() => { services.db.close(); services.db.open(); return true })))
   ipcMain.handle('app:get-layout', envelope(() => services.uiPreferences.getLayout()))
   ipcMain.handle('app:set-layout', envelope(({ layout }) => services.uiPreferences.setLayout(layout)))
-  ipcMain.handle('entity:list', envelope(({ table, filters }) => services.db.list(table, filters)))
-  ipcMain.handle('entity:get', envelope(({ table, id }) => services.db.get(table, id)))
-  ipcMain.handle('entity:save', envelope(({ table, data }) => services.db.save(table, data)))
-  ipcMain.handle('entity:remove', envelope(({ table, id }) => services.db.remove(table, id)))
+  ipcMain.handle('storage:state', envelope(() => services.storage.state()))
+  ipcMain.handle('storage:configure', envelope((payload) => services.storage.configure(payload)))
+  ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))
+  ipcMain.handle('entity:list', envelope(({ table, filters }) => services.dataAccess.list(table, filters)))
+  ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))
+  ipcMain.handle('entity:save', envelope(({ table, data }) => services.dataAccess.save(table, data)))
+  ipcMain.handle('entity:remove', envelope(({ table, id }) => services.dataAccess.remove(table, id)))
   ipcMain.handle('dashboard:get', envelope((filters) => services.db.dashboard(filters)))
   ipcMain.handle('works:overview', envelope(({ obra_id }) => services.works.overview(obra_id)))
   ipcMain.handle('works:timeline', envelope(({ obra_id }) => services.works.timeline(obra_id)))
