@@ -1,6 +1,7 @@
 const MODES = new Set(['local', 'server'])
 const OPERATIONAL_MODES = new Set(['local', 'lan-host', 'lan-client', 'remote'])
 const MODE_KEY = 'storage_mode'
+const OPERATIONAL_MODE_KEY = 'storage_operational_mode'
 const HOST_KEY = 'lan_server_host'
 const PORT_KEY = 'lan_server_port'
 const DEFAULT_HOST = '127.0.0.1'
@@ -8,6 +9,10 @@ const DEFAULT_PORT = 4732
 
 function legacyToOperational(mode) {
   return mode === 'server' ? 'lan-client' : 'local'
+}
+
+function operationalToLegacy(operationalMode) {
+  return operationalMode === 'local' ? 'local' : 'server'
 }
 
 class StorageConnectionService {
@@ -52,7 +57,8 @@ class StorageConnectionService {
   state() {
     const savedMode = this.read(MODE_KEY)
     const mode = MODES.has(savedMode) ? savedMode : 'local'
-    const operationalMode = legacyToOperational(mode)
+    const savedOperationalMode = this.read(OPERATIONAL_MODE_KEY)
+    const operationalMode = OPERATIONAL_MODES.has(savedOperationalMode) ? savedOperationalMode : legacyToOperational(mode)
 
     let host = DEFAULT_HOST
     const savedHost = this.read(HOST_KEY)
@@ -70,11 +76,24 @@ class StorageConnectionService {
     return { mode, operationalMode, host, port, baseUrl: `http://${host}:${port}` }
   }
 
-  configure({ mode, host, port }) {
-    const validMode = this.validateMode(mode)
+  configure({ mode, operationalMode, host, port }) {
+    let validOperationalMode
+    let validMode
+    if (operationalMode !== undefined) {
+      validOperationalMode = this.validateOperationalMode(operationalMode)
+      validMode = operationalToLegacy(validOperationalMode)
+      if (mode !== undefined && this.validateMode(mode) !== validMode) {
+        throw new Error('Modo legado não corresponde ao papel operacional informado.')
+      }
+    } else {
+      validMode = this.validateMode(mode)
+      validOperationalMode = legacyToOperational(validMode)
+    }
+
     const validHost = this.validateHost(host || DEFAULT_HOST)
     const validPort = this.validatePort(port ?? DEFAULT_PORT)
     this.write(MODE_KEY, validMode)
+    this.write(OPERATIONAL_MODE_KEY, validOperationalMode)
     this.write(HOST_KEY, validHost)
     this.write(PORT_KEY, validPort)
     return this.state()
@@ -116,4 +135,4 @@ class StorageConnectionService {
   }
 }
 
-module.exports = { StorageConnectionService, legacyToOperational }
+module.exports = { StorageConnectionService, legacyToOperational, operationalToLegacy }
