@@ -4,6 +4,7 @@ import { LanRepository } from './repository.mjs'
 import { LanSecurityRepository } from './security-repository.mjs'
 import { ServerIdentity } from './server-identity.mjs'
 import { CloudAuthorityClient } from './cloud-authority-client.mjs'
+import { PairingService } from './pairing-service.mjs'
 import { createLanServer, LAN_SERVER_VERSION } from './server.mjs'
 
 const host = process.env.OBRA_NA_MAO_LAN_HOST?.trim() || '127.0.0.1'
@@ -20,7 +21,8 @@ const repository = new LanRepository({ filename: databasePath })
 const security = new LanSecurityRepository({ db: repository.connection() })
 const identity = new ServerIdentity({ security })
 const cloudAuthority = new CloudAuthorityClient({ baseUrl: cloudBaseUrl })
-const server = createLanServer({ serverVersion: LAN_SERVER_VERSION, repository, security, identity, cloudAuthority, cloudBaseUrl })
+const pairingService = new PairingService({ security })
+const server = createLanServer({ serverVersion: LAN_SERVER_VERSION, repository, security, identity, cloudAuthority, cloudBaseUrl, pairingService })
 
 server.listen(port, host, () => {
   console.log(`Obra na Mão LAN Server ${LAN_SERVER_VERSION} disponível em http://${host}:${port}`)
