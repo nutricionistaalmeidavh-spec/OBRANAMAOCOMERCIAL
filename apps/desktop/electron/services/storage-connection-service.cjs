@@ -90,7 +90,9 @@ class StorageConnectionService {
       validOperationalMode = legacyToOperational(validMode)
     }
 
-    const validHost = this.validateHost(host || DEFAULT_HOST)
+    const requiresExplicitHost = validOperationalMode === 'lan-client' || validOperationalMode === 'remote'
+    const hostCandidate = requiresExplicitHost ? host : (host || DEFAULT_HOST)
+    const validHost = this.validateHost(hostCandidate)
     const validPort = this.validatePort(port ?? DEFAULT_PORT)
     this.write(MODE_KEY, validMode)
     this.write(OPERATIONAL_MODE_KEY, validOperationalMode)
@@ -118,12 +120,7 @@ class StorageConnectionService {
       if (health?.status !== 'ok' || health?.product !== 'Obra na Mão' || String(health?.apiVersion) !== '1') {
         throw new Error('O endereço respondeu, mas não é um servidor Obra na Mão compatível.')
       }
-      return {
-        ok: true,
-        baseUrl: state.baseUrl,
-        latencyMs: Math.max(0, Date.now() - startedAt),
-        health
-      }
+      return { ok: true, baseUrl: state.baseUrl, latencyMs: Math.max(0, Date.now() - startedAt), health }
     } catch (error) {
       if (error?.name === 'AbortError') throw new Error('Tempo esgotado ao conectar ao servidor da empresa.')
       const message = error instanceof Error ? error.message : String(error)
