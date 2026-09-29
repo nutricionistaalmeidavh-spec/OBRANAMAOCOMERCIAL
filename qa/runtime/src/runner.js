@@ -28,6 +28,22 @@ function profileRuntimeContext({ manifest, rootDir, environmentName, environment
   };
 }
 
+async function seedIsolatedElectronLink() {
+  if (process.env.ARTISYS_QA !== '1' || !process.env.OBRA_NA_MAO_DATA_DIR) return;
+  const dataDir = process.env.OBRA_NA_MAO_DATA_DIR;
+  await fs.mkdir(dataDir, { recursive: true });
+  const configPath = path.join(dataDir, 'online-connection.json');
+  const tokenValue = Buffer.from('artisys-qa-isolated-device-token', 'utf8').toString('base64');
+  await fs.writeFile(configPath, JSON.stringify({
+    baseUrl: 'https://obra.qa.example.test',
+    installationId: 'artisysqaisolated0000000000000001',
+    tokenValue,
+    tokenEncoding: 'base64',
+    linkedAt: new Date().toISOString(),
+    tenant: { companyId: 'qa-company', companyName: 'Empresa QA', baseUrl: 'https://obra.qa.example.test' },
+  }, null, 2), 'utf8');
+}
+
 export async function runQaFlow({
   manifest,
   rootDir,
@@ -84,6 +100,7 @@ export async function runQaFlow({
     }
 
     if (manifest.mode === 'electron') {
+      await seedIsolatedElectronLink();
       const entry = path.resolve(rootDir, manifest.electron.entry);
       const executablePath = manifest.electron.executablePath ? path.resolve(rootDir, manifest.electron.executablePath) : undefined;
       electronApp = await electron.launch({
