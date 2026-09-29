@@ -4,7 +4,7 @@
 
 **Goal:** Turn the current unauthenticated LAN server into a claimed, company-bound server with cached Cloud permissions, per-device LAN credentials, pairing, revocation and authenticated business-data routes.
 
-**Architecture:** `apps/lan-server` keeps owning the central SQLite and adds a focused security repository plus a Cloud authority client. The server starts unclaimed, is claimed once with setup code + Cloud claim token, caches the last-known company/member snapshot and thereafter requires `Authorization: Bearer <lan-device-token>` for Empresas/Clientes/Obras. Offline operation uses only previously cached identities and paired devices; member roles/modules remain Cloud-authoritative.
+**Architecture:** `apps/lan-server` keeps owning the central SQLite and adds a focused security repository plus a Cloud authority client. The server starts unclaimed, is claimed once with setup code + Cloud claim token, caches the last-known company/member snapshot and thereafter requires `Authorization: Bearer <lan-device-token>` for Empresas/Clientes/Obras. The Desktop that performs the first successful server claim is atomically bootstrapped as the first LAN admin device; every later device enters through a one-use pairing code. Offline operation uses only previously cached identities and paired devices; member roles/modules remain Cloud-authoritative.
 
 **Tech Stack:** Node.js 22, `node:http`, `node:sqlite`, built-in crypto/fetch, Node test runner.
 
@@ -20,6 +20,7 @@
 - Cached member role/modules/channels are read-only replicas of Cloudflare authority.
 - A local LAN admin may pair/revoke/reactivate devices but may not change member role/modules/channels.
 - Already-paired devices continue during temporary Internet loss using the last-known snapshot.
+- The first LAN admin device is created only as part of a successful Cloud-authorized setup claim; no anonymous/bootstrap admin endpoint exists afterward.
 - No silent fallback to Desktop-local SQLite when LAN authorization/server access fails.
 
 ## Review Focus
@@ -74,7 +75,6 @@ listDevices()
 createPairingCode({ memberId, codeHash, expiresAt, createdByDeviceId })
 consumePairingCode(codeHash)
 appendAudit(entry)
-close? // no-op; LanRepository owns connection
 ```
 
 Schema responsibilities match the spec's `lan_server_identity`, `lan_members_cache`, `lan_devices`, `lan_pairing_codes`, `lan_audit`.
@@ -138,7 +138,7 @@ git add apps/lan-server/src/index.mjs apps/lan-server/src/server-identity.mjs ap
 git commit -m "feat(lan): add secure server claim identity"
 ```
 
-### Task 3: Implement setup claim and cached Cloud snapshot
+### Task 3: Implement setup claim, bootstrap first admin device and cache Cloud snapshot
 
 **Files:**
 - Modify: `apps/lan-server/src/server.mjs`
@@ -146,19 +146,25 @@ git commit -m "feat(lan): add secure server claim identity"
 
 **Interfaces:**
 - Consumes: Task 2 identity/cloud services and security repository.
-- Produces: `GET /api/v1/setup/status`, `POST /api/v1/setup/claim`, server-side `refreshIdentitySnapshot()`.
+- Produces: `GET /api/v1/setup/status`, `POST /api/v1/setup/claim`, first LAN admin device credential, server-side `refreshIdentitySnapshot()`.
 
 - [ ] **Step 1: Add failing HTTP tests**
 
-Pin: setup status exposes only `{claimed,serverId}`; setup claim requires both valid setup code and Cloud claim token; successful claim binds exact company and invalidates setup code; second claim returns conflict; Cloud company mismatch fails without partially claiming.
+Pin: setup status exposes only `{claimed,serverId}`; setup claim requires valid setup code + Cloud claim token + `installationId` + `deviceName`; successful claim binds exact company, finds the `claimingMemberId` returned by Cloud in the received snapshot, requires that cached member to be active admin with Desktop channel, creates exactly one first LAN device, returns its plaintext LAN token once, stores only its hash, invalidates setup code, and makes a second claim return conflict. Cloud/company/member mismatch fails without partially claiming or creating a device.
 
 - [ ] **Step 2: Run and confirm RED**
 
 Run: `cd apps/lan-server && node --test tests/server.test.mjs`
 
-- [ ] **Step 3: Implement setup routes**
+- [ ] **Step 3: Implement setup route atomically**
 
-`POST /api/v1/setup/claim` body `{setupCode,claimToken}`. Redeem through Cloud, validate returned company/snapshot, atomically persist identity + snapshot, then invalidate setup code.
+`POST /api/v1/setup/claim` body:
+
+```json
+{"setupCode":"...","claimToken":"...","installationId":"...","deviceName":"..."}
+```
+
+Redeem through Cloud; validate company/snapshot/claiming admin; generate one random LAN device token; atomically persist identity + snapshot + first admin device token hash; invalidate setup code. Response may return `{claimed:true,company,device:{id,member},deviceToken}` once. Never log or persist the plaintext token.
 
 - [ ] **Step 4: Implement snapshot refresh helper**
 
@@ -172,7 +178,7 @@ Run focused server tests; expected PASS.
 
 ```bash
 git add apps/lan-server/src/server.mjs apps/lan-server/tests/server.test.mjs
-git commit -m "feat(lan): claim server and cache Cloud permissions"
+git commit -m "feat(lan): claim server and bootstrap first admin device"
 ```
 
 ### Task 4: Authenticate all business CRUD with LAN device credentials
@@ -224,11 +230,11 @@ git commit -m "feat(lan): require device authorization for business data"
 
 **Interfaces:**
 - Consumes: authenticated admin context and security repository.
-- Produces: pairing invitation/claim and device list/revoke/reactivate endpoints.
+- Produces: pairing invitation/claim and device list/revoke/reactivate endpoints for every device after the first bootstrapped admin device.
 
 - [ ] **Step 1: Write failing pairing tests**
 
-Cover admin creates code for existing cached member; non-admin rejected; absent/revoked/no-desktop-channel target rejected; code expires at 10 minutes; one-use replay rejected; repeated invalid claims are rate-limited; successful claim returns plaintext device token once and stores only digest; revoke blocks token immediately; reactivate restores it.
+Cover bootstrapped admin creates code for existing cached member; non-admin rejected; absent/revoked/no-desktop-channel target rejected; code expires at 10 minutes; one-use replay rejected; repeated invalid claims are rate-limited; successful claim returns plaintext device token once and stores only digest; revoke blocks token immediately; reactivate restores it.
 
 - [ ] **Step 2: Run and confirm RED**
 
@@ -304,7 +310,7 @@ Explicitly verify `/health` and `/version` contain no company/member/token/setup
 
 - [ ] **Step 3: Update PROJECT_MAP**
 
-Document server claim, cached Cloud identity, pairing endpoints and authenticated business CRUD. Preserve the non-negotiable Web/PWA compatibility note.
+Document server claim, cached Cloud identity, bootstrap first admin device, later pairing endpoints and authenticated business CRUD. Preserve the non-negotiable Web/PWA compatibility note.
 
 - [ ] **Step 4: Commit docs**
 
