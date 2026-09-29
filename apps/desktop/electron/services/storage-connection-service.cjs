@@ -1,9 +1,14 @@
 const MODES = new Set(['local', 'server'])
+const OPERATIONAL_MODES = new Set(['local', 'lan-host', 'lan-client', 'remote'])
 const MODE_KEY = 'storage_mode'
 const HOST_KEY = 'lan_server_host'
 const PORT_KEY = 'lan_server_port'
 const DEFAULT_HOST = '127.0.0.1'
 const DEFAULT_PORT = 4732
+
+function legacyToOperational(mode) {
+  return mode === 'server' ? 'lan-client' : 'local'
+}
 
 class StorageConnectionService {
   constructor({ db, fetchImpl = globalThis.fetch, timeoutMs = 3000 }) {
@@ -25,6 +30,11 @@ class StorageConnectionService {
     return mode
   }
 
+  validateOperationalMode(mode) {
+    if (!OPERATIONAL_MODES.has(mode)) throw new Error('Papel operacional de armazenamento inválido.')
+    return mode
+  }
+
   validateHost(host) {
     const value = String(host ?? '').trim()
     if (!value || /[:/@\\?#]/.test(value) || !/^[A-Za-z0-9.-]+$/.test(value)) {
@@ -42,6 +52,7 @@ class StorageConnectionService {
   state() {
     const savedMode = this.read(MODE_KEY)
     const mode = MODES.has(savedMode) ? savedMode : 'local'
+    const operationalMode = legacyToOperational(mode)
 
     let host = DEFAULT_HOST
     const savedHost = this.read(HOST_KEY)
@@ -56,7 +67,7 @@ class StorageConnectionService {
       if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 65535) port = parsed
     }
 
-    return { mode, host, port, baseUrl: `http://${host}:${port}` }
+    return { mode, operationalMode, host, port, baseUrl: `http://${host}:${port}` }
   }
 
   configure({ mode, host, port }) {
@@ -105,4 +116,4 @@ class StorageConnectionService {
   }
 }
 
-module.exports = { StorageConnectionService }
+module.exports = { StorageConnectionService, legacyToOperational }
