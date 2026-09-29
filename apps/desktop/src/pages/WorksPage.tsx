@@ -16,6 +16,8 @@ export default function WorksPage() {
   const works = useAsync(() => window.fluxoDre.obras.list(), [])
   const companies = useAsync(() => window.fluxoDre.empresas.list(), [])
   const clients = useAsync(() => window.fluxoDre.clientes.list(), [])
+  const storage = useAsync(() => window.fluxoDre.storage.state(), [])
+  const serverMode = storage.data?.mode === 'server'
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState<any>(initial)
   const [selectedId, setSelectedId] = useState('')
@@ -26,7 +28,7 @@ export default function WorksPage() {
   const [quickForm, setQuickForm] = useState<any>(null)
   const [quickSaving, setQuickSaving] = useState(false)
   const [quickError, setQuickError] = useState('')
-  const overview = useAsync(() => selectedId ? window.fluxoDre.obras.overview(Number(selectedId)) : Promise.resolve(null), [selectedId])
+  const overview = useAsync(() => selectedId && !serverMode ? window.fluxoDre.obras.overview(Number(selectedId)) : Promise.resolve(null), [selectedId, serverMode])
   const selectedWork = useMemo(() => works.data?.find((work: any) => String(work.id) === selectedId), [works.data, selectedId])
 
   useEffect(() => {
@@ -86,6 +88,7 @@ export default function WorksPage() {
   }
 
   const importSpreadsheets = async () => {
+    if (serverMode) return
     setImporting(true)
     setNotice('')
     try {
@@ -109,10 +112,11 @@ export default function WorksPage() {
   const totalPago = selectedOverview?.frentes?.reduce((sum: number, item: any) => sum + Number(item.pago_centavos || 0), 0) || 0
 
   return <>
-    <PageHeader title="Obras" description="Escolha uma obra e acompanhe as areas operacionais em um unico hub." actions={<div className="row-actions"><Button variant="secondary" icon={<Upload size={16}/>} onClick={importSpreadsheets} disabled={importing}>Importar planilhas</Button><Button icon={<Plus size={16}/>} onClick={() => open()}>Nova obra</Button></div>}/>
+    <PageHeader title="Obras" description="Escolha uma obra e acompanhe as areas operacionais em um unico hub." actions={<div className="row-actions"><Button variant="secondary" icon={<Upload size={16}/>} onClick={importSpreadsheets} disabled={importing||serverMode}>Importar planilhas</Button><Button icon={<Plus size={16}/>} onClick={() => open()}>Nova obra</Button></div>}/>
+    {serverMode && <div className="success-box" style={{ marginBottom: 14 }}><strong>Empresas, clientes e obras estão usando o servidor da empresa.</strong> Obra 360 e módulos operacionais continuam locais nesta etapa.</div>}
     {works.loading ? <Card><Loading/></Card> : works.data?.length ? <>
       <div className="filters">
-        <Field label="Obra em foco"><select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Selecione uma obra</option>{works.data.map((work: any) => <option key={work.id} value={work.id}>{work.nome}</option>)}</select><small>Os cards abaixo usam esta obra e abrem as telas completas ja filtradas.</small></Field>
+        <Field label="Obra em foco"><select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Selecione uma obra</option>{works.data.map((work: any) => <option key={work.id} value={work.id}>{work.nome}</option>)}</select><small>{serverMode ? 'A seleção controla apenas o cadastro remoto nesta etapa.' : 'Os cards abaixo usam esta obra e abrem as telas completas ja filtradas.'}</small></Field>
       </div>
       <div className="dashboard-grid">
         <Card>
@@ -143,8 +147,8 @@ export default function WorksPage() {
           </div>
         </Card>
         <Card>
-          <div className="card-header"><div><h2>Unidade gerencial</h2><span>{selectedWork?.nome || 'Selecione uma obra'}</span></div>{selectedId && <Button variant="secondary" icon={<ArrowRight size={15}/>} onClick={() => navigate(`/obras/${selectedId}`)}>Abrir 360</Button>}</div>
-          {!selectedId ? <Empty title="Selecione uma obra" description="Depois disso os cards mostram os resumos operacionais."/> : overview.loading ? <Loading/> : <div className="card-body">
+          <div className="card-header"><div><h2>Unidade gerencial</h2><span>{selectedWork?.nome || 'Selecione uma obra'}</span></div>{selectedId && !serverMode && <Button variant="secondary" icon={<ArrowRight size={15}/>} onClick={() => navigate(`/obras/${selectedId}`)}>Abrir 360</Button>}</div>
+          {serverMode ? <Empty title="Cadastro remoto ativo" description="Obra 360 e módulos operacionais continuam locais nesta etapa."/> : !selectedId ? <Empty title="Selecione uma obra" description="Depois disso os cards mostram os resumos operacionais."/> : overview.loading ? <Loading/> : <div className="card-body">
             <p style={{ fontSize: 12, color: '#647084', display: 'flex', gap: 7, alignItems: 'center', marginTop: 0 }}><MapPin size={15}/>{selectedWork?.endereco || 'Endereco nao informado'}</p>
             <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(130px, 1fr))', marginBottom: 14 }}>
               <Kpi label="Orcado" value={brl(selectedOverview?.orcado_centavos || 0)}/>
@@ -157,10 +161,10 @@ export default function WorksPage() {
         </Card>
       </div>
       <div className="work-cards" style={{ marginTop: 16 }}>
-        <OperationCard icon={<BriefcaseBusiness size={22}/>} title="Frentes de servico" text="Especialidades, subfrentes e checklist por pavimento ou geral." metric={`${frontCount} frentes`} detail={`${selectedOverview?.frentes?.filter((front: any) => front.status === 'ativa').length || 0} ativas`} disabled={!selectedId} onClick={() => navigate(`/frentes?obra=${selectedId}`)}/>
-        <OperationCard icon={<CalendarClock size={22}/>} title="Planejamento" text="Etapas, Curva S, previsto x realizado e caixa por obra." metric={`${stageCount} etapas`} detail={selectedOverview?.cronograma?.[0] ? `Proxima: ${selectedOverview.cronograma[0].nome}` : 'Sem etapas'} disabled={!selectedId} onClick={() => navigate(`/planejamento?obra=${selectedId}`)}/>
-        <OperationCard icon={<NotebookPen size={22}/>} title="Diario de obra" text="RDOs, equipe, equipamentos, ocorrencias, anexos e pendencias." metric={`${rdoCount} RDOs`} detail={pendingCount ? `${pendingCount} pendencias abertas` : 'Sem pendencias'} disabled={!selectedId} onClick={() => navigate(`/rdo?obra=${selectedId}`)}/>
-        <OperationCard icon={<HardHat size={22}/>} title="Obra 360" text="Resumo completo financeiro, operacional, compras, contratos e documentos." metric={brl(selectedOverview?.medido_centavos || 0)} detail="Medido na obra" disabled={!selectedId} onClick={() => navigate(`/obras/${selectedId}`)}/>
+        <OperationCard icon={<BriefcaseBusiness size={22}/>} title="Frentes de servico" text="Especialidades, subfrentes e checklist por pavimento ou geral." metric={`${frontCount} frentes`} detail={`${selectedOverview?.frentes?.filter((front: any) => front.status === 'ativa').length || 0} ativas`} disabled={!selectedId||serverMode} onClick={() => navigate(`/frentes?obra=${selectedId}`)}/>
+        <OperationCard icon={<CalendarClock size={22}/>} title="Planejamento" text="Etapas, Curva S, previsto x realizado e caixa por obra." metric={`${stageCount} etapas`} detail={selectedOverview?.cronograma?.[0] ? `Proxima: ${selectedOverview.cronograma[0].nome}` : 'Sem etapas'} disabled={!selectedId||serverMode} onClick={() => navigate(`/planejamento?obra=${selectedId}`)}/>
+        <OperationCard icon={<NotebookPen size={22}/>} title="Diario de obra" text="RDOs, equipe, equipamentos, ocorrencias, anexos e pendencias." metric={`${rdoCount} RDOs`} detail={pendingCount ? `${pendingCount} pendencias abertas` : 'Sem pendencias'} disabled={!selectedId||serverMode} onClick={() => navigate(`/rdo?obra=${selectedId}`)}/>
+        <OperationCard icon={<HardHat size={22}/>} title="Obra 360" text="Resumo completo financeiro, operacional, compras, contratos e documentos." metric={brl(selectedOverview?.medido_centavos || 0)} detail="Medido na obra" disabled={!selectedId||serverMode} onClick={() => navigate(`/obras/${selectedId}`)}/>
       </div>
     </> : <Card><Empty title="Nenhuma obra cadastrada" description="Cadastre a primeira obra para organizar orcamento, medicao e resultado." action={<Button onClick={() => open()}>Cadastrar obra</Button>}/></Card>}
     {notice && <div className="success-box" style={{ marginTop: 14 }}>{notice}</div>}
@@ -215,7 +219,7 @@ export default function WorksPage() {
         <FormActions onCancel={closeQuickRegistry} submitLabel="Cadastrar" loading={quickSaving}/>
       </form>
     </Modal>
-    <Confirm open={!!remove} title="Excluir obra" description="A obra sera removida logicamente. Os arquivos fisicos nao serao apagados." danger onCancel={() => setRemove(null)} onConfirm={async () => { await window.fluxoDre.obras.remove(remove.id); setRemove(null); works.reload(); overview.reload() }}/>
+    <Confirm open={!!remove} title="Excluir obra" description="A obra sera removida logicamente. Os arquivos fisicos nao serao apagados." danger onCancel={() => setRemove(null)} onConfirm={async () => { await window.fluxoDre.obras.remove(remove.id); setRemove(null); works.reload(); if (!serverMode) overview.reload() }}/>
   </>
 }
 
