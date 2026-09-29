@@ -12,7 +12,8 @@ const state = vi.hoisted(() => {
     async delete(collection:string,ids:string[]){for(const id of ids)bucket(collection).delete(String(id));return true},
   };
   const createLanClaim=vi.fn(async()=>({claimToken:'claim-token',expiresAt:'2026-09-29T20:10:00.000Z'}));
-  return{db,createLanClaim,reset(){sequence=0;collections.clear();createLanClaim.mockClear()},bucket,env:{OWNER_EMAIL:'owner@example.com',OWNER_COMPANY:'Obra na Mão',OWNER_PROJECT:'Operação Comercial',OWNER_CUSTOMER:'Obra na Mão',DB:{prepare(){return{bind(){return this},async run(){return{success:true,meta:{changes:1}}},async first(){return null},async all(){return{results:[]}}}}}}};
+  const revokeLanServerGrant=vi.fn(async()=>true);
+  return{db,createLanClaim,revokeLanServerGrant,reset(){sequence=0;collections.clear();createLanClaim.mockClear();revokeLanServerGrant.mockReset();revokeLanServerGrant.mockResolvedValue(true)},bucket,env:{OWNER_EMAIL:'owner@example.com',OWNER_COMPANY:'Obra na Mão',OWNER_PROJECT:'Operação Comercial',OWNER_CUSTOMER:'Obra na Mão',DB:{prepare(){return{bind(){return this},async run(){return{success:true,meta:{changes:1}}},async first(){return null},async all(){return{results:[]}}}}}}};
 });
 
 vi.mock('../cloudflare/sdk',()=>({
@@ -24,7 +25,7 @@ vi.mock('../cloudflare/sdk',()=>({
 }));
 vi.mock('./lan-server-authority',()=>({
   createLanClaim:state.createLanClaim,
-  redeemLanClaim:vi.fn(),authenticateLanServer:vi.fn(),revokeLanServerGrant:vi.fn(),lanServerSnapshot:vi.fn(),
+  redeemLanClaim:vi.fn(),authenticateLanServer:vi.fn(),revokeLanServerGrant:state.revokeLanServerGrant,lanServerSnapshot:vi.fn(),
 }));
 
 import { handler } from './index';
@@ -74,5 +75,27 @@ describe('LAN server claim routes',()=>{
     const token=await seedDesktop('admin');
     const invalidServer=await last(routes['POST /api/desktop/lan/claim/start'])({body:{deviceToken:token,serverId:'x'},query:{},params:{}});
     expect(invalidServer.status).toBe(400);
+  });
+
+  it('lets only an admin revoke a server scoped to the same company',async()=>{
+    const routes=(handler as unknown as{routes:Record<string,readonly unknown[]>}).routes;
+    const token=await seedDesktop('admin');
+    const response=await last(routes['POST /api/lan/server/revoke'])({body:{deviceToken:token,serverId:'server-a'},query:{},params:{}});
+    expect(response.status).toBe(200);
+    expect(state.revokeLanServerGrant).toHaveBeenCalledWith({serverId:'server-a',companyId:'company-a'});
+
+    state.reset();
+    const foreman=await seedDesktop('foreman');
+    const denied=await last(routes['POST /api/lan/server/revoke'])({body:{deviceToken:foreman,serverId:'server-a'},query:{},params:{}});
+    expect(denied.status).toBe(403);
+    expect(state.revokeLanServerGrant).not.toHaveBeenCalled();
+  });
+
+  it('does not report a server from another company as revocable',async()=>{
+    const routes=(handler as unknown as{routes:Record<string,readonly unknown[]>}).routes;
+    const token=await seedDesktop('admin');
+    state.revokeLanServerGrant.mockResolvedValueOnce(false);
+    const response=await last(routes['POST /api/lan/server/revoke'])({body:{deviceToken:token,serverId:'server-other'},query:{},params:{}});
+    expect(response.status).toBe(404);
   });
 });
