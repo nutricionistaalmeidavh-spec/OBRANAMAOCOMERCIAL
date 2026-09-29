@@ -23,14 +23,20 @@ Aplicativo desktop Windows e offline para gestão financeira e operacional de co
 - Comunicação: API restrita `window.fluxoDre`, definida no preload e atendida por IPC.
 - Dados de execução: `%APPDATA%\fluxo-dre` por padrão; podem ser redirecionados por `FLUXO_DRE_DATA_DIR`.
 - O núcleo continua offline-first em SQLite. A partir de 2026-09-02 existe uma ponte online opcional para vínculo de dispositivo, sincronização Obra360, Financeiro Inteligente e IA estruturada.
-- A partir de 2026-09-29 existe a fundação opcional de **Servidor da empresa**: a configuração de host/porta é persistida localmente e validada por HTTP, mas o CRUD continua local nesta etapa. A troca efetiva de Empresas/Clientes/Obras para HTTP começa nas fases 3–5.
-- `apps/lan-server/` é o processo HTTP mínimo destinado a rodar na infraestrutura já existente do cliente; por padrão escuta somente `127.0.0.1:4732` e expõe apenas `/health` e `/version` nesta fase.
+- A partir de 2026-09-29 existe o modo opcional **Servidor da empresa**. Quando ativado, Empresas, Clientes e Obras usam CRUD HTTP no servidor LAN; os demais módulos continuam no SQLite local até suas fases de migração.
+- `apps/lan-server/` é o processo HTTP destinado a rodar na infraestrutura já existente do cliente; por padrão escuta somente `127.0.0.1:4732`, expõe `/health`, `/version` e `/api/v1/{empresas|clientes|obras}`, e mantém um SQLite central próprio.
 
 ## Fluxo entre camadas
 
-`src/pages/*` → `window.fluxoDre` → `electron/preload.cjs` → handlers em `electron/main.cjs` → `electron/services/*` → SQLite/arquivos locais.
+Modo local:
 
-O CRUD genérico `entity:*` passa por `DataAccessService`, que atualmente delega 1:1 ao `DatabaseService`. Essa seam é o ponto previsto para roteamento Local/Servidor nas fases posteriores; não há CRUD HTTP ativo nas fases 0–2.
+`src/pages/*` → `window.fluxoDre` → `electron/preload.cjs` → handlers em `electron/main.cjs` → `DataAccessService` → `DatabaseService` → SQLite local.
+
+Modo Servidor da empresa para Empresas/Clientes/Obras:
+
+`src/pages/*` → `window.fluxoDre` → IPC → `DataAccessService` → `LanDataClient` → HTTP `/api/v1/*` → `LanRepository` → SQLite central.
+
+Entidades ainda não migradas continuam sendo delegadas ao `DatabaseService` local mesmo quando `storage_mode=server`. A seam evita compartilhar o arquivo SQLite do Desktop pela rede.
 
 Ao mudar uma operação que cruza camadas, confira apenas os pontos correspondentes desse fluxo. A tipagem pública do preload fica em `src/vite-env.d.ts`.
 
@@ -50,14 +56,15 @@ Ao mudar uma operação que cruza camadas, confira apenas os pontos corresponden
 - `src/styles/index.css`: estilos base; `src/styles/enhancements.css`: complementos visuais.
 - `electron/main.cjs`: janela, segurança, composição dos serviços e handlers IPC.
 - `electron/preload.cjs`: única API exposta ao renderer.
-- `electron/services/database.cjs`: CRUD genérico, relatórios, pagamentos e medições.
-- `electron/services/data-access-service.cjs`: seam do CRUD genérico; nesta etapa preserva SQLite local e não usa HTTP.
+- `electron/services/database.cjs`: CRUD genérico local, relatórios, pagamentos e medições.
+- `electron/services/data-access-service.cjs`: seam do CRUD genérico; escolhe SQLite local ou HTTP LAN por entidade e modo configurado.
+- `electron/services/lan-data-client.cjs`: cliente HTTP restrito a Empresas, Clientes e Obras, com timeout e validação do escopo remoto.
 - `electron/services/storage-connection-service.cjs`: configuração Local/Servidor, validação de host/porta e teste do `/health` LAN.
 - `electron/services/*-service.cjs`: serviços especializados.
-- `database/migrations/`: schema versionado e incremental.
+- `database/migrations/`: schema versionado e incremental do Desktop local.
 - `vite.config.ts`, `vitest.config.ts`, `tsconfig*.json`: build, testes e TypeScript.
 - `docs/UI_DESIGN_HISTORY.md`: histórico dos drafts preservados e da direção visual aprovada.
-- `../lan-server/`: serviço Node HTTP mínimo para execução no servidor já existente do cliente.
+- `../lan-server/`: serviço Node HTTP com `LanRepository`; persiste `obra-na-mao-lan.sqlite` no servidor da empresa.
 
 ## Rotas e telas
 
@@ -94,10 +101,11 @@ As rotas diretas dos módulos continuam registradas para preservar favoritos, li
 
 ## Serviços do processo principal
 
-- `database.cjs`: migrations, CRUD permitido por whitelist, dashboard, DRE, pagamentos e medições.
-- `data-access-service.cjs`: interface única para `list/get/save/remove`; nesta fase delega integralmente ao banco local.
+- `database.cjs`: migrations, CRUD permitido por whitelist, dashboard, DRE, pagamentos e medições locais.
+- `data-access-service.cjs`: interface única para `list/get/save/remove`; em modo servidor roteia `empresas`, `clientes` e `obras` ao `LanDataClient` e mantém as demais entidades no banco local.
+- `lan-data-client.cjs`: CRUD HTTP de Empresas/Clientes/Obras em `/api/v1`, sem expor `fetch` ao renderer.
 - `storage-connection-service.cjs`: persiste `storage_mode`, `lan_server_host` e `lan_server_port` em `configuracoes`, mantendo `local` como padrão, e testa compatibilidade do serviço LAN v1.
-- `works-service.cjs`, `planning-service.cjs`, `field-service.cjs`, `procurement-service.cjs` e `contracts-service.cjs`: serviços modulares para operação, planejamento, RDO, compras e contratos.
+- `works-service.cjs`, `planning-service.cjs`, `field-service.cjs`, `procurement-service.cjs` e `contracts-service.cjs`: serviços modulares para operação, planejamento, RDO, compras e contratos; permanecem locais nesta etapa.
 - `payroll-service.cjs`: lançamentos e confirmação de folha.
 - `time-service.cjs`: ponto e documentos mensais.
 - `document-service.cjs`: geração de documentos/PDFs.
@@ -106,7 +114,7 @@ As rotas diretas dos módulos continuam registradas para preservar favoritos, li
 - `import-service.cjs`: prévia e confirmação do modelo específico de 2026.
 - `universal-import-service.cjs`: análise de Excel/CSV, mapeamento assistido e importação transacional por área.
 - `catalog-service.cjs`: cargos, benefícios e vínculos.
-- `backup-service.cjs`: backup, restauração e pasta de dados.
+- `backup-service.cjs`: backup, restauração e pasta de dados locais.
 
 ## Banco de dados
 
@@ -119,9 +127,10 @@ As rotas diretas dos módulos continuam registradas para preservar favoritos, li
 - `007_nucleo_operacional_modular.sql`: compras, contratos, aditivos, recebimentos, anexos de RDO, modelos do RH e novos vínculos financeiros por obra/etapa.
 - `008_frentes_edicoes_medicoes_estoque.sql`: frentes, edição construtora/empreiteira, vínculos por frente, anexos de medição e estoque simples.
 
-Novas mudanças devem ser adicionadas em uma migration numerada posterior. O serviço usa `PRAGMA user_version`, ativa chaves estrangeiras e cria backup antes de migrations sobre banco existente.
+Novas mudanças do schema local devem ser adicionadas em uma migration numerada posterior. O serviço local usa `PRAGMA user_version`, ativa chaves estrangeiras e cria backup antes de migrations sobre banco existente.
 
 - `012_modelos_locais_rh.sql`: registra a origem de modelos HTML locais importados para o RH.
+- O banco LAN é independente do banco local e, nas fases 3–5, contém apenas `empresas`, `clientes` e `obras`; é criado pelo `apps/lan-server/src/repository.mjs`, ativa FKs, `busy_timeout` e WAL quando persistido em arquivo.
 
 ## API do renderer
 
@@ -143,7 +152,7 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - `npm test`: testes Vitest uma vez.
 - `npm run build`: TypeScript e bundle de produção.
 - `npm run dist`: build e instalador NSIS x64 em `release/`.
-- `npm --prefix ../lan-server test` a partir de `apps/desktop`: testes do contrato HTTP LAN; a partir da raiz use `npm --prefix apps/lan-server test`.
+- `npm --prefix ../lan-server test` a partir de `apps/desktop`: testes do contrato HTTP LAN e do repositório central; a partir da raiz use `npm --prefix apps/lan-server test`.
 
 ## Estratégia de inspeção por tipo de alteração
 
@@ -202,11 +211,14 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - Perfil local fixa empresa e endpoint após autenticação. Desconectar não remove essa proteção; outra empresa exige perfil Windows separado. Vincular não configura nem inicia publicação de dados locais automaticamente; o vínculo explícito empresa/obra do coordenador continua obrigatório.
 - `App.tsx`: oferece login ao computador sem vínculo; computadores já vinculados mantêm operação local offline.
 
-## Adendo 2026-09-29 — fundação Servidor da empresa (fases 0–2)
+## Adendo 2026-09-29 — Servidor da empresa (fases 0–5)
 
-- `DataAccessService` passou a intermediar o CRUD genérico `entity:*`, ainda delegando integralmente ao SQLite local. Esta mudança cria a seam necessária para roteamento remoto posterior sem alterar as páginas atuais.
-- `StorageConnectionService` persiste modo `local|server`, host e porta na tabela `configuracoes`, valida a entrada e consulta `/health` com timeout de 3 segundos. Instalações sem configuração continuam em `local`.
-- IPC/preload/tipagem: `storage:state`, `storage:configure`, `storage:test-connection` / `window.fluxoDre.storage`.
-- `SettingsPage.tsx` ganhou **Dados e servidor**, com `Neste computador` e `Servidor da empresa`, host, porta e teste de conexão. A UI informa explicitamente que o CRUD ainda não migra nesta fase.
-- `apps/lan-server/` usa apenas módulos nativos do Node 22, responde `GET /health` e `GET /version`, retorna 404/405 em JSON e escuta `127.0.0.1:4732` por padrão. `OBRA_NA_MAO_LAN_HOST` e `OBRA_NA_MAO_LAN_PORT` permitem configuração de implantação.
-- Não há abertura automática de firewall, exposição à internet, autenticação de terminal, migração de banco, sincronização offline ou CRUD HTTP nas fases 0–2.
+- Fases 0–2: `DataAccessService` passou a intermediar o CRUD genérico `entity:*`; `StorageConnectionService` adicionou modo `local|server`, host, porta e teste do `/health`; `SettingsPage.tsx` passou a configurar a conexão LAN; `apps/lan-server/` nasceu com `/health` e `/version`.
+- Fase 3: `empresas` passa a usar o `LanDataClient` quando o modo `server` estiver ativo.
+- Fase 4: `clientes` passa pelo mesmo contrato remoto, mantendo vínculo opcional com `empresa_id` no banco central.
+- Fase 5: `obras` passa pelo CRUD HTTP e mantém FKs para empresa/cliente no servidor. `WorksPage.tsx` bloqueia Obra 360, importação e atalhos operacionais nesse modo porque esses módulos ainda são locais.
+- `apps/lan-server/src/repository.mjs` usa `node:sqlite` no Node 22 e cria o banco central em `OBRA_NA_MAO_LAN_DATA_DIR/obra-na-mao-lan.sqlite` ou `~/.obra-na-mao-lan/obra-na-mao-lan.sqlite`; ativa FKs, `busy_timeout` e WAL em arquivo.
+- API LAN v1: coleções `GET/POST /api/v1/empresas|clientes|obras` e itens `GET/PUT/DELETE /api/v1/<entidade>/<id>`. Exclusão é lógica (`deleted_at`).
+- Entidades fora desse trio permanecem no SQLite local. Não há fallback silencioso para o banco local se um cadastro remoto falhar, evitando divergência entre estações.
+- O serviço continua ouvindo `127.0.0.1:4732` por padrão. `OBRA_NA_MAO_LAN_HOST`, `OBRA_NA_MAO_LAN_PORT` e `OBRA_NA_MAO_LAN_DATA_DIR` configuram a implantação.
+- Ainda não há abertura automática de firewall, exposição à internet, descoberta de servidor, autenticação de terminal, sincronização offline ou migração automática dos cadastros locais existentes. Essas responsabilidades pertencem às fases seguintes.
