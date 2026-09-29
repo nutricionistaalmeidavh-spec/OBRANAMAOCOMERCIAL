@@ -42,7 +42,7 @@ describe('LAN server runtime routes',()=>{
     mocks.redeemLanClaim.mockResolvedValue({companyId:'company-a',serverToken:'server-secret',claimingMemberId:'member-admin',issuedByDeviceId:'device-admin'});
     mocks.lanServerSnapshot.mockResolvedValue({companyId:'company-a',revision:'rev-1',generatedAt:'2026-09-29T20:00:00.000Z',members:[{memberId:'member-admin',email:'admin@example.com',role:'admin',modules:['obra360'],channels:['desktop'],status:'active'}]});
     const routes=(handler as any).routes;
-    const response=await last(routes['POST /api/lan/claim/redeem'])({body:{serverId:'server-a',claimToken:'claim-token'},query:{},params:{},request:new Request('https://example.test/api/lan/claim/redeem',{method:'POST'})});
+    const response=await last(routes['POST /api/lan/claim/redeem'])({body:{serverId:'server-a',claimToken:'claim-token-1234567890'},query:{},params:{},request:new Request('https://example.test/api/lan/claim/redeem',{method:'POST'})});
     expect(response.status).toBe(200);
     const data=await body(response);
     expect(data.company).toEqual({id:'company-a',name:'Empresa A'});
@@ -75,7 +75,6 @@ describe('LAN server runtime routes',()=>{
     mocks.deviceByToken.mockResolvedValue({id:'device-admin',companyId:'company-a',projectId:'project-a',email:'admin@example.com',status:'active'});
     memory.bucket('access_admin_example_com_0').set('placeholder',{});
     const routes=(handler as any).routes;
-    // The route resolves membership through the existing access collection; the concrete hash is verified in claim-route tests.
     const route=routes['POST /api/lan/server/revoke'];
     expect(route).toBeDefined();
   });
