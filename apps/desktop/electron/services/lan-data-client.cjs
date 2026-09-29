@@ -50,17 +50,17 @@ class LanDataClient {
     }
   }
 
-  list(table, filters = {}) {
+  async list(table, filters = {}) {
     this.assertTable(table)
     return this.request('GET', `/api/v1/${table}`, { query: filters })
   }
 
-  get(table, id) {
+  async get(table, id) {
     this.assertTable(table)
     return this.request('GET', `/api/v1/${table}/${Number(id)}`)
   }
 
-  save(table, data) {
+  async save(table, data) {
     this.assertTable(table)
     const id = data?.id ? Number(data.id) : null
     const body = { ...(data || {}) }
