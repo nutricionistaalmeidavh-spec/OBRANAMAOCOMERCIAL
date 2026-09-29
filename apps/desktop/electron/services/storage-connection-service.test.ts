@@ -29,7 +29,7 @@ describe('StorageConnectionService', () => {
   it('mantem instalacoes existentes em modo local por padrao', () => {
     const { StorageConnectionService } = require('./storage-connection-service.cjs')
     const service = new StorageConnectionService({ db: fakeDb(), fetchImpl: vi.fn() })
-    expect(service.state()).toEqual({ mode: 'local', host: '127.0.0.1', port: 4732, baseUrl: 'http://127.0.0.1:4732' })
+    expect(service.state()).toEqual({ mode: 'local', operationalMode: 'local', host: '127.0.0.1', port: 4732, baseUrl: 'http://127.0.0.1:4732' })
   })
 
   it('expõe local como papel operacional de uma instalação nova', () => {
@@ -64,7 +64,7 @@ describe('StorageConnectionService', () => {
     const db = fakeDb()
     const service = new StorageConnectionService({ db, fetchImpl: vi.fn() })
     expect(service.configure({ mode: 'server', host: 'servidor-escritorio.local', port: 4810 })).toEqual({
-      mode: 'server', host: 'servidor-escritorio.local', port: 4810, baseUrl: 'http://servidor-escritorio.local:4810'
+      mode: 'server', operationalMode: 'lan-client', host: 'servidor-escritorio.local', port: 4810, baseUrl: 'http://servidor-escritorio.local:4810'
     })
     expect(db.values.get('storage_mode')).toBe('server')
     expect(db.values.get('lan_server_host')).toBe('servidor-escritorio.local')
