@@ -24,13 +24,15 @@ class LanHostService {
   }
 
   state() {
-    return {
+    const state = {
       running: !!this.child,
       pid: this.child?.pid || null,
       startedAt: this.startedAt,
       lastError: this.lastError,
       setupCodeAvailable: !!this.setupCodeValue
     }
+    Object.defineProperty(state, 'setupCode', { value: this.setupCodeValue, enumerable: false, configurable: false })
+    return state
   }
 
   setupCode() {
