@@ -76,6 +76,10 @@ export class LanRepository {
     this.db.exec(SCHEMA)
   }
 
+  connection() {
+    return this.db
+  }
+
   assertTable(table) {
     if (!Object.hasOwn(TABLE_FIELDS, table)) throw new Error('Entidade não disponível no servidor da empresa.')
   }
