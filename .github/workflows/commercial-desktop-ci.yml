@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - 'apps/desktop/**'
+      - 'apps/lan-server/**'
       - 'packages/**'
       - 'package.json'
       - 'tsconfig.json'
@@ -17,7 +18,9 @@ on:
     branches: [main]
     paths:
       - 'apps/desktop/**'
+      - 'apps/lan-server/**'
       - 'packages/**'
+      - 'package.json'
       - '.github/workflows/commercial-desktop-ci.yml'
 
 jobs:
@@ -32,9 +35,14 @@ jobs:
       - name: Install Desktop dependencies
         working-directory: apps/desktop
         run: npm install --workspaces=false --no-audit --no-fund
+      - name: Lint Desktop
+        working-directory: apps/desktop
+        run: npm run lint
       - name: Test Desktop
         working-directory: apps/desktop
         run: npm test
+      - name: Test LAN server
+        run: npm --prefix apps/lan-server test
       - name: Build Desktop
         working-directory: apps/desktop
         run: npm run build
