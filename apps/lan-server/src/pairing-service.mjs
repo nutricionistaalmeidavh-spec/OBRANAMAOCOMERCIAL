@@ -44,28 +44,24 @@ export class PairingService {
     return !!member && member.status === 'active' && Array.isArray(member.channels) && member.channels.includes('desktop')
   }
 
+  resolveTarget(value) {
+    const target = String(value || '').trim()
+    const byId = this.security.member?.(target)
+    if (byId) return byId
+    const normalized = target.toLowerCase()
+    return (this.security.members?.() || []).find(member => String(member.email || '').trim().toLowerCase() === normalized) || null
+  }
+
   createInvitation({ actor, targetMemberId }) {
     this.requireAdmin(actor)
-    const member = this.security.member?.(String(targetMemberId || ''))
+    const member = this.resolveTarget(targetMemberId)
     if (!member) throw new PairingError('Usuário não encontrado no cache de autorização.', 404, 'member_not_found')
     if (!this.validDesktopMember(member)) throw new PairingError('Usuário não possui autorização Desktop ativa.', 403, 'member_not_authorized')
 
     const code = String(this.codeFactory())
     const expiresAt = new Date(this.nowMs() + this.ttlMs).toISOString()
-    this.security.createPairingCode({
-      memberId: member.memberId,
-      codeHash: digest(code),
-      expiresAt,
-      createdByDeviceId: actor.device.id
-    })
-    this.security.appendAudit?.({
-      actorMemberId: actor.member.memberId,
-      actorDeviceId: actor.device.id,
-      action: 'pairing_created',
-      targetType: 'member',
-      targetId: member.memberId,
-      details: { expiresAt }
-    })
+    this.security.createPairingCode({ memberId: member.memberId, codeHash: digest(code), expiresAt, createdByDeviceId: actor.device.id })
+    this.security.appendAudit?.({ actorMemberId: actor.member.memberId, actorDeviceId: actor.device.id, action: 'pairing_created', targetType: 'member', targetId: member.memberId, details: { expiresAt } })
     return { code, expiresAt, member }
   }
 
@@ -73,53 +69,27 @@ export class PairingService {
     const key = String(clientKey || 'unknown')
     const now = this.nowMs()
     let state = this.attempts.get(key)
-    if (!state || now - state.startedAt >= this.attemptWindowMs) {
-      state = { startedAt: now, count: 0 }
-      this.attempts.set(key, state)
-    }
+    if (!state || now - state.startedAt >= this.attemptWindowMs) { state = { startedAt: now, count: 0 }; this.attempts.set(key, state) }
     return { key, state }
   }
 
   claim({ code, installationId, deviceName, clientKey = 'unknown' }) {
     const attempt = this.attemptState(clientKey)
-    if (attempt.state.count >= this.maxAttempts) {
-      throw new PairingError('Muitas tentativas de pareamento. Aguarde e tente novamente.', 429, 'pairing_rate_limited')
-    }
+    if (attempt.state.count >= this.maxAttempts) throw new PairingError('Muitas tentativas de pareamento. Aguarde e tente novamente.', 429, 'pairing_rate_limited')
     const cleanCode = String(code || '').trim().toUpperCase()
     const cleanInstallationId = String(installationId || '').trim()
     const cleanDeviceName = String(deviceName || '').trim()
-    if (!cleanCode || !cleanInstallationId || !cleanDeviceName) {
-      attempt.state.count += 1
-      throw new PairingError('Dados de pareamento incompletos.', 400, 'invalid_pairing')
-    }
+    if (!cleanCode || !cleanInstallationId || !cleanDeviceName) { attempt.state.count += 1; throw new PairingError('Dados de pareamento incompletos.', 400, 'invalid_pairing') }
 
     const invitation = this.security.consumePairingCode?.(digest(cleanCode))
-    if (!invitation) {
-      attempt.state.count += 1
-      throw new PairingError('Código de pareamento inválido, expirado ou já utilizado.', 404, 'pairing_not_found')
-    }
+    if (!invitation) { attempt.state.count += 1; throw new PairingError('Código de pareamento inválido, expirado ou já utilizado.', 404, 'pairing_not_found') }
     const member = this.security.member?.(invitation.memberId)
-    if (!this.validDesktopMember(member)) {
-      attempt.state.count += 1
-      throw new PairingError('Usuário não possui autorização Desktop ativa.', 403, 'member_not_authorized')
-    }
+    if (!this.validDesktopMember(member)) { attempt.state.count += 1; throw new PairingError('Usuário não possui autorização Desktop ativa.', 403, 'member_not_authorized') }
 
     const deviceToken = String(this.tokenFactory())
-    const device = this.security.createDevice({
-      memberId: member.memberId,
-      installationId: cleanInstallationId,
-      deviceName: cleanDeviceName,
-      tokenHash: digest(deviceToken)
-    })
+    const device = this.security.createDevice({ memberId: member.memberId, installationId: cleanInstallationId, deviceName: cleanDeviceName, tokenHash: digest(deviceToken) })
     this.attempts.delete(attempt.key)
-    this.security.appendAudit?.({
-      actorMemberId: member.memberId,
-      actorDeviceId: device.id,
-      action: 'device_paired',
-      targetType: 'device',
-      targetId: device.id,
-      details: { installationId: cleanInstallationId }
-    })
+    this.security.appendAudit?.({ actorMemberId: member.memberId, actorDeviceId: device.id, action: 'device_paired', targetType: 'device', targetId: device.id, details: { installationId: cleanInstallationId } })
     return { device: publicDevice(device), member, deviceToken }
   }
 
@@ -134,14 +104,7 @@ export class PairingService {
     const current = this.security.device?.(String(deviceId || ''))
     if (!current) throw new PairingError('Dispositivo LAN não encontrado.', 404, 'device_not_found')
     const next = this.security.setDeviceStatus(String(deviceId), String(status))
-    this.security.appendAudit?.({
-      actorMemberId: actor.member.memberId,
-      actorDeviceId: actor.device.id,
-      action: status === 'revoked' ? 'device_revoked' : 'device_reactivated',
-      targetType: 'device',
-      targetId: String(deviceId),
-      details: {}
-    })
+    this.security.appendAudit?.({ actorMemberId: actor.member.memberId, actorDeviceId: actor.device.id, action: status === 'revoked' ? 'device_revoked' : 'device_reactivated', targetType: 'device', targetId: String(deviceId), details: {} })
     return publicDevice(next)
   }
 }
