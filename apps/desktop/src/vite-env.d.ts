@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 type EntityApi = { list(filters?: Record<string, unknown>): Promise<any[]>; get(id: number): Promise<any>; save(data: Record<string, unknown>): Promise<any>; remove(id: number): Promise<boolean> }
 type UpdaterState = { status:'idle'|'checking'|'current'|'available'|'downloading'|'downloaded'|'error'|'unsupported'; currentVersion:string; availableVersion:string|null; progress:number|null; error:string|null; supported:boolean }
-type StorageConnectionState = { mode:'local'|'server'; host:string; port:number; baseUrl:string }
+type OperationalStorageMode = 'local'|'lan-host'|'lan-client'|'remote'
+type StorageConnectionState = { mode:'local'|'server'; operationalMode:OperationalStorageMode; host:string; port:number; baseUrl:string }
 type StorageConnectionTest = { ok:true; baseUrl:string; latencyMs:number; health:{status:'ok';product:'Obra na Mão';apiVersion:'1'} }
 type ExplorerEntry = { name:string; relativePath:string; kind:'folder'|'file'|'link'; extension:string; size:number|null; modifiedAt:string; canOpen:boolean }
 type ExplorerDirectory = { rootId:string; name:string; relativePath:string; parentRelativePath:string|null; items:ExplorerEntry[] }
