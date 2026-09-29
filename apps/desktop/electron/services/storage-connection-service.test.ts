@@ -44,13 +44,21 @@ describe('StorageConnectionService', () => {
       db: fakeDb({ storage_mode: 'server', lan_server_host: '192.168.50.10', lan_server_port: '4810' }),
       fetchImpl: vi.fn()
     })
-    expect(service.state()).toMatchObject({
-      mode: 'server',
-      operationalMode: 'lan-client',
-      host: '192.168.50.10',
-      port: 4810,
-      baseUrl: 'http://192.168.50.10:4810'
-    })
+    expect(service.state()).toMatchObject({ mode: 'server', operationalMode: 'lan-client', host: '192.168.50.10', port: 4810, baseUrl: 'http://192.168.50.10:4810' })
+  })
+
+  it('prefere storage_operational_mode explícito e preserva compatibilidade de mode', () => {
+    const { StorageConnectionService } = require('./storage-connection-service.cjs')
+    const host = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', storage_operational_mode: 'lan-host' }), fetchImpl: vi.fn() })
+    expect(host.state()).toMatchObject({ mode: 'server', operationalMode: 'lan-host' })
+    const remote = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', storage_operational_mode: 'remote', lan_server_host: 'srv.exemplo.com' }), fetchImpl: vi.fn() })
+    expect(remote.state()).toMatchObject({ mode: 'server', operationalMode: 'remote', host: 'srv.exemplo.com' })
+  })
+
+  it('ignora valor operacional persistido inválido e usa o legado com segurança', () => {
+    const { StorageConnectionService } = require('./storage-connection-service.cjs')
+    const service = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', storage_operational_mode: 'satellite' }), fetchImpl: vi.fn() })
+    expect(service.state().operationalMode).toBe('lan-client')
   })
 
   it('rejeita papel operacional desconhecido', () => {
@@ -59,7 +67,7 @@ describe('StorageConnectionService', () => {
     expect(() => service.validateOperationalMode('satellite')).toThrow(/operacional|armazenamento|inválido|invalido/i)
   })
 
-  it('persiste modo, host e porta do servidor da empresa', () => {
+  it('persiste modo, host e porta do servidor da empresa e migra o papel operacional', () => {
     const { StorageConnectionService } = require('./storage-connection-service.cjs')
     const db = fakeDb()
     const service = new StorageConnectionService({ db, fetchImpl: vi.fn() })
@@ -67,16 +75,23 @@ describe('StorageConnectionService', () => {
       mode: 'server', operationalMode: 'lan-client', host: 'servidor-escritorio.local', port: 4810, baseUrl: 'http://servidor-escritorio.local:4810'
     })
     expect(db.values.get('storage_mode')).toBe('server')
+    expect(db.values.get('storage_operational_mode')).toBe('lan-client')
     expect(db.values.get('lan_server_host')).toBe('servidor-escritorio.local')
     expect(db.values.get('lan_server_port')).toBe('4810')
   })
 
-  it.each([
-    'http://192.168.0.10',
-    'https://servidor.local',
-    'servidor.local/caminho',
-    'usuario@servidor.local'
-  ])('rejeita host fora do contrato antes da rede: %s', (host) => {
+  it('persiste lan-host explicitamente e o restaura após reinício', () => {
+    const { StorageConnectionService } = require('./storage-connection-service.cjs')
+    const db = fakeDb()
+    const first = new StorageConnectionService({ db, fetchImpl: vi.fn() })
+    expect(first.configure({ operationalMode: 'lan-host', host: '127.0.0.1', port: 4732 })).toMatchObject({ mode: 'server', operationalMode: 'lan-host' })
+    expect(db.values.get('storage_operational_mode')).toBe('lan-host')
+    expect(db.values.get('storage_mode')).toBe('server')
+    const restarted = new StorageConnectionService({ db, fetchImpl: vi.fn() })
+    expect(restarted.state()).toMatchObject({ mode: 'server', operationalMode: 'lan-host', host: '127.0.0.1', port: 4732 })
+  })
+
+  it.each(['http://192.168.0.10','https://servidor.local','servidor.local/caminho','usuario@servidor.local'])('rejeita host fora do contrato antes da rede: %s', (host) => {
     const { StorageConnectionService } = require('./storage-connection-service.cjs')
     const fetchImpl = vi.fn()
     const service = new StorageConnectionService({ db: fakeDb(), fetchImpl })
@@ -97,11 +112,7 @@ describe('StorageConnectionService', () => {
       return response(200, { status: 'ok', product: 'Obra na Mão', apiVersion: '1' })
     })
     const service = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', lan_server_host: '192.168.0.10', lan_server_port: '4732' }), fetchImpl })
-    await expect(service.testConnection()).resolves.toMatchObject({
-      ok: true,
-      baseUrl: 'http://192.168.0.10:4732',
-      health: { status: 'ok', product: 'Obra na Mão', apiVersion: '1' }
-    })
+    await expect(service.testConnection()).resolves.toMatchObject({ ok: true, baseUrl: 'http://192.168.0.10:4732', health: { status: 'ok', product: 'Obra na Mão', apiVersion: '1' } })
   })
 
   it('rejeita HTTP 200 de outro servico', async () => {
