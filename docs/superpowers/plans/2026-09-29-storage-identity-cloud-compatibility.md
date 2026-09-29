@@ -42,7 +42,7 @@
 - Consumes: `StorageConnectionService.configure(input)`, `StorageConnectionService.state()`, `OnlineService.state()` and the persisted `online-connection.json` format.
 - Produces: regression coverage proving storage and online connection state are independent.
 
-- [ ] **Step 1: Write failing compatibility tests**
+- [x] **Step 1: Write failing compatibility tests**
 
 Cover these assertions:
 
@@ -54,7 +54,7 @@ it('keeps Cloudflare base URL independent from LAN host and port')
 
 Use a temporary data directory for `OnlineService`, a fake configuration DB for `StorageConnectionService`, and compare the online config file before/after storage changes.
 
-- [ ] **Step 2: Run the focused tests and confirm RED only where compatibility support is missing**
+- [x] **Step 2: Run the focused tests and confirm RED only where compatibility support is missing**
 
 Run:
 
@@ -65,15 +65,15 @@ npx vitest run electron/services/storage-online-compatibility.test.ts
 
 Expected: existing separation assertions should pass if already guaranteed; any new operational-mode assertion introduced in Task 2 must remain out of this task.
 
-- [ ] **Step 3: Make only the minimum testability change if required**
+- [x] **Step 3: Make only the minimum testability change if required**
 
 Do not route storage writes through `OnlineService`. Do not move online config into SQLite. Preserve the existing file-backed online configuration.
 
-- [ ] **Step 4: Re-run the focused compatibility tests**
+- [x] **Step 4: Re-run the focused compatibility tests**
 
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/desktop/electron/services/storage-online-compatibility.test.ts apps/desktop/electron/services/storage-connection-service.cjs
@@ -91,7 +91,7 @@ git commit -m "test: protect desktop online sync from storage changes"
 - Consumes: existing persisted keys `storage_mode`, `lan_server_host`, `lan_server_port`.
 - Produces: `state().operationalMode` with exact values `'local' | 'lan-host' | 'lan-client' | 'remote'`, while preserving legacy `state().mode` for current callers.
 
-- [ ] **Step 1: Extend tests first**
+- [x] **Step 1: Extend tests first**
 
 Add tests for:
 
@@ -109,7 +109,7 @@ unknown operational mode => rejected
 legacy host/port => preserved
 ```
 
-- [ ] **Step 2: Run storage service tests and confirm RED**
+- [x] **Step 2: Run storage service tests and confirm RED**
 
 Run:
 
@@ -120,7 +120,7 @@ npx vitest run electron/services/storage-connection-service.test.ts
 
 Expected: failure because `operationalMode` does not exist yet.
 
-- [ ] **Step 3: Implement the compatibility mapping**
+- [x] **Step 3: Implement the compatibility mapping**
 
 Add exact mapping helpers in `storage-connection-service.cjs`:
 
@@ -133,15 +133,15 @@ Keep `mode` in public state for current UI and `DataAccessService`. Add `operati
 
 If persisting a new key is necessary, use the existing `configuracoes` table and keep legacy keys authoritative until the later UX migration phase.
 
-- [ ] **Step 4: Update renderer typing**
+- [x] **Step 4: Update renderer typing**
 
 Add `operationalMode: 'local' | 'lan-host' | 'lan-client' | 'remote'` to the storage state type without removing current `mode: 'local' | 'server'`.
 
-- [ ] **Step 5: Run focused tests**
+- [x] **Step 5: Run focused tests**
 
 Expected: pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/desktop/electron/services/storage-connection-service.cjs apps/desktop/electron/services/storage-connection-service.test.ts apps/desktop/src/vite-env.d.ts
@@ -158,7 +158,7 @@ git commit -m "feat: add compatible operational storage roles"
 - Consumes: `StorageConnectionService.state()` returning both legacy `mode` and `operationalMode`.
 - Produces: unchanged remote routing for Empresas/Clientes/Obras when a legacy server install maps to `lan-client`.
 
-- [ ] **Step 1: Add routing regression tests**
+- [x] **Step 1: Add routing regression tests**
 
 Pin:
 
@@ -168,7 +168,7 @@ local => local CRUD
 lan-host/remote are not silently treated as supported transport in phases 6-7
 ```
 
-- [ ] **Step 2: Run focused test and confirm behavior**
+- [x] **Step 2: Run focused test and confirm behavior**
 
 Run:
 
@@ -177,15 +177,15 @@ cd apps/desktop
 npx vitest run electron/services/data-access-service.test.ts
 ```
 
-- [ ] **Step 3: If necessary, make `useRemote(table)` explicitly compatibility-aware**
+- [x] **Step 3: If necessary, make `useRemote(table)` explicitly compatibility-aware**
 
 Do not add remote URL handling or LAN-host lifecycle. Preserve the current F3–F5 behavior only.
 
-- [ ] **Step 4: Re-run focused test**
+- [x] **Step 4: Re-run focused test**
 
 Expected: pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/desktop/electron/services/data-access-service.cjs apps/desktop/electron/services/data-access-service.test.ts
@@ -203,7 +203,7 @@ git commit -m "test: preserve lan routing with storage roles"
 - Consumes: current IPC/preload source.
 - Produces: a regression guard that storage configuration and online/PWA connection remain separate public contracts.
 
-- [ ] **Step 1: Write source contract tests**
+- [x] **Step 1: Write source contract tests**
 
 Assert that:
 
@@ -214,7 +214,7 @@ storage:configure handler calls services.storage, not services.online
 online handlers remain attached to services.online/services.sync
 ```
 
-- [ ] **Step 2: Run and verify**
+- [x] **Step 2: Run and verify**
 
 ```bash
 cd apps/desktop
@@ -223,7 +223,7 @@ npx vitest run tests/storage-online-contract.test.ts
 
 Expected: pass against the intended independent design; if a source pattern differs, adapt the test to the real contract rather than changing behavior unnecessarily.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/desktop/tests/storage-online-contract.test.ts
@@ -241,7 +241,7 @@ git commit -m "test: guard storage and web pwa contract separation"
 - Consumes: `operationalMode` model from Task 2.
 - Produces: product copy that makes clear the current Web/PWA connection remains included and independent from storage, without presenting later server modes as already implemented.
 
-- [ ] **Step 1: Extend settings regression test first**
+- [x] **Step 1: Extend settings regression test first**
 
 Require visible copy equivalent to:
 
@@ -251,18 +251,18 @@ Web/PWA continua independente desta configuração.
 
 and require the current LAN server wording to remain explicit about the modules already supported.
 
-- [ ] **Step 2: Run focused UI source test and confirm RED**
+- [x] **Step 2: Run focused UI source test and confirm RED**
 
 ```bash
 cd apps/desktop
 npx vitest run tests/storage-server-settings.test.ts
 ```
 
-- [ ] **Step 3: Update SettingsPage copy only**
+- [x] **Step 3: Update SettingsPage copy only**
 
 Do not expose `lan-host` or `remote` as selectable production options yet. Clarify that changing local/LAN operational storage does not remove the existing Obra na Mão Web/PWA connection.
 
-- [ ] **Step 4: Update PROJECT_MAP.md**
+- [x] **Step 4: Update PROJECT_MAP.md**
 
 Record:
 
@@ -272,11 +272,11 @@ Operational storage != online services != user role/permissions
 
 Document `operationalMode`, legacy compatibility, current SyncCoordinator SQLite coupling, and the non-negotiable Desktop ↔ Cloudflare/D1 ↔ PWA preservation rule.
 
-- [ ] **Step 5: Re-run focused settings test**
+- [x] **Step 5: Re-run focused settings test**
 
 Expected: pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/desktop/docs/PROJECT_MAP.md apps/desktop/src/pages/SettingsPage.tsx apps/desktop/tests/storage-server-settings.test.ts
@@ -293,7 +293,7 @@ git commit -m "docs: protect web pwa baseline in storage settings"
 - Consumes: existing Cloudflare desktop sync routes and PWA/phone bridge update flow.
 - Produces: explicit evidence that phases 6–7 do not alter online synchronization semantics.
 
-- [ ] **Step 1: Inspect existing web tests against the spec acceptance criteria**
+- [x] **Step 1: Inspect existing web tests against the spec acceptance criteria**
 
 The existing P3 test must continue proving:
 
@@ -306,13 +306,13 @@ Desktop push
 
 If this is already fully covered, do not duplicate it; add only a named compatibility assertion/comment if needed.
 
-- [ ] **Step 2: Run the exact existing web workflow test**
+- [x] **Step 2: Run the exact existing web workflow test**
 
 Use the repository's existing web test command targeting `p3-workflows.test.ts` and `p0-flows.test.ts`.
 
 Expected: pass with no endpoint or payload changes.
 
-- [ ] **Step 3: Commit only if tests required an actual change**
+- [x] **Step 3: Commit only if tests required an actual change**
 
 Do not modify backend production code in this task.
 
@@ -325,7 +325,7 @@ Do not modify backend production code in this task.
 - Consumes: all prior tasks.
 - Produces: verified phases 6–7 implementation on the existing draft PR, with no merge/deploy.
 
-- [ ] **Step 1: Run Desktop lint**
+- [x] **Step 1: Run Desktop lint**
 
 ```bash
 cd apps/desktop
@@ -334,7 +334,7 @@ npm run lint
 
 Expected: exit 0.
 
-- [ ] **Step 2: Run full Desktop tests**
+- [x] **Step 2: Run full Desktop tests**
 
 ```bash
 npm test
@@ -342,7 +342,7 @@ npm test
 
 Expected: 0 failed tests.
 
-- [ ] **Step 3: Run Desktop build**
+- [x] **Step 3: Run Desktop build**
 
 ```bash
 npm run build
@@ -350,7 +350,7 @@ npm run build
 
 Expected: exit 0.
 
-- [ ] **Step 4: Run LAN server tests**
+- [x] **Step 4: Run LAN server tests**
 
 ```bash
 cd ../lan-server
@@ -359,16 +359,23 @@ npm test
 
 Expected: exit 0.
 
-- [ ] **Step 5: Run targeted Web/PWA sync tests**
+- [x] **Step 5: Run targeted Web/PWA sync tests**
 
 Run the existing repository command for `p3-workflows.test.ts` and `p0-flows.test.ts`.
 
 Expected: the Desktop → Cloud → field/PWA → Desktop test remains green.
 
-- [ ] **Step 6: Review PR diff against the spec**
+- [x] **Step 6: Review PR diff against the spec**
 
-Confirm no production changes to Cloudflare sync routes, PWA behavior, billing, R2 or entitlements.
+Confirmed from F5 head `68bfb6ef429950d4b70eeaeb1a75fbc426dce291` through the F6–7 implementation: no production changes under `apps/web`, no Cloudflare sync-route changes, no billing/R2/entitlement changes; changes are limited to Desktop storage modeling/routing guards, tests, copy and architecture documents.
 
 - [ ] **Step 7: Update draft PR #60 description**
 
 Add phases 6–7, compatibility guarantees and explicit out-of-scope items. Keep PR draft. Do not merge or deploy.
+
+## Verification evidence — 2026-09-29
+
+- Windows PR CI run 209: Desktop dependency install, TypeScript lint, full Desktop tests, LAN server tests and Desktop build completed successfully before packaging.
+- macOS Apple Silicon PR CI run 167: Desktop tests, build, DMG generation and artifact validation completed successfully.
+- Cloudflare PR CI run 489 validation: D1 migrations, `npm test`, UX/assets checks, static build, Pages Functions compile and Worker dry-run all completed successfully.
+- Web `npm test`: **64 test files / 266 tests passed**, including `backend/p3-workflows.test.ts` (2/2) and `backend/p0-flows.test.ts` (17/17), preserving the existing Desktop → Cloud → field/PWA → Desktop path.
