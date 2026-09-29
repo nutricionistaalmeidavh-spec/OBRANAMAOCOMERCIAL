@@ -15,6 +15,7 @@ class LanHostService {
     this.child = null
     this.startedAt = null
     this.lastError = null
+    this.setupCode = null
     this.stopping = false
   }
 
@@ -27,8 +28,28 @@ class LanHostService {
       running: !!this.child,
       pid: this.child?.pid || null,
       startedAt: this.startedAt,
-      lastError: this.lastError
+      lastError: this.lastError,
+      setupCode: this.setupCode
     }
+  }
+
+  captureOutput(child) {
+    child.stdout?.on?.('data', chunk => {
+      const text = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk || '')
+      const match = text.match(/Código de configuração local:\s*([A-F0-9]{4}-[A-F0-9]{4})/i)
+      if (match) this.setupCode = match[1].toUpperCase()
+    })
+    child.stderr?.on?.('data', chunk => {
+      const text = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk || '')
+      if (/EADDRINUSE|uncaught|error|falha/i.test(text) && !/token|setup|claim/i.test(text)) {
+        this.lastError = text.trim().slice(0, 500) || this.lastError
+      }
+    })
+  }
+
+  clearSetupCode() {
+    this.setupCode = null
+    return this.state()
   }
 
   async start() {
@@ -54,7 +75,9 @@ class LanHostService {
     this.child = child
     this.startedAt = new Date().toISOString()
     this.lastError = null
+    this.setupCode = null
     this.stopping = false
+    this.captureOutput(child)
 
     child.once?.('error', error => {
       this.lastError = error instanceof Error ? error.message : 'Falha ao iniciar servidor LAN.'
@@ -92,6 +115,7 @@ class LanHostService {
       }
     })
     if (this.child === child) this.child = null
+    this.setupCode = null
     return this.state()
   }
 
