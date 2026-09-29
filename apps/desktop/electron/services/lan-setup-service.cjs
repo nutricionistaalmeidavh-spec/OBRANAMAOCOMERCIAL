@@ -1,7 +1,7 @@
 const os = require('node:os')
 
 class LanSetupService {
-  constructor({ storage, credentials, online, fetchImpl = globalThis.fetch, deviceName = os.hostname() || 'Computador', timeoutMs = 10000 }) {
+  constructor({ storage, credentials, online, fetchImpl = globalThis.fetch, deviceName = os.hostname() || 'Computador', timeoutMs = 10000, setupCodeProvider = null }) {
     if (!storage || !credentials || !online) throw new Error('Dependências de configuração LAN incompletas.')
     this.storage = storage
     this.credentials = credentials
@@ -9,6 +9,7 @@ class LanSetupService {
     this.fetchImpl = fetchImpl
     this.deviceName = String(deviceName || 'Computador')
     this.timeoutMs = timeoutMs
+    this.setupCodeProvider = setupCodeProvider
   }
 
   connection() {
@@ -72,6 +73,14 @@ class LanSetupService {
     return { claimToken: result.claimToken, expiresAt: result.expiresAt }
   }
 
+  resolveSetupCode(explicitCode) {
+    const explicit = String(explicitCode || '').trim().toUpperCase()
+    if (explicit) return explicit
+    const internal = typeof this.setupCodeProvider === 'function' ? String(this.setupCodeProvider() || '').trim().toUpperCase() : ''
+    if (!internal) throw new Error('Código de configuração do servidor ainda não está disponível.')
+    return internal
+  }
+
   async claimHostedServer({ setupCode } = {}) {
     const connection = this.connection()
     const setup = await this.request('/api/v1/setup/status')
@@ -84,7 +93,7 @@ class LanSetupService {
     const result = await this.request('/api/v1/setup/claim', {
       method: 'POST',
       body: {
-        setupCode: String(setupCode || '').trim().toUpperCase(),
+        setupCode: this.resolveSetupCode(setupCode),
         claimToken: claim.claimToken,
         installationId: this.online.installationId(),
         deviceName: this.deviceName
