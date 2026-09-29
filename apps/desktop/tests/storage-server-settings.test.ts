@@ -26,4 +26,9 @@ describe('configuracao de dados e servidor', () => {
     expect(source).not.toContain('os cadastros existentes ainda continuam locais')
     expect(source).not.toContain('o CRUD remoto será habilitado gradualmente nas próximas fases')
   })
+
+  it('deixa explicito que Web/PWA continua incluído e independente do armazenamento operacional', () => {
+    expect(source).toContain('Web/PWA continua independente desta configuração')
+    expect(source).toContain('Empresas, clientes e obras usam o servidor')
+  })
 })
