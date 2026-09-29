@@ -12,7 +12,7 @@ describe('DataAccessService', () => {
       save: vi.fn(() => ({ id: 3 })),
       remove: vi.fn(() => true)
     }
-    const storage = { state: vi.fn(() => ({ mode: 'local', baseUrl: null })) }
+    const storage = { state: vi.fn(() => ({ mode: 'local', operationalMode: 'local', baseUrl: null })) }
     const remote = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
     const service = new DataAccessService({ db, storage, remote })
 
@@ -28,7 +28,7 @@ describe('DataAccessService', () => {
     expect(remote.list).not.toHaveBeenCalled()
   })
 
-  it.each(['empresas', 'clientes', 'obras'])('roteia %s para o servidor quando o modo server esta ativo', async (table) => {
+  it.each(['empresas', 'clientes', 'obras'])('mantem o modo server legado roteando %s para o servidor', async (table) => {
     const { DataAccessService } = require('./data-access-service.cjs')
     const db = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
     const storage = { state: vi.fn(() => ({ mode: 'server', baseUrl: 'http://192.168.0.10:4732' })) }
@@ -52,10 +52,34 @@ describe('DataAccessService', () => {
     expect(db.list).not.toHaveBeenCalled()
   })
 
+  it('roteia lan-client explicitamente para o servidor atual', async () => {
+    const { DataAccessService } = require('./data-access-service.cjs')
+    const db = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-client', baseUrl: 'http://192.168.0.10:4732' })) }
+    const remote = { list: vi.fn(async () => [{ id: 31 }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const service = new DataAccessService({ db, storage, remote })
+
+    expect(await service.list('empresas', {})).toEqual([{ id: 31 }])
+    expect(remote.list).toHaveBeenCalledWith('empresas', {})
+    expect(db.list).not.toHaveBeenCalled()
+  })
+
+  it.each(['lan-host', 'remote'])('nao trata %s como transporte implementado nas fases 6-7', async (operationalMode) => {
+    const { DataAccessService } = require('./data-access-service.cjs')
+    const db = { list: vi.fn(() => [{ id: 41 }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode, baseUrl: 'http://192.168.0.10:4732' })) }
+    const remote = { list: vi.fn(async () => [{ id: 99 }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const service = new DataAccessService({ db, storage, remote })
+
+    expect(await service.list('empresas', {})).toEqual([{ id: 41 }])
+    expect(db.list).toHaveBeenCalledWith('empresas', {})
+    expect(remote.list).not.toHaveBeenCalled()
+  })
+
   it('mantem entidades ainda nao migradas no SQLite mesmo em modo servidor', async () => {
     const { DataAccessService } = require('./data-access-service.cjs')
     const db = { list: vi.fn(() => [{ id: 21 }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
-    const storage = { state: vi.fn(() => ({ mode: 'server', baseUrl: 'http://192.168.0.10:4732' })) }
+    const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-client', baseUrl: 'http://192.168.0.10:4732' })) }
     const remote = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
     const service = new DataAccessService({ db, storage, remote })
 
