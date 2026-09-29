@@ -7,6 +7,7 @@ export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.3.0'
 
 const MAX_BODY_BYTES = 1024 * 1024
+const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
 const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
 
@@ -26,6 +27,10 @@ function sendJson(response, status, body, extraHeaders = {}) {
 
 function methodNotAllowed(response, allow) {
   return sendJson(response, 405, { error: 'method_not_allowed' }, { allow: allow.join(', ') })
+}
+
+function requireAdminContext(context) {
+  if (context?.member?.role !== 'admin') throw new LanAuthorizationError('Apenas Admin pode executar esta operação.', 403, 'admin_required')
 }
 
 async function readJson(request) {
@@ -176,7 +181,7 @@ async function handleSetupClaim(request, response, { security, identity, cloudAu
   })
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://localhost')
@@ -214,6 +219,34 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
           clientKey: request.socket?.remoteAddress || 'unknown'
         })
         return sendJson(response, 201, result)
+      }
+
+      if (url.pathname === '/api/v1/admin/status') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        const state = security?.serverState?.() || {}
+        const lastRefreshMs = state.lastCloudRefreshAt ? Date.parse(state.lastCloudRefreshAt) : NaN
+        const stale = !Number.isFinite(lastRefreshMs) || nowMs() - lastRefreshMs > identityStaleMs
+        return sendJson(response, 200, {
+          company: { id: state.companyId || null, name: state.companyName || null },
+          revision: state.identityRevision || null,
+          lastCloudRefreshAt: state.lastCloudRefreshAt || null,
+          deviceCount: security?.listDevices?.().length || 0,
+          stale
+        })
+      }
+
+      if (url.pathname === '/api/v1/admin/identity/refresh') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        try {
+          const state = await refreshIdentitySnapshot({ security, cloudAuthority })
+          return sendJson(response, 200, { ok: true, revision: state.identityRevision || null, lastCloudRefreshAt: state.lastCloudRefreshAt || null })
+        } catch {
+          return sendJson(response, 503, { error: 'identity_refresh_failed', message: 'Não foi possível atualizar as permissões pela Cloud. O último snapshot válido foi preservado.' })
+        }
       }
 
       if (url.pathname === '/api/v1/admin/pairing') {
