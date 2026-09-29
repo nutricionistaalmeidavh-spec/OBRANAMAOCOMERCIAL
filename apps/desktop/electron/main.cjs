@@ -1,8 +1,11 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, Tray, safeStorage } = require('electron')
 const path = require('node:path')
 const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
 const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
+const { LanCredentialService } = require('./services/lan-credential-service.cjs')
+const { LanHostService } = require('./services/lan-host-service.cjs')
+const { LanSetupService } = require('./services/lan-setup-service.cjs')
 const { FileService } = require('./services/file-service.cjs')
 const { ManagedDirectoryService } = require('./services/managed-directory-service.cjs')
 const { DocumentExplorerContextService } = require('./services/document-explorer-context-service.cjs')
@@ -29,6 +32,7 @@ const { OnlineService } = require('./services/online-service.cjs')
 const { SyncCoordinator } = require('./services/sync-coordinator.cjs')
 
 let mainWindow
+let tray
 let services
 let connectionMaintenance = false
 let quitting = false
@@ -54,12 +58,19 @@ function resolvePaths() {
   return { dataDir, documentsDir: path.join(dataDir, 'documentos'), migrationsDir: path.join(app.getAppPath(), 'database', 'migrations') }
 }
 
+function resolveLanServerEntry() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'lan-server', 'src', 'index.mjs')
+    : path.join(app.getAppPath(), '..', 'lan-server', 'src', 'index.mjs')
+}
+
 function createServices() {
   const paths = resolvePaths()
   const db = new DatabaseService(paths)
   db.open()
-  const dataAccess = new DataAccessService({ db })
   const storage = new StorageConnectionService({ db })
+  const lanCredentials = new LanCredentialService({ dataDir: paths.dataDir, safeStorage })
+  const dataAccess = new DataAccessService({ db, storage, credentials: lanCredentials })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
   const explorer = new ManagedDirectoryService({
@@ -72,8 +83,15 @@ function createServices() {
   const uiPreferences = new UiPreferencesService({ db })
   const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
   const sync = new SyncCoordinator({ database: db, online })
+  const lanHost = new LanHostService({
+    storage,
+    dataDir: paths.dataDir,
+    cloudBaseUrl: () => online.state().baseUrl,
+    serverEntry: resolveLanServerEntry()
+  })
+  const lanSetup = new LanSetupService({ storage, credentials: lanCredentials, online })
   return {
-    paths, db, dataAccess, storage, files, documentRoot, explorer, explorerContext,
+    paths, db, dataAccess, storage, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
     backup: new BackupService({ db, ...paths }),
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
@@ -98,14 +116,81 @@ function envelope(fn) {
   }
 }
 
+function isLanHostMode() {
+  return services?.storage?.state?.().operationalMode === 'lan-host'
+}
+
+function trayIcon() {
+  return path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png')
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return createWindow()
+  mainWindow.show()
+  mainWindow.restore?.()
+  mainWindow.focus()
+}
+
+function ensureTray() {
+  if (tray || !isLanHostMode()) return tray
+  tray = new Tray(trayIcon())
+  tray.setToolTip('Obra na Mão — servidor local ativo')
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Abrir Obra na Mão', click: () => showMainWindow() },
+    { type: 'separator' },
+    { label: 'Sair', click: () => app.quit() }
+  ]))
+  tray.on('double-click', () => showMainWindow())
+  return tray
+}
+
+function destroyTray() {
+  tray?.destroy?.()
+  tray = null
+}
+
+async function configureStorage(payload) {
+  const previous = services.storage.state()
+  const requestedOperational = payload.operationalMode || (payload.mode === 'server' ? 'lan-client' : 'local')
+  if (previous.operationalMode === 'lan-host' && requestedOperational !== 'lan-host') await services.lanHost.stop()
+  const state = services.storage.configure(payload)
+  if (state.operationalMode === 'lan-host') {
+    const host = await services.lanHost.start()
+    if (!host.running && host.lastError) throw new Error(host.lastError)
+    ensureTray()
+  } else {
+    destroyTray()
+  }
+  return state
+}
+
 function registerIpc() {
   ipcMain.handle('app:bootstrap', envelope(() => ({ dataPath: services.paths.dataDir, documentsPath: services.documentRoot.getRoot(), databasePath: services.db.dbPath, firstRun: services.db.list('empresas').length === 0, version: app.getVersion(), product: services.product.getEdition(), layout: services.uiPreferences.getLayout() })))
   ipcMain.handle('app:retry-database', envelope(() => withSyncStopped(() => { services.db.close(); services.db.open(); return true })))
   ipcMain.handle('app:get-layout', envelope(() => services.uiPreferences.getLayout()))
   ipcMain.handle('app:set-layout', envelope(({ layout }) => services.uiPreferences.setLayout(layout)))
   ipcMain.handle('storage:state', envelope(() => services.storage.state()))
-  ipcMain.handle('storage:configure', envelope((payload) => services.storage.configure(payload)))
+  ipcMain.handle('storage:configure', envelope((payload) => configureStorage(payload)))
   ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))
+  ipcMain.handle('lan:host-state', envelope(() => services.lanHost.state()))
+  ipcMain.handle('lan:host-start', envelope(async () => { const result = await services.lanHost.start(); if (isLanHostMode()) ensureTray(); return result }))
+  ipcMain.handle('lan:host-stop', envelope(() => services.lanHost.stop()))
+  ipcMain.handle('lan:status', envelope(() => services.lanSetup.status()))
+  ipcMain.handle('lan:claim-host', envelope(async ({ setupCode }) => {
+    const localSetupCode = setupCode || services.lanHost.state().setupCode
+    const result = await services.lanSetup.claimHostedServer({ setupCode: localSetupCode })
+    services.lanHost.clearSetupCode?.()
+    return result
+  }))
+  ipcMain.handle('lan:pair', envelope(({ code }) => services.lanSetup.pair({ code })))
+  ipcMain.handle('lan:disconnect', envelope(() => services.lanSetup.disconnect()))
+  ipcMain.handle('lan:admin-status', envelope(() => services.lanSetup.adminStatus()))
+  ipcMain.handle('lan:create-pairing', envelope(({ memberId }) => services.lanSetup.createPairing({ memberId })))
+  ipcMain.handle('lan:list-devices', envelope(async () => { const result = await services.lanSetup.listDevices(); return Array.isArray(result) ? result : (result.devices || []) }))
+  ipcMain.handle('lan:set-device-status', envelope((payload) => services.lanSetup.setDeviceStatus(payload)))
+  ipcMain.handle('lan:refresh-identity', envelope(() => services.lanSetup.refreshIdentity()))
+  ipcMain.handle('lan:start-at-login-state', envelope(() => ({ enabled: app.getLoginItemSettings().openAtLogin === true })))
+  ipcMain.handle('lan:set-start-at-login', envelope(({ enabled }) => { app.setLoginItemSettings({ openAtLogin: enabled === true }); return { enabled: app.getLoginItemSettings().openAtLogin === true } }))
   ipcMain.handle('entity:list', envelope(({ table, filters }) => services.dataAccess.list(table, filters)))
   ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))
   ipcMain.handle('entity:save', envelope(({ table, data }) => services.dataAccess.save(table, data)))
@@ -225,26 +310,42 @@ function fallbackPage(message, details = '') {
 
 async function createWindow() {
   Menu.setApplicationMenu(null)
-  mainWindow = new BrowserWindow({ icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'), width: 1440, height: 900, minWidth: 1024, minHeight: 700, backgroundColor: '#f3f5f8', show: false, autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
+  mainWindow = new BrowserWindow({ icon: trayIcon(), width: 1440, height: 900, minWidth: 1024, minHeight: 700, backgroundColor: '#f3f5f8', show: false, autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
   mainWindow.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' } })
   mainWindow.webContents.on('will-navigate', (event, url) => { const allowed = process.env.VITE_DEV_SERVER_URL ? url.startsWith(process.env.VITE_DEV_SERVER_URL) : url.startsWith('file:'); if (!allowed) event.preventDefault() })
+  mainWindow.on('close', (event) => {
+    if (!quitting && isLanHostMode()) {
+      event.preventDefault()
+      mainWindow.hide()
+      ensureTray()
+    }
+  })
   mainWindow.once('ready-to-show', () => mainWindow.show())
   try { if (process.env.VITE_DEV_SERVER_URL) await mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL); else await mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html')) }
   catch (error) { await mainWindow.loadURL(fallbackPage('A interface não pôde ser carregada.', error.stack)); mainWindow.show() }
 }
 
 app.whenReady().then(async () => {
-  try { services = createServices(); registerIpc(); await createWindow(); services.sync.start() }
-  catch (error) { console.error(error); mainWindow = new BrowserWindow({ icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'), width: 900, height: 650, backgroundColor: '#f3f5f8' }); await mainWindow.loadURL(fallbackPage('Não foi possível abrir o banco de dados local.', error.stack)) }
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
+  try {
+    services = createServices()
+    registerIpc()
+    if (isLanHostMode()) {
+      await services.lanHost.start()
+      ensureTray()
+    }
+    await createWindow()
+    services.sync.start()
+  }
+  catch (error) { console.error(error); mainWindow = new BrowserWindow({ icon: trayIcon(), width: 900, height: 650, backgroundColor: '#f3f5f8' }); await mainWindow.loadURL(fallbackPage('Não foi possível abrir o Obra na Mão.', error.stack)) }
+  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); else showMainWindow() })
 })
 
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+app.on('window-all-closed', () => { if (process.platform !== 'darwin' && !isLanHostMode()) app.quit() })
 app.on('before-quit', (event) => {
   if (quitting || !services) return
   event.preventDefault()
   quitting = true
-  Promise.allSettled([services.sync.stop(), services.scanner.dispose()]).finally(() => { services.db.close(); app.quit() })
+  Promise.allSettled([services.sync.stop(), services.scanner.dispose(), services.lanHost.stop()]).finally(() => { destroyTray(); services.db.close(); app.quit() })
 })
 process.on('uncaughtException', (error) => { console.error(error); dialog.showErrorBox('Erro inesperado', error.message) })
 process.on('unhandledRejection', (error) => console.error(error))
