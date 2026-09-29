@@ -99,6 +99,18 @@ export class LanSecurityRepository {
     this.db.exec(SCHEMA)
   }
 
+  withTransaction(work) {
+    this.db.exec('BEGIN IMMEDIATE')
+    try {
+      const result = work()
+      this.db.exec('COMMIT')
+      return result
+    } catch (error) {
+      try { this.db.exec('ROLLBACK') } catch {}
+      throw error
+    }
+  }
+
   serverState() {
     const row = this.db.prepare('SELECT * FROM lan_server_identity WHERE id=1').get()
     if (!row) return null
@@ -122,20 +134,23 @@ export class LanSecurityRepository {
     return this.serverState()
   }
 
-  replaceSnapshot(snapshot) {
+  writeSnapshot(snapshot) {
     const state = this.serverState()
     if (state?.companyId && String(snapshot?.companyId || '') !== String(state.companyId)) throw new Error('Snapshot pertence a outra empresa.')
     const refreshedAt = String(snapshot?.generatedAt || this.now())
-    const tx = this.db.transaction(() => {
-      this.db.prepare('DELETE FROM lan_members_cache').run()
-      const insert = this.db.prepare('INSERT INTO lan_members_cache(member_id,email,display_name,role,modules_json,channels_json,cloud_status,refreshed_at) VALUES(?,?,?,?,?,?,?,?)')
-      for (const member of snapshot?.members || []) {
-        insert.run(String(member.memberId), String(member.email || ''), member.name ? String(member.name) : null, String(member.role || 'employee'), JSON.stringify(member.modules || []), JSON.stringify(member.channels || []), String(member.status || 'revoked'), refreshedAt)
-      }
-      this.db.prepare('UPDATE lan_server_identity SET identity_revision=?,last_cloud_refresh_at=? WHERE id=1').run(String(snapshot?.revision || ''), refreshedAt)
+    this.db.prepare('DELETE FROM lan_members_cache').run()
+    const insert = this.db.prepare('INSERT INTO lan_members_cache(member_id,email,display_name,role,modules_json,channels_json,cloud_status,refreshed_at) VALUES(?,?,?,?,?,?,?,?)')
+    for (const member of snapshot?.members || []) {
+      insert.run(String(member.memberId), String(member.email || ''), member.name ? String(member.name) : null, String(member.role || 'employee'), JSON.stringify(member.modules || []), JSON.stringify(member.channels || []), String(member.status || 'revoked'), refreshedAt)
+    }
+    this.db.prepare('UPDATE lan_server_identity SET identity_revision=?,last_cloud_refresh_at=? WHERE id=1').run(String(snapshot?.revision || ''), refreshedAt)
+  }
+
+  replaceSnapshot(snapshot) {
+    return this.withTransaction(() => {
+      this.writeSnapshot(snapshot)
+      return this.serverState()
     })
-    tx()
-    return this.serverState()
   }
 
   claimServer({ company, cloudBaseUrl, serverToken, snapshot }) {
@@ -145,12 +160,11 @@ export class LanSecurityRepository {
     if (!company?.id || !serverToken || !cloudBaseUrl) throw new Error('Dados de vínculo do servidor incompletos.')
     if (String(snapshot?.companyId || '') !== String(company.id)) throw new Error('Snapshot não corresponde à empresa do vínculo.')
     const claimedAt = this.now()
-    const tx = this.db.transaction(() => {
+    return this.withTransaction(() => {
       this.db.prepare('UPDATE lan_server_identity SET company_id=?,company_name=?,cloud_base_url=?,server_token=?,claimed_at=?,setup_code_hash=NULL WHERE id=1').run(String(company.id), String(company.name || ''), String(cloudBaseUrl), String(serverToken), claimedAt)
-      this.replaceSnapshot(snapshot)
+      this.writeSnapshot(snapshot)
+      return this.serverState()
     })
-    tx()
-    return this.serverState()
   }
 
   member(memberId) {
