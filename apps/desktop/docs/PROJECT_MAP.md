@@ -222,3 +222,13 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - Entidades fora desse trio permanecem no SQLite local. Não há fallback silencioso para o banco local se um cadastro remoto falhar, evitando divergência entre estações.
 - O serviço continua ouvindo `127.0.0.1:4732` por padrão. `OBRA_NA_MAO_LAN_HOST`, `OBRA_NA_MAO_LAN_PORT` e `OBRA_NA_MAO_LAN_DATA_DIR` configuram a implantação.
 - Ainda não há abertura automática de firewall, exposição à internet, descoberta de servidor, autenticação de terminal, sincronização offline ou migração automática dos cadastros locais existentes. Essas responsabilidades pertencem às fases seguintes.
+
+## Adendo 2026-09-29 — Compatibilidade armazenamento, identidade e Cloud (fases 6–7)
+
+- **Regra de produto:** nenhum modo de armazenamento pode remover, substituir ou alterar silenciosamente o fluxo existente `Desktop ↔ Cloudflare/D1 ↔ PWA`. Web/PWA, vínculo online e sincronização já existentes continuam incluídos no produto.
+- Fase 6 adiciona guard rails em `storage-online-compatibility.test.ts` e `storage-online-contract.test.ts`: mudar armazenamento não altera `online-connection.json`, token, tenant, URL Cloudflare, IPC `online:*` nem o contrato público `window.fluxoDre.online`.
+- Fase 7 introduz `operationalMode: 'local'|'lan-host'|'lan-client'|'remote'` no estado de armazenamento sem remover o contrato legado `mode: 'local'|'server'`. O mapeamento compatível é `local → local` e `server → lan-client`; as chaves `storage_mode`, `lan_server_host` e `lan_server_port` continuam autoritativas nesta etapa.
+- `DataAccessService` só trata `lan-client` como transporte remoto implementado. `lan-host` e `remote` estão modelados para fases futuras, mas não são ativados silenciosamente nem aparecem como opções prontas na UI.
+- **Papel da máquina não define papel do usuário.** Fonte operacional, identidade/permissões e serviços online são eixos independentes. Um administrador pode usar qualquer Desktop autorizado, inclusive quando o banco está em outro servidor da empresa.
+- `SyncCoordinator` ainda lê diretamente o `DatabaseService`/SQLite local. Quando fontes operacionais remotas passarem a alimentar a sincronização Web/PWA, a evolução deverá adaptar um provider ao pipeline existente `SyncCoordinator → OnlineService → Cloudflare`, e não criar uma segunda sincronização paralela.
+- Cloud pago futuro é somente adicional: R2/documentos, PDFs, fotos, anexos, backup/restauração e novas capacidades premium. Login, PWA, bridge, resumos e demais recursos online já incluídos não podem ser movidos para uma assinatura por causa desta reorganização.
