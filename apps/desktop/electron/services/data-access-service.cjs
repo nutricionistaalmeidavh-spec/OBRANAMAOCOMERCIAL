@@ -1,14 +1,15 @@
 const { LanDataClient, REMOTE_TABLES } = require('./lan-data-client.cjs')
+const { StorageConnectionService } = require('./storage-connection-service.cjs')
 
 class DataAccessService {
   constructor({ db, storage = null, remote = null }) {
     this.db = db
-    this.storage = storage
-    this.remote = remote || (storage ? new LanDataClient({ storage }) : null)
+    this.storage = storage || new StorageConnectionService({ db })
+    this.remote = remote || new LanDataClient({ storage: this.storage })
   }
 
   useRemote(table) {
-    return Boolean(this.storage && this.remote && this.storage.state().mode === 'server' && REMOTE_TABLES.has(table))
+    return this.storage.state().mode === 'server' && REMOTE_TABLES.has(table)
   }
 
   list(table, filters) {
