@@ -1,8 +1,9 @@
 const REMOTE_TABLES = new Set(['empresas', 'clientes', 'obras'])
 
 class LanDataClient {
-  constructor({ storage, fetchImpl = globalThis.fetch, timeoutMs = 5000 }) {
+  constructor({ storage, credentials, fetchImpl = globalThis.fetch, timeoutMs = 5000 }) {
     this.storage = storage
+    this.credentials = credentials
     this.fetchImpl = fetchImpl
     this.timeoutMs = timeoutMs
   }
@@ -14,7 +15,15 @@ class LanDataClient {
   connection() {
     const state = this.storage.state()
     if (state.mode !== 'server' || !state.baseUrl) throw new Error('Servidor da empresa não está configurado.')
-    return state
+    const serverKey = String(state.serverKey || state.baseUrl)
+    const token = this.credentials?.token?.(serverKey) || ''
+    if (!token) throw new Error('Este computador ainda não está pareado/autorizado neste servidor da empresa.')
+    return { ...state, serverKey, token }
+  }
+
+  sanitizeMessage(message, token) {
+    const value = String(message || '')
+    return token ? value.split(token).join('[credencial protegida]') : value
   }
 
   async request(method, path, { query, body } = {}) {
@@ -30,20 +39,24 @@ class LanDataClient {
     try {
       const response = await this.fetchImpl(url.toString(), {
         method,
-        headers: { Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${state.token}`,
+          ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
+        },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal
       })
       let payload = null
       try { payload = await response.json() } catch {}
       if (!response?.ok) {
-        const message = payload?.message || `Servidor da empresa respondeu HTTP ${response?.status ?? 'inválido'}.`
-        throw new Error(message)
+        const rawMessage = payload?.message || `Servidor da empresa respondeu HTTP ${response?.status ?? 'inválido'}.`
+        throw new Error(this.sanitizeMessage(rawMessage, state.token))
       }
       return payload
     } catch (error) {
       if (error?.name === 'AbortError') throw new Error('Tempo esgotado ao acessar o servidor da empresa.')
-      if (error instanceof Error && (/Servidor da empresa respondeu HTTP|Entidade ainda não disponível|não está configurado|Tempo esgotado/.test(error.message) || error.message)) throw error
+      if (error instanceof Error) throw new Error(this.sanitizeMessage(error.message, state.token))
       throw new Error('Não foi possível acessar o servidor da empresa.')
     } finally {
       clearTimeout(timer)
