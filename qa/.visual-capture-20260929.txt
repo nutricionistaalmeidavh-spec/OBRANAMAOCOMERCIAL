@@ -1,0 +1,3 @@
+Temporary QA trigger for current Obra na Mão Comercial visual evidence.
+Base main: ca53ec73d107824c1e126a277623c144834dc122
+No product code changes.
