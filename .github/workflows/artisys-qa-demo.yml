@@ -89,6 +89,14 @@ jobs:
         run: |
           DATA_DIR="${{ runner.temp }}/obra-na-mao-artisys-demo"
           rm -rf "$DATA_DIR"
+          mkdir -p "$DATA_DIR"
+          cat > "$DATA_DIR/online-connection.json" <<'JSON'
+          {
+            "tokenValue": "cWEtZGVtby1kZXZpY2UtdG9rZW4=",
+            "tokenEncoding": "base64",
+            "linkedAt": "2026-09-29T00:00:00.000Z"
+          }
+          JSON
           echo "OBRA_NA_MAO_DATA_DIR=$DATA_DIR" >> "$GITHUB_ENV"
 
       - name: Capture real Electron flow
