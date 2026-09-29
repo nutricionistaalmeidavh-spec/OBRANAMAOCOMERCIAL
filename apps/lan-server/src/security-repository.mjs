@@ -130,7 +130,17 @@ export class LanSecurityRepository {
 
   initializeServer({ serverId, setupCodeHash }) {
     if (!serverId || !setupCodeHash) throw new Error('Identidade inicial do servidor incompleta.')
-    this.db.prepare('INSERT INTO lan_server_identity(id,server_id,setup_code_hash) VALUES(1,?,?) ON CONFLICT(id) DO NOTHING').run(String(serverId), String(setupCodeHash))
+    const current = this.serverState()
+    if (!current) {
+      this.db.prepare('INSERT INTO lan_server_identity(id,server_id,setup_code_hash) VALUES(1,?,?)').run(String(serverId), String(setupCodeHash))
+    } else if (!current.claimed) {
+      this.db.prepare('UPDATE lan_server_identity SET setup_code_hash=? WHERE id=1').run(String(setupCodeHash))
+    }
+    return this.serverState()
+  }
+
+  clearSetupCode() {
+    this.db.prepare('UPDATE lan_server_identity SET setup_code_hash=NULL WHERE id=1').run()
     return this.serverState()
   }
 
