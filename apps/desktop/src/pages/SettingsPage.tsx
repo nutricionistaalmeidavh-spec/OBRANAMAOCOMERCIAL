@@ -1,27 +1,23 @@
-import { Cloud, DatabaseBackup, Edit3, FolderCog, FolderOpen, HardHat, ListTree, PanelsTopLeft, Plus, RefreshCw, RotateCcw, Server, ShieldCheck, Trash2, Unplug, WalletCards } from 'lucide-react'
+import { Cloud, DatabaseBackup, Edit3, FolderCog, FolderOpen, HardHat, ListTree, PanelsTopLeft, Plus, RefreshCw, RotateCcw, ShieldCheck, Trash2, Unplug, WalletCards } from 'lucide-react'
 import { FormEvent, useEffect, useState } from 'react'
 import { brl, toCents } from '../utils/format'
 import { useAsync } from '../hooks/useAsync'
 import SyncSettings from '../components/SyncSettings'
+import StorageServerSettings from '../components/StorageServerSettings'
 import { Button, Card, Confirm, Field, FormActions, Loading, Modal, PageHeader, Status } from '../components/ui'
 
 export default function SettingsPage(){
   const boot=useAsync(()=>window.fluxoDre.app.bootstrap(),[])
   const catalog=useAsync(()=>window.fluxoDre.catalogo.list(),[])
   const online=useAsync(()=>window.fluxoDre.online.state(),[])
-  const storage=useAsync(()=>window.fluxoDre.storage.state(),[])
   const [message,setMessage]=useState('')
   const [onlineUrl,setOnlineUrl]=useState('')
-  const [storageForm,setStorageForm]=useState<{mode:'local'|'server';host:string;port:string}>({mode:'local',host:'127.0.0.1',port:'4732'})
   useEffect(()=>{if(online.data?.baseUrl)setOnlineUrl(online.data.baseUrl)},[online.data?.baseUrl])
-  useEffect(()=>{if(storage.data)setStorageForm({mode:storage.data.mode,host:storage.data.host,port:String(storage.data.port)})},[storage.data?.mode,storage.data?.host,storage.data?.port])
   const saveOnlineUrl=async()=>{setMessage('Salvando endpoint online...');try{await window.fluxoDre.online.setBaseUrl(onlineUrl);await online.reload();setMessage('Endpoint online salvo. Se o endereço mudou, o vínculo anterior foi removido por segurança.')}catch(error:any){setMessage(error.message)}}
   const connectOnline=async()=>{setMessage('Abrindo autorização do Desktop no navegador...');try{await window.fluxoDre.online.start();await online.reload();setMessage('Autorize este computador no navegador e depois clique em Verificar autorização.')}catch(error:any){setMessage(error.message)}}
   const checkOnline=async()=>{setMessage('Verificando autorização...');try{const status=await window.fluxoDre.online.status();await online.reload();setMessage(status.linked?'Desktop vinculado com sucesso. Agora você pode testar a conexão online.':'A autorização ainda está pendente.')}catch(error:any){setMessage(error.message)}}
   const testOnline=async()=>{setMessage('Testando conexão online...');try{const session=await window.fluxoDre.online.session();setMessage(`Conexão online ativa${session?.company?.name?` — ${session.company.name}`:''}.`);await online.reload()}catch(error:any){setMessage(error.message)}}
   const disconnectOnline=async()=>{try{await window.fluxoDre.online.disconnect();await online.reload();window.location.reload()}catch(error:any){setMessage(error.message)}}
-  const saveStorage=async()=>{setMessage('Salvando configuração de dados...');try{const saved=await window.fluxoDre.storage.configure({mode:storageForm.mode,host:storageForm.host,port:Number(storageForm.port)});storage.setData(saved);setMessage(saved.mode==='local'?'Dados configurados para permanecer neste computador.':'Servidor da empresa salvo. Empresas, clientes e obras usam o servidor; os demais módulos continuam locais.')}catch(error:any){setMessage(error.message)}}
-  const testStorage=async()=>{setMessage('Testando servidor da empresa...');try{const result=await window.fluxoDre.storage.testConnection();setMessage(`Servidor Obra na Mão encontrado — ${result.baseUrl} (${result.latencyMs} ms).`)}catch(error:any){setMessage(error.message)}}
   const [cargo,setCargo]=useState<any>(null)
   const [benefit,setBenefit]=useState<any>(null)
   const [remove,setRemove]=useState<any>(null)
@@ -33,12 +29,11 @@ export default function SettingsPage(){
   }
   const saveCargo=async(event:FormEvent)=>{event.preventDefault();const saved=await window.fluxoDre.catalogo.saveCargo({...cargo,salario_base_centavos:toCents(cargo.salario)});for(const link of cargo.links)await window.fluxoDre.catalogo.saveLink({...link,cargo_id:saved.id,valor_centavos:toCents(link.valor),ativo:link.enabled?1:0});setCargo(null);await catalog.reload();setMessage('Cargo e valores fixos salvos.')}
   const saveBenefit=async(event:FormEvent)=>{event.preventDefault();await window.fluxoDre.catalogo.saveBenefit({...benefit,valor_padrao_centavos:toCents(benefit.valor)});setBenefit(null);await catalog.reload();setMessage('Benefício salvo.')}
-  const storageDirty=!!storage.data&&(storageForm.mode!==storage.data.mode||storageForm.host!==storage.data.host||storageForm.port!==String(storage.data.port))
   return <>
     <PageHeader title="Configurações" description="Dados locais, pastas espelhadas, cargos, benefícios e manutenção."/>
     <div className="settings-grid">
       <SyncSettings/>
-      <Card className="setting-card setting-card-feature"><Server size={21} color="#2f67d8"/><h3>Dados e servidor</h3><p>Escolha onde esta instalação deve buscar os dados operacionais suportados. Web/PWA continua independente desta configuração.</p><Field label="Modo de armazenamento"><select value={storageForm.mode} disabled={storage.loading} onChange={e=>setStorageForm({...storageForm,mode:e.target.value as 'local'|'server'})}><option value="local">Neste computador</option><option value="server">Servidor da empresa</option></select></Field>{storageForm.mode==='server'&&<><div className="form-grid" style={{marginTop:10}}><Field label="Endereço do servidor"><input value={storageForm.host} onChange={e=>setStorageForm({...storageForm,host:e.target.value})} placeholder="192.168.0.10"/></Field><Field label="Porta"><input type="number" min="1" max="65535" value={storageForm.port} onChange={e=>setStorageForm({...storageForm,port:e.target.value})}/></Field></div></>}<div className="setting-actions" style={{marginTop:10}}><Button onClick={saveStorage}>Salvar configuração</Button>{storageForm.mode==='server'&&<Button variant="secondary" icon={<RefreshCw size={15}/>} disabled={storageDirty||storage.loading} onClick={testStorage}>Testar conexão</Button>}</div><small>{storageForm.mode==='local'?'O modo local continua sendo o padrão e usa o SQLite deste computador.':storageDirty?'Salve a configuração antes de testar. Empresas, clientes e obras usarão o servidor após salvar.':'Empresas, clientes e obras usam o servidor. Os demais módulos continuam usando os dados locais nesta etapa.'}</small></Card>
+      <StorageServerSettings onMessage={setMessage}/>
       <Card className="setting-card"><DatabaseBackup size={21} color="#2f67d8"/><h3>Backup manual</h3><p>Cria uma cópia consistente do SQLite em uma pasta escolhida.</p><Button onClick={()=>action(()=>window.fluxoDre.backup.create(),'Backup criado com sucesso.')}>Criar backup</Button></Card>
       <Card className="setting-card"><RotateCcw size={21} color="#d89317"/><h3>Restaurar banco</h3><p>Salva uma cópia de segurança antes de substituir o banco atual.</p><Button variant="secondary" onClick={()=>action(()=>window.fluxoDre.backup.restore(),'Banco restaurado. Reinicie o aplicativo.')}>Restaurar</Button></Card>
       <Card className="setting-card setting-card-feature"><FolderCog size={21} color="#159a76"/><h3>Pasta da documentação</h3><p className="path-text">{boot.data?.documentsPath||'Carregando localização...'}</p><div className="setting-actions"><Button onClick={()=>action(()=>window.fluxoDre.documentos.chooseRoot(),'Pasta definida e estrutura espelhada.')}>Escolher pasta</Button><Button variant="secondary" icon={<FolderOpen size={15}/>} onClick={()=>window.fluxoDre.documentos.openFolder()}>Abrir</Button></div><small>Todas as empresas, colaboradores e subpastas serão criados neste local.</small></Card>
