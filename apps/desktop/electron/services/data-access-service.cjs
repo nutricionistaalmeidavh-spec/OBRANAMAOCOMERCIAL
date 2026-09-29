@@ -27,7 +27,7 @@ class DataAccessService {
   useRemote(table) {
     const state = this.storage.state()
     const operationalMode = state.operationalMode || (state.mode === 'server' ? 'lan-client' : 'local')
-    return state.mode === 'server' && operationalMode === 'lan-client' && REMOTE_TABLES.has(table)
+    return state.mode === 'server' && ['lan-client', 'lan-host'].includes(operationalMode) && REMOTE_TABLES.has(table)
   }
 
   list(table, filters) {
