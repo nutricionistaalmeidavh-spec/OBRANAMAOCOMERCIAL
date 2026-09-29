@@ -369,7 +369,7 @@ Expected: the Desktop → Cloud → field/PWA → Desktop test remains green.
 
 Confirmed from F5 head `68bfb6ef429950d4b70eeaeb1a75fbc426dce291` through the F6–7 implementation: no production changes under `apps/web`, no Cloudflare sync-route changes, no billing/R2/entitlement changes; changes are limited to Desktop storage modeling/routing guards, tests, copy and architecture documents.
 
-- [ ] **Step 7: Update draft PR #60 description**
+- [x] **Step 7: Update draft PR #60 description**
 
 Add phases 6–7, compatibility guarantees and explicit out-of-scope items. Keep PR draft. Do not merge or deploy.
 
