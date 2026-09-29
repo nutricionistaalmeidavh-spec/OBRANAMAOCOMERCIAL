@@ -6,6 +6,11 @@ const DEFAULT_ATTEMPT_WINDOW_MS = 60 * 1000
 const DEFAULT_MAX_ATTEMPTS = 8
 const defaultCode = () => randomBytes(5).toString('hex').toUpperCase()
 const defaultToken = () => randomBytes(32).toString('hex')
+const publicDevice = device => {
+  if (!device) return null
+  const { tokenHash: _tokenHash, ...safe } = device
+  return safe
+}
 
 export class PairingError extends Error {
   constructor(message, status = 400, code = 'pairing_error') {
@@ -115,12 +120,12 @@ export class PairingService {
       targetId: device.id,
       details: { installationId: cleanInstallationId }
     })
-    return { device, member, deviceToken }
+    return { device: publicDevice(device), member, deviceToken }
   }
 
   listDevices(actor) {
     this.requireAdmin(actor)
-    return this.security.listDevices?.() || []
+    return (this.security.listDevices?.() || []).map(publicDevice)
   }
 
   setDeviceStatus({ actor, deviceId, status }) {
@@ -137,6 +142,6 @@ export class PairingService {
       targetId: String(deviceId),
       details: {}
     })
-    return next
+    return publicDevice(next)
   }
 }
