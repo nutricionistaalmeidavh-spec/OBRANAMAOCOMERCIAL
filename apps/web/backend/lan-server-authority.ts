@@ -81,7 +81,7 @@ export function createLanServerAuthority({db,nowMs=Date.now}:AuthorityDeps){
     const serverToken=randomToken(), grantId=id(), serverHash=await digest(serverToken);
     await db.prepare('INSERT INTO lan_server_grants(id,token_hash,server_id,company_id,claiming_member_id,status,created_at,last_seen_at,revoked_at) VALUES(?,?,?,?,?,?,?,?,?)')
       .bind(grantId,serverHash,serverId,claim.company_id,claim.issued_by_member_id,'active',consumedAt,consumedAt,null).run();
-    return {companyId:claim.company_id,serverToken,claimingMemberId:claim.issued_by_member_id};
+    return {companyId:claim.company_id,serverToken,claimingMemberId:claim.issued_by_member_id,issuedByDeviceId:claim.issued_by_device_id};
   }
 
   async function authenticateLanServer(serverToken:string){
@@ -97,8 +97,9 @@ export function createLanServerAuthority({db,nowMs=Date.now}:AuthorityDeps){
 
   async function revokeLanServerGrant(input:{serverId:string;companyId:string}){
     const revokedAt=nowIso();
-    await db.prepare("UPDATE lan_server_grants SET status='revoked',revoked_at=? WHERE server_id=? AND company_id=? AND status='active'")
+    const result=await db.prepare("UPDATE lan_server_grants SET status='revoked',revoked_at=? WHERE server_id=? AND company_id=? AND status='active'")
       .bind(revokedAt,String(input.serverId||''),String(input.companyId||'')).run();
+    return Number(result.meta?.changes||0)>0;
   }
 
   async function companyAccess(companyId:string){
