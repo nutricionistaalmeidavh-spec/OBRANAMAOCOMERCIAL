@@ -5,12 +5,13 @@ import { LanSecurityRepository } from './security-repository.mjs'
 import { ServerIdentity } from './server-identity.mjs'
 import { CloudAuthorityClient } from './cloud-authority-client.mjs'
 import { PairingService } from './pairing-service.mjs'
-import { createLanServer, LAN_SERVER_VERSION } from './server.mjs'
+import { createLanServer, LAN_SERVER_VERSION, refreshIdentitySnapshot } from './server.mjs'
 
 const host = process.env.OBRA_NA_MAO_LAN_HOST?.trim() || '127.0.0.1'
 const port = Number(process.env.OBRA_NA_MAO_LAN_PORT || 4732)
 const dataDir = process.env.OBRA_NA_MAO_LAN_DATA_DIR?.trim() || path.join(os.homedir(), '.obra-na-mao-lan')
 const cloudBaseUrl = (process.env.OBRA_NA_MAO_PLATFORM_URL || process.env.FLUXO_DRE_PLATFORM_URL || 'https://obra-na-mao-comercial.nutricionistaalmeidavh.workers.dev').trim().replace(/\/$/, '')
+const IDENTITY_REFRESH_MS = 5 * 60 * 1000
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error('OBRA_NA_MAO_LAN_PORT deve ser uma porta TCP válida entre 1 e 65535.')
@@ -24,6 +25,15 @@ const cloudAuthority = new CloudAuthorityClient({ baseUrl: cloudBaseUrl })
 const pairingService = new PairingService({ security })
 const server = createLanServer({ serverVersion: LAN_SERVER_VERSION, repository, security, identity, cloudAuthority, cloudBaseUrl, pairingService })
 
+async function refreshCachedIdentity() {
+  if (!security.serverState()?.claimed) return
+  try {
+    await refreshIdentitySnapshot({ security, cloudAuthority })
+  } catch (error) {
+    console.warn(`Permissões Cloud temporariamente indisponíveis; usando último snapshot LAN válido. ${error instanceof Error ? error.message : ''}`.trim())
+  }
+}
+
 server.listen(port, host, () => {
   console.log(`Obra na Mão LAN Server ${LAN_SERVER_VERSION} disponível em http://${host}:${port}`)
   console.log(`Banco central: ${databasePath}`)
@@ -31,12 +41,17 @@ server.listen(port, host, () => {
   if (state && !state.claimed && state.setupCode) {
     console.log(`Código de configuração LAN: ${state.setupCode}`)
   }
+  void refreshCachedIdentity()
 })
+
+const identityRefreshTimer = setInterval(() => { void refreshCachedIdentity() }, IDENTITY_REFRESH_MS)
+identityRefreshTimer.unref?.()
 
 let shuttingDown = false
 function shutdown() {
   if (shuttingDown) return
   shuttingDown = true
+  clearInterval(identityRefreshTimer)
   server.close(() => {
     repository.close()
     process.exit(0)
