@@ -4,7 +4,7 @@
 
 **Goal:** Make `lan-host` a real principal-computer mode in the Desktop, package/manage the LAN server process, support secure claim/pairing credentials and expose clear Local / Principal PC / Existing Server UX without breaking the existing Web/PWA integration.
 
-**Architecture:** The Desktop keeps storage selection, online account state and LAN device credentials separate. In `lan-host`, Electron starts the packaged LAN server using its own runtime, talks to it over loopback and keeps it alive in background/tray mode; connected clients use the same authenticated API with a per-device LAN token. Claiming a server reuses the existing online admin identity and Cloud endpoints from Plan 1; LAN pairing uses endpoints from Plan 2.
+**Architecture:** The Desktop keeps storage selection, online account state and LAN device credentials separate. In `lan-host`, Electron starts the packaged LAN server using its own runtime, talks to it over loopback and keeps it alive in background/tray mode; connected clients use the same authenticated API with a per-device LAN token. Claiming a server reuses the existing online admin identity and Cloud endpoints from Plan 1; the successful setup claim bootstraps that claiming admin Desktop as the first LAN device, and later devices use pairing from Plan 2.
 
 **Tech Stack:** Electron 43, CommonJS Electron services, React 19/TypeScript, Vitest, electron-builder, existing `safeStorage`, existing `LanDataClient` and `OnlineService`.
 
@@ -198,7 +198,7 @@ git commit -m "feat(desktop): manage packaged LAN host process"
 
 **Interfaces:**
 - Consumes: existing online device token/session, Plan 1 claim route, Plan 2 setup/pair routes, Task 2 credentials.
-- Produces: renderer-safe LAN setup API.
+- Produces: renderer-safe LAN setup API and secure persistence of the first bootstrapped admin device credential.
 
 - [ ] **Step 1: Add failing OnlineService tests**
 
@@ -206,7 +206,7 @@ Add `startLanServerClaim(serverId)` calling `/api/desktop/lan/claim/start` with 
 
 - [ ] **Step 2: Add failing setup-service tests**
 
-Cover host claim: fetch setup status -> request Cloud claim -> POST local setup claim. Cover client pairing: POST pairing code + installation/device name -> securely store returned LAN token. Reject claiming if current Cloud session is not admin. Ensure no mutation of online connection config except normal online calls.
+Cover host claim: fetch setup status -> request Cloud claim -> POST local setup claim with `installationId` and device name -> receive first admin `deviceToken` once -> immediately pass it to `LanCredentialService.store` without exposing it to renderer. Cover later client pairing: POST pairing code + installation/device name -> securely store returned LAN token. Reject claiming if current Cloud session is not admin. Ensure no mutation of online connection config except normal online calls.
 
 - [ ] **Step 3: Implement `OnlineService.startLanServerClaim(serverId)`**
 
@@ -228,7 +228,7 @@ setDeviceStatus({deviceId,status})
 refreshIdentity()
 ```
 
-It may use LAN setup/admin endpoints but must delegate Cloud identity to `OnlineService`.
+`claimHostedServer` supplies Desktop installation/device metadata to `/api/v1/setup/claim`, stores the returned bootstrap LAN credential through `LanCredentialService`, then returns only safe member/server state to renderer. It must delegate Cloud identity to `OnlineService`.
 
 - [ ] **Step 5: Expose minimal IPC/preload API**
 
@@ -339,7 +339,7 @@ Run: `cd apps/web && npm test && npm run build` plus local D1 migrations.
 
 - [ ] **Step 4: Add an integration test for one real protocol path**
 
-Test a temporary LAN server with fake Cloud authority: claim server -> pair admin/client -> authenticated Empresas CRUD -> revoke client -> CRUD denied; verify temporary Internet failure still permits previously paired active device with cached snapshot.
+Test a temporary LAN server with fake Cloud authority: claim server -> bootstrap admin Desktop credential -> admin creates pairing -> pair client -> authenticated Empresas CRUD -> revoke client -> CRUD denied; verify temporary Internet failure still permits previously paired active device with cached snapshot.
 
 - [ ] **Step 5: Verify packaged-resource contract**
 
