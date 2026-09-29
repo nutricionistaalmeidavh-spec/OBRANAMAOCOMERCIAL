@@ -177,6 +177,22 @@ export class LanSecurityRepository {
     })
   }
 
+  claimServerWithDevice({ company, cloudBaseUrl, serverToken, snapshot, device }) {
+    const state = this.serverState()
+    if (!state) throw new Error('Servidor LAN ainda não possui identidade local.')
+    if (state.claimed) throw new Error('Servidor LAN já foi vinculado a uma empresa.')
+    if (!company?.id || !serverToken || !cloudBaseUrl) throw new Error('Dados de vínculo do servidor incompletos.')
+    if (String(snapshot?.companyId || '') !== String(company.id)) throw new Error('Snapshot não corresponde à empresa do vínculo.')
+    if (!device?.memberId || !device?.installationId || !device?.deviceName || !device?.tokenHash) throw new Error('Dispositivo administrador inicial inválido.')
+    const claimedAt = this.now()
+    return this.withTransaction(() => {
+      this.db.prepare('UPDATE lan_server_identity SET company_id=?,company_name=?,cloud_base_url=?,server_token=?,claimed_at=?,setup_code_hash=NULL WHERE id=1').run(String(company.id), String(company.name || ''), String(cloudBaseUrl), String(serverToken), claimedAt)
+      this.writeSnapshot(snapshot)
+      const createdDevice = this.createDevice(device)
+      return { state: this.serverState(), device: createdDevice }
+    })
+  }
+
   member(memberId) {
     return mapMember(this.db.prepare('SELECT * FROM lan_members_cache WHERE member_id=?').get(String(memberId)))
   }
