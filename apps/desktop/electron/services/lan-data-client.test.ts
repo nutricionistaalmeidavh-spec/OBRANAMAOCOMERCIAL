@@ -31,6 +31,20 @@ describe('LanDataClient', () => {
     expect(fetchImpl.mock.calls[1][1].headers.Authorization).toBe('Bearer lan-device-token')
   })
 
+  it('consulta capacidades da fonte central com a mesma credencial do dispositivo', async () => {
+    const { LanDataClient } = require('./lan-data-client.cjs')
+    const baseUrl='http://servidor:4732'
+    const fetchImpl=vi.fn(async()=>({ok:true,status:200,json:async()=>({version:1,modules:['core'],bridgeEntities:[]})}))
+    const client=new LanDataClient({storage:{state:()=>({mode:'server',operationalMode:'lan-host',baseUrl})},credentials:credentialsFor(baseUrl),fetchImpl})
+
+    await expect(client.syncSourceCapabilities()).resolves.toEqual({version:1,modules:['core'],bridgeEntities:[]})
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    const [url,options]=fetchImpl.mock.calls[0]
+    expect(url).toBe(`${baseUrl}/api/v1/sync-source/capabilities`)
+    expect(options.method).toBe('GET')
+    expect(options.headers.Authorization).toBe('Bearer lan-device-token')
+  })
+
   it('falha antes da rede quando o servidor atual ainda não foi pareado', async () => {
     const { LanDataClient } = require('./lan-data-client.cjs')
     const fetchImpl=vi.fn()
@@ -44,10 +58,12 @@ describe('LanDataClient', () => {
   it('nunca inclui o bearer em mensagem de erro do servidor', async () => {
     const { LanDataClient } = require('./lan-data-client.cjs')
     const token='super-secret-lan-token',baseUrl='http://servidor:4732'
-    const fetchImpl=vi.fn(async()=>({ok:false,status:403,json:async()=>({message:'Acesso negado.'})}))
+    const fetchImpl=vi.fn(async()=>({ok:false,status:403,json:async()=>({message:`Acesso negado para ${token}.`})}))
     const client=new LanDataClient({storage:{state:()=>({mode:'server',operationalMode:'lan-client',baseUrl})},credentials:credentialsFor(baseUrl,token),fetchImpl})
-    await expect(client.list('obras',{})).rejects.toThrow('Acesso negado.')
-    try{await client.list('obras',{})}catch(error){expect(String((error as Error).message)).not.toContain(token)}
+    try{await client.syncSourceCapabilities(); throw new Error('esperava falha')}catch(error){
+      expect(String((error as Error).message)).toContain('[credencial protegida]')
+      expect(String((error as Error).message)).not.toContain(token)
+    }
   })
 
   it('propaga mensagem legivel do servidor e rejeita tabelas fora do escopo', async () => {
