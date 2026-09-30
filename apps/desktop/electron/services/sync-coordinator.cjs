@@ -19,7 +19,7 @@ class SyncCoordinator {
    let local=null
    if(BRIDGE[c.entity]){
     if(this.dataProvider.peekBridge)local=this.dataProvider.peekBridge(c.entity,c.localId,scope)
-    else {const value=this.dataProvider.getBridge(c.entity,c.localId,scope);if(!value?.then)local=value}
+    else if(runtime.source==='local'){const value=this.dataProvider.getBridge(c.entity,c.localId,scope);if(!value?.then)local=value}
    }
    const remote=JSON.parse(c.remote_payload)
    const select=value=>Object.fromEntries([...fields,'deleted'].filter(k=>value&&Object.hasOwn(value,k)).map(k=>[k,value[k]]))
@@ -50,33 +50,41 @@ class SyncCoordinator {
   this.db.prepare('INSERT INTO auditoria(entidade,entidade_id,acao,dados) VALUES(?,?,?,?)').run(entity,localId,'SYNC_QUEUED',json({scope:key,hash:digest}))
  }
  rows(table,scope){return this.dataProvider.listBridge(table,scope)}
+ async syncPlan(modules){
+  const capabilities=this.dataProvider.syncCapabilities?await resolved(this.dataProvider.syncCapabilities()):null
+  const bridgeEntities=modules.includes('obra360')?(capabilities?((capabilities.bridgeEntities||[]).filter(entity=>Object.hasOwn(BRIDGE,entity))):Object.keys(BRIDGE)):[]
+  const summary=!capabilities||capabilities.modules?.includes('summary')
+  const obligations=modules.some(m=>['finance','rh','dre'].includes(m))&&(!capabilities||capabilities.modules?.includes('finance'))
+  return {capabilities,bridgeEntities,summary,obligations}
+ }
  async capture(scope,modules){
-  const bridge=[]
-  if(modules.includes('obra360'))for(const entity of Object.keys(BRIDGE))bridge.push([entity,await resolved(this.rows(entity,scope))])
-  const summary=await resolved(this.summary(scope,modules))
-  const obligations=modules.some(m=>['finance','rh','dre'].includes(m))?await resolved(this.obligations(scope)):[]
+  const plan=await this.syncPlan(modules),bridge=[]
+  for(const entity of plan.bridgeEntities)bridge.push([entity,await resolved(this.rows(entity,scope))])
+  const summary=plan.summary?await resolved(this.summary(scope,modules)):null
+  const obligations=plan.obligations?await resolved(this.obligations(scope)):[]
   this.db.transaction(()=>{
    for(const [entity,rows] of bridge){for(const row of rows)this.enqueue(scope,'bridge',entity,row.id,payloadOf(row));const seen=new Set(rows.map(x=>x.id));for(const old of this.db.prepare('SELECT local_id FROM desktop_sync_heads WHERE scope_key=? AND entity=?').all(this.key(scope),entity))if(!seen.has(old.local_id))this.enqueue(scope,'bridge',entity,old.local_id,{id:old.local_id,obra_id:scope.workId,deleted:true})}
-   this.enqueue(scope,'summary','mobile_summary',0,summary)
+   if(summary!==null)this.enqueue(scope,'summary','mobile_summary',0,summary)
    for(const obligation of obligations)this.enqueue(scope,'finance','finance_reference',Number(obligation.sourceId.split(':').at(-1)),obligation)
   })()
+  return plan
  }
  summary(scope,allowed){return this.dataProvider.summary(scope,allowed)}
  obligations(scope){return this.dataProvider.obligations(scope)}
  conflict(scope,entity,localId,payload,revision,remoteId=null){this.db.prepare("INSERT INTO desktop_sync_conflicts(scope_key,entity,local_id,remote_payload,remote_revision,remote_conflict_id) VALUES(?,?,?,?,?,?) ON CONFLICT(scope_key,entity,local_id) WHERE status='open' DO UPDATE SET remote_payload=excluded.remote_payload,remote_revision=excluded.remote_revision,remote_conflict_id=COALESCE(excluded.remote_conflict_id,desktop_sync_conflicts.remote_conflict_id)").run(this.key(scope),entity,localId,json(payload),revision,remoteId)}
  applyRemote(scope,entity,id,payload){return this.dataProvider.applyRemote(entity,id,payload,scope)}
- async ingest(scope,pull){if(!pull.changed)return;const snapshot=pull.snapshot;if(!snapshot||typeof snapshot!=='object')throw new Error('Snapshot online inválido.');
-  for(const [entity,bucket] of Object.entries(BRIDGE))for(const item of snapshot.desktopBridge?.[bucket]||[]){if(String(item.sourceDeviceId)!==scope.deviceId||!Number.isSafeInteger(Number(item.localId)))continue;const id=Number(item.localId),head=this.db.prepare('SELECT * FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),entity,id);if(!head||Number(item.mobileEditedRevision||0)<=head.remote_revision)continue;const row=await resolved(this.dataProvider.getBridge(entity,id,scope)),pending=this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND entity=? AND local_id=? AND status='pending'").get(this.key(scope),entity,id).n;
+ async ingest(scope,pull,bridgeEntities=Object.keys(BRIDGE)){if(!pull.changed)return;const snapshot=pull.snapshot;if(!snapshot||typeof snapshot!=='object')throw new Error('Snapshot online inválido.');
+  for(const entity of bridgeEntities){const bucket=BRIDGE[entity];for(const item of snapshot.desktopBridge?.[bucket]||[]){if(String(item.sourceDeviceId)!==scope.deviceId||!Number.isSafeInteger(Number(item.localId)))continue;const id=Number(item.localId),head=this.db.prepare('SELECT * FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),entity,id);if(!head||Number(item.mobileEditedRevision||0)<=head.remote_revision)continue;const row=await resolved(this.dataProvider.getBridge(entity,id,scope)),pending=this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND entity=? AND local_id=? AND status='pending'").get(this.key(scope),entity,id).n;
    if(!row||pending||hash(payloadOf(row))!==head.acknowledged_hash||item.payload?.deleted){this.conflict(scope,entity,id,item.payload||{},Number(item.mobileEditedRevision));continue}
    await resolved(this.applyRemote(scope,entity,id,item.payload||{}));const updated=await resolved(this.dataProvider.getBridge(entity,id,scope)),digest=hash(payloadOf(updated));this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(digest,digest,Number(item.mobileEditedRevision),this.key(scope),entity,id)
-  }
+  }}
   this.db.prepare('UPDATE desktop_sync_scope SET snapshot=?,remote_revision=? WHERE id=1').run(json(snapshot),Number(pull.remoteRevision||0))
  }
  supersede(scope,job,reason){this.db.transaction(()=>{this.db.prepare("UPDATE desktop_sync_outbox SET status='superseded',last_error=? WHERE id=? AND status='pending'").run(reason,job.id);this.db.prepare("UPDATE desktop_sync_heads SET captured_hash=COALESCE(acknowledged_hash,'') WHERE scope_key=? AND entity=? AND local_id=?").run(this.key(scope),job.entity,job.local_id)})()}
  hasEarlierPending(scope,job){return !!this.db.prepare("SELECT id FROM desktop_sync_outbox WHERE scope_key=? AND kind=? AND entity=? AND local_id=? AND status='pending' AND id<? LIMIT 1").get(this.key(scope),job.kind,job.entity,job.local_id,job.id)}
  run(options={}){if(this.running)return this.running;this.running=this.perform(options).finally(()=>{this.running=null});return this.running}
- async perform({retryNow=false}={}){const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare('UPDATE desktop_sync_scope SET allowed_modules=? WHERE id=1').run(json(modules));await this.capture(scope,modules);if(modules.includes('obra360')){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull)}
-  const adminModules=modules.some(m=>['finance','rh','dre'].includes(m)),queue=this.db.prepare("SELECT * FROM desktop_sync_outbox WHERE scope_key=? AND status='pending' ORDER BY id").all(this.key(scope));for(const job of queue){this.assertScope(scope,generation);if(job.kind==='bridge'&&!modules.includes('obra360')){this.supersede(scope,job,'Módulo Obra360 não está mais liberado para este Desktop.');continue}if(job.kind==='finance'&&!adminModules){this.supersede(scope,job,'Módulos administrativos não estão mais liberados para este Desktop.');continue}if(!retryNow&&job.next_attempt_at>this.now())continue;if(this.hasEarlierPending(scope,job))continue;if(this.db.prepare("SELECT id FROM desktop_sync_conflicts WHERE scope_key=? AND entity=? AND local_id=? AND status='open'").get(this.key(scope),job.entity,job.local_id))continue;
+ async perform({retryNow=false}={}){const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare('UPDATE desktop_sync_scope SET allowed_modules=? WHERE id=1').run(json(modules));const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities)}
+  const adminModules=modules.some(m=>['finance','rh','dre'].includes(m)),queue=this.db.prepare("SELECT * FROM desktop_sync_outbox WHERE scope_key=? AND status='pending' ORDER BY id").all(this.key(scope));for(const job of queue){this.assertScope(scope,generation);if(job.kind==='bridge'&&(!modules.includes('obra360')||!plan.bridgeEntities.includes(job.entity))){this.supersede(scope,job,'Entidade não disponível na fonte operacional atual.');continue}if(job.kind==='summary'&&!plan.summary){this.supersede(scope,job,'Resumo ainda não está disponível na fonte operacional atual.');continue}if(job.kind==='finance'&&(!adminModules||!plan.obligations)){this.supersede(scope,job,'Módulos administrativos ainda não estão disponíveis na fonte operacional atual.');continue}if(!retryNow&&job.next_attempt_at>this.now())continue;if(this.hasEarlierPending(scope,job))continue;if(this.db.prepare("SELECT id FROM desktop_sync_conflicts WHERE scope_key=? AND entity=? AND local_id=? AND status='open'").get(this.key(scope),job.entity,job.local_id))continue;
    try{const payload=JSON.parse(job.payload);let reply;if(job.kind==='bridge'){const head=this.db.prepare('SELECT remote_revision FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),job.entity,job.local_id);reply=await this.online.syncPush([{changeId:job.change_id,entity:job.entity,localId:job.local_id,baseMobileRevision:head?.remote_revision||0,payload}]);this.assertScope(scope,generation);const result=reply.accepted?.find(x=>x.changeId===job.change_id);if(!result)throw new Error('Servidor não confirmou a alteração.');if(result.conflict||result.status==='conflict'){this.conflict(scope,job.entity,job.local_id,payload,Number(result.currentMobileRevision||0),result.conflictId);continue}if(!['accepted','duplicate'].includes(result.status)||result.bridged===false)throw new Error('Alteração não aplicada à obra online.')}
     else if(job.kind==='summary'){reply=await this.online.publishMobileSummary({...payload,modules:Object.fromEntries(Object.entries(payload.modules||{}).filter(([key])=>modules.includes(key))),generatedAt:new Date(this.now()).toISOString()});if(!reply.ok)throw new Error('Resumo não confirmado.')}
     else {reply=await this.online.publishFinanceReference([payload]);if(reply.accepted!==1)throw new Error('Obrigação não confirmada.')}
