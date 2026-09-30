@@ -105,6 +105,13 @@ class OperationalSyncDataProvider {
     return this.localProvider
   }
 
+  async syncCapabilities() {
+    const runtime = this.runtimeState()
+    if (runtime.paused) throw new Error(`Sincronização pausada: ${runtime.pauseReason}`)
+    if (runtime.source !== 'lan-host') return null
+    return this.lanProvider.capabilities()
+  }
+
   async resolveScope(input) { return this.activeProvider().resolveScope(input) }
   async listBridge(entity, scope) { return this.activeProvider().listBridge(entity, scope) }
   async getBridge(entity, localId, scope) { return this.activeProvider().getBridge(entity, localId, scope) }
