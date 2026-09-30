@@ -44,6 +44,45 @@ describe('DataAccessService', () => {
     expect(db.list).not.toHaveBeenCalled()
   })
 
+  it('roteia entidades operacionais ao servidor somente quando operation está central-active', async () => {
+    const { DataAccessService } = require('./data-access-service.cjs')
+    const db = { list: vi.fn(() => [{ id: 1, nome: 'local' }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-host', baseUrl: 'http://127.0.0.1:4732' })) }
+    const remote = { list: vi.fn(async () => [{ id: 2, nome: 'central' }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const moduleStorage = { state: vi.fn(() => ({ module: 'operation', state: 'central-active', localRecords: 0 })) }
+    const service = new DataAccessService({ db, storage, remote, moduleStorage })
+
+    await expect(service.list('frentes_obra', { obra_id: 7 })).resolves.toEqual([{ id: 2, nome: 'central' }])
+    expect(remote.list).toHaveBeenCalledWith('frentes_obra', { obra_id: 7 })
+    expect(db.list).not.toHaveBeenCalled()
+  })
+
+  it('migration-required mantém entidades operacionais no SQLite local', async () => {
+    const { DataAccessService } = require('./data-access-service.cjs')
+    const db = { list: vi.fn(() => [{ id: 3, nome: 'legado local' }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-host', baseUrl: 'http://127.0.0.1:4732' })) }
+    const remote = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const moduleStorage = { state: vi.fn(() => ({ module: 'operation', state: 'migration-required', localRecords: 3 })) }
+    const service = new DataAccessService({ db, storage, remote, moduleStorage })
+
+    await expect(service.list('rdos', { obra_id: 7 })).resolves.toEqual([{ id: 3, nome: 'legado local' }])
+    expect(db.list).toHaveBeenCalledWith('rdos', { obra_id: 7 })
+    expect(remote.list).not.toHaveBeenCalled()
+  })
+
+  it('central-ready bloqueia CRUD operacional em vez de cair silenciosamente no SQLite', async () => {
+    const { DataAccessService } = require('./data-access-service.cjs')
+    const db = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-client', baseUrl: 'http://server:4732' })) }
+    const remote = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const moduleStorage = { state: vi.fn(() => ({ module: 'operation', state: 'central-ready', localRecords: 0 })) }
+    const service = new DataAccessService({ db, storage, remote, moduleStorage })
+
+    await expect(service.save('tarefas_obra', { obra_id: 7, titulo: 'Não salvar localmente' })).rejects.toThrow(/central|ativo|servidor/i)
+    expect(db.save).not.toHaveBeenCalled()
+    expect(remote.save).not.toHaveBeenCalled()
+  })
+
   it('remote continua modelado mas não é tratado como transporte pronto', async () => {
     const { DataAccessService } = require('./data-access-service.cjs')
     const db = { list: vi.fn(() => [{ id: 41 }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
