@@ -24,6 +24,7 @@ const { UniversalImportService } = require('./services/universal-import-service.
 const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
+const { FieldSourceService } = require('./services/field-source-service.cjs')
 const { ProcurementService } = require('./services/procurement-service.cjs')
 const { ContractsService } = require('./services/contracts-service.cjs')
 const { ProductService } = require('./services/product-service.cjs')
@@ -74,6 +75,9 @@ function createServices() {
   const lanCredentials = new LanCredentialService({ dataDir: paths.dataDir, safeStorage })
   const dataAccess = new DataAccessService({ db, storage, credentials: lanCredentials })
   const moduleStorage = new ModuleStorageStateService({ database: db, storage, lanClient: dataAccess.remote })
+  dataAccess.moduleStorage = moduleStorage
+  const localField = new FieldService({ db })
+  const field = new FieldSourceService({ local: localField, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
@@ -105,7 +109,7 @@ function createServices() {
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
-    works: new WorksService({ db }), planning: new PlanningService({ db }), field: new FieldService({ db }),
+    works: new WorksService({ db }), planning: new PlanningService({ db }), field,
     product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product }), online, sync
   }
 }
