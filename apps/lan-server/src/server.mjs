@@ -196,6 +196,12 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, { product: 'Obra na Mão', apiVersion: LAN_API_VERSION, serverVersion })
       }
 
+      if (url.pathname === '/api/v1/sync-source/capabilities') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        await authenticateLanRequest(request, security)
+        return sendJson(response, 200, { version: 1, modules: ['core'], bridgeEntities: [] })
+      }
+
       if (url.pathname === '/api/v1/setup/status') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         const state = identity?.state?.() || security?.serverState?.()
