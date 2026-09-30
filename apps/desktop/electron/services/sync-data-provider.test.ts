@@ -84,14 +84,14 @@ it('applies the same editable remote patch semantics without changing row owners
   expect(f.provider.applyRemote('tarefas_obra', f.task.id, {
     titulo: 'Título remoto',
     status: 'em_andamento',
-    observacoes: 'Atualizado pela PWA',
+    descricao: 'Atualizado pela PWA',
     obra_id: 9999
   }, f.scope)).toBe(true)
 
   const updated = f.database.get('tarefas_obra', f.task.id)
   expect(updated.titulo).toBe('Título remoto')
   expect(updated.status).toBe('em_andamento')
-  expect(updated.observacoes).toBe('Atualizado pela PWA')
+  expect(updated.descricao).toBe('Atualizado pela PWA')
   expect(updated.obra_id).toBe(original.obra_id)
   expect(() => f.provider.applyRemote('tarefas_obra', f.task.id, { deleted: true }, f.scope)).toThrow(/Exclusão remota exige revisão manual/)
 })
