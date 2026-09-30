@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 const page = fs.readFileSync(path.resolve(process.cwd(), 'src/pages/SettingsPage.tsx'), 'utf8')
 const storage = fs.readFileSync(path.resolve(process.cwd(), 'src/components/StorageServerSettings.tsx'), 'utf8')
+const preload = fs.readFileSync(path.resolve(process.cwd(), 'electron/preload.cjs'), 'utf8')
+const main = fs.readFileSync(path.resolve(process.cwd(), 'electron/main.cjs'), 'utf8')
 const source = `${page}\n${storage}`
 
 describe('configuracao de dados e servidor', () => {
@@ -32,9 +34,18 @@ describe('configuracao de dados e servidor', () => {
     expect(storage).not.toContain("host:effectiveHost||'127.0.0.1'")
   })
 
-  it('explicita o escopo centralizado atual sem fingir que todos os módulos já migraram', () => {
-    expect(source).toContain('Empresas, Clientes e Obras já usam o servidor')
-    expect(source).toContain('RDO, Planejamento, Financeiro, RH e demais módulos permanecem no comportamento atual')
+  it('expõe o estado real do RDO/operação e bloqueia centralização silenciosa de dados antigos', () => {
+    expect(preload).toContain("call('storage:module-state'")
+    expect(main).toContain("ipcMain.handle('storage:module-state'")
+    expect(storage).toContain("window.fluxoDre.storage.moduleState('operation')")
+    expect(storage).toContain('RDO / operação')
+    expect(storage).toContain('Migração necessária')
+    expect(storage).toContain('RDOs, frentes e tarefas locais continuam neste computador')
+    expect(storage).toContain('RDO/operação já usa o banco central')
+  })
+
+  it('explicita que planejamento, financeiro e RH ainda não foram centralizados nesta fase', () => {
+    expect(source).toContain('Planejamento, Financeiro e RH permanecem no comportamento atual')
   })
 
   it('mantém em destaque a identidade atual Web/PWA e não a transforma em assinatura', () => {
