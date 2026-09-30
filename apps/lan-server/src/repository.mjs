@@ -6,7 +6,27 @@ import { applyLanMigrations } from './migrations.mjs'
 const TABLE_FIELDS = {
   empresas: new Set(['razao_social', 'nome_fantasia', 'cnpj', 'telefone', 'email', 'endereco', 'observacoes', 'status']),
   clientes: new Set(['empresa_id', 'nome', 'documento', 'telefone', 'email', 'observacoes']),
-  obras: new Set(['empresa_id', 'cliente_id', 'nome', 'codigo', 'endereco', 'responsavel', 'valor_contratado_centavos', 'data_inicio', 'previsao_termino', 'status', 'percentual_fisico', 'observacoes'])
+  obras: new Set(['empresa_id', 'cliente_id', 'nome', 'codigo', 'endereco', 'responsavel', 'valor_contratado_centavos', 'data_inicio', 'previsao_termino', 'status', 'percentual_fisico', 'observacoes']),
+  frentes_obra: new Set(['obra_id', 'nome', 'codigo', 'ordem', 'status', 'observacoes']),
+  tarefas_obra: new Set(['obra_id', 'frente_id', 'rdo_ocorrencia_id', 'titulo', 'descricao', 'responsavel', 'prazo', 'prioridade', 'status', 'origem_tipo', 'origem_id', 'concluido_em']),
+  rdos: new Set(['obra_id', 'frente_id', 'data', 'clima', 'status', 'atividades', 'observacoes']),
+  rdo_equipe: new Set(['rdo_id', 'frente_id', 'funcionario_id', 'nome', 'funcao', 'horas', 'custo_centavos', 'observacoes']),
+  rdo_equipamentos: new Set(['rdo_id', 'frente_id', 'nome', 'horas_uso', 'custo_centavos', 'observacoes']),
+  rdo_ocorrencias: new Set(['rdo_id', 'frente_id', 'tipo', 'descricao', 'status', 'prioridade', 'responsavel', 'prazo']),
+  rdo_anexos: new Set(['rdo_id', 'frente_id', 'documento_id', 'legenda'])
+}
+
+const TABLE_META = {
+  empresas: { softDelete: true, updatedAt: true, order: 'updated_at DESC' },
+  clientes: { softDelete: true, updatedAt: true, order: 'nome COLLATE NOCASE' },
+  obras: { softDelete: true, updatedAt: true, order: 'updated_at DESC' },
+  frentes_obra: { softDelete: true, updatedAt: true, order: 'ordem, nome COLLATE NOCASE' },
+  tarefas_obra: { softDelete: true, updatedAt: true, order: 'updated_at DESC, id DESC' },
+  rdos: { softDelete: true, updatedAt: true, order: 'data DESC, id DESC' },
+  rdo_equipe: { softDelete: false, updatedAt: false, order: 'id' },
+  rdo_equipamentos: { softDelete: false, updatedAt: false, order: 'id' },
+  rdo_ocorrencias: { softDelete: false, updatedAt: true, order: 'updated_at DESC, id DESC' },
+  rdo_anexos: { softDelete: false, updatedAt: false, order: 'id DESC' }
 }
 
 const SCHEMA = `
@@ -60,9 +80,7 @@ CREATE TABLE IF NOT EXISTS obras (
 
 function normalizeError(error) {
   const message = error instanceof Error ? error.message : String(error)
-  if (/FOREIGN KEY constraint failed/i.test(message)) {
-    return new Error(`Falha de referência: ${message}`)
-  }
+  if (/FOREIGN KEY constraint failed/i.test(message)) return new Error(`Falha de referência: ${message}`)
   return error
 }
 
@@ -77,13 +95,8 @@ export class LanRepository {
     this.db.exec(SCHEMA)
   }
 
-  connection() {
-    return this.db
-  }
-
-  applyMigrations(migrationsDir) {
-    return applyLanMigrations(this.db, migrationsDir)
-  }
+  connection() { return this.db }
+  applyMigrations(migrationsDir) { return applyLanMigrations(this.db, migrationsDir) }
 
   assertTable(table) {
     if (!Object.hasOwn(TABLE_FIELDS, table)) throw new Error('Entidade não disponível no servidor da empresa.')
@@ -98,15 +111,15 @@ export class LanRepository {
   list(table, filters = {}) {
     this.assertTable(table)
     const allowed = TABLE_FIELDS[table]
-    const where = ['deleted_at IS NULL']
+    const meta = TABLE_META[table]
+    const where = meta.softDelete ? ['deleted_at IS NULL'] : ['1=1']
     const values = []
     for (const [key, value] of Object.entries(filters || {})) {
       if (!allowed.has(key) || value === '' || value === null || value === undefined) continue
       where.push(`${key} = ?`)
       values.push(value)
     }
-    const order = table === 'empresas' ? 'updated_at DESC' : table === 'obras' ? 'updated_at DESC' : 'nome COLLATE NOCASE'
-    return this.db.prepare(`SELECT * FROM ${table} WHERE ${where.join(' AND ')} ORDER BY ${order}`).all(...values)
+    return this.db.prepare(`SELECT * FROM ${table} WHERE ${where.join(' AND ')} ORDER BY ${meta.order}`).all(...values)
   }
 
   get(table, id) {
@@ -119,18 +132,19 @@ export class LanRepository {
     const clean = this.cleanData(table, data)
     const columns = Object.keys(clean)
     if (!columns.length) throw new Error('Nenhum dado válido informado.')
+    const meta = TABLE_META[table]
 
     try {
       if (data?.id) {
-        const assignments = columns.map((column) => `${column} = ?`)
-        assignments.push('updated_at = CURRENT_TIMESTAMP')
-        const result = this.db.prepare(`UPDATE ${table} SET ${assignments.join(', ')} WHERE id = ?`).run(...columns.map((column) => clean[column]), Number(data.id))
+        const assignments = columns.map(column => `${column} = ?`)
+        if (meta.updatedAt) assignments.push('updated_at = CURRENT_TIMESTAMP')
+        const result = this.db.prepare(`UPDATE ${table} SET ${assignments.join(', ')} WHERE id = ?`).run(...columns.map(column => clean[column]), Number(data.id))
         if (Number(result.changes) === 0) return null
         return this.get(table, data.id)
       }
 
       const placeholders = columns.map(() => '?').join(', ')
-      const result = this.db.prepare(`INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`).run(...columns.map((column) => clean[column]))
+      const result = this.db.prepare(`INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`).run(...columns.map(column => clean[column]))
       return this.get(table, Number(result.lastInsertRowid))
     } catch (error) {
       throw normalizeError(error)
@@ -139,11 +153,18 @@ export class LanRepository {
 
   remove(table, id) {
     this.assertTable(table)
-    const result = this.db.prepare(`UPDATE ${table} SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL`).run(Number(id))
-    return Number(result.changes) > 0
+    const meta = TABLE_META[table]
+    try {
+      if (!meta.softDelete) {
+        const result = this.db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(Number(id))
+        return Number(result.changes) > 0
+      }
+      const result = this.db.prepare(`UPDATE ${table} SET deleted_at = CURRENT_TIMESTAMP${meta.updatedAt ? ', updated_at = CURRENT_TIMESTAMP' : ''} WHERE id = ? AND deleted_at IS NULL`).run(Number(id))
+      return Number(result.changes) > 0
+    } catch (error) {
+      throw normalizeError(error)
+    }
   }
 
-  close() {
-    this.db.close()
-  }
+  close() { this.db.close() }
 }
