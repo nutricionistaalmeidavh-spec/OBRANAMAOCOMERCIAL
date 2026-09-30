@@ -39,7 +39,7 @@ export default function StorageServerSettings({onMessage}:Props){
     }catch(error:any){setLanStatus(null);setAdminStatus(null);setDevices([]);onMessage(error.message)}
   }
 
-  useEffect(()=>{if(storage.data?.operationalMode!=='local')void refreshLan(storage.data.operationalMode as Mode)},[storage.data?.operationalMode,storage.data?.baseUrl])
+  useEffect(()=>{if(storage.data&&storage.data.operationalMode!=='local')void refreshLan(storage.data.operationalMode as Mode)},[storage.data?.operationalMode,storage.data?.baseUrl])
 
   const effectiveHost=form.operationalMode==='lan-host'?'127.0.0.1':form.host
   const dirty=!!storage.data&&(form.operationalMode!==storage.data.operationalMode||effectiveHost!==storage.data.host||form.port!==String(storage.data.port))
