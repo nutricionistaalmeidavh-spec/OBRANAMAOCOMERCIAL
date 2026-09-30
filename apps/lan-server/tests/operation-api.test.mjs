@@ -4,6 +4,7 @@ import { once } from 'node:events'
 import path from 'node:path'
 import test from 'node:test'
 import { LanRepository } from '../src/repository.mjs'
+import { FieldService } from '../src/field-service.mjs'
 import { createLanServer } from '../src/server.mjs'
 
 const LAN_TOKEN = 'operation-device-token'
@@ -28,12 +29,13 @@ async function fixture(options = {}) {
   repository.applyMigrations(migrationsDir)
   const company = repository.save('empresas', { razao_social: 'Empresa Operação' })
   const work = repository.save('obras', { empresa_id: company.id, nome: 'Obra Central' })
-  const server = createLanServer({ repository, security: security(options) })
+  const fieldService = new FieldService({ repository })
+  const server = createLanServer({ repository, security: security(options), fieldService })
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('Servidor sem porta TCP.')
-  return { repository, server, company, work, baseUrl: `http://127.0.0.1:${address.port}` }
+  return { repository, server, company, work, fieldService, baseUrl: `http://127.0.0.1:${address.port}` }
 }
 
 async function close(f) {
@@ -80,6 +82,35 @@ test('CRUD operacional autenticado compartilha frentes, RDOs, filhos e tarefas n
     assert.equal(removed.status, 200)
     const visibleTasks = await request(f.baseUrl, `/api/v1/tarefas_obra?obra_id=${f.work.id}`)
     assert.deepEqual(await visibleTasks.json(), [])
+  } finally { await close(f) }
+})
+
+test('POST /api/v1/field/rdo salva o agregado inteiro usando uma única rota de domínio', async () => {
+  const f = await fixture()
+  try {
+    const front = f.repository.save('frentes_obra', { obra_id: f.work.id, nome: 'Torre B' })
+    const response = await post(f.baseUrl, '/api/v1/field/rdo', {
+      obra_id: f.work.id,
+      frente_id: front.id,
+      data: '2026-10-02',
+      atividades: 'Teste de pressão',
+      equipe: [{ nome: 'Equipe hidráulica', horas: 8 }],
+      ocorrencias: [{ tipo: 'pendencia', descricao: 'Revisar conexão', status: 'aberta' }]
+    })
+    assert.equal(response.status, 201)
+    const rdo = await response.json()
+    assert.equal(rdo.obra_id, f.work.id)
+    assert.equal(f.repository.connection().prepare('SELECT COUNT(*) AS n FROM rdo_equipe WHERE rdo_id=?').get(rdo.id).n, 1)
+    assert.equal(f.repository.connection().prepare('SELECT COUNT(*) AS n FROM tarefas_obra WHERE obra_id=? AND deleted_at IS NULL').get(f.work.id).n, 1)
+  } finally { await close(f) }
+})
+
+test('rota de domínio do RDO exige permissão operacional atual', async () => {
+  const f = await fixture({ modules: [] })
+  try {
+    const response = await post(f.baseUrl, '/api/v1/field/rdo', { obra_id: f.work.id, data: '2026-10-03' })
+    assert.equal(response.status, 403)
+    assert.equal((await response.json()).error, 'forbidden')
   } finally { await close(f) }
 })
 
