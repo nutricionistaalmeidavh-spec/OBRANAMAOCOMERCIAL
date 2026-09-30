@@ -55,7 +55,7 @@ export default function StorageServerSettings({onMessage}:Props){
   const save=async()=>{
     setBusy(true);onMessage('Salvando configuração de dados...')
     try{
-      const saved=await window.fluxoDre.storage.configure({operationalMode:form.operationalMode,host:effectiveHost||'127.0.0.1',port:Number(form.port)})
+      const saved=await window.fluxoDre.storage.configure({operationalMode:form.operationalMode,host:effectiveHost,port:Number(form.port)})
       storage.setData(saved)
       if(saved.operationalMode==='local')onMessage('Dados configurados para permanecer somente neste computador.')
       else if(saved.operationalMode==='lan-host')onMessage('Este computador foi configurado como principal. Agora conclua a autorização do servidor abaixo.')
