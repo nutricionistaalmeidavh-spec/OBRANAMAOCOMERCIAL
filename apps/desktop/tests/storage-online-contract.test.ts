@@ -27,9 +27,14 @@ describe('storage and Web/PWA public contract separation', () => {
     expect(preload).toContain("syncPush: (changes) => call('online:sync-push', { changes })")
   })
 
-  it('routes storage IPC only to storage and online sync IPC to online/sync services', () => {
-    expect(main).toContain("ipcMain.handle('storage:configure', envelope((payload) => services.storage.configure(payload)))")
+  it('routes storage lifecycle without coupling it to the existing online/sync services', () => {
+    const configureStorageBlock = main.match(/async function configureStorage\(payload\) \{[\s\S]*?\n\}/)?.[0] || ''
+    expect(main).toContain("ipcMain.handle('storage:configure', envelope((payload) => configureStorage(payload)))")
     expect(main).toContain("ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))")
+    expect(configureStorageBlock).toContain('services.storage.configure(payload)')
+    expect(configureStorageBlock).toContain('services.lanHost')
+    expect(configureStorageBlock).not.toContain('services.online')
+    expect(configureStorageBlock).not.toContain('services.sync')
     expect(main).not.toContain("storage:configure', envelope((payload) => services.online")
     expect(main).toContain("ipcMain.handle('online:state', envelope(() => services.online.state()))")
     expect(main).toContain("ipcMain.handle('online:session', envelope(() => services.online.session()))")
