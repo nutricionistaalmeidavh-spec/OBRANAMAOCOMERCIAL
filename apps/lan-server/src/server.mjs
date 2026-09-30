@@ -2,6 +2,7 @@ import http from 'node:http'
 import { createHash, randomBytes } from 'node:crypto'
 import { authenticateLanRequest, authorizeBusinessRoute, LanAuthorizationError } from './authorization.mjs'
 import { PairingError } from './pairing-service.mjs'
+import { FieldService } from './field-service.mjs'
 
 export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.3.0'
@@ -181,7 +182,8 @@ async function handleSetupClaim(request, response, { security, identity, cloudAu
   })
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+  const field = fieldService || (repository ? new FieldService({ repository }) : null)
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://localhost')
@@ -200,6 +202,15 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         await authenticateLanRequest(request, security)
         return sendJson(response, 200, { version: 1, modules: ['core'], bridgeEntities: [] })
+      }
+
+      if (url.pathname === '/api/v1/field/rdo') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!field?.saveDailyReport) return sendJson(response, 503, { error: 'field_unavailable', message: 'Serviço central de RDO indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeBusinessRoute(context, { table: 'rdos', method: 'POST' })
+        const body = await readJson(request)
+        return sendJson(response, 201, field.saveDailyReport(body))
       }
 
       if (url.pathname === '/api/v1/setup/status') {
