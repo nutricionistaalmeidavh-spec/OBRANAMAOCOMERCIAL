@@ -56,17 +56,22 @@ test('sync source capabilities rejeita dispositivo revogado', async () => {
   } finally { await close(server) }
 })
 
-test('sync source capabilities anuncia somente o core já centralizado', async () => {
+test('sync source capabilities anuncia somente core e operação centralizados na F9', async () => {
   const { server, baseUrl } = await fixture()
   try {
     const response = await fetch(`${baseUrl}/api/v1/sync-source/capabilities`, {
       headers: { authorization: `Bearer ${TOKEN}` }
     })
     assert.equal(response.status, 200)
-    assert.deepEqual(await response.json(), {
+    const capabilities = await response.json()
+    assert.deepEqual(capabilities, {
       version: 1,
-      modules: ['core'],
-      bridgeEntities: []
+      modules: ['core', 'operation'],
+      bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos']
     })
+    assert.equal(capabilities.modules.includes('planning'), false)
+    assert.equal(capabilities.modules.includes('finance'), false)
+    assert.equal(capabilities.modules.includes('rh'), false)
+    assert.equal(capabilities.bridgeEntities.includes('cronograma_etapas'), false)
   } finally { await close(server) }
 })
