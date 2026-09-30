@@ -1,10 +1,10 @@
 export class FieldService {
   constructor({ repository }) {
-    if (!repository?.connection || !repository?.save) throw new Error('Repositório central inválido para RDO.')
     this.repository = repository
   }
 
   saveDailyReport(payload = {}) {
+    if (!this.repository?.connection || !this.repository?.save) throw new Error('Repositório central inválido para RDO.')
     const db = this.repository.connection()
     const { equipe = [], equipamentos = [], ocorrencias = [], anexos = [], ...data } = payload
     db.exec('BEGIN IMMEDIATE;')
