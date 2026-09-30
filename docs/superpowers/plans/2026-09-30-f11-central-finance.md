@@ -21,7 +21,7 @@
 
 ## Review Focus
 
-- Duplicate/retried payment requests must not create accidental double payment.
+- A retried payment request after an ambiguous network failure must not create a duplicate payment.
 - Cross-company/obra finance access must be rejected server-side.
 - DRE/dashboard totals must match the current local implementation for the same fixture.
 - Server outage must not create a local copy of a central account/payment.
@@ -34,13 +34,15 @@
 **Files:**
 - Create: `apps/lan-server/migrations/004_finance.sql`
 - Modify: `apps/lan-server/src/repository.mjs`
-- Create/Modify: `apps/lan-server/tests/finance-repository.test.mjs`
+- Create: `apps/lan-server/tests/finance-repository.test.mjs`
 
 **Interfaces:**
-- Add `fornecedores`, `categorias_financeiras`, `itens_orcamentarios` where still needed by planning/finance, `contas`, `pagamentos_conta` and required scalar relation columns.
+- Add `fornecedores`, `categorias_financeiras`, `contas`, `pagamentos_conta` and required scalar relation columns/indexes.
+- Reuse F10 central `itens_orcamentarios`; do not create a second budget table.
+- Central `pagamentos_conta` includes nullable `request_id TEXT UNIQUE` for HTTP retry idempotency.
 - Capability adds `finance` only after migration succeeds.
 
-- [ ] Write failing schema/repository tests for constraints, soft deletion, company/work filtering and payment FK behavior.
+- [ ] Write failing schema/repository tests for constraints, soft deletion, company/work filtering, payment FK behavior and duplicate `request_id` handling.
 - [ ] Run `npm --prefix apps/lan-server test`; expected RED.
 - [ ] Implement migration/allowlists/indexes minimally and idempotently.
 - [ ] Run LAN suite; expected GREEN.
@@ -57,13 +59,13 @@
 - Create: `apps/lan-server/tests/finance-service.test.mjs`
 
 **Interfaces:**
-- `FinanceService.accountPayment(id, payment)` equivalent to current Desktop account payment behavior.
+- `FinanceService.accountPayment(id, payment, requestId)` equivalent to current Desktop account-payment behavior plus idempotent replay by `requestId`.
 - `FinanceService.dre(filters)` and `FinanceService.dashboard(filters)` preserve current response contracts.
-- Endpoints: authenticated domain routes for payment, DRE and dashboard; exact paths may follow existing `/api/v1/finance/*` convention.
+- Endpoints: `POST /api/v1/finance/accounts/:id/payment`, `GET /api/v1/finance/dre`, `GET /api/v1/finance/dashboard`.
 
-- [ ] Write failing tests for partial/full payments, invalid overpayment according to current rules, transaction rollback, DRE parity, dashboard parity and authorization.
+- [ ] Write failing tests for partial/full payments, current overpayment rules, transaction rollback, same-request replay, DRE parity, dashboard parity and authorization.
 - [ ] Run LAN suite; expected RED.
-- [ ] Implement one-transaction payment flow plus read models.
+- [ ] Implement one-transaction payment flow plus read models. A repeated `requestId` returns the original result without another insert.
 - [ ] Run LAN suite; expected GREEN.
 - [ ] Commit: `git commit -m "feat(lan): centralize finance domain operations"`.
 
@@ -80,10 +82,11 @@
 
 **Interfaces:**
 - `FinanceSourceService.dashboard(filters)`, `.dre(filters)`, `.accountPayment(id,payment)`.
+- `LanDataClient.accountPayment(id,payment,requestId)` generates no ID itself; `FinanceSourceService` creates one UUID per user operation and reuses it for retries inside that operation.
 - Generic central CRUD extends to finance tables only when finance is central-active.
 
-- [ ] Write failing tests for local parity, LAN routing, no local fallback and account/payment visibility from a second client.
-- [ ] Run focused Desktop tests; expected RED.
+- [ ] Write failing tests for local parity, LAN routing, no local fallback, idempotent retry using the same request ID and account/payment visibility from a second client.
+- [ ] Run: `npm --prefix apps/desktop test -- finance-source lan-data-client`; expected RED.
 - [ ] Implement source adapter and IPC routing without changing renderer method names.
 - [ ] Run focused/full Desktop suites; expected GREEN.
 - [ ] Commit: `git commit -m "feat(desktop): route finance through central source"`.
@@ -93,12 +96,13 @@
 ### Task 4: Move finance-reference sync reads to the central provider
 
 **Files:**
+- Create: `apps/lan-server/tests/sync-source-finance.test.mjs`
+- Modify: `apps/lan-server/src/server.mjs`
 - Modify: `apps/desktop/electron/services/lan-sync-data-provider.cjs`
-- Modify: LAN sync-source service/routes.
 - Modify: `apps/desktop/electron/services/sync-coordinator.test.ts`
 
 **Interfaces:**
-- LAN provider implements `obligations(scope)` and any summary finance fields currently consumed by `SyncCoordinator`.
+- LAN provider implements `obligations(scope)` and summary finance fields currently consumed by `SyncCoordinator`.
 - No new Cloud endpoint is created.
 
 - [ ] Write failing tests that seed a central payable, keep local finance empty/different, run sync and assert `publishFinanceReference` receives central values only.
@@ -109,15 +113,21 @@
 
 ---
 
-### Task 5: Finance migration-state guard
+### Task 5: Finance migration-state guard and planning dependency release
 
 **Files:**
-- Modify module-state service/tests.
+- Modify: `apps/desktop/electron/services/module-storage-state-service.cjs`
+- Modify: `apps/desktop/electron/services/module-storage-state-service.test.ts`
+- Modify: `apps/desktop/tests/storage-server-settings.test.ts`
 
-- [ ] Write failing tests: any local `contas`/`pagamentos_conta`/relevant finance records => `migration-required`; fresh install + capability => `central-active`.
-- [ ] Run RED.
+**Interfaces:**
+- Add module key `finance`.
+- When finance becomes `central-active`, re-evaluate F10 `planning` so a fresh LAN installation can expose complete central planning financial sections.
+
+- [ ] Write failing tests: any local `contas`/`pagamentos_conta`/finance rows => `migration-required`; fresh install + capability => `central-active`; F10 planning dependency is released only when finance is central or no conflicting local finance exists.
+- [ ] Run: `npm --prefix apps/desktop test -- module-storage-state storage-server-settings`; expected RED.
 - [ ] Implement detector/state transition with no copy/delete.
-- [ ] Run GREEN/full Desktop suite.
+- [ ] Run focused/full Desktop suite; expected GREEN.
 - [ ] Commit: `git commit -m "feat(desktop): guard finance central activation"`.
 
 ---
@@ -131,4 +141,5 @@
 - [ ] Existing Web/PWA/Cloudflare regression suite.
 - [ ] Compare local-vs-central DRE/dashboard/payment fixtures.
 - [ ] Verify a second LAN client observes the committed financial state.
+- [ ] Verify same `requestId` replay does not duplicate payment.
 - [ ] PR remains draft; no merge/deploy.
