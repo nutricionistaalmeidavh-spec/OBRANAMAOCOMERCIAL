@@ -117,6 +117,7 @@ Run both commands above; expected PASS.
 - Modify: `apps/desktop/electron/main.cjs`
 - Modify: `apps/desktop/electron/services/sync-coordinator.cjs`
 - Modify: `apps/desktop/electron/services/sync-coordinator.test.ts`
+- Modify: `apps/desktop/tests/storage-online-contract.test.ts`
 
 **Interfaces:**
 - Produces `LanSyncDataProvider({ lanClient })`.
@@ -125,11 +126,11 @@ Run both commands above; expected PASS.
 
 - [ ] **Step 1: Write failing mode-gating tests**
 
-Assert `lan-client` cannot call any OnlineService sync method, `lan-host` chooses the LAN provider, and unavailable central capability does not fall back to local rows.
+Assert `lan-client` cannot call any OnlineService sync method, `lan-host` chooses the LAN provider, unavailable central capability does not fall back to local rows, and storage changes do not mutate OnlineService configuration.
 
 - [ ] **Step 2: Run RED**
 
-Run: `npm --prefix apps/desktop test -- lan-sync-data-provider sync-coordinator storage-online`
+Run: `npm --prefix apps/desktop test -- lan-sync-data-provider sync-coordinator storage-online-contract`
 
 Expected: FAIL on missing provider/gating.
 
@@ -153,7 +154,8 @@ Expected: PASS.
 
 **Files:**
 - Modify: `apps/desktop/src/components/SyncSettings.tsx`
-- Modify: relevant sync/settings tests under `apps/desktop/tests/`
+- Create: `apps/desktop/tests/sync-settings.test.ts`
+- Modify: `apps/desktop/tests/storage-server-settings.test.ts`
 - Modify: `apps/desktop/src/vite-env.d.ts` only if the returned sync state gains `source`/`pauseReason` fields.
 
 **Interfaces:**
@@ -165,7 +167,7 @@ Assert `lan-client` displays that the PC principal coordinates synchronization a
 
 - [ ] **Step 2: Run RED**
 
-Run: `npm --prefix apps/desktop test -- sync-settings storage-online-contract`
+Run: `npm --prefix apps/desktop test -- sync-settings storage-server-settings storage-online-contract`
 
 Expected: FAIL on missing copy/state.
 
