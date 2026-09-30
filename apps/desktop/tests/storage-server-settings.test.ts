@@ -27,6 +27,11 @@ describe('configuracao de dados e servidor', () => {
     expect(source).not.toContain('serverToken')
   })
 
+  it('não transforma host vazio de um servidor existente em localhost silenciosamente', () => {
+    expect(storage).toContain('host:effectiveHost')
+    expect(storage).not.toContain("host:effectiveHost||'127.0.0.1'")
+  })
+
   it('explicita o escopo centralizado atual sem fingir que todos os módulos já migraram', () => {
     expect(source).toContain('Empresas, Clientes e Obras já usam o servidor')
     expect(source).toContain('RDO, Planejamento, Financeiro, RH e demais módulos permanecem no comportamento atual')
