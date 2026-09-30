@@ -54,7 +54,7 @@ Expected: FAIL because migration runner/F9 schema do not exist.
 
 - [ ] **Step 3: Implement migration runner and F9 schema**
 
-Create central tables for `frentes_obra`, `tarefas_obra`, `rdos`, `rdo_equipe`, `rdo_equipamentos`, `rdo_ocorrencias`, `rdo_anexos` and only the minimum relation columns required by current RDO behavior. Do not add document-byte storage or RH ownership here.
+Create central tables for `frentes_obra`, `tarefas_obra`, `rdos`, `rdo_equipe`, `rdo_equipamentos`, `rdo_ocorrencias`, `rdo_anexos` and only the minimum relation columns required by current RDO behavior. Do not add document-byte storage or RH ownership here; `funcionario_id`/`documento_id` remain nullable scalar references until their owning modules are centralized.
 
 - [ ] **Step 4: Verify GREEN and persistent reopen**
 
@@ -72,11 +72,11 @@ Run LAN tests; expected PASS.
 - Modify: `apps/lan-server/src/repository.mjs`
 - Modify: `apps/lan-server/src/server.mjs`
 - Modify: `apps/lan-server/src/authorization.mjs`
-- Create/Modify: `apps/lan-server/tests/operation-api.test.mjs`
+- Create: `apps/lan-server/tests/operation-api.test.mjs`
 
 **Interfaces:**
 - Extend authenticated entity contract to `frentes_obra`, `tarefas_obra`, `rdos`, `rdo_equipe`, `rdo_equipamentos`, `rdo_ocorrencias`, `rdo_anexos` where generic CRUD is safe.
-- `authorizeBusinessRoute` (or a new module-specific helper) requires Admin or current operational/Obra360 authorization.
+- `authorizeBusinessRoute` (or a new explicit `authorizeModuleRoute(context,'obra360')`) requires Admin or current operational/Obra360 authorization.
 
 - [ ] **Step 1: Write failing CRUD/auth tests**
 
@@ -106,11 +106,11 @@ Run LAN tests.
 - Create: `apps/lan-server/src/field-service.mjs`
 - Modify: `apps/lan-server/src/server.mjs`
 - Create: `apps/lan-server/tests/field-service.test.mjs`
-- Create/Modify: `apps/lan-server/tests/operation-api.test.mjs`
+- Modify: `apps/lan-server/tests/operation-api.test.mjs`
 
 **Interfaces:**
 - Produces `FieldService.saveDailyReport(payload)` with behavior equivalent to Desktop `electron/services/field-service.cjs`.
-- Produces `POST /api/v1/field/rdo` and `PUT /api/v1/field/rdo/:id` (or one equivalent explicit domain endpoint) under the same LAN auth.
+- Produces explicit domain endpoint `POST /api/v1/field/rdo` accepting create or update payloads (`payload.id` selects update), under existing LAN auth.
 
 - [ ] **Step 1: Write failing transaction tests**
 
@@ -137,16 +137,17 @@ Run LAN tests.
 ### Task 4: Route Desktop field operations to the central source
 
 **Files:**
+- Create: `apps/desktop/electron/services/field-source-service.cjs`
+- Create: `apps/desktop/electron/services/field-source-service.test.ts`
 - Modify: `apps/desktop/electron/services/lan-data-client.cjs`
 - Modify: `apps/desktop/electron/services/data-access-service.cjs`
-- Modify: `apps/desktop/electron/services/field-service.cjs` or introduce `field-source-service.cjs`
 - Modify: `apps/desktop/electron/main.cjs`
-- Modify: `apps/desktop/electron/services/*field*.test.ts`
+- Preserve: `apps/desktop/electron/services/field-service.cjs` as the local implementation.
 
 **Interfaces:**
-- `LanDataClient.saveDailyReport(payload)` calls the F9 domain endpoint.
+- `LanDataClient.saveDailyReport(payload)` calls `POST /api/v1/field/rdo`.
+- `FieldSourceService.saveDailyReport(payload)` chooses local `FieldService` for local/migration-required and LAN for central-active operation.
 - Generic data access treats F9 field tables as remote only when module state is `central-active`.
-- Local mode still uses the current `FieldService` implementation unchanged.
 
 - [ ] **Step 1: Write failing routing/no-fallback tests**
 
@@ -154,7 +155,7 @@ Assert fresh `lan-host` and `lan-client` use LAN; local uses SQLite; server fail
 
 - [ ] **Step 2: Run RED**
 
-`npm --prefix apps/desktop test -- field data-access lan-data-client`
+`npm --prefix apps/desktop test -- field-source data-access lan-data-client`
 
 - [ ] **Step 3: Implement minimal routing**
 
@@ -173,8 +174,8 @@ Run focused tests and `npm --prefix apps/desktop test`.
 ### Task 5: Activate central bridge for fronts, tasks and RDOs
 
 **Files:**
+- Create: `apps/lan-server/tests/sync-source-operation.test.mjs`
 - Modify: `apps/lan-server/src/server.mjs`
-- Modify/Create: LAN sync-source repository/service tests
 - Modify: `apps/desktop/electron/services/lan-sync-data-provider.cjs`
 - Modify: `apps/desktop/electron/services/sync-coordinator.test.ts`
 
@@ -207,8 +208,15 @@ Run focused, full Desktop and LAN suites.
 ### Task 6: Module activation and migration-required guard
 
 **Files:**
-- Create/Modify: Desktop storage module-state service/tests
-- Modify: storage/settings UI tests only as necessary
+- Create: `apps/desktop/electron/services/module-storage-state-service.cjs`
+- Create: `apps/desktop/electron/services/module-storage-state-service.test.ts`
+- Modify: `apps/desktop/electron/main.cjs`
+- Modify: `apps/desktop/tests/storage-server-settings.test.ts`
+
+**Interfaces:**
+- Produces `ModuleStorageStateService.state(moduleName)` returning one of `local | central-ready | central-active | migration-required`.
+- Produces `ModuleStorageStateService.refreshCapabilities()` using authenticated LAN capabilities.
+- F9 supports module key `operation`.
 
 - [ ] **Step 1: Write failing tests**
 
@@ -216,13 +224,15 @@ Assert a fresh DB can mark `operation=central-active`; any existing local RDO/fr
 
 - [ ] **Step 2: Run RED**
 
-Run focused Desktop tests.
+`npm --prefix apps/desktop test -- module-storage-state storage-server-settings`
 
 - [ ] **Step 3: Implement state guard and explicit status copy**
 
+Never transition `migration-required` to central automatically.
+
 - [ ] **Step 4: Verify GREEN**
 
-Run full Desktop suite.
+Run focused and full Desktop suites.
 
 - [ ] **Step 5: Commit**
 
