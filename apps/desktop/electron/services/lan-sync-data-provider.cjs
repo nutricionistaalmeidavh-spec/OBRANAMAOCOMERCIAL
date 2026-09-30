@@ -105,12 +105,12 @@ class OperationalSyncDataProvider {
     return this.localProvider
   }
 
-  resolveScope(input) { return this.activeProvider().resolveScope(input) }
-  listBridge(entity, scope) { return this.activeProvider().listBridge(entity, scope) }
-  getBridge(entity, localId, scope) { return this.activeProvider().getBridge(entity, localId, scope) }
-  summary(scope, modules) { return this.activeProvider().summary(scope, modules) }
-  obligations(scope) { return this.activeProvider().obligations(scope) }
-  applyRemote(entity, localId, payload, scope) { return this.activeProvider().applyRemote(entity, localId, payload, scope) }
+  async resolveScope(input) { return this.activeProvider().resolveScope(input) }
+  async listBridge(entity, scope) { return this.activeProvider().listBridge(entity, scope) }
+  async getBridge(entity, localId, scope) { return this.activeProvider().getBridge(entity, localId, scope) }
+  async summary(scope, modules) { return this.activeProvider().summary(scope, modules) }
+  async obligations(scope) { return this.activeProvider().obligations(scope) }
+  async applyRemote(entity, localId, payload, scope) { return this.activeProvider().applyRemote(entity, localId, payload, scope) }
 }
 
 module.exports = { LanSyncDataProvider, OperationalSyncDataProvider }
