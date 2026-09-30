@@ -30,6 +30,7 @@ const { DemoDataService } = require('./services/demo-data-service.cjs')
 const { UiPreferencesService } = require('./services/ui-preferences-service.cjs')
 const { OnlineService } = require('./services/online-service.cjs')
 const { SyncCoordinator } = require('./services/sync-coordinator.cjs')
+const { OperationalSyncDataProvider } = require('./services/lan-sync-data-provider.cjs')
 
 let mainWindow
 let tray
@@ -71,6 +72,7 @@ function createServices() {
   const storage = new StorageConnectionService({ db })
   const lanCredentials = new LanCredentialService({ dataDir: paths.dataDir, safeStorage })
   const dataAccess = new DataAccessService({ db, storage, credentials: lanCredentials })
+  const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
   const explorer = new ManagedDirectoryService({
@@ -82,7 +84,7 @@ function createServices() {
   const product = new ProductService({ db })
   const uiPreferences = new UiPreferencesService({ db })
   const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
-  const sync = new SyncCoordinator({ database: db, online })
+  const sync = new SyncCoordinator({ database: db, online, dataProvider: syncDataProvider })
   const lanHost = new LanHostService({
     storage,
     dataDir: paths.dataDir,
