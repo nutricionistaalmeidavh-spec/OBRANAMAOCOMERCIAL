@@ -10,6 +10,7 @@ type Form={operationalMode:Mode;host:string;port:string}
 export default function StorageServerSettings({onMessage}:Props){
   const storage=useAsync(()=>window.fluxoDre.storage.state(),[])
   const online=useAsync(()=>window.fluxoDre.online.state(),[])
+  const moduleState=useAsync(()=>window.fluxoDre.storage.moduleState('operation'),[])
   const [form,setForm]=useState<Form>({operationalMode:'local',host:'127.0.0.1',port:'4732'})
   const [lanStatus,setLanStatus]=useState<any>(null)
   const [hostState,setHostState]=useState<any>(null)
@@ -24,8 +25,13 @@ export default function StorageServerSettings({onMessage}:Props){
 
   useEffect(()=>{if(storage.data)setForm({operationalMode:storage.data.operationalMode,host:storage.data.host,port:String(storage.data.port)})},[storage.data?.operationalMode,storage.data?.host,storage.data?.port])
 
+  const refreshModuleState=async()=>{
+    try{const states=await window.fluxoDre.storage.refreshModuleCapabilities();moduleState.setData(states.operation)}
+    catch{await moduleState.reload()}
+  }
+
   const refreshLan=async(mode:Mode=form.operationalMode)=>{
-    if(mode==='local'){setLanStatus(null);setHostState(null);setAdminStatus(null);setDevices([]);return}
+    if(mode==='local'){setLanStatus(null);setHostState(null);setAdminStatus(null);setDevices([]);await moduleState.reload();return}
     try{
       if(mode==='lan-host'){
         const [host,login]=await Promise.all([window.fluxoDre.lan.hostState(),window.fluxoDre.lan.startAtLoginState()])
@@ -36,7 +42,8 @@ export default function StorageServerSettings({onMessage}:Props){
         const [admin,deviceList]=await Promise.all([window.fluxoDre.lan.adminStatus(),window.fluxoDre.lan.listDevices()])
         setAdminStatus(admin);setDevices(deviceList)
       }else{setAdminStatus(null);setDevices([])}
-    }catch(error:any){setLanStatus(null);setAdminStatus(null);setDevices([]);onMessage(error.message)}
+      await refreshModuleState()
+    }catch(error:any){setLanStatus(null);setAdminStatus(null);setDevices([]);await moduleState.reload();onMessage(error.message)}
   }
 
   useEffect(()=>{if(storage.data&&storage.data.operationalMode!=='local')void refreshLan(storage.data.operationalMode as Mode)},[storage.data?.operationalMode,storage.data?.baseUrl])
@@ -65,20 +72,15 @@ export default function StorageServerSettings({onMessage}:Props){
   }
 
   const test=async()=>{setBusy(true);onMessage('Testando servidor Obra na Mão...');try{const result=await window.fluxoDre.storage.testConnection();onMessage(`Servidor encontrado — ${result.baseUrl} (${result.latencyMs} ms).`);await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
-
   const claim=async()=>{setBusy(true);onMessage('Autorizando o servidor com a conta Administrador atual...');try{const result=await window.fluxoDre.lan.claimHost(form.operationalMode==='lan-host'?undefined:setupCode);setSetupCode('');onMessage(`Servidor vinculado${result.company?.name?` à ${result.company.name}`:''}. Este computador recebeu sua credencial LAN.`);await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
-
   const pair=async()=>{setBusy(true);onMessage('Pareando este computador...');try{await window.fluxoDre.lan.pair(pairCode);setPairCode('');onMessage('Computador pareado e autorizado no servidor da empresa.');await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
-
   const disconnect=async()=>{setBusy(true);try{await window.fluxoDre.lan.disconnect();onMessage('Credencial LAN removida somente deste computador. A conta Web/PWA não foi alterada.');await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
-
   const createPairing=async()=>{setBusy(true);try{const invite=await window.fluxoDre.lan.createPairing(pairTarget.trim());setPairInvite(invite);setPairTarget('');onMessage('Código temporário criado. Envie-o somente ao usuário/computador que será pareado.')}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
-
   const toggleDevice=async(device:any)=>{setBusy(true);try{await window.fluxoDre.lan.setDeviceStatus(device.id,device.status==='active'?'revoked':'active');onMessage(device.status==='active'?'Computador revogado. O token deixa de acessar o servidor imediatamente.':'Computador reativado.');await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
-
   const refreshIdentity=async()=>{setBusy(true);try{await window.fluxoDre.lan.refreshIdentity();onMessage('Usuários e permissões atualizados a partir do Obra na Mão Cloud.');await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
-
   const toggleStartAtLogin=async(enabled:boolean)=>{try{const state=await window.fluxoDre.lan.setStartAtLogin(enabled);setStartAtLogin(state.enabled);onMessage(state.enabled?'Obra na Mão configurado para iniciar com o sistema.':'Inicialização automática desativada.')}catch(error:any){onMessage(error.message)}}
+
+  const operation=moduleState.data
 
   return <Card className="setting-card setting-card-feature">
     <Server size={21} color="#2f67d8"/>
@@ -104,6 +106,15 @@ export default function StorageServerSettings({onMessage}:Props){
       {isServerMode&&<Button variant="secondary" icon={<RefreshCw size={15}/>} disabled={dirty||busy} onClick={test}>Testar servidor</Button>}
     </div>
     <small>{form.operationalMode==='local'?'Modo padrão, totalmente local e offline.':form.operationalMode==='lan-host'?'O servidor usa um SQLite central neste PC e os outros computadores acessam pela API LAN; o arquivo SQLite nunca é compartilhado pela rede.':'Informe o IP/host da máquina que executa o Obra na Mão Server. O banco permanece somente no servidor.'}</small>
+
+    <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-color, #dfe4ec)'}}>
+      <strong>RDO / operação</strong>
+      {operation?.state==='local'&&<p>RDO/operação continua usando o banco local deste computador.</p>}
+      {operation?.state==='central-ready'&&<p>Servidor configurado, mas o RDO/operação ainda aguarda pareamento e capability central compatível. Nenhum fallback local silencioso será feito.</p>}
+      {operation?.state==='central-active'&&<p className="success-box"><strong>RDO/operação já usa o banco central.</strong> Novos RDOs, frentes e tarefas podem ser compartilhados pelos computadores autorizados.</p>}
+      {operation?.state==='migration-required'&&<div className="error-box"><strong>Migração necessária.</strong> RDOs, frentes e tarefas locais continuam neste computador e não foram apagados nem copiados. A centralização deste módulo só será ativada depois de uma migração explícita e validada.</div>}
+      <small>Planejamento, Financeiro e RH permanecem no comportamento atual até as respectivas etapas de centralização.</small>
+    </div>
 
     {isServerMode&&!dirty&&<div style={{marginTop:16,borderTop:'1px solid var(--border-color, #dfe4ec)',paddingTop:14}}>
       <div className="setting-actions" style={{justifyContent:'space-between'}}><strong>Autorização da rede</strong><Button variant="secondary" icon={<RefreshCw size={14}/>} disabled={busy} onClick={()=>refreshLan()}>Atualizar estado</Button></div>
@@ -141,6 +152,6 @@ export default function StorageServerSettings({onMessage}:Props){
       </div>}
     </div>}
 
-    <div style={{marginTop:12}}><small><strong>Escopo atual:</strong> Empresas, Clientes e Obras já usam o servidor. RDO, Planejamento, Financeiro, RH e demais módulos permanecem no comportamento atual até suas migrações específicas.</small></div>
+    <div style={{marginTop:12}}><small><strong>Escopo atual:</strong> Empresas, Clientes e Obras já usam o servidor em modo LAN. RDO/operação segue o estado exibido acima. Planejamento, Financeiro e RH permanecem no comportamento atual até suas migrações específicas.</small></div>
   </Card>
 }
