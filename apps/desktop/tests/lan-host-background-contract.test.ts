@@ -22,9 +22,12 @@ describe('principal LAN host lifecycle',()=>{
     expect(main).not.toContain('app.setLoginItemSettings({ openAtLogin: true })')
   })
 
-  it('packages the free self-hosted LAN server with the Desktop installer',()=>{
+  it('packages the free self-hosted LAN server and its versioned migrations with the Desktop installer',()=>{
     const resources=pkg.build?.extraResources||[]
-    expect(resources.some((entry:any)=>entry.from==='../lan-server'&&entry.to==='lan-server')).toBe(true)
+    const server=resources.find((entry:any)=>entry.from==='../lan-server'&&entry.to==='lan-server')
+    expect(server).toBeTruthy()
+    expect(server.filter).toContain('src/**/*')
+    expect(server.filter).toContain('migrations/**/*')
   })
 
   it('renderer receives only safe LAN operations, never server/device tokens',()=>{
