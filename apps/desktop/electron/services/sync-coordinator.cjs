@@ -1,14 +1,9 @@
 const { createHash, randomUUID } = require('node:crypto')
-const BRIDGE = { frentes_obra: 'fronts', tarefas_obra: 'tasks', rdos: 'rdos', cronograma_etapas: 'schedule' }
-const EDITABLE = {
- frentes_obra:['status','observacoes'], tarefas_obra:['status','responsavel','prazo','prioridade','descricao','observacoes','titulo','concluido_em'],
- rdos:['status','clima','atividades','observacoes'], cronograma_etapas:['status','percentual_realizado','observacoes','responsavel','previsto_inicio','previsto_fim']
-}
+const { LocalSyncDataProvider, BRIDGE, EDITABLE, payloadOf } = require('./sync-data-provider.cjs')
 const json = JSON.stringify
 const hash = value => createHash('sha256').update(json(value)).digest('hex')
-const payloadOf = row => Object.fromEntries(Object.entries({...row,deleted:!!row.deleted_at}).filter(([key])=>!['created_at','updated_at'].includes(key)).sort(([a],[b])=>a.localeCompare(b)))
 class SyncCoordinator {
- constructor({database,online,now=Date.now}) { this.database=database; this.online=online; this.now=now; this.running=null; this.timer=null; this.generation=0 }
+ constructor({database,online,dataProvider=null,now=Date.now}) { this.database=database; this.online=online; this.now=now; this.dataProvider=dataProvider||new LocalSyncDataProvider({database,now}); this.running=null; this.timer=null; this.generation=0 }
  get db(){return this.database.db}
  binding(){const row=this.db.prepare('SELECT * FROM desktop_sync_scope WHERE id=1').get();return row?{...row,scope:JSON.parse(row.binding)}:null}
  key(scope){return hash(scope ? [scope.companyId,scope.workId,scope.baseUrl,scope.deviceId,scope.remoteCompanyId,scope.remoteProjectId] : null)}
@@ -17,7 +12,7 @@ class SyncCoordinator {
   const paused=!scope||!connection.linked||connection.baseUrl!==scope.baseUrl
   const conflicts=scope?this.db.prepare("SELECT id,entity,local_id AS localId,remote_revision AS remoteRevision,remote_conflict_id AS remoteConflictId,created_at AS createdAt,remote_payload FROM desktop_sync_conflicts WHERE scope_key=? AND status='open'").all(this.key(scope)).map(c=>{
    const fields=EDITABLE[c.entity]||[]
-   const local=BRIDGE[c.entity]?this.db.prepare(`SELECT * FROM ${c.entity} WHERE id=? AND obra_id=?`).get(c.localId,scope.workId):null
+   const local=BRIDGE[c.entity]?this.dataProvider.getBridge(c.entity,c.localId,scope):null
    const remote=JSON.parse(c.remote_payload)
    const select=value=>Object.fromEntries([...fields,'deleted'].filter(k=>value&&Object.hasOwn(value,k)).map(k=>[k,value[k]]))
    const {remote_payload,...item}=c
@@ -47,37 +42,20 @@ class SyncCoordinator {
   this.db.prepare('INSERT INTO desktop_sync_heads(scope_key,entity,local_id,captured_hash) VALUES(?,?,?,?) ON CONFLICT(scope_key,entity,local_id) DO UPDATE SET captured_hash=excluded.captured_hash').run(key,entity,localId,digest)
   this.db.prepare('INSERT INTO auditoria(entidade,entidade_id,acao,dados) VALUES(?,?,?,?)').run(entity,localId,'SYNC_QUEUED',json({scope:key,hash:digest}))
  }
- rows(table,scope){return this.db.prepare(`SELECT * FROM ${table} WHERE obra_id=?`).all(scope.workId)}
+ rows(table,scope){return this.dataProvider.listBridge(table,scope)}
  capture(scope,modules){this.db.transaction(()=>{
   if(modules.includes('obra360'))for(const entity of Object.keys(BRIDGE)){const rows=this.rows(entity,scope);for(const row of rows)this.enqueue(scope,'bridge',entity,row.id,payloadOf(row));const seen=new Set(rows.map(x=>x.id));for(const old of this.db.prepare('SELECT local_id FROM desktop_sync_heads WHERE scope_key=? AND entity=?').all(this.key(scope),entity))if(!seen.has(old.local_id))this.enqueue(scope,'bridge',entity,old.local_id,{id:old.local_id,obra_id:scope.workId,deleted:true})}
   this.enqueue(scope,'summary','mobile_summary',0,this.summary(scope,modules))
   if(modules.some(m=>['finance','rh','dre'].includes(m)))for(const obligation of this.obligations(scope))this.enqueue(scope,'finance','finance_reference',Number(obligation.sourceId.split(':').at(-1)),obligation)
  })()}
- summary(scope,allowed){
-  const rows=table=>this.rows(table,scope).filter(x=>!x.deleted_at)
-  const accounts=this.db.prepare(`SELECT c.*, COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0) paid_cents FROM contas c WHERE empresa_id=? AND obra_id=? AND deleted_at IS NULL`).all(scope.companyId,scope.workId)
-  const today=new Date(this.now()).toISOString().slice(0,10),stages=rows('cronograma_etapas'),rdos=rows('rdos')
-  const paid=type=>accounts.filter(x=>x.tipo===type).reduce((n,x)=>n+x.paid_cents,0)
-  const open=type=>accounts.filter(x=>x.tipo===type&&!['pago','recebido','quitado','cancelado'].includes(x.status))
-  const sum=xs=>xs.reduce((n,x)=>n+Math.max(0,x.valor_centavos-x.paid_cents),0)
-  const work=this.db.prepare('SELECT * FROM obras WHERE id=? AND empresa_id=?').get(scope.workId,scope.companyId)
-  if(!work||work.deleted_at)throw new Error('Obra local não está disponível para sincronização.')
-  const modules={
-   obra360:{physicalProgress:work.percentual_fisico,activeStages:stages.filter(x=>!['concluida','concluido','cancelada'].includes(x.status)).length,overdueStages:stages.filter(x=>x.previsto_fim&&x.previsto_fim<today&&!['concluida','concluido','cancelada'].includes(x.status)).length},
-   rdo:{total:rdos.length,pending:rdos.filter(x=>!['fechado','finalizado'].includes(x.status)).length,finalized:rdos.filter(x=>['fechado','finalizado'].includes(x.status)).length},
-   dre:{revenue:paid('receber'),expense:paid('pagar'),result:paid('receber')-paid('pagar')},
-   finance:{payableCents:sum(open('pagar')),receivableCents:sum(open('receber')),overdueCents:sum(open('pagar').filter(x=>x.vencimento<today)),scope:'work'},
-   documents:{total:rows('documentos').length,expiring30d:rows('documentos').filter(x=>x.vencimento&&x.vencimento>=today&&x.vencimento<=new Date(this.now()+30*86400000).toISOString().slice(0,10)).length}
-  }
-  return {scope:{companyId:scope.remoteCompanyId,projectId:scope.remoteProjectId,workName:scope.workName,period:'Histórico da obra · caixa'},modules:Object.fromEntries(Object.entries(modules).filter(([k])=>allowed.includes(k)))}
- }
- obligations(scope){return this.db.prepare("SELECT c.*,f.nome AS beneficiary FROM contas c LEFT JOIN fornecedores f ON f.id=c.fornecedor_id WHERE c.empresa_id=? AND c.obra_id=? AND c.tipo='pagar' ORDER BY c.id").all(scope.companyId,scope.workId).map(c=>({sourceId:`${scope.deviceId}:conta:${c.id}`,sourceType:'payable',beneficiaryName:c.beneficiary||c.descricao,description:c.descricao,amountCents:c.valor_centavos,dueDate:c.vencimento,competence:c.competencia,projectId:scope.remoteProjectId,status:c.deleted_at?'cancelled':c.status}))}
+ summary(scope,allowed){return this.dataProvider.summary(scope,allowed)}
+ obligations(scope){return this.dataProvider.obligations(scope)}
  conflict(scope,entity,localId,payload,revision,remoteId=null){this.db.prepare("INSERT INTO desktop_sync_conflicts(scope_key,entity,local_id,remote_payload,remote_revision,remote_conflict_id) VALUES(?,?,?,?,?,?) ON CONFLICT(scope_key,entity,local_id) WHERE status='open' DO UPDATE SET remote_payload=excluded.remote_payload,remote_revision=excluded.remote_revision,remote_conflict_id=COALESCE(excluded.remote_conflict_id,desktop_sync_conflicts.remote_conflict_id)").run(this.key(scope),entity,localId,json(payload),revision,remoteId)}
- applyRemote(scope,entity,id,payload){const row=this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND obra_id=?`).get(id,scope.workId);if(!row)return false;const cols=new Set(this.db.prepare(`PRAGMA table_info(${entity})`).all().map(x=>x.name)),patch=Object.fromEntries((EDITABLE[entity]||[]).filter(k=>cols.has(k)&&Object.hasOwn(payload,k)).map(k=>[k,payload[k]]));if(payload.deleted)throw new Error('Exclusão remota exige revisão manual no cadastro local.');if(Object.keys(patch).length)this.db.prepare(`UPDATE ${entity} SET ${Object.keys(patch).map(k=>k+'=?').join(',')},updated_at=CURRENT_TIMESTAMP WHERE id=? AND obra_id=?`).run(...Object.values(patch),id,scope.workId);this.db.prepare('INSERT INTO auditoria(entidade,entidade_id,acao,dados) VALUES(?,?,?,?)').run(entity,id,'SYNC_REMOTE_APPLIED',json({fields:Object.keys(patch)}));return true}
+ applyRemote(scope,entity,id,payload){return this.dataProvider.applyRemote(entity,id,payload,scope)}
  ingest(scope,pull){if(!pull.changed)return;const snapshot=pull.snapshot;if(!snapshot||typeof snapshot!=='object')throw new Error('Snapshot online inválido.');this.db.transaction(()=>{
-  for(const [entity,bucket] of Object.entries(BRIDGE))for(const item of snapshot.desktopBridge?.[bucket]||[]){if(String(item.sourceDeviceId)!==scope.deviceId||!Number.isSafeInteger(Number(item.localId)))continue;const id=Number(item.localId),head=this.db.prepare('SELECT * FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),entity,id);if(!head||Number(item.mobileEditedRevision||0)<=head.remote_revision)continue;const row=this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND obra_id=?`).get(id,scope.workId),pending=this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND entity=? AND local_id=? AND status='pending'").get(this.key(scope),entity,id).n;
+  for(const [entity,bucket] of Object.entries(BRIDGE))for(const item of snapshot.desktopBridge?.[bucket]||[]){if(String(item.sourceDeviceId)!==scope.deviceId||!Number.isSafeInteger(Number(item.localId)))continue;const id=Number(item.localId),head=this.db.prepare('SELECT * FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),entity,id);if(!head||Number(item.mobileEditedRevision||0)<=head.remote_revision)continue;const row=this.dataProvider.getBridge(entity,id,scope),pending=this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND entity=? AND local_id=? AND status='pending'").get(this.key(scope),entity,id).n;
    if(!row||pending||hash(payloadOf(row))!==head.acknowledged_hash||item.payload?.deleted){this.conflict(scope,entity,id,item.payload||{},Number(item.mobileEditedRevision));continue}
-   this.applyRemote(scope,entity,id,item.payload||{});const updated=this.db.prepare(`SELECT * FROM ${entity} WHERE id=?`).get(id),digest=hash(payloadOf(updated));this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(digest,digest,Number(item.mobileEditedRevision),this.key(scope),entity,id)
+   this.applyRemote(scope,entity,id,item.payload||{});const updated=this.dataProvider.getBridge(entity,id,scope),digest=hash(payloadOf(updated));this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(digest,digest,Number(item.mobileEditedRevision),this.key(scope),entity,id)
   }
   this.db.prepare('UPDATE desktop_sync_scope SET snapshot=?,remote_revision=? WHERE id=1').run(json(snapshot),Number(pull.remoteRevision||0))
  })()}
@@ -98,7 +76,7 @@ class SyncCoordinator {
    // Close the stale proposal without replaying its old desktop payload.
    // keep_local captures and sends the CURRENT local row on the next run.
    const result=await this.online.resolveConflict(conflict.remote_conflict_id,'keep_mobile');this.assertScope(scope,generation);if(result?.ok===false)throw new Error('Conflito online não confirmado.')}
-  this.db.transaction(()=>{if(resolution==='accept_remote'&&!this.applyRemote(scope,conflict.entity,conflict.local_id,item.payload))throw new Error('Registro local ausente.');this.db.prepare("UPDATE desktop_sync_outbox SET status='superseded' WHERE scope_key=? AND entity=? AND local_id=? AND status='pending'").run(this.key(scope),conflict.entity,conflict.local_id);this.db.prepare("UPDATE desktop_sync_conflicts SET status=? WHERE id=?").run(resolution,id);const row=this.db.prepare(`SELECT * FROM ${conflict.entity} WHERE id=? AND obra_id=?`).get(conflict.local_id,scope.workId);if(!row)throw new Error('Registro local ausente.');const digest=hash(payloadOf(row));this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(resolution==='accept_remote'?digest:'',resolution==='accept_remote'?digest:null,Number(item.mobileEditedRevision||0),this.key(scope),conflict.entity,conflict.local_id)})();return this.state()
+  this.db.transaction(()=>{if(resolution==='accept_remote'&&!this.applyRemote(scope,conflict.entity,conflict.local_id,item.payload))throw new Error('Registro local ausente.');this.db.prepare("UPDATE desktop_sync_outbox SET status='superseded' WHERE scope_key=? AND entity=? AND local_id=? AND status='pending'").run(this.key(scope),conflict.entity,conflict.local_id);this.db.prepare("UPDATE desktop_sync_conflicts SET status=? WHERE id=?").run(resolution,id);const row=this.dataProvider.getBridge(conflict.entity,conflict.local_id,scope);if(!row)throw new Error('Registro local ausente.');const digest=hash(payloadOf(row));this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(resolution==='accept_remote'?digest:'',resolution==='accept_remote'?digest:null,Number(item.mobileEditedRevision||0),this.key(scope),conflict.entity,conflict.local_id)})();return this.state()
  }
 }
 module.exports={SyncCoordinator}
