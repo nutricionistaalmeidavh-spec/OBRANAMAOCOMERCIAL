@@ -18,6 +18,7 @@ function fixture({ nowMs = Date.parse('2026-09-29T20:00:00.000Z') } = {}) {
   let sequence = 0
   const security = {
     member(id){ return members.get(String(id)) || null },
+    members(){ return [...members.values()].map(member=>({...member})) },
     createPairingCode({ memberId, codeHash, expiresAt, createdByDeviceId }) {
       codes.set(codeHash,{ memberId, expiresAt, createdByDeviceId, consumed:false })
       return { memberId, expiresAt, createdByDeviceId }
@@ -59,6 +60,13 @@ test('admin creates a 10-minute one-use pairing invitation for an active Desktop
   const invite=service.createInvitation({actor:adminActor,targetMemberId:'member-a'})
   assert.equal(invite.code,'PAIR-1234')
   assert.equal(invite.expiresAt,'2026-09-29T20:10:00.000Z')
+  assert.ok(codes.has(digest('PAIR-1234')))
+})
+
+test('admin can select an authorized Desktop member by email for the settings UX',()=>{
+  const {service,codes}=fixture()
+  const invite=service.createInvitation({actor:adminActor,targetMemberId:'USER@EXAMPLE.COM'})
+  assert.equal(invite.member.memberId,'member-a')
   assert.ok(codes.has(digest('PAIR-1234')))
 })
 
