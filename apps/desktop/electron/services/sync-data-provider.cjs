@@ -22,6 +22,18 @@ class LocalSyncDataProvider {
 
   get db() { return this.database.db }
 
+  async resolveScope({ companyId, workId }) {
+    const company = this.db.prepare('SELECT * FROM empresas WHERE id=? AND deleted_at IS NULL').get(Number(companyId))
+    const work = this.db.prepare('SELECT * FROM obras WHERE id=? AND empresa_id=? AND deleted_at IS NULL').get(Number(workId), Number(companyId))
+    if (!company || !work) throw new Error('Selecione uma obra pertencente à empresa local.')
+    return {
+      companyId: Number(companyId),
+      workId: Number(workId),
+      companyName: company.razao_social || company.nome_fantasia || String(companyId),
+      workName: work.nome
+    }
+  }
+
   assertWorkTable(table) {
     if (!WORK_SCOPED.has(table)) throw new Error('Entidade não disponível para sincronização.')
   }
