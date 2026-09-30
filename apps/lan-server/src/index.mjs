@@ -10,6 +10,7 @@ import { createLanServer, LAN_SERVER_VERSION, refreshIdentitySnapshot } from './
 const host = process.env.OBRA_NA_MAO_LAN_HOST?.trim() || '127.0.0.1'
 const port = Number(process.env.OBRA_NA_MAO_LAN_PORT || 4732)
 const dataDir = process.env.OBRA_NA_MAO_LAN_DATA_DIR?.trim() || path.join(os.homedir(), '.obra-na-mao-lan')
+const migrationsDir = path.resolve(import.meta.dirname, '../migrations')
 const cloudBaseUrl = (process.env.OBRA_NA_MAO_PLATFORM_URL || process.env.FLUXO_DRE_PLATFORM_URL || 'https://obra-na-mao-comercial.nutricionistaalmeidavh.workers.dev').trim().replace(/\/$/, '')
 const IDENTITY_REFRESH_MS = 5 * 60 * 1000
 
@@ -19,6 +20,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
 
 const databasePath = path.join(dataDir, 'obra-na-mao-lan.sqlite')
 const repository = new LanRepository({ filename: databasePath })
+const migrationState = repository.applyMigrations(migrationsDir)
 const security = new LanSecurityRepository({ db: repository.connection() })
 const identity = new ServerIdentity({ security })
 const cloudAuthority = new CloudAuthorityClient({ baseUrl: cloudBaseUrl })
@@ -37,6 +39,7 @@ async function refreshCachedIdentity() {
 server.listen(port, host, () => {
   console.log(`Obra na Mão LAN Server ${LAN_SERVER_VERSION} disponível em http://${host}:${port}`)
   console.log(`Banco central: ${databasePath}`)
+  console.log(`Schema LAN: v${migrationState.version}`)
   const state = identity.state()
   if (state && !state.claimed && state.setupCode) {
     console.log(`Código de configuração LAN: ${state.setupCode}`)

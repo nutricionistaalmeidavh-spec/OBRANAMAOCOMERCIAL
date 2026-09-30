@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { applyLanMigrations } from './migrations.mjs'
 
 const TABLE_FIELDS = {
   empresas: new Set(['razao_social', 'nome_fantasia', 'cnpj', 'telefone', 'email', 'endereco', 'observacoes', 'status']),
@@ -78,6 +79,10 @@ export class LanRepository {
 
   connection() {
     return this.db
+  }
+
+  applyMigrations(migrationsDir) {
+    return applyLanMigrations(this.db, migrationsDir)
   }
 
   assertTable(table) {
