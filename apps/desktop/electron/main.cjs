@@ -3,6 +3,7 @@ const path = require('node:path')
 const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
 const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
+const { ModuleStorageStateService } = require('./services/module-storage-state-service.cjs')
 const { LanCredentialService } = require('./services/lan-credential-service.cjs')
 const { LanHostService } = require('./services/lan-host-service.cjs')
 const { LanSetupService } = require('./services/lan-setup-service.cjs')
@@ -72,6 +73,7 @@ function createServices() {
   const storage = new StorageConnectionService({ db })
   const lanCredentials = new LanCredentialService({ dataDir: paths.dataDir, safeStorage })
   const dataAccess = new DataAccessService({ db, storage, credentials: lanCredentials })
+  const moduleStorage = new ModuleStorageStateService({ database: db, storage, lanClient: dataAccess.remote })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
@@ -93,7 +95,7 @@ function createServices() {
   })
   const lanSetup = new LanSetupService({ storage, credentials: lanCredentials, online })
   return {
-    paths, db, dataAccess, storage, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
+    paths, db, dataAccess, storage, moduleStorage, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
     backup: new BackupService({ db, ...paths }),
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
@@ -151,6 +153,11 @@ function destroyTray() {
   tray = null
 }
 
+async function refreshModuleCapabilitiesSafe() {
+  try { return await services.moduleStorage.refreshCapabilities() }
+  catch { return { operation: services.moduleStorage.state('operation') } }
+}
+
 async function configureStorage(payload) {
   const previous = services.storage.state()
   const requestedOperational = payload.operationalMode || (payload.mode === 'server' ? 'lan-client' : 'local')
@@ -163,6 +170,7 @@ async function configureStorage(payload) {
   } else {
     destroyTray()
   }
+  await refreshModuleCapabilitiesSafe()
   return state
 }
 
@@ -174,6 +182,8 @@ function registerIpc() {
   ipcMain.handle('storage:state', envelope(() => services.storage.state()))
   ipcMain.handle('storage:configure', envelope((payload) => configureStorage(payload)))
   ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))
+  ipcMain.handle('storage:module-state', envelope(({ module }) => services.moduleStorage.state(module)))
+  ipcMain.handle('storage:refresh-module-capabilities', envelope(() => services.moduleStorage.refreshCapabilities()))
   ipcMain.handle('lan:host-state', envelope(() => services.lanHost.state()))
   ipcMain.handle('lan:host-start', envelope(async () => { const result = await services.lanHost.start(); if (isLanHostMode()) ensureTray(); return result }))
   ipcMain.handle('lan:host-stop', envelope(() => services.lanHost.stop()))
@@ -182,9 +192,14 @@ function registerIpc() {
     const localSetupCode = setupCode || services.lanHost.state().setupCode
     const result = await services.lanSetup.claimHostedServer({ setupCode: localSetupCode })
     services.lanHost.clearSetupCode?.()
+    await refreshModuleCapabilitiesSafe()
     return result
   }))
-  ipcMain.handle('lan:pair', envelope(({ code }) => services.lanSetup.pair({ code })))
+  ipcMain.handle('lan:pair', envelope(async ({ code }) => {
+    const result = await services.lanSetup.pair({ code })
+    await refreshModuleCapabilitiesSafe()
+    return result
+  }))
   ipcMain.handle('lan:disconnect', envelope(() => services.lanSetup.disconnect()))
   ipcMain.handle('lan:admin-status', envelope(() => services.lanSetup.adminStatus()))
   ipcMain.handle('lan:create-pairing', envelope(({ memberId }) => services.lanSetup.createPairing({ memberId })))
@@ -335,6 +350,7 @@ app.whenReady().then(async () => {
       await services.lanHost.start()
       ensureTray()
     }
+    await refreshModuleCapabilitiesSafe()
     await createWindow()
     services.sync.start()
   }
