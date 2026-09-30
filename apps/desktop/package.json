@@ -21,7 +21,7 @@
     "directories": {"output": "release"},
     "files": ["dist/**/*","electron/**/*","database/**/*","package.json"],
     "extraResources": [
-      {"from":"../lan-server","to":"lan-server","filter":["src/**/*","package.json"]}
+      {"from":"../lan-server","to":"lan-server","filter":["src/**/*","migrations/**/*","package.json"]}
     ],
     "asarUnpack": ["node_modules/better-sqlite3/**/*"],
     "publish": [
