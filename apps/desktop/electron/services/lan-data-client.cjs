@@ -63,6 +63,10 @@ class LanDataClient {
     }
   }
 
+  async syncSourceCapabilities() {
+    return this.request('GET', '/api/v1/sync-source/capabilities')
+  }
+
   async list(table, filters = {}) {
     this.assertTable(table)
     return this.request('GET', `/api/v1/${table}`, { query: filters })
