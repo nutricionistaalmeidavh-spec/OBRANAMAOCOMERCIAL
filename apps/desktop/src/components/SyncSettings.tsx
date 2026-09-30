@@ -40,20 +40,23 @@ export default function SyncSettings() {
   const choices = (works.data || []).filter(work => String(work.empresa_id) === companyId)
   const company = companies.data?.find(item => String(item.id) === companyId)
   const work = choices.find(item => String(item.id) === workId)
+  const lanClient = state?.source === 'lan-client'
   return <>
     <Card className="setting-card setting-card-feature" id="sync-settings">
       <h3>Sincronização desktop ↔ online</h3>
       <p>Selecione explicitamente a empresa e a obra locais. Somente esta obra será publicada; dados de outras obras e empresas ficam neste computador.</p>
+      <p><strong>Web/PWA continua incluído</strong> e o vínculo online não depende de este computador ser o coordenador da sincronização.</p>
+      {lanClient && <p role="status"><strong>A sincronização central é responsabilidade do PC principal.</strong> Este computador continua usando os dados do servidor da empresa e acompanha o estado online, mas não executa push/pull central diretamente.</p>}
       <div className="form-grid">
-        <Field label="Empresa local"><select value={companyId} disabled={busy} onChange={event => { setCompanyId(event.target.value); setWorkId('') }}><option value="">Selecione...</option>{companies.data?.map(item => <option key={item.id} value={item.id}>{item.razao_social || item.nome_fantasia}</option>)}</select></Field>
-        <Field label="Obra local"><select value={workId} disabled={busy || !companyId} onChange={event => setWorkId(event.target.value)}><option value="">Selecione...</option>{choices.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
+        <Field label="Empresa local"><select value={companyId} disabled={busy || lanClient} onChange={event => { setCompanyId(event.target.value); setWorkId('') }}><option value="">Selecione...</option>{companies.data?.map(item => <option key={item.id} value={item.id}>{item.razao_social || item.nome_fantasia}</option>)}</select></Field>
+        <Field label="Obra local"><select value={workId} disabled={busy || lanClient || !companyId} onChange={event => setWorkId(event.target.value)}><option value="">Selecione...</option>{choices.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
       </div>
       <div className="setting-actions">
-        <Button disabled={busy || !company || !work} onClick={prepare}>Conferir vínculo e ativar</Button>
+        <Button disabled={busy || lanClient || !company || !work} onClick={prepare}>Conferir vínculo e ativar</Button>
         <Button variant="secondary" disabled={busy || !state?.configured || state.paused || state.running} onClick={() => perform(() => window.fluxoDre.online.syncNow(), 'Tentativa concluída. Confira as pendências abaixo.')}>Sincronizar agora</Button>
       </div>
       <div role="status" aria-live="polite" style={{ marginTop: 12 }}>
-        <strong>{state?.running ? 'Sincronizando...' : state?.paused ? 'Pausada — confira o vínculo' : state?.configured ? 'Sincronização automática ativa' : 'Ainda não configurada'}</strong>
+        <strong>{state?.running ? 'Sincronizando...' : state?.paused ? (state.pauseReason || 'Pausada — confira o vínculo') : state?.configured ? 'Sincronização automática ativa' : 'Ainda não configurada'}</strong>
         <p>{state?.pending ?? 0} envio(s) pendente(s) · {state?.conflicts.length ?? 0} conflito(s)</p>
         <small>Última tentativa concluída: {state?.lastSyncAt ? new Date(state.lastSyncAt).toLocaleString('pt-BR') : 'nenhuma'}. Alterações locais são preservadas se a rede falhar.</small>
         {state?.scope && <p>{state.scope.companyName} / {state.scope.workName}<br/><small>Destino: {state.scope.baseUrl} · obra {state.scope.remoteProjectId}</small></p>}
