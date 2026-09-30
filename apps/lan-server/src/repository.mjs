@@ -13,7 +13,10 @@ const TABLE_FIELDS = {
   rdo_equipe: new Set(['rdo_id', 'frente_id', 'funcionario_id', 'nome', 'funcao', 'horas', 'custo_centavos', 'observacoes']),
   rdo_equipamentos: new Set(['rdo_id', 'frente_id', 'nome', 'horas_uso', 'custo_centavos', 'observacoes']),
   rdo_ocorrencias: new Set(['rdo_id', 'frente_id', 'tipo', 'descricao', 'status', 'prioridade', 'responsavel', 'prazo']),
-  rdo_anexos: new Set(['rdo_id', 'frente_id', 'documento_id', 'legenda'])
+  rdo_anexos: new Set(['rdo_id', 'frente_id', 'documento_id', 'legenda']),
+  etapas_obra: new Set(['obra_id', 'frente_id', 'nome', 'ordem', 'status']),
+  cronograma_etapas: new Set(['obra_id', 'etapa_id', 'frente_id', 'nome', 'responsavel', 'previsto_inicio', 'previsto_fim', 'percentual_previsto', 'percentual_realizado', 'custo_planejado_centavos', 'custo_realizado_centavos', 'status', 'observacoes']),
+  itens_orcamentarios: new Set(['obra_id', 'etapa_id', 'frente_id', 'codigo', 'descricao', 'unidade', 'quantidade', 'valor_unitario_centavos', 'tipo', 'observacoes', 'atualizado_em'])
 }
 
 const TABLE_META = {
@@ -26,7 +29,10 @@ const TABLE_META = {
   rdo_equipe: { softDelete: false, updatedAt: false, order: 'id' },
   rdo_equipamentos: { softDelete: false, updatedAt: false, order: 'id' },
   rdo_ocorrencias: { softDelete: false, updatedAt: true, order: 'updated_at DESC, id DESC' },
-  rdo_anexos: { softDelete: false, updatedAt: false, order: 'id DESC' }
+  rdo_anexos: { softDelete: false, updatedAt: false, order: 'id DESC' },
+  etapas_obra: { softDelete: true, updatedAt: true, order: 'ordem, nome COLLATE NOCASE' },
+  cronograma_etapas: { softDelete: true, updatedAt: true, order: 'previsto_fim, id' },
+  itens_orcamentarios: { softDelete: true, updatedAt: true, order: 'codigo, descricao COLLATE NOCASE, id' }
 }
 
 const SCHEMA = `
@@ -127,12 +133,29 @@ export class LanRepository {
     return this.db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(Number(id)) || null
   }
 
+  planningReference(table, id, obraId, label) {
+    if (id === null || id === undefined || id === '') return
+    const row = this.db.prepare(`SELECT obra_id, deleted_at FROM ${table} WHERE id = ?`).get(Number(id))
+    if (!row || row.deleted_at || Number(row.obra_id) !== Number(obraId)) throw new Error(`${label} deve pertencer à mesma obra.`)
+  }
+
+  validatePlanningOwnership(table, data, clean) {
+    if (!['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'].includes(table)) return
+    const current = data?.id ? this.get(table, data.id) : null
+    const value = key => Object.hasOwn(clean, key) ? clean[key] : current?.[key]
+    const obraId = value('obra_id')
+    if (obraId === null || obraId === undefined || obraId === '') return
+    this.planningReference('frentes_obra', value('frente_id'), obraId, 'Frente')
+    if (table !== 'etapas_obra') this.planningReference('etapas_obra', value('etapa_id'), obraId, 'Etapa')
+  }
+
   save(table, data) {
     this.assertTable(table)
     const clean = this.cleanData(table, data)
     const columns = Object.keys(clean)
     if (!columns.length) throw new Error('Nenhum dado válido informado.')
     const meta = TABLE_META[table]
+    this.validatePlanningOwnership(table, data, clean)
 
     try {
       if (data?.id) {
