@@ -2,7 +2,12 @@ const CORE_REMOTE_TABLES = new Set(['empresas', 'clientes', 'obras'])
 const OPERATION_REMOTE_TABLES = new Set(['frentes_obra', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
 const PLANNING_REMOTE_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'])
 const FINANCE_REMOTE_TABLES = new Set(['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'])
-const REMOTE_TABLES = new Set([...CORE_REMOTE_TABLES, ...OPERATION_REMOTE_TABLES, ...PLANNING_REMOTE_TABLES, ...FINANCE_REMOTE_TABLES])
+const RH_REMOTE_TABLES = new Set([
+  'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
+  'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes',
+  'epis', 'funcionario_epis'
+])
+const REMOTE_TABLES = new Set([...CORE_REMOTE_TABLES, ...OPERATION_REMOTE_TABLES, ...PLANNING_REMOTE_TABLES, ...FINANCE_REMOTE_TABLES, ...RH_REMOTE_TABLES])
 
 class LanDataClient {
   constructor({ storage, credentials, fetchImpl = globalThis.fetch, timeoutMs = 5000 }) {
@@ -91,6 +96,42 @@ class LanDataClient {
     return this.request('GET', '/api/v1/finance/dashboard', { query: filters })
   }
 
+  async payrollEmployee(payload) {
+    return this.request('POST', '/api/v1/rh/payroll/employee', { body: payload })
+  }
+
+  async payrollSaveVariable(payload) {
+    return this.request('POST', '/api/v1/rh/payroll/save-variable', { body: payload })
+  }
+
+  async payrollRemoveVariable(id) {
+    return this.request('POST', '/api/v1/rh/payroll/remove-variable', { body: { id: Number(id) } })
+  }
+
+  async payrollConfirm(payload) {
+    return this.request('POST', '/api/v1/rh/payroll/confirm', { body: payload })
+  }
+
+  async payrollPending(competencia) {
+    return this.request('POST', '/api/v1/rh/payroll/pending', { body: { competencia } })
+  }
+
+  async timeGet(payload) {
+    return this.request('POST', '/api/v1/rh/time/get', { body: payload })
+  }
+
+  async timeAutoFill(payload) {
+    return this.request('POST', '/api/v1/rh/time/auto-fill', { body: payload })
+  }
+
+  async timeSave(payload) {
+    return this.request('POST', '/api/v1/rh/time/save', { body: payload })
+  }
+
+  async timeDocumentContext(payload) {
+    return this.request('POST', '/api/v1/rh/time/document-context', { body: payload })
+  }
+
   async list(table, filters = {}) {
     this.assertTable(table)
     return this.request('GET', `/api/v1/${table}`, { query: filters })
@@ -116,4 +157,4 @@ class LanDataClient {
   }
 }
 
-module.exports = { LanDataClient, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES }
+module.exports = { LanDataClient, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES }
