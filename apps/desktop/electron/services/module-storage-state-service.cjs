@@ -1,6 +1,13 @@
 const MODULES = new Set(['core', 'operation', 'planning', 'finance', 'rh'])
 const STATES = new Set(['local', 'central-ready', 'central-active', 'migration-required'])
 const KEY_PREFIX = 'module_storage_state_'
+const MODULE_DEPENDENCIES = Object.freeze({
+  core: [],
+  operation: ['core'],
+  planning: ['core', 'operation'],
+  finance: ['core', 'operation', 'planning'],
+  rh: ['core', 'operation', 'planning', 'finance']
+})
 const DEFAULT_FINANCE_CATEGORIES = new Set([
   'Receitas de contratos', 'Medições', 'Folha de pagamento', 'Encargos trabalhistas', 'Benefícios',
   'Materiais', 'Ferramentas', 'Combustível', 'Serviços terceiros', 'Impostos', 'Seguros',
@@ -83,15 +90,18 @@ class ModuleStorageStateService {
     return tables.reduce((total, table) => total + this.countActive(table), 0)
   }
 
-  coreState() {
-    return this.state('core')
+  dependencyBlockedBy(moduleName) {
+    const module = this.assertModule(moduleName)
+    for (const dependency of MODULE_DEPENDENCIES[module]) {
+      if (this.state(dependency).state !== 'central-active') return dependency
+    }
+    return null
   }
 
   state(moduleName) {
     const module = this.assertModule(moduleName)
     const localRecords = this.localRecordCount(module)
-    const financeLocalRecords = module === 'planning' ? this.financeLocalRecordCount() : undefined
-    const details = financeLocalRecords === undefined ? { module, localRecords } : { module, localRecords, financeLocalRecords }
+    const details = { module, localRecords }
     if (this.operationalMode() === 'local') return { ...details, state: 'local' }
 
     const persisted = this.read(module)
@@ -101,12 +111,14 @@ class ModuleStorageStateService {
       return { ...details, state: 'migration-required' }
     }
 
-    if (module !== 'core') {
-      const core = this.state('core')
-      if (core.state !== 'central-active') {
-        if (persisted === 'central-active') this.write(module, 'central-ready')
-        else if (persisted !== 'central-ready') this.write(module, 'central-ready')
-        return { ...details, state: 'central-ready', coreDependencyBlocked: true }
+    const dependencyBlockedBy = this.dependencyBlockedBy(module)
+    if (dependencyBlockedBy) {
+      if (persisted !== 'central-ready') this.write(module, 'central-ready')
+      return {
+        ...details,
+        state: 'central-ready',
+        dependencyBlockedBy,
+        ...(dependencyBlockedBy === 'core' ? { coreDependencyBlocked: true } : {})
       }
     }
 
@@ -118,7 +130,8 @@ class ModuleStorageStateService {
     const module = this.assertModule(moduleName)
     const current = this.state(module)
     if (!['migration-required', 'central-ready'].includes(current.state)) throw new Error('Módulo não está aguardando ativação central.')
-    if (module !== 'core' && this.state('core').state !== 'central-active') throw new Error('Cadastros-base precisam estar centrais antes deste módulo.')
+    const dependencyBlockedBy = this.dependencyBlockedBy(module)
+    if (dependencyBlockedBy) throw new Error(`O módulo ${dependencyBlockedBy} precisa estar central antes de ${module}.`)
     this.write(module, 'central-active')
     return this.state(module)
   }
@@ -131,25 +144,20 @@ class ModuleStorageStateService {
     const modules = Array.isArray(capabilities?.modules) ? capabilities.modules : []
     const result = { ...initial }
 
-    const core = this.state('core')
-    if (!['local', 'migration-required'].includes(core.state)) {
-      const available = modules.includes('core')
-      const state = this.write('core', available ? 'central-active' : 'central-ready')
-      result.core = { module: 'core', state, localRecords: core.localRecords, capabilityAvailable: available }
-    } else result.core = core
-
-    for (const module of ['operation', 'planning', 'finance', 'rh']) {
+    for (const module of ['core', 'operation', 'planning', 'finance', 'rh']) {
       const current = this.state(module)
       result[module] = current
       if (['local', 'migration-required'].includes(current.state)) continue
+
       const available = modules.includes(module)
-      const coreDependencyBlocked = this.state('core').state !== 'central-active'
-      const state = this.write(module, available && !coreDependencyBlocked ? 'central-active' : 'central-ready')
+      const dependencyBlockedBy = this.dependencyBlockedBy(module)
+      const state = this.write(module, available && !dependencyBlockedBy ? 'central-active' : 'central-ready')
       result[module] = {
         ...current,
         state,
         capabilityAvailable: available,
-        ...(coreDependencyBlocked ? { coreDependencyBlocked: true } : {})
+        ...(dependencyBlockedBy ? { dependencyBlockedBy } : {}),
+        ...(dependencyBlockedBy === 'core' ? { coreDependencyBlocked: true } : {})
       }
     }
 
@@ -157,4 +165,4 @@ class ModuleStorageStateService {
   }
 }
 
-module.exports = { ModuleStorageStateService }
+module.exports = { ModuleStorageStateService, MODULE_DEPENDENCIES }
