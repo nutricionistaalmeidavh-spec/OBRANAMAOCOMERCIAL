@@ -2,6 +2,7 @@ import { createRequire } from 'node:module'
 import { describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
+const centralCore = { state: () => ({ state:'central-active' }) }
 
 describe('DataAccessService optimistic delete contract', () => {
   it('reuses the revision observed in the central list when the UI deletes that record', async () => {
@@ -14,7 +15,7 @@ describe('DataAccessService optimistic delete contract', () => {
       save: vi.fn(),
       remove: vi.fn(async () => true)
     }
-    const service = new DataAccessService({ db, storage, remote })
+    const service = new DataAccessService({ db, storage, remote, moduleStorage:centralCore })
 
     await expect(service.list('obras', {})).resolves.toEqual([{ id:17, nome:'Obra A', revision:6 }])
     await expect(service.remove('obras', 17)).resolves.toBe(true)
@@ -32,7 +33,7 @@ describe('DataAccessService optimistic delete contract', () => {
       save: vi.fn(async () => ({ id:17, revision:8 })),
       remove: vi.fn(async () => true)
     }
-    const service = new DataAccessService({ db, storage, remote })
+    const service = new DataAccessService({ db, storage, remote, moduleStorage:centralCore })
 
     await service.get('obras', 17)
     await service.save('obras', { id:17, revision:7, nome:'Nova' })
