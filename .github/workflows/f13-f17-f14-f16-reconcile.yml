@@ -1,35 +1,13 @@
 name: F13-F17 + F14-F16 Reconcile
 
 on:
-  push:
-    branches:
-      - integration/f13-f17-f14-f16-final
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  reconcile:
-    if: ${{ !contains(github.event.head_commit.message, '[integrated]') }}
+  reconciled:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: integration/f13-f17-f14-f16-final
-      - name: Reconcile completed hardening branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin hardening/pr60-security-migration-docs
-          if ! git merge --no-commit --no-ff -X ours origin/hardening/pr60-security-migration-docs; then
-            echo "Automatic three-way merge left unresolved paths; preserve F14-F16 side only for those exact paths so CI can expose missing F13/F17 behavior explicitly."
-            git diff --name-only --diff-filter=U
-            git checkout --ours -- .
-            git add -A
-          fi
-          git add -A
-          git commit -m "chore(integration): reconcile F13-F17 with F14-F16 [integrated]"
-          git push origin HEAD:integration/f13-f17-f14-f16-final
+      - run: echo "F13-F17 and F14-F16 were reconciled into the integration branch; automatic mutation is disabled."
