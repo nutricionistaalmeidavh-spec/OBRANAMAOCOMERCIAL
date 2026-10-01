@@ -50,8 +50,10 @@ test('Linux installer and uninstaller never mutate firewall rules', () => {
 
 test('default Linux uninstall removes service and runtime but preserves config and data', () => {
   const uninstall = read('uninstall.sh')
+  assert.match(uninstall, /SERVICE_NAME=["']obra-na-mao-server\.service["']/i)
+  assert.match(uninstall, /UNIT_PATH=["']\/etc\/systemd\/system\/\$SERVICE_NAME["']/i)
   assert.match(uninstall, /systemctl\s+disable\s+--now\s+obra-na-mao-server\.service/i)
-  assert.match(uninstall, /rm\s+-f\s+.*obra-na-mao-server\.service/i)
+  assert.match(uninstall, /rm\s+-f\s+["']\$UNIT_PATH["']/i)
   assert.match(uninstall, /rm\s+-rf\s+["']?\/opt\/obra-na-mao\/server/i)
   assert.match(uninstall, /systemctl\s+daemon-reload/i)
   assert.doesNotMatch(uninstall, /rm\s+-rf\s+["']?\/etc\/obra-na-mao/i)
