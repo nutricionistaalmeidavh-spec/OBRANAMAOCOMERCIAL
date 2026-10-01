@@ -1,0 +1,85 @@
+name: PR62 wire member permissions
+
+on:
+  push:
+    branches: [feat/lan-f13-f17-hardening-concurrency-permissions-migration]
+    paths: [.github/workflows/pr62-wire-member-permissions.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/lan-f13-f17-hardening-concurrency-permissions-migration
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch member governance API
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('apps/web/backend/index.ts')
+          s = p.read_text(encoding='utf-8')
+
+          def replace_once(old, new, label):
+              global s
+              n = s.count(old)
+              if n != 1:
+                  raise SystemExit(f'{label}: expected exactly 1 match, found {n}')
+              s = s.replace(old, new, 1)
+
+          replace_once(
+              "import { canUseFinanceAi } from './authorization-policy';",
+              "import { canUseFinanceAi } from './authorization-policy';\nimport { effectivePermissions, normalizePermissions, permissionsRevision, roleTemplate, type PermissionMatrix } from './member-permissions';\nimport { assertAdministrativeTransition, permissionChangeSummary, validatePermissionAdministration } from './member-permission-admin';",
+              'imports'
+          )
+
+          replace_once(
+              "type Member = { companyId:string; projectId:string; email:string; userId?:string; name?:string; role:Role; employeeId?:string; projectMemberId?:string; joinCode?:string; modules?:string[]; channels?:string[]; claimedAt?:string; canonicalOwner?:boolean; createdAt:string; updatedAt:string };",
+              "type Member = { companyId:string; projectId:string; email:string; userId?:string; name?:string; role:Role; employeeId?:string; projectMemberId?:string; joinCode?:string; modules?:string[]; channels?:string[]; permissions?:PermissionMatrix; claimedAt?:string; canonicalOwner?:boolean; createdAt:string; updatedAt:string };",
+              'Member type'
+          )
+
+          replace_once(
+              "async function upsertMember(projectId:string,companyId:string,input:{email:string;role:Role;employeeId?:string;modules?:string[];channels?:string[]}){",
+              "async function upsertMember(projectId:string,companyId:string,input:{email:string;role:Role;employeeId?:string;modules?:string[];channels?:string[];permissions?:PermissionMatrix}){",
+              'upsert signature'
+          )
+
+          replace_once(
+              "if(existing){const joinCode=existing.userId?undefined:(existing.joinCode||newJoinCode()),next={...existing,role:input.role,employeeId:input.employeeId||undefined,modules,channels,joinCode,updatedAt:stamp};",
+              "if(existing){const joinCode=existing.userId?undefined:(existing.joinCode||newJoinCode()),next={...existing,role:input.role,employeeId:input.employeeId||undefined,modules,channels,permissions:input.permissions===undefined?existing.permissions:normalizePermissions(input.permissions),joinCode,updatedAt:stamp};",
+              'existing member persistence'
+          )
+
+          replace_once(
+              "const base:Member={companyId,projectId,email,role:input.role,employeeId:input.employeeId||undefined,modules,channels,joinCode:newJoinCode(),createdAt:stamp,updatedAt:stamp};",
+              "const base:Member={companyId,projectId,email,role:input.role,employeeId:input.employeeId||undefined,modules,channels,permissions:input.permissions===undefined?undefined:normalizePermissions(input.permissions),joinCode:newJoinCode(),createdAt:stamp,updatedAt:stamp};",
+              'new member persistence'
+          )
+
+          old_get = "  'GET /api/members':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const {items}=await db.list<Member>(membersTable(gate.member!.projectId),{limit:100});return json({members:items.map(m=>({id:m.id,email:m.email,name:m.name,role:m.role,employeeId:m.employeeId,userId:m.userId,joinCode:m.joinCode,modules:m.modules||defaultModules(m.role),channels:m.channels||defaultChannels(m.role)})),companyAccess:gate.access})}],"
+          new_get = """  'GET /api/members':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const {items}=await db.list<Member>(membersTable(gate.member!.projectId),{limit:100});const members=items.map(m=>{const modules=m.modules||defaultModules(m.role),channels=m.channels||defaultChannels(m.role),effective=effectivePermissions({role:m.role,customPermissions:m.permissions,modules,channels,companyModules:gate.access!.modules,companyChannels:gate.access!.channels});return{id:m.id,email:m.email,name:m.name,role:m.role,employeeId:m.employeeId,userId:m.userId,joinCode:m.joinCode,modules,channels,permissions:m.permissions??null,effectivePermissions:effective,permissionsRevision:permissionsRevision(effective)}});return json({members,companyAccess:gate.access})}],"""
+          replace_once(old_get, new_get, 'GET /api/members')
+
+          old_post = "  'POST /api/members':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const body=asRecord(ctx.body),email=norm(String(body.email||'')),role=String(body.role||'') as Role,employeeId=body.employeeId?String(body.employeeId):undefined,requestedModules=asArray(body.modules).map(String).filter(x=>MODULES.includes(x)),requestedChannels=asArray(body.channels).map(String).filter(x=>CHANNELS.includes(x)),modules=intersect(gate.access!.modules,requestedModules.length?requestedModules:defaultModules(role)),channels=intersect(gate.access!.channels,requestedChannels.length?requestedChannels:defaultChannels(role));if(!/^\\S+@\\S+\\.\\S+$/.test(email))return error('Email inválido.',400);if(!ROLES.includes(role))return error('Papel inválido.',400);if(!channels.length)return error('Selecione ao menos um canal permitido pela licença.',400);if(role==='employee'&&!employeeId)return error('Funcionário precisa estar vinculado a um cadastro da equipe.',400);if(employeeId){const meta=await getMeta(gate.member!.projectId),employees=asArray(meta?.state.employees);if(!employees.some(e=>String(asRecord(e).id)===employeeId))return error('Funcionário não pertence a esta obra.',400)}const member=await upsertMember(gate.member!.projectId,gate.member!.companyId,{email,role,employeeId,modules,channels});await audit(gate.member!,ctx.user!,'member_upserted',{email,role,employeeId,modules,channels});return json({member:{id:member.id,email:member.email,role:member.role,employeeId:member.employeeId,userId:member.userId,joinCode:member.joinCode,modules:member.modules,channels:member.channels}})}],"
+          new_post = """  'POST /api/members':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const body=asRecord(ctx.body),email=norm(String(body.email||'')),role=String(body.role||'') as Role,employeeId=body.employeeId?String(body.employeeId):undefined,requestedModules=asArray(body.modules).map(String).filter(x=>MODULES.includes(x)),requestedChannels=asArray(body.channels).map(String).filter(x=>CHANNELS.includes(x));if(!/^\\S+@\\S+\\.\\S+$/.test(email))return error('Email inválido.',400);if(!ROLES.includes(role))return error('Papel inválido.',400);if(role==='employee'&&!employeeId)return error('Funcionário precisa estar vinculado a um cadastro da equipe.',400);if(employeeId){const meta=await getMeta(gate.member!.projectId),employees=asArray(meta?.state.employees);if(!employees.some(e=>String(asRecord(e).id)===employeeId))return error('Funcionário não pertence a esta obra.',400)}const {items:currentMembers}=await db.list<Member>(membersTable(gate.member!.projectId),{limit:100}),existing=currentMembers.find(m=>norm(m.email)===email);try{if(existing)assertAdministrativeTransition({target:existing,nextRole:role,activeAdminCount:currentMembers.filter(m=>m.role==='admin').length})}catch(e){return error((e as Error).message,409)}const modules=requestedModules.length?requestedModules:intersect(gate.access!.modules,defaultModules(role)),channels=requestedChannels.length?requestedChannels:intersect(gate.access!.channels,defaultChannels(role)),hasPermissions=Object.prototype.hasOwnProperty.call(body,'permissions'),permissionInput=hasPermissions?body.permissions:existing?.permissions;let validated;try{validated=validatePermissionAdministration({role,modules,channels,permissions:permissionInput??roleTemplate(role),companyModules:gate.access!.modules,companyChannels:gate.access!.channels})}catch(e){return error((e as Error).message,400)}if(!validated.channels.length)return error('Selecione ao menos um canal permitido pela licença.',400);const before=existing?{role:existing.role,modules:existing.modules||defaultModules(existing.role),channels:existing.channels||defaultChannels(existing.role),permissions:existing.permissions}:null,permissions=hasPermissions?validated.storedPermissions:existing?.permissions,member=await upsertMember(gate.member!.projectId,gate.member!.companyId,{email,role,employeeId,modules:validated.modules,channels:validated.channels,permissions}),effective=effectivePermissions({role:member.role,customPermissions:member.permissions,modules:member.modules||defaultModules(member.role),channels:member.channels||defaultChannels(member.role),companyModules:gate.access!.modules,companyChannels:gate.access!.channels}),revision=permissionsRevision(effective),diff=permissionChangeSummary(before||{role:member.role,modules:[],channels:[],permissions:undefined},member);await audit(gate.member!,ctx.user!,'member_permissions_updated',{targetMemberId:member.id,targetEmail:email,diff});return json({member:{id:member.id,email:member.email,role:member.role,employeeId:member.employeeId,userId:member.userId,joinCode:member.joinCode,modules:member.modules,channels:member.channels,permissions:member.permissions??null,effectivePermissions:effective,permissionsRevision:revision}})}],"""
+          replace_once(old_post, new_post, 'POST /api/members')
+
+          p.write_text(s, encoding='utf-8')
+      - name: Verify focused tests
+        working-directory: apps/web
+        run: npx vitest run backend/member-permission-api.test.ts backend/member-permission-admin.test.ts backend/member-permissions.test.ts backend/lan-server-permissions-snapshot.test.ts src/admin-governance-permissions.test.ts
+      - name: Commit patch and remove one-shot workflow
+        run: |
+          rm .github/workflows/pr62-wire-member-permissions.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/backend/index.ts .github/workflows/pr62-wire-member-permissions.yml
+          git commit -m "feat(f16): wire granular member governance API"
+          git push origin HEAD:feat/lan-f13-f17-hardening-concurrency-permissions-migration
