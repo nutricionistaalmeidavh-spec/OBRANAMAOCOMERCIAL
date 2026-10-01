@@ -27,6 +27,7 @@ Name: "lanaccess"; Description: "Permitir acesso de outros computadores desta re
 
 [Files]
 Source: "{#PackageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#PackageDir}\platform\preinstall-stop.ps1"; Flags: dontcopy
 
 [Run]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\platform\install-hooks.ps1"" -Action Install -InstallDir ""{app}"" {code:LanSwitch}"; Flags: runhidden waituntilterminated
@@ -49,10 +50,8 @@ var
   Params: String;
 begin
   Result := '';
-  Params := '-NoProfile -ExecutionPolicy Bypass -Command "' +
-    '$svc = Get-Service -Name ''ObraNaMaoServer'' -ErrorAction SilentlyContinue; ' +
-    'if ($svc -and $svc.Status -ne ''Stopped'') { Stop-Service -Name ''ObraNaMaoServer'' -Force -ErrorAction Stop; ' +
-    '$svc.WaitForStatus(''Stopped'', [TimeSpan]::FromSeconds(30)) }"';
+  ExtractTemporaryFile('preinstall-stop.ps1');
+  Params := '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{tmp}\preinstall-stop.ps1') + '"';
   if not Exec('powershell.exe', Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
     Result := 'Não foi possível verificar/parar o serviço ObraNaMaoServer antes da atualização.'
   else if ResultCode <> 0 then
