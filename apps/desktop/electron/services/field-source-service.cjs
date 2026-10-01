@@ -5,15 +5,15 @@ function withoutRevision(value) {
 }
 
 function remotePayload(payload = {}) {
-  const { revision, expectedRevision, equipe = [], equipamentos = [], ocorrencias = [], anexos = [], ...root } = payload
-  return {
+  const { revision, expectedRevision, ...root } = payload
+  const clean = {
     ...root,
-    ...(root.id ? { expectedRevision: expectedRevision ?? revision } : {}),
-    equipe: equipe.map(withoutRevision),
-    equipamentos: equipamentos.map(withoutRevision),
-    ocorrencias: ocorrencias.map(withoutRevision),
-    anexos: anexos.map(withoutRevision)
+    ...(root.id ? { expectedRevision: expectedRevision ?? revision } : {})
   }
+  for (const key of ['equipe', 'equipamentos', 'ocorrencias', 'anexos']) {
+    if (Array.isArray(root[key])) clean[key] = root[key].map(withoutRevision)
+  }
+  return clean
 }
 
 class FieldSourceService {
