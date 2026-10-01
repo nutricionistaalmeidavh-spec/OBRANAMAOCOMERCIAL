@@ -7,14 +7,15 @@ const here = dirname(fileURLToPath(import.meta.url))
 const read = (relative:string) => readFileSync(resolve(here, relative), 'utf8')
 
 describe('F14 Desktop revision callers', () => {
-  it('carries the selected row revision through every central entity delete UI', () => {
-    expect(read('../src/pages/WorksPage.tsx')).toContain('obras.remove(remove.id, remove.revision)')
-    expect(read('../src/pages/FrontsPage.tsx')).toContain('frentes.remove(remove.item.id, remove.item.revision)')
-    expect(read('../src/pages/BudgetPage.tsx')).toContain('orcamentos.remove(remove.id, remove.revision)')
-    expect(read('../src/pages/FinancePage.tsx')).toContain('contas.remove(remove.id, remove.revision)')
-    expect(read('../src/pages/SchedulePage.tsx')).toContain('cronograma.remove(remove.id, remove.revision)')
-    expect(read('../src/pages/RegistriesPage.tsx')).toContain('cfg.api().remove(remove.id, remove.revision)')
-    expect(read('../src/modules/command-center/FinancePage.tsx')).toContain('contas.remove(remove.id, remove.revision)')
+  it('remembers the revision actually observed by generic entity views and reuses it on delete', () => {
+    const preload = read('../electron/preload.cjs')
+    expect(preload).toContain('entityRevisions')
+    expect(preload).toContain('rememberEntityRevision')
+    expect(preload).toContain('revision ?? entityRevisions.get')
+    expect(preload).toContain("call('entity:list'")
+    expect(preload).toContain("call('entity:get'")
+    expect(preload).toContain("call('entity:save'")
+    expect(preload).toContain("call('entity:remove'")
   })
 
   it('carries the observed RDO root revision when editing the aggregate', () => {
