@@ -6,7 +6,7 @@ import test from 'node:test'
 const windowsDir = path.resolve(import.meta.dirname, '../packaging/windows')
 const read = name => fs.readFileSync(path.join(windowsDir, name), 'utf8')
 
-test('Inno installer is x64, uses Program Files and stops the service before binary replacement', () => {
+test('Inno installer is x64, stops the service before replacement and checks postinstall exit code', () => {
   const iss = read('installer.iss')
   assert.match(iss, /DefaultDirName=.*autopf.*ArtiSys.*Obra na Mão Server/i)
   assert.match(iss, /ArchitecturesAllowed=.*x64/i)
@@ -16,7 +16,13 @@ test('Inno installer is x64, uses Program Files and stops the service before bin
   assert.match(iss, /Flags:[^\n]*dontcopy/is)
   assert.match(iss, /ExtractTemporaryFile\(['"]preinstall-stop\.ps1['"]\)/is)
   assert.match(iss, /install-hooks\.ps1/is)
+  assert.match(iss, /CurStepChanged\s*\(/is)
+  assert.match(iss, /ssPostInstall/is)
+  assert.match(iss, /Exec\([^;]*install-hooks\.ps1/is)
+  assert.match(iss, /ResultCode\s*<>\s*0/is)
+  assert.match(iss, /RaiseException/is)
   assert.match(iss, /UninstallRun/is)
+  assert.doesNotMatch(iss, /^\[Run\]/m)
   assert.doesNotMatch(iss, /-Command\s+\".*Stop-Service/is)
   assert.doesNotMatch(iss, /(DelTree|Remove-Item)[^\n]*ProgramData/i)
 
@@ -25,6 +31,15 @@ test('Inno installer is x64, uses Program Files and stops the service before bin
   assert.match(stopHook, /Get-Service[^\n]*\$serviceName/i)
   assert.match(stopHook, /Stop-Service[^\n]*\$serviceName/i)
   assert.match(stopHook, /WaitForStatus/i)
+})
+
+test('Windows install hook records sanitized operational progress and failures', () => {
+  const hooks = read('install-hooks.ps1')
+  assert.match(hooks, /installer-hook\.log/i)
+  assert.match(hooks, /Write-HookLog/i)
+  assert.match(hooks, /catch\s*\{/i)
+  assert.match(hooks, /Exception\.Message/i)
+  assert.doesNotMatch(hooks, /setupCode|pairingCode|bearer|deviceToken|serverToken/i)
 })
 
 test('LAN access is an unchecked opt-in task, never a default firewall opening', () => {
