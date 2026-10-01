@@ -17,7 +17,11 @@ const migratedTables = [
   'rdo_anexos',
   'etapas_obra',
   'cronograma_etapas',
-  'itens_orcamentarios'
+  'itens_orcamentarios',
+  'fornecedores',
+  'categorias_financeiras',
+  'contas',
+  'pagamentos_conta'
 ]
 
 test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', () => {
@@ -29,21 +33,22 @@ test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', 
   const first = applyLanMigrations(repository.connection(), migrationsDir)
   const second = applyLanMigrations(repository.connection(), migrationsDir)
 
-  assert.equal(first.version, 3)
-  assert.equal(second.version, 3)
-  assert.deepEqual(first.applied, [2, 3])
+  assert.equal(first.version, 4)
+  assert.equal(second.version, 4)
+  assert.deepEqual(first.applied, [2, 3, 4])
   assert.deepEqual(second.applied, [])
-  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 3)
+  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 4)
   for (const table of migratedTables) {
     assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name=?").get(table).n, 1)
   }
   assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name='idx_rdos_obra_frente_data'").get().n, 1)
   assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name='idx_cronograma_obra_frente'").get().n, 1)
+  assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name='idx_contas_empresa_obra'").get().n, 1)
   repository.close()
 
   repository = new LanRepository({ filename })
   const reopened = applyLanMigrations(repository.connection(), migrationsDir)
-  assert.equal(reopened.version, 3)
+  assert.equal(reopened.version, 4)
   assert.deepEqual(reopened.applied, [])
   assert.equal(repository.get('empresas', company.id).razao_social, 'Empresa preservada')
   repository.close()
