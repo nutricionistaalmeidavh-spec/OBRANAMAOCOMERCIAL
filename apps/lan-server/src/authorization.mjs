@@ -4,6 +4,7 @@ const digest = value => createHash('sha256').update(String(value)).digest('hex')
 const CORE_TABLES = new Set(['empresas', 'clientes', 'obras'])
 const OPERATION_TABLES = new Set(['frentes_obra', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
 const PLANNING_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'])
+const FINANCE_TABLES = new Set(['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'])
 
 export class LanAuthorizationError extends Error {
   constructor(message, status = 403, code = 'forbidden') {
@@ -50,7 +51,9 @@ export async function authenticateLanRequest(request, security) {
 export function authorizeBusinessRoute(context, { table, method } = {}) {
   if (!context?.member) throw new LanAuthorizationError('Contexto de autorização ausente.', 403, 'forbidden')
   const name = String(table || '')
-  if (!CORE_TABLES.has(name) && !OPERATION_TABLES.has(name) && !PLANNING_TABLES.has(name)) throw new LanAuthorizationError('Entidade não autorizada no servidor LAN.', 403, 'forbidden')
+  if (!CORE_TABLES.has(name) && !OPERATION_TABLES.has(name) && !PLANNING_TABLES.has(name) && !FINANCE_TABLES.has(name)) {
+    throw new LanAuthorizationError('Entidade não autorizada no servidor LAN.', 403, 'forbidden')
+  }
 
   const role = String(context.member.role || '')
   const modules = Array.isArray(context.member.modules) ? context.member.modules : []
@@ -58,5 +61,7 @@ export function authorizeBusinessRoute(context, { table, method } = {}) {
   if (CORE_TABLES.has(name) && modules.includes('obra360')) return { ok: true }
   if (OPERATION_TABLES.has(name) && modules.some(module => ['obra360', 'rdo'].includes(module))) return { ok: true }
   if (PLANNING_TABLES.has(name) && modules.includes('obra360')) return { ok: true }
+  if (FINANCE_TABLES.has(name) && modules.includes('finance')) return { ok: true }
+  if (FINANCE_TABLES.has(name) && String(method || 'GET').toUpperCase() === 'GET' && modules.includes('dre')) return { ok: true }
   throw new LanAuthorizationError(`Operação ${String(method || 'GET')} não autorizada para este perfil.`, 403, 'forbidden')
 }
