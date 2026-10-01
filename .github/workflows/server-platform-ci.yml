@@ -81,7 +81,7 @@ jobs:
 
           $installArgs = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
           $p = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "First install failed: $($p.ExitCode)" }
+          if ($p.ExitCode -ne 0) { Write-ServiceDiagnostics; throw "First install failed: $($p.ExitCode)" }
           $first = Wait-Ready
           $serverId = [string]$first.identity.serverId
           if (-not $serverId) { throw 'Missing serverId after first install.' }
@@ -94,7 +94,7 @@ jobs:
           if ([string]$afterRestart.identity.serverId -ne $serverId) { throw 'serverId changed after Windows service restart.' }
 
           $p = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "Reinstall failed: $($p.ExitCode)" }
+          if ($p.ExitCode -ne 0) { Write-ServiceDiagnostics; throw "Reinstall failed: $($p.ExitCode)" }
           $afterReinstall = Wait-Ready
           if ([string]$afterReinstall.identity.serverId -ne $serverId) { throw 'serverId changed after Windows reinstall.' }
           if (-not (Test-Path $sentinel)) { throw 'Persistent sentinel was removed by Windows reinstall.' }
