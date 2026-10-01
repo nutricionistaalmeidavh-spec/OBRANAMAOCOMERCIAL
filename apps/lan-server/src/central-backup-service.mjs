@@ -103,7 +103,7 @@ export class CentralBackupService {
     }finally{db.close()}
   }
 
-  inspectFile(file,{ enforceCurrentIdentity=false }={}){
+  inspectFile(file,{ enforceCurrentIdentity=false, requireSanitized=true }={}){
     if (!fs.existsSync(file)) throw new Error('Arquivo de backup central não encontrado.')
     let db
     try{
@@ -118,9 +118,11 @@ export class CentralBackupService {
       if(this.expectedSchemaVersion !== null && schemaVersion !== this.expectedSchemaVersion) throw new Error(`Schema LAN incompatível: esperado ${this.expectedSchemaVersion}, recebido ${schemaVersion}.`)
       const row=db.prepare('SELECT server_id,company_id,server_token,setup_code_hash FROM lan_server_identity WHERE id=1').get()
       if(!row?.server_id) throw new Error('Banco não possui identidade válida do Obra na Mão LAN Server.')
-      if(row.server_token || row.setup_code_hash) throw new Error('Backup central contém credencial de identidade que deveria ter sido sanitizada.')
-      if(Number(db.prepare('SELECT COUNT(*) AS n FROM lan_devices').get()?.n || 0)!==0) throw new Error('Backup central contém credenciais de dispositivos.')
-      if(Number(db.prepare('SELECT COUNT(*) AS n FROM lan_pairing_codes').get()?.n || 0)!==0) throw new Error('Backup central contém códigos de pareamento.')
+      if(requireSanitized){
+        if(row.server_token || row.setup_code_hash) throw new Error('Backup central contém credencial de identidade que deveria ter sido sanitizada.')
+        if(Number(db.prepare('SELECT COUNT(*) AS n FROM lan_devices').get()?.n || 0)!==0) throw new Error('Backup central contém credenciais de dispositivos.')
+        if(Number(db.prepare('SELECT COUNT(*) AS n FROM lan_pairing_codes').get()?.n || 0)!==0) throw new Error('Backup central contém códigos de pareamento.')
+      }
       const current=this.identity()
       if(enforceCurrentIdentity && current.claimed){
         if(String(row.server_id)!==String(current.serverId)) throw new Error('Backup pertence a outra instância de servidor.')
@@ -179,7 +181,7 @@ export class CentralBackupService {
       const sizeBytes=fs.statSync(item.database).size
       if(fingerprint!==String(item.manifest.fingerprint || '')) throw new Error('Fingerprint SHA-256 do backup central não confere.')
       if(Number(item.manifest.sizeBytes)!==sizeBytes) throw new Error('Tamanho do backup central diverge do manifest.')
-      const inspected=this.inspectFile(item.database,{enforceCurrentIdentity})
+      const inspected=this.inspectFile(item.database,{enforceCurrentIdentity,requireSanitized:true})
       if(Number(item.manifest.schemaVersion)!==inspected.schemaVersion) throw new Error('Versão de schema diverge do manifest.')
       if(String(item.manifest.serverId || '')!==String(inspected.identity.serverId || '')) throw new Error('Identidade do servidor diverge do manifest.')
       if(String(item.manifest.companyId || '')!==String(inspected.identity.companyId || '')) throw new Error('Tenant do banco diverge do manifest.')
@@ -224,7 +226,7 @@ export class CentralBackupService {
       replaced=true
       this.reopenRepository()
       this.restoreLiveSecrets(secrets)
-      const final=this.inspectFile(this.databasePath,{enforceCurrentIdentity:true})
+      const final=this.inspectFile(this.databasePath,{enforceCurrentIdentity:true,requireSanitized:false})
       if(final.integrity!=='ok') throw new Error('Banco restaurado falhou na verificação final.')
       this.audit('central_restore_completed',{actor,targetId:String(backupId),details:{safetyBackupId:safety.backupId,schemaVersion:final.schemaVersion}})
       return {restored:true,backupId:String(backupId),safetyBackupId:safety.backupId,schemaVersion:final.schemaVersion}
@@ -235,7 +237,7 @@ export class CentralBackupService {
           this.replaceDatabaseFrom(safety.database)
           this.reopenRepository()
           this.restoreLiveSecrets(secrets)
-          this.inspectFile(this.databasePath,{enforceCurrentIdentity:true})
+          this.inspectFile(this.databasePath,{enforceCurrentIdentity:true,requireSanitized:false})
           this.audit('central_restore_recovered',{actor,targetId:String(backupId),details:{safetyBackupId:safety.backupId,originalError:error instanceof Error?error.message:String(error)}})
           throw new Error(`Restore central falhou; o banco anterior foi recuperado automaticamente. ${error instanceof Error?error.message:String(error)}`)
         }catch(recoveryError){
@@ -274,7 +276,8 @@ export class CentralBackupService {
         lastBackup:this.latestBackup(),maintenance:this.maintenance
       }
     }catch(error){
-      return {accessible:false,integrity:'unknown',schemaVersion:null,migrationsApplied:[],claimed:this.identity().claimed,serverId:this.identity().serverId,companyId:this.identity().companyId,sizeBytes:null,lastBackup:this.latestBackup(),maintenance:this.maintenance,error:error instanceof Error?error.message:String(error)}
+      const identity=this.identity()
+      return {accessible:false,integrity:'unknown',schemaVersion:null,migrationsApplied:[],claimed:identity.claimed,serverId:identity.serverId,companyId:identity.companyId,sizeBytes:null,lastBackup:this.latestBackup(),maintenance:this.maintenance,error:error instanceof Error?error.message:String(error)}
     }
   }
 }
