@@ -5,13 +5,15 @@ import { PairingError } from './pairing-service.mjs'
 import { FieldService } from './field-service.mjs'
 import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
+import { PayrollService } from './payroll-service.mjs'
+import { TimeService } from './time-service.mjs'
 
 export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.3.0'
 
 const MAX_BODY_BYTES = 1024 * 1024
 const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
-const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|frentes_obra|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|fornecedores|categorias_financeiras|contas|pagamentos_conta)(?:\/(\d+))?\/?$/
+const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|frentes_obra|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|fornecedores|categorias_financeiras|contas|pagamentos_conta|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
 const FINANCE_PAYMENT_ROUTE = /^\/api\/v1\/finance\/accounts\/(\d+)\/payment\/?$/
 
@@ -197,10 +199,18 @@ async function handleSetupClaim(request, response, { security, identity, cloudAu
   })
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+async function authorizeRh(request, security, method = 'POST') {
+  const context = await authenticateLanRequest(request, security)
+  authorizeBusinessRoute(context, { table: 'funcionarios', method })
+  return context
+}
+
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const field = fieldService || (repository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
+  const payroll = payrollService || (repository ? new PayrollService({ repository }) : null)
+  const time = timeService || (repository ? new TimeService({ repository }) : null)
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://localhost')
@@ -218,7 +228,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/api/v1/sync-source/capabilities') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         await authenticateLanRequest(request, security)
-        return sendJson(response, 200, { version: 1, modules: ['core', 'operation', 'planning', 'finance', 'summary'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'] })
+        return sendJson(response, 200, { version: 1, modules: ['core', 'operation', 'planning', 'finance', 'rh', 'summary'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'] })
       }
 
       if (url.pathname === '/api/v1/sync-source/summary') {
@@ -284,6 +294,71 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         authorizeBusinessRoute(context, { table: 'contas', method: 'GET' })
         const filters = Object.fromEntries(url.searchParams.entries())
         return sendJson(response, 200, finance.dashboard(filters))
+      }
+
+      if (url.pathname === '/api/v1/rh/payroll/employee') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!payroll?.getEmployee) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
+        await authorizeRh(request, security)
+        return sendJson(response, 200, payroll.getEmployee(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/rh/payroll/save-variable') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!payroll?.saveVariable) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
+        await authorizeRh(request, security)
+        return sendJson(response, 200, payroll.saveVariable(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/rh/payroll/remove-variable') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!payroll?.removeVariable) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
+        await authorizeRh(request, security)
+        const body = await readJson(request)
+        return sendJson(response, 200, { ok: payroll.removeVariable(body.id) })
+      }
+
+      if (url.pathname === '/api/v1/rh/payroll/confirm') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!payroll?.confirm) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
+        await authorizeRh(request, security)
+        return sendJson(response, 200, payroll.confirm(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/rh/payroll/pending') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!payroll?.pending) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
+        await authorizeRh(request, security, 'GET')
+        const body = await readJson(request)
+        return sendJson(response, 200, payroll.pending(body.competencia))
+      }
+
+      if (url.pathname === '/api/v1/rh/time/get') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!time?.get) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Ponto central indisponível.' })
+        await authorizeRh(request, security, 'GET')
+        return sendJson(response, 200, time.get(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/rh/time/auto-fill') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!time?.autoFill) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Ponto central indisponível.' })
+        await authorizeRh(request, security)
+        return sendJson(response, 200, time.autoFill(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/rh/time/save') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!time?.save) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Ponto central indisponível.' })
+        await authorizeRh(request, security)
+        return sendJson(response, 200, time.save(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/rh/time/document-context') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!time?.documentContext) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Contexto central de documentos indisponível.' })
+        await authorizeRh(request, security, 'GET')
+        return sendJson(response, 200, time.documentContext(await readJson(request)))
       }
 
       if (url.pathname === '/api/v1/setup/status') {
