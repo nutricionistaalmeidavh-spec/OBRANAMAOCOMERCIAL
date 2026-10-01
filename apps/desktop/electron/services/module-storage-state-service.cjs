@@ -1,4 +1,4 @@
-const MODULES = new Set(['operation', 'planning', 'finance', 'rh'])
+const MODULES = new Set(['core', 'operation', 'planning', 'finance', 'rh'])
 const STATES = new Set(['local', 'central-ready', 'central-active', 'migration-required'])
 const KEY_PREFIX = 'module_storage_state_'
 const DEFAULT_FINANCE_CATEGORIES = new Set([
@@ -74,12 +74,17 @@ class ModuleStorageStateService {
 
   localRecordCount(moduleName) {
     const module = this.assertModule(moduleName)
+    if (module === 'core') return ['empresas', 'clientes', 'obras'].reduce((total, table) => total + this.countActive(table), 0)
     if (module === 'finance') return this.financeLocalRecordCount()
     if (module === 'rh') return this.rhLocalRecordCount()
     const tables = module === 'operation'
       ? ['frentes_obra', 'tarefas_obra', 'rdos']
       : ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios']
     return tables.reduce((total, table) => total + this.countActive(table), 0)
+  }
+
+  coreState() {
+    return this.state('core')
   }
 
   state(moduleName) {
@@ -91,64 +96,61 @@ class ModuleStorageStateService {
 
     const persisted = this.read(module)
     if (persisted === 'migration-required') return { ...details, state: persisted }
-
-    if (localRecords > 0) {
+    if (localRecords > 0 && persisted !== 'central-active') {
       this.write(module, 'migration-required')
       return { ...details, state: 'migration-required' }
     }
 
-    if (module === 'planning' && financeLocalRecords > 0) {
-      if (persisted !== 'central-ready') this.write(module, 'central-ready')
-      return { ...details, state: 'central-ready', financeDependencyBlocked: true }
+    if (module !== 'core') {
+      const core = this.state('core')
+      if (core.state !== 'central-active') {
+        if (persisted === 'central-active') this.write(module, 'central-ready')
+        else if (persisted !== 'central-ready') this.write(module, 'central-ready')
+        return { ...details, state: 'central-ready', coreDependencyBlocked: true }
+      }
     }
 
     if (persisted === 'central-active' || persisted === 'central-ready') return { ...details, state: persisted }
     return { ...details, state: 'central-ready' }
   }
 
+  activateAfterMigration(moduleName) {
+    const module = this.assertModule(moduleName)
+    const current = this.state(module)
+    if (!['migration-required', 'central-ready'].includes(current.state)) throw new Error('Módulo não está aguardando ativação central.')
+    if (module !== 'core' && this.state('core').state !== 'central-active') throw new Error('Cadastros-base precisam estar centrais antes deste módulo.')
+    this.write(module, 'central-active')
+    return this.state(module)
+  }
+
   async refreshCapabilities() {
-    const operation = this.state('operation')
-    const planning = this.state('planning')
-    const finance = this.state('finance')
-    const rh = this.state('rh')
-    if ([operation.state, planning.state, finance.state, rh.state].every(state => state === 'local' || state === 'migration-required')) {
-      return { operation, planning, finance, rh }
-    }
+    const initial = Object.fromEntries([...MODULES].map(module => [module, this.state(module)]))
+    if (Object.values(initial).every(value => value.state === 'local' || value.state === 'migration-required')) return initial
 
     const capabilities = await this.lanClient.syncSourceCapabilities()
     const modules = Array.isArray(capabilities?.modules) ? capabilities.modules : []
-    const result = { operation, planning, finance, rh }
+    const result = { ...initial }
 
-    if (!['local', 'migration-required'].includes(operation.state)) {
-      const operationAvailable = modules.includes('operation')
-      const state = this.write('operation', operationAvailable ? 'central-active' : 'central-ready')
-      result.operation = { module: 'operation', state, localRecords: operation.localRecords, capabilityAvailable: operationAvailable }
-    }
+    const core = this.state('core')
+    if (!['local', 'migration-required'].includes(core.state)) {
+      const available = modules.includes('core')
+      const state = this.write('core', available ? 'central-active' : 'central-ready')
+      result.core = { module: 'core', state, localRecords: core.localRecords, capabilityAvailable: available }
+    } else result.core = core
 
-    if (!['local', 'migration-required'].includes(planning.state)) {
-      const planningAvailable = modules.includes('planning')
-      const financeDependencyBlocked = Number(planning.financeLocalRecords || 0) > 0
-      const state = this.write('planning', planningAvailable && !financeDependencyBlocked ? 'central-active' : 'central-ready')
-      result.planning = {
-        module: 'planning',
+    for (const module of ['operation', 'planning', 'finance', 'rh']) {
+      const current = this.state(module)
+      result[module] = current
+      if (['local', 'migration-required'].includes(current.state)) continue
+      const available = modules.includes(module)
+      const coreDependencyBlocked = this.state('core').state !== 'central-active'
+      const state = this.write(module, available && !coreDependencyBlocked ? 'central-active' : 'central-ready')
+      result[module] = {
+        ...current,
         state,
-        localRecords: planning.localRecords,
-        financeLocalRecords: planning.financeLocalRecords,
-        capabilityAvailable: planningAvailable,
-        financeDependencyBlocked
+        capabilityAvailable: available,
+        ...(coreDependencyBlocked ? { coreDependencyBlocked: true } : {})
       }
-    }
-
-    if (!['local', 'migration-required'].includes(finance.state)) {
-      const financeAvailable = modules.includes('finance')
-      const state = this.write('finance', financeAvailable ? 'central-active' : 'central-ready')
-      result.finance = { module: 'finance', state, localRecords: finance.localRecords, capabilityAvailable: financeAvailable }
-    }
-
-    if (!['local', 'migration-required'].includes(rh.state)) {
-      const rhAvailable = modules.includes('rh')
-      const state = this.write('rh', rhAvailable ? 'central-active' : 'central-ready')
-      result.rh = { module: 'rh', state, localRecords: rh.localRecords, capabilityAvailable: rhAvailable }
     }
 
     return result
