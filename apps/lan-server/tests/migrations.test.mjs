@@ -8,20 +8,11 @@ import { applyLanMigrations } from '../src/migrations.mjs'
 
 const migrationsDir = path.resolve(import.meta.dirname, '../migrations')
 const migratedTables = [
-  'frentes_obra',
-  'tarefas_obra',
-  'rdos',
-  'rdo_equipe',
-  'rdo_equipamentos',
-  'rdo_ocorrencias',
-  'rdo_anexos',
-  'etapas_obra',
-  'cronograma_etapas',
-  'itens_orcamentarios',
-  'fornecedores',
-  'categorias_financeiras',
-  'contas',
-  'pagamentos_conta'
+  'frentes_obra', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos',
+  'etapas_obra', 'cronograma_etapas', 'itens_orcamentarios',
+  'fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta',
+  'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
+  'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis'
 ]
 
 test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', () => {
@@ -33,22 +24,23 @@ test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', 
   const first = applyLanMigrations(repository.connection(), migrationsDir)
   const second = applyLanMigrations(repository.connection(), migrationsDir)
 
-  assert.equal(first.version, 4)
-  assert.equal(second.version, 4)
-  assert.deepEqual(first.applied, [2, 3, 4])
+  assert.equal(first.version, 5)
+  assert.equal(second.version, 5)
+  assert.deepEqual(first.applied, [2, 3, 4, 5])
   assert.deepEqual(second.applied, [])
-  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 4)
+  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 5)
   for (const table of migratedTables) {
     assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name=?").get(table).n, 1)
   }
   assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name='idx_rdos_obra_frente_data'").get().n, 1)
   assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name='idx_cronograma_obra_frente'").get().n, 1)
   assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name='idx_contas_empresa_obra'").get().n, 1)
+  assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name='idx_rh_funcionarios_empresa_status'").get().n, 1)
   repository.close()
 
   repository = new LanRepository({ filename })
   const reopened = applyLanMigrations(repository.connection(), migrationsDir)
-  assert.equal(reopened.version, 4)
+  assert.equal(reopened.version, 5)
   assert.deepEqual(reopened.applied, [])
   assert.equal(repository.get('empresas', company.id).razao_social, 'Empresa preservada')
   repository.close()
