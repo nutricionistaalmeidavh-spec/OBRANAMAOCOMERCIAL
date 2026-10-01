@@ -30,15 +30,23 @@ Source: "{#PackageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Source: "{#PackageDir}\platform\preinstall-stop.ps1"; Flags: dontcopy
 
 [UninstallRun]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\platform\install-hooks.ps1"" -Action Uninstall -InstallDir ""{app}"""; Flags: runhidden waituntilterminated; RunOnceId: "ObraNaMaoServerUninstall"
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File install-hooks.ps1 -Action Uninstall"; WorkingDir: "{app}\platform"; Flags: runhidden waituntilterminated; RunOnceId: "ObraNaMaoServerUninstall"
 
 [Code]
+var
+  PostInstallExitCode: Integer;
+
 function LanSwitch(Param: String): String;
 begin
   if WizardIsTaskSelected('lanaccess') then
     Result := '-LanAccess'
   else
     Result := '';
+end;
+
+function GetCustomSetupExitCode: Integer;
+begin
+  Result := PostInstallExitCode;
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
@@ -59,20 +67,23 @@ procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
   PowerShellPath: String;
+  PlatformDir: String;
   Params: String;
 begin
   if CurStep = ssPostInstall then
   begin
     PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
-    Params := '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\platform\install-hooks.ps1') + '" -Action Install -InstallDir "' + ExpandConstant('{app}') + '" ' + LanSwitch('');
+    PlatformDir := ExpandConstant('{app}\platform');
+    Params := '-NoProfile -ExecutionPolicy Bypass -File install-hooks.ps1 -Action Install ' + LanSwitch('');
     Log('ObraNaMaoServer postinstall: launching Windows PowerShell hook.');
-    if not Exec(PowerShellPath, Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    if not Exec(PowerShellPath, Params, PlatformDir, SW_HIDE, ewWaitUntilTerminated, ResultCode) then
     begin
+      PostInstallExitCode := 1001;
       Log(Format('ObraNaMaoServer postinstall: Exec failed (%d: %s).', [ResultCode, SysErrorMessage(ResultCode)]));
-      RaiseException('Não foi possível executar a configuração do serviço ObraNaMaoServer.');
+      Exit;
     end;
     Log(Format('ObraNaMaoServer postinstall: hook exit code %d.', [ResultCode]));
     if ResultCode <> 0 then
-      RaiseException(Format('A configuração do serviço ObraNaMaoServer falhou (código %d). Consulte o log do instalador em ProgramData.', [ResultCode]));
+      PostInstallExitCode := 1001;
   end;
 end;
