@@ -4,14 +4,16 @@ import { authenticateLanRequest, authorizeBusinessRoute, LanAuthorizationError }
 import { PairingError } from './pairing-service.mjs'
 import { FieldService } from './field-service.mjs'
 import { PlanningService } from './planning-service.mjs'
+import { FinanceService } from './finance-service.mjs'
 
 export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.3.0'
 
 const MAX_BODY_BYTES = 1024 * 1024
 const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
-const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|frentes_obra|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios)(?:\/(\d+))?\/?$/
+const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|frentes_obra|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|fornecedores|categorias_financeiras|contas|pagamentos_conta)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
+const FINANCE_PAYMENT_ROUTE = /^\/api\/v1\/finance\/accounts\/(\d+)\/payment\/?$/
 
 const digest = value => createHash('sha256').update(String(value)).digest('hex')
 const randomDeviceToken = () => randomBytes(32).toString('hex')
@@ -183,9 +185,10 @@ async function handleSetupClaim(request, response, { security, identity, cloudAu
   })
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const field = fieldService || (repository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
+  const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://localhost')
@@ -222,6 +225,34 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         authorizeBusinessRoute(context, { table: 'cronograma_etapas', method: 'GET' })
         const obraId = Number(url.searchParams.get('obra_id'))
         return sendJson(response, 200, planning.overview(obraId))
+      }
+
+      const financePaymentMatch = url.pathname.match(FINANCE_PAYMENT_ROUTE)
+      if (financePaymentMatch) {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!finance?.accountPayment) return sendJson(response, 503, { error: 'finance_unavailable', message: 'Serviço financeiro central indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeBusinessRoute(context, { table: 'contas', method: 'POST' })
+        const body = await readJson(request)
+        return sendJson(response, 200, finance.accountPayment(Number(financePaymentMatch[1]), body.payment || {}, body.requestId))
+      }
+
+      if (url.pathname === '/api/v1/finance/dre') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!finance?.dre) return sendJson(response, 503, { error: 'finance_unavailable', message: 'Serviço financeiro central indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeBusinessRoute(context, { table: 'contas', method: 'GET' })
+        const filters = Object.fromEntries(url.searchParams.entries())
+        return sendJson(response, 200, finance.dre(filters))
+      }
+
+      if (url.pathname === '/api/v1/finance/dashboard') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!finance?.dashboard) return sendJson(response, 503, { error: 'finance_unavailable', message: 'Serviço financeiro central indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeBusinessRoute(context, { table: 'contas', method: 'GET' })
+        const filters = Object.fromEntries(url.searchParams.entries())
+        return sendJson(response, 200, finance.dashboard(filters))
       }
 
       if (url.pathname === '/api/v1/setup/status') {
