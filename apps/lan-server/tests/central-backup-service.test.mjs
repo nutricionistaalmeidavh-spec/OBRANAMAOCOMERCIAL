@@ -110,9 +110,9 @@ test('falha após troca restaura automaticamente safety backup e reabre instânc
   const old=await f.service.create({reason:'manual'})
   f.repository.save('empresas',{id:company.id,razao_social:'Versão viva'})
 
-  const reopen=f.repository.reopen.bind(f.repository)
+  const reopen=f.service.reopenRepository.bind(f.service)
   let failOnce=true
-  f.repository.reopen=()=>{if(failOnce){failOnce=false;throw new Error('falha simulada ao reabrir')}return reopen()}
+  f.service.reopenRepository=()=>{if(failOnce){failOnce=false;throw new Error('falha simulada ao reabrir')}return reopen()}
 
   await assert.rejects(()=>f.service.restoreManaged(old.backupId),/recuperado|reabrir|restore/i)
   assert.equal(f.repository.get('empresas',company.id).razao_social,'Versão viva')
