@@ -14,74 +14,74 @@ class RhSourceService {
     throw new Error('O RH central ainda não está ativo neste computador; nenhum dado será salvo localmente como fallback.')
   }
 
-  localOrCentral(localCall, centralCall) {
+  async localOrCentral(localCall, centralCall) {
     const state = this.state()
-    if (state === 'local' || state === 'migration-required') return localCall()
-    if (state === 'central-active') return centralCall()
+    if (state === 'local' || state === 'migration-required') return await localCall()
+    if (state === 'central-active') return await centralCall()
     return this.blocked()
   }
 
-  getEmployee(payload) {
+  async getEmployee(payload) {
     return this.localOrCentral(
       () => this.localPayroll.getEmployee(payload),
       () => this.lanClient.payrollEmployee(payload)
     )
   }
 
-  saveVariable(payload) {
+  async saveVariable(payload) {
     return this.localOrCentral(
       () => this.localPayroll.saveVariable(payload),
       () => this.lanClient.payrollSaveVariable(payload)
     )
   }
 
-  removeVariable(id) {
+  async removeVariable(id) {
     return this.localOrCentral(
       () => this.localPayroll.removeVariable(id),
       () => this.lanClient.payrollRemoveVariable(id)
     )
   }
 
-  confirm(payload) {
+  async confirm(payload) {
     return this.localOrCentral(
       () => this.localPayroll.confirm(payload),
       () => this.lanClient.payrollConfirm(payload)
     )
   }
 
-  pending(competencia) {
+  async pending(competencia) {
     return this.localOrCentral(
       () => this.localPayroll.pending(competencia),
       () => this.lanClient.payrollPending(competencia)
     )
   }
 
-  timeGet(payload) {
+  async timeGet(payload) {
     return this.localOrCentral(
       () => this.localTime.get(payload),
       () => this.lanClient.timeGet(payload)
     )
   }
 
-  timeAutoFill(payload) {
+  async timeAutoFill(payload) {
     return this.localOrCentral(
       () => this.localTime.autoFill(payload),
       () => this.lanClient.timeAutoFill(payload)
     )
   }
 
-  timeSave(payload) {
+  async timeSave(payload) {
     return this.localOrCentral(
       () => this.localTime.save(payload),
       () => this.lanClient.timeSave(payload)
     )
   }
 
-  timeDocumentContext(payload) {
+  async timeDocumentContext(payload) {
     const state = this.state()
-    if (state === 'central-active') return this.lanClient.timeDocumentContext(payload)
+    if (state === 'central-active') return await this.lanClient.timeDocumentContext(payload)
     if (state === 'central-ready') return this.blocked()
-    if (typeof this.localTime.documentContext === 'function') return this.localTime.documentContext(payload)
+    if (typeof this.localTime.documentContext === 'function') return await this.localTime.documentContext(payload)
     return null
   }
 
