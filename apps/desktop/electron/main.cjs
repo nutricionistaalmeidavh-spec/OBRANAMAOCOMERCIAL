@@ -23,6 +23,7 @@ const { WorkImportService } = require('./services/work-import-service.cjs')
 const { UniversalImportService } = require('./services/universal-import-service.cjs')
 const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
+const { PlanningSourceService } = require('./services/planning-source-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
 const { FieldSourceService } = require('./services/field-source-service.cjs')
 const { ProcurementService } = require('./services/procurement-service.cjs')
@@ -78,6 +79,8 @@ function createServices() {
   dataAccess.moduleStorage = moduleStorage
   const localField = new FieldService({ db })
   const field = new FieldSourceService({ local: localField, lanClient: dataAccess.remote, moduleStorage })
+  const localPlanning = new PlanningService({ db })
+  const planning = new PlanningSourceService({ local: localPlanning, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
@@ -109,7 +112,7 @@ function createServices() {
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
-    works: new WorksService({ db }), planning: new PlanningService({ db }), field,
+    works: new WorksService({ db }), planning, field,
     product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product }), online, sync
   }
 }
@@ -159,7 +162,12 @@ function destroyTray() {
 
 async function refreshModuleCapabilitiesSafe() {
   try { return await services.moduleStorage.refreshCapabilities() }
-  catch { return { operation: services.moduleStorage.state('operation') } }
+  catch {
+    return {
+      operation: services.moduleStorage.state('operation'),
+      planning: services.moduleStorage.state('planning')
+    }
+  }
 }
 
 async function configureStorage(payload) {
