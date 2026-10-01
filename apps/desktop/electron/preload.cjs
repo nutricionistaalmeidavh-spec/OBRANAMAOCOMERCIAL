@@ -17,7 +17,8 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     refreshModuleCapabilities: () => call('storage:refresh-module-capabilities'),
     migrationPreflight: (module) => call('storage:migration-preflight', { module }),
     migrationStatus: (module) => call('storage:migration-status', { module }),
-    migrateModule: (module) => call('storage:migrate-module', { module })
+    migrateModule: (module) => call('storage:migrate-module', { module }),
+    rollbackModuleMigration: (module) => call('storage:rollback-module-migration', { module })
   },
   lan: {
     hostState: () => call('lan:host-state'),
