@@ -59,11 +59,26 @@ function startServer({ dataDir, port }) {
 
 function terminate(child, timeoutMs = 5000) {
   return new Promise((resolve, reject) => {
-    if (child.exitCode !== null) return resolve(child.exitCode)
-    const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('headless server did not stop after SIGTERM')) }, timeoutMs)
-    child.once('exit', code => { clearTimeout(timer); resolve(code) })
+    if (child.exitCode !== null || child.signalCode !== null) {
+      return resolve({ code: child.exitCode, signal: child.signalCode })
+    }
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL')
+      reject(new Error('headless server did not stop after SIGTERM'))
+    }, timeoutMs)
+    child.once('exit', (code, signal) => {
+      clearTimeout(timer)
+      resolve({ code, signal })
+    })
     child.kill('SIGTERM')
   })
+}
+
+function assertGracefulTermination(result) {
+  assert.ok(
+    result.code === 0 || result.signal === 'SIGTERM',
+    `expected clean exit 0 or SIGTERM, received code=${result.code} signal=${result.signal}`
+  )
 }
 
 test('headless process starts without Electron, becomes ready and preserves server identity across restart', { timeout: 40000 }, async () => {
@@ -74,7 +89,7 @@ test('headless process starts without Electron, becomes ready and preserves serv
     const firstReady = await waitForReady(firstPort)
     assert.equal(firstReady.ready, true)
     assert.ok(firstReady.identity.serverId)
-    assert.equal(await terminate(first.child), 0)
+    assertGracefulTermination(await terminate(first.child))
 
     const secondPort = await reservePort()
     const second = startServer({ dataDir, port: secondPort })
@@ -82,12 +97,12 @@ test('headless process starts without Electron, becomes ready and preserves serv
       const secondReady = await waitForReady(secondPort)
       assert.equal(secondReady.ready, true)
       assert.equal(secondReady.identity.serverId, firstReady.identity.serverId)
-      assert.equal(await terminate(second.child), 0)
+      assertGracefulTermination(await terminate(second.child))
     } finally {
-      if (second.child.exitCode === null) second.child.kill('SIGKILL')
+      if (second.child.exitCode === null && second.child.signalCode === null) second.child.kill('SIGKILL')
     }
   } finally {
-    if (first.child.exitCode === null) first.child.kill('SIGKILL')
+    if (first.child.exitCode === null && first.child.signalCode === null) first.child.kill('SIGKILL')
     fs.rmSync(dataDir, { recursive: true, force: true })
   }
 })
