@@ -25,6 +25,7 @@ const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
 const { FinanceSourceService } = require('./services/finance-source-service.cjs')
+const { RhSourceService } = require('./services/rh-source-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
 const { FieldSourceService } = require('./services/field-source-service.cjs')
 const { ProcurementService } = require('./services/procurement-service.cjs')
@@ -85,6 +86,9 @@ function createServices() {
   const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
+  const localPayroll = new PayrollService({ db })
+  const localTime = new TimeService({ db, fileService: files })
+  const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
   const explorer = new ManagedDirectoryService({
     roots: { documents: () => documentRoot.getRoot() }, shell, dialog,
@@ -108,9 +112,9 @@ function createServices() {
     backup: new BackupService({ db, ...paths }),
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
-    payroll: new PayrollService({ db }),
+    payroll: rh,
     catalog: new CatalogService({ db }),
-    time: new TimeService({ db, fileService: files }),
+    time: rh,
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
@@ -168,7 +172,8 @@ async function refreshModuleCapabilitiesSafe() {
     return {
       operation: services.moduleStorage.state('operation'),
       planning: services.moduleStorage.state('planning'),
-      finance: services.moduleStorage.state('finance')
+      finance: services.moduleStorage.state('finance'),
+      rh: services.moduleStorage.state('rh')
     }
   }
 }
@@ -288,7 +293,7 @@ function registerIpc() {
   ipcMain.handle('payroll:save-variable', envelope((payload) => services.payroll.saveVariable(payload)))
   ipcMain.handle('payroll:remove-variable', envelope(({ id }) => services.payroll.removeVariable(id)))
   ipcMain.handle('payroll:confirm', envelope(async (payload) => {
-    const payment = services.payroll.confirm(payload)
+    const payment = await services.payroll.confirm(payload)
     let documents = null, documentError = null
     if (Number(payload.quinzena) === 1) {
       try { documents = await services.time.generateDocuments({ funcionario_id: payload.funcionario_id, competencia: payload.competencia, paymentDate: payload.data }) }
