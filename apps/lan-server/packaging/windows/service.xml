@@ -1,0 +1,18 @@
+<service>
+  <id>ObraNaMaoServer</id>
+  <name>Obra na Mão Server</name>
+  <description>Servidor headless do Obra na Mão.</description>
+  <executable>%BASE%\..\runtime\node.exe</executable>
+  <arguments>"%BASE%\..\app\src\index.mjs"</arguments>
+  <workingdirectory>%BASE%\..\app</workingdirectory>
+  <startmode>Automatic</startmode>
+  <serviceaccount>
+    <username>NT AUTHORITY\LocalService</username>
+  </serviceaccount>
+  <onfailure action="restart" delay="5 sec"/>
+  <onfailure action="restart" delay="15 sec"/>
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>15 sec</stoptimeout>
+  <logpath>%ProgramData%\ArtiSys\Obra na Mão Server\logs</logpath>
+  <log mode="roll"></log>
+</service>
