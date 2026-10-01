@@ -26,6 +26,7 @@ const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
 const { FinanceSourceService } = require('./services/finance-source-service.cjs')
 const { RhSourceService } = require('./services/rh-source-service.cjs')
+const { RhDocumentService } = require('./services/rh-document-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
 const { FieldSourceService } = require('./services/field-source-service.cjs')
 const { ProcurementService } = require('./services/procurement-service.cjs')
@@ -89,6 +90,14 @@ function createServices() {
   const localPayroll = new PayrollService({ db })
   const localTime = new TimeService({ db, fileService: files })
   const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })
+  const rhDocuments = new RhDocumentService({ rh, localTime, fileService: files, dataAccess })
+  const time = {
+    get: payload => rh.timeGet(payload),
+    autoFill: payload => rh.timeAutoFill(payload),
+    save: payload => rh.timeSave(payload),
+    generateDocuments: payload => rhDocuments.generateDocuments(payload),
+    generateForAll: payload => rhDocuments.generateForAll(payload)
+  }
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
   const explorer = new ManagedDirectoryService({
     roots: { documents: () => documentRoot.getRoot() }, shell, dialog,
@@ -114,7 +123,7 @@ function createServices() {
     documents: new DocumentService({ db, fileService: files, dialog }),
     payroll: rh,
     catalog: new CatalogService({ db }),
-    time: rh,
+    time,
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
