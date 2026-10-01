@@ -16,7 +16,7 @@ function security() {
   }
 }
 
-test('F10 continua anunciando planning e cronograma após capacidades posteriores serem adicionadas', async () => {
+test('F10 continua anunciando planning e cronograma após capacidades F11/F12 serem adicionadas', async () => {
   const server = createLanServer({ security: security() })
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
@@ -27,11 +27,12 @@ test('F10 continua anunciando planning e cronograma após capacidades posteriore
     assert.equal(response.status, 200)
     const capabilities = await response.json()
     assert.ok(capabilities.modules.includes('planning'))
+    assert.ok(capabilities.modules.includes('finance'))
+    assert.ok(capabilities.modules.includes('rh'))
     assert.ok(capabilities.bridgeEntities.includes('cronograma_etapas'))
     assert.ok(capabilities.bridgeEntities.includes('frentes_obra'))
     assert.ok(capabilities.bridgeEntities.includes('tarefas_obra'))
     assert.ok(capabilities.bridgeEntities.includes('rdos'))
-    assert.equal(capabilities.modules.includes('rh'), false)
   } finally {
     server.close(); await once(server, 'close')
   }
