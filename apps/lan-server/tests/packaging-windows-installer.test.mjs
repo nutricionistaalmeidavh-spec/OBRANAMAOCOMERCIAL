@@ -12,10 +12,18 @@ test('Inno installer is x64, uses Program Files and stops the service before bin
   assert.match(iss, /ArchitecturesAllowed=.*x64/i)
   assert.match(iss, /ArchitecturesInstallIn64BitMode=.*x64/i)
   assert.match(iss, /PrepareToInstall/is)
-  assert.match(iss, /(Stop-Service|sc\.exe.*stop).*ObraNaMaoServer/is)
+  assert.match(iss, /preinstall-stop\.ps1/is)
+  assert.match(iss, /Flags:[^\n]*dontcopy/is)
+  assert.match(iss, /ExtractTemporaryFile\(['"]preinstall-stop\.ps1['"]\)/is)
   assert.match(iss, /install-hooks\.ps1/is)
   assert.match(iss, /UninstallRun/is)
+  assert.doesNotMatch(iss, /-Command\s+\".*Stop-Service/is)
   assert.doesNotMatch(iss, /(DelTree|Remove-Item)[^\n]*ProgramData/i)
+
+  const stopHook = read('preinstall-stop.ps1')
+  assert.match(stopHook, /Get-Service[^\n]*ObraNaMaoServer/i)
+  assert.match(stopHook, /Stop-Service[^\n]*ObraNaMaoServer/i)
+  assert.match(stopHook, /WaitForStatus/i)
 })
 
 test('LAN access is an unchecked opt-in task, never a default firewall opening', () => {
