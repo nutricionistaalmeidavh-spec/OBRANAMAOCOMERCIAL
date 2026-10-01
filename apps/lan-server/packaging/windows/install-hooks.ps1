@@ -2,12 +2,16 @@ param(
   [Parameter(Mandatory=$true)]
   [ValidateSet('Install','Uninstall')]
   [string]$Action,
-  [string]$InstallDir = (Split-Path $PSScriptRoot -Parent),
+  [string]$InstallDir,
   [string]$ProgramDataRoot = (Join-Path $env:ProgramData 'ArtiSys\Obra na Mão Server'),
   [switch]$LanAccess,
   [int]$Port = 4732,
   [int]$ReadyTimeoutSeconds = 30
 )
+
+if (-not $InstallDir) {
+  $InstallDir = Split-Path $PSScriptRoot -Parent
+}
 
 $ErrorActionPreference = 'Stop'
 $firewallRuleName = 'Obra na Mão Server (LAN)'
