@@ -11,6 +11,7 @@ export default function StorageServerSettings({onMessage}:Props){
   const storage=useAsync(()=>window.fluxoDre.storage.state(),[])
   const online=useAsync(()=>window.fluxoDre.online.state(),[])
   const moduleState=useAsync(()=>window.fluxoDre.storage.moduleState('operation'),[])
+  const planningState=useAsync(()=>window.fluxoDre.storage.moduleState('planning'),[])
   const [form,setForm]=useState<Form>({operationalMode:'local',host:'127.0.0.1',port:'4732'})
   const [lanStatus,setLanStatus]=useState<any>(null)
   const [hostState,setHostState]=useState<any>(null)
@@ -26,12 +27,21 @@ export default function StorageServerSettings({onMessage}:Props){
   useEffect(()=>{if(storage.data)setForm({operationalMode:storage.data.operationalMode,host:storage.data.host,port:String(storage.data.port)})},[storage.data?.operationalMode,storage.data?.host,storage.data?.port])
 
   const refreshModuleState=async()=>{
-    try{const states=await window.fluxoDre.storage.refreshModuleCapabilities();moduleState.setData(states.operation)}
-    catch{await moduleState.reload()}
+    try{
+      const states=await window.fluxoDre.storage.refreshModuleCapabilities()
+      moduleState.setData(states.operation)
+      planningState.setData(states.planning)
+    }catch{
+      await Promise.all([moduleState.reload(),planningState.reload()])
+    }
   }
 
   const refreshLan=async(mode:Mode=form.operationalMode)=>{
-    if(mode==='local'){setLanStatus(null);setHostState(null);setAdminStatus(null);setDevices([]);await moduleState.reload();return}
+    if(mode==='local'){
+      setLanStatus(null);setHostState(null);setAdminStatus(null);setDevices([])
+      await Promise.all([moduleState.reload(),planningState.reload()])
+      return
+    }
     try{
       if(mode==='lan-host'){
         const [host,login]=await Promise.all([window.fluxoDre.lan.hostState(),window.fluxoDre.lan.startAtLoginState()])
@@ -43,7 +53,7 @@ export default function StorageServerSettings({onMessage}:Props){
         setAdminStatus(admin);setDevices(deviceList)
       }else{setAdminStatus(null);setDevices([])}
       await refreshModuleState()
-    }catch(error:any){setLanStatus(null);setAdminStatus(null);setDevices([]);await moduleState.reload();onMessage(error.message)}
+    }catch(error:any){setLanStatus(null);setAdminStatus(null);setDevices([]);await Promise.all([moduleState.reload(),planningState.reload()]);onMessage(error.message)}
   }
 
   useEffect(()=>{if(storage.data&&storage.data.operationalMode!=='local')void refreshLan(storage.data.operationalMode as Mode)},[storage.data?.operationalMode,storage.data?.baseUrl])
@@ -81,6 +91,7 @@ export default function StorageServerSettings({onMessage}:Props){
   const toggleStartAtLogin=async(enabled:boolean)=>{try{const state=await window.fluxoDre.lan.setStartAtLogin(enabled);setStartAtLogin(state.enabled);onMessage(state.enabled?'Obra na Mão configurado para iniciar com o sistema.':'Inicialização automática desativada.')}catch(error:any){onMessage(error.message)}}
 
   const operation=moduleState.data
+  const planning=planningState.data
 
   return <Card className="setting-card setting-card-feature">
     <Server size={21} color="#2f67d8"/>
@@ -113,7 +124,16 @@ export default function StorageServerSettings({onMessage}:Props){
       {operation?.state==='central-ready'&&<p>Servidor configurado, mas o RDO/operação ainda aguarda pareamento e capability central compatível. Nenhum fallback local silencioso será feito.</p>}
       {operation?.state==='central-active'&&<p className="success-box"><strong>RDO/operação já usa o banco central.</strong> Novos RDOs, frentes e tarefas podem ser compartilhados pelos computadores autorizados.</p>}
       {operation?.state==='migration-required'&&<div className="error-box"><strong>Migração necessária.</strong> RDOs, frentes e tarefas locais continuam neste computador e não foram apagados nem copiados. A centralização deste módulo só será ativada depois de uma migração explícita e validada.</div>}
-      <small>Planejamento, Financeiro e RH permanecem no comportamento atual até as respectivas etapas de centralização.</small>
+    </div>
+
+    <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-color, #dfe4ec)'}}>
+      <strong>Planejamento</strong>
+      {planning?.state==='local'&&<p>Planejamento continua usando o banco local deste computador.</p>}
+      {planning?.state==='central-ready'&&!planning?.financeDependencyBlocked&&<p>Servidor configurado, mas o Planejamento ainda aguarda capability central compatível. Nenhum fallback local silencioso será feito.</p>}
+      {planning?.state==='central-ready'&&planning?.financeDependencyBlocked&&<div className="error-box"><strong>Financeiro local detectado.</strong> O Planejamento central ficará aguardando até a centralização/migração financeira da F11/F17 para não misturar cronograma central com valores locais.</div>}
+      {planning?.state==='central-active'&&<p className="success-box"><strong>Planejamento já usa o banco central.</strong> Cronograma, etapas e orçamento podem ser compartilhados pelos computadores autorizados e continuam no mesmo fluxo Web/PWA.</p>}
+      {planning?.state==='migration-required'&&<div className="error-box"><strong>Migração necessária.</strong> O cronograma, etapas e orçamento locais continuam neste computador e não foram apagados nem copiados. A centralização do Planejamento só será ativada depois de uma migração explícita e validada.</div>}
+      <small>Financeiro e RH permanecem no comportamento atual até as respectivas etapas de centralização.</small>
     </div>
 
     {isServerMode&&!dirty&&<div style={{marginTop:16,borderTop:'1px solid var(--border-color, #dfe4ec)',paddingTop:14}}>
@@ -152,6 +172,6 @@ export default function StorageServerSettings({onMessage}:Props){
       </div>}
     </div>}
 
-    <div style={{marginTop:12}}><small><strong>Escopo atual:</strong> Empresas, Clientes e Obras já usam o servidor em modo LAN. RDO/operação segue o estado exibido acima. Planejamento, Financeiro e RH permanecem no comportamento atual até suas migrações específicas.</small></div>
+    <div style={{marginTop:12}}><small><strong>Escopo atual:</strong> Empresas, Clientes e Obras já usam o servidor em modo LAN. RDO/operação e Planejamento seguem os estados exibidos acima. Financeiro e RH permanecem no comportamento atual até suas migrações específicas.</small></div>
   </Card>
 }
