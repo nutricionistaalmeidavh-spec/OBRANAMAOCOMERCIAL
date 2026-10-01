@@ -1,0 +1,230 @@
+const MODULE_TABLES = Object.freeze({
+  core: ['empresas', 'clientes', 'obras'],
+  operation: ['frentes_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
+  planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'],
+  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'],
+  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis']
+})
+
+const REF_MAP = Object.freeze({
+  clientes: { empresa_id: 'empresas' },
+  obras: { empresa_id: 'empresas', cliente_id: 'clientes' },
+  frentes_obra: { obra_id: 'obras' },
+  rdos: { obra_id: 'obras', frente_id: 'frentes_obra' },
+  rdo_equipe: { rdo_id: 'rdos', frente_id: 'frentes_obra', funcionario_id: { table: 'funcionarios', deferred: true } },
+  rdo_equipamentos: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
+  rdo_ocorrencias: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
+  rdo_anexos: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
+  tarefas_obra: { obra_id: 'obras', frente_id: 'frentes_obra', rdo_ocorrencia_id: 'rdo_ocorrencias' },
+  etapas_obra: { obra_id: 'obras', frente_id: 'frentes_obra' },
+  cronograma_etapas: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra' },
+  itens_orcamentarios: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra' },
+  fornecedores: { empresa_id: 'empresas' },
+  contas: { empresa_id: 'empresas', obra_id: 'obras', frente_id: 'frentes_obra', fornecedor_id: 'fornecedores', cliente_id: 'clientes', categoria_id: 'categorias_financeiras' },
+  pagamentos_conta: { conta_id: 'contas' },
+  cargos: { empresa_id: 'empresas' },
+  beneficios: { empresa_id: 'empresas' },
+  epis: { empresa_id: 'empresas' },
+  funcionarios: { empresa_id: 'empresas', obra_atual_id: 'obras', cargo_id: 'cargos' },
+  funcionario_obras: { empresa_id: 'empresas', funcionario_id: 'funcionarios', obra_id: 'obras' },
+  cargo_beneficios: { empresa_id: 'empresas', cargo_id: 'cargos', beneficio_id: 'beneficios' },
+  funcionario_beneficios: { empresa_id: 'empresas', funcionario_id: 'funcionarios', beneficio_id: 'beneficios' },
+  folhas_pagamento: { empresa_id: 'empresas', conta_id: 'contas' },
+  folha_lancamentos: { empresa_id: 'empresas', folha_id: 'folhas_pagamento', funcionario_id: 'funcionarios' },
+  pagamentos_funcionario: { empresa_id: 'empresas', funcionario_id: 'funcionarios', folha_id: 'folhas_pagamento' },
+  pontos_mensais: { empresa_id: 'empresas', funcionario_id: 'funcionarios' },
+  ponto_marcacoes: { empresa_id: 'empresas', ponto_mensal_id: 'pontos_mensais' },
+  funcionario_epis: { empresa_id: 'empresas', funcionario_id: 'funcionarios', epi_id: 'epis' }
+})
+
+const asText = value => String(value)
+const canonicalCounts = (module, counts = {}) => Object.fromEntries(MODULE_TABLES[module].map(table => [table, Number(counts?.[table] || 0)]))
+
+export class MigrationService {
+  constructor({ repository, now = () => new Date().toISOString() }) {
+    if (!repository?.connection || !repository?.save) throw new Error('Repositório LAN inválido para migração.')
+    this.repository = repository
+    this.db = repository.connection()
+    this.now = now
+  }
+
+  assertModule(module) {
+    const value = String(module || '')
+    if (!Object.hasOwn(MODULE_TABLES, value)) throw new Error('Módulo de migração inválido.')
+    return value
+  }
+
+  row(migrationId) {
+    return this.db.prepare('SELECT * FROM module_migrations WHERE migration_id=?').get(asText(migrationId)) || null
+  }
+
+  mapMigration(row) {
+    if (!row) return null
+    return {
+      migrationId: row.migration_id,
+      module: row.module,
+      sourceFingerprint: row.source_fingerprint,
+      expectedCounts: JSON.parse(row.expected_counts_json || '{}'),
+      status: row.status,
+      createdAt: row.created_at,
+      validatedAt: row.validated_at || null,
+      committedAt: row.committed_at || null,
+      rolledBackAt: row.rolled_back_at || null
+    }
+  }
+
+  start({ migrationId, module, sourceFingerprint, expectedCounts }) {
+    const id = String(migrationId || '').trim()
+    const source = String(sourceFingerprint || '').trim()
+    const moduleName = this.assertModule(module)
+    if (!id || !source) throw new Error('Identificação/fingerprint da origem da migração não informada.')
+    const expected = canonicalCounts(moduleName, expectedCounts)
+    const existing = this.row(id)
+    if (existing) {
+      if (existing.module !== moduleName) throw new Error('MigrationId já pertence a outro módulo.')
+      if (existing.source_fingerprint !== source) throw new Error('MigrationId já pertence a outro fingerprint de origem.')
+      if (existing.expected_counts_json !== JSON.stringify(expected)) throw new Error('MigrationId já possui outra contagem esperada.')
+      return this.mapMigration(existing)
+    }
+    this.db.prepare('INSERT INTO module_migrations(migration_id,module,source_fingerprint,expected_counts_json,status,created_at) VALUES(?,?,?,?,?,?)')
+      .run(id, moduleName, source, JSON.stringify(expected), 'started', this.now())
+    return this.mapMigration(this.row(id))
+  }
+
+  mappingFor(sourceFingerprint, sourceTable, sourceId, currentMigrationId) {
+    return this.db.prepare(`SELECT r.target_id FROM module_migration_records r JOIN module_migrations m ON m.migration_id=r.migration_id
+      WHERE m.source_fingerprint=? AND r.source_table=? AND r.source_id=? AND (m.status='committed' OR m.migration_id=?)
+      ORDER BY CASE WHEN m.migration_id=? THEN 0 ELSE 1 END, m.committed_at DESC LIMIT 1`)
+      .get(String(sourceFingerprint), String(sourceTable), asText(sourceId), String(currentMigrationId), String(currentMigrationId)) || null
+  }
+
+  remapData(migration, sourceTable, data) {
+    const clean = { ...(data || {}) }
+    delete clean.id
+    for (const [field, rawTarget] of Object.entries(REF_MAP[sourceTable] || {})) {
+      const value = clean[field]
+      if (value === null || value === undefined || value === '') continue
+      const config = typeof rawTarget === 'string' ? { table: rawTarget, deferred: false } : rawTarget
+      const mapping = this.mappingFor(migration.source_fingerprint, config.table, value, migration.migration_id)
+      if (!mapping) {
+        if (config.deferred) { clean[field] = null; continue }
+        throw new Error(`Referência ${field} (${config.table}:${value}) ainda não foi migrada.`)
+      }
+      clean[field] = Number(mapping.target_id)
+    }
+    return clean
+  }
+
+  backfillDeferredEmployee(sourceFingerprint, sourceEmployeeId, targetEmployeeId) {
+    const rows = this.db.prepare(`SELECT r.target_id,r.source_data_json FROM module_migration_records r JOIN module_migrations m ON m.migration_id=r.migration_id
+      WHERE m.source_fingerprint=? AND m.status='committed' AND r.source_table='rdo_equipe'`).all(String(sourceFingerprint))
+    for (const row of rows) {
+      let source
+      try { source = JSON.parse(row.source_data_json || '{}') } catch { source = {} }
+      if (String(source.funcionario_id ?? '') === String(sourceEmployeeId)) {
+        this.db.prepare('UPDATE rdo_equipe SET funcionario_id=? WHERE id=?').run(Number(targetEmployeeId), Number(row.target_id))
+      }
+    }
+  }
+
+  importRecord(migrationId, { sourceTable, sourceId, data }) {
+    const migrationRow = this.row(migrationId)
+    if (!migrationRow) throw new Error('Migração não encontrada.')
+    if (migrationRow.status !== 'started') throw new Error('Migração não está aberta para importação.')
+    const table = String(sourceTable || '')
+    if (!MODULE_TABLES[migrationRow.module].includes(table)) throw new Error('Tabela não pertence ao módulo desta migração.')
+    if (sourceId === null || sourceId === undefined || sourceId === '') throw new Error('ID de origem não informado.')
+
+    const existing = this.db.prepare('SELECT target_id FROM module_migration_records WHERE migration_id=? AND source_table=? AND source_id=?')
+      .get(String(migrationId), table, asText(sourceId))
+    if (existing) return { sourceTable: table, sourceId, targetId: Number(existing.target_id), reused: true }
+
+    const remapped = this.remapData(migrationRow, table, data)
+    this.db.exec('BEGIN IMMEDIATE')
+    try {
+      const raced = this.db.prepare('SELECT target_id FROM module_migration_records WHERE migration_id=? AND source_table=? AND source_id=?')
+        .get(String(migrationId), table, asText(sourceId))
+      if (raced) {
+        this.db.exec('COMMIT')
+        return { sourceTable: table, sourceId, targetId: Number(raced.target_id), reused: true }
+      }
+
+      let targetId, createdTarget = 1
+      if (table === 'categorias_financeiras' && remapped.nome) {
+        const seeded = this.db.prepare('SELECT id FROM categorias_financeiras WHERE nome=?').get(String(remapped.nome))
+        if (seeded) { targetId = Number(seeded.id); createdTarget = 0 }
+      }
+      if (!targetId) {
+        const saved = this.repository.save(table, remapped)
+        if (!saved?.id) throw new Error('Registro central não retornou ID.')
+        targetId = Number(saved.id)
+      }
+      this.db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_target,source_data_json,created_at) VALUES(?,?,?,?,?,?,?,?)')
+        .run(String(migrationId), table, asText(sourceId), table, targetId, createdTarget, JSON.stringify(data || {}), this.now())
+      if (table === 'funcionarios') this.backfillDeferredEmployee(migrationRow.source_fingerprint, sourceId, targetId)
+      this.db.exec('COMMIT')
+      return { sourceTable: table, sourceId, targetId, reused: false }
+    } catch (error) {
+      try { this.db.exec('ROLLBACK') } catch {}
+      throw error
+    }
+  }
+
+  status(migrationId) {
+    const row = this.row(migrationId)
+    if (!row) throw new Error('Migração não encontrada.')
+    const counts = Object.fromEntries(MODULE_TABLES[row.module].map(table => [table, 0]))
+    for (const item of this.db.prepare('SELECT source_table,COUNT(*) AS n FROM module_migration_records WHERE migration_id=? GROUP BY source_table').all(String(migrationId))) {
+      counts[item.source_table] = Number(item.n || 0)
+    }
+    return { ...this.mapMigration(row), counts }
+  }
+
+  validate(migrationId) {
+    const current = this.status(migrationId)
+    if (current.status === 'validated' || current.status === 'committed') return current
+    if (current.status !== 'started') throw new Error('Migração não pode ser validada neste estado.')
+    for (const table of MODULE_TABLES[current.module]) {
+      if (Number(current.counts[table] || 0) !== Number(current.expectedCounts[table] || 0)) {
+        throw new Error(`Contagem migrada divergente em ${table}: esperado ${current.expectedCounts[table] || 0}, recebido ${current.counts[table] || 0}.`)
+      }
+    }
+    this.db.prepare("UPDATE module_migrations SET status='validated',validated_at=? WHERE migration_id=?").run(this.now(), String(migrationId))
+    return this.status(migrationId)
+  }
+
+  commit(migrationId) {
+    const row = this.row(migrationId)
+    if (!row) throw new Error('Migração não encontrada.')
+    if (row.status === 'committed') return this.status(migrationId)
+    if (row.status !== 'validated') throw new Error('Migração precisa estar validada antes do commit.')
+    this.db.prepare("UPDATE module_migrations SET status='committed',committed_at=? WHERE migration_id=?").run(this.now(), String(migrationId))
+    return this.status(migrationId)
+  }
+
+  rollback(migrationId) {
+    const row = this.row(migrationId)
+    if (!row) throw new Error('Migração não encontrada.')
+    if (row.status === 'rolled_back') return this.status(migrationId)
+    if (row.status === 'committed') throw new Error('Migração já commitada não pode ser revertida por este protocolo.')
+    const order = new Map(MODULE_TABLES[row.module].map((table, index) => [table, index]))
+    const records = this.db.prepare('SELECT source_table,target_table,target_id,created_target FROM module_migration_records WHERE migration_id=?').all(String(migrationId))
+      .sort((a, b) => (order.get(b.target_table) ?? -1) - (order.get(a.target_table) ?? -1) || Number(b.target_id) - Number(a.target_id))
+    this.db.exec('BEGIN IMMEDIATE')
+    try {
+      for (const record of records) {
+        if (Number(record.created_target) !== 1) continue
+        if (!MODULE_TABLES[row.module].includes(record.target_table)) throw new Error('Tabela de rollback inválida.')
+        this.db.prepare(`DELETE FROM ${record.target_table} WHERE id=?`).run(Number(record.target_id))
+      }
+      this.db.prepare("UPDATE module_migrations SET status='rolled_back',rolled_back_at=? WHERE migration_id=?").run(this.now(), String(migrationId))
+      this.db.exec('COMMIT')
+      return this.status(migrationId)
+    } catch (error) {
+      try { this.db.exec('ROLLBACK') } catch {}
+      throw error
+    }
+  }
+}
+
+export { MODULE_TABLES, REF_MAP }
