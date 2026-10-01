@@ -21,8 +21,9 @@ test('Inno installer is x64, uses Program Files and stops the service before bin
   assert.doesNotMatch(iss, /(DelTree|Remove-Item)[^\n]*ProgramData/i)
 
   const stopHook = read('preinstall-stop.ps1')
-  assert.match(stopHook, /Get-Service[^\n]*ObraNaMaoServer/i)
-  assert.match(stopHook, /Stop-Service[^\n]*ObraNaMaoServer/i)
+  assert.match(stopHook, /\$serviceName\s*=\s*['"]ObraNaMaoServer['"]/i)
+  assert.match(stopHook, /Get-Service[^\n]*\$serviceName/i)
+  assert.match(stopHook, /Stop-Service[^\n]*\$serviceName/i)
   assert.match(stopHook, /WaitForStatus/i)
 })
 
