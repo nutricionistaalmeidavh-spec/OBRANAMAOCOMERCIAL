@@ -15,10 +15,10 @@ function fixture() {
   return { repository, migration, company, otherCompany, work, otherWork }
 }
 
-test('migration F11 cria schema financeiro central e alcança versão 4', () => {
+test('migration F11 preserva schema financeiro central após migrations posteriores', () => {
   const f = fixture()
   try {
-    assert.equal(f.migration.version, 4)
+    assert.ok(f.migration.version >= 4)
     for (const table of ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta']) {
       const row = f.repository.connection().prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table)
       assert.equal(row?.name, table)
