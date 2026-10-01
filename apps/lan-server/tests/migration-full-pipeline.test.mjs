@@ -179,9 +179,7 @@ test('migrates core operation planning finance and rh with collisions mappings a
     const status=f.service.status(`${module}-1`)
     assert.equal(status.status,'committed')
     assert.equal(status.sanityOk,true)
-    assert.deepEqual(status.counts,counts(module,{
-      core:{},operation:{},planning:{},finance:{},rh:{}
-    }[module]||{}),`placeholder guard ${module}`)
+    assert.deepEqual(status.counts,status.expectedCounts)
   }
 
   assert.equal(f.audit.filter(event=>event.action==='migration_started').length,5)
