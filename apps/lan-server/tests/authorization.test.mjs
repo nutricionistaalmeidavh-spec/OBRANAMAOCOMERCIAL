@@ -64,3 +64,16 @@ test('business policy reuses Cloud role/module snapshot instead of LAN-only perm
   const noModule=await authenticateLanRequest(request('valid-device-token'),fixture({role:'foreman',modules:['rdo'],channels:['desktop']}).security)
   assert.throws(()=>authorizeBusinessRoute(noModule,{table:'obras',method:'GET'}),error=>error instanceof LanAuthorizationError&&error.status===403)
 })
+
+test('RH central aceita admin ou membro com módulo rh e rejeita perfil apenas operacional', async()=>{
+  const admin=await authenticateLanRequest(request('valid-device-token'),fixture({role:'admin',modules:[]}).security)
+  assert.doesNotThrow(()=>authorizeBusinessRoute(admin,{table:'funcionarios',method:'POST'}))
+
+  const rh=await authenticateLanRequest(request('valid-device-token'),fixture({role:'employee',modules:['rh']}).security)
+  assert.doesNotThrow(()=>authorizeBusinessRoute(rh,{table:'funcionarios',method:'GET'}))
+  assert.doesNotThrow(()=>authorizeBusinessRoute(rh,{table:'folha_lancamentos',method:'POST'}))
+  assert.doesNotThrow(()=>authorizeBusinessRoute(rh,{table:'ponto_marcacoes',method:'POST'}))
+
+  const operational=await authenticateLanRequest(request('valid-device-token'),fixture({role:'foreman',modules:['obra360','rdo']}).security)
+  assert.throws(()=>authorizeBusinessRoute(operational,{table:'funcionarios',method:'GET'}),error=>error instanceof LanAuthorizationError&&error.status===403)
+})
