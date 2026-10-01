@@ -39,10 +39,13 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $version = (Get-Content apps/lan-server/package.json -Raw | ConvertFrom-Json).version
           $installer = Join-Path $PWD "apps/lan-server/dist/installer/Obra-na-Mao-Server-Setup-$version-x64.exe"
+          $installDir = Join-Path ${env:ProgramFiles} 'ArtiSys\Obra na Mão Server'
           $programDataRoot = Join-Path $env:ProgramData 'ArtiSys\Obra na Mão Server'
           $configPath = Join-Path $programDataRoot 'config\server.env'
           $logRoot = Join-Path $programDataRoot 'logs'
           $innoLog = Join-Path $env:RUNNER_TEMP 'obra-na-mao-server-inno.log'
+          $hookDiagOut = Join-Path $env:RUNNER_TEMP 'obra-na-mao-hook.stdout.log'
+          $hookDiagErr = Join-Path $env:RUNNER_TEMP 'obra-na-mao-hook.stderr.log'
           $sentinel = Join-Path $programDataRoot 'ci-sentinel.txt'
           if (-not (Test-Path $installer)) { throw "Server installer missing: $installer" }
 
@@ -51,7 +54,7 @@ jobs:
             sc.exe delete ObraNaMaoServer | Out-Null
           }
           Remove-Item $programDataRoot -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item $innoLog -Force -ErrorAction SilentlyContinue
+          Remove-Item $innoLog,$hookDiagOut,$hookDiagErr -Force -ErrorAction SilentlyContinue
 
           function Write-ServiceDiagnostics {
             Write-Host '=== ObraNaMaoServer diagnostics ==='
@@ -61,6 +64,14 @@ jobs:
             if (Test-Path $innoLog) {
               Write-Host '--- Inno Setup log tail ---'
               Get-Content $innoLog -Tail 180 -ErrorAction SilentlyContinue | Out-Host
+            }
+            if (Test-Path $hookDiagOut) {
+              Write-Host '--- install-hooks stdout ---'
+              Get-Content $hookDiagOut -Tail 120 -ErrorAction SilentlyContinue | Out-Host
+            }
+            if (Test-Path $hookDiagErr) {
+              Write-Host '--- install-hooks stderr ---'
+              Get-Content $hookDiagErr -Tail 120 -ErrorAction SilentlyContinue | Out-Host
             }
             if (Test-Path $logRoot) {
               Get-ChildItem -Path $logRoot -File -ErrorAction SilentlyContinue | ForEach-Object {
@@ -85,9 +96,23 @@ jobs:
             throw 'Windows service did not become /ready.'
           }
 
+          function Capture-HookFailure {
+            $hook = Join-Path $installDir 'platform\install-hooks.ps1'
+            if (-not (Test-Path $hook)) { throw "Installed hook missing: $hook" }
+            $windowsPowerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+            $args = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$hook,'-Action','Install','-InstallDir',$installDir,'-ReadyTimeoutSeconds','5')
+            $diag = Start-Process -FilePath $windowsPowerShell -ArgumentList $args -Wait -PassThru -RedirectStandardOutput $hookDiagOut -RedirectStandardError $hookDiagErr
+            Write-Host "Diagnostic hook exit code: $($diag.ExitCode)"
+            Write-ServiceDiagnostics
+          }
+
           $installArgs = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LOG=$innoLog")
           $p = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
           if ($p.ExitCode -ne 0) { Write-ServiceDiagnostics; throw "First install failed: $($p.ExitCode)" }
+          if (-not (Get-Service -Name ObraNaMaoServer -ErrorAction SilentlyContinue)) {
+            Capture-HookFailure
+            throw 'Installer postinstall failed before registering ObraNaMaoServer.'
+          }
           $first = Wait-Ready
           $serverId = [string]$first.identity.serverId
           if (-not $serverId) { throw 'Missing serverId after first install.' }
@@ -107,7 +132,7 @@ jobs:
           if (-not (Test-Path $sentinel)) { throw 'Persistent sentinel was removed by Windows reinstall.' }
           if ((Get-FileHash $configPath -Algorithm SHA256).Hash -ne $configHash) { throw 'Existing Windows server config was overwritten by reinstall.' }
 
-          $uninstaller = Join-Path ${env:ProgramFiles} 'ArtiSys\Obra na Mão Server\unins000.exe'
+          $uninstaller = Join-Path $installDir 'unins000.exe'
           if (-not (Test-Path $uninstaller)) { throw "Uninstaller missing: $uninstaller" }
           $u = Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -PassThru
           if ($u.ExitCode -ne 0) { throw "Uninstall failed: $($u.ExitCode)" }
