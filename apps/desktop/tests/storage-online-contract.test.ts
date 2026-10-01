@@ -7,7 +7,11 @@ const main = fs.readFileSync(path.resolve(process.cwd(), 'electron/main.cjs'), '
 
 describe('storage and Web/PWA public contract separation', () => {
   it('keeps storage limited to storage state/configuration/connection testing', () => {
-    const storageBlock = preload.match(/storage:\s*\{[^\n]+\}/)?.[0] || ''
+    const storageStart = preload.indexOf('storage: {')
+    const lanStart = preload.indexOf('\n  lan: {', storageStart)
+    expect(storageStart).toBeGreaterThanOrEqual(0)
+    expect(lanStart).toBeGreaterThan(storageStart)
+    const storageBlock = preload.slice(storageStart, lanStart)
     expect(storageBlock).toContain("state: () => call('storage:state')")
     expect(storageBlock).toContain("configure: (input) => call('storage:configure', input)")
     expect(storageBlock).toContain("testConnection: () => call('storage:test-connection')")
