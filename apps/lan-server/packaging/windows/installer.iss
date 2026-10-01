@@ -58,15 +58,20 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
+  PowerShellPath: String;
+  Params: String;
 begin
   if CurStep = ssPostInstall then
   begin
-    if not Exec(
-      ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
-      '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\platform\install-hooks.ps1') + '" -Action Install -InstallDir "' + ExpandConstant('{app}') + '" ' + LanSwitch(''),
-      '', SW_HIDE, ewWaitUntilTerminated, ResultCode
-    ) then
+    PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+    Params := '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\platform\install-hooks.ps1') + '" -Action Install -InstallDir "' + ExpandConstant('{app}') + '" ' + LanSwitch('');
+    Log('ObraNaMaoServer postinstall: launching Windows PowerShell hook.');
+    if not Exec(PowerShellPath, Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    begin
+      Log(Format('ObraNaMaoServer postinstall: Exec failed (%d: %s).', [ResultCode, SysErrorMessage(ResultCode)]));
       RaiseException('Não foi possível executar a configuração do serviço ObraNaMaoServer.');
+    end;
+    Log(Format('ObraNaMaoServer postinstall: hook exit code %d.', [ResultCode]));
     if ResultCode <> 0 then
       RaiseException(Format('A configuração do serviço ObraNaMaoServer falhou (código %d). Consulte o log do instalador em ProgramData.', [ResultCode]));
   end;
