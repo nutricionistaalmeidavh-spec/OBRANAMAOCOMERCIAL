@@ -56,7 +56,7 @@ test('sync source capabilities rejeita dispositivo revogado', async () => {
   } finally { await close(server) }
 })
 
-test('sync source capabilities anuncia o contrato central disponível até F11', async () => {
+test('sync source capabilities anuncia o contrato central final de F12', async () => {
   const { server, baseUrl } = await fixture()
   try {
     const response = await fetch(`${baseUrl}/api/v1/sync-source/capabilities`, {
@@ -66,9 +66,9 @@ test('sync source capabilities anuncia o contrato central disponível até F11',
     const capabilities = await response.json()
     assert.deepEqual(capabilities, {
       version: 1,
-      modules: ['core', 'operation', 'planning', 'finance', 'summary'],
+      modules: ['core', 'operation', 'planning', 'finance', 'rh', 'summary'],
       bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas']
     })
-    assert.equal(capabilities.modules.includes('rh'), false)
+    assert.equal(capabilities.modules.includes('rh'), true)
   } finally { await close(server) }
 })
