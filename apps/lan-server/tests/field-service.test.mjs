@@ -46,6 +46,7 @@ test('cria RDO, filhos e tarefa da ocorrência em uma única operação', () => 
   const f = fixture()
   try {
     const rdo = f.field.saveDailyReport(payload(f))
+    assert.equal(rdo.revision, 1)
     const rows = children(f.repository.connection(), rdo.id)
     assert.equal(rows.equipe.length, 1)
     assert.equal(rows.equipe[0].frente_id, f.front.id)
@@ -70,6 +71,7 @@ test('editar RDO substitui filhos e remove logicamente tarefas das ocorrências 
 
     const updated = f.field.saveDailyReport(payload(f, {
       id: original.id,
+      expectedRevision: original.revision,
       atividades: 'Atividade revisada',
       equipe: [{ nome: 'Maria', funcao: 'Ajudante', horas: 6 }],
       equipamentos: [],
@@ -78,6 +80,7 @@ test('editar RDO substitui filhos e remove logicamente tarefas das ocorrências 
     }))
 
     assert.equal(updated.id, original.id)
+    assert.equal(updated.revision, original.revision + 1)
     assert.equal(updated.atividades, 'Atividade revisada')
     const rows = children(f.repository.connection(), updated.id)
     assert.equal(rows.equipe.length, 1)
