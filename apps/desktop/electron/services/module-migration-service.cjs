@@ -93,12 +93,13 @@ class ModuleMigrationService {
     const exported = this.exportModule(module)
     const state = this.moduleStorage.state(module)
     const coreState = module === 'core' ? state?.state : this.moduleStorage.state('core')?.state
+    const dependencyBlockedBy = module === 'core' ? null : (this.moduleStorage.dependencyBlockedBy?.(module) || (coreState !== 'central-active' ? 'core' : null))
     const base = {
       module,
       state: state?.state || 'local',
       localCounts: exported.counts,
       capability: false,
-      dependencies: { core: coreState || 'local' },
+      dependencies: { core: coreState || 'local', blockedBy: dependencyBlockedBy },
       canMigrate: false
     }
 
@@ -106,7 +107,7 @@ class ModuleMigrationService {
     const operationalMode = storage.operationalMode || (storage.mode === 'server' ? 'lan-client' : 'local')
     if (!['lan-host', 'lan-client'].includes(operationalMode) || storage.mode !== 'server') return { ...base, reason: 'storage_not_central' }
     if (state?.state !== 'migration-required') return { ...base, reason: 'migration_not_required' }
-    if (module !== 'core' && coreState !== 'central-active') return { ...base, reason: 'core_dependency' }
+    if (dependencyBlockedBy) return { ...base, reason: dependencyBlockedBy === 'core' ? 'core_dependency' : 'module_dependency' }
 
     const capabilities = await this.lanClient.syncSourceCapabilities()
     const supported = Array.isArray(capabilities?.modules) && capabilities.modules.includes(module)
@@ -119,10 +120,11 @@ class ModuleMigrationService {
     return { module, attempt: this.readAttempt(module), storage: this.moduleStorage.state(module) }
   }
 
-  migrationBlockedMessage(reason) {
+  migrationBlockedMessage(reason, preflight = null) {
     if (reason === 'storage_not_central') return 'Migração central exige servidor LAN configurado.'
     if (reason === 'migration_not_required') return 'Este módulo não está aguardando migração explícita.'
     if (reason === 'core_dependency') return 'Cadastros-base precisam ser migrados antes deste módulo.'
+    if (reason === 'module_dependency') return `O módulo ${preflight?.dependencies?.blockedBy || 'anterior'} precisa estar central antes desta migração.`
     if (reason === 'capability_missing') return 'O servidor ainda não suporta a migração deste módulo.'
     return 'Migração central não está disponível neste momento.'
   }
@@ -130,7 +132,7 @@ class ModuleMigrationService {
   async migrate(moduleName) {
     const module = this.assertModule(moduleName)
     const preflight = await this.preflight(module)
-    if (!preflight.canMigrate) throw new Error(this.migrationBlockedMessage(preflight.reason))
+    if (!preflight.canMigrate) throw new Error(this.migrationBlockedMessage(preflight.reason, preflight))
 
     const exported = this.exportModule(module)
     const sourceFingerprint = this.sourceFingerprint()
