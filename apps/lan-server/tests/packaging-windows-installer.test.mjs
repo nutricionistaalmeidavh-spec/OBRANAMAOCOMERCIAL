@@ -33,11 +33,13 @@ test('Inno installer is x64, stops the service before replacement and checks pos
   assert.match(stopHook, /WaitForStatus/i)
 })
 
-test('PowerShell lifecycle never passes a Program Files script path through -File', () => {
+test('PowerShell lifecycle never evaluates PSScriptRoot inside parameter defaults or passes a Program Files script path through -File', () => {
   const iss = read('installer.iss')
   const hooks = read('install-hooks.ps1')
 
-  assert.match(hooks, /\[string\]\$InstallDir\s*=\s*\(Split-Path\s+\$PSScriptRoot\s+-Parent\)/i)
+  assert.match(hooks, /\[string\]\$InstallDir\s*(?:,|\r?\n)/i)
+  assert.doesNotMatch(hooks, /\[string\]\$InstallDir\s*=\s*\(Split-Path\s+\$PSScriptRoot\s+-Parent\)/i)
+  assert.match(hooks, /if\s*\(\s*-not\s+\$InstallDir\s*\)\s*\{\s*\$InstallDir\s*=\s*Split-Path\s+\$PSScriptRoot\s+-Parent\s*\}/is)
   assert.match(iss, /PlatformDir\s*:=\s*ExpandConstant\(['"]\{app\}\\platform['"]\)/i)
   assert.match(iss, /Params\s*:=\s*['"]-NoProfile\s+-ExecutionPolicy\s+Bypass\s+-File\s+install-hooks\.ps1\s+-Action\s+Install/i)
   assert.match(iss, /Exec\s*\(\s*PowerShellPath\s*,\s*Params\s*,\s*PlatformDir\s*,/is)
