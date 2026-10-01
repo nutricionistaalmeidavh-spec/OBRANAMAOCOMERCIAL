@@ -41,6 +41,7 @@ jobs:
           $installer = Join-Path $PWD "apps/lan-server/dist/installer/Obra-na-Mao-Server-Setup-$version-x64.exe"
           $programDataRoot = Join-Path $env:ProgramData 'ArtiSys\Obra na Mão Server'
           $configPath = Join-Path $programDataRoot 'config\server.env'
+          $logRoot = Join-Path $programDataRoot 'logs'
           $sentinel = Join-Path $programDataRoot 'ci-sentinel.txt'
           if (-not (Test-Path $installer)) { throw "Server installer missing: $installer" }
 
@@ -49,6 +50,21 @@ jobs:
             sc.exe delete ObraNaMaoServer | Out-Null
           }
           Remove-Item $programDataRoot -Recurse -Force -ErrorAction SilentlyContinue
+
+          function Write-ServiceDiagnostics {
+            Write-Host '=== ObraNaMaoServer diagnostics ==='
+            Get-Service -Name ObraNaMaoServer -ErrorAction SilentlyContinue | Format-List Name,Status,StartType
+            sc.exe qc ObraNaMaoServer 2>&1 | Out-Host
+            sc.exe queryex ObraNaMaoServer 2>&1 | Out-Host
+            if (Test-Path $logRoot) {
+              Get-ChildItem -Path $logRoot -File -ErrorAction SilentlyContinue | ForEach-Object {
+                Write-Host "--- $($_.Name) ---"
+                Get-Content $_.FullName -Tail 80 -ErrorAction SilentlyContinue | Out-Host
+              }
+            }
+            Get-WinEvent -FilterHashtable @{ LogName='System'; ProviderName='Service Control Manager'; StartTime=(Get-Date).AddMinutes(-10) } -ErrorAction SilentlyContinue |
+              Select-Object -First 20 TimeCreated,Id,LevelDisplayName,Message | Format-List | Out-Host
+          }
 
           function Wait-Ready([int]$TimeoutSeconds = 45) {
             $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -59,6 +75,7 @@ jobs:
               } catch {}
               Start-Sleep -Milliseconds 250
             } while ((Get-Date) -lt $deadline)
+            Write-ServiceDiagnostics
             throw 'Windows service did not become /ready.'
           }
 
