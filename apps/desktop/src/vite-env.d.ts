@@ -2,9 +2,10 @@
 type EntityApi = { list(filters?: Record<string, unknown>): Promise<any[]>; get(id: number): Promise<any>; save(data: Record<string, unknown>): Promise<any>; remove(id: number): Promise<boolean> }
 type UpdaterState = { status:'idle'|'checking'|'current'|'available'|'downloading'|'downloaded'|'error'|'unsupported'; currentVersion:string; availableVersion:string|null; progress:number|null; error:string|null; supported:boolean }
 type OperationalStorageMode = 'local'|'lan-host'|'lan-client'|'remote'
+type ModuleStorageKey = 'operation'|'planning'
 type ModuleStorageStateName = 'local'|'central-ready'|'central-active'|'migration-required'
-type ModuleStorageState = { module:'operation'; state:ModuleStorageStateName; localRecords:number; capabilityAvailable?:boolean }
-type ModuleStorageStates = { operation:ModuleStorageState }
+type ModuleStorageState = { module:ModuleStorageKey; state:ModuleStorageStateName; localRecords:number; financeLocalRecords?:number; capabilityAvailable?:boolean; financeDependencyBlocked?:boolean }
+type ModuleStorageStates = { operation:ModuleStorageState; planning:ModuleStorageState }
 type StorageConnectionState = { mode:'local'|'server'; operationalMode:OperationalStorageMode; host:string; port:number; baseUrl:string }
 type StorageConnectionTest = { ok:true; baseUrl:string; latencyMs:number; health:{status:'ok';product:'Obra na Mão';apiVersion:'1'} }
 type LanMember = { memberId:string; email?:string; name?:string; role:string; modules?:string[]; channels?:string[]; status?:string }
@@ -49,7 +50,7 @@ type ScannerApi = {
 }
 interface Window { fluxoDre: {
   app: { bootstrap(): Promise<any>; retryDatabase(): Promise<boolean>; getLayout(): Promise<'command-center'|'classic'>; setLayout(layout:'command-center'|'classic'): Promise<'command-center'|'classic'> }; product:{getEdition():Promise<{edition:'construtora'|'empreiteira';locked:boolean}>;setEdition(edition:'construtora'|'empreiteira'):Promise<any>}; demo:{seed():Promise<any>}
-  storage:{state():Promise<StorageConnectionState>;configure(input:{mode?:'local'|'server';operationalMode?:OperationalStorageMode;host:string;port:number}):Promise<StorageConnectionState>;testConnection():Promise<StorageConnectionTest>;moduleState(module:'operation'):Promise<ModuleStorageState>;refreshModuleCapabilities():Promise<ModuleStorageStates>}
+  storage:{state():Promise<StorageConnectionState>;configure(input:{mode?:'local'|'server';operationalMode?:OperationalStorageMode;host:string;port:number}):Promise<StorageConnectionState>;testConnection():Promise<StorageConnectionTest>;moduleState(module:ModuleStorageKey):Promise<ModuleStorageState>;refreshModuleCapabilities():Promise<ModuleStorageStates>}
   lan:{
     hostState():Promise<LanHostState>;startHost():Promise<LanHostState>;stopHost():Promise<LanHostState>;status():Promise<LanSetupStatus>;
     claimHost(setupCode?:string):Promise<LanSetupStatus>;pair(code:string):Promise<LanCredentialState>;disconnect():Promise<LanCredentialState>;
