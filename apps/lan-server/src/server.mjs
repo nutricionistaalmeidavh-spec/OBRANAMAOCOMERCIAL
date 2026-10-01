@@ -7,6 +7,8 @@ import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
+import { RevisionConflictError } from './concurrency-service.mjs'
+import { createVersionedRepository } from './versioned-repository.mjs'
 
 export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.3.0'
@@ -76,7 +78,7 @@ async function readJson(request) {
   }
 }
 
-async function handleEntityRequest(request, response, url, repository, match, context) {
+async function handleEntityRequest(request, response, url, repository, versionedRepository, match, context) {
   if (!repository) return sendJson(response, 503, { error: 'repository_unavailable', message: 'Banco central do servidor indisponível.' })
 
   const table = match[1]
@@ -86,27 +88,31 @@ async function handleEntityRequest(request, response, url, repository, match, co
   if (id === null) {
     if (request.method === 'GET') {
       const filters = Object.fromEntries(url.searchParams.entries())
-      return sendJson(response, 200, repository.list(table, filters))
+      return sendJson(response, 200, versionedRepository ? versionedRepository.list(table, filters) : repository.list(table, filters))
     }
     if (request.method === 'POST') {
       const data = await readJson(request)
-      const saved = repository.save(table, data)
+      const saved = versionedRepository ? versionedRepository.create(table, data) : repository.save(table, data)
       return sendJson(response, 201, saved)
     }
     return methodNotAllowed(response, ['GET', 'POST'])
   }
 
   if (request.method === 'GET') {
-    const item = repository.get(table, id)
+    const item = versionedRepository ? versionedRepository.get(table, id) : repository.get(table, id)
     return item ? sendJson(response, 200, item) : sendJson(response, 404, { error: 'not_found' })
   }
   if (request.method === 'PUT') {
-    const data = await readJson(request)
-    const saved = repository.save(table, { ...data, id })
+    const body = await readJson(request)
+    const saved = versionedRepository
+      ? versionedRepository.update(table, id, body.expectedRevision, body.data)
+      : repository.save(table, { ...body, id })
     return saved ? sendJson(response, 200, saved) : sendJson(response, 404, { error: 'not_found' })
   }
   if (request.method === 'DELETE') {
-    const removed = repository.remove(table, id)
+    const removed = versionedRepository
+      ? versionedRepository.remove(table, id, url.searchParams.get('expectedRevision'))
+      : repository.remove(table, id)
     return removed ? sendJson(response, 200, { ok: true }) : sendJson(response, 404, { error: 'not_found' })
   }
   return methodNotAllowed(response, ['GET', 'PUT', 'DELETE'])
@@ -211,6 +217,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
   const payroll = payrollService || (repository ? new PayrollService({ repository }) : null)
   const time = timeService || (repository ? new TimeService({ repository }) : null)
+  const versionedRepository = createVersionedRepository(repository)
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://localhost')
@@ -228,7 +235,12 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/api/v1/sync-source/capabilities') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         await authenticateLanRequest(request, security)
-        return sendJson(response, 200, { version: 1, modules: ['core', 'operation', 'planning', 'finance', 'rh', 'summary'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'] })
+        return sendJson(response, 200, {
+          version: 1,
+          modules: ['core', 'operation', 'planning', 'finance', 'rh', 'summary'],
+          bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'],
+          ...(versionedRepository ? { features: ['optimistic-concurrency-v1'] } : {})
+        })
       }
 
       if (url.pathname === '/api/v1/sync-source/summary') {
@@ -442,12 +454,22 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       const entityMatch = url.pathname.match(ENTITY_ROUTE)
       if (entityMatch) {
         const context = await authenticateLanRequest(request, security)
-        return await handleEntityRequest(request, response, url, repository, entityMatch, context)
+        return await handleEntityRequest(request, response, url, repository, versionedRepository, entityMatch, context)
       }
 
       return sendJson(response, 404, { error: 'not_found' })
     } catch (error) {
       if (error instanceof LanAuthorizationError || error instanceof PairingError) return sendJson(response, error.status, { error: error.code, message: error.message })
+      if (error instanceof RevisionConflictError) {
+        return sendJson(response, 409, {
+          error: error.code,
+          resourceType: error.resourceType,
+          resourceId: error.resourceId,
+          expectedRevision: error.expectedRevision,
+          currentRevision: error.currentRevision,
+          current: error.current
+        })
+      }
       if (error?.code === 'invalid_json') return sendJson(response, 400, { error: 'invalid_json', message: error.message })
       if (error?.code === 'payload_too_large') return sendJson(response, 413, { error: 'payload_too_large', message: error.message })
       const message = error instanceof Error ? error.message : String(error)
