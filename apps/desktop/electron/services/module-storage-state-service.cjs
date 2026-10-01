@@ -6,6 +6,21 @@ const DEFAULT_FINANCE_CATEGORIES = new Set([
   'Materiais', 'Ferramentas', 'Combustível', 'Serviços terceiros', 'Impostos', 'Seguros',
   'Tarifas bancárias', 'Outras despesas'
 ])
+const DEFAULT_RH_CARGOS = new Map([
+  ['Encanador', '724110'],
+  ['Ajudante de Encanador', '724110']
+])
+const DEFAULT_RH_BENEFITS = new Map([
+  ['Vale-transporte', 'transporte'],
+  ['Vale-alimentação', 'alimentacao'],
+  ['Café', 'alimentacao'],
+  ['Prêmio', 'premio']
+])
+const DEFAULT_RH_EPIS = new Map([
+  ['Uniforme', '-'], ['Botina', '12160'], ['Capacete com jugular', '36099'], ['Protetor auditivo', '5745'],
+  ['Protetor solar', '-'], ['Touca árabe', '-'], ['Luva multitato', '30916'], ['Óculos de proteção', '9722'],
+  ['Máscara PFF2', '10578'], ['Cinto de segurança com talabarte e trava-quedas', '41046']
+])
 
 class ModuleStorageStateService {
   constructor({ database, storage, lanClient }) {
@@ -63,13 +78,54 @@ class ModuleStorageStateService {
     return this.countActive('fornecedores') + this.countActive('contas') + this.countActive('pagamentos_conta') + this.customFinanceCategoryCount()
   }
 
+  customRhCargoCount() {
+    if (!this.tableColumns('cargos').size) return 0
+    const rows = this.database.db.prepare('SELECT nome,cbo,salario_base_centavos,ativo FROM cargos').all()
+    return rows.filter(row => {
+      const expectedCbo = DEFAULT_RH_CARGOS.get(String(row.nome || ''))
+      return expectedCbo === undefined || String(row.cbo || '') !== expectedCbo || Number(row.salario_base_centavos || 0) !== 0 || Number(row.ativo) !== 1
+    }).length
+  }
+
+  customRhBenefitCount() {
+    if (!this.tableColumns('beneficios').size) return 0
+    const rows = this.database.db.prepare('SELECT nome,tipo,valor_padrao_centavos,ativo FROM beneficios').all()
+    return rows.filter(row => {
+      const expectedType = DEFAULT_RH_BENEFITS.get(String(row.nome || ''))
+      return expectedType === undefined || String(row.tipo || '') !== expectedType || Number(row.valor_padrao_centavos || 0) !== 0 || Number(row.ativo) !== 1
+    }).length
+  }
+
+  customRhEpiCount() {
+    if (!this.tableColumns('epis').size) return 0
+    const rows = this.database.db.prepare('SELECT nome,ca,unidade,ativo FROM epis').all()
+    return rows.filter(row => {
+      const expectedCa = DEFAULT_RH_EPIS.get(String(row.nome || ''))
+      return expectedCa === undefined || String(row.ca || '') !== expectedCa || String(row.unidade || 'un') !== 'un' || Number(row.ativo) !== 1
+    }).length
+  }
+
+  customRhCargoBenefitCount() {
+    if (!this.tableColumns('cargo_beneficios').size) return 0
+    const rows = this.database.db.prepare(`
+      SELECT c.nome AS cargo_nome,b.nome AS beneficio_nome,cb.valor_centavos,cb.quinzena,cb.natureza,cb.ativo
+      FROM cargo_beneficios cb
+      JOIN cargos c ON c.id=cb.cargo_id
+      JOIN beneficios b ON b.id=cb.beneficio_id
+    `).all()
+    return rows.filter(row => {
+      const defaultLink = DEFAULT_RH_CARGOS.has(String(row.cargo_nome || '')) && ['Vale-alimentação', 'Café'].includes(String(row.beneficio_nome || ''))
+      return !defaultLink || Number(row.valor_centavos || 0) !== 0 || Number(row.quinzena) !== 1 || String(row.natureza || '') !== 'credito' || Number(row.ativo) !== 1
+    }).length
+  }
+
   rhLocalRecordCount() {
-    const tables = [
-      'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
-      'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes',
-      'epis', 'funcionario_epis'
+    const operationalTables = [
+      'funcionarios', 'funcionario_obras', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos',
+      'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis'
     ]
-    return tables.reduce((total, table) => total + this.countActive(table), 0)
+    const operational = operationalTables.reduce((total, table) => total + this.countActive(table), 0)
+    return operational + this.customRhCargoCount() + this.customRhBenefitCount() + this.customRhCargoBenefitCount() + this.customRhEpiCount()
   }
 
   localRecordCount(moduleName) {
