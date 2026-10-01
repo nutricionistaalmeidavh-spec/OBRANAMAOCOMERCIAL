@@ -9,7 +9,7 @@ Base inicial: `feat/desktop-lan-server-foundation` @ `7bcc760466ad45a6555c434f22
 Adicionar, em paralelo à evolução funcional da PR #60, três camadas de fechamento arquitetural antes de qualquer merge/release:
 
 1. isolamento/autorização por servidor reivindicado, dispositivo e usuário, mais integridade de relacionamentos entre entidades;
-2. migração segura de dados locais para a fonte central, com backup, validação e rollback;
+2. migração segura de dados locais para a fonte central, com backup, validação e rollback, incluindo os cadastros-base necessários aos demais módulos;
 3. documentação/checklist objetivo da PR #60, refletindo o código real e os gates de release.
 
 A implementação deve preservar os modos `local`, `lan-host` e `lan-client`, sem alterar silenciosamente o fluxo existente Desktop ↔ Cloudflare/D1 ↔ PWA e sem fallback implícito para dados locais quando a fonte central estiver configurada.
@@ -33,7 +33,11 @@ Uma futura instância LAN multi-tenant exigiria uma chave de tenant persistida p
 
 ### Migração
 
-`ModuleStorageStateService` já possui os estados `local`, `central-ready`, `central-active` e `migration-required`, e marca módulos com dados locais como `migration-required` quando o modo operacional deixa de ser local.
+`ModuleStorageStateService` já possui os estados `local`, `central-ready`, `central-active` e `migration-required` para operação, planejamento, financeiro e RH, e marca módulos com dados locais como `migration-required` quando o modo operacional deixa de ser local.
+
+A revisão também identificou um bloqueador anterior aos quatro módulos: `DataAccessService` hoje roteia `empresas`, `clientes` e `obras` diretamente para o servidor assim que o transporte LAN fica pronto, sem um estado de migração para esses cadastros. Uma instalação existente pode, portanto, trocar para servidor e deixar de enxergar os cadastros-base locais antes de migrá-los.
+
+O fechamento deve adicionar um quinto estado lógico, **`core` (cadastros-base)**, cobrindo `empresas`, `clientes` e `obras`. Core deve seguir os mesmos gates `local` → `migration-required`/`central-ready` → `central-active` e deve ser migrado antes de qualquer módulo dependente.
 
 Ainda falta um orquestrador de migração que faça a transição de forma segura e verificável.
 
@@ -83,7 +87,15 @@ O `BackupService` atual cria/restaura SQLite, mas:
 
 ## 2. Migração local → central com backup e rollback
 
-Criar um `ModuleMigrationService` no Desktop. Ele será a única camada autorizada a promover módulo de `migration-required` para `central-active` quando houver dados locais existentes.
+Criar um `ModuleMigrationService` no Desktop. Ele será a única camada autorizada a promover `core`, `operation`, `planning`, `finance` ou `rh` de `migration-required` para `central-active` quando houver dados locais existentes.
+
+### Gate de core
+
+- `ModuleStorageStateService` passa a reconhecer `core` e contar `empresas`, `clientes` e `obras` locais.
+- `DataAccessService` deixa de rotear core diretamente para remoto apenas porque o transporte LAN está pronto.
+- Se houver cadastros-base locais, core fica `migration-required` e continua lendo/escrevendo localmente até migração explícita.
+- Se não houver cadastros-base locais e o servidor anunciar capability `core`, core pode ir de `central-ready` para `central-active`.
+- `operation`, `planning`, `finance` e `rh` não podem ser promovidos por migração enquanto core não estiver `central-active`.
 
 ### Fluxo por módulo
 
@@ -91,6 +103,7 @@ Criar um `ModuleMigrationService` no Desktop. Ele será a única camada autoriza
    - confirmar modo `lan-host` ou `lan-client`;
    - confirmar capability central do módulo;
    - confirmar credencial LAN válida;
+   - confirmar dependências anteriores (`core` antes dos demais; demais dependências específicas quando aplicável);
    - levantar contagens locais e dependências;
    - bloquear se houver inconsistência estrutural conhecida.
 
@@ -127,7 +140,7 @@ Criar um `ModuleMigrationService` no Desktop. Ele será a única camada autoriza
 
 ### Ordem de migração
 
-1. core/relacionamentos necessários;
+1. core (`empresas`, `clientes`, `obras`);
 2. operação/RDO;
 3. planejamento;
 4. financeiro;
@@ -152,8 +165,9 @@ Aprimorar `BackupService` para:
 
 A migração não ocorre automaticamente ao trocar para `lan-host`/`lan-client`.
 
-- `StorageServerSettings` mostra estado dos quatro módulos: operação, planejamento, financeiro e RH.
-- Quando um módulo estiver `migration-required`, a UI apresenta ação explícita de migração.
+- `StorageServerSettings` mostra estado de cinco blocos: cadastros-base/core, operação, planejamento, financeiro e RH.
+- Quando um bloco estiver `migration-required`, a UI apresenta ação explícita de migração.
+- Módulos dependentes ficam visualmente bloqueados enquanto core não estiver `central-active`.
 - Antes de iniciar, a UI informa que será criado backup e que a base local não será apagada durante a cópia.
 - O usuário acompanha resultado por módulo; erro mantém `migration-required`.
 - A UI não oferece “forçar central-active”.
@@ -167,7 +181,8 @@ Atualizar a documentação da branch de hardening e preparar texto/checklist par
 - topologias `local`, `lan-host`, `lan-client`;
 - autenticação/claim/pareamento;
 - servidor LAN single-tenant por claim Cloud;
-- módulos já centralizados: core, operação/RDO, planejamento, financeiro e RH conforme estado real do head;
+- cadastros-base/core com gate de migração;
+- módulos já centralizados: operação/RDO, planejamento, financeiro e RH conforme estado real do head;
 - PDFs/contextos gerados localmente quando aplicável;
 - módulos/fluxos ainda fora de escopo.
 
@@ -185,6 +200,8 @@ Atualizar a documentação da branch de hardening e preparar texto/checklist par
 - [ ] integridade de relacionamentos de domínio validada;
 - [ ] revogação de dispositivo/membro validada;
 - [ ] pareamento one-shot/expiração validado;
+- [ ] core existente não desaparece ao configurar servidor;
+- [ ] migração core concluída antes dos módulos dependentes;
 - [ ] migração com backup e retry validada;
 - [ ] rollback/falha parcial validado;
 - [ ] local continua funcionando sem servidor;
@@ -203,8 +220,7 @@ Para reduzir conflito com a F12 ainda ativa:
 
 - esta branch partiu do head `7bcc7604` da PR #60;
 - novos arquivos concentram protocolo de migração e testes de hardening;
-- evitar alterações desnecessárias em `data-access-service.cjs`, `lan-data-client.cjs` e `module-storage-state-service.cjs` enquanto F12 estiver mudando;
-- quando alteração nesses hotspots for inevitável, mantê-la mínima e isolada em commit próprio;
+- alterações em `data-access-service.cjs`, `lan-data-client.cjs` e `module-storage-state-service.cjs` são inevitáveis para fechar o gate de core, mas devem ser mínimas e isoladas em commits próprios;
 - antes de abrir PR de integração, atualizar/rebasear esta branch sobre o head estabilizado de `feat/desktop-lan-server-foundation` e resolver conflitos conscientemente.
 
 ## Testes
@@ -222,9 +238,11 @@ Adicionar testes para:
 
 ### Desktop
 
+Adicionar testes de estado/roteamento cobrindo core local, `migration-required`, `central-ready` e `central-active`.
+
 Adicionar testes de `ModuleMigrationService` cobrindo:
 
-- preflight;
+- preflight e dependência de core;
 - backup obrigatório;
 - falha antes de copiar;
 - falha durante importação;
@@ -261,8 +279,9 @@ A branch está pronta para integração quando:
 1. todos os testes novos e existentes do Desktop/LAN server passam;
 2. identidade/claim/tokens não atravessam instâncias ou empresas Cloud;
 3. relações de domínio inválidas são rejeitadas antes de persistir;
-4. migração falha de modo seguro e repetível;
-5. backup/restore é validado antes da troca de banco;
-6. UI exige ação explícita para migrar e nunca força `central-active`;
-7. documentação/checklist corresponde ao código final;
-8. nenhuma etapa de deploy/release foi executada.
+4. core existente não desaparece nem muda para remoto antes da migração;
+5. migração falha de modo seguro e repetível;
+6. backup/restore é validado antes da troca de banco;
+7. UI exige ação explícita para migrar e nunca força `central-active`;
+8. documentação/checklist corresponde ao código final;
+9. nenhuma etapa de deploy/release foi executada.
