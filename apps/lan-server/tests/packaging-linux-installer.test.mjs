@@ -31,13 +31,14 @@ test('install and upgrade replace only runtime while preserving config and persi
   assert.doesNotMatch(install, /rm\s+-rf\s+["']?\/var\/lib\/obra-na-mao/i)
 })
 
-test('Linux installer reloads systemd, enables service and fails clearly when readiness does not arrive', () => {
+test('Linux installer reloads systemd, enables service and uses bundled Node for readiness', () => {
   const install = read('install.sh')
   assert.match(install, /systemctl\s+daemon-reload/i)
   assert.match(install, /systemctl\s+enable\s+--now\s+obra-na-mao-server\.service/i)
   assert.match(install, /\/ready/i)
-  assert.match(install, /(curl|wget)/i)
+  assert.match(install, /runtime\/node/i)
   assert.match(install, /(não ficou ready|not ready|readiness)/i)
+  assert.doesNotMatch(install, /\b(curl|wget)\b/i)
 })
 
 test('Linux installer and uninstaller never mutate firewall rules', () => {
