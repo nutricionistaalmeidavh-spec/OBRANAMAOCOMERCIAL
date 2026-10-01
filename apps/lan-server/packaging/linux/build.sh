@@ -48,6 +48,8 @@ export OBRA_PACKAGE_NODE="$NODE_BINARY"
 export OBRA_PACKAGE_COMMIT="$COMMIT_SHA"
 export OBRA_PACKAGE_UNIT="$SCRIPT_DIR/obra-na-mao-server.service"
 export OBRA_PACKAGE_ENV_TEMPLATE="$SCRIPT_DIR/server.env.template"
+export OBRA_PACKAGE_INSTALL="$SCRIPT_DIR/install.sh"
+export OBRA_PACKAGE_UNINSTALL="$SCRIPT_DIR/uninstall.sh"
 
 node --input-type=module <<'NODE'
 import { pathToFileURL } from 'node:url'
@@ -61,12 +63,14 @@ buildServerPackage({
   nodeBinaryPath: process.env.OBRA_PACKAGE_NODE,
   platformFiles: [
     { source: process.env.OBRA_PACKAGE_UNIT, destination: 'obra-na-mao-server.service' },
-    { source: process.env.OBRA_PACKAGE_ENV_TEMPLATE, destination: 'server.env.template' }
+    { source: process.env.OBRA_PACKAGE_ENV_TEMPLATE, destination: 'server.env.template' },
+    { source: process.env.OBRA_PACKAGE_INSTALL, destination: 'install.sh' },
+    { source: process.env.OBRA_PACKAGE_UNINSTALL, destination: 'uninstall.sh' }
   ]
 })
 NODE
 
-chmod 0755 "$OUTPUT_DIR/runtime/node"
+chmod 0755 "$OUTPUT_DIR/runtime/node" "$OUTPUT_DIR/platform/install.sh" "$OUTPUT_DIR/platform/uninstall.sh"
 SERVER_VERSION="$(node -e "const x=require(process.argv[1]);process.stdout.write(x.version)" "$REPO_ROOT/apps/lan-server/package.json")"
 ARCHIVE_PATH="${ARCHIVE_PATH:-$(dirname "$OUTPUT_DIR")/Obra-na-Mao-Server-${SERVER_VERSION}-linux-x64.tar.gz}"
 rm -f "$ARCHIVE_PATH"
