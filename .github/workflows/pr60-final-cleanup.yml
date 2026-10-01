@@ -1,0 +1,51 @@
+name: PR60 Final Cleanup
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [feat/desktop-lan-server-foundation]
+    paths:
+      - '.github/workflows/pr60-final-cleanup.yml'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/desktop-lan-server-foundation
+          fetch-depth: 0
+      - name: Update project map and remove temporary workflows
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const mapPath = 'apps/desktop/docs/PROJECT_MAP.md'
+          let text = fs.readFileSync(mapPath, 'utf8')
+          const historical = '- A partir de 2026-09-29 existe o modo opcional **Servidor da empresa**. Quando ativado, Empresas, Clientes e Obras usam CRUD HTTP no servidor LAN; os demais módulos continuam no SQLite local até suas fases de migração.'
+          const current = '- A partir de 2026-10-01, o modo opcional **Servidor da empresa** cobre o núcleo F8–F12: Empresas/Clientes/Obras, RDO/operação, Planejamento, Financeiro e RH podem usar o banco central LAN quando o módulo está `central-active`. Instalações locais permanecem compatíveis e dados locais existentes exigem migração explícita; não há fallback silencioso.'
+          if (text.includes(historical)) text = text.replace(historical, current)
+
+          const oldFlow = 'Modo Servidor da empresa para Empresas/Clientes/Obras:\n\n`src/pages/*` → `window.fluxoDre` → IPC → `DataAccessService` → `LanDataClient` → HTTP `/api/v1/*` → `LanRepository` → SQLite central.\n\nEntidades ainda não migradas continuam sendo delegadas ao `DatabaseService` local mesmo quando `storage_mode=server`. A seam evita compartilhar o arquivo SQLite do Desktop pela rede.'
+          const newFlow = 'Modo Servidor da empresa com módulos F8–F12 ativos:\n\n`src/pages/*` → `window.fluxoDre` → IPC → source/data-access do módulo → `LanDataClient` → HTTP `/api/v1/*` → serviços de domínio/`LanRepository` → SQLite central.\n\nCada módulo possui estado explícito (`local`, `central-ready`, `central-active` ou `migration-required`). `central-ready` nunca cai silenciosamente para SQLite local. O PC principal (`lan-host`) é o coordenador da sincronização Cloud existente; clientes LAN não criam um segundo pipeline Desktop ↔ Cloudflare/D1 ↔ PWA.'
+          if (text.includes(oldFlow)) text = text.replace(oldFlow, newFlow)
+
+          const marker = '## Atualização F8–F12 — 2026-10-01'
+          if (!text.includes(marker)) {
+            text += `\n\n${marker}\n\n- **F8 — coordenador único de sync:** o `lan-host` é a autoridade de sincronização Cloud; `lan-client` permanece pausado para sync Cloud e usa o banco central.\n- **F9 — operação/RDO central:** frentes, tarefas, RDO e filhos usam a API LAN autenticada quando `operation=central-active`.\n- **F10 — Planejamento central:** etapas, cronograma e itens orçamentários usam a fonte central; não misturam silenciosamente planejamento central com fonte local.\n- **F11 — Financeiro central:** contas, pagamentos idempotentes, DRE, dashboard e fonte de resumo/obrigações do sync usam o banco LAN quando `finance=central-active`.\n- **F12 — RH central:** funcionários, cargos, benefícios, EPIs, folha e ponto usam a fonte LAN quando `rh=central-active`; autorização é aplicada no servidor.\n- **Documentos RH:** PDF de ponto/recibos continua sendo uma saída **local derivada**. Em RH central, os dados vêm do servidor e o arquivo não é registrado como segunda cópia autoritativa do RH.\n- **Proteção de migração:** se existir dado local de um módulo que passará a central, o estado é `migration-required`; esta PR não copia nem apaga esses registros automaticamente.\n- **Release Desktop:** publicação automática continua congelada por `DESKTOP_AUTO_RELEASE_ENABLED=false`; CI, build e artefatos continuam funcionando.\n- **Fora do escopo:** migração automática do SQLite legado, descoberta automática LAN, servidor remoto público pronto para produção, R2/billing/Cloud pago e qualquer segundo sincronizador paralelo ao fluxo Desktop ↔ Cloudflare/D1 ↔ PWA.\n- **QA integrado:** `apps/lan-server/tests/f8-f12-multi-client.test.mjs` valida compartilhamento multi-PC dos módulos centrais; `apps/desktop/tests/f8-f12-central-flow.test.ts` valida roteamento central e ausência de fallback local.\n`
+          }
+          fs.writeFileSync(mapPath, text)
+          NODE
+          rm -f .github/workflows/pr60-f12-finalize.yml
+          rm -f .github/workflows/pr60-f12-reconcile.yml
+          rm -f .github/workflows/pr60-final-cleanup.yml
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: finalize F8-F12 project map and cleanup temporary workflows"
+          git push origin HEAD:feat/desktop-lan-server-foundation
