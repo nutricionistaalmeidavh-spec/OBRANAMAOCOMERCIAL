@@ -207,6 +207,7 @@ function registerIpc() {
   ipcMain.handle('storage:migration-preflight', envelope(({ module }) => services.migration.preflight(module)))
   ipcMain.handle('storage:migration-status', envelope(({ module }) => services.migration.status(module)))
   ipcMain.handle('storage:migrate-module', envelope(({ module }) => withSyncStopped(() => services.migration.migrate(module))))
+  ipcMain.handle('storage:rollback-module-migration', envelope(({ module }) => withSyncStopped(() => services.migration.rollback(module))))
   ipcMain.handle('lan:host-state', envelope(() => services.lanHost.state()))
   ipcMain.handle('lan:host-start', envelope(async () => { const result = await services.lanHost.start(); if (isLanHostMode()) ensureTray(); return result }))
   ipcMain.handle('lan:host-stop', envelope(() => services.lanHost.stop()))
