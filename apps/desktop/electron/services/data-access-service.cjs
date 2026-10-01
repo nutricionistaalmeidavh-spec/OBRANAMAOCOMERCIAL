@@ -1,4 +1,4 @@
-const { LanDataClient, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES } = require('./lan-data-client.cjs')
+const { LanDataClient, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES } = require('./lan-data-client.cjs')
 const { StorageConnectionService } = require('./storage-connection-service.cjs')
 const { LanCredentialService } = require('./lan-credential-service.cjs')
 
@@ -31,12 +31,19 @@ class DataAccessService {
     return state.mode === 'server' && ['lan-client', 'lan-host'].includes(operationalMode)
   }
 
+  moduleForTable(table) {
+    if (OPERATION_REMOTE_TABLES.has(table)) return 'operation'
+    if (PLANNING_REMOTE_TABLES.has(table)) return 'planning'
+    return null
+  }
+
   route(table) {
     if (!this.transportReady()) return 'local'
     if (CORE_REMOTE_TABLES.has(table)) return 'remote'
-    if (!OPERATION_REMOTE_TABLES.has(table)) return 'local'
+    const module = this.moduleForTable(table)
+    if (!module) return 'local'
 
-    const moduleState = this.moduleStorage?.state?.('operation')?.state
+    const moduleState = this.moduleStorage?.state?.(module)?.state
     if (moduleState === 'central-active') return 'remote'
     if (moduleState === 'central-ready') return 'blocked'
     return 'local'
@@ -45,7 +52,9 @@ class DataAccessService {
   assertRoute(table) {
     const route = this.route(table)
     if (route === 'blocked') {
-      throw new Error('O módulo RDO/operação central ainda não está ativo; nenhum dado será salvo localmente como fallback.')
+      const module = this.moduleForTable(table)
+      const label = module === 'planning' ? 'Planejamento' : 'RDO/operação'
+      throw new Error(`O módulo ${label} central ainda não está ativo; nenhum dado será salvo localmente como fallback.`)
     }
     return route
   }
