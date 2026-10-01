@@ -1,4 +1,4 @@
-const MODULES = new Set(['operation', 'planning', 'finance'])
+const MODULES = new Set(['operation', 'planning', 'finance', 'rh'])
 const STATES = new Set(['local', 'central-ready', 'central-active', 'migration-required'])
 const KEY_PREFIX = 'module_storage_state_'
 const DEFAULT_FINANCE_CATEGORIES = new Set([
@@ -63,9 +63,19 @@ class ModuleStorageStateService {
     return this.countActive('fornecedores') + this.countActive('contas') + this.countActive('pagamentos_conta') + this.customFinanceCategoryCount()
   }
 
+  rhLocalRecordCount() {
+    const tables = [
+      'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
+      'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes',
+      'epis', 'funcionario_epis'
+    ]
+    return tables.reduce((total, table) => total + this.countActive(table), 0)
+  }
+
   localRecordCount(moduleName) {
     const module = this.assertModule(moduleName)
     if (module === 'finance') return this.financeLocalRecordCount()
+    if (module === 'rh') return this.rhLocalRecordCount()
     const tables = module === 'operation'
       ? ['frentes_obra', 'tarefas_obra', 'rdos']
       : ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios']
@@ -100,13 +110,14 @@ class ModuleStorageStateService {
     const operation = this.state('operation')
     const planning = this.state('planning')
     const finance = this.state('finance')
-    if ([operation.state, planning.state, finance.state].every(state => state === 'local' || state === 'migration-required')) {
-      return { operation, planning, finance }
+    const rh = this.state('rh')
+    if ([operation.state, planning.state, finance.state, rh.state].every(state => state === 'local' || state === 'migration-required')) {
+      return { operation, planning, finance, rh }
     }
 
     const capabilities = await this.lanClient.syncSourceCapabilities()
     const modules = Array.isArray(capabilities?.modules) ? capabilities.modules : []
-    const result = { operation, planning, finance }
+    const result = { operation, planning, finance, rh }
 
     if (!['local', 'migration-required'].includes(operation.state)) {
       const operationAvailable = modules.includes('operation')
@@ -132,6 +143,12 @@ class ModuleStorageStateService {
       const financeAvailable = modules.includes('finance')
       const state = this.write('finance', financeAvailable ? 'central-active' : 'central-ready')
       result.finance = { module: 'finance', state, localRecords: finance.localRecords, capabilityAvailable: financeAvailable }
+    }
+
+    if (!['local', 'migration-required'].includes(rh.state)) {
+      const rhAvailable = modules.includes('rh')
+      const state = this.write('rh', rhAvailable ? 'central-active' : 'central-ready')
+      result.rh = { module: 'rh', state, localRecords: rh.localRecords, capabilityAvailable: rhAvailable }
     }
 
     return result
