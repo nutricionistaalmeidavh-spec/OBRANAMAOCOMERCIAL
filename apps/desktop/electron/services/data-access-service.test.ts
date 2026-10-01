@@ -83,6 +83,35 @@ describe('DataAccessService', () => {
     expect(remote.save).not.toHaveBeenCalled()
   })
 
+  it('roteia CRUD de etapas, cronograma e orçamento pelo estado planning sem fallback', async () => {
+    const { DataAccessService } = require('./data-access-service.cjs')
+    const db = { list: vi.fn(() => [{ id: 1, nome: 'local' }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-host', baseUrl: 'http://127.0.0.1:4732' })) }
+    const remote = { list: vi.fn(async () => [{ id: 20, nome: 'central' }]), get: vi.fn(), save: vi.fn(async data => data), remove: vi.fn() }
+    const moduleStorage = { state: vi.fn((module:string) => ({ module, state: module === 'planning' ? 'central-active' : 'migration-required' })) }
+    const service = new DataAccessService({ db, storage, remote, moduleStorage })
+
+    await expect(service.list('cronograma_etapas', { obra_id: 7 })).resolves.toEqual([{ id: 20, nome: 'central' }])
+    await service.save('itens_orcamentarios', { obra_id: 7, descricao: 'Item central' })
+    expect(remote.list).toHaveBeenCalledWith('cronograma_etapas', { obra_id: 7 })
+    expect(remote.save).toHaveBeenCalledWith('itens_orcamentarios', { obra_id: 7, descricao: 'Item central' })
+    expect(db.list).not.toHaveBeenCalled()
+    expect(db.save).not.toHaveBeenCalled()
+  })
+
+  it('planning central-ready bloqueia CRUD de planejamento em vez de escrever SQLite local', async () => {
+    const { DataAccessService } = require('./data-access-service.cjs')
+    const db = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-client', baseUrl: 'http://server:4732' })) }
+    const remote = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const moduleStorage = { state: vi.fn((module:string) => ({ module, state: module === 'planning' ? 'central-ready' : 'central-active' })) }
+    const service = new DataAccessService({ db, storage, remote, moduleStorage })
+
+    await expect(service.save('cronograma_etapas', { obra_id: 7, nome: 'Não salvar localmente' })).rejects.toThrow(/planejamento|central|ativo/i)
+    expect(db.save).not.toHaveBeenCalled()
+    expect(remote.save).not.toHaveBeenCalled()
+  })
+
   it('remote continua modelado mas não é tratado como transporte pronto', async () => {
     const { DataAccessService } = require('./data-access-service.cjs')
     const db = { list: vi.fn(() => [{ id: 41 }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
