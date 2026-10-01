@@ -101,4 +101,10 @@ describe('F8-F12 central Desktop flow', () => {
     expect(documents).toContain("storage: 'local-derived'")
     expect(documents).toContain('registeredInLocalDatabase: false')
   })
+
+  it('mantém a publicação automática de release Desktop congelada no gate final', () => {
+    const workflow = fs.readFileSync(path.resolve(import.meta.dirname, '../../../.github/workflows/commercial-desktop-ci.yml'), 'utf8')
+    expect(workflow).toContain("DESKTOP_AUTO_RELEASE_ENABLED: 'false'")
+    expect(workflow).toContain("env.DESKTOP_AUTO_RELEASE_ENABLED == 'true'")
+  })
 })
