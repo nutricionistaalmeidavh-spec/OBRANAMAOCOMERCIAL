@@ -139,7 +139,20 @@ function envelope(fn) {
     try { return { ok: true, data: await fn(payload || {}) } }
     catch (error) {
       console.error(error)
-      return { ok: false, error: { message: error?.message || 'Erro inesperado.' } }
+      return {
+        ok: false,
+        error: {
+          message: error?.message || 'Erro inesperado.',
+          code: error?.code,
+          status: error?.status,
+          resourceType: error?.resourceType,
+          resourceId: error?.resourceId,
+          expectedRevision: error?.expectedRevision,
+          currentRevision: error?.currentRevision,
+          current: error?.current,
+          details: error?.details
+        }
+      }
     }
   }
 }
@@ -242,7 +255,7 @@ function registerIpc() {
   ipcMain.handle('entity:list', envelope(({ table, filters }) => services.dataAccess.list(table, filters)))
   ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))
   ipcMain.handle('entity:save', envelope(({ table, data }) => services.dataAccess.save(table, data)))
-  ipcMain.handle('entity:remove', envelope(({ table, id }) => services.dataAccess.remove(table, id)))
+  ipcMain.handle('entity:remove', envelope(({ table, id, revision }) => services.dataAccess.remove(table, id, revision)))
   ipcMain.handle('dashboard:get', envelope((filters) => services.finance.dashboard(filters)))
   ipcMain.handle('works:overview', envelope(({ obra_id }) => services.works.overview(obra_id)))
   ipcMain.handle('works:timeline', envelope(({ obra_id }) => services.works.timeline(obra_id)))
