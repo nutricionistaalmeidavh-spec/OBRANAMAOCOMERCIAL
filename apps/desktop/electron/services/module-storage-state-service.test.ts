@@ -35,11 +35,16 @@ afterEach(() => {
 })
 
 describe('ModuleStorageStateService', () => {
-  it('mantém módulo local quando a fonte operacional é local', async () => {
+  it('mantém módulos locais quando a fonte operacional é local', async () => {
     const f = fixture({ operationalMode: 'local' })
     expect(f.service.state('operation')).toEqual(expect.objectContaining({ module: 'operation', state: 'local' }))
     expect(f.service.state('planning')).toEqual(expect.objectContaining({ module: 'planning', state: 'local' }))
-    expect(await f.service.refreshCapabilities()).toEqual(expect.objectContaining({ operation: expect.objectContaining({ state: 'local' }), planning: expect.objectContaining({ state: 'local' }) }))
+    expect(f.service.state('finance')).toEqual(expect.objectContaining({ module: 'finance', state: 'local' }))
+    expect(await f.service.refreshCapabilities()).toEqual(expect.objectContaining({
+      operation: expect.objectContaining({ state: 'local' }),
+      planning: expect.objectContaining({ state: 'local' }),
+      finance: expect.objectContaining({ state: 'local' })
+    }))
     expect(f.lanClient.syncSourceCapabilities).not.toHaveBeenCalled()
   })
 
@@ -109,5 +114,34 @@ describe('ModuleStorageStateService', () => {
     const refreshed = await f.service.refreshCapabilities()
     expect(refreshed.planning).toEqual(expect.objectContaining({ state: 'central-ready', capabilityAvailable: true, financeDependencyBlocked: true }))
     expect(f.service.state('planning')).toEqual(expect.objectContaining({ state: 'central-ready', localRecords: 0, financeLocalRecords: 1 }))
+  })
+
+  it('financeiro local existente força finance migration-required sem copiar ou apagar contas', async () => {
+    const f = fixture({ capabilities: { version: 1, modules: ['core', 'operation', 'planning', 'finance'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'] } })
+    const { company, work } = seedWork(f)
+    const account = f.database.save('contas', { empresa_id: company.id, obra_id: work.id, tipo: 'pagar', descricao: 'Conta antiga', competencia: '2026-10', vencimento: '2026-10-10', valor_centavos: 5000, status: 'pendente' })
+
+    expect(f.service.state('finance')).toEqual(expect.objectContaining({ state: 'migration-required', localRecords: 1 }))
+    const refreshed = await f.service.refreshCapabilities()
+    expect(refreshed.finance.state).toBe('migration-required')
+    expect(f.database.get('contas', account.id)?.descricao).toBe('Conta antiga')
+  })
+
+  it('instalação nova ativa finance somente quando o servidor anuncia capability finance', async () => {
+    const f = fixture({ capabilities: { version: 1, modules: ['core', 'operation', 'planning', 'finance'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'] } })
+    expect(f.service.state('finance').state).toBe('central-ready')
+    const refreshed = await f.service.refreshCapabilities()
+    expect(refreshed.finance).toEqual(expect.objectContaining({ state: 'central-active', capabilityAvailable: true }))
+    expect(f.service.state('finance').state).toBe('central-active')
+  })
+
+  it('finance migration-required permanece sticky mesmo após remoção local', async () => {
+    const f = fixture({ capabilities: { version: 1, modules: ['core', 'finance'], bridgeEntities: [] } })
+    const { company, work } = seedWork(f)
+    const account = f.database.save('contas', { empresa_id: company.id, obra_id: work.id, tipo: 'pagar', descricao: 'Conta antiga', competencia: '2026-10', vencimento: '2026-10-10', valor_centavos: 5000, status: 'pendente' })
+    expect(f.service.state('finance').state).toBe('migration-required')
+    f.database.remove('contas', account.id)
+    const refreshed = await f.service.refreshCapabilities()
+    expect(refreshed.finance.state).toBe('migration-required')
   })
 })
