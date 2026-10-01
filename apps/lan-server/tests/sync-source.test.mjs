@@ -56,7 +56,7 @@ test('sync source capabilities rejeita dispositivo revogado', async () => {
   } finally { await close(server) }
 })
 
-test('sync source capabilities anuncia core, operação e planejamento centralizados na F10', async () => {
+test('sync source capabilities anuncia o contrato central disponível até F11', async () => {
   const { server, baseUrl } = await fixture()
   try {
     const response = await fetch(`${baseUrl}/api/v1/sync-source/capabilities`, {
@@ -66,10 +66,9 @@ test('sync source capabilities anuncia core, operação e planejamento centraliz
     const capabilities = await response.json()
     assert.deepEqual(capabilities, {
       version: 1,
-      modules: ['core', 'operation', 'planning'],
+      modules: ['core', 'operation', 'planning', 'finance', 'summary'],
       bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas']
     })
-    assert.equal(capabilities.modules.includes('finance'), false)
     assert.equal(capabilities.modules.includes('rh'), false)
   } finally { await close(server) }
 })
