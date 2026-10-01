@@ -77,6 +77,27 @@ describe('LanDataClient', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(4)
   })
 
+  it('aceita CRUD RH e usa rotas de folha e ponto centrais', async () => {
+    const { LanDataClient } = require('./lan-data-client.cjs')
+    const baseUrl='http://servidor:4732'
+    const fetchImpl=vi.fn(async(_url:string,options:any)=>({ok:true,status:200,json:async()=>options?.body?JSON.parse(options.body):[]}))
+    const client=new LanDataClient({storage:{state:()=>({mode:'server',operationalMode:'lan-client',baseUrl})},credentials:credentialsFor(baseUrl),fetchImpl})
+
+    await expect(client.list('funcionarios',{empresa_id:1})).resolves.toEqual([])
+    await client.payrollEmployee({funcionario_id:2,competencia:'2026-10'})
+    await client.payrollConfirm({funcionario_id:2,competencia:'2026-10',quinzena:1,data:'2026-10-15'})
+    await client.timeGet({funcionario_id:2,competencia:'2026-10'})
+    await client.timeSave({funcionario_id:2,competencia:'2026-10',marks:[]})
+    await client.timeDocumentContext({funcionario_id:2,competencia:'2026-10'})
+
+    expect(fetchImpl.mock.calls[0][0]).toContain('/api/v1/funcionarios?empresa_id=1')
+    expect(fetchImpl.mock.calls[1][0]).toBe(`${baseUrl}/api/v1/rh/payroll/employee`)
+    expect(fetchImpl.mock.calls[2][0]).toBe(`${baseUrl}/api/v1/rh/payroll/confirm`)
+    expect(fetchImpl.mock.calls[3][0]).toBe(`${baseUrl}/api/v1/rh/time/get`)
+    expect(fetchImpl.mock.calls[4][0]).toBe(`${baseUrl}/api/v1/rh/time/save`)
+    expect(fetchImpl.mock.calls[5][0]).toBe(`${baseUrl}/api/v1/rh/time/document-context`)
+  })
+
   it('falha antes da rede quando o servidor atual ainda não foi pareado', async () => {
     const { LanDataClient } = require('./lan-data-client.cjs')
     const fetchImpl=vi.fn()
@@ -104,6 +125,6 @@ describe('LanDataClient', () => {
     const fetchImpl=vi.fn(async()=>({ok:false,status:400,json:async()=>({error:'validation_error',message:'Empresa obrigatória.'})}))
     const client=new LanDataClient({storage:{state:()=>({mode:'server',operationalMode:'lan-client',baseUrl})},credentials:credentialsFor(baseUrl),fetchImpl})
     await expect(client.save('obras',{nome:'Sem empresa'})).rejects.toThrow('Empresa obrigatória.')
-    await expect(client.list('funcionarios',{})).rejects.toThrow('Entidade ainda não disponível no servidor da empresa.')
+    await expect(client.list('documentos',{})).rejects.toThrow('Entidade ainda não disponível no servidor da empresa.')
   })
 })
