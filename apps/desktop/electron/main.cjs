@@ -24,6 +24,7 @@ const { UniversalImportService } = require('./services/universal-import-service.
 const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
+const { FinanceSourceService } = require('./services/finance-source-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
 const { FieldSourceService } = require('./services/field-source-service.cjs')
 const { ProcurementService } = require('./services/procurement-service.cjs')
@@ -81,6 +82,7 @@ function createServices() {
   const field = new FieldSourceService({ local: localField, lanClient: dataAccess.remote, moduleStorage })
   const localPlanning = new PlanningService({ db })
   const planning = new PlanningSourceService({ local: localPlanning, lanClient: dataAccess.remote, moduleStorage })
+  const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
@@ -112,7 +114,7 @@ function createServices() {
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
-    works: new WorksService({ db }), planning, field,
+    works: new WorksService({ db }), planning, field, finance,
     product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product }), online, sync
   }
 }
@@ -165,7 +167,8 @@ async function refreshModuleCapabilitiesSafe() {
   catch {
     return {
       operation: services.moduleStorage.state('operation'),
-      planning: services.moduleStorage.state('planning')
+      planning: services.moduleStorage.state('planning'),
+      finance: services.moduleStorage.state('finance')
     }
   }
 }
@@ -224,7 +227,7 @@ function registerIpc() {
   ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))
   ipcMain.handle('entity:save', envelope(({ table, data }) => services.dataAccess.save(table, data)))
   ipcMain.handle('entity:remove', envelope(({ table, id }) => services.dataAccess.remove(table, id)))
-  ipcMain.handle('dashboard:get', envelope((filters) => services.db.dashboard(filters)))
+  ipcMain.handle('dashboard:get', envelope((filters) => services.finance.dashboard(filters)))
   ipcMain.handle('works:overview', envelope(({ obra_id }) => services.works.overview(obra_id)))
   ipcMain.handle('works:timeline', envelope(({ obra_id }) => services.works.timeline(obra_id)))
   ipcMain.handle('planning:overview', envelope(({ obra_id }) => services.planning.overview(obra_id)))
@@ -235,8 +238,8 @@ function registerIpc() {
   ipcMain.handle('procurement:move-stock', envelope((payload) => services.procurement.moveStock(payload)))
   ipcMain.handle('contracts:create', envelope((payload) => services.contracts.createReceivable(payload)))
   ipcMain.handle('contracts:addendum', envelope((payload) => services.contracts.createAddendum(payload)))
-  ipcMain.handle('dre:get', envelope((filters) => services.db.dre(filters)))
-  ipcMain.handle('accounts:payment', envelope(({ id, payment }) => services.db.accountPayment(id, payment)))
+  ipcMain.handle('dre:get', envelope((filters) => services.finance.dre(filters)))
+  ipcMain.handle('accounts:payment', envelope(({ id, payment }) => services.finance.accountPayment(id, payment)))
   ipcMain.handle('measurements:save', envelope((payload) => services.db.saveMeasurement(payload)))
   ipcMain.handle('works:import-spreadsheets', envelope(() => services.workImport.chooseAndImport()))
   ipcMain.handle('files:import-employee', envelope((payload) => services.files.importForEmployee(payload)))
