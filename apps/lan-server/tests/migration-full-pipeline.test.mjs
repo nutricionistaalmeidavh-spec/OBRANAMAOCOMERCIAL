@@ -124,7 +124,7 @@ test('migrates core operation planning finance and rh with collisions mappings a
   const frontId=operation.imported.frentes_obra[0].targetId
   const reportId=operation.imported.rdos[0].targetId
   const teamId=operation.imported.rdo_equipe[0].targetId
-  assert.deepEqual(f.db.prepare('SELECT obra_id,frente_id FROM rdos WHERE id=?').get(reportId),{obra_id:workId,frente_id:frontId})
+  assert.deepEqual({ ...f.db.prepare('SELECT obra_id,frente_id FROM rdos WHERE id=?').get(reportId) },{obra_id:workId,frente_id:frontId})
   assert.equal(f.db.prepare('SELECT funcionario_id FROM rdo_equipe WHERE id=?').get(teamId).funcionario_id,null)
 
   const planning=migrate(f,'planning',{
@@ -133,7 +133,7 @@ test('migrates core operation planning finance and rh with collisions mappings a
     itens_orcamentarios:[{id:22,obra_id:3,etapa_id:20,frente_id:10,descricao:'Tubulação'}]
   })
   const stageId=planning.imported.etapas_obra[0].targetId
-  assert.deepEqual(f.db.prepare('SELECT obra_id,etapa_id,frente_id FROM cronograma_etapas WHERE id=?').get(planning.imported.cronograma_etapas[0].targetId),{obra_id:workId,etapa_id:stageId,frente_id:frontId})
+  assert.deepEqual({ ...f.db.prepare('SELECT obra_id,etapa_id,frente_id FROM cronograma_etapas WHERE id=?').get(planning.imported.cronograma_etapas[0].targetId) },{obra_id:workId,etapa_id:stageId,frente_id:frontId})
 
   const finance=migrate(f,'finance',{
     fornecedores:[{id:30,empresa_id:1,nome:'Fornecedor'}],
@@ -146,7 +146,7 @@ test('migrates core operation planning finance and rh with collisions mappings a
   const accountId=finance.imported.contas[0].targetId
   assert.equal(categoryId,1,'seed financeiro deve ser reutilizado')
   assert.equal(finance.imported.categorias_financeiras[0].reused,false,'mapping novo pode apontar para seed já existente')
-  assert.deepEqual(f.db.prepare('SELECT empresa_id,obra_id,frente_id,fornecedor_id,cliente_id,categoria_id FROM contas WHERE id=?').get(accountId),{
+  assert.deepEqual({ ...f.db.prepare('SELECT empresa_id,obra_id,frente_id,fornecedor_id,cliente_id,categoria_id FROM contas WHERE id=?').get(accountId) },{
     empresa_id:companyId,obra_id:workId,frente_id:frontId,fornecedor_id:supplierId,cliente_id:clientId,categoria_id:categoryId
   })
 
@@ -168,7 +168,7 @@ test('migrates core operation planning finance and rh with collisions mappings a
   const employeeId=rh.imported.funcionarios[0].targetId
   const payrollId=rh.imported.folhas_pagamento[0].targetId
   const pointId=rh.imported.pontos_mensais[0].targetId
-  assert.deepEqual(f.db.prepare('SELECT empresa_id,obra_atual_id,cargo_id FROM funcionarios WHERE id=?').get(employeeId),{
+  assert.deepEqual({ ...f.db.prepare('SELECT empresa_id,obra_atual_id,cargo_id FROM funcionarios WHERE id=?').get(employeeId) },{
     empresa_id:companyId,obra_atual_id:workId,cargo_id:rh.imported.cargos[0].targetId
   })
   assert.equal(f.db.prepare('SELECT conta_id FROM folhas_pagamento WHERE id=?').get(payrollId).conta_id,accountId)
