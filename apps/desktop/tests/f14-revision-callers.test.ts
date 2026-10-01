@@ -8,14 +8,13 @@ const read = (relative:string) => readFileSync(resolve(here, relative), 'utf8')
 
 describe('F14 Desktop revision callers', () => {
   it('remembers the revision actually observed by generic entity views and reuses it on delete', () => {
-    const preload = read('../electron/preload.cjs')
-    expect(preload).toContain('entityRevisions')
-    expect(preload).toContain('rememberEntityRevision')
-    expect(preload).toContain('revision ?? entityRevisions.get')
-    expect(preload).toContain("call('entity:list'")
-    expect(preload).toContain("call('entity:get'")
-    expect(preload).toContain("call('entity:save'")
-    expect(preload).toContain("call('entity:remove'")
+    const source = read('../electron/services/data-access-service.cjs')
+    expect(source).toContain('observedRevisions')
+    expect(source).toContain('rememberRevision')
+    expect(source).toContain('expectedRevision ?? this.observedRevisions.get')
+    expect(source).toContain('this.rememberMany(table, await this.remote.list')
+    expect(source).toContain('this.rememberRevision(table, await this.remote.get')
+    expect(source).toContain('this.rememberRevision(table, await this.remote.save')
   })
 
   it('carries the observed RDO root revision when editing the aggregate', () => {
