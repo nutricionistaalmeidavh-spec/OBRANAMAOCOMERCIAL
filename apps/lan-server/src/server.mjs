@@ -3,13 +3,14 @@ import { createHash, randomBytes } from 'node:crypto'
 import { authenticateLanRequest, authorizeBusinessRoute, LanAuthorizationError } from './authorization.mjs'
 import { PairingError } from './pairing-service.mjs'
 import { FieldService } from './field-service.mjs'
+import { PlanningService } from './planning-service.mjs'
 
 export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.3.0'
 
 const MAX_BODY_BYTES = 1024 * 1024
 const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
-const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|frentes_obra|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos)(?:\/(\d+))?\/?$/
+const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|frentes_obra|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
 
 const digest = value => createHash('sha256').update(String(value)).digest('hex')
@@ -182,8 +183,9 @@ async function handleSetupClaim(request, response, { security, identity, cloudAu
   })
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const field = fieldService || (repository ? new FieldService({ repository }) : null)
+  const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://localhost')
@@ -211,6 +213,15 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         authorizeBusinessRoute(context, { table: 'rdos', method: 'POST' })
         const body = await readJson(request)
         return sendJson(response, 201, field.saveDailyReport(body))
+      }
+
+      if (url.pathname === '/api/v1/planning/overview') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!planning?.overview) return sendJson(response, 503, { error: 'planning_unavailable', message: 'Serviço central de Planejamento indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeBusinessRoute(context, { table: 'cronograma_etapas', method: 'GET' })
+        const obraId = Number(url.searchParams.get('obra_id'))
+        return sendJson(response, 200, planning.overview(obraId))
       }
 
       if (url.pathname === '/api/v1/setup/status') {
