@@ -1,0 +1,86 @@
+name: F13-F17 + F14-F16 Final Gate
+
+on:
+  push:
+    branches:
+      - integration/f13-f17-f14-f16-final
+
+permissions:
+  contents: read
+
+env:
+  DESKTOP_AUTO_RELEASE_ENABLED: 'false'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install Desktop dependencies
+        working-directory: apps/desktop
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Lint Desktop
+        working-directory: apps/desktop
+        run: npm run lint
+      - name: Test Desktop
+        working-directory: apps/desktop
+        run: npm test
+      - name: Test LAN server
+        run: npm --prefix apps/lan-server test
+      - name: Build Desktop
+        working-directory: apps/desktop
+        run: npm run build
+      - name: Build Windows installer
+        working-directory: apps/desktop
+        run: npm run dist
+
+  macos-arm64:
+    runs-on: macos-14
+    timeout-minutes: 35
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install Desktop dependencies
+        working-directory: apps/desktop
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Test Desktop
+        working-directory: apps/desktop
+        run: npm test
+      - name: Build Desktop
+        working-directory: apps/desktop
+        run: npm run build
+      - name: Generate Apple Silicon DMG
+        working-directory: apps/desktop
+        run: npm run dist:mac:arm64
+
+  web-cloud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install web dependencies
+        working-directory: apps/web
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Test critical web flows
+        working-directory: apps/web
+        run: npm test
+      - name: Build static application
+        working-directory: apps/web
+        run: npm run build
+      - name: Compile Pages Functions
+        working-directory: apps/web
+        run: npm run build:functions
+      - name: Bundle Cloudflare Worker
+        working-directory: apps/web
+        run: npm run build:worker
