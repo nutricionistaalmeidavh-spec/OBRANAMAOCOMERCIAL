@@ -2,13 +2,13 @@
 
 Data: 2026-10-01
 Branch: `hardening/pr60-security-migration-docs`
-Base: `feat/desktop-lan-server-foundation` @ `7bcc760466ad45a6555c434f2258f37416ff863b`
+Base inicial: `feat/desktop-lan-server-foundation` @ `7bcc760466ad45a6555c434f2258f37416ff863b`
 
 ## Objetivo
 
 Adicionar, em paralelo à evolução funcional da PR #60, três camadas de fechamento arquitetural antes de qualquer merge/release:
 
-1. isolamento e autorização por empresa/dispositivo/usuário no servidor LAN;
+1. isolamento/autorização por servidor reivindicado, dispositivo e usuário, mais integridade de relacionamentos entre entidades;
 2. migração segura de dados locais para a fonte central, com backup, validação e rollback;
 3. documentação/checklist objetivo da PR #60, refletindo o código real e os gates de release.
 
@@ -18,17 +18,18 @@ A implementação deve preservar os modos `local`, `lan-host` e `lan-client`, se
 
 ### Segurança
 
-A autenticação LAN já valida token de dispositivo, status do dispositivo, membro ativo, canal Desktop e módulos autorizados. O contexto autenticado também carrega `companyId`.
+A autenticação LAN já valida token de dispositivo, status do dispositivo, membro ativo, canal Desktop e módulos autorizados. O servidor é reivindicado uma única vez por uma empresa Cloud e mantém `companyId` no estado de identidade local.
 
-O ponto de hardening é o caminho genérico das entidades. Hoje o servidor autentica/autorizada a tabela, mas `repository.list/get/save/remove` não recebe o contexto da empresa autenticada. Isso permite que a proteção dependa de filtros enviados pelo próprio cliente ou apenas do ID global do registro.
+Durante a revisão do código foi identificado um detalhe importante que corrige a hipótese inicial deste desenho: `companyId` da autoridade Cloud é textual (por exemplo `company-a`), enquanto `empresas.id` no banco operacional LAN é um inteiro autoincremental. Portanto, **não é correto comparar diretamente `context.companyId` com `empresa_id` das tabelas operacionais**.
 
-Consequências que precisam ser eliminadas:
+A fronteira de tenant da arquitetura atual é o **servidor LAN reivindicado**: cada instância é vinculada a uma única empresa Cloud, aceita somente tokens de dispositivos criados nessa própria instância e rejeita novo claim depois de vinculada. As tabelas `empresas`, `obras`, `funcionarios` etc. são dados de domínio internos desse tenant.
 
-- leitura de registro por ID sem escopo explícito de empresa;
-- update/delete por ID sem escopo explícito de empresa;
-- listagem com `empresa_id` controlado pelo cliente;
-- referências cruzadas entre empresas por IDs válidos;
-- endpoints especializados de Financeiro/RH/Planejamento executando operações sem validar o `companyId` do ator no nível do serviço/repositório.
+O hardening deve, portanto, garantir duas coisas distintas:
+
+- **isolamento de tenant/identidade**: nenhum token/snapshot/claim de outra empresa Cloud pode reutilizar a instância já reivindicada;
+- **integridade de domínio**: IDs relacionados (`empresa_id`, `obra_id`, `folha_id`, `funcionario_id`, etc.) não podem formar relacionamentos incoerentes dentro do banco central.
+
+Uma futura instância LAN multi-tenant exigiria uma chave de tenant persistida por linha ou uma camada de mapeamento explícita; isso fica fora do escopo desta PR.
 
 ### Migração
 
@@ -42,41 +43,43 @@ O `BackupService` atual cria/restaura SQLite, mas:
 - não valida integridade/schema do arquivo restaurado antes da troca;
 - não mantém manifesto da migração;
 - não vincula backup a módulo, versão de schema ou tentativa de migração;
-- não oferece rollback automático quando uma migração central falha.
+- não oferece recuperação automática quando uma migração central falha.
 
 ## Abordagem escolhida
 
-### 1. Isolamento por empresa no servidor LAN
+### 1. Isolamento do servidor e integridade de domínio
 
-Criar uma camada de escopo de tenant obrigatória no repositório, em vez de confiar em filtros de rota.
+#### Regras de tenant
 
-#### Regras
+- O servidor LAN continua **single-tenant** nesta arquitetura.
+- O `companyId` Cloud permanece preso ao `lan_server_identity` depois do claim.
+- Um segundo claim para outra empresa deve falhar sem alterar identidade, snapshot, devices ou dados operacionais.
+- `writeSnapshot/replaceSnapshot` continuam rejeitando snapshot cujo `companyId` difere da empresa já vinculada.
+- Tokens de dispositivos são locais à instância e nunca funcionam em outra instância/tenant.
+- Revogação de dispositivo, membro removido/inativo e perda do canal Desktop devem interromper acesso imediatamente.
+- Papel Admin concede poderes administrativos **somente dentro da instância já reivindicada**; não permite trocar tenant.
+- Nenhum endpoint público deve devolver `serverToken`, hashes de token, setup hash ou outros segredos persistidos.
 
-- Toda rota autenticada de negócio recebe `context.companyId`.
-- O servidor nunca aceita `company_id` do cliente como autoridade de tenant.
-- Para entidades com `empresa_id`, o servidor força/valida o `empresa_id` com base no contexto autenticado.
-- Para entidades sem `empresa_id` direto, o repositório resolve a empresa por relacionamento pai (obra, RDO, conta, folha, ponto etc.).
-- `GET /:id`, `PUT /:id` e `DELETE /:id` retornam `404` quando o registro não pertence à empresa do ator, evitando enumeração entre tenants.
-- Admin continua sendo Admin apenas dentro da empresa vinculada ao servidor; papel Admin não remove isolamento de tenant.
+#### Regras de integridade de domínio
 
-#### Estrutura sugerida
-
-- `apps/lan-server/src/tenant-scope.mjs`: resolução de empresa por tabela/relacionamento e helpers de assert/filters.
-- `apps/lan-server/src/repository.mjs`: variantes scoped de `list/get/save/remove` ou assinatura com `companyId` obrigatório.
-- `apps/lan-server/src/server.mjs`: passa `context.companyId` ao repositório/serviços.
-- Serviços especializados recebem o companyId quando necessário.
+- `empresa_id`, `obra_id`, `frente_id`, `etapa_id`, `funcionario_id`, `folha_id`, `ponto_mensal_id`, `conta_id` e demais FKs relevantes devem ser validados antes de gravação quando a regra de negócio exige pertencimento comum.
+- O cliente não pode criar referência cruzada incoerente apenas informando IDs válidos.
+- `PUT` não pode mover silenciosamente um registro para outra empresa/obra quando isso quebrar os relacionamentos existentes.
+- Financeiro, Planejamento e RH devem aplicar as mesmas validações tanto pelas rotas genéricas quanto pelos endpoints especializados.
+- `GET/PUT/DELETE` por ID inexistente continua respondendo `404`; falhas de relacionamento retornam erro de validação sem expor segredos.
 
 #### Testes obrigatórios
 
-- empresa A não lê/lista/edita/remove dados da empresa B;
-- cliente não consegue trocar `empresa_id` no payload;
-- referências cruzadas entre empresas falham;
-- IDs válidos de outro tenant retornam 404;
+- servidor A rejeita token criado no servidor B;
+- servidor já reivindicado rejeita segundo claim para empresa diferente e preserva o estado anterior;
+- snapshot de empresa diferente é rejeitado de forma transacional;
 - dispositivo revogado falha imediatamente;
 - membro removido/inativo falha;
 - membro sem canal Desktop falha;
 - código de pareamento é one-shot e expirado não funciona;
-- host do servidor não concede Admin automaticamente.
+- host do servidor não concede Admin automaticamente;
+- referências cruzadas inválidas entre empresa/obra/funcionário/folha/ponto/financeiro são rejeitadas;
+- alteração via `PUT` não pode quebrar pertencimento relacional previamente válido.
 
 ## 2. Migração local → central com backup e rollback
 
@@ -102,13 +105,13 @@ Criar um `ModuleMigrationService` no Desktop. Ele será a única camada autoriza
    - não apagar ou modificar a origem local durante a cópia.
 
 4. **Importação idempotente**
-   - enviar para o servidor central usando chaves/import IDs estáveis;
+   - enviar ao servidor usando `migrationId` + chave estável por registro (`sourceTable` + `sourceId`);
    - reexecutar uma migração interrompida não pode duplicar registros;
-   - registrar progresso por etapa/tabela.
+   - registrar progresso por etapa/tabela no servidor.
 
 5. **Validação**
    - comparar contagens esperadas vs. gravadas;
-   - validar relações críticas e amostras por ID/import key;
+   - validar relações críticas e amostras pela chave de origem;
    - executar leitura de sanidade pelo cliente LAN.
 
 6. **Commit lógico**
@@ -120,7 +123,7 @@ Criar um `ModuleMigrationService` no Desktop. Ele será a única camada autoriza
    - não ativar roteamento central parcial;
    - preservar banco local original intacto;
    - permitir retry seguro;
-   - se a falha ocorrer após gravações remotas, usar identificador da tentativa para limpar/reverter apenas o lote daquela tentativa, quando suportado.
+   - servidor identifica as gravações da tentativa pelo `migrationId` e remove apenas o lote daquela tentativa quando rollback explícito for necessário.
 
 ### Ordem de migração
 
@@ -138,13 +141,24 @@ Aprimorar `BackupService` para:
 
 - nomenclatura `Obra-na-Mao-Backup-<timestamp>`;
 - arquivo `obra-na-mao.sqlite`;
+- manifesto JSON ao lado do banco;
 - `PRAGMA integrity_check` antes de aceitar restore;
 - validação mínima de tabelas/schema esperado;
 - safety backup antes do restore;
-- falha segura: se restore/open falhar, reabrir a base anterior;
-- manifesto do backup e da tentativa de migração.
+- falha segura: se restore/open falhar, restaurar/reabrir a base anterior;
+- manifesto da tentativa de migração referenciando o backup criado.
 
-## 3. Documentação e checklist da PR #60
+## 3. Controle explícito no Desktop
+
+A migração não ocorre automaticamente ao trocar para `lan-host`/`lan-client`.
+
+- `StorageServerSettings` mostra estado dos quatro módulos: operação, planejamento, financeiro e RH.
+- Quando um módulo estiver `migration-required`, a UI apresenta ação explícita de migração.
+- Antes de iniciar, a UI informa que será criado backup e que a base local não será apagada durante a cópia.
+- O usuário acompanha resultado por módulo; erro mantém `migration-required`.
+- A UI não oferece “forçar central-active”.
+
+## 4. Documentação e checklist da PR #60
 
 Atualizar a documentação da branch de hardening e preparar texto/checklist para a PR #60 com:
 
@@ -152,6 +166,7 @@ Atualizar a documentação da branch de hardening e preparar texto/checklist par
 
 - topologias `local`, `lan-host`, `lan-client`;
 - autenticação/claim/pareamento;
+- servidor LAN single-tenant por claim Cloud;
 - módulos já centralizados: core, operação/RDO, planejamento, financeiro e RH conforme estado real do head;
 - PDFs/contextos gerados localmente quando aplicável;
 - módulos/fluxos ainda fora de escopo.
@@ -166,7 +181,8 @@ Atualizar a documentação da branch de hardening e preparar texto/checklist par
 
 ### Gates antes do merge
 
-- [ ] isolamento multiempresa validado;
+- [ ] isolamento entre instâncias/claims validado;
+- [ ] integridade de relacionamentos de domínio validada;
 - [ ] revogação de dispositivo/membro validada;
 - [ ] pareamento one-shot/expiração validado;
 - [ ] migração com backup e retry validada;
@@ -185,8 +201,8 @@ Atualizar a documentação da branch de hardening e preparar texto/checklist par
 
 Para reduzir conflito com a F12 ainda ativa:
 
-- esta branch parte do head `7bcc7604` da PR #60;
-- novos arquivos concentram tenant scope, migração e evidências;
+- esta branch partiu do head `7bcc7604` da PR #60;
+- novos arquivos concentram protocolo de migração e testes de hardening;
 - evitar alterações desnecessárias em `data-access-service.cjs`, `lan-data-client.cjs` e `module-storage-state-service.cjs` enquanto F12 estiver mudando;
 - quando alteração nesses hotspots for inevitável, mantê-la mínima e isolada em commit próprio;
 - antes de abrir PR de integração, atualizar/rebasear esta branch sobre o head estabilizado de `feat/desktop-lan-server-foundation` e resolver conflitos conscientemente.
@@ -197,7 +213,12 @@ A implementação seguirá TDD.
 
 ### LAN server
 
-Adicionar testes de isolamento no nível HTTP e do repositório para cada classe de entidade: core, operação, planejamento, financeiro e RH.
+Adicionar testes para:
+
+- isolamento de claim/token entre instâncias;
+- integridade relacional no repositório;
+- protocolo de migração idempotente e rollback por `migrationId`;
+- endpoints especializados de Financeiro/RH/Planejamento preservando as mesmas regras.
 
 ### Desktop
 
@@ -225,6 +246,7 @@ Adicionar testes de:
 ## Não objetivos desta branch
 
 - concluir novas funcionalidades da F12;
+- transformar uma instância LAN em servidor multi-tenant;
 - criar servidor remoto público;
 - criar cobrança de Cloud;
 - alterar PWA/Cloudflare sem necessidade de compatibilidade;
@@ -237,8 +259,10 @@ Adicionar testes de:
 A branch está pronta para integração quando:
 
 1. todos os testes novos e existentes do Desktop/LAN server passam;
-2. não existe caminho de entidade autenticada que leia/escreva outro tenant;
-3. migração falha de modo seguro e repetível;
-4. backup/restore é validado antes da troca de banco;
-5. documentação/checklist corresponde ao código final;
-6. nenhuma etapa de deploy/release foi executada.
+2. identidade/claim/tokens não atravessam instâncias ou empresas Cloud;
+3. relações de domínio inválidas são rejeitadas antes de persistir;
+4. migração falha de modo seguro e repetível;
+5. backup/restore é validado antes da troca de banco;
+6. UI exige ação explícita para migrar e nunca força `central-active`;
+7. documentação/checklist corresponde ao código final;
+8. nenhuma etapa de deploy/release foi executada.
