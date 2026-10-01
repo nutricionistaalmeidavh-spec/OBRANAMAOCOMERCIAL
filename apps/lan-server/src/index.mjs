@@ -5,7 +5,7 @@ import { ServerIdentity } from './server-identity.mjs'
 import { CloudAuthorityClient } from './cloud-authority-client.mjs'
 import { PairingService } from './pairing-service.mjs'
 import { MigrationService } from './migration-service.mjs'
-import { CentralBackupService } from './central-backup-service.mjs'
+import { RuntimeBackupService } from './runtime-backup-service.mjs'
 import { createHealthService } from './health-service.mjs'
 import { loadRuntimeConfig } from './runtime-config.mjs'
 import { ensureRuntimePaths, resolveRuntimePaths } from './runtime-paths.mjs'
@@ -18,7 +18,7 @@ const { host, port, cloudBaseUrl } = runtimeConfig
 const runtimePaths = ensureRuntimePaths(resolveRuntimePaths(runtimeConfig, {
   migrationsDir: path.resolve(import.meta.dirname, '../migrations')
 }))
-const { dataDir, databasePath, migrationsDir } = runtimePaths
+const { dataDir, backupDir, databasePath, migrationsDir } = runtimePaths
 const IDENTITY_REFRESH_MS = 5 * 60 * 1000
 
 function bootstrapServer() {
@@ -30,10 +30,11 @@ function bootstrapServer() {
     const cloudAuthority = new CloudAuthorityClient({ baseUrl: cloudBaseUrl })
     const pairingService = new PairingService({ security })
     const migrationService = new MigrationService({ repository, security })
-    const centralBackupService = new CentralBackupService({
+    const centralBackupService = new RuntimeBackupService({
       repository,
       security,
       dataDir,
+      backupDir,
       migrationsDir,
       databasePath,
       serverVersion: LAN_SERVER_VERSION,
