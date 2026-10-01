@@ -42,6 +42,7 @@ jobs:
           $programDataRoot = Join-Path $env:ProgramData 'ArtiSys\Obra na Mão Server'
           $configPath = Join-Path $programDataRoot 'config\server.env'
           $logRoot = Join-Path $programDataRoot 'logs'
+          $innoLog = Join-Path $env:RUNNER_TEMP 'obra-na-mao-server-inno.log'
           $sentinel = Join-Path $programDataRoot 'ci-sentinel.txt'
           if (-not (Test-Path $installer)) { throw "Server installer missing: $installer" }
 
@@ -50,12 +51,17 @@ jobs:
             sc.exe delete ObraNaMaoServer | Out-Null
           }
           Remove-Item $programDataRoot -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item $innoLog -Force -ErrorAction SilentlyContinue
 
           function Write-ServiceDiagnostics {
             Write-Host '=== ObraNaMaoServer diagnostics ==='
             Get-Service -Name ObraNaMaoServer -ErrorAction SilentlyContinue | Format-List Name,Status,StartType
             sc.exe qc ObraNaMaoServer 2>&1 | Out-Host
             sc.exe queryex ObraNaMaoServer 2>&1 | Out-Host
+            if (Test-Path $innoLog) {
+              Write-Host '--- Inno Setup log tail ---'
+              Get-Content $innoLog -Tail 180 -ErrorAction SilentlyContinue | Out-Host
+            }
             if (Test-Path $logRoot) {
               Get-ChildItem -Path $logRoot -File -ErrorAction SilentlyContinue | ForEach-Object {
                 Write-Host "--- $($_.Name) ---"
@@ -79,7 +85,7 @@ jobs:
             throw 'Windows service did not become /ready.'
           }
 
-          $installArgs = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
+          $installArgs = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LOG=$innoLog")
           $p = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
           if ($p.ExitCode -ne 0) { Write-ServiceDiagnostics; throw "First install failed: $($p.ExitCode)" }
           $first = Wait-Ready
@@ -93,6 +99,7 @@ jobs:
           $afterRestart = Wait-Ready
           if ([string]$afterRestart.identity.serverId -ne $serverId) { throw 'serverId changed after Windows service restart.' }
 
+          Remove-Item $innoLog -Force -ErrorAction SilentlyContinue
           $p = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
           if ($p.ExitCode -ne 0) { Write-ServiceDiagnostics; throw "Reinstall failed: $($p.ExitCode)" }
           $afterReinstall = Wait-Ready
