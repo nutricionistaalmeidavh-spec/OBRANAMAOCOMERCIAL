@@ -17,22 +17,25 @@ describe('F14 Desktop revision callers', () => {
     expect(source).toContain('this.rememberRevision(table, await this.remote.save')
   })
 
-  it('carries the observed RDO root revision when editing the aggregate', () => {
-    const source = read('../src/pages/DailyReportPage.tsx')
-    expect(source).toContain('expectedRevision: form.revision')
-    expect(source).toContain('window.fluxoDre.campo.saveRdo')
+  it('maps the observed RDO root revision to expectedRevision before the LAN call', () => {
+    const source = read('../electron/services/field-source-service.cjs')
+    expect(source).toContain('expectedRevision: expectedRevision ?? revision')
+    expect(source).toContain('equipe.map(withoutRevision)')
+    expect(source).toContain('this.lanClient.saveDailyReport(remotePayload(payload))')
   })
 
-  it('carries the observed payroll sheet revision when confirming a payment', () => {
-    const source = read('../src/pages/PayrollPage.tsx')
-    expect(source).toContain('expectedRevision:payroll.data?.sheet?.revision')
-    expect(source).toContain('window.fluxoDre.folha.confirm')
+  it('reuses and advances the observed payroll sheet revision at the RH source boundary', () => {
+    const source = read('../electron/services/rh-source-service.cjs')
+    expect(source).toContain('payrollRevisions')
+    expect(source).toContain('payload.expectedRevision ?? this.payrollRevisions.get')
+    expect(source).toContain('result?.sheetRevision')
   })
 
-  it('carries the observed monthly time revision for autofill and save', () => {
-    const source = read('../src/pages/TimeSheetPage.tsx')
-    expect(source).toContain('expectedRevision:point.data?.point?.revision')
-    expect(source).toContain('window.fluxoDre.ponto.autoFill')
-    expect(source).toContain('window.fluxoDre.ponto.save')
+  it('reuses and advances the observed monthly time revision for autofill and save', () => {
+    const source = read('../electron/services/rh-source-service.cjs')
+    expect(source).toContain('timeRevisions')
+    expect(source).toContain('payload.expectedRevision ?? this.timeRevisions.get')
+    expect(source).toContain('this.lanClient.timeAutoFill({ ...payload, expectedRevision })')
+    expect(source).toContain('this.lanClient.timeSave({ ...payload, expectedRevision })')
   })
 })
