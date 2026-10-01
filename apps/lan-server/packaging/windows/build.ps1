@@ -1,7 +1,8 @@
 param(
   [string]$OutputDir,
   [string]$CacheDir = (Join-Path $env:TEMP 'obra-na-mao-server-build'),
-  [string]$CommitSha = $(if ($env:GITHUB_SHA) { $env:GITHUB_SHA } else { 'local-build' })
+  [string]$CommitSha = $(if ($env:GITHUB_SHA) { $env:GITHUB_SHA } else { 'local-build' }),
+  [switch]$BuildInstaller
 )
 
 $ErrorActionPreference = 'Stop'
@@ -12,6 +13,7 @@ $lock = Get-Content $lockPath -Raw | ConvertFrom-Json
 $nodeVersion = (Get-Content (Join-Path $repoRoot '.nvmrc') -Raw).Trim()
 if ($nodeVersion -ne $lock.node.version) { throw "Node do vendor lock ($($lock.node.version)) diverge da .nvmrc ($nodeVersion)." }
 if (-not $OutputDir) { $OutputDir = Join-Path $repoRoot 'apps/lan-server/dist/server-windows-x64' }
+$serverVersion = (Get-Content (Join-Path $repoRoot 'apps/lan-server/package.json') -Raw | ConvertFrom-Json).version
 
 function Get-VerifiedFile([string]$Url, [string]$Sha256, [string]$Destination) {
   New-Item -ItemType Directory -Force -Path (Split-Path $Destination -Parent) | Out-Null
@@ -43,7 +45,8 @@ $platformFiles = @(
   @{ source = $winswPath; destination = 'ObraNaMaoServer.exe' },
   @{ source = (Join-Path $PSScriptRoot 'service.xml'); destination = 'ObraNaMaoServer.xml' },
   @{ source = (Join-Path $PSScriptRoot 'server.env.template'); destination = 'server.env.template' },
-  @{ source = (Join-Path $PSScriptRoot 'service-control.ps1'); destination = 'service-control.ps1' }
+  @{ source = (Join-Path $PSScriptRoot 'service-control.ps1'); destination = 'service-control.ps1' },
+  @{ source = (Join-Path $PSScriptRoot 'install-hooks.ps1'); destination = 'install-hooks.ps1' }
 ) | ConvertTo-Json -Compress
 
 $env:OBRA_PACKAGE_BUILDER = $builderModule
@@ -69,3 +72,24 @@ buildServerPackage({
 & node --input-type=module -e $script
 if ($LASTEXITCODE -ne 0) { throw "build-package.mjs falhou com exit code $LASTEXITCODE" }
 Write-Host "Windows Server package criado em $OutputDir"
+
+if ($BuildInstaller) {
+  if ([string]$lock.innoSetup.version -ne '7.1.0') { throw "Inno Setup deve permanecer pinado em 7.1.0." }
+  $innoInstaller = Join-Path $CacheDir $lock.innoSetup.file
+  Get-VerifiedFile $lock.innoSetup.url $lock.innoSetup.sha256 $innoInstaller
+  $innoDir = Join-Path $CacheDir 'inno-7.1.0'
+  $iscc = Join-Path $innoDir 'ISCC.exe'
+  if (-not (Test-Path $iscc)) {
+    New-Item -ItemType Directory -Force -Path $innoDir | Out-Null
+    $process = Start-Process -FilePath $innoInstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER',"/DIR=$innoDir") -Wait -PassThru
+    if ($process.ExitCode -ne 0) { throw "Instalação de build do Inno Setup 7.1.0 falhou com exit code $($process.ExitCode)." }
+  }
+  if (-not (Test-Path $iscc)) { throw "ISCC.exe não encontrado após instalar Inno Setup 7.1.0 em $innoDir" }
+
+  $installerOutput = Join-Path $repoRoot 'apps/lan-server/dist/installer'
+  New-Item -ItemType Directory -Force -Path $installerOutput | Out-Null
+  $issPath = Join-Path $PSScriptRoot 'installer.iss'
+  & $iscc "/DAppVersion=$serverVersion" "/DPackageDir=$OutputDir" "/O$installerOutput" $issPath
+  if ($LASTEXITCODE -ne 0) { throw "ISCC.exe falhou ao compilar installer.iss com exit code $LASTEXITCODE" }
+  Write-Host "Instalador Windows criado em $installerOutput"
+}
