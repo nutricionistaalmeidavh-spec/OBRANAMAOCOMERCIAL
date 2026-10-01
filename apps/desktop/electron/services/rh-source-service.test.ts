@@ -34,11 +34,11 @@ function fixture(state='local') {
 }
 
 describe('RhSourceService',()=>{
-  it('preserva folha e ponto locais em modo local ou migration-required', async()=>{
+  it('preserva folha e ponto locais em modo local ou migration-required',()=>{
     for(const state of ['local','migration-required']){
       const f=fixture(state)
-      await expect(f.service.getEmployee({funcionario_id:1,competencia:'2026-10'})).resolves.toMatchObject({source:'local-payroll'})
-      await expect(f.service.timeGet({funcionario_id:1,competencia:'2026-10'})).resolves.toMatchObject({source:'local-time'})
+      expect(f.service.getEmployee({funcionario_id:1,competencia:'2026-10'})).toMatchObject({source:'local-payroll'})
+      expect(f.service.timeGet({funcionario_id:1,competencia:'2026-10'})).toMatchObject({source:'local-time'})
       expect(f.lanClient.payrollEmployee).not.toHaveBeenCalled()
       expect(f.lanClient.timeGet).not.toHaveBeenCalled()
     }
@@ -55,10 +55,10 @@ describe('RhSourceService',()=>{
     expect(f.localTime.save).not.toHaveBeenCalled()
   })
 
-  it('central-ready bloqueia qualquer fallback local silencioso', async()=>{
+  it('central-ready bloqueia qualquer fallback local silencioso',()=>{
     const f=fixture('central-ready')
-    await expect(f.service.saveVariable({funcionario_id:3,competencia:'2026-10'})).rejects.toThrow(/nenhum dado será salvo localmente/i)
-    await expect(f.service.timeAutoFill({funcionario_id:3,competencia:'2026-10'})).rejects.toThrow(/nenhum dado será salvo localmente/i)
+    expect(()=>f.service.saveVariable({funcionario_id:3,competencia:'2026-10'})).toThrow(/nenhum dado será salvo localmente/i)
+    expect(()=>f.service.timeAutoFill({funcionario_id:3,competencia:'2026-10'})).toThrow(/nenhum dado será salvo localmente/i)
     expect(f.localPayroll.saveVariable).not.toHaveBeenCalled()
     expect(f.localTime.autoFill).not.toHaveBeenCalled()
     expect(f.lanClient.payrollSaveVariable).not.toHaveBeenCalled()
