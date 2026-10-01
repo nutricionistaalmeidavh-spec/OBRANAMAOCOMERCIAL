@@ -212,12 +212,12 @@ async function authorizeRh(request, security, action = 'edit') {
 }
 
 export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
-  const field = fieldService || (repository ? new FieldService({ repository }) : null)
+  const versionedRepository = createVersionedRepository(repository)
+  const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
-  const payroll = payrollService || (repository ? new PayrollService({ repository }) : null)
-  const time = timeService || (repository ? new TimeService({ repository }) : null)
-  const versionedRepository = createVersionedRepository(repository)
+  const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
+  const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://localhost')
