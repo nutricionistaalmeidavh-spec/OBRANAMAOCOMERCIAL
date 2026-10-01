@@ -18,7 +18,13 @@ function createSecurity() {
   return { repository, security }
 }
 
-function snapshot({ companyId = 'company-a', revision = 'snapshot-1', permissions = permissionsA, permissionsRevision = 'perm-1' } = {}) {
+function snapshot(options = {}) {
+  const companyId = options.companyId ?? 'company-a'
+  const revision = options.revision ?? 'snapshot-1'
+  const hasPermissions = Object.hasOwn(options, 'permissions')
+  const hasPermissionsRevision = Object.hasOwn(options, 'permissionsRevision')
+  const permissions = hasPermissions ? options.permissions : permissionsA
+  const permissionsRevision = hasPermissionsRevision ? options.permissionsRevision : 'perm-1'
   return {
     companyId,
     revision,
