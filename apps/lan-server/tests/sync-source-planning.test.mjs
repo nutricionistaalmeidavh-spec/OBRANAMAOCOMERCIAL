@@ -16,7 +16,7 @@ function security() {
   }
 }
 
-test('fonte central anuncia planning e cronograma somente após F10 estar disponível', async () => {
+test('F10 continua anunciando planning e cronograma após capacidades posteriores serem adicionadas', async () => {
   const server = createLanServer({ security: security() })
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
@@ -28,7 +28,9 @@ test('fonte central anuncia planning e cronograma somente após F10 estar dispon
     const capabilities = await response.json()
     assert.ok(capabilities.modules.includes('planning'))
     assert.ok(capabilities.bridgeEntities.includes('cronograma_etapas'))
-    assert.equal(capabilities.modules.includes('finance'), false)
+    assert.ok(capabilities.bridgeEntities.includes('frentes_obra'))
+    assert.ok(capabilities.bridgeEntities.includes('tarefas_obra'))
+    assert.ok(capabilities.bridgeEntities.includes('rdos'))
     assert.equal(capabilities.modules.includes('rh'), false)
   } finally {
     server.close(); await once(server, 'close')
