@@ -17,6 +17,7 @@ const { DocumentService } = require('./services/document-service.cjs')
 const { PayrollService } = require('./services/payroll-service.cjs')
 const { DocumentRootService } = require('./services/document-root-service.cjs')
 const { CatalogService } = require('./services/catalog-service.cjs')
+const { RhCatalogSourceService } = require('./services/rh-catalog-source-service.cjs')
 const { TimeService } = require('./services/time-service.cjs')
 const { ScannerService } = require('./services/scanner-service.cjs')
 const { WorkImportService } = require('./services/work-import-service.cjs')
@@ -90,6 +91,7 @@ function createServices() {
   const localPayroll = new PayrollService({ db })
   const localTime = new TimeService({ db, fileService: files })
   const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })
+  const catalog = new RhCatalogSourceService({ local: new CatalogService({ db }), dataAccess, moduleStorage })
   const rhDocuments = new RhDocumentService({ rh, localTime, fileService: files, dataAccess })
   const time = {
     get: payload => rh.timeGet(payload),
@@ -122,7 +124,7 @@ function createServices() {
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
     payroll: rh,
-    catalog: new CatalogService({ db }),
+    catalog,
     time,
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
