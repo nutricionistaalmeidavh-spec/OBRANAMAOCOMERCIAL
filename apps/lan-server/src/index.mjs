@@ -7,14 +7,16 @@ import { PairingService } from './pairing-service.mjs'
 import { MigrationService } from './migration-service.mjs'
 import { RuntimeBackupService } from './runtime-backup-service.mjs'
 import { createHealthService } from './health-service.mjs'
-import { loadRuntimeConfig } from './runtime-config.mjs'
+import { loadRuntimeConfig, runtimeConfigForDiagnostics } from './runtime-config.mjs'
 import { ensureRuntimePaths, resolveRuntimePaths } from './runtime-paths.mjs'
 import { attachReadinessRoute } from './readiness-route.mjs'
 import { createRuntime } from './server-runtime.mjs'
+import { createRuntimeLogger } from './runtime-logger.mjs'
 import { createLanServer, LAN_SERVER_VERSION, refreshIdentitySnapshot } from './server.mjs'
 
 const runtimeConfig = loadRuntimeConfig()
 const { host, port, cloudBaseUrl } = runtimeConfig
+const logger = createRuntimeLogger()
 const runtimePaths = ensureRuntimePaths(resolveRuntimePaths(runtimeConfig, {
   migrationsDir: path.resolve(import.meta.dirname, '../migrations')
 }))
@@ -40,10 +42,7 @@ function bootstrapServer() {
       serverVersion: LAN_SERVER_VERSION,
       expectedSchemaVersion: migrationState.version
     })
-    const healthService = createHealthService({
-      centralStorage: centralBackupService,
-      expectedSchemaVersion: migrationState.version
-    })
+    const healthService = createHealthService({ centralStorage: centralBackupService, expectedSchemaVersion: migrationState.version })
     const server = attachReadinessRoute(createLanServer({
       serverVersion: LAN_SERVER_VERSION,
       repository,
@@ -56,16 +55,7 @@ function bootstrapServer() {
       centralBackupService
     }), healthService)
 
-    return {
-      server,
-      repository,
-      security,
-      identity,
-      cloudAuthority,
-      migrationState,
-      healthService,
-      close: () => repository.close()
-    }
+    return { server, repository, security, identity, cloudAuthority, migrationState, healthService, close: () => repository.close() }
   } catch (error) {
     try { repository.close() } catch {}
     throw error
@@ -73,7 +63,12 @@ function bootstrapServer() {
 }
 
 const runtime = createRuntime({ host, port, bootstrap: bootstrapServer })
-await runtime.start()
+try {
+  await runtime.start()
+} catch (error) {
+  logger.error('server_start_failed', { error })
+  throw error
+}
 
 const resources = runtime.resources()
 const { security, identity, cloudAuthority, migrationState } = resources
@@ -83,16 +78,25 @@ async function refreshCachedIdentity() {
   try {
     await refreshIdentitySnapshot({ security, cloudAuthority })
   } catch (error) {
-    console.warn(`Permissões Cloud temporariamente indisponíveis; usando último snapshot LAN válido. ${error instanceof Error ? error.message : ''}`.trim())
+    logger.warn('cloud_permissions_unavailable', { error })
   }
 }
 
-console.log(`Obra na Mão LAN Server ${LAN_SERVER_VERSION} disponível em http://${host}:${port}`)
-console.log(`Banco central: ${databasePath}`)
-console.log(`Schema LAN: v${migrationState.version}`)
+logger.info('server_started', {
+  version: LAN_SERVER_VERSION,
+  schemaVersion: migrationState.version,
+  ...runtimeConfigForDiagnostics(runtimeConfig)
+})
 const state = identity.state()
-if (state && !state.claimed && state.setupCode) {
-  console.log(`Código de configuração LAN: ${state.setupCode}`)
+if (state && !state.claimed) {
+  if (runtimeConfig.showSetupCode && state.setupCode) {
+    process.stdout.write(`Obra na Mão Server setup code (explicit opt-in): ${state.setupCode}\n`)
+  } else {
+    logger.warn('server_claim_required', {
+      serverId: state.serverId,
+      hint: 'Execute uma sessão de configuração com OBRA_NA_MAO_SERVER_SHOW_SETUP_CODE=true para exibir o código temporário.'
+    })
+  }
 }
 void refreshCachedIdentity()
 
@@ -106,9 +110,10 @@ async function shutdown() {
   clearInterval(identityRefreshTimer)
   try {
     await runtime.stop()
+    logger.info('server_stopped', { reason: 'signal' })
     process.exit(0)
   } catch (error) {
-    console.error(`Falha ao encerrar Obra na Mão Server: ${error instanceof Error ? error.message : String(error)}`)
+    logger.error('server_stop_failed', { error })
     process.exit(1)
   }
 }
