@@ -16,7 +16,11 @@ const TABLE_FIELDS = {
   rdo_anexos: new Set(['rdo_id', 'frente_id', 'documento_id', 'legenda']),
   etapas_obra: new Set(['obra_id', 'frente_id', 'nome', 'ordem', 'status']),
   cronograma_etapas: new Set(['obra_id', 'etapa_id', 'frente_id', 'nome', 'responsavel', 'previsto_inicio', 'previsto_fim', 'percentual_previsto', 'percentual_realizado', 'custo_planejado_centavos', 'custo_realizado_centavos', 'status', 'observacoes']),
-  itens_orcamentarios: new Set(['obra_id', 'etapa_id', 'frente_id', 'codigo', 'descricao', 'unidade', 'quantidade', 'valor_unitario_centavos', 'tipo', 'observacoes', 'atualizado_em'])
+  itens_orcamentarios: new Set(['obra_id', 'etapa_id', 'frente_id', 'codigo', 'descricao', 'unidade', 'quantidade', 'valor_unitario_centavos', 'tipo', 'observacoes', 'atualizado_em']),
+  fornecedores: new Set(['empresa_id', 'nome', 'documento', 'telefone', 'email', 'observacoes']),
+  categorias_financeiras: new Set(['nome', 'natureza', 'grupo_dre', 'ativa']),
+  contas: new Set(['tipo', 'empresa_id', 'obra_id', 'frente_id', 'fornecedor_id', 'cliente_id', 'categoria_id', 'medicao_id', 'descricao', 'competencia', 'emissao', 'vencimento', 'valor_bruto_centavos', 'retencoes_centavos', 'descontos_centavos', 'valor_centavos', 'forma_pagamento', 'status', 'data_efetiva', 'recorrencia', 'parcela_atual', 'total_parcelas', 'origem_tipo', 'origem_id', 'observacoes']),
+  pagamentos_conta: new Set(['conta_id', 'valor_centavos', 'data', 'forma_pagamento', 'observacoes', 'request_id'])
 }
 
 const TABLE_META = {
@@ -32,7 +36,11 @@ const TABLE_META = {
   rdo_anexos: { softDelete: false, updatedAt: false, order: 'id DESC' },
   etapas_obra: { softDelete: true, updatedAt: true, order: 'ordem, nome COLLATE NOCASE' },
   cronograma_etapas: { softDelete: true, updatedAt: true, order: 'previsto_fim, id' },
-  itens_orcamentarios: { softDelete: true, updatedAt: true, order: 'codigo, descricao COLLATE NOCASE, id' }
+  itens_orcamentarios: { softDelete: true, updatedAt: true, order: 'codigo, descricao COLLATE NOCASE, id' },
+  fornecedores: { softDelete: true, updatedAt: true, order: 'nome COLLATE NOCASE, id' },
+  categorias_financeiras: { softDelete: false, updatedAt: false, order: 'nome COLLATE NOCASE, id' },
+  contas: { softDelete: true, updatedAt: true, order: 'vencimento DESC, id DESC' },
+  pagamentos_conta: { softDelete: false, updatedAt: false, order: 'data DESC, id DESC' }
 }
 
 const SCHEMA = `
@@ -149,6 +157,37 @@ export class LanRepository {
     if (table !== 'etapas_obra') this.planningReference('etapas_obra', value('etapa_id'), obraId, 'Etapa')
   }
 
+  financeCompanyReference(table, id, companyId, label) {
+    if (id === null || id === undefined || id === '') return
+    const row = this.db.prepare(`SELECT empresa_id, deleted_at FROM ${table} WHERE id = ?`).get(Number(id))
+    if (!row || row.deleted_at || (row.empresa_id !== null && Number(row.empresa_id) !== Number(companyId))) {
+      throw new Error(`${label} deve pertencer à mesma empresa.`)
+    }
+  }
+
+  validateFinanceOwnership(table, data, clean) {
+    if (table !== 'contas') return
+    const current = data?.id ? this.get(table, data.id) : null
+    const value = key => Object.hasOwn(clean, key) ? clean[key] : current?.[key]
+    const companyId = value('empresa_id')
+    if (companyId === null || companyId === undefined || companyId === '') return
+
+    const workId = value('obra_id')
+    if (workId !== null && workId !== undefined && workId !== '') {
+      const work = this.db.prepare('SELECT empresa_id, deleted_at FROM obras WHERE id = ?').get(Number(workId))
+      if (!work || work.deleted_at || Number(work.empresa_id) !== Number(companyId)) throw new Error('Obra deve pertencer à mesma empresa.')
+    }
+
+    const frontId = value('frente_id')
+    if (frontId !== null && frontId !== undefined && frontId !== '') {
+      if (workId === null || workId === undefined || workId === '') throw new Error('Frente financeira exige uma obra da mesma empresa.')
+      this.planningReference('frentes_obra', frontId, workId, 'Frente')
+    }
+
+    this.financeCompanyReference('fornecedores', value('fornecedor_id'), companyId, 'Fornecedor')
+    this.financeCompanyReference('clientes', value('cliente_id'), companyId, 'Cliente')
+  }
+
   save(table, data) {
     this.assertTable(table)
     const clean = this.cleanData(table, data)
@@ -156,6 +195,7 @@ export class LanRepository {
     if (!columns.length) throw new Error('Nenhum dado válido informado.')
     const meta = TABLE_META[table]
     this.validatePlanningOwnership(table, data, clean)
+    this.validateFinanceOwnership(table, data, clean)
 
     try {
       if (data?.id) {
