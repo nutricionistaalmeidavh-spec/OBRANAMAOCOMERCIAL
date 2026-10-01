@@ -14,6 +14,7 @@ function createRepository() {
     obras: [{ id: 3, empresa_id: 1, cliente_id: 2, nome: 'Obra A' }]
   }
   return {
+    connection() { return {} },
     list(table, filters = {}) {
       return rows[table].filter((row) => Object.entries(filters).every(([key, value]) => String(row[key]) === String(value)))
     },
@@ -150,7 +151,7 @@ test('business CRUD rejeita chamadas sem credencial de dispositivo', async () =>
 test('API rejeita entidade fora do escopo e corpo JSON invalido', async () => {
   const { server, baseUrl } = await fixture()
   try {
-    const unsupported = await fetch(`${baseUrl}/api/v1/contas`)
+    const unsupported = await fetch(`${baseUrl}/api/v1/funcionarios`)
     assert.equal(unsupported.status, 404)
     assert.deepEqual(await unsupported.json(), { error: 'not_found' })
 
