@@ -143,14 +143,14 @@ jobs:
           [[ "$after_restart" == "$server_id" ]] || { echo 'serverId changed after Linux restart.' >&2; exit 1; }
 
           sudo env PACKAGE_DIR="$package_dir" READY_TIMEOUT_SECONDS=60 bash apps/lan-server/packaging/linux/install.sh
-          [[ -f /var/lib/obra-na-mao/ci-sentinel ]] || { echo 'Persistent sentinel was removed by Linux reinstall.' >&2; exit 1; }
+          sudo test -f /var/lib/obra-na-mao/ci-sentinel || { echo 'Persistent sentinel was removed by Linux reinstall.' >&2; exit 1; }
           [[ "$(sudo sha256sum /etc/obra-na-mao/server.env | awk '{print $1}')" == "$config_hash" ]] || { echo 'Linux config was overwritten by reinstall.' >&2; exit 1; }
           [[ "$(read_id)" == "$server_id" ]] || { echo 'serverId changed after Linux reinstall.' >&2; exit 1; }
 
           sudo bash apps/lan-server/packaging/linux/uninstall.sh
           [[ ! -e /opt/obra-na-mao/server ]] || { echo 'Linux runtime still exists after uninstall.' >&2; exit 1; }
-          [[ -f /etc/obra-na-mao/server.env ]] || { echo 'Linux uninstall removed config.' >&2; exit 1; }
-          [[ -f /var/lib/obra-na-mao/ci-sentinel ]] || { echo 'Linux uninstall removed persistent data.' >&2; exit 1; }
+          sudo test -f /etc/obra-na-mao/server.env || { echo 'Linux uninstall removed config.' >&2; exit 1; }
+          sudo test -f /var/lib/obra-na-mao/ci-sentinel || { echo 'Linux uninstall removed persistent data.' >&2; exit 1; }
           sudo rm -rf /etc/obra-na-mao /var/lib/obra-na-mao /var/log/obra-na-mao /opt/obra-na-mao
           sudo userdel obra-na-mao 2>/dev/null || true
       - name: Upload Linux package
