@@ -91,12 +91,15 @@ describe('F8-F12 central Desktop flow', () => {
     expect(f.localTime.save).not.toHaveBeenCalled()
   })
 
-  it('runtime principal usa RH central para folha/ponto e mantém documentos como saída local derivada', () => {
+  it('runtime principal usa RH central para folha, ponto e catálogo e mantém documentos como saída local derivada', () => {
     const main = fs.readFileSync(path.resolve(import.meta.dirname, '../electron/main.cjs'), 'utf8')
     const documents = fs.readFileSync(path.resolve(import.meta.dirname, '../electron/services/rh-document-service.cjs'), 'utf8')
     expect(main).toContain("const { RhSourceService } = require('./services/rh-source-service.cjs')")
     expect(main).toContain("const { RhDocumentService } = require('./services/rh-document-service.cjs')")
+    expect(main).toContain("const { RhCatalogSourceService } = require('./services/rh-catalog-source-service.cjs')")
     expect(main).toContain('payroll: rh')
+    expect(main).toContain('const catalog = new RhCatalogSourceService')
+    expect(main).toContain('    catalog,')
     expect(main).toContain('generateDocuments: payload => rhDocuments.generateDocuments(payload)')
     expect(documents).toContain("storage: 'local-derived'")
     expect(documents).toContain('registeredInLocalDatabase: false')
