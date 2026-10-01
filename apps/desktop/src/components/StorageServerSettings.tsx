@@ -20,8 +20,9 @@ const MODULE_COPY:Record<ModuleKey,string>={
 export default function StorageServerSettings({onMessage}:Props){
   const storage=useAsync(()=>window.fluxoDre.storage.state(),[])
   const online=useAsync(()=>window.fluxoDre.online.state(),[])
-  const storageApi=window.fluxoDre.storage as any
+  const storageApi=window.fluxoDre.storage
   const [modules,setModules]=useState<Record<ModuleKey,any>>({core:null,operation:null,planning:null,finance:null,rh:null})
+  const [attempts,setAttempts]=useState<Record<ModuleKey,any>>({core:null,operation:null,planning:null,finance:null,rh:null})
   const [form,setForm]=useState<Form>({operationalMode:'local',host:'127.0.0.1',port:'4732'})
   const [lanStatus,setLanStatus]=useState<any>(null)
   const [hostState,setHostState]=useState<any>(null)
@@ -37,14 +38,18 @@ export default function StorageServerSettings({onMessage}:Props){
   useEffect(()=>{if(storage.data)setForm({operationalMode:storage.data.operationalMode,host:storage.data.host,port:String(storage.data.port)})},[storage.data?.operationalMode,storage.data?.host,storage.data?.port])
 
   const refreshModuleState=async()=>{
+    const keys:ModuleKey[]=['core','operation','planning','finance','rh']
     try{
       const states=await storageApi.refreshModuleCapabilities()
       setModules(current=>({...current,...states}))
     }catch{
-      const keys:ModuleKey[]=['core','operation','planning','finance','rh']
       const states=await Promise.all(keys.map(async key=>[key,await storageApi.moduleState(key)] as const))
       setModules(Object.fromEntries(states) as Record<ModuleKey,any>)
     }
+    const statuses=await Promise.all(keys.map(async key=>{
+      try{return [key,(await storageApi.migrationStatus(key)).attempt] as const}catch{return [key,null] as const}
+    }))
+    setAttempts(Object.fromEntries(statuses) as Record<ModuleKey,any>)
   }
 
   const refreshLan=async(mode:Mode=form.operationalMode)=>{
@@ -103,29 +108,51 @@ export default function StorageServerSettings({onMessage}:Props){
     if(state?.state!=='migration-required')return
     const confirmed=window.confirm(`${MODULE_LABELS[module]} possui dados locais. Será criado um backup antes da cópia. A base local não será apagada durante a migração. Deseja continuar?`)
     if(!confirmed)return
-    setBusy(true);onMessage(`Migrando ${MODULE_LABELS[module]} para o servidor...`)
+    setBusy(true);onMessage(`${attempts[module]?'Retomando':'Iniciando'} migração de ${MODULE_LABELS[module]} para o servidor...`)
     try{
-      await storageApi.migrationPreflight(module)
+      const preflight=await storageApi.migrationPreflight(module)
+      if(!preflight.canMigrate)throw new Error(`Migração bloqueada${preflight.dependencies?.blockedBy?` por ${MODULE_LABELS[preflight.dependencies.blockedBy as ModuleKey]}`:''}.`)
       const result=await storageApi.migrateModule(module)
-      onMessage(`${MODULE_LABELS[module]} migrado e validado no servidor. Backup preservado em ${result?.backup?.folder||'pasta local de backups'}.`)
+      onMessage(`${MODULE_LABELS[module]} migrado e validado no servidor. A base local e o backup foram preservados.`)
       await refreshLan()
+      return result
     }catch(error:any){onMessage(`Migração não concluída: ${error.message}`);await refreshModuleState()}finally{setBusy(false)}
+  }
+
+  const rollbackMigration=async(module:ModuleKey)=>{
+    const attempt=attempts[module]
+    if(!attempt?.migrationId)return
+    if(!window.confirm(`Reverter a tentativa pendente de ${MODULE_LABELS[module]} no servidor? Os dados locais e o backup permanecerão intactos.`))return
+    setBusy(true);onMessage(`Revertendo tentativa de migração de ${MODULE_LABELS[module]}...`)
+    try{
+      const result=await storageApi.rollbackModuleMigration(module)
+      onMessage(result.status==='rolled_back'?`Tentativa de ${MODULE_LABELS[module]} revertida no servidor. Os dados locais permanecem intactos.`:`Estado da tentativa: ${result.status}.`)
+      await refreshModuleState()
+    }catch(error:any){onMessage(`Rollback não concluído: ${error.message}`);await refreshModuleState()}finally{setBusy(false)}
   }
 
   const renderModule=(module:ModuleKey)=>{
     const state=modules[module]
-    const coreBlocked=module!=='core'&&state?.coreDependencyBlocked
+    const attempt=attempts[module]
+    const blockedBy=state?.dependencyBlockedBy as ModuleKey|undefined
+    const dependencyLabel=blockedBy?MODULE_LABELS[blockedBy]:null
     return <div key={module} style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-color, #dfe4ec)'}}>
       <strong>{MODULE_LABELS[module]}</strong>
       <p style={{marginBottom:6}}>{MODULE_COPY[module]}.</p>
+      {state?.state&&<small>Estado: <strong>{state.state}</strong>{state.localRecords!=null?` · ${state.localRecords} registro(s) local(is) a considerar`:''}.</small>}
       {state?.state==='local'&&<p>Este bloco continua usando somente o banco local.</p>}
-      {state?.state==='central-ready'&&!coreBlocked&&<p>Servidor disponível, mas este bloco ainda aguarda capability/ativação central. Não haverá fallback local silencioso.</p>}
-      {state?.state==='central-ready'&&coreBlocked&&<div className="error-box"><strong>Aguardando Cadastros-base.</strong> Migre Empresas, Clientes e Obras antes deste bloco.</div>}
+      {state?.state==='central-ready'&&!blockedBy&&<p>Servidor disponível, mas este bloco ainda aguarda capability/ativação central. Não haverá fallback local silencioso.</p>}
+      {state?.state==='central-ready'&&blockedBy&&<div className="error-box"><strong>Aguardando {dependencyLabel}.</strong> Conclua a migração/ativação desse bloco antes de {MODULE_LABELS[module]}.</div>}
       {state?.state==='central-active'&&<p className="success-box"><strong>Banco central ativo.</strong> Os computadores autorizados usam a mesma fonte para este bloco.</p>}
       {state?.state==='migration-required'&&<div className="error-box">
         <strong>Migração necessária.</strong> Os dados locais permanecem neste computador e não serão apagados durante a cópia. Um backup é criado antes da primeira escrita no servidor.
-        <div className="setting-actions" style={{marginTop:10}}><Button disabled={busy||!paired||!isAdmin||(module!=='core'&&modules.core?.state!=='central-active')} onClick={()=>migrate(module)}>Migrar {MODULE_LABELS[module]}</Button></div>
-        {!isAdmin&&paired&&<small>Somente um usuário Admin pode executar a migração.</small>}
+        {blockedBy&&<p><strong>Dependência:</strong> conclua {dependencyLabel} primeiro.</p>}
+        {attempt&&<p><strong>Tentativa pendente:</strong> {attempt.migrationId} · estado {attempt.status}{attempt.lastError?` · ${attempt.lastError}`:''}. O retry reutiliza a mesma tentativa para evitar duplicação.</p>}
+        <div className="setting-actions" style={{marginTop:10}}>
+          <Button disabled={busy||!paired||!isAdmin||!!blockedBy} onClick={()=>migrate(module)}>{attempt?'Tentar novamente':'Migrar para servidor'}</Button>
+          {attempt&&<Button variant="secondary" disabled={busy||!paired||!isAdmin} onClick={()=>rollbackMigration(module)}>Reverter tentativa</Button>}
+        </div>
+        {!isAdmin&&paired&&<small>Somente um usuário Admin pode executar ou reverter a migração.</small>}
       </div>}
     </div>
   }
