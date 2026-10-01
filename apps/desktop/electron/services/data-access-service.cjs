@@ -76,8 +76,8 @@ class DataAccessService {
     return this.db.save(table, data)
   }
 
-  async remove(table, id) {
-    if (this.assertRoute(table) === 'remote') return this.remote.remove(table, id)
+  async remove(table, id, expectedRevision) {
+    if (this.assertRoute(table) === 'remote') return this.remote.remove(table, id, expectedRevision)
     return this.db.remove(table, id)
   }
 }
