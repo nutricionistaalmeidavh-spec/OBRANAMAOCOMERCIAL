@@ -46,7 +46,8 @@ $platformFiles = @(
   @{ source = (Join-Path $PSScriptRoot 'service.xml'); destination = 'ObraNaMaoServer.xml' },
   @{ source = (Join-Path $PSScriptRoot 'server.env.template'); destination = 'server.env.template' },
   @{ source = (Join-Path $PSScriptRoot 'service-control.ps1'); destination = 'service-control.ps1' },
-  @{ source = (Join-Path $PSScriptRoot 'install-hooks.ps1'); destination = 'install-hooks.ps1' }
+  @{ source = (Join-Path $PSScriptRoot 'install-hooks.ps1'); destination = 'install-hooks.ps1' },
+  @{ source = (Join-Path $PSScriptRoot 'preinstall-stop.ps1'); destination = 'preinstall-stop.ps1' }
 ) | ConvertTo-Json -Compress
 
 $env:OBRA_PACKAGE_BUILDER = $builderModule
