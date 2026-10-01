@@ -1,4 +1,3 @@
-import os from 'node:os'
 import path from 'node:path'
 import { LanRepository } from './repository.mjs'
 import { LanSecurityRepository } from './security-repository.mjs'
@@ -7,18 +6,13 @@ import { CloudAuthorityClient } from './cloud-authority-client.mjs'
 import { PairingService } from './pairing-service.mjs'
 import { MigrationService } from './migration-service.mjs'
 import { CentralBackupService } from './central-backup-service.mjs'
+import { loadRuntimeConfig } from './runtime-config.mjs'
 import { createLanServer, LAN_SERVER_VERSION, refreshIdentitySnapshot } from './server.mjs'
 
-const host = process.env.OBRA_NA_MAO_LAN_HOST?.trim() || '127.0.0.1'
-const port = Number(process.env.OBRA_NA_MAO_LAN_PORT || 4732)
-const dataDir = process.env.OBRA_NA_MAO_LAN_DATA_DIR?.trim() || path.join(os.homedir(), '.obra-na-mao-lan')
+const runtimeConfig = loadRuntimeConfig()
+const { host, port, dataDir, cloudBaseUrl } = runtimeConfig
 const migrationsDir = path.resolve(import.meta.dirname, '../migrations')
-const cloudBaseUrl = (process.env.OBRA_NA_MAO_PLATFORM_URL || process.env.FLUXO_DRE_PLATFORM_URL || 'https://obra-na-mao-comercial.nutricionistaalmeidavh.workers.dev').trim().replace(/\/$/, '')
 const IDENTITY_REFRESH_MS = 5 * 60 * 1000
-
-if (!Number.isInteger(port) || port < 1 || port > 65535) {
-  throw new Error('OBRA_NA_MAO_LAN_PORT deve ser uma porta TCP válida entre 1 e 65535.')
-}
 
 const databasePath = path.join(dataDir, 'obra-na-mao-lan.sqlite')
 const repository = new LanRepository({ filename: databasePath })
