@@ -11,7 +11,7 @@ const dirs:string[]=[]
 function centralFixture(state='central-active'){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rh-doc-source-'));dirs.push(dir)
   const context={
-    employee:{id:77,nome:'Funcionário Central',cpf:'12345678909',empresa_id:8,cargo_id:3},
+    employee:{id:77,nome:'Funcionário Central',cpf:'12345678909',empresa_id:8,cargo_id:3,status:'ativo'},
     company:{id:8,razao_social:'Empresa Central',cnpj:'12345678000195',politica_recibos:'Café'},
     cargo:{id:3,nome:'Encanador'},
     benefits:[{descricao:'Café',valor_centavos:18000},{descricao:'Transporte',valor_centavos:9000}],
