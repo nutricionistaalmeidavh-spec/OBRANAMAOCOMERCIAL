@@ -29,13 +29,14 @@ async function fixture(options = {}) {
   repository.applyMigrations(migrationsDir)
   const company = repository.save('empresas', { razao_social: 'Empresa Operação' })
   const work = repository.save('obras', { empresa_id: company.id, nome: 'Obra Central' })
+  const employee = repository.save('funcionarios', { empresa_id: company.id, obra_atual_id: work.id, nome: 'Funcionário Operação', status: 'ativo' })
   const fieldService = new FieldService({ repository })
   const server = createLanServer({ repository, security: security(options), fieldService })
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('Servidor sem porta TCP.')
-  return { repository, server, company, work, fieldService, baseUrl: `http://127.0.0.1:${address.port}` }
+  return { repository, server, company, work, employee, fieldService, baseUrl: `http://127.0.0.1:${address.port}` }
 }
 
 async function close(f) {
@@ -64,7 +65,7 @@ test('CRUD operacional autenticado compartilha frentes, RDOs, filhos e tarefas n
     assert.equal(rdoResponse.status, 201)
     const rdo = await rdoResponse.json()
 
-    const teamResponse = await post(f.baseUrl, '/api/v1/rdo_equipe', { rdo_id: rdo.id, frente_id: front.id, funcionario_id: 9001, nome: 'Equipe A', funcao: 'Encanador', horas: 8 })
+    const teamResponse = await post(f.baseUrl, '/api/v1/rdo_equipe', { rdo_id: rdo.id, frente_id: front.id, funcionario_id: f.employee.id, nome: 'Equipe A', funcao: 'Encanador', horas: 8 })
     assert.equal(teamResponse.status, 201)
     const occurrenceResponse = await post(f.baseUrl, '/api/v1/rdo_ocorrencias', { rdo_id: rdo.id, frente_id: front.id, tipo: 'pendencia', descricao: 'Revisar prumada' })
     assert.equal(occurrenceResponse.status, 201)
@@ -135,10 +136,10 @@ test('FKs operacionais impedem vínculos com obra ou RDO inexistentes', async ()
   try {
     const invalidFront = await post(f.baseUrl, '/api/v1/frentes_obra', { obra_id: 999999, nome: 'Inválida' })
     assert.equal(invalidFront.status, 400)
-    assert.match((await invalidFront.json()).message, /referência/i)
+    assert.match((await invalidFront.json()).message, /obra não encontrado|referência/i)
 
     const invalidTeam = await post(f.baseUrl, '/api/v1/rdo_equipe', { rdo_id: 999999, nome: 'Sem RDO' })
     assert.equal(invalidTeam.status, 400)
-    assert.match((await invalidTeam.json()).message, /referência/i)
+    assert.match((await invalidTeam.json()).message, /rdo não encontrado|referência/i)
   } finally { await close(f) }
 })
