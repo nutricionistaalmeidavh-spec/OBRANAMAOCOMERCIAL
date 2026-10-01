@@ -57,6 +57,13 @@ test('Windows PowerShell service control delimits interpolated variables before 
   assert.match(serviceControl, /\$\{ConfigPath\}:\s*\$line/i)
 })
 
+test('Windows service control applies LocalService without an empty password argument', () => {
+  const serviceControl = read('service-control.ps1')
+  assert.match(serviceControl, /sc\.exe\s+config\s+\$serviceName\s+obj=\s+['"]NT AUTHORITY\\LocalService['"]/i)
+  assert.doesNotMatch(serviceControl, /sc\.exe[^\n]*password=/i)
+  assert.match(serviceControl, /\$LASTEXITCODE\s*-ne\s*0/i)
+})
+
 test('Windows install hook records sanitized operational progress and failures', () => {
   const hooks = read('install-hooks.ps1')
   assert.match(hooks, /installer-hook\.log/i)
