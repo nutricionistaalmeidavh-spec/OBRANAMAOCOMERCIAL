@@ -23,7 +23,7 @@ Aplicativo desktop Windows e offline para gestão financeira e operacional de co
 - Comunicação: API restrita `window.fluxoDre`, definida no preload e atendida por IPC.
 - Dados de execução: `%APPDATA%\fluxo-dre` por padrão; podem ser redirecionados por `FLUXO_DRE_DATA_DIR`.
 - O núcleo continua offline-first em SQLite. A partir de 2026-09-02 existe uma ponte online opcional para vínculo de dispositivo, sincronização Obra360, Financeiro Inteligente e IA estruturada.
-- A partir de 2026-10-01, o modo opcional **Servidor da empresa** cobre o núcleo F8–F12: Empresas/Clientes/Obras, RDO/operação, Planejamento, Financeiro e RH podem usar o banco central LAN quando o módulo está `central-active`. Instalações locais permanecem compatíveis e dados locais existentes exigem migração explícita; não há fallback silencioso.
+- A partir de 2026-09-29 existe o modo opcional **Servidor da empresa**. Quando ativado, Empresas, Clientes e Obras usam CRUD HTTP no servidor LAN; os demais módulos continuam no SQLite local até suas fases de migração.
 - `apps/lan-server/` é o processo HTTP destinado a rodar na infraestrutura já existente do cliente; por padrão escuta somente `127.0.0.1:4732`, expõe `/health`, `/version` e `/api/v1/{empresas|clientes|obras}`, e mantém um SQLite central próprio.
 
 ## Fluxo entre camadas
@@ -32,11 +32,11 @@ Modo local:
 
 `src/pages/*` → `window.fluxoDre` → `electron/preload.cjs` → handlers em `electron/main.cjs` → `DataAccessService` → `DatabaseService` → SQLite local.
 
-Modo Servidor da empresa com módulos F8–F12 ativos:
+Modo Servidor da empresa para Empresas/Clientes/Obras:
 
-`src/pages/*` → `window.fluxoDre` → IPC → source/data-access do módulo → `LanDataClient` → HTTP `/api/v1/*` → serviços de domínio/`LanRepository` → SQLite central.
+`src/pages/*` → `window.fluxoDre` → IPC → `DataAccessService` → `LanDataClient` → HTTP `/api/v1/*` → `LanRepository` → SQLite central.
 
-Cada módulo possui estado explícito (`local`, `central-ready`, `central-active` ou `migration-required`). `central-ready` nunca cai silenciosamente para SQLite local. O PC principal (`lan-host`) é o coordenador da sincronização Cloud existente; clientes LAN não criam um segundo pipeline Desktop ↔ Cloudflare/D1 ↔ PWA.
+Entidades ainda não migradas continuam sendo delegadas ao `DatabaseService` local mesmo quando `storage_mode=server`. A seam evita compartilhar o arquivo SQLite do Desktop pela rede.
 
 Ao mudar uma operação que cruza camadas, confira apenas os pontos correspondentes desse fluxo. A tipagem pública do preload fica em `src/vite-env.d.ts`.
 
@@ -232,16 +232,3 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - **Papel da máquina não define papel do usuário.** Fonte operacional, identidade/permissões e serviços online são eixos independentes. Um administrador pode usar qualquer Desktop autorizado, inclusive quando o banco está em outro servidor da empresa.
 - `SyncCoordinator` ainda lê diretamente o `DatabaseService`/SQLite local. Quando fontes operacionais remotas passarem a alimentar a sincronização Web/PWA, a evolução deverá adaptar um provider ao pipeline existente `SyncCoordinator → OnlineService → Cloudflare`, e não criar uma segunda sincronização paralela.
 - Cloud pago futuro é somente adicional: R2/documentos, PDFs, fotos, anexos, backup/restauração e novas capacidades premium. Login, PWA, bridge, resumos e demais recursos online já incluídos não podem ser movidos para uma assinatura por causa desta reorganização.
-
-## Atualização F8–F12 — 2026-10-01
-
-- **F8 — coordenador único de sync:** o `lan-host` é a autoridade de sincronização Cloud; `lan-client` permanece pausado para sync Cloud e usa o banco central.
-- **F9 — operação/RDO central:** frentes, tarefas, RDO e filhos usam a API LAN autenticada quando `operation=central-active`.
-- **F10 — Planejamento central:** etapas, cronograma e itens orçamentários usam a fonte central; não misturam silenciosamente planejamento central com fonte local.
-- **F11 — Financeiro central:** contas, pagamentos idempotentes, DRE, dashboard e fonte de resumo/obrigações do sync usam o banco LAN quando `finance=central-active`.
-- **F12 — RH central:** funcionários, cargos, benefícios, EPIs, folha e ponto usam a fonte LAN quando `rh=central-active`; autorização é aplicada no servidor.
-- **Documentos RH:** PDF de ponto/recibos continua sendo uma saída **local derivada**. Em RH central, os dados vêm do servidor e o arquivo não é registrado como segunda cópia autoritativa do RH.
-- **Proteção de migração:** se existir dado local de um módulo que passará a central, o estado é `migration-required`; esta PR não copia nem apaga esses registros automaticamente.
-- **Release Desktop:** publicação automática continua congelada por `DESKTOP_AUTO_RELEASE_ENABLED=false`; CI, build e artefatos continuam funcionando.
-- **Fora do escopo:** migração automática do SQLite legado, descoberta automática LAN, servidor remoto público pronto para produção, R2/billing/Cloud pago e qualquer segundo sincronizador paralelo ao fluxo Desktop ↔ Cloudflare/D1 ↔ PWA.
-- **QA integrado:** `apps/lan-server/tests/f8-f12-multi-client.test.mjs` valida compartilhamento multi-PC dos módulos centrais; `apps/desktop/tests/f8-f12-central-flow.test.ts` valida roteamento central e ausência de fallback local.

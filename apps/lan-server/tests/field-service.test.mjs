@@ -12,8 +12,9 @@ function fixture() {
   const company = repository.save('empresas', { razao_social: 'Empresa Campo' })
   const work = repository.save('obras', { empresa_id: company.id, nome: 'Obra Campo' })
   const front = repository.save('frentes_obra', { obra_id: work.id, nome: 'Torre A' })
+  const employee = repository.save('funcionarios', { empresa_id: company.id, obra_atual_id: work.id, nome: 'João', status: 'ativo' })
   const field = new FieldService({ repository })
-  return { repository, company, work, front, field }
+  return { repository, company, work, front, employee, field }
 }
 
 function payload(f, overrides = {}) {
@@ -25,7 +26,7 @@ function payload(f, overrides = {}) {
     status: 'rascunho',
     atividades: 'Instalação hidráulica',
     observacoes: 'Primeiro RDO',
-    equipe: [{ funcionario_id: 99, nome: 'João', funcao: 'Encanador', horas: 8, custo_centavos: 24000 }],
+    equipe: [{ funcionario_id: f.employee.id, nome: 'João', funcao: 'Encanador', horas: 8, custo_centavos: 24000 }],
     equipamentos: [{ nome: 'Martelete', horas_uso: 2, custo_centavos: 5000 }],
     ocorrencias: [{ tipo: 'pendencia', descricao: 'Revisar prumada', status: 'aberta', prioridade: 'alta', responsavel: 'Victor' }],
     anexos: [{ documento_id: 123, legenda: 'Foto do shaft' }],

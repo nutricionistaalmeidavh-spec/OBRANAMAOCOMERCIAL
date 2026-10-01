@@ -30,12 +30,29 @@ describe('RH module storage state',()=>{
     expect(f.lanClient.syncSourceCapabilities).not.toHaveBeenCalled()
   })
 
-  it('instalação nova ativa RH somente quando capability rh está disponível',async()=>{
+  it('ignora somente o catálogo RH seed intacto em instalação nova',async()=>{
     const f=fixture()
+    expect(f.database.list('cargos',{}).length).toBeGreaterThan(0)
+    expect(f.database.list('beneficios',{}).length).toBeGreaterThan(0)
+    expect(f.database.list('epis',{}).length).toBeGreaterThan(0)
     expect(f.service.state('rh')).toEqual(expect.objectContaining({state:'central-ready',localRecords:0}))
     const refreshed=await f.service.refreshCapabilities()
     expect(refreshed.rh).toEqual(expect.objectContaining({state:'central-active',capabilityAvailable:true,localRecords:0}))
-    expect(f.service.state('rh').state).toBe('central-active')
+  })
+
+  it('seed RH modificado passa a exigir migração explícita',()=>{
+    const f=fixture()
+    const cargo=f.database.list('cargos',{}).find((row:any)=>row.nome==='Encanador')
+    expect(cargo).toBeTruthy()
+    f.database.save('cargos',{...cargo,salario_base_centavos:250000})
+    expect(f.service.state('rh')).toEqual(expect.objectContaining({state:'migration-required'}))
+    expect(f.service.localRecordCount('rh')).toBeGreaterThan(0)
+  })
+
+  it('novo item de catálogo RH exige migração explícita',()=>{
+    const f=fixture()
+    f.database.save('cargos',{nome:'Mestre de obras',cbo:'710205',salario_base_centavos:400000,ativo:1})
+    expect(f.service.state('rh')).toEqual(expect.objectContaining({state:'migration-required'}))
   })
 
   it('sem capability rh permanece central-ready e nunca cai para local',async()=>{
@@ -45,7 +62,7 @@ describe('RH module storage state',()=>{
     expect(f.service.state('rh').state).toBe('central-ready')
   })
 
-  it('qualquer dado RH local força migration-required e preserva os registros',async()=>{
+  it('qualquer dado RH operacional força migration-required e preserva os registros',async()=>{
     const f=fixture()
     const company=f.database.save('empresas',{razao_social:'Empresa RH local',status:'ativa'})
     const cargo=f.database.save('cargos',{nome:'Encanador local',salario_base_centavos:250000,ativo:1})

@@ -62,7 +62,7 @@ test('CRUD operacional autenticado compartilha frentes, RDOs, filhos e tarefas n
     assert.equal(rdoResponse.status, 201)
     const rdo = await rdoResponse.json()
 
-    const teamResponse = await post(f.baseUrl, '/api/v1/rdo_equipe', { rdo_id: rdo.id, frente_id: front.id, funcionario_id: 9001, nome: 'Equipe A', funcao: 'Encanador', horas: 8 })
+    const teamResponse = await post(f.baseUrl, '/api/v1/rdo_equipe', { rdo_id: rdo.id, frente_id: front.id, funcionario_id: f.employee.id, nome: 'Equipe A', funcao: 'Encanador', horas: 8 })
     assert.equal(teamResponse.status, 201)
     const occurrenceResponse = await post(f.baseUrl, '/api/v1/rdo_ocorrencias', { rdo_id: rdo.id, frente_id: front.id, tipo: 'pendencia', descricao: 'Revisar prumada' })
     assert.equal(occurrenceResponse.status, 201)

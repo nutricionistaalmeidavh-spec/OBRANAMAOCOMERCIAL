@@ -4,6 +4,7 @@ const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
 const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
 const { ModuleStorageStateService } = require('./services/module-storage-state-service.cjs')
+const { ModuleMigrationService } = require('./services/module-migration-service.cjs')
 const { LanCredentialService } = require('./services/lan-credential-service.cjs')
 const { LanHostService } = require('./services/lan-host-service.cjs')
 const { LanSetupService } = require('./services/lan-setup-service.cjs')
@@ -18,6 +19,8 @@ const { PayrollService } = require('./services/payroll-service.cjs')
 const { DocumentRootService } = require('./services/document-root-service.cjs')
 const { CatalogService } = require('./services/catalog-service.cjs')
 const { RhCatalogSourceService } = require('./services/rh-catalog-source-service.cjs')
+const { RhSourceService } = require('./services/rh-source-service.cjs')
+const { RhDocumentService } = require('./services/rh-document-service.cjs')
 const { TimeService } = require('./services/time-service.cjs')
 const { ScannerService } = require('./services/scanner-service.cjs')
 const { WorkImportService } = require('./services/work-import-service.cjs')
@@ -26,8 +29,6 @@ const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
 const { FinanceSourceService } = require('./services/finance-source-service.cjs')
-const { RhSourceService } = require('./services/rh-source-service.cjs')
-const { RhDocumentService } = require('./services/rh-document-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
 const { FieldSourceService } = require('./services/field-source-service.cjs')
 const { ProcurementService } = require('./services/procurement-service.cjs')
@@ -118,9 +119,11 @@ function createServices() {
     serverEntry: resolveLanServerEntry()
   })
   const lanSetup = new LanSetupService({ storage, credentials: lanCredentials, online })
+  const backup = new BackupService({ db, ...paths })
+  const migration = new ModuleMigrationService({ database: db, storage, moduleStorage, lanClient: dataAccess.remote, backup, appVersion: app.getVersion() })
   return {
-    paths, db, dataAccess, storage, moduleStorage, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
-    backup: new BackupService({ db, ...paths }),
+    paths, db, dataAccess, storage, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
+    backup,
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
     payroll: rh,
@@ -194,6 +197,7 @@ async function refreshModuleCapabilitiesSafe() {
   try { return await services.moduleStorage.refreshCapabilities() }
   catch {
     return {
+      core: services.moduleStorage.state('core'),
       operation: services.moduleStorage.state('operation'),
       planning: services.moduleStorage.state('planning'),
       finance: services.moduleStorage.state('finance'),
@@ -228,6 +232,10 @@ function registerIpc() {
   ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))
   ipcMain.handle('storage:module-state', envelope(({ module }) => services.moduleStorage.state(module)))
   ipcMain.handle('storage:refresh-module-capabilities', envelope(() => services.moduleStorage.refreshCapabilities()))
+  ipcMain.handle('storage:migration-preflight', envelope(({ module }) => services.migration.preflight(module)))
+  ipcMain.handle('storage:migration-status', envelope(({ module }) => services.migration.status(module)))
+  ipcMain.handle('storage:migrate-module', envelope(({ module }) => withSyncStopped(() => services.migration.migrate(module))))
+  ipcMain.handle('storage:rollback-module-migration', envelope(({ module }) => withSyncStopped(() => services.migration.rollback(module))))
   ipcMain.handle('lan:host-state', envelope(() => services.lanHost.state()))
   ipcMain.handle('lan:host-start', envelope(async () => { const result = await services.lanHost.start(); if (isLanHostMode()) ensureTray(); return result }))
   ipcMain.handle('lan:host-stop', envelope(() => services.lanHost.stop()))
