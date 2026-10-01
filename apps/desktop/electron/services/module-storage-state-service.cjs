@@ -34,8 +34,15 @@ class ModuleStorageStateService {
     return state.operationalMode || (state.mode === 'server' ? 'lan-client' : 'local')
   }
 
+  tableColumns(table) {
+    return new Set(this.database.db.prepare(`PRAGMA table_info(${table})`).all().map(column => column.name))
+  }
+
   countActive(table) {
-    const row = this.database.db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE deleted_at IS NULL`).get()
+    const columns = this.tableColumns(table)
+    if (!columns.size) return 0
+    const where = columns.has('deleted_at') ? ' WHERE deleted_at IS NULL' : ''
+    const row = this.database.db.prepare(`SELECT COUNT(*) AS n FROM ${table}${where}`).get()
     return Number(row?.n || 0)
   }
 
