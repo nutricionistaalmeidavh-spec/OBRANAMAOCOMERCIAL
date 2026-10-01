@@ -1,0 +1,31 @@
+[Unit]
+Description=Obra na Mão Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=obra-na-mao
+Group=obra-na-mao
+EnvironmentFile=/etc/obra-na-mao/server.env
+WorkingDirectory=/opt/obra-na-mao/server/app
+ExecStart=/opt/obra-na-mao/server/runtime/node /opt/obra-na-mao/server/app/src/index.mjs
+Restart=on-failure
+RestartSec=5s
+KillSignal=SIGTERM
+TimeoutStopSec=20s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+PrivateDevices=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/obra-na-mao /var/log/obra-na-mao
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
