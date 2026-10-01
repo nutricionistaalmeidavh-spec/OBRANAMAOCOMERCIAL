@@ -36,7 +36,7 @@ async function close(f) {
   f.repository.close()
 }
 
-test('fonte central anuncia apenas as bridges operacionais realmente disponíveis na F9', async () => {
+test('F10 preserva todas as bridges operacionais da F9 ao adicionar Planejamento', async () => {
   const f = await fixture()
   try {
     const response = await fetch(`${f.baseUrl}/api/v1/sync-source/capabilities`, { headers: { authorization: `Bearer ${TOKEN}` } })
@@ -45,7 +45,8 @@ test('fonte central anuncia apenas as bridges operacionais realmente disponívei
     assert.equal(body.version, 1)
     assert.ok(body.modules.includes('core'))
     assert.ok(body.modules.includes('operation'))
-    assert.deepEqual(body.bridgeEntities, ['frentes_obra', 'tarefas_obra', 'rdos'])
-    assert.equal(body.bridgeEntities.includes('cronograma_etapas'), false)
+    assert.ok(body.modules.includes('planning'))
+    for (const entity of ['frentes_obra', 'tarefas_obra', 'rdos']) assert.ok(body.bridgeEntities.includes(entity))
+    assert.ok(body.bridgeEntities.includes('cronograma_etapas'))
   } finally { await close(f) }
 })
