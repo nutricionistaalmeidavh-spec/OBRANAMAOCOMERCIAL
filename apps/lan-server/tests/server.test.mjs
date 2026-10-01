@@ -148,12 +148,12 @@ test('business CRUD rejeita chamadas sem credencial de dispositivo', async () =>
   } finally { await close(server) }
 })
 
-test('API protege entidade RH central e rejeita corpo JSON invalido', async () => {
+test('API rejeita entidade fora do escopo e corpo JSON invalido', async () => {
   const { server, baseUrl } = await fixture()
   try {
-    const protectedRh = await fetch(`${baseUrl}/api/v1/funcionarios`)
-    assert.equal(protectedRh.status, 401)
-    assert.equal((await protectedRh.json()).error, 'missing_device_token')
+    const unsupported = await authorizedFetch(`${baseUrl}/api/v1/documentos`)
+    assert.equal(unsupported.status, 404)
+    assert.deepEqual(await unsupported.json(), { error: 'not_found' })
 
     const invalid = await jsonRequest(`${baseUrl}/api/v1/empresas`, { method: 'POST', body: '{' })
     assert.equal(invalid.status, 400)

@@ -5,6 +5,8 @@ import { LanSecurityRepository } from './security-repository.mjs'
 import { ServerIdentity } from './server-identity.mjs'
 import { CloudAuthorityClient } from './cloud-authority-client.mjs'
 import { PairingService } from './pairing-service.mjs'
+import { MigrationService } from './migration-service.mjs'
+import { CentralBackupService } from './central-backup-service.mjs'
 import { createLanServer, LAN_SERVER_VERSION, refreshIdentitySnapshot } from './server.mjs'
 
 const host = process.env.OBRA_NA_MAO_LAN_HOST?.trim() || '127.0.0.1'
@@ -25,7 +27,27 @@ const security = new LanSecurityRepository({ db: repository.connection() })
 const identity = new ServerIdentity({ security })
 const cloudAuthority = new CloudAuthorityClient({ baseUrl: cloudBaseUrl })
 const pairingService = new PairingService({ security })
-const server = createLanServer({ serverVersion: LAN_SERVER_VERSION, repository, security, identity, cloudAuthority, cloudBaseUrl, pairingService })
+const migrationService = new MigrationService({ repository, security })
+const centralBackupService = new CentralBackupService({
+  repository,
+  security,
+  dataDir,
+  migrationsDir,
+  databasePath,
+  serverVersion: LAN_SERVER_VERSION,
+  expectedSchemaVersion: migrationState.version
+})
+const server = createLanServer({
+  serverVersion: LAN_SERVER_VERSION,
+  repository,
+  security,
+  identity,
+  cloudAuthority,
+  cloudBaseUrl,
+  pairingService,
+  migrationService,
+  centralBackupService
+})
 
 async function refreshCachedIdentity() {
   if (!security.serverState()?.claimed) return

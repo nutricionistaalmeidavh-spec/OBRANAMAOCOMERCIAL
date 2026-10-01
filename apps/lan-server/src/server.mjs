@@ -7,6 +7,7 @@ import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
+import { MigrationService } from './migration-service.mjs'
 import { RevisionConflictError } from './concurrency-service.mjs'
 import { createVersionedRepository } from './versioned-repository.mjs'
 
@@ -18,6 +19,7 @@ const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
 const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|frentes_obra|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|fornecedores|categorias_financeiras|contas|pagamentos_conta|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
 const FINANCE_PAYMENT_ROUTE = /^\/api\/v1\/finance\/accounts\/(\d+)\/payment\/?$/
+const MIGRATION_ROUTE = /^\/api\/v1\/migrations\/([^/]+)\/(record|status|validate|commit|rollback)\/?$/
 
 const digest = value => createHash('sha256').update(String(value)).digest('hex')
 const randomDeviceToken = () => randomBytes(32).toString('hex')
@@ -39,6 +41,11 @@ function methodNotAllowed(response, allow) {
 
 function requireAdminContext(context) {
   if (context?.member?.role !== 'admin') throw new LanAuthorizationError('Apenas Admin pode executar esta operação.', 403, 'admin_required')
+}
+
+function publicCentralBackup(result = {}) {
+  const allowed = ['backupId','createdAt','fingerprint','schemaVersion','serverId','companyId','serverVersion','sizeBytes','reason','integrity','restored','safetyBackupId','maintenance','accessible','claimed','migrationsApplied','lastBackup','error']
+  return Object.fromEntries(allowed.filter(key => result?.[key] !== undefined).map(key => [key, result[key]]))
 }
 
 function syncSourceScope(url) {
@@ -211,13 +218,15 @@ async function authorizeRh(request, security, action = 'edit') {
   return context
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, migrationService = null, centralBackupService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const versionedRepository = createVersionedRepository(repository)
   const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
   const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
+  const migration = migrationService || (repository ? new MigrationService({ repository, security }) : null)
+  const centralStorage = centralBackupService
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://localhost')
@@ -230,6 +239,50 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/version') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         return sendJson(response, 200, { product: 'Obra na Mão', apiVersion: LAN_API_VERSION, serverVersion })
+      }
+
+      if (url.pathname === '/api/v1/admin/storage/health') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!centralStorage?.health) return sendJson(response, 503, { error:'storage_admin_unavailable', message:'Diagnóstico do storage central indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        return sendJson(response, 200, publicCentralBackup(centralStorage.health()))
+      }
+
+      if (url.pathname === '/api/v1/admin/storage/backup') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!centralStorage?.create) return sendJson(response, 503, { error:'storage_admin_unavailable', message:'Backup do storage central indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        const body = await readJson(request)
+        const result = await centralStorage.create({ reason:body.reason || 'manual', actor })
+        return sendJson(response, 201, publicCentralBackup(result))
+      }
+
+      if (url.pathname === '/api/v1/admin/storage/verify') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!centralStorage?.verifyManagedBackup) return sendJson(response, 503, { error:'storage_admin_unavailable', message:'Verificação do backup central indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        const body = await readJson(request)
+        if (!body.backupId) throw new Error('Identificador do backup central não informado.')
+        const result = centralStorage.verifyManagedBackup(body.backupId,{ enforceCurrentIdentity:true, actor })
+        return sendJson(response, 200, publicCentralBackup({ ...result, ...result.manifest }))
+      }
+
+      if (url.pathname === '/api/v1/admin/storage/restore') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!centralStorage?.restoreManaged) return sendJson(response, 503, { error:'storage_admin_unavailable', message:'Restore do storage central indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        const body = await readJson(request)
+        if (!body.backupId) throw new Error('Identificador do backup central não informado.')
+        const result = await centralStorage.restoreManaged(body.backupId,{ actor })
+        return sendJson(response, 200, publicCentralBackup(result))
+      }
+
+      if (centralStorage?.isMaintenanceActive?.()) {
+        return sendJson(response, 503, { error:'storage_maintenance', message:'Banco central temporariamente indisponível durante manutenção segura.' })
       }
 
       if (url.pathname === '/api/v1/sync-source/capabilities') {
@@ -371,6 +424,32 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (!time?.documentContext) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Contexto central de documentos indisponível.' })
         await authorizeRh(request, security, 'view')
         return sendJson(response, 200, time.documentContext(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/migrations/start') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!migration?.start) return sendJson(response, 503, { error: 'migration_unavailable', message: 'Migração central indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        return sendJson(response, 201, migration.start(await readJson(request), actor))
+      }
+
+      const migrationMatch = url.pathname.match(MIGRATION_ROUTE)
+      if (migrationMatch) {
+        if (!migration) return sendJson(response, 503, { error: 'migration_unavailable', message: 'Migração central indisponível.' })
+        const migrationId = decodeURIComponent(migrationMatch[1])
+        const action = migrationMatch[2]
+        const actor = await authenticateLanRequest(request, security)
+        if (action === 'status') {
+          if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+          return sendJson(response, 200, migration.status(migrationId, actor))
+        }
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        requireAdminContext(actor)
+        if (action === 'record') return sendJson(response, 201, migration.importRecord(migrationId, await readJson(request), actor))
+        if (action === 'validate') return sendJson(response, 200, migration.validate(migrationId, actor))
+        if (action === 'commit') return sendJson(response, 200, migration.commit(migrationId, actor))
+        if (action === 'rollback') return sendJson(response, 200, migration.rollback(migrationId, actor))
       }
 
       if (url.pathname === '/api/v1/setup/status') {

@@ -13,7 +13,7 @@ const migratedTables = [
   'fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta',
   'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
   'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis',
-  'record_revisions'
+  'module_migrations', 'module_migration_records', 'record_revisions'
 ]
 
 test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', () => {
@@ -27,7 +27,7 @@ test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', 
 
   assert.equal(first.version, 20)
   assert.equal(second.version, first.version)
-  assert.deepEqual(first.applied, [2, 3, 4, 5, 20])
+  assert.deepEqual(first.applied, [2, 3, 4, 5, 6, 20])
   assert.deepEqual(second.applied, [])
   assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 20)
   for (const table of migratedTables) {

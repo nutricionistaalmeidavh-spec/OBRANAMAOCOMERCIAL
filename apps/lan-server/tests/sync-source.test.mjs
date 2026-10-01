@@ -56,7 +56,7 @@ test('sync source capabilities rejeita dispositivo revogado', async () => {
   } finally { await close(server) }
 })
 
-test('sync source capabilities anuncia o contrato central disponível até F12', async () => {
+test('sync source capabilities anuncia o contrato central final de F12', async () => {
   const { server, baseUrl } = await fixture()
   try {
     const response = await fetch(`${baseUrl}/api/v1/sync-source/capabilities`, {

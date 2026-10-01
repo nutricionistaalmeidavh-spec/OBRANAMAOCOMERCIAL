@@ -28,12 +28,13 @@ async function fixture(securityOverrides = {}) {
   const company = repository.save('empresas', { razao_social: 'Empresa Operação' })
   const client = repository.save('clientes', { empresa_id: company.id, nome: 'Cliente Operação' })
   const work = repository.save('obras', { empresa_id: company.id, cliente_id: client.id, nome: 'Obra Operação', status: 'ativa' })
+  const employee = repository.save('funcionarios', { empresa_id: company.id, obra_atual_id: work.id, nome: 'Funcionário Operação', status: 'ativo' })
   const server = createLanServer({ repository, security: security(securityOverrides) })
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('Servidor sem porta TCP.')
-  return { repository, server, baseUrl: `http://127.0.0.1:${address.port}`, company, client, work }
+  return { repository, server, baseUrl: `http://127.0.0.1:${address.port}`, company, client, work, employee }
 }
 
 async function close(f) {
@@ -62,7 +63,7 @@ test('CRUD operacional autenticado compartilha frentes, RDOs, filhos e tarefas n
     assert.equal(rdoResponse.status, 201)
     const rdo = await rdoResponse.json()
 
-    const teamResponse = await post(f.baseUrl, '/api/v1/rdo_equipe', { rdo_id: rdo.id, frente_id: front.id, funcionario_id: 9001, nome: 'Equipe A', funcao: 'Encanador', horas: 8 })
+    const teamResponse = await post(f.baseUrl, '/api/v1/rdo_equipe', { rdo_id: rdo.id, frente_id: front.id, funcionario_id: f.employee.id, nome: 'Equipe A', funcao: 'Encanador', horas: 8 })
     assert.equal(teamResponse.status, 201)
     const occurrenceResponse = await post(f.baseUrl, '/api/v1/rdo_ocorrencias', { rdo_id: rdo.id, frente_id: front.id, tipo: 'pendencia', descricao: 'Revisar prumada' })
     assert.equal(occurrenceResponse.status, 201)
