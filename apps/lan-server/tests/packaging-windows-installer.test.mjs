@@ -19,7 +19,7 @@ test('Inno installer is x64, stops the service before replacement and checks pos
   assert.match(iss, /CurStepChanged\s*\(/is)
   assert.match(iss, /ssPostInstall/is)
   assert.match(iss, /ResultCode\s*<>\s*0/is)
-  assert.match(iss, /GetCustomSetupExitCode\s*\(/is)
+  assert.match(iss, /function\s+GetCustomSetupExitCode\s*(?:\(\s*\))?\s*:\s*Integer/is)
   assert.match(iss, /PostInstallExitCode/is)
   assert.match(iss, /UninstallRun/is)
   assert.doesNotMatch(iss, /^\[Run\]/m)
