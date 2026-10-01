@@ -1,3 +1,5 @@
+const { RevisionConflictError } = require('./revision-conflict-error.cjs')
+
 const CORE_REMOTE_TABLES = new Set(['empresas', 'clientes', 'obras'])
 const OPERATION_REMOTE_TABLES = new Set(['frentes_obra', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
 const PLANNING_REMOTE_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'])
@@ -8,20 +10,6 @@ const RH_REMOTE_TABLES = new Set([
   'epis', 'funcionario_epis'
 ])
 const REMOTE_TABLES = new Set([...CORE_REMOTE_TABLES, ...OPERATION_REMOTE_TABLES, ...PLANNING_REMOTE_TABLES, ...FINANCE_REMOTE_TABLES, ...RH_REMOTE_TABLES])
-
-class LanRevisionConflictError extends Error {
-  constructor(payload = {}) {
-    super('Este registro foi alterado em outro computador. Recarregue os dados antes de salvar novamente.')
-    this.name = 'LanRevisionConflictError'
-    this.code = 'revision_conflict'
-    this.status = 409
-    this.resourceType = payload.resourceType || null
-    this.resourceId = payload.resourceId === undefined || payload.resourceId === null ? null : String(payload.resourceId)
-    this.expectedRevision = Number(payload.expectedRevision)
-    this.currentRevision = Number(payload.currentRevision)
-    this.current = payload.current || null
-  }
-}
 
 class LanDataClient {
   constructor({ storage, credentials, fetchImpl = globalThis.fetch, timeoutMs = 5000 }) {
@@ -74,7 +62,7 @@ class LanDataClient {
       try { payload = await response.json() } catch {}
       if (!response?.ok) {
         if (response?.status === 409 && payload?.error === 'revision_conflict') {
-          throw new LanRevisionConflictError(payload)
+          throw new RevisionConflictError(payload)
         }
         const rawMessage = payload?.message || `Servidor da empresa respondeu HTTP ${response?.status ?? 'inválido'}.`
         throw new Error(this.sanitizeMessage(rawMessage, state.token))
@@ -82,7 +70,7 @@ class LanDataClient {
       return payload
     } catch (error) {
       if (error?.name === 'AbortError') throw new Error('Tempo esgotado ao acessar o servidor da empresa.')
-      if (error instanceof LanRevisionConflictError) throw error
+      if (error instanceof RevisionConflictError) throw error
       if (error instanceof Error) throw new Error(this.sanitizeMessage(error.message, state.token))
       throw new Error('Não foi possível acessar o servidor da empresa.')
     } finally {
@@ -181,4 +169,4 @@ class LanDataClient {
   }
 }
 
-module.exports = { LanDataClient, LanRevisionConflictError, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES }
+module.exports = { LanDataClient, LanRevisionConflictError: RevisionConflictError, RevisionConflictError, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES }
