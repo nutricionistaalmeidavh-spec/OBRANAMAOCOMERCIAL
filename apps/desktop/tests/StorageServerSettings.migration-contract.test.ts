@@ -3,7 +3,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 describe('StorageServerSettings migration contract',()=>{
-  const source=fs.readFileSync(path.resolve(import.meta.dirname,'StorageServerSettings.tsx'),'utf8')
+  const source=fs.readFileSync(path.resolve(process.cwd(),'src/components/StorageServerSettings.tsx'),'utf8')
 
   it('mostra os cinco blocos de armazenamento central',()=>{
     for(const module of ['core','operation','planning','finance','rh']) expect(source).toMatch(new RegExp(`(?:${module}:'|['\"]${module}['\"])`))
