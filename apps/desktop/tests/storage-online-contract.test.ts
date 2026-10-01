@@ -6,14 +6,21 @@ const preload = fs.readFileSync(path.resolve(process.cwd(), 'electron/preload.cj
 const main = fs.readFileSync(path.resolve(process.cwd(), 'electron/main.cjs'), 'utf8')
 
 describe('storage and Web/PWA public contract separation', () => {
-  it('keeps storage limited to storage state/configuration/connection testing', () => {
-    const storageBlock = preload.match(/storage:\s*\{[^\n]+\}/)?.[0] || ''
+  it('keeps storage lifecycle and migration API separate from online/session/sync', () => {
+    const storageBlock = preload.match(/storage:\s*\{[\s\S]*?\n\s*\},\n\s*lan:/)?.[0] || ''
+    expect(storageBlock).not.toBe('')
     expect(storageBlock).toContain("state: () => call('storage:state')")
     expect(storageBlock).toContain("configure: (input) => call('storage:configure', input)")
     expect(storageBlock).toContain("testConnection: () => call('storage:test-connection')")
+    expect(storageBlock).toContain("moduleState: (module) => call('storage:module-state'")
+    expect(storageBlock).toContain("migrationPreflight: (module) => call('storage:migration-preflight'")
+    expect(storageBlock).toContain("migrationStatus: (module) => call('storage:migration-status'")
+    expect(storageBlock).toContain("migrateModule: (module) => call('storage:migrate-module'")
+    expect(storageBlock).toContain("rollbackModuleMigration: (module) => call('storage:rollback-module-migration'")
     expect(storageBlock).not.toContain('online:')
-    expect(storageBlock).not.toContain('sync')
-    expect(storageBlock).not.toContain('session')
+    expect(storageBlock).not.toContain("call('online:")
+    expect(storageBlock).not.toContain("call('online:sync")
+    expect(storageBlock).not.toContain("call('online:session")
   })
 
   it('keeps the existing online auth/session/sync API available', () => {
