@@ -9,7 +9,17 @@ const entity = (table) => ({ list: (filters) => call('entity:list', { table, fil
 
 contextBridge.exposeInMainWorld('fluxoDre', {
   app: { bootstrap: () => call('app:bootstrap'), retryDatabase: () => call('app:retry-database'), getLayout: () => call('app:get-layout'), setLayout: (layout) => call('app:set-layout', { layout }) }, product: { getEdition: () => call('product:get-edition'), setEdition: (edition) => call('product:set-edition', { edition }) }, demo: { seed: () => call('demo:seed') },
-  storage: { state: () => call('storage:state'), configure: (input) => call('storage:configure', input), testConnection: () => call('storage:test-connection'), moduleState: (module) => call('storage:module-state', { module }), refreshModuleCapabilities: () => call('storage:refresh-module-capabilities') },
+  storage: {
+    state: () => call('storage:state'),
+    configure: (input) => call('storage:configure', input),
+    testConnection: () => call('storage:test-connection'),
+    moduleState: (module) => call('storage:module-state', { module }),
+    refreshModuleCapabilities: () => call('storage:refresh-module-capabilities'),
+    migrationPreflight: (module) => call('storage:migration-preflight', { module }),
+    migrationStatus: (module) => call('storage:migration-status', { module }),
+    migrateModule: (module) => call('storage:migrate-module', { module }),
+    rollbackModuleMigration: (module) => call('storage:rollback-module-migration', { module })
+  },
   lan: {
     hostState: () => call('lan:host-state'),
     startHost: () => call('lan:host-start'),

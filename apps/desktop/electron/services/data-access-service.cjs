@@ -32,6 +32,7 @@ class DataAccessService {
   }
 
   moduleForTable(table) {
+    if (CORE_REMOTE_TABLES.has(table)) return 'core'
     if (OPERATION_REMOTE_TABLES.has(table)) return 'operation'
     if (PLANNING_REMOTE_TABLES.has(table)) return 'planning'
     if (FINANCE_REMOTE_TABLES.has(table)) return 'finance'
@@ -41,21 +42,20 @@ class DataAccessService {
 
   route(table) {
     if (!this.transportReady()) return 'local'
-    if (CORE_REMOTE_TABLES.has(table)) return 'remote'
     const module = this.moduleForTable(table)
     if (!module) return 'local'
 
     const moduleState = this.moduleStorage?.state?.(module)?.state
     if (moduleState === 'central-active') return 'remote'
-    if (moduleState === 'central-ready') return 'blocked'
-    return 'local'
+    if (moduleState === 'migration-required' || moduleState === 'local') return 'local'
+    return 'blocked'
   }
 
   assertRoute(table) {
     const route = this.route(table)
     if (route === 'blocked') {
       const module = this.moduleForTable(table)
-      const label = module === 'planning' ? 'Planejamento' : module === 'finance' ? 'Financeiro' : module === 'rh' ? 'RH' : 'RDO/operação'
+      const label = module === 'core' ? 'Cadastros-base' : module === 'planning' ? 'Planejamento' : module === 'finance' ? 'Financeiro' : module === 'rh' ? 'RH' : 'RDO/operação'
       throw new Error(`O módulo ${label} central ainda não está ativo; nenhum dado será salvo localmente como fallback.`)
     }
     return route

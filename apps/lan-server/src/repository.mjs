@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { applyLanMigrations } from './migrations.mjs'
+import { validateCoreOperationOwnership } from './domain-integrity.mjs'
 
 const TABLE_FIELDS = {
   empresas: new Set(['razao_social', 'nome_fantasia', 'cnpj', 'telefone', 'email', 'endereco', 'observacoes', 'status']),
@@ -281,6 +282,8 @@ export class LanRepository {
     const columns = Object.keys(clean)
     if (!columns.length) throw new Error('Nenhum dado válido informado.')
     const meta = TABLE_META[table]
+    const current = data?.id ? this.get(table, data.id) : null
+    validateCoreOperationOwnership(this.db, table, clean, current)
     this.validatePlanningOwnership(table, data, clean)
     this.validateFinanceOwnership(table, data, clean)
     this.validateRhOwnership(table, data, clean)

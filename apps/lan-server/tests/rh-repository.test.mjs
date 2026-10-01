@@ -21,10 +21,10 @@ const RH_TABLES = [
   'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis'
 ]
 
-test('migration F12 cria schema RH central e alcança versão 5', () => {
+test('schema RH F12 permanece presente após a migration F17 de versão 6', () => {
   const f = fixture()
   try {
-    assert.equal(f.migration.version, 5)
+    assert.equal(f.migration.version, 6)
     for (const table of RH_TABLES) {
       const row = f.repository.connection().prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table)
       assert.equal(row?.name, table)

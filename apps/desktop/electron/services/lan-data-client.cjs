@@ -76,6 +76,30 @@ class LanDataClient {
     return this.request('GET', '/api/v1/sync-source/capabilities')
   }
 
+  async migrationStart(input) {
+    return this.request('POST', '/api/v1/migrations/start', { body: input })
+  }
+
+  async migrationRecord(migrationId, record) {
+    return this.request('POST', `/api/v1/migrations/${encodeURIComponent(String(migrationId))}/record`, { body: record })
+  }
+
+  async migrationStatus(migrationId) {
+    return this.request('GET', `/api/v1/migrations/${encodeURIComponent(String(migrationId))}/status`)
+  }
+
+  async migrationValidate(migrationId) {
+    return this.request('POST', `/api/v1/migrations/${encodeURIComponent(String(migrationId))}/validate`)
+  }
+
+  async migrationCommit(migrationId) {
+    return this.request('POST', `/api/v1/migrations/${encodeURIComponent(String(migrationId))}/commit`)
+  }
+
+  async migrationRollback(migrationId) {
+    return this.request('POST', `/api/v1/migrations/${encodeURIComponent(String(migrationId))}/rollback`)
+  }
+
   async saveDailyReport(payload) {
     return this.request('POST', '/api/v1/field/rdo', { body: payload })
   }

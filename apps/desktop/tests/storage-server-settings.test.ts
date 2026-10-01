@@ -34,23 +34,36 @@ describe('configuracao de dados e servidor', () => {
     expect(storage).not.toContain("host:effectiveHost||'127.0.0.1'")
   })
 
-  it('expõe o estado real do RDO/operação e bloqueia centralização silenciosa de dados antigos', () => {
+  it('expõe operação e os demais módulos pelo contrato genérico sem centralização silenciosa', () => {
     expect(preload).toContain("call('storage:module-state'")
     expect(main).toContain("ipcMain.handle('storage:module-state'")
-    expect(storage).toContain("window.fluxoDre.storage.moduleState('operation')")
-    expect(storage).toContain('RDO / operação')
+    expect(storage).toContain("const keys:ModuleKey[]=['core','operation','planning','finance','rh']")
+    expect(storage).toContain('storageApi.moduleState(key)')
+    expect(storage).toContain("operation:'RDO / operação'")
+    expect(storage).toContain("planning:'Planejamento'")
+    expect(storage).toContain("finance:'Financeiro'")
+    expect(storage).toContain("rh:'RH'")
     expect(storage).toContain('Migração necessária')
-    expect(storage).toContain('RDOs, frentes e tarefas locais continuam neste computador')
-    expect(storage).toContain('RDO/operação já usa o banco central')
+    expect(storage).toContain('Os dados locais permanecem neste computador')
+    expect(storage).toContain('Banco central ativo')
   })
 
-  it('expõe o estado do Planejamento e a trava de dependência financeira antes da F11', () => {
-    expect(storage).toContain("window.fluxoDre.storage.moduleState('planning')")
-    expect(storage).toContain('Planejamento')
-    expect(storage).toContain('Planejamento já usa o banco central')
-    expect(storage).toContain('cronograma, etapas e orçamento locais continuam neste computador')
-    expect(storage).toContain('Financeiro local detectado')
-    expect(storage).toContain('Financeiro e RH permanecem no comportamento atual')
+  it('expõe a cadeia real de dependências e bloqueia módulos posteriores até o anterior estar central', () => {
+    expect(storage).toContain('dependencyBlockedBy')
+    expect(storage).toContain('blockedBy')
+    expect(storage).toContain('Conclua a migração/ativação desse bloco')
+    expect(storage).toContain('Cadastros-base → RDO/operação → Planejamento → Financeiro → RH')
+    expect(storage).toContain("state?.state==='central-ready'&&blockedBy")
+    expect(storage).toContain('Não haverá fallback local silencioso')
+  })
+
+  it('mantém retry/rollback explícitos em vez de ativação forçada', () => {
+    expect(storage).toContain('migrationStatus')
+    expect(storage).toContain('Tentar novamente')
+    expect(storage).toContain('rollbackModuleMigration')
+    expect(storage).toContain('Reverter tentativa')
+    expect(storage).not.toContain('forceCentralActive')
+    expect(storage).not.toContain('setModuleState')
   })
 
   it('mantém em destaque a identidade atual Web/PWA e não a transforma em assinatura', () => {
