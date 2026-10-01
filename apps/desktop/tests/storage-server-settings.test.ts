@@ -34,23 +34,23 @@ describe('configuracao de dados e servidor', () => {
     expect(storage).not.toContain("host:effectiveHost||'127.0.0.1'")
   })
 
-  it('expõe o estado real do RDO/operação e bloqueia centralização silenciosa de dados antigos', () => {
+  it('expõe o estado real dos módulos e bloqueia centralização silenciosa de dados antigos', () => {
     expect(preload).toContain("call('storage:module-state'")
     expect(main).toContain("ipcMain.handle('storage:module-state'")
-    expect(storage).toContain("window.fluxoDre.storage.moduleState('operation')")
+    expect(storage).toContain("const keys:ModuleKey[]=['core','operation','planning','finance','rh']")
+    expect(storage).toContain('storageApi.moduleState(key)')
     expect(storage).toContain('RDO / operação')
+    expect(storage).toContain('Frentes, tarefas, RDOs e seus registros')
     expect(storage).toContain('Migração necessária')
-    expect(storage).toContain('RDOs, frentes e tarefas locais continuam neste computador')
-    expect(storage).toContain('RDO/operação já usa o banco central')
+    expect(storage).toContain('Banco central ativo')
   })
 
-  it('expõe o estado do Planejamento e a trava de dependência financeira antes da F11', () => {
-    expect(storage).toContain("window.fluxoDre.storage.moduleState('planning')")
+  it('expõe Planejamento e bloqueia módulos dependentes até Cadastros-base estar central-active', () => {
     expect(storage).toContain('Planejamento')
-    expect(storage).toContain('Planejamento já usa o banco central')
-    expect(storage).toContain('cronograma, etapas e orçamento locais continuam neste computador')
-    expect(storage).toContain('Financeiro local detectado')
-    expect(storage).toContain('Financeiro e RH permanecem no comportamento atual')
+    expect(storage).toContain('Etapas, cronograma e orçamento')
+    expect(storage).toContain("module!=='core'&&state?.coreDependencyBlocked")
+    expect(storage).toContain('Aguardando Cadastros-base')
+    expect(storage).toContain("module!=='core'&&modules.core?.state!=='central-active'")
   })
 
   it('mantém em destaque a identidade atual Web/PWA e não a transforma em assinatura', () => {
