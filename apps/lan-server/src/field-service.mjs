@@ -1,14 +1,24 @@
+import { ConcurrencyService } from './concurrency-service.mjs'
+
 export class FieldService {
   constructor({ repository }) {
     this.repository = repository
+    this.concurrency = new ConcurrencyService({ db: repository.connection() })
   }
 
   saveDailyReport(payload = {}) {
     if (!this.repository?.connection || !this.repository?.save) throw new Error('Repositório central inválido para RDO.')
     const db = this.repository.connection()
-    const { equipe = [], equipamentos = [], ocorrencias = [], anexos = [], ...data } = payload
+    const { expectedRevision, equipe = [], equipamentos = [], ocorrencias = [], anexos = [], ...data } = payload
     db.exec('BEGIN IMMEDIATE;')
     try {
+      if (data.id) {
+        const current = this.repository.get('rdos', Number(data.id))
+        if (!current) throw new Error('RDO central não encontrado.')
+        const observed = this.concurrency.current('rdos', current.id) || this.concurrency.initialize('rdos', current.id)
+        this.concurrency.assertExpected('rdos', current.id, expectedRevision, { ...current, revision: observed })
+      }
+
       const rdo = this.repository.save('rdos', data)
       if (!rdo) throw new Error('RDO central não encontrado.')
 
@@ -75,8 +85,11 @@ export class FieldService {
         })
       }
 
+      const revision = payload.id
+        ? this.concurrency.bump('rdos', rdo.id)
+        : this.concurrency.initialize('rdos', rdo.id)
       db.exec('COMMIT;')
-      return rdo
+      return { ...rdo, revision }
     } catch (error) {
       try { db.exec('ROLLBACK;') } catch {}
       throw error
