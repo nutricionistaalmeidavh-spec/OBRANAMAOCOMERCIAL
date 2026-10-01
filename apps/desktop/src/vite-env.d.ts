@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
-type EntityApi = { list(filters?: Record<string, unknown>): Promise<any[]>; get(id: number): Promise<any>; save(data: Record<string, unknown>): Promise<any>; remove(id: number): Promise<boolean> }
+type EntityApi = { list(filters?: Record<string, unknown>): Promise<any[]>; get(id: number): Promise<any>; save(data: Record<string, unknown>): Promise<any>; remove(id: number, revision?: number): Promise<boolean> }
+type RevisionConflictDetails = { resourceType:string|null; resourceId:string|null; expectedRevision:number; currentRevision:number; current:any }
 type UpdaterState = { status:'idle'|'checking'|'current'|'available'|'downloading'|'downloaded'|'error'|'unsupported'; currentVersion:string; availableVersion:string|null; progress:number|null; error:string|null; supported:boolean }
 type OperationalStorageMode = 'local'|'lan-host'|'lan-client'|'remote'
 type ModuleStorageKey = 'operation'|'planning'
@@ -59,6 +60,7 @@ interface Window { fluxoDre: {
     setDeviceStatus(deviceId:string,status:'active'|'revoked'):Promise<any>;refreshIdentity():Promise<LanAdminStatus>;
     startAtLoginState():Promise<{enabled:boolean}>;setStartAtLogin(enabled:boolean):Promise<{enabled:boolean}>
   }
+  conflicts:{onRevisionConflict(listener:(details:RevisionConflictDetails)=>void):()=>void}
   empresas: EntityApi; clientes: EntityApi; fornecedores: EntityApi; obras: EntityApi & { importSpreadsheets(): Promise<any>; overview(obra_id:number): Promise<any>; timeline(obra_id:number): Promise<any[]> }; etapas: EntityApi; locais: EntityApi; orcamentos: EntityApi; cronograma: EntityApi; rdos: EntityApi; rdoEquipe: EntityApi; rdoEquipamentos: EntityApi; rdoOcorrencias: EntityApi; rdoAnexos: EntityApi; arquivos: EntityApi
   medicoes: EntityApi & { saveWithItems(data:any):Promise<any>; anexos:EntityApi; itensMedidos:EntityApi; importAttachment(data:any):Promise<any>; mapa: EntityApi }; contas: EntityApi & { payment(id:number,payment:any):Promise<any> }
   categorias: EntityApi; cargos: EntityApi; funcionarios: EntityApi; folhas: EntityApi; lancamentosFolha: EntityApi; pagamentosFuncionario: EntityApi; beneficios: EntityApi; epis: EntityApi; funcionarioEpis: EntityApi; fontes: EntityApi; pastas: EntityApi
