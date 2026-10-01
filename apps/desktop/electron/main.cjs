@@ -4,6 +4,7 @@ const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
 const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
 const { ModuleStorageStateService } = require('./services/module-storage-state-service.cjs')
+const { ModuleMigrationService } = require('./services/module-migration-service.cjs')
 const { LanCredentialService } = require('./services/lan-credential-service.cjs')
 const { LanHostService } = require('./services/lan-host-service.cjs')
 const { LanSetupService } = require('./services/lan-setup-service.cjs')
@@ -103,9 +104,11 @@ function createServices() {
     serverEntry: resolveLanServerEntry()
   })
   const lanSetup = new LanSetupService({ storage, credentials: lanCredentials, online })
+  const backup = new BackupService({ db, ...paths })
+  const migration = new ModuleMigrationService({ database: db, storage, moduleStorage, lanClient: dataAccess.remote, backup, appVersion: app.getVersion() })
   return {
-    paths, db, dataAccess, storage, moduleStorage, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
-    backup: new BackupService({ db, ...paths }),
+    paths, db, dataAccess, storage, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
+    backup,
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
     payroll: new PayrollService({ db }),
@@ -166,9 +169,11 @@ async function refreshModuleCapabilitiesSafe() {
   try { return await services.moduleStorage.refreshCapabilities() }
   catch {
     return {
+      core: services.moduleStorage.state('core'),
       operation: services.moduleStorage.state('operation'),
       planning: services.moduleStorage.state('planning'),
-      finance: services.moduleStorage.state('finance')
+      finance: services.moduleStorage.state('finance'),
+      rh: services.moduleStorage.state('rh')
     }
   }
 }
@@ -199,6 +204,9 @@ function registerIpc() {
   ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))
   ipcMain.handle('storage:module-state', envelope(({ module }) => services.moduleStorage.state(module)))
   ipcMain.handle('storage:refresh-module-capabilities', envelope(() => services.moduleStorage.refreshCapabilities()))
+  ipcMain.handle('storage:migration-preflight', envelope(({ module }) => services.migration.preflight(module)))
+  ipcMain.handle('storage:migration-status', envelope(({ module }) => services.migration.status(module)))
+  ipcMain.handle('storage:migrate-module', envelope(({ module }) => withSyncStopped(() => services.migration.migrate(module))))
   ipcMain.handle('lan:host-state', envelope(() => services.lanHost.state()))
   ipcMain.handle('lan:host-start', envelope(async () => { const result = await services.lanHost.start(); if (isLanHostMode()) ensureTray(); return result }))
   ipcMain.handle('lan:host-stop', envelope(() => services.lanHost.stop()))
