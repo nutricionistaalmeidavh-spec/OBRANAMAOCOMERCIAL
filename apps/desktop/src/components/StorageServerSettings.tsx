@@ -6,12 +6,22 @@ import { Button, Card, Field, Status } from './ui'
 type Props={onMessage:(message:string)=>void}
 type Mode='local'|'lan-host'|'lan-client'|'remote'
 type Form={operationalMode:Mode;host:string;port:string}
+type ModuleKey='core'|'operation'|'planning'|'finance'|'rh'
+
+const MODULE_LABELS:Record<ModuleKey,string>={core:'Cadastros-base',operation:'RDO / operação',planning:'Planejamento',finance:'Financeiro',rh:'RH'}
+const MODULE_COPY:Record<ModuleKey,string>={
+  core:'Empresas, clientes e obras',
+  operation:'Frentes, tarefas, RDOs e seus registros',
+  planning:'Etapas, cronograma e orçamento',
+  finance:'Fornecedores, categorias, contas e pagamentos',
+  rh:'Funcionários, folha, ponto, benefícios e EPIs'
+}
 
 export default function StorageServerSettings({onMessage}:Props){
   const storage=useAsync(()=>window.fluxoDre.storage.state(),[])
   const online=useAsync(()=>window.fluxoDre.online.state(),[])
-  const moduleState=useAsync(()=>window.fluxoDre.storage.moduleState('operation'),[])
-  const planningState=useAsync(()=>window.fluxoDre.storage.moduleState('planning'),[])
+  const storageApi=window.fluxoDre.storage as any
+  const [modules,setModules]=useState<Record<ModuleKey,any>>({core:null,operation:null,planning:null,finance:null,rh:null})
   const [form,setForm]=useState<Form>({operationalMode:'local',host:'127.0.0.1',port:'4732'})
   const [lanStatus,setLanStatus]=useState<any>(null)
   const [hostState,setHostState]=useState<any>(null)
@@ -28,18 +38,19 @@ export default function StorageServerSettings({onMessage}:Props){
 
   const refreshModuleState=async()=>{
     try{
-      const states=await window.fluxoDre.storage.refreshModuleCapabilities()
-      moduleState.setData(states.operation)
-      planningState.setData(states.planning)
+      const states=await storageApi.refreshModuleCapabilities()
+      setModules(current=>({...current,...states}))
     }catch{
-      await Promise.all([moduleState.reload(),planningState.reload()])
+      const keys:ModuleKey[]=['core','operation','planning','finance','rh']
+      const states=await Promise.all(keys.map(async key=>[key,await storageApi.moduleState(key)] as const))
+      setModules(Object.fromEntries(states) as Record<ModuleKey,any>)
     }
   }
 
   const refreshLan=async(mode:Mode=form.operationalMode)=>{
     if(mode==='local'){
       setLanStatus(null);setHostState(null);setAdminStatus(null);setDevices([])
-      await Promise.all([moduleState.reload(),planningState.reload()])
+      await refreshModuleState()
       return
     }
     try{
@@ -53,21 +64,18 @@ export default function StorageServerSettings({onMessage}:Props){
         setAdminStatus(admin);setDevices(deviceList)
       }else{setAdminStatus(null);setDevices([])}
       await refreshModuleState()
-    }catch(error:any){setLanStatus(null);setAdminStatus(null);setDevices([]);await Promise.all([moduleState.reload(),planningState.reload()]);onMessage(error.message)}
+    }catch(error:any){setLanStatus(null);setAdminStatus(null);setDevices([]);await refreshModuleState();onMessage(error.message)}
   }
 
-  useEffect(()=>{if(storage.data&&storage.data.operationalMode!=='local')void refreshLan(storage.data.operationalMode as Mode)},[storage.data?.operationalMode,storage.data?.baseUrl])
+  useEffect(()=>{if(storage.data)void refreshLan(storage.data.operationalMode as Mode)},[storage.data?.operationalMode,storage.data?.baseUrl])
 
   const effectiveHost=form.operationalMode==='lan-host'?'127.0.0.1':form.host
   const dirty=!!storage.data&&(form.operationalMode!==storage.data.operationalMode||effectiveHost!==storage.data.host||form.port!==String(storage.data.port))
   const isServerMode=form.operationalMode!=='local'
   const isAdmin=lanStatus?.credential?.member?.role==='admin'
+  const paired=!!lanStatus?.credential?.paired
 
-  const changeMode=(mode:Mode)=>setForm(current=>({
-    ...current,
-    operationalMode:mode,
-    host:mode==='lan-host'||mode==='local'?'127.0.0.1':(current.host==='127.0.0.1'?'':current.host)
-  }))
+  const changeMode=(mode:Mode)=>setForm(current=>({...current,operationalMode:mode,host:mode==='lan-host'||mode==='local'?'127.0.0.1':(current.host==='127.0.0.1'?'':current.host)}))
 
   const save=async()=>{
     setBusy(true);onMessage('Salvando configuração de dados...')
@@ -90,13 +98,42 @@ export default function StorageServerSettings({onMessage}:Props){
   const refreshIdentity=async()=>{setBusy(true);try{await window.fluxoDre.lan.refreshIdentity();onMessage('Usuários e permissões atualizados a partir do Obra na Mão Cloud.');await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
   const toggleStartAtLogin=async(enabled:boolean)=>{try{const state=await window.fluxoDre.lan.setStartAtLogin(enabled);setStartAtLogin(state.enabled);onMessage(state.enabled?'Obra na Mão configurado para iniciar com o sistema.':'Inicialização automática desativada.')}catch(error:any){onMessage(error.message)}}
 
-  const operation=moduleState.data
-  const planning=planningState.data
+  const migrate=async(module:ModuleKey)=>{
+    const state=modules[module]
+    if(state?.state!=='migration-required')return
+    const confirmed=window.confirm(`${MODULE_LABELS[module]} possui dados locais. Será criado um backup antes da cópia. A base local não será apagada durante a migração. Deseja continuar?`)
+    if(!confirmed)return
+    setBusy(true);onMessage(`Migrando ${MODULE_LABELS[module]} para o servidor...`)
+    try{
+      await storageApi.migrationPreflight(module)
+      const result=await storageApi.migrateModule(module)
+      onMessage(`${MODULE_LABELS[module]} migrado e validado no servidor. Backup preservado em ${result?.backup?.folder||'pasta local de backups'}.`)
+      await refreshLan()
+    }catch(error:any){onMessage(`Migração não concluída: ${error.message}`);await refreshModuleState()}finally{setBusy(false)}
+  }
+
+  const renderModule=(module:ModuleKey)=>{
+    const state=modules[module]
+    const coreBlocked=module!=='core'&&state?.coreDependencyBlocked
+    return <div key={module} style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-color, #dfe4ec)'}}>
+      <strong>{MODULE_LABELS[module]}</strong>
+      <p style={{marginBottom:6}}>{MODULE_COPY[module]}.</p>
+      {state?.state==='local'&&<p>Este bloco continua usando somente o banco local.</p>}
+      {state?.state==='central-ready'&&!coreBlocked&&<p>Servidor disponível, mas este bloco ainda aguarda capability/ativação central. Não haverá fallback local silencioso.</p>}
+      {state?.state==='central-ready'&&coreBlocked&&<div className="error-box"><strong>Aguardando Cadastros-base.</strong> Migre Empresas, Clientes e Obras antes deste bloco.</div>}
+      {state?.state==='central-active'&&<p className="success-box"><strong>Banco central ativo.</strong> Os computadores autorizados usam a mesma fonte para este bloco.</p>}
+      {state?.state==='migration-required'&&<div className="error-box">
+        <strong>Migração necessária.</strong> Os dados locais permanecem neste computador e não serão apagados durante a cópia. Um backup é criado antes da primeira escrita no servidor.
+        <div className="setting-actions" style={{marginTop:10}}><Button disabled={busy||!paired||!isAdmin||(module!=='core'&&modules.core?.state!=='central-active')} onClick={()=>migrate(module)}>Migrar {MODULE_LABELS[module]}</Button></div>
+        {!isAdmin&&paired&&<small>Somente um usuário Admin pode executar a migração.</small>}
+      </div>}
+    </div>
+  }
 
   return <Card className="setting-card setting-card-feature">
     <Server size={21} color="#2f67d8"/>
     <h3>Dados e servidor</h3>
-    <p>Escolha onde o Desktop opera os dados suportados nesta etapa.</p>
+    <p>Escolha onde o Desktop opera os dados centralizáveis.</p>
     <div className="success-box" style={{margin:'10px 0'}}><strong>Web/PWA continua incluído.</strong> Login, PWA e a sincronização online que já fazem parte do Obra na Mão não são substituídos nem passam a exigir assinatura por causa desta configuração.</div>
     <Field label="Onde os dados operacionais ficarão?">
       <select value={form.operationalMode} disabled={storage.loading||busy} onChange={event=>changeMode(event.target.value as Mode)}>
@@ -118,28 +155,12 @@ export default function StorageServerSettings({onMessage}:Props){
     </div>
     <small>{form.operationalMode==='local'?'Modo padrão, totalmente local e offline.':form.operationalMode==='lan-host'?'O servidor usa um SQLite central neste PC e os outros computadores acessam pela API LAN; o arquivo SQLite nunca é compartilhado pela rede.':'Informe o IP/host da máquina que executa o Obra na Mão Server. O banco permanece somente no servidor.'}</small>
 
-    <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-color, #dfe4ec)'}}>
-      <strong>RDO / operação</strong>
-      {operation?.state==='local'&&<p>RDO/operação continua usando o banco local deste computador.</p>}
-      {operation?.state==='central-ready'&&<p>Servidor configurado, mas o RDO/operação ainda aguarda pareamento e capability central compatível. Nenhum fallback local silencioso será feito.</p>}
-      {operation?.state==='central-active'&&<p className="success-box"><strong>RDO/operação já usa o banco central.</strong> Novos RDOs, frentes e tarefas podem ser compartilhados pelos computadores autorizados.</p>}
-      {operation?.state==='migration-required'&&<div className="error-box"><strong>Migração necessária.</strong> RDOs, frentes e tarefas locais continuam neste computador e não foram apagados nem copiados. A centralização deste módulo só será ativada depois de uma migração explícita e validada.</div>}
-    </div>
-
-    <div style={{marginTop:14,paddingTop:12,borderTop:'1px solid var(--border-color, #dfe4ec)'}}>
-      <strong>Planejamento</strong>
-      {planning?.state==='local'&&<p>Planejamento continua usando o banco local deste computador.</p>}
-      {planning?.state==='central-ready'&&!planning?.financeDependencyBlocked&&<p>Servidor configurado, mas o Planejamento ainda aguarda capability central compatível. Nenhum fallback local silencioso será feito.</p>}
-      {planning?.state==='central-ready'&&planning?.financeDependencyBlocked&&<div className="error-box"><strong>Financeiro local detectado.</strong> O Planejamento central ficará aguardando até a centralização/migração financeira da F11/F17 para não misturar cronograma central com valores locais.</div>}
-      {planning?.state==='central-active'&&<p className="success-box"><strong>Planejamento já usa o banco central.</strong> Cronograma, etapas e orçamento podem ser compartilhados pelos computadores autorizados e continuam no mesmo fluxo Web/PWA.</p>}
-      {planning?.state==='migration-required'&&<div className="error-box"><strong>Migração necessária.</strong> O cronograma, etapas e orçamento locais continuam neste computador e não foram apagados nem copiados. A centralização do Planejamento só será ativada depois de uma migração explícita e validada.</div>}
-      <small>Financeiro e RH permanecem no comportamento atual até as respectivas etapas de centralização.</small>
-    </div>
+    {(['core','operation','planning','finance','rh'] as ModuleKey[]).map(renderModule)}
 
     {isServerMode&&!dirty&&<div style={{marginTop:16,borderTop:'1px solid var(--border-color, #dfe4ec)',paddingTop:14}}>
       <div className="setting-actions" style={{justifyContent:'space-between'}}><strong>Autorização da rede</strong><Button variant="secondary" icon={<RefreshCw size={14}/>} disabled={busy} onClick={()=>refreshLan()}>Atualizar estado</Button></div>
       {form.operationalMode==='lan-host'&&<p><Status value={hostState?.running?'ativo':'inativo'}/> Processo servidor {hostState?.running?'em execução':'parado'}{hostState?.lastError?` — ${hostState.lastError}`:''}.</p>}
-      {lanStatus&&<p>Servidor: <strong>{lanStatus.serverId||'—'}</strong> · {lanStatus.claimed?'vinculado à empresa':'ainda não reivindicado'} · Este PC: <strong>{lanStatus.credential?.paired?'pareado':'não pareado'}</strong>.</p>}
+      {lanStatus&&<p>Servidor: <strong>{lanStatus.serverId||'—'}</strong> · {lanStatus.claimed?'vinculado à empresa':'ainda não reivindicado'} · Este PC: <strong>{paired?'pareado':'não pareado'}</strong>.</p>}
 
       {lanStatus&&!lanStatus.claimed&&<>
         {form.operationalMode==='lan-client'&&<Field label="Código de configuração mostrado no servidor"><input value={setupCode} onChange={event=>setSetupCode(event.target.value.toUpperCase())} placeholder="XXXXX-XXXXX"/></Field>}
@@ -148,12 +169,12 @@ export default function StorageServerSettings({onMessage}:Props){
         {form.operationalMode==='lan-host'&&!hostState?.setupCodeAvailable&&<small>O processo servidor ainda está inicializando. Clique em “Atualizar estado” em alguns segundos.</small>}
       </>}
 
-      {lanStatus?.claimed&&!lanStatus?.credential?.paired&&<>
+      {lanStatus?.claimed&&!paired&&<>
         <Field label="Código de pareamento"><input value={pairCode} onChange={event=>setPairCode(event.target.value.toUpperCase())} placeholder="Código fornecido pelo Administrador"/></Field>
         <Button disabled={busy||!pairCode.trim()} onClick={pair}>Parear este computador</Button>
       </>}
 
-      {lanStatus?.credential?.paired&&<div style={{marginTop:10}}>
+      {paired&&<div style={{marginTop:10}}>
         <span className="status status-success"><ShieldCheck size={13}/> Computador autorizado</span>
         <p>Usuário: <strong>{lanStatus.credential.member?.name||lanStatus.credential.member?.email||lanStatus.credential.member?.memberId||'Usuário autorizado'}</strong> · Perfil: <strong>{lanStatus.credential.member?.role||'—'}</strong>.</p>
         <Button variant="secondary" icon={<Unplug size={14}/>} disabled={busy} onClick={disconnect}>Remover pareamento deste PC</Button>
@@ -172,6 +193,6 @@ export default function StorageServerSettings({onMessage}:Props){
       </div>}
     </div>}
 
-    <div style={{marginTop:12}}><small><strong>Escopo atual:</strong> Empresas, Clientes e Obras já usam o servidor em modo LAN. RDO/operação e Planejamento seguem os estados exibidos acima. Financeiro e RH permanecem no comportamento atual até suas migrações específicas.</small></div>
+    <div style={{marginTop:12}}><small><strong>Ordem segura:</strong> Cadastros-base → RDO/operação → Planejamento → Financeiro → RH. Cada bloco só muda para a fonte central depois de backup, cópia e validação explícitos.</small></div>
   </Card>
 }
