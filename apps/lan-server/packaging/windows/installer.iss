@@ -29,11 +29,8 @@ Name: "lanaccess"; Description: "Permitir acesso de outros computadores desta re
 Source: "{#PackageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#PackageDir}\platform\preinstall-stop.ps1"; Flags: dontcopy
 
-[Run]
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\platform\install-hooks.ps1"" -Action Install -InstallDir ""{app}"" {code:LanSwitch}"; Flags: runhidden waituntilterminated
-
 [UninstallRun]
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\platform\install-hooks.ps1"" -Action Uninstall -InstallDir ""{app}"""; Flags: runhidden waituntilterminated; RunOnceId: "ObraNaMaoServerUninstall"
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\platform\install-hooks.ps1"" -Action Uninstall -InstallDir ""{app}"""; Flags: runhidden waituntilterminated; RunOnceId: "ObraNaMaoServerUninstall"
 
 [Code]
 function LanSwitch(Param: String): String;
@@ -52,8 +49,25 @@ begin
   Result := '';
   ExtractTemporaryFile('preinstall-stop.ps1');
   Params := '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{tmp}\preinstall-stop.ps1') + '"';
-  if not Exec('powershell.exe', Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
     Result := 'Não foi possível verificar/parar o serviço ObraNaMaoServer antes da atualização.'
   else if ResultCode <> 0 then
     Result := 'O serviço ObraNaMaoServer não pôde ser parado. A instalação foi cancelada para proteger os dados.';
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    if not Exec(
+      ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+      '-NoProfile -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\platform\install-hooks.ps1') + '" -Action Install -InstallDir "' + ExpandConstant('{app}') + '" ' + LanSwitch(''),
+      '', SW_HIDE, ewWaitUntilTerminated, ResultCode
+    ) then
+      RaiseException('Não foi possível executar a configuração do serviço ObraNaMaoServer.');
+    if ResultCode <> 0 then
+      RaiseException(Format('A configuração do serviço ObraNaMaoServer falhou (código %d). Consulte o log do instalador em ProgramData.', [ResultCode]));
+  end;
 end;
