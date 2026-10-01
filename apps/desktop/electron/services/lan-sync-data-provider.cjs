@@ -5,6 +5,24 @@ const PAUSE_REASONS = {
   remote: 'A sincronização por servidor remoto ainda não está disponível nesta etapa.'
 }
 
+function syncSourceQuery(scope = {}, modules = []) {
+  const params = new URLSearchParams()
+  const entries = {
+    company_id: scope.companyId,
+    obra_id: scope.workId,
+    remote_company_id: scope.remoteCompanyId,
+    remote_project_id: scope.remoteProjectId,
+    device_id: scope.deviceId,
+    work_name: scope.workName
+  }
+  for (const [key, value] of Object.entries(entries)) {
+    if (value !== undefined && value !== null && String(value).length) params.set(key, String(value))
+  }
+  if (Array.isArray(modules) && modules.length) params.set('modules', modules.join(','))
+  const value = params.toString()
+  return value ? `?${value}` : ''
+}
+
 class LanSyncDataProvider {
   constructor({ lanClient }) {
     this.lanClient = lanClient
@@ -71,14 +89,14 @@ class LanSyncDataProvider {
     return true
   }
 
-  async summary() {
+  async summary(scope, modules = []) {
     await this.requireModule('summary')
-    return this.lanClient.request('GET', '/api/v1/sync-source/summary')
+    return this.lanClient.request('GET', `/api/v1/sync-source/summary${syncSourceQuery(scope, modules)}`)
   }
 
-  async obligations() {
+  async obligations(scope) {
     await this.requireModule('finance')
-    return this.lanClient.request('GET', '/api/v1/sync-source/obligations')
+    return this.lanClient.request('GET', `/api/v1/sync-source/obligations${syncSourceQuery(scope)}`)
   }
 }
 
