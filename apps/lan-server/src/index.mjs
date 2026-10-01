@@ -7,14 +7,17 @@ import { PairingService } from './pairing-service.mjs'
 import { MigrationService } from './migration-service.mjs'
 import { CentralBackupService } from './central-backup-service.mjs'
 import { loadRuntimeConfig } from './runtime-config.mjs'
+import { ensureRuntimePaths, resolveRuntimePaths } from './runtime-paths.mjs'
 import { createLanServer, LAN_SERVER_VERSION, refreshIdentitySnapshot } from './server.mjs'
 
 const runtimeConfig = loadRuntimeConfig()
-const { host, port, dataDir, cloudBaseUrl } = runtimeConfig
-const migrationsDir = path.resolve(import.meta.dirname, '../migrations')
+const { host, port, cloudBaseUrl } = runtimeConfig
+const runtimePaths = ensureRuntimePaths(resolveRuntimePaths(runtimeConfig, {
+  migrationsDir: path.resolve(import.meta.dirname, '../migrations')
+}))
+const { dataDir, databasePath, migrationsDir } = runtimePaths
 const IDENTITY_REFRESH_MS = 5 * 60 * 1000
 
-const databasePath = path.join(dataDir, 'obra-na-mao-lan.sqlite')
 const repository = new LanRepository({ filename: databasePath })
 const migrationState = repository.applyMigrations(migrationsDir)
 const security = new LanSecurityRepository({ db: repository.connection() })
