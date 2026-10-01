@@ -1,6 +1,11 @@
-const MODULES = new Set(['operation', 'planning'])
+const MODULES = new Set(['operation', 'planning', 'finance'])
 const STATES = new Set(['local', 'central-ready', 'central-active', 'migration-required'])
 const KEY_PREFIX = 'module_storage_state_'
+const DEFAULT_FINANCE_CATEGORIES = new Set([
+  'Receitas de contratos', 'Medições', 'Folha de pagamento', 'Encargos trabalhistas', 'Benefícios',
+  'Materiais', 'Ferramentas', 'Combustível', 'Serviços terceiros', 'Impostos', 'Seguros',
+  'Tarifas bancárias', 'Outras despesas'
+])
 
 class ModuleStorageStateService {
   constructor({ database, storage, lanClient }) {
@@ -46,16 +51,25 @@ class ModuleStorageStateService {
     return Number(row?.n || 0)
   }
 
+  customFinanceCategoryCount() {
+    if (!this.tableColumns('categorias_financeiras').size) return 0
+    const defaults = [...DEFAULT_FINANCE_CATEGORIES]
+    const placeholders = defaults.map(() => '?').join(',')
+    const row = this.database.db.prepare(`SELECT COUNT(*) AS n FROM categorias_financeiras WHERE nome NOT IN (${placeholders})`).get(...defaults)
+    return Number(row?.n || 0)
+  }
+
+  financeLocalRecordCount() {
+    return this.countActive('fornecedores') + this.countActive('contas') + this.countActive('pagamentos_conta') + this.customFinanceCategoryCount()
+  }
+
   localRecordCount(moduleName) {
     const module = this.assertModule(moduleName)
+    if (module === 'finance') return this.financeLocalRecordCount()
     const tables = module === 'operation'
       ? ['frentes_obra', 'tarefas_obra', 'rdos']
       : ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios']
     return tables.reduce((total, table) => total + this.countActive(table), 0)
-  }
-
-  financeLocalRecordCount() {
-    return this.countActive('contas')
   }
 
   state(moduleName) {
@@ -85,13 +99,14 @@ class ModuleStorageStateService {
   async refreshCapabilities() {
     const operation = this.state('operation')
     const planning = this.state('planning')
-    if ([operation.state, planning.state].every(state => state === 'local' || state === 'migration-required')) {
-      return { operation, planning }
+    const finance = this.state('finance')
+    if ([operation.state, planning.state, finance.state].every(state => state === 'local' || state === 'migration-required')) {
+      return { operation, planning, finance }
     }
 
     const capabilities = await this.lanClient.syncSourceCapabilities()
     const modules = Array.isArray(capabilities?.modules) ? capabilities.modules : []
-    const result = { operation, planning }
+    const result = { operation, planning, finance }
 
     if (!['local', 'migration-required'].includes(operation.state)) {
       const operationAvailable = modules.includes('operation')
@@ -111,6 +126,12 @@ class ModuleStorageStateService {
         capabilityAvailable: planningAvailable,
         financeDependencyBlocked
       }
+    }
+
+    if (!['local', 'migration-required'].includes(finance.state)) {
+      const financeAvailable = modules.includes('finance')
+      const state = this.write('finance', financeAvailable ? 'central-active' : 'central-ready')
+      result.finance = { module: 'finance', state, localRecords: finance.localRecords, capabilityAvailable: financeAvailable }
     }
 
     return result
