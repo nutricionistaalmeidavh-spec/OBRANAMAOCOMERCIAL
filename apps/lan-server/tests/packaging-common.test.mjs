@@ -70,9 +70,10 @@ test('checksum verification rejects altered dependencies', () => {
   try {
     const file = path.join(root, 'vendor.bin')
     fs.writeFileSync(file, 'expected bytes')
-    assert.doesNotThrow(() => verifySha256(file, 'a390b7eeb692c7906f9d4d40249b0e0f69ef4b409aca2ff4cc00050e9fdcd45c'))
+    const expected = '89a51c27f6905ba4c9a1e284cc4b9c3678fa6660a953c65475d036e7dddd639b'
+    assert.doesNotThrow(() => verifySha256(file, expected))
     fs.appendFileSync(file, 'tampered')
-    assert.throws(() => verifySha256(file, 'a390b7eeb692c7906f9d4d40249b0e0f69ef4b409aca2ff4cc00050e9fdcd45c'), /sha-?256|checksum/i)
+    assert.throws(() => verifySha256(file, expected), /sha-?256|checksum/i)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
