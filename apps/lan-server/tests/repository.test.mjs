@@ -5,16 +5,31 @@ import { LanRepository } from '../src/repository.mjs'
 test('persistencia central cobre empresas, clientes e obras com relacionamentos', () => {
   const repository = new LanRepository({ filename: ':memory:' })
   try {
-    const empresa = repository.save('empresas', { razao_social: 'Empresa A' })
-    const cliente = repository.save('clientes', { empresa_id: empresa.id, nome: 'Cliente A' })
-    const obra = repository.save('obras', { empresa_id: empresa.id, cliente_id: cliente.id, nome: 'Obra A' })
-
+    const empresa = repository.save('empresas', {
+      razao_social: 'MH Hidráulica LTDA',
+      nome_fantasia: 'MH Hidráulica',
+      status: 'ativa'
+    })
     assert.equal(empresa.id, 1)
+    assert.equal(empresa.razao_social, 'MH Hidráulica LTDA')
+
+    const cliente = repository.save('clientes', {
+      empresa_id: empresa.id,
+      nome: 'Cliente A'
+    })
     assert.equal(cliente.empresa_id, empresa.id)
+
+    const obra = repository.save('obras', {
+      empresa_id: empresa.id,
+      cliente_id: cliente.id,
+      nome: 'Obra Central',
+      valor_contratado_centavos: 123400
+    })
     assert.equal(obra.cliente_id, cliente.id)
-    assert.equal(repository.list('empresas').length, 1)
+    assert.equal(obra.valor_contratado_centavos, 123400)
+
     assert.equal(repository.list('clientes', { empresa_id: empresa.id }).length, 1)
-    assert.equal(repository.list('obras', { empresa_id: empresa.id }).length, 1)
+    assert.equal(repository.list('obras', { cliente_id: cliente.id }).length, 1)
 
     const updated = repository.save('obras', { id: obra.id, nome: 'Obra Atualizada' })
     assert.equal(updated.nome, 'Obra Atualizada')
