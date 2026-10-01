@@ -12,7 +12,8 @@ const migratedTables = [
   'etapas_obra', 'cronograma_etapas', 'itens_orcamentarios',
   'fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta',
   'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
-  'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis'
+  'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis',
+  'module_migrations', 'module_migration_records'
 ]
 
 test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', () => {
@@ -24,11 +25,11 @@ test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', 
   const first = applyLanMigrations(repository.connection(), migrationsDir)
   const second = applyLanMigrations(repository.connection(), migrationsDir)
 
-  assert.equal(first.version, 5)
-  assert.equal(second.version, 5)
-  assert.deepEqual(first.applied, [2, 3, 4, 5])
+  assert.equal(first.version, 6)
+  assert.equal(second.version, 6)
+  assert.deepEqual(first.applied, [2, 3, 4, 5, 6])
   assert.deepEqual(second.applied, [])
-  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 5)
+  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 6)
   for (const table of migratedTables) {
     assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name=?").get(table).n, 1)
   }
@@ -40,7 +41,7 @@ test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', 
 
   repository = new LanRepository({ filename })
   const reopened = applyLanMigrations(repository.connection(), migrationsDir)
-  assert.equal(reopened.version, 5)
+  assert.equal(reopened.version, 6)
   assert.deepEqual(reopened.applied, [])
   assert.equal(repository.get('empresas', company.id).razao_social, 'Empresa preservada')
   repository.close()
