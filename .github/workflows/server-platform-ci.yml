@@ -1,0 +1,162 @@
+name: Obra na Mão Server Platform CI
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/lan-server/**'
+      - '.nvmrc'
+      - '.github/workflows/server-platform-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/lan-server/**'
+      - '.nvmrc'
+      - '.github/workflows/server-platform-ci.yml'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Test LAN server
+        run: npm --prefix apps/lan-server test
+      - name: Test packaging contracts
+        run: npm --prefix apps/lan-server run packaging:test
+      - name: Build Windows server package and installer
+        shell: pwsh
+        run: ./apps/lan-server/packaging/windows/build.ps1 -BuildInstaller
+      - name: Smoke Windows service lifecycle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = (Get-Content apps/lan-server/package.json -Raw | ConvertFrom-Json).version
+          $installer = Join-Path $PWD "apps/lan-server/dist/installer/Obra-na-Mao-Server-Setup-$version-x64.exe"
+          $programDataRoot = Join-Path $env:ProgramData 'ArtiSys\Obra na Mão Server'
+          $configPath = Join-Path $programDataRoot 'config\server.env'
+          $sentinel = Join-Path $programDataRoot 'ci-sentinel.txt'
+          if (-not (Test-Path $installer)) { throw "Server installer missing: $installer" }
+
+          if (Get-Service -Name ObraNaMaoServer -ErrorAction SilentlyContinue) {
+            Stop-Service -Name ObraNaMaoServer -Force -ErrorAction SilentlyContinue
+            sc.exe delete ObraNaMaoServer | Out-Null
+          }
+          Remove-Item $programDataRoot -Recurse -Force -ErrorAction SilentlyContinue
+
+          function Wait-Ready([int]$TimeoutSeconds = 45) {
+            $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+            do {
+              try {
+                $payload = Invoke-RestMethod -Uri 'http://127.0.0.1:4732/ready' -Method Get -TimeoutSec 2
+                if ($payload.ready -eq $true) { return $payload }
+              } catch {}
+              Start-Sleep -Milliseconds 250
+            } while ((Get-Date) -lt $deadline)
+            throw 'Windows service did not become /ready.'
+          }
+
+          $installArgs = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART')
+          $p = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "First install failed: $($p.ExitCode)" }
+          $first = Wait-Ready
+          $serverId = [string]$first.identity.serverId
+          if (-not $serverId) { throw 'Missing serverId after first install.' }
+          if (Get-NetFirewallRule -DisplayName 'Obra na Mão Server (LAN)' -ErrorAction SilentlyContinue) { throw 'Default install opened LAN firewall unexpectedly.' }
+          'preserve-me' | Set-Content -Path $sentinel -Encoding utf8NoBOM
+          $configHash = (Get-FileHash $configPath -Algorithm SHA256).Hash
+
+          Restart-Service ObraNaMaoServer -Force
+          $afterRestart = Wait-Ready
+          if ([string]$afterRestart.identity.serverId -ne $serverId) { throw 'serverId changed after Windows service restart.' }
+
+          $p = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Reinstall failed: $($p.ExitCode)" }
+          $afterReinstall = Wait-Ready
+          if ([string]$afterReinstall.identity.serverId -ne $serverId) { throw 'serverId changed after Windows reinstall.' }
+          if (-not (Test-Path $sentinel)) { throw 'Persistent sentinel was removed by Windows reinstall.' }
+          if ((Get-FileHash $configPath -Algorithm SHA256).Hash -ne $configHash) { throw 'Existing Windows server config was overwritten by reinstall.' }
+
+          $uninstaller = Join-Path ${env:ProgramFiles} 'ArtiSys\Obra na Mão Server\unins000.exe'
+          if (-not (Test-Path $uninstaller)) { throw "Uninstaller missing: $uninstaller" }
+          $u = Start-Process -FilePath $uninstaller -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -PassThru
+          if ($u.ExitCode -ne 0) { throw "Uninstall failed: $($u.ExitCode)" }
+          if (Get-Service -Name ObraNaMaoServer -ErrorAction SilentlyContinue) { throw 'Windows service still exists after uninstall.' }
+          if (-not (Test-Path $sentinel)) { throw 'Windows uninstall removed persistent state.' }
+          if (-not (Test-Path $configPath)) { throw 'Windows uninstall removed server config.' }
+          Remove-Item $programDataRoot -Recurse -Force -ErrorAction SilentlyContinue
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Server-Windows-x64
+          path: apps/lan-server/dist/installer/*.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Test LAN server
+        run: npm --prefix apps/lan-server test
+      - name: Test packaging contracts
+        run: npm --prefix apps/lan-server run packaging:test
+      - name: Check Linux shell syntax
+        run: |
+          bash -n apps/lan-server/packaging/linux/build.sh
+          bash -n apps/lan-server/packaging/linux/install.sh
+          bash -n apps/lan-server/packaging/linux/uninstall.sh
+      - name: Build Linux server package
+        run: bash apps/lan-server/packaging/linux/build.sh
+      - name: Smoke Linux systemd lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_dir="$PWD/apps/lan-server/dist/server-linux-x64"
+          sudo env PACKAGE_DIR="$package_dir" READY_TIMEOUT_SECONDS=60 bash apps/lan-server/packaging/linux/install.sh
+          sudo systemd-analyze verify /etc/systemd/system/obra-na-mao-server.service
+          sudo systemctl is-active --quiet obra-na-mao-server.service
+
+          read_id() {
+            node --input-type=module -e "const r=await fetch('http://127.0.0.1:4732/ready');const b=await r.json();if(!r.ok||b?.ready!==true||!b?.identity?.serverId)process.exit(1);process.stdout.write(String(b.identity.serverId))"
+          }
+          server_id="$(read_id)"
+          sudo touch /var/lib/obra-na-mao/ci-sentinel
+          config_hash="$(sudo sha256sum /etc/obra-na-mao/server.env | awk '{print $1}')"
+
+          sudo systemctl restart obra-na-mao-server.service
+          for _ in $(seq 1 120); do
+            after_restart="$(read_id 2>/dev/null || true)"
+            [[ -n "$after_restart" ]] && break
+            sleep 0.25
+          done
+          [[ "$after_restart" == "$server_id" ]] || { echo 'serverId changed after Linux restart.' >&2; exit 1; }
+
+          sudo env PACKAGE_DIR="$package_dir" READY_TIMEOUT_SECONDS=60 bash apps/lan-server/packaging/linux/install.sh
+          [[ -f /var/lib/obra-na-mao/ci-sentinel ]] || { echo 'Persistent sentinel was removed by Linux reinstall.' >&2; exit 1; }
+          [[ "$(sudo sha256sum /etc/obra-na-mao/server.env | awk '{print $1}')" == "$config_hash" ]] || { echo 'Linux config was overwritten by reinstall.' >&2; exit 1; }
+          [[ "$(read_id)" == "$server_id" ]] || { echo 'serverId changed after Linux reinstall.' >&2; exit 1; }
+
+          sudo bash apps/lan-server/packaging/linux/uninstall.sh
+          [[ ! -e /opt/obra-na-mao/server ]] || { echo 'Linux runtime still exists after uninstall.' >&2; exit 1; }
+          [[ -f /etc/obra-na-mao/server.env ]] || { echo 'Linux uninstall removed config.' >&2; exit 1; }
+          [[ -f /var/lib/obra-na-mao/ci-sentinel ]] || { echo 'Linux uninstall removed persistent data.' >&2; exit 1; }
+          sudo rm -rf /etc/obra-na-mao /var/lib/obra-na-mao /var/log/obra-na-mao /opt/obra-na-mao
+          sudo userdel obra-na-mao 2>/dev/null || true
+      - name: Upload Linux package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Server-Linux-x64
+          path: apps/lan-server/dist/Obra-na-Mao-Server-*-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 30
