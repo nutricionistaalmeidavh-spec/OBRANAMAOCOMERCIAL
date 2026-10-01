@@ -100,15 +100,19 @@ jobs:
             $hook = Join-Path $installDir 'platform\install-hooks.ps1'
             if (-not (Test-Path $hook)) { throw "Installed hook missing: $hook" }
             $windowsPowerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-            $args = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$hook,'-Action','Install','-InstallDir',$installDir,'-ReadyTimeoutSeconds','5')
-            $diag = Start-Process -FilePath $windowsPowerShell -ArgumentList $args -Wait -PassThru -RedirectStandardOutput $hookDiagOut -RedirectStandardError $hookDiagErr
-            Write-Host "Diagnostic hook exit code: $($diag.ExitCode)"
+            Remove-Item $hookDiagOut,$hookDiagErr -Force -ErrorAction SilentlyContinue
+            & $windowsPowerShell -NoProfile -ExecutionPolicy Bypass -File $hook -Action Install -ReadyTimeoutSeconds 5 1> $hookDiagOut 2> $hookDiagErr
+            $diagExit = $LASTEXITCODE
+            Write-Host "Diagnostic hook exit code: $diagExit"
             Write-ServiceDiagnostics
           }
 
           $installArgs = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/LOG=$innoLog")
           $p = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
-          if ($p.ExitCode -ne 0) { Write-ServiceDiagnostics; throw "First install failed: $($p.ExitCode)" }
+          if ($p.ExitCode -ne 0) {
+            Capture-HookFailure
+            throw "First install failed: $($p.ExitCode)"
+          }
           if (-not (Get-Service -Name ObraNaMaoServer -ErrorAction SilentlyContinue)) {
             Capture-HookFailure
             throw 'Installer postinstall failed before registering ObraNaMaoServer.'
