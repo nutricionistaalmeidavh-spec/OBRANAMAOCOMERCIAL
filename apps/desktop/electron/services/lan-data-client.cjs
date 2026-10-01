@@ -1,7 +1,8 @@
 const CORE_REMOTE_TABLES = new Set(['empresas', 'clientes', 'obras'])
 const OPERATION_REMOTE_TABLES = new Set(['frentes_obra', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
 const PLANNING_REMOTE_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'])
-const REMOTE_TABLES = new Set([...CORE_REMOTE_TABLES, ...OPERATION_REMOTE_TABLES, ...PLANNING_REMOTE_TABLES])
+const FINANCE_REMOTE_TABLES = new Set(['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'])
+const REMOTE_TABLES = new Set([...CORE_REMOTE_TABLES, ...OPERATION_REMOTE_TABLES, ...PLANNING_REMOTE_TABLES, ...FINANCE_REMOTE_TABLES])
 
 class LanDataClient {
   constructor({ storage, credentials, fetchImpl = globalThis.fetch, timeoutMs = 5000 }) {
@@ -78,6 +79,18 @@ class LanDataClient {
     return this.request('GET', '/api/v1/planning/overview', { query: { obra_id: Number(obraId) } })
   }
 
+  async accountPayment(id, payment, requestId) {
+    return this.request('POST', `/api/v1/finance/accounts/${Number(id)}/payment`, { body: { requestId, payment } })
+  }
+
+  async financeDre(filters = {}) {
+    return this.request('GET', '/api/v1/finance/dre', { query: filters })
+  }
+
+  async financeDashboard(filters = {}) {
+    return this.request('GET', '/api/v1/finance/dashboard', { query: filters })
+  }
+
   async list(table, filters = {}) {
     this.assertTable(table)
     return this.request('GET', `/api/v1/${table}`, { query: filters })
@@ -103,4 +116,4 @@ class LanDataClient {
   }
 }
 
-module.exports = { LanDataClient, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES }
+module.exports = { LanDataClient, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES }
