@@ -41,11 +41,29 @@ const asText = value => String(value)
 const canonicalCounts = (module, counts = {}) => Object.fromEntries(MODULE_TABLES[module].map(table => [table, Number(counts?.[table] || 0)]))
 
 export class MigrationService {
-  constructor({ repository, now = () => new Date().toISOString() }) {
+  constructor({ repository, security = null, now = () => new Date().toISOString() }) {
     if (!repository?.connection || !repository?.save) throw new Error('Repositório LAN inválido para migração.')
     this.repository = repository
-    this.db = repository.connection()
+    this.security = security
     this.now = now
+  }
+
+  get db() { return this.repository.connection() }
+
+  actorFields(actor) {
+    return { actorMemberId: actor?.member?.memberId || null, actorDeviceId: actor?.device?.id || null }
+  }
+
+  audit(action, migration, actor, details = {}) {
+    try {
+      this.security?.appendAudit?.({
+        ...this.actorFields(actor),
+        action,
+        targetType: 'module_migration',
+        targetId: String(migration?.migration_id || migration?.migrationId || ''),
+        details: { module: migration?.module || null, sourceFingerprint: migration?.source_fingerprint || migration?.sourceFingerprint || null, ...details }
+      })
+    } catch {}
   }
 
   assertModule(module) {
@@ -73,7 +91,7 @@ export class MigrationService {
     }
   }
 
-  start({ migrationId, module, sourceFingerprint, expectedCounts }) {
+  start({ migrationId, module, sourceFingerprint, expectedCounts }, actor = null) {
     const id = String(migrationId || '').trim()
     const source = String(sourceFingerprint || '').trim()
     const moduleName = this.assertModule(module)
@@ -84,11 +102,13 @@ export class MigrationService {
       if (existing.module !== moduleName) throw new Error('MigrationId já pertence a outro módulo.')
       if (existing.source_fingerprint !== source) throw new Error('MigrationId já pertence a outro fingerprint de origem.')
       if (existing.expected_counts_json !== JSON.stringify(expected)) throw new Error('MigrationId já possui outra contagem esperada.')
-      return this.mapMigration(existing)
+      return this.status(id)
     }
     this.db.prepare('INSERT INTO module_migrations(migration_id,module,source_fingerprint,expected_counts_json,status,created_at) VALUES(?,?,?,?,?,?)')
       .run(id, moduleName, source, JSON.stringify(expected), 'started', this.now())
-    return this.mapMigration(this.row(id))
+    const created = this.row(id)
+    this.audit('migration_started', created, actor, { expectedCounts: expected })
+    return this.status(id)
   }
 
   mappingFor(sourceFingerprint, sourceTable, sourceId, currentMigrationId) {
@@ -127,7 +147,7 @@ export class MigrationService {
     }
   }
 
-  importRecord(migrationId, { sourceTable, sourceId, data }) {
+  importRecord(migrationId, { sourceTable, sourceId, data }, _actor = null) {
     const migrationRow = this.row(migrationId)
     if (!migrationRow) throw new Error('Migração não encontrada.')
     if (migrationRow.status !== 'started') throw new Error('Migração não está aberta para importação.')
@@ -170,17 +190,35 @@ export class MigrationService {
     }
   }
 
-  status(migrationId) {
+  sanity(migrationId) {
+    const row = this.row(migrationId)
+    if (!row) throw new Error('Migração não encontrada.')
+    const targetCounts = Object.fromEntries(MODULE_TABLES[row.module].map(table => [table, 0]))
+    const missingTargets = []
+    const records = this.db.prepare('SELECT source_table,source_id,target_table,target_id FROM module_migration_records WHERE migration_id=? ORDER BY source_table,source_id').all(String(migrationId))
+    for (const record of records) {
+      if (!MODULE_TABLES[row.module].includes(record.target_table)) {
+        missingTargets.push({ table:String(record.target_table), targetId:Number(record.target_id), sourceTable:String(record.source_table), sourceId:String(record.source_id) })
+        continue
+      }
+      const exists = this.db.prepare(`SELECT id FROM ${record.target_table} WHERE id=?`).get(Number(record.target_id))
+      if (exists) targetCounts[record.source_table] = Number(targetCounts[record.source_table] || 0) + 1
+      else missingTargets.push({ table:String(record.target_table), targetId:Number(record.target_id), sourceTable:String(record.source_table), sourceId:String(record.source_id) })
+    }
+    return { sanityOk: missingTargets.length === 0, targetCounts, missingTargets }
+  }
+
+  status(migrationId, _actor = null) {
     const row = this.row(migrationId)
     if (!row) throw new Error('Migração não encontrada.')
     const counts = Object.fromEntries(MODULE_TABLES[row.module].map(table => [table, 0]))
     for (const item of this.db.prepare('SELECT source_table,COUNT(*) AS n FROM module_migration_records WHERE migration_id=? GROUP BY source_table').all(String(migrationId))) {
       counts[item.source_table] = Number(item.n || 0)
     }
-    return { ...this.mapMigration(row), counts }
+    return { ...this.mapMigration(row), counts, ...this.sanity(migrationId) }
   }
 
-  validate(migrationId) {
+  validate(migrationId, actor = null) {
     const current = this.status(migrationId)
     if (current.status === 'validated' || current.status === 'committed') return current
     if (current.status !== 'started') throw new Error('Migração não pode ser validada neste estado.')
@@ -189,20 +227,32 @@ export class MigrationService {
         throw new Error(`Contagem migrada divergente em ${table}: esperado ${current.expectedCounts[table] || 0}, recebido ${current.counts[table] || 0}.`)
       }
     }
+    if (!current.sanityOk) throw new Error(`Sanidade central falhou: ${current.missingTargets.length} destino(s) de mapping não foram encontrados.`)
+    for (const table of MODULE_TABLES[current.module]) {
+      if (Number(current.targetCounts[table] || 0) !== Number(current.expectedCounts[table] || 0)) {
+        throw new Error(`Sanidade central divergente em ${table}: esperado ${current.expectedCounts[table] || 0}, encontrado ${current.targetCounts[table] || 0}.`)
+      }
+    }
     this.db.prepare("UPDATE module_migrations SET status='validated',validated_at=? WHERE migration_id=?").run(this.now(), String(migrationId))
-    return this.status(migrationId)
+    const validated = this.status(migrationId)
+    this.audit('migration_validated', validated, actor, { counts: validated.counts })
+    return validated
   }
 
-  commit(migrationId) {
+  commit(migrationId, actor = null) {
     const row = this.row(migrationId)
     if (!row) throw new Error('Migração não encontrada.')
     if (row.status === 'committed') return this.status(migrationId)
     if (row.status !== 'validated') throw new Error('Migração precisa estar validada antes do commit.')
+    const before = this.status(migrationId)
+    if (!before.sanityOk) throw new Error('Migração validada perdeu a sanidade central antes do commit.')
     this.db.prepare("UPDATE module_migrations SET status='committed',committed_at=? WHERE migration_id=?").run(this.now(), String(migrationId))
-    return this.status(migrationId)
+    const committed = this.status(migrationId)
+    this.audit('migration_committed', committed, actor, { counts: committed.counts })
+    return committed
   }
 
-  rollback(migrationId) {
+  rollback(migrationId, actor = null) {
     const row = this.row(migrationId)
     if (!row) throw new Error('Migração não encontrada.')
     if (row.status === 'rolled_back') return this.status(migrationId)
@@ -219,7 +269,9 @@ export class MigrationService {
       }
       this.db.prepare("UPDATE module_migrations SET status='rolled_back',rolled_back_at=? WHERE migration_id=?").run(this.now(), String(migrationId))
       this.db.exec('COMMIT')
-      return this.status(migrationId)
+      const rolledBack = this.status(migrationId)
+      this.audit('migration_rollback', rolledBack, actor, { removedCreatedTargets: records.filter(record => Number(record.created_target) === 1).length })
+      return rolledBack
     } catch (error) {
       try { this.db.exec('ROLLBACK') } catch {}
       throw error
