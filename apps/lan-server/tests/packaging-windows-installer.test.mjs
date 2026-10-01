@@ -51,6 +51,12 @@ test('PowerShell lifecycle never evaluates PSScriptRoot inside parameter default
   assert.doesNotMatch(uninstallLine, /-InstallDir/i)
 })
 
+test('Windows PowerShell service control delimits interpolated variables before colons', () => {
+  const serviceControl = read('service-control.ps1')
+  assert.doesNotMatch(serviceControl, /\$ConfigPath:\s*\$line/i)
+  assert.match(serviceControl, /\$\{ConfigPath\}:\s*\$line/i)
+})
+
 test('Windows install hook records sanitized operational progress and failures', () => {
   const hooks = read('install-hooks.ps1')
   assert.match(hooks, /installer-hook\.log/i)
