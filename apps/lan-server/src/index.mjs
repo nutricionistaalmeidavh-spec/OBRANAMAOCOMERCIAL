@@ -6,8 +6,10 @@ import { CloudAuthorityClient } from './cloud-authority-client.mjs'
 import { PairingService } from './pairing-service.mjs'
 import { MigrationService } from './migration-service.mjs'
 import { CentralBackupService } from './central-backup-service.mjs'
+import { createHealthService } from './health-service.mjs'
 import { loadRuntimeConfig } from './runtime-config.mjs'
 import { ensureRuntimePaths, resolveRuntimePaths } from './runtime-paths.mjs'
+import { attachReadinessRoute } from './readiness-route.mjs'
 import { createRuntime } from './server-runtime.mjs'
 import { createLanServer, LAN_SERVER_VERSION, refreshIdentitySnapshot } from './server.mjs'
 
@@ -37,7 +39,11 @@ function bootstrapServer() {
       serverVersion: LAN_SERVER_VERSION,
       expectedSchemaVersion: migrationState.version
     })
-    const server = createLanServer({
+    const healthService = createHealthService({
+      centralStorage: centralBackupService,
+      expectedSchemaVersion: migrationState.version
+    })
+    const server = attachReadinessRoute(createLanServer({
       serverVersion: LAN_SERVER_VERSION,
       repository,
       security,
@@ -47,7 +53,7 @@ function bootstrapServer() {
       pairingService,
       migrationService,
       centralBackupService
-    })
+    }), healthService)
 
     return {
       server,
@@ -56,6 +62,7 @@ function bootstrapServer() {
       identity,
       cloudAuthority,
       migrationState,
+      healthService,
       close: () => repository.close()
     }
   } catch (error) {
