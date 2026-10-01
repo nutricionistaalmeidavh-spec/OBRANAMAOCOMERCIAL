@@ -3,6 +3,11 @@ name: Commercial Desktop Windows CI
 permissions:
   contents: write
 
+env:
+  # Release freeze: CI/build/artifacts continue, but no GitHub Release is published
+  # automatically from main while this flag is false.
+  DESKTOP_AUTO_RELEASE_ENABLED: 'false'
+
 on:
   push:
     branches: [main]
@@ -69,7 +74,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Publish GitHub release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.DESKTOP_AUTO_RELEASE_ENABLED == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
