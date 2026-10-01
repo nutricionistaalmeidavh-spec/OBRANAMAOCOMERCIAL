@@ -1,73 +1,105 @@
 import { createRequire } from 'node:module'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 const require = createRequire(import.meta.url)
 const { ModuleMigrationService } = require('./module-migration-service.cjs')
 
-function fixture({mode='lan-host', moduleState='migration-required', capabilities=['core'], existingAttempt=null as any}={}) {
+function fixture({mode='lan-host', module='core', moduleState='migration-required', coreState='central-active', capabilities=['core','operation','planning','finance','rh'], rows=null as any}={}) {
   const config = new Map<string,string>()
-  if (existingAttempt) config.set('module_migration_attempt_core', JSON.stringify(existingAttempt))
-  const rows:any = { empresas:[{id:1,razao_social:'A'}], clientes:[], obras:[] }
+  const data:any = rows || { empresas:[{id:1,razao_social:'A'}], clientes:[], obras:[] }
   const database:any = {
-    list(table:string){ return [...(rows[table]||[])] },
+    list(table:string){ return [...(data[table]||[])].map((row:any)=>({...row})) },
     db:{ prepare(sql:string){
       return {
         get(key:string){ return sql.startsWith('SELECT valor') ? (config.has(key)?{valor:config.get(key)}:undefined) : undefined },
         run(key:string,value?:string){
           if (sql.startsWith('INSERT INTO configuracoes')) config.set(key,String(value))
           else if (sql.startsWith('DELETE FROM configuracoes')) config.delete(key)
+          return {changes:1}
         }
       }
     }}
   }
   const calls:any[]=[]
   const lanClient:any={
-    syncSourceCapabilities:async()=>({modules:capabilities}),
-    migrationStart:async(input:any)=>{calls.push(['start',input]);return {status:'started',...input}},
-    migrationRecord:async(id:string,record:any)=>{calls.push(['record',id,record]);return {targetId:record.sourceId,reused:false}},
-    migrationValidate:async(id:string)=>{calls.push(['validate',id]);return {status:'validated'}},
-    migrationCommit:async(id:string)=>{calls.push(['commit',id]);return {status:'committed'}},
-    migrationRollback:async(id:string)=>{calls.push(['rollback',id]);return {status:'rolled_back'}}
+    syncSourceCapabilities:vi.fn(async()=>({modules:capabilities})),
+    migrationStart:vi.fn(async(input:any)=>{calls.push(['start',input]);return {status:'started',...input}}),
+    migrationRecord:vi.fn(async(id:string,record:any)=>{calls.push(['record',id,record]);return {targetId:record.sourceId,reused:false}}),
+    migrationValidate:vi.fn(async(id:string)=>{calls.push(['validate',id]);return {status:'validated'}}),
+    migrationCommit:vi.fn(async(id:string)=>{calls.push(['commit',id]);return {status:'committed'}}),
+    migrationRollback:vi.fn(async(id:string)=>{calls.push(['rollback',id]);return {status:'rolled_back'}})
   }
-  const backup:any={createSafetySnapshot:async(context:any)=>{calls.push(['backup',context]);return {database:'/backup.sqlite',fingerprint:'backup-hash'}}}
-  const moduleStorage:any={state:(module:string)=>({state:module==='core'?moduleState:'central-active'}),activateAfterMigration:(module:string)=>{calls.push(['activate',module]);return {state:'central-active'}}}
+  const backup:any={createSafetySnapshot:vi.fn(async(context:any)=>{calls.push(['backup',context]);return {database:'/backup.sqlite',manifest:'/manifest.json',fingerprint:`backup-${calls.filter(x=>x[0]==='backup').length}`}})}
+  const moduleStorage:any={
+    state:vi.fn((name:string)=>({state:name==='core'?(module==='core'?moduleState:coreState):(name===module?moduleState:'central-active')})),
+    activateAfterMigration:vi.fn((name:string)=>{calls.push(['activate',name]);return {state:'central-active'}})
+  }
   const storage:any={state:()=>({operationalMode:mode,mode:mode==='local'?'local':'server'})}
-  return {service:new ModuleMigrationService({database,storage,moduleStorage,lanClient,backup,uuid:()=> 'mig-1',sourceId:()=> 'source-1'}),calls,config,lanClient,moduleStorage}
+  return {service:new ModuleMigrationService({database,storage,moduleStorage,lanClient,backup,appVersion:'1.0.0',uuid:()=> 'mig-1',sourceId:()=> 'source-1'}),calls,config,lanClient,moduleStorage,data,backup}
 }
 
 describe('ModuleMigrationService',()=>{
-  it('rejeita modo local, capability ausente e módulo sem migration-required',async()=>{
-    await expect(fixture({mode:'local'}).service.preflight('core')).rejects.toThrow(/LAN|servidor/i)
-    await expect(fixture({capabilities:[]}).service.preflight('core')).rejects.toThrow(/capability|suporta/i)
-    await expect(fixture({moduleState:'central-ready'}).service.preflight('core')).rejects.toThrow(/migra/i)
+  it('preflight informa bloqueios sem iniciar escrita remota',async()=>{
+    const local=fixture({mode:'local'})
+    await expect(local.service.preflight('core')).resolves.toMatchObject({canMigrate:false,reason:'storage_not_central'})
+    expect(local.lanClient.syncSourceCapabilities).not.toHaveBeenCalled()
+
+    await expect(fixture({capabilities:[]}).service.preflight('core')).resolves.toMatchObject({canMigrate:false,reason:'capability_missing'})
+    await expect(fixture({moduleState:'central-ready'}).service.preflight('core')).resolves.toMatchObject({canMigrate:false,reason:'migration_not_required'})
+    await expect(fixture({module:'operation',coreState:'migration-required',rows:{frentes_obra:[{id:1,obra_id:1,nome:'F'}]}}).service.preflight('operation')).resolves.toMatchObject({canMigrate:false,reason:'core_dependency',dependencies:{core:'migration-required'}})
   })
 
   it('faz backup antes da primeira escrita remota e ativa somente após commit',async()=>{
-    const f=fixture()
+    const f=fixture({rows:{empresas:[{id:2,razao_social:'B'},{id:1,razao_social:'A'}],clientes:[{id:4,empresa_id:1,nome:'C'}],obras:[]}})
     const result=await f.service.migrate('core')
     expect(result.status).toBe('committed')
-    expect(f.calls.map(x=>x[0])).toEqual(['backup','start','record','validate','commit','activate'])
+    expect(f.calls.map(x=>x[0])).toEqual(['backup','start','record','record','record','validate','commit','activate'])
+    expect(f.calls.filter(x=>x[0]==='record').map(x=>`${x[2].sourceTable}:${x[2].sourceId}`)).toEqual(['empresas:1','empresas:2','clientes:4'])
     expect(f.config.has('module_migration_attempt_core')).toBe(false)
   })
 
-  it('falha remota faz rollback sem ativar o módulo',async()=>{
+  it('falha transitória preserva lote e retry reutiliza migrationId sem rollback automático',async()=>{
     const f=fixture()
-    f.lanClient.migrationRecord=async(id:string,record:any)=>{f.calls.push(['record',id,record]);throw new Error('network down')}
+    f.lanClient.migrationRecord.mockRejectedValueOnce(new Error('network down'))
     await expect(f.service.migrate('core')).rejects.toThrow(/network down/)
-    expect(f.calls.map(x=>x[0])).toEqual(['backup','start','record','rollback'])
-    expect(f.calls.some(x=>x[0]==='activate')).toBe(false)
+    expect(f.calls.map(x=>x[0])).toEqual(['backup','start'])
+    expect(f.lanClient.migrationRollback).not.toHaveBeenCalled()
+    const pending=JSON.parse(f.config.get('module_migration_attempt_core')!)
+    expect(pending).toMatchObject({migrationId:'mig-1',sourceFingerprint:'source-1',status:'failed'})
+
+    f.calls.length=0
+    await expect(f.service.migrate('core')).resolves.toMatchObject({migrationId:'mig-1',status:'committed'})
+    expect(f.calls.find(x=>x[0]==='start')[1].migrationId).toBe('mig-1')
+  })
+
+  it('recusa retry quando os dados do módulo mudaram desde a tentativa',async()=>{
+    const f=fixture()
+    f.lanClient.migrationRecord.mockRejectedValueOnce(new Error('timeout'))
+    await expect(f.service.migrate('core')).rejects.toThrow(/timeout/)
+    f.data.empresas[0].razao_social='Alterada depois da falha'
+    const starts=f.lanClient.migrationStart.mock.calls.length
+    await expect(f.service.migrate('core')).rejects.toThrow(/dados locais|origem.*mudou|rollback/i)
+    expect(f.lanClient.migrationStart.mock.calls.length).toBe(starts)
+  })
+
+  it('rollback é explícito e só então limpa a tentativa local',async()=>{
+    const f=fixture()
+    f.lanClient.migrationRecord.mockRejectedValueOnce(new Error('offline'))
+    await expect(f.service.migrate('core')).rejects.toThrow(/offline/)
+    expect(f.config.has('module_migration_attempt_core')).toBe(true)
+    await expect(f.service.rollback('core')).resolves.toMatchObject({status:'rolled_back'})
+    expect(f.lanClient.migrationRollback).toHaveBeenCalledWith('mig-1')
     expect(f.config.has('module_migration_attempt_core')).toBe(false)
   })
 
-  it('preserva migrationId quando rollback falha para permitir retry idempotente',async()=>{
+  it('mantém sourceFingerprint estável entre módulos e separado do hash do conteúdo',()=>{
     const f=fixture()
-    let first=true
-    f.lanClient.migrationRecord=async(id:string,record:any)=>{f.calls.push(['record',id,record]);if(first){first=false;throw new Error('timeout')}return {targetId:1,reused:true}}
-    f.lanClient.migrationRollback=async(id:string)=>{f.calls.push(['rollback',id]);throw new Error('offline')}
-    await expect(f.service.migrate('core')).rejects.toThrow(/timeout/)
-    expect(JSON.parse(f.config.get('module_migration_attempt_core')!).migrationId).toBe('mig-1')
-    f.calls.length=0
-    await f.service.migrate('core')
-    expect(f.calls.find(x=>x[0]==='start')[1].migrationId).toBe('mig-1')
+    const first=f.service.sourceFingerprint()
+    f.data.empresas[0].razao_social='mudou'
+    const second=f.service.sourceFingerprint()
+    expect(first).toBe('source-1')
+    expect(second).toBe(first)
+    expect(f.config.get('migration_source_fingerprint')).toBe('source-1')
+    expect(f.service.sourceDataHash('core')).not.toBe(f.service.sourceDataHash('operation'))
   })
 })
