@@ -151,7 +151,7 @@ test('business CRUD rejeita chamadas sem credencial de dispositivo', async () =>
 test('API rejeita entidade fora do escopo e corpo JSON invalido', async () => {
   const { server, baseUrl } = await fixture()
   try {
-    const unsupported = await fetch(`${baseUrl}/api/v1/funcionarios`)
+    const unsupported = await authorizedFetch(`${baseUrl}/api/v1/documentos`)
     assert.equal(unsupported.status, 404)
     assert.deepEqual(await unsupported.json(), { error: 'not_found' })
 
