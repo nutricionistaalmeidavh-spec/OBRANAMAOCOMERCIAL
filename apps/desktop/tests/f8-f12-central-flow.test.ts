@@ -91,6 +91,21 @@ describe('F8-F12 central Desktop flow', () => {
     expect(f.localTime.save).not.toHaveBeenCalled()
   })
 
+  it('servidor central indisponível propaga erro e nunca grava fallback local', async () => {
+    const f = centralFixture()
+    f.remote.save.mockRejectedValue(new Error('Servidor da empresa indisponível.'))
+    f.remote.financeDashboard.mockRejectedValue(new Error('Servidor da empresa indisponível.'))
+    f.remote.timeSave.mockRejectedValue(new Error('Servidor da empresa indisponível.'))
+
+    await expect(f.dataAccess.save('funcionarios', { empresa_id: 1, nome: 'Não duplicar' })).rejects.toThrow(/Servidor da empresa indisponível/i)
+    await expect(f.finance.dashboard({ empresa_id: 1 })).rejects.toThrow(/Servidor da empresa indisponível/i)
+    await expect(f.rh.timeSave({ funcionario_id: 7, competencia: '2026-10', marks: [] })).rejects.toThrow(/Servidor da empresa indisponível/i)
+
+    expect(f.db.save).not.toHaveBeenCalled()
+    expect(f.db.dashboard).not.toHaveBeenCalled()
+    expect(f.localTime.save).not.toHaveBeenCalled()
+  })
+
   it('runtime principal usa RH central para folha, ponto e catálogo e mantém documentos como saída local derivada', () => {
     const main = fs.readFileSync(path.resolve(import.meta.dirname, '../electron/main.cjs'), 'utf8')
     const documents = fs.readFileSync(path.resolve(import.meta.dirname, '../electron/services/rh-document-service.cjs'), 'utf8')
