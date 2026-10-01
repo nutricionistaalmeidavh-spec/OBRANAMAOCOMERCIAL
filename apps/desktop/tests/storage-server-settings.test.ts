@@ -44,8 +44,13 @@ describe('configuracao de dados e servidor', () => {
     expect(storage).toContain('RDO/operação já usa o banco central')
   })
 
-  it('explicita que planejamento, financeiro e RH ainda não foram centralizados nesta fase', () => {
-    expect(source).toContain('Planejamento, Financeiro e RH permanecem no comportamento atual')
+  it('expõe o estado do Planejamento e a trava de dependência financeira antes da F11', () => {
+    expect(storage).toContain("window.fluxoDre.storage.moduleState('planning')")
+    expect(storage).toContain('Planejamento')
+    expect(storage).toContain('Planejamento já usa o banco central')
+    expect(storage).toContain('cronograma, etapas e orçamento locais continuam neste computador')
+    expect(storage).toContain('Financeiro local detectado')
+    expect(storage).toContain('Financeiro e RH permanecem no comportamento atual')
   })
 
   it('mantém em destaque a identidade atual Web/PWA e não a transforma em assinatura', () => {
