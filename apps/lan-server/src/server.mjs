@@ -203,7 +203,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/api/v1/sync-source/capabilities') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         await authenticateLanRequest(request, security)
-        return sendJson(response, 200, { version: 1, modules: ['core', 'operation'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos'] })
+        return sendJson(response, 200, { version: 1, modules: ['core', 'operation', 'planning'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'] })
       }
 
       if (url.pathname === '/api/v1/field/rdo') {
