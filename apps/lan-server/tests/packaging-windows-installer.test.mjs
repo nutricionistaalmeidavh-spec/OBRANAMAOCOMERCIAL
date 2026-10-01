@@ -18,10 +18,9 @@ test('Inno installer is x64, stops the service before replacement and checks pos
   assert.match(iss, /install-hooks\.ps1/is)
   assert.match(iss, /CurStepChanged\s*\(/is)
   assert.match(iss, /ssPostInstall/is)
-  assert.match(iss, /Params\s*:=\s*[^;]*install-hooks\.ps1/is)
-  assert.match(iss, /Exec\s*\(\s*PowerShellPath\s*,\s*Params\s*,/is)
   assert.match(iss, /ResultCode\s*<>\s*0/is)
-  assert.match(iss, /RaiseException/is)
+  assert.match(iss, /GetCustomSetupExitCode\s*\(/is)
+  assert.match(iss, /PostInstallExitCode/is)
   assert.match(iss, /UninstallRun/is)
   assert.doesNotMatch(iss, /^\[Run\]/m)
   assert.doesNotMatch(iss, /-Command\s+\".*Stop-Service/is)
@@ -32,6 +31,22 @@ test('Inno installer is x64, stops the service before replacement and checks pos
   assert.match(stopHook, /Get-Service[^\n]*\$serviceName/i)
   assert.match(stopHook, /Stop-Service[^\n]*\$serviceName/i)
   assert.match(stopHook, /WaitForStatus/i)
+})
+
+test('PowerShell lifecycle never passes a Program Files script path through -File', () => {
+  const iss = read('installer.iss')
+  const hooks = read('install-hooks.ps1')
+
+  assert.match(hooks, /\[string\]\$InstallDir\s*=\s*\(Split-Path\s+\$PSScriptRoot\s+-Parent\)/i)
+  assert.match(iss, /PlatformDir\s*:=\s*ExpandConstant\(['"]\{app\}\\platform['"]\)/i)
+  assert.match(iss, /Params\s*:=\s*['"]-NoProfile\s+-ExecutionPolicy\s+Bypass\s+-File\s+install-hooks\.ps1\s+-Action\s+Install/i)
+  assert.match(iss, /Exec\s*\(\s*PowerShellPath\s*,\s*Params\s*,\s*PlatformDir\s*,/is)
+  assert.doesNotMatch(iss, /-File\s+['"]?\{app\}\\platform\\install-hooks\.ps1/i)
+
+  const uninstallLine = iss.split(/\r?\n/).find(line => /^Filename:.*powershell\.exe/i.test(line) && /Uninstall/i.test(line)) ?? ''
+  assert.match(uninstallLine, /WorkingDir:\s*"\{app\}\\platform"/i)
+  assert.match(uninstallLine, /-File\s+install-hooks\.ps1\s+-Action\s+Uninstall/i)
+  assert.doesNotMatch(uninstallLine, /-InstallDir/i)
 })
 
 test('Windows install hook records sanitized operational progress and failures', () => {
