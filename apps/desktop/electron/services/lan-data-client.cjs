@@ -1,0 +1,160 @@
+const CORE_REMOTE_TABLES = new Set(['empresas', 'clientes', 'obras'])
+const OPERATION_REMOTE_TABLES = new Set(['frentes_obra', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
+const PLANNING_REMOTE_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'])
+const FINANCE_REMOTE_TABLES = new Set(['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'])
+const RH_REMOTE_TABLES = new Set([
+  'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
+  'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes',
+  'epis', 'funcionario_epis'
+])
+const REMOTE_TABLES = new Set([...CORE_REMOTE_TABLES, ...OPERATION_REMOTE_TABLES, ...PLANNING_REMOTE_TABLES, ...FINANCE_REMOTE_TABLES, ...RH_REMOTE_TABLES])
+
+class LanDataClient {
+  constructor({ storage, credentials, fetchImpl = globalThis.fetch, timeoutMs = 5000 }) {
+    this.storage = storage
+    this.credentials = credentials
+    this.fetchImpl = fetchImpl
+    this.timeoutMs = timeoutMs
+  }
+
+  assertTable(table) {
+    if (!REMOTE_TABLES.has(table)) throw new Error('Entidade ainda não disponível no servidor da empresa.')
+  }
+
+  connection() {
+    const state = this.storage.state()
+    if (state.mode !== 'server' || !state.baseUrl) throw new Error('Servidor da empresa não está configurado.')
+    const serverKey = String(state.serverKey || state.baseUrl)
+    const token = this.credentials?.token?.(serverKey) || ''
+    if (!token) throw new Error('Este computador ainda não está pareado/autorizado neste servidor da empresa.')
+    return { ...state, serverKey, token }
+  }
+
+  sanitizeMessage(message, token) {
+    const value = String(message || '')
+    return token ? value.split(token).join('[credencial protegida]') : value
+  }
+
+  async request(method, path, { query, body } = {}) {
+    const state = this.connection()
+    const url = new URL(`${state.baseUrl}${path}`)
+    for (const [key, value] of Object.entries(query || {})) {
+      if (value === '' || value === null || value === undefined) continue
+      url.searchParams.set(key, String(value))
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    try {
+      const response = await this.fetchImpl(url.toString(), {
+        method,
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${state.token}`,
+          ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: controller.signal
+      })
+      let payload = null
+      try { payload = await response.json() } catch {}
+      if (!response?.ok) {
+        const rawMessage = payload?.message || `Servidor da empresa respondeu HTTP ${response?.status ?? 'inválido'}.`
+        throw new Error(this.sanitizeMessage(rawMessage, state.token))
+      }
+      return payload
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error('Tempo esgotado ao acessar o servidor da empresa.')
+      if (error instanceof Error) throw new Error(this.sanitizeMessage(error.message, state.token))
+      throw new Error('Não foi possível acessar o servidor da empresa.')
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  async syncSourceCapabilities() {
+    return this.request('GET', '/api/v1/sync-source/capabilities')
+  }
+
+  async saveDailyReport(payload) {
+    return this.request('POST', '/api/v1/field/rdo', { body: payload })
+  }
+
+  async planningOverview(obraId) {
+    return this.request('GET', '/api/v1/planning/overview', { query: { obra_id: Number(obraId) } })
+  }
+
+  async accountPayment(id, payment, requestId) {
+    return this.request('POST', `/api/v1/finance/accounts/${Number(id)}/payment`, { body: { requestId, payment } })
+  }
+
+  async financeDre(filters = {}) {
+    return this.request('GET', '/api/v1/finance/dre', { query: filters })
+  }
+
+  async financeDashboard(filters = {}) {
+    return this.request('GET', '/api/v1/finance/dashboard', { query: filters })
+  }
+
+  async payrollEmployee(payload) {
+    return this.request('POST', '/api/v1/rh/payroll/employee', { body: payload })
+  }
+
+  async payrollSaveVariable(payload) {
+    return this.request('POST', '/api/v1/rh/payroll/save-variable', { body: payload })
+  }
+
+  async payrollRemoveVariable(id) {
+    return this.request('POST', '/api/v1/rh/payroll/remove-variable', { body: { id: Number(id) } })
+  }
+
+  async payrollConfirm(payload) {
+    return this.request('POST', '/api/v1/rh/payroll/confirm', { body: payload })
+  }
+
+  async payrollPending(competencia) {
+    return this.request('POST', '/api/v1/rh/payroll/pending', { body: { competencia } })
+  }
+
+  async timeGet(payload) {
+    return this.request('POST', '/api/v1/rh/time/get', { body: payload })
+  }
+
+  async timeAutoFill(payload) {
+    return this.request('POST', '/api/v1/rh/time/auto-fill', { body: payload })
+  }
+
+  async timeSave(payload) {
+    return this.request('POST', '/api/v1/rh/time/save', { body: payload })
+  }
+
+  async timeDocumentContext(payload) {
+    return this.request('POST', '/api/v1/rh/time/document-context', { body: payload })
+  }
+
+  async list(table, filters = {}) {
+    this.assertTable(table)
+    return this.request('GET', `/api/v1/${table}`, { query: filters })
+  }
+
+  async get(table, id) {
+    this.assertTable(table)
+    return this.request('GET', `/api/v1/${table}/${Number(id)}`)
+  }
+
+  async save(table, data) {
+    this.assertTable(table)
+    const id = data?.id ? Number(data.id) : null
+    const body = { ...(data || {}) }
+    delete body.id
+    return this.request(id ? 'PUT' : 'POST', id ? `/api/v1/${table}/${id}` : `/api/v1/${table}`, { body })
+  }
+
+  async remove(table, id) {
+    this.assertTable(table)
+    await this.request('DELETE', `/api/v1/${table}/${Number(id)}`)
+    return true
+  }
+}
+
+module.exports = { LanDataClient, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES }

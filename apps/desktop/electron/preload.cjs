@@ -9,6 +9,23 @@ const entity = (table) => ({ list: (filters) => call('entity:list', { table, fil
 
 contextBridge.exposeInMainWorld('fluxoDre', {
   app: { bootstrap: () => call('app:bootstrap'), retryDatabase: () => call('app:retry-database'), getLayout: () => call('app:get-layout'), setLayout: (layout) => call('app:set-layout', { layout }) }, product: { getEdition: () => call('product:get-edition'), setEdition: (edition) => call('product:set-edition', { edition }) }, demo: { seed: () => call('demo:seed') },
+  storage: { state: () => call('storage:state'), configure: (input) => call('storage:configure', input), testConnection: () => call('storage:test-connection'), moduleState: (module) => call('storage:module-state', { module }), refreshModuleCapabilities: () => call('storage:refresh-module-capabilities') },
+  lan: {
+    hostState: () => call('lan:host-state'),
+    startHost: () => call('lan:host-start'),
+    stopHost: () => call('lan:host-stop'),
+    status: () => call('lan:status'),
+    claimHost: (setupCode) => call('lan:claim-host', { setupCode }),
+    pair: (code) => call('lan:pair', { code }),
+    disconnect: () => call('lan:disconnect'),
+    adminStatus: () => call('lan:admin-status'),
+    createPairing: (memberId) => call('lan:create-pairing', { memberId }),
+    listDevices: () => call('lan:list-devices'),
+    setDeviceStatus: (deviceId, status) => call('lan:set-device-status', { deviceId, status }),
+    refreshIdentity: () => call('lan:refresh-identity'),
+    startAtLoginState: () => call('lan:start-at-login-state'),
+    setStartAtLogin: (enabled) => call('lan:set-start-at-login', { enabled })
+  },
   empresas: entity('empresas'), clientes: entity('clientes'), fornecedores: entity('fornecedores'), obras: { ...entity('obras'), importSpreadsheets: () => call('works:import-spreadsheets'), overview: (obra_id) => call('works:overview', { obra_id }), timeline: (obra_id) => call('works:timeline', { obra_id }) }, etapas: entity('etapas_obra'), locais: entity('locais_obra'), orcamentos: entity('itens_orcamentarios'), cronograma: entity('cronograma_etapas'), rdos: entity('rdos'), rdoEquipe: entity('rdo_equipe'), rdoEquipamentos: entity('rdo_equipamentos'), rdoOcorrencias: entity('rdo_ocorrencias'), rdoAnexos: entity('rdo_anexos'),
   medicoes: { ...entity('medicoes'), saveWithItems: (data) => call('measurements:save', data), anexos: entity('medicao_anexos'), itensMedidos: entity('medicao_itens'), importAttachment: (data) => call('files:import-measurement', data), mapa: entity('medicao_mapa_itens') }, contas: { ...entity('contas'), payment: (id, payment) => call('accounts:payment', { id, payment }) },
   categorias: entity('categorias_financeiras'), cargos: entity('cargos'), funcionarios: entity('funcionarios'), folhas: entity('folhas_pagamento'), lancamentosFolha: entity('folha_lancamentos'), pagamentosFuncionario: entity('pagamentos_funcionario'), beneficios: entity('beneficios'),

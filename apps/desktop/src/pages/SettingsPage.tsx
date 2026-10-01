@@ -3,6 +3,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import { brl, toCents } from '../utils/format'
 import { useAsync } from '../hooks/useAsync'
 import SyncSettings from '../components/SyncSettings'
+import StorageServerSettings from '../components/StorageServerSettings'
 import { Button, Card, Confirm, Field, FormActions, Loading, Modal, PageHeader, Status } from '../components/ui'
 
 export default function SettingsPage(){
@@ -32,6 +33,7 @@ export default function SettingsPage(){
     <PageHeader title="Configurações" description="Dados locais, pastas espelhadas, cargos, benefícios e manutenção."/>
     <div className="settings-grid">
       <SyncSettings/>
+      <StorageServerSettings onMessage={setMessage}/>
       <Card className="setting-card"><DatabaseBackup size={21} color="#2f67d8"/><h3>Backup manual</h3><p>Cria uma cópia consistente do SQLite em uma pasta escolhida.</p><Button onClick={()=>action(()=>window.fluxoDre.backup.create(),'Backup criado com sucesso.')}>Criar backup</Button></Card>
       <Card className="setting-card"><RotateCcw size={21} color="#d89317"/><h3>Restaurar banco</h3><p>Salva uma cópia de segurança antes de substituir o banco atual.</p><Button variant="secondary" onClick={()=>action(()=>window.fluxoDre.backup.restore(),'Banco restaurado. Reinicie o aplicativo.')}>Restaurar</Button></Card>
       <Card className="setting-card setting-card-feature"><FolderCog size={21} color="#159a76"/><h3>Pasta da documentação</h3><p className="path-text">{boot.data?.documentsPath||'Carregando localização...'}</p><div className="setting-actions"><Button onClick={()=>action(()=>window.fluxoDre.documentos.chooseRoot(),'Pasta definida e estrutura espelhada.')}>Escolher pasta</Button><Button variant="secondary" icon={<FolderOpen size={15}/>} onClick={()=>window.fluxoDre.documentos.openFolder()}>Abrir</Button></div><small>Todas as empresas, colaboradores e subpastas serão criados neste local.</small></Card>

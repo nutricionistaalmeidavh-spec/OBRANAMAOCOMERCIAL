@@ -9,7 +9,7 @@
 - Contrato `packages/contracts/src/desktop-sync.ts`: tipos do renderer e validação de entrada do backend Cloudflare.
 - Validação: testes reais SQLite do coordenador, regressões de UX, testes web de persistência/reenvio/lifecycle. Não substituem instalação Windows/macOS e ensaio real entre dois dispositivos.
 
-Última revisão estrutural: 2026-09-10.
+Última revisão estrutural: 2026-09-29.
 
 Este documento é o ponto de partida para alterações. Leia a seção afetada e abra apenas os arquivos diretamente relacionados; evite uma nova varredura global.
 
@@ -23,10 +23,20 @@ Aplicativo desktop Windows e offline para gestão financeira e operacional de co
 - Comunicação: API restrita `window.fluxoDre`, definida no preload e atendida por IPC.
 - Dados de execução: `%APPDATA%\fluxo-dre` por padrão; podem ser redirecionados por `FLUXO_DRE_DATA_DIR`.
 - O núcleo continua offline-first em SQLite. A partir de 2026-09-02 existe uma ponte online opcional para vínculo de dispositivo, sincronização Obra360, Financeiro Inteligente e IA estruturada.
+- A partir de 2026-10-01, o modo opcional **Servidor da empresa** cobre o núcleo F8–F12: Empresas/Clientes/Obras, RDO/operação, Planejamento, Financeiro e RH podem usar o banco central LAN quando o módulo está `central-active`. Instalações locais permanecem compatíveis e dados locais existentes exigem migração explícita; não há fallback silencioso.
+- `apps/lan-server/` é o processo HTTP destinado a rodar na infraestrutura já existente do cliente; por padrão escuta somente `127.0.0.1:4732`, expõe `/health`, `/version` e `/api/v1/{empresas|clientes|obras}`, e mantém um SQLite central próprio.
 
 ## Fluxo entre camadas
 
-`src/pages/*` → `window.fluxoDre` → `electron/preload.cjs` → handlers em `electron/main.cjs` → `electron/services/*` → SQLite/arquivos locais.
+Modo local:
+
+`src/pages/*` → `window.fluxoDre` → `electron/preload.cjs` → handlers em `electron/main.cjs` → `DataAccessService` → `DatabaseService` → SQLite local.
+
+Modo Servidor da empresa com módulos F8–F12 ativos:
+
+`src/pages/*` → `window.fluxoDre` → IPC → source/data-access do módulo → `LanDataClient` → HTTP `/api/v1/*` → serviços de domínio/`LanRepository` → SQLite central.
+
+Cada módulo possui estado explícito (`local`, `central-ready`, `central-active` ou `migration-required`). `central-ready` nunca cai silenciosamente para SQLite local. O PC principal (`lan-host`) é o coordenador da sincronização Cloud existente; clientes LAN não criam um segundo pipeline Desktop ↔ Cloudflare/D1 ↔ PWA.
 
 Ao mudar uma operação que cruza camadas, confira apenas os pontos correspondentes desse fluxo. A tipagem pública do preload fica em `src/vite-env.d.ts`.
 
@@ -46,11 +56,15 @@ Ao mudar uma operação que cruza camadas, confira apenas os pontos corresponden
 - `src/styles/index.css`: estilos base; `src/styles/enhancements.css`: complementos visuais.
 - `electron/main.cjs`: janela, segurança, composição dos serviços e handlers IPC.
 - `electron/preload.cjs`: única API exposta ao renderer.
-- `electron/services/database.cjs`: CRUD genérico, relatórios, pagamentos e medições.
+- `electron/services/database.cjs`: CRUD genérico local, relatórios, pagamentos e medições.
+- `electron/services/data-access-service.cjs`: seam do CRUD genérico; escolhe SQLite local ou HTTP LAN por entidade e modo configurado.
+- `electron/services/lan-data-client.cjs`: cliente HTTP restrito a Empresas, Clientes e Obras, com timeout e validação do escopo remoto.
+- `electron/services/storage-connection-service.cjs`: configuração Local/Servidor, validação de host/porta e teste do `/health` LAN.
 - `electron/services/*-service.cjs`: serviços especializados.
-- `database/migrations/`: schema versionado e incremental.
+- `database/migrations/`: schema versionado e incremental do Desktop local.
 - `vite.config.ts`, `vitest.config.ts`, `tsconfig*.json`: build, testes e TypeScript.
 - `docs/UI_DESIGN_HISTORY.md`: histórico dos drafts preservados e da direção visual aprovada.
+- `../lan-server/`: serviço Node HTTP com `LanRepository`; persiste `obra-na-mao-lan.sqlite` no servidor da empresa.
 
 ## Rotas e telas
 
@@ -87,8 +101,11 @@ As rotas diretas dos módulos continuam registradas para preservar favoritos, li
 
 ## Serviços do processo principal
 
-- `database.cjs`: migrations, CRUD permitido por whitelist, dashboard, DRE, pagamentos e medições.
-- `works-service.cjs`, `planning-service.cjs`, `field-service.cjs`, `procurement-service.cjs` e `contracts-service.cjs`: serviços modulares para operação, planejamento, RDO, compras e contratos.
+- `database.cjs`: migrations, CRUD permitido por whitelist, dashboard, DRE, pagamentos e medições locais.
+- `data-access-service.cjs`: interface única para `list/get/save/remove`; em modo servidor roteia `empresas`, `clientes` e `obras` ao `LanDataClient` e mantém as demais entidades no banco local.
+- `lan-data-client.cjs`: CRUD HTTP de Empresas/Clientes/Obras em `/api/v1`, sem expor `fetch` ao renderer.
+- `storage-connection-service.cjs`: persiste `storage_mode`, `lan_server_host` e `lan_server_port` em `configuracoes`, mantendo `local` como padrão, e testa compatibilidade do serviço LAN v1.
+- `works-service.cjs`, `planning-service.cjs`, `field-service.cjs`, `procurement-service.cjs` e `contracts-service.cjs`: serviços modulares para operação, planejamento, RDO, compras e contratos; permanecem locais nesta etapa.
 - `payroll-service.cjs`: lançamentos e confirmação de folha.
 - `time-service.cjs`: ponto e documentos mensais.
 - `document-service.cjs`: geração de documentos/PDFs.
@@ -97,7 +114,7 @@ As rotas diretas dos módulos continuam registradas para preservar favoritos, li
 - `import-service.cjs`: prévia e confirmação do modelo específico de 2026.
 - `universal-import-service.cjs`: análise de Excel/CSV, mapeamento assistido e importação transacional por área.
 - `catalog-service.cjs`: cargos, benefícios e vínculos.
-- `backup-service.cjs`: backup, restauração e pasta de dados.
+- `backup-service.cjs`: backup, restauração e pasta de dados locais.
 
 ## Banco de dados
 
@@ -110,13 +127,14 @@ As rotas diretas dos módulos continuam registradas para preservar favoritos, li
 - `007_nucleo_operacional_modular.sql`: compras, contratos, aditivos, recebimentos, anexos de RDO, modelos do RH e novos vínculos financeiros por obra/etapa.
 - `008_frentes_edicoes_medicoes_estoque.sql`: frentes, edição construtora/empreiteira, vínculos por frente, anexos de medição e estoque simples.
 
-Novas mudanças devem ser adicionadas em uma migration numerada posterior. O serviço usa `PRAGMA user_version`, ativa chaves estrangeiras e cria backup antes de migrations sobre banco existente.
+Novas mudanças do schema local devem ser adicionadas em uma migration numerada posterior. O serviço local usa `PRAGMA user_version`, ativa chaves estrangeiras e cria backup antes de migrations sobre banco existente.
 
 - `012_modelos_locais_rh.sql`: registra a origem de modelos HTML locais importados para o RH.
+- O banco LAN é independente do banco local e, nas fases 3–5, contém apenas `empresas`, `clientes` e `obras`; é criado pelo `apps/lan-server/src/repository.mjs`, ativa FKs, `busy_timeout` e WAL quando persistido em arquivo.
 
 ## API do renderer
 
-Os grupos expostos por `window.fluxoDre` são: `app`, `product`, `empresas`, `clientes`, `fornecedores`, `obras`, `frentes`, `etapas`, `locais`, `orcamentos`, `cronograma`, `rdos`, `rdoEquipe`, `rdoEquipamentos`, `rdoOcorrencias`, `medicoes`, `contas`, `categorias`, `cargos`, `funcionarios`, `folhas`, `lancamentosFolha`, `pagamentosFuncionario`, `beneficios`, `epis`, `funcionarioEpis`, `arquivos`, `fontes`, `pastas`, `documentos`, `folha`, `ponto`, `catalogo`, `compras`, `contratos`, `importacoes`, `relatorios` e `backup`.
+Os grupos expostos por `window.fluxoDre` são: `app`, `storage`, `product`, `empresas`, `clientes`, `fornecedores`, `obras`, `frentes`, `etapas`, `locais`, `orcamentos`, `cronograma`, `rdos`, `rdoEquipe`, `rdoEquipamentos`, `rdoOcorrencias`, `medicoes`, `contas`, `categorias`, `cargos`, `funcionarios`, `folhas`, `lancamentosFolha`, `pagamentosFuncionario`, `beneficios`, `epis`, `funcionarioEpis`, `arquivos`, `fontes`, `pastas`, `documentos`, `folha`, `ponto`, `catalogo`, `compras`, `contratos`, `importacoes`, `relatorios` e `backup`.
 
 Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 
@@ -134,6 +152,7 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - `npm test`: testes Vitest uma vez.
 - `npm run build`: TypeScript e bundle de produção.
 - `npm run dist`: build e instalador NSIS x64 em `release/`.
+- `npm --prefix ../lan-server test` a partir de `apps/desktop`: testes do contrato HTTP LAN e do repositório central; a partir da raiz use `npm --prefix apps/lan-server test`.
 
 ## Estratégia de inspeção por tipo de alteração
 
@@ -191,3 +210,38 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - IPC/preload/tipagem: `online:password-auth` / `passwordAuth` e `online:password-setup` / `passwordSetup`.
 - Perfil local fixa empresa e endpoint após autenticação. Desconectar não remove essa proteção; outra empresa exige perfil Windows separado. Vincular não configura nem inicia publicação de dados locais automaticamente; o vínculo explícito empresa/obra do coordenador continua obrigatório.
 - `App.tsx`: oferece login ao computador sem vínculo; computadores já vinculados mantêm operação local offline.
+
+## Adendo 2026-09-29 — Servidor da empresa (fases 0–5)
+
+- Fases 0–2: `DataAccessService` passou a intermediar o CRUD genérico `entity:*`; `StorageConnectionService` adicionou modo `local|server`, host, porta e teste do `/health`; `SettingsPage.tsx` passou a configurar a conexão LAN; `apps/lan-server/` nasceu com `/health` e `/version`.
+- Fase 3: `empresas` passa a usar o `LanDataClient` quando o modo `server` estiver ativo.
+- Fase 4: `clientes` passa pelo mesmo contrato remoto, mantendo vínculo opcional com `empresa_id` no banco central.
+- Fase 5: `obras` passa pelo CRUD HTTP e mantém FKs para empresa/cliente no servidor. `WorksPage.tsx` bloqueia Obra 360, importação e atalhos operacionais nesse modo porque esses módulos ainda são locais.
+- `apps/lan-server/src/repository.mjs` usa `node:sqlite` no Node 22 e cria o banco central em `OBRA_NA_MAO_LAN_DATA_DIR/obra-na-mao-lan.sqlite` ou `~/.obra-na-mao-lan/obra-na-mao-lan.sqlite`; ativa FKs, `busy_timeout` e WAL em arquivo.
+- API LAN v1: coleções `GET/POST /api/v1/empresas|clientes|obras` e itens `GET/PUT/DELETE /api/v1/<entidade>/<id>`. Exclusão é lógica (`deleted_at`).
+- Entidades fora desse trio permanecem no SQLite local. Não há fallback silencioso para o banco local se um cadastro remoto falhar, evitando divergência entre estações.
+- O serviço continua ouvindo `127.0.0.1:4732` por padrão. `OBRA_NA_MAO_LAN_HOST`, `OBRA_NA_MAO_LAN_PORT` e `OBRA_NA_MAO_LAN_DATA_DIR` configuram a implantação.
+- Ainda não há abertura automática de firewall, exposição à internet, descoberta de servidor, autenticação de terminal, sincronização offline ou migração automática dos cadastros locais existentes. Essas responsabilidades pertencem às fases seguintes.
+
+## Adendo 2026-09-29 — Compatibilidade armazenamento, identidade e Cloud (fases 6–7)
+
+- **Regra de produto:** nenhum modo de armazenamento pode remover, substituir ou alterar silenciosamente o fluxo existente `Desktop ↔ Cloudflare/D1 ↔ PWA`. Web/PWA, vínculo online e sincronização já existentes continuam incluídos no produto.
+- Fase 6 adiciona guard rails em `storage-online-compatibility.test.ts` e `storage-online-contract.test.ts`: mudar armazenamento não altera `online-connection.json`, token, tenant, URL Cloudflare, IPC `online:*` nem o contrato público `window.fluxoDre.online`.
+- Fase 7 introduz `operationalMode: 'local'|'lan-host'|'lan-client'|'remote'` no estado de armazenamento sem remover o contrato legado `mode: 'local'|'server'`. O mapeamento compatível é `local → local` e `server → lan-client`; as chaves `storage_mode`, `lan_server_host` e `lan_server_port` continuam autoritativas nesta etapa.
+- `DataAccessService` só trata `lan-client` como transporte remoto implementado. `lan-host` e `remote` estão modelados para fases futuras, mas não são ativados silenciosamente nem aparecem como opções prontas na UI.
+- **Papel da máquina não define papel do usuário.** Fonte operacional, identidade/permissões e serviços online são eixos independentes. Um administrador pode usar qualquer Desktop autorizado, inclusive quando o banco está em outro servidor da empresa.
+- `SyncCoordinator` ainda lê diretamente o `DatabaseService`/SQLite local. Quando fontes operacionais remotas passarem a alimentar a sincronização Web/PWA, a evolução deverá adaptar um provider ao pipeline existente `SyncCoordinator → OnlineService → Cloudflare`, e não criar uma segunda sincronização paralela.
+- Cloud pago futuro é somente adicional: R2/documentos, PDFs, fotos, anexos, backup/restauração e novas capacidades premium. Login, PWA, bridge, resumos e demais recursos online já incluídos não podem ser movidos para uma assinatura por causa desta reorganização.
+
+## Atualização F8–F12 — 2026-10-01
+
+- **F8 — coordenador único de sync:** o `lan-host` é a autoridade de sincronização Cloud; `lan-client` permanece pausado para sync Cloud e usa o banco central.
+- **F9 — operação/RDO central:** frentes, tarefas, RDO e filhos usam a API LAN autenticada quando `operation=central-active`.
+- **F10 — Planejamento central:** etapas, cronograma e itens orçamentários usam a fonte central; não misturam silenciosamente planejamento central com fonte local.
+- **F11 — Financeiro central:** contas, pagamentos idempotentes, DRE, dashboard e fonte de resumo/obrigações do sync usam o banco LAN quando `finance=central-active`.
+- **F12 — RH central:** funcionários, cargos, benefícios, EPIs, folha e ponto usam a fonte LAN quando `rh=central-active`; autorização é aplicada no servidor.
+- **Documentos RH:** PDF de ponto/recibos continua sendo uma saída **local derivada**. Em RH central, os dados vêm do servidor e o arquivo não é registrado como segunda cópia autoritativa do RH.
+- **Proteção de migração:** se existir dado local de um módulo que passará a central, o estado é `migration-required`; esta PR não copia nem apaga esses registros automaticamente.
+- **Release Desktop:** publicação automática continua congelada por `DESKTOP_AUTO_RELEASE_ENABLED=false`; CI, build e artefatos continuam funcionando.
+- **Fora do escopo:** migração automática do SQLite legado, descoberta automática LAN, servidor remoto público pronto para produção, R2/billing/Cloud pago e qualquer segundo sincronizador paralelo ao fluxo Desktop ↔ Cloudflare/D1 ↔ PWA.
+- **QA integrado:** `apps/lan-server/tests/f8-f12-multi-client.test.mjs` valida compartilhamento multi-PC dos módulos centrais; `apps/desktop/tests/f8-f12-central-flow.test.ts` valida roteamento central e ausência de fallback local.

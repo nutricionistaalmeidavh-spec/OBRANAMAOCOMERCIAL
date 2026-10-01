@@ -61,7 +61,7 @@ it('allows an independent ready job past a delayed job', async () => {
   f.database.save('tarefas_obra', { ...f.database.get('tarefas_obra', f.task.id), titulo: 'A alterada' })
   f.database.save('tarefas_obra', { ...f.database.get('tarefas_obra', taskB.id), titulo: 'B alterada' })
   const scope = f.sync.binding().scope
-  f.sync.capture(scope, f.session.access.modules)
+  await f.sync.capture(scope, f.session.access.modules)
   const first = f.database.db.prepare("SELECT id FROM desktop_sync_outbox WHERE kind='bridge' AND local_id=? AND status='pending' ORDER BY id LIMIT 1").get(f.task.id)
   f.database.db.prepare('UPDATE desktop_sync_outbox SET next_attempt_at=? WHERE id=?').run(f.now + 3600000, first.id)
   await f.sync.run()
@@ -75,8 +75,8 @@ it('does not reorder two pending changes for the same record around backoff', as
   await f.sync.configure({ companyId: f.company.id, workId: f.work.id }); await f.sync.run()
   f.online.syncPush.mockClear()
   const scope = f.sync.binding().scope
-  f.database.save('tarefas_obra', { ...f.database.get('tarefas_obra', f.task.id), titulo: 'Versão A' }); f.sync.capture(scope, f.session.access.modules)
-  f.database.save('tarefas_obra', { ...f.database.get('tarefas_obra', f.task.id), titulo: 'Versão B' }); f.sync.capture(scope, f.session.access.modules)
+  f.database.save('tarefas_obra', { ...f.database.get('tarefas_obra', f.task.id), titulo: 'Versão A' }); await f.sync.capture(scope, f.session.access.modules)
+  f.database.save('tarefas_obra', { ...f.database.get('tarefas_obra', f.task.id), titulo: 'Versão B' }); await f.sync.capture(scope, f.session.access.modules)
   const pending = f.database.db.prepare("SELECT id FROM desktop_sync_outbox WHERE kind='bridge' AND local_id=? AND status='pending' ORDER BY id").all(f.task.id)
   expect(pending.length).toBe(2)
   f.database.db.prepare('UPDATE desktop_sync_outbox SET next_attempt_at=? WHERE id=?').run(f.now + 3600000, pending[0].id)

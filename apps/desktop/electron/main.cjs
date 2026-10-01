@@ -1,6 +1,12 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, safeStorage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, Tray, safeStorage } = require('electron')
 const path = require('node:path')
 const { DatabaseService } = require('./services/database-safe.cjs')
+const { DataAccessService } = require('./services/data-access-service.cjs')
+const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
+const { ModuleStorageStateService } = require('./services/module-storage-state-service.cjs')
+const { LanCredentialService } = require('./services/lan-credential-service.cjs')
+const { LanHostService } = require('./services/lan-host-service.cjs')
+const { LanSetupService } = require('./services/lan-setup-service.cjs')
 const { FileService } = require('./services/file-service.cjs')
 const { ManagedDirectoryService } = require('./services/managed-directory-service.cjs')
 const { DocumentExplorerContextService } = require('./services/document-explorer-context-service.cjs')
@@ -11,13 +17,19 @@ const { DocumentService } = require('./services/document-service.cjs')
 const { PayrollService } = require('./services/payroll-service.cjs')
 const { DocumentRootService } = require('./services/document-root-service.cjs')
 const { CatalogService } = require('./services/catalog-service.cjs')
+const { RhCatalogSourceService } = require('./services/rh-catalog-source-service.cjs')
 const { TimeService } = require('./services/time-service.cjs')
 const { ScannerService } = require('./services/scanner-service.cjs')
 const { WorkImportService } = require('./services/work-import-service.cjs')
 const { UniversalImportService } = require('./services/universal-import-service.cjs')
 const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
+const { PlanningSourceService } = require('./services/planning-source-service.cjs')
+const { FinanceSourceService } = require('./services/finance-source-service.cjs')
+const { RhSourceService } = require('./services/rh-source-service.cjs')
+const { RhDocumentService } = require('./services/rh-document-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
+const { FieldSourceService } = require('./services/field-source-service.cjs')
 const { ProcurementService } = require('./services/procurement-service.cjs')
 const { ContractsService } = require('./services/contracts-service.cjs')
 const { ProductService } = require('./services/product-service.cjs')
@@ -25,8 +37,10 @@ const { DemoDataService } = require('./services/demo-data-service.cjs')
 const { UiPreferencesService } = require('./services/ui-preferences-service.cjs')
 const { OnlineService } = require('./services/online-service.cjs')
 const { SyncCoordinator } = require('./services/sync-coordinator.cjs')
+const { OperationalSyncDataProvider } = require('./services/lan-sync-data-provider.cjs')
 
 let mainWindow
+let tray
 let services
 let connectionMaintenance = false
 let quitting = false
@@ -52,11 +66,40 @@ function resolvePaths() {
   return { dataDir, documentsDir: path.join(dataDir, 'documentos'), migrationsDir: path.join(app.getAppPath(), 'database', 'migrations') }
 }
 
+function resolveLanServerEntry() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'lan-server', 'src', 'index.mjs')
+    : path.join(app.getAppPath(), '..', 'lan-server', 'src', 'index.mjs')
+}
+
 function createServices() {
   const paths = resolvePaths()
   const db = new DatabaseService(paths)
   db.open()
+  const storage = new StorageConnectionService({ db })
+  const lanCredentials = new LanCredentialService({ dataDir: paths.dataDir, safeStorage })
+  const dataAccess = new DataAccessService({ db, storage, credentials: lanCredentials })
+  const moduleStorage = new ModuleStorageStateService({ database: db, storage, lanClient: dataAccess.remote })
+  dataAccess.moduleStorage = moduleStorage
+  const localField = new FieldService({ db })
+  const field = new FieldSourceService({ local: localField, lanClient: dataAccess.remote, moduleStorage })
+  const localPlanning = new PlanningService({ db })
+  const planning = new PlanningSourceService({ local: localPlanning, lanClient: dataAccess.remote, moduleStorage })
+  const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
+  const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
+  const localPayroll = new PayrollService({ db })
+  const localTime = new TimeService({ db, fileService: files })
+  const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })
+  const catalog = new RhCatalogSourceService({ local: new CatalogService({ db }), dataAccess, moduleStorage })
+  const rhDocuments = new RhDocumentService({ rh, localTime, fileService: files, dataAccess })
+  const time = {
+    get: payload => rh.timeGet(payload),
+    autoFill: payload => rh.timeAutoFill(payload),
+    save: payload => rh.timeSave(payload),
+    generateDocuments: payload => rhDocuments.generateDocuments(payload),
+    generateForAll: payload => rhDocuments.generateForAll(payload)
+  }
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
   const explorer = new ManagedDirectoryService({
     roots: { documents: () => documentRoot.getRoot() }, shell, dialog,
@@ -67,19 +110,26 @@ function createServices() {
   const product = new ProductService({ db })
   const uiPreferences = new UiPreferencesService({ db })
   const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
-  const sync = new SyncCoordinator({ database: db, online })
+  const sync = new SyncCoordinator({ database: db, online, dataProvider: syncDataProvider })
+  const lanHost = new LanHostService({
+    storage,
+    dataDir: paths.dataDir,
+    cloudBaseUrl: () => online.state().baseUrl,
+    serverEntry: resolveLanServerEntry()
+  })
+  const lanSetup = new LanSetupService({ storage, credentials: lanCredentials, online })
   return {
-    paths, db, files, documentRoot, explorer, explorerContext,
+    paths, db, dataAccess, storage, moduleStorage, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
     backup: new BackupService({ db, ...paths }),
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
-    payroll: new PayrollService({ db }),
-    catalog: new CatalogService({ db }),
-    time: new TimeService({ db, fileService: files }),
+    payroll: rh,
+    catalog,
+    time,
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
-    works: new WorksService({ db }), planning: new PlanningService({ db }), field: new FieldService({ db }),
+    works: new WorksService({ db }), planning, field, finance,
     product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product }), online, sync
   }
 }
@@ -94,16 +144,106 @@ function envelope(fn) {
   }
 }
 
+function isLanHostMode() {
+  return services?.storage?.state?.().operationalMode === 'lan-host'
+}
+
+function trayIcon() {
+  return path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png')
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return createWindow()
+  mainWindow.show()
+  mainWindow.restore?.()
+  mainWindow.focus()
+}
+
+function ensureTray() {
+  if (tray || !isLanHostMode()) return tray
+  tray = new Tray(trayIcon())
+  tray.setToolTip('Obra na Mão — servidor local ativo')
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Abrir Obra na Mão', click: () => showMainWindow() },
+    { type: 'separator' },
+    { label: 'Sair', click: () => app.quit() }
+  ]))
+  tray.on('double-click', () => showMainWindow())
+  return tray
+}
+
+function destroyTray() {
+  tray?.destroy?.()
+  tray = null
+}
+
+async function refreshModuleCapabilitiesSafe() {
+  try { return await services.moduleStorage.refreshCapabilities() }
+  catch {
+    return {
+      operation: services.moduleStorage.state('operation'),
+      planning: services.moduleStorage.state('planning'),
+      finance: services.moduleStorage.state('finance'),
+      rh: services.moduleStorage.state('rh')
+    }
+  }
+}
+
+async function configureStorage(payload) {
+  const previous = services.storage.state()
+  const requestedOperational = payload.operationalMode || (payload.mode === 'server' ? 'lan-client' : 'local')
+  if (previous.operationalMode === 'lan-host' && requestedOperational !== 'lan-host') await services.lanHost.stop()
+  const state = services.storage.configure(payload)
+  if (state.operationalMode === 'lan-host') {
+    const host = await services.lanHost.start()
+    if (!host.running && host.lastError) throw new Error(host.lastError)
+    ensureTray()
+  } else {
+    destroyTray()
+  }
+  await refreshModuleCapabilitiesSafe()
+  return state
+}
+
 function registerIpc() {
   ipcMain.handle('app:bootstrap', envelope(() => ({ dataPath: services.paths.dataDir, documentsPath: services.documentRoot.getRoot(), databasePath: services.db.dbPath, firstRun: services.db.list('empresas').length === 0, version: app.getVersion(), product: services.product.getEdition(), layout: services.uiPreferences.getLayout() })))
   ipcMain.handle('app:retry-database', envelope(() => withSyncStopped(() => { services.db.close(); services.db.open(); return true })))
   ipcMain.handle('app:get-layout', envelope(() => services.uiPreferences.getLayout()))
   ipcMain.handle('app:set-layout', envelope(({ layout }) => services.uiPreferences.setLayout(layout)))
-  ipcMain.handle('entity:list', envelope(({ table, filters }) => services.db.list(table, filters)))
-  ipcMain.handle('entity:get', envelope(({ table, id }) => services.db.get(table, id)))
-  ipcMain.handle('entity:save', envelope(({ table, data }) => services.db.save(table, data)))
-  ipcMain.handle('entity:remove', envelope(({ table, id }) => services.db.remove(table, id)))
-  ipcMain.handle('dashboard:get', envelope((filters) => services.db.dashboard(filters)))
+  ipcMain.handle('storage:state', envelope(() => services.storage.state()))
+  ipcMain.handle('storage:configure', envelope((payload) => configureStorage(payload)))
+  ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))
+  ipcMain.handle('storage:module-state', envelope(({ module }) => services.moduleStorage.state(module)))
+  ipcMain.handle('storage:refresh-module-capabilities', envelope(() => services.moduleStorage.refreshCapabilities()))
+  ipcMain.handle('lan:host-state', envelope(() => services.lanHost.state()))
+  ipcMain.handle('lan:host-start', envelope(async () => { const result = await services.lanHost.start(); if (isLanHostMode()) ensureTray(); return result }))
+  ipcMain.handle('lan:host-stop', envelope(() => services.lanHost.stop()))
+  ipcMain.handle('lan:status', envelope(() => services.lanSetup.status()))
+  ipcMain.handle('lan:claim-host', envelope(async ({ setupCode }) => {
+    const localSetupCode = setupCode || services.lanHost.state().setupCode
+    const result = await services.lanSetup.claimHostedServer({ setupCode: localSetupCode })
+    services.lanHost.clearSetupCode?.()
+    await refreshModuleCapabilitiesSafe()
+    return result
+  }))
+  ipcMain.handle('lan:pair', envelope(async ({ code }) => {
+    const result = await services.lanSetup.pair({ code })
+    await refreshModuleCapabilitiesSafe()
+    return result
+  }))
+  ipcMain.handle('lan:disconnect', envelope(() => services.lanSetup.disconnect()))
+  ipcMain.handle('lan:admin-status', envelope(() => services.lanSetup.adminStatus()))
+  ipcMain.handle('lan:create-pairing', envelope(({ memberId }) => services.lanSetup.createPairing({ memberId })))
+  ipcMain.handle('lan:list-devices', envelope(async () => { const result = await services.lanSetup.listDevices(); return Array.isArray(result) ? result : (result.devices || []) }))
+  ipcMain.handle('lan:set-device-status', envelope((payload) => services.lanSetup.setDeviceStatus(payload)))
+  ipcMain.handle('lan:refresh-identity', envelope(() => services.lanSetup.refreshIdentity()))
+  ipcMain.handle('lan:start-at-login-state', envelope(() => ({ enabled: app.getLoginItemSettings().openAtLogin === true })))
+  ipcMain.handle('lan:set-start-at-login', envelope(({ enabled }) => { app.setLoginItemSettings({ openAtLogin: enabled === true }); return { enabled: app.getLoginItemSettings().openAtLogin === true } }))
+  ipcMain.handle('entity:list', envelope(({ table, filters }) => services.dataAccess.list(table, filters)))
+  ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))
+  ipcMain.handle('entity:save', envelope(({ table, data }) => services.dataAccess.save(table, data)))
+  ipcMain.handle('entity:remove', envelope(({ table, id }) => services.dataAccess.remove(table, id)))
+  ipcMain.handle('dashboard:get', envelope((filters) => services.finance.dashboard(filters)))
   ipcMain.handle('works:overview', envelope(({ obra_id }) => services.works.overview(obra_id)))
   ipcMain.handle('works:timeline', envelope(({ obra_id }) => services.works.timeline(obra_id)))
   ipcMain.handle('planning:overview', envelope(({ obra_id }) => services.planning.overview(obra_id)))
@@ -114,8 +254,8 @@ function registerIpc() {
   ipcMain.handle('procurement:move-stock', envelope((payload) => services.procurement.moveStock(payload)))
   ipcMain.handle('contracts:create', envelope((payload) => services.contracts.createReceivable(payload)))
   ipcMain.handle('contracts:addendum', envelope((payload) => services.contracts.createAddendum(payload)))
-  ipcMain.handle('dre:get', envelope((filters) => services.db.dre(filters)))
-  ipcMain.handle('accounts:payment', envelope(({ id, payment }) => services.db.accountPayment(id, payment)))
+  ipcMain.handle('dre:get', envelope((filters) => services.finance.dre(filters)))
+  ipcMain.handle('accounts:payment', envelope(({ id, payment }) => services.finance.accountPayment(id, payment)))
   ipcMain.handle('measurements:save', envelope((payload) => services.db.saveMeasurement(payload)))
   ipcMain.handle('works:import-spreadsheets', envelope(() => services.workImport.chooseAndImport()))
   ipcMain.handle('files:import-employee', envelope((payload) => services.files.importForEmployee(payload)))
@@ -164,7 +304,7 @@ function registerIpc() {
   ipcMain.handle('payroll:save-variable', envelope((payload) => services.payroll.saveVariable(payload)))
   ipcMain.handle('payroll:remove-variable', envelope(({ id }) => services.payroll.removeVariable(id)))
   ipcMain.handle('payroll:confirm', envelope(async (payload) => {
-    const payment = services.payroll.confirm(payload)
+    const payment = await services.payroll.confirm(payload)
     let documents = null, documentError = null
     if (Number(payload.quinzena) === 1) {
       try { documents = await services.time.generateDocuments({ funcionario_id: payload.funcionario_id, competencia: payload.competencia, paymentDate: payload.data }) }
@@ -218,26 +358,43 @@ function fallbackPage(message, details = '') {
 
 async function createWindow() {
   Menu.setApplicationMenu(null)
-  mainWindow = new BrowserWindow({ icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'), width: 1440, height: 900, minWidth: 1024, minHeight: 700, backgroundColor: '#f3f5f8', show: false, autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
+  mainWindow = new BrowserWindow({ icon: trayIcon(), width: 1440, height: 900, minWidth: 1024, minHeight: 700, backgroundColor: '#f3f5f8', show: false, autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
   mainWindow.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' } })
   mainWindow.webContents.on('will-navigate', (event, url) => { const allowed = process.env.VITE_DEV_SERVER_URL ? url.startsWith(process.env.VITE_DEV_SERVER_URL) : url.startsWith('file:'); if (!allowed) event.preventDefault() })
+  mainWindow.on('close', (event) => {
+    if (!quitting && isLanHostMode()) {
+      event.preventDefault()
+      mainWindow.hide()
+      ensureTray()
+    }
+  })
   mainWindow.once('ready-to-show', () => mainWindow.show())
   try { if (process.env.VITE_DEV_SERVER_URL) await mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL); else await mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html')) }
   catch (error) { await mainWindow.loadURL(fallbackPage('A interface não pôde ser carregada.', error.stack)); mainWindow.show() }
 }
 
 app.whenReady().then(async () => {
-  try { services = createServices(); registerIpc(); await createWindow(); services.sync.start() }
-  catch (error) { console.error(error); mainWindow = new BrowserWindow({ icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png'), width: 900, height: 650, backgroundColor: '#f3f5f8' }); await mainWindow.loadURL(fallbackPage('Não foi possível abrir o banco de dados local.', error.stack)) }
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
+  try {
+    services = createServices()
+    registerIpc()
+    if (isLanHostMode()) {
+      await services.lanHost.start()
+      ensureTray()
+    }
+    await refreshModuleCapabilitiesSafe()
+    await createWindow()
+    services.sync.start()
+  }
+  catch (error) { console.error(error); mainWindow = new BrowserWindow({ icon: trayIcon(), width: 900, height: 650, backgroundColor: '#f3f5f8' }); await mainWindow.loadURL(fallbackPage('Não foi possível abrir o Obra na Mão.', error.stack)) }
+  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); else showMainWindow() })
 })
 
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+app.on('window-all-closed', () => { if (process.platform !== 'darwin' && !isLanHostMode()) app.quit() })
 app.on('before-quit', (event) => {
   if (quitting || !services) return
   event.preventDefault()
   quitting = true
-  Promise.allSettled([services.sync.stop(), services.scanner.dispose()]).finally(() => { services.db.close(); app.quit() })
+  Promise.allSettled([services.sync.stop(), services.scanner.dispose(), services.lanHost.stop()]).finally(() => { destroyTray(); services.db.close(); app.quit() })
 })
 process.on('uncaughtException', (error) => { console.error(error); dialog.showErrorBox('Erro inesperado', error.message) })
 process.on('unhandledRejection', (error) => console.error(error))

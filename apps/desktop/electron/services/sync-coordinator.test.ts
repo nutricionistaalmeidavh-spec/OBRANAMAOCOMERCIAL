@@ -107,3 +107,47 @@ it('stop waits for in-flight HTTP before allowing the database to close', async 
   expect(stopped).toBe(true)
   expect(f.online.syncPush).not.toHaveBeenCalled()
 })
+it('sincroniza somente bridges centrais anunciadas e aplica edição PWA na fonte central', async () => {
+  const f = fixture()
+  const centralTask: any = { id: 701, obra_id: 601, titulo: 'Tarefa central', status: 'aberta' }
+  const centralFront: any = { id: 702, obra_id: 601, nome: 'Frente central', status: 'ativa' }
+  const centralRdo: any = { id: 703, obra_id: 601, data: '2026-09-30', atividades: 'Atividade central', status: 'aberto' }
+  const rows: Record<string, any[]> = { frentes_obra: [centralFront], tarefas_obra: [centralTask], rdos: [centralRdo] }
+  const dataProvider = {
+    runtimeState: () => ({ source: 'lan-host', paused: false, pauseReason: null }),
+    resolveScope: vi.fn(async () => ({ companyId: 501, workId: 601, companyName: 'Empresa central', workName: 'Obra central' })),
+    syncCapabilities: vi.fn(async () => ({ version: 1, modules: ['core', 'operation'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos'] })),
+    listBridge: vi.fn(async (entity: string) => {
+      if (!Object.hasOwn(rows, entity)) throw new Error(`bridge não suportada: ${entity}`)
+      return rows[entity]
+    }),
+    getBridge: vi.fn(async (entity: string, id: number) => rows[entity]?.find(row => row.id === id) || null),
+    applyRemote: vi.fn(async (entity: string, id: number, payload: any) => {
+      const row = rows[entity]?.find(item => item.id === id)
+      if (!row) return false
+      Object.assign(row, payload)
+      return true
+    }),
+    summary: vi.fn(async () => { throw new Error('summary ainda não centralizado') }),
+    obligations: vi.fn(async () => { throw new Error('financeiro ainda não centralizado') })
+  }
+  f.session.access.modules = ['obra360']
+  f.sync = new SyncCoordinator({ database: f.database, online: f.online, dataProvider, now: () => Date.parse('2026-09-30T12:00:00Z') })
+
+  await f.sync.configure({ companyId: 501, workId: 601 })
+  await f.sync.run()
+  expect(dataProvider.listBridge).not.toHaveBeenCalledWith('cronograma_etapas', expect.anything())
+  expect(dataProvider.summary).not.toHaveBeenCalled()
+  expect(dataProvider.obligations).not.toHaveBeenCalled()
+  const pushed = f.online.syncPush.mock.calls.flatMap((call: any[]) => call[0])
+  expect(pushed.some((change: any) => change.entity === 'tarefas_obra' && change.localId === centralTask.id && change.payload.titulo === 'Tarefa central')).toBe(true)
+
+  f.online.syncPull.mockResolvedValue({
+    changed: true,
+    remoteRevision: 2,
+    snapshot: { desktopBridge: { tasks: [{ sourceDeviceId: 'device-a', localId: centralTask.id, mobileEditedRevision: 2, payload: { titulo: 'Editada no PWA' } }] } }
+  } as any)
+  await f.sync.run()
+  expect(centralTask.titulo).toBe('Editada no PWA')
+  expect(f.database.get('tarefas_obra', f.task.id).titulo).toBe('Instalar tubo')
+})

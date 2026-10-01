@@ -15,6 +15,7 @@ export type DesktopSyncScope = {
 };
 export type DesktopSyncState = {
   configured: boolean; paused: boolean; running: boolean; scope: DesktopSyncScope | null;
+  source: 'local' | 'lan-host' | 'lan-client' | 'remote'; pauseReason: string | null;
   pending: number; lastSyncAt: string | null; lastError: string | null;
   conflicts: Array<{id: number; entity: string; localId: number; remoteRevision: number; remoteConflictId: string | null; createdAt: string}>;
 };

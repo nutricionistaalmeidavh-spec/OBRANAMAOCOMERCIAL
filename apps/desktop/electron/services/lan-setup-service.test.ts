@@ -1,0 +1,72 @@
+import { createRequire } from 'node:module'
+import { describe, expect, it, vi } from 'vitest'
+
+const require = createRequire(import.meta.url)
+
+function response(status:number,body:any){return{ok:status>=200&&status<300,status,json:async()=>body}}
+
+function deps(){
+  const stored:any[]=[]
+  const credentials={
+    state:vi.fn(()=>({paired:false,deviceId:null,member:null})),
+    token:vi.fn(()=>''),
+    store:vi.fn((value:any)=>{stored.push(value);return{paired:true,deviceId:value.deviceId,member:value.member}}),
+    clear:vi.fn(()=>({paired:false,deviceId:null,member:null}))
+  }
+  const online={
+    installationId:vi.fn(()=> 'install-a'),
+    session:vi.fn(async()=>({role:'admin',platformRole:'user'})),
+    startLanServerClaim:vi.fn(async()=>({claimToken:'cloud-claim',expiresAt:'2026-09-29T20:10:00.000Z'}))
+  }
+  const storage={state:()=>({mode:'server',operationalMode:'lan-host',baseUrl:'http://127.0.0.1:4732'})}
+  return{stored,credentials,online,storage}
+}
+
+describe('LanSetupService',()=>{
+  it('claim hosted server reuses Cloud admin identity and stores bootstrap token without returning it',async()=>{
+    const {LanSetupService}=require('./lan-setup-service.cjs')
+    const fx=deps()
+    const fetchImpl=vi.fn(async(url:string,options:any)=>{
+      if(url.endsWith('/api/v1/setup/status'))return response(200,{claimed:false,serverId:'server-a'})
+      if(url.endsWith('/api/v1/setup/claim')){
+        expect(JSON.parse(options.body)).toEqual({setupCode:'ABCD-EFGH',claimToken:'cloud-claim',installationId:'install-a',deviceName:'PC Principal'})
+        return response(201,{claimed:true,serverId:'server-a',company:{id:'company-a',name:'Empresa A'},device:{id:'lan-device-a',member:{memberId:'member-admin',role:'admin'}},deviceToken:'lan-secret'})
+      }
+      throw new Error(`URL inesperada ${url}`)
+    })
+    const service=new LanSetupService({...fx,fetchImpl,deviceName:'PC Principal'})
+    const result=await service.claimHostedServer({setupCode:'ABCD-EFGH'})
+    expect(fx.online.startLanServerClaim).toHaveBeenCalledWith('server-a')
+    expect(fx.credentials.store).toHaveBeenCalledWith(expect.objectContaining({serverKey:'http://127.0.0.1:4732',deviceId:'lan-device-a',token:'lan-secret'}))
+    expect(JSON.stringify(result)).not.toContain('lan-secret')
+  })
+
+  it('refuses hosted claim when current Cloud session is not admin',async()=>{
+    const {LanSetupService}=require('./lan-setup-service.cjs')
+    const fx=deps();fx.online.session.mockResolvedValue({role:'foreman',platformRole:'user'})
+    const fetchImpl=vi.fn(async()=>response(200,{claimed:false,serverId:'server-a'}))
+    const service=new LanSetupService({...fx,fetchImpl,deviceName:'PC'})
+    await expect(service.claimHostedServer({setupCode:'ABCD-EFGH'})).rejects.toThrow(/Admin|administrador/i)
+    expect(fx.online.startLanServerClaim).not.toHaveBeenCalled()
+  })
+
+  it('pair stores token securely and returns only safe pairing state',async()=>{
+    const {LanSetupService}=require('./lan-setup-service.cjs')
+    const fx=deps()
+    const fetchImpl=vi.fn(async(_url:string,options:any)=>{
+      expect(JSON.parse(options.body)).toEqual({code:'PAIR-1234',installationId:'install-a',deviceName:'PC 2'})
+      return response(201,{device:{id:'device-b'},member:{memberId:'member-b',role:'foreman'},deviceToken:'paired-secret'})
+    })
+    const service=new LanSetupService({...fx,fetchImpl,deviceName:'PC 2'})
+    const result=await service.pair({code:'PAIR-1234'})
+    expect(fx.credentials.store).toHaveBeenCalledWith(expect.objectContaining({deviceId:'device-b',token:'paired-secret'}))
+    expect(JSON.stringify(result)).not.toContain('paired-secret')
+  })
+
+  it('disconnect clears only LAN credential for current server',()=>{
+    const {LanSetupService}=require('./lan-setup-service.cjs')
+    const fx=deps(),service=new LanSetupService({...fx,fetchImpl:vi.fn(),deviceName:'PC'})
+    service.disconnect()
+    expect(fx.credentials.clear).toHaveBeenCalledWith('http://127.0.0.1:4732')
+  })
+})

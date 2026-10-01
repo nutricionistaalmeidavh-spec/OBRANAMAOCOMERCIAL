@@ -222,6 +222,13 @@ class OnlineService {
     return this.request('/api/desktop/session', { deviceToken: this.requireToken() })
   }
 
+  async startLanServerClaim(serverId) {
+    const value = String(serverId || '').trim()
+    if (!value) throw new Error('Servidor LAN não identificado.')
+    const result = await this.request('/api/desktop/lan/claim/start', { deviceToken: this.requireToken(), serverId: value })
+    return { claimToken: result.claimToken, expiresAt: result.expiresAt }
+  }
+
   disconnect() {
     this.passwordSession = null
     const cfg = this.readConfig()
