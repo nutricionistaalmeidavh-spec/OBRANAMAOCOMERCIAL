@@ -2,8 +2,7 @@ param(
   [Parameter(Mandatory=$true)]
   [ValidateSet('Install','Uninstall')]
   [string]$Action,
-  [Parameter(Mandatory=$true)]
-  [string]$InstallDir,
+  [string]$InstallDir = (Split-Path $PSScriptRoot -Parent),
   [string]$ProgramDataRoot = (Join-Path $env:ProgramData 'ArtiSys\Obra na Mão Server'),
   [switch]$LanAccess,
   [int]$Port = 4732,
