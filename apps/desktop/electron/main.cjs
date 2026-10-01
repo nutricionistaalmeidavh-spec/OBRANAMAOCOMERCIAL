@@ -18,6 +18,9 @@ const { DocumentService } = require('./services/document-service.cjs')
 const { PayrollService } = require('./services/payroll-service.cjs')
 const { DocumentRootService } = require('./services/document-root-service.cjs')
 const { CatalogService } = require('./services/catalog-service.cjs')
+const { RhCatalogSourceService } = require('./services/rh-catalog-source-service.cjs')
+const { RhSourceService } = require('./services/rh-source-service.cjs')
+const { RhDocumentService } = require('./services/rh-document-service.cjs')
 const { TimeService } = require('./services/time-service.cjs')
 const { ScannerService } = require('./services/scanner-service.cjs')
 const { WorkImportService } = require('./services/work-import-service.cjs')
@@ -86,6 +89,18 @@ function createServices() {
   const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
+  const localPayroll = new PayrollService({ db })
+  const localTime = new TimeService({ db, fileService: files })
+  const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })
+  const catalog = new RhCatalogSourceService({ local: new CatalogService({ db }), dataAccess, moduleStorage })
+  const rhDocuments = new RhDocumentService({ rh, localTime, fileService: files, dataAccess })
+  const time = {
+    get: payload => rh.timeGet(payload),
+    autoFill: payload => rh.timeAutoFill(payload),
+    save: payload => rh.timeSave(payload),
+    generateDocuments: payload => rhDocuments.generateDocuments(payload),
+    generateForAll: payload => rhDocuments.generateForAll(payload)
+  }
   const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
   const explorer = new ManagedDirectoryService({
     roots: { documents: () => documentRoot.getRoot() }, shell, dialog,
@@ -111,9 +126,9 @@ function createServices() {
     backup,
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
-    payroll: new PayrollService({ db }),
-    catalog: new CatalogService({ db }),
-    time: new TimeService({ db, fileService: files }),
+    payroll: rh,
+    catalog,
+    time,
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
@@ -297,7 +312,7 @@ function registerIpc() {
   ipcMain.handle('payroll:save-variable', envelope((payload) => services.payroll.saveVariable(payload)))
   ipcMain.handle('payroll:remove-variable', envelope(({ id }) => services.payroll.removeVariable(id)))
   ipcMain.handle('payroll:confirm', envelope(async (payload) => {
-    const payment = services.payroll.confirm(payload)
+    const payment = await services.payroll.confirm(payload)
     let documents = null, documentError = null
     if (Number(payload.quinzena) === 1) {
       try { documents = await services.time.generateDocuments({ funcionario_id: payload.funcionario_id, competencia: payload.competencia, paymentDate: payload.data }) }
