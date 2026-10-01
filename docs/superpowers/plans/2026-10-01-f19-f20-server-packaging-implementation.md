@@ -20,7 +20,9 @@
 - Upgrade nunca remove DB/config/backups.
 - Uninstall preserva estado persistente por padrão.
 - Purge destrutivo fica fora do uninstall padrão.
+- Windows Service roda como `NT AUTHORITY\LocalService`, com escrita concedida somente aos diretórios persistentes necessários; nunca como `LocalSystem` por padrão.
 - Firewall Windows somente opt-in `LocalSubnet`; Linux não altera firewall automaticamente.
+- Bind padrão seguro é `127.0.0.1`; opção LAN na primeira instalação muda explicitamente para `0.0.0.0` e cria a regra `LocalSubnet`. Upgrade não sobrescreve configuração existente.
 - Setup code e credenciais não entram em logs, config ou artefatos.
 - Node deve ser lido da `.nvmrc`; baseline atual: `22.14.0`.
 - WinSW deve permanecer pinado em `2.12.0` e verificado por SHA-256 registrado no lock de dependências de build.
@@ -34,7 +36,7 @@
 1. **Upgrade sobre instalação existente:** DB, serverId, config, backups e sentinel devem sobreviver a reinstalação.
 2. **Uninstall padrão:** serviço/binários saem; estado persistente permanece.
 3. **Dependência externa adulterada:** hash divergente deve interromper o build antes de gerar artefato.
-4. **Permissões/paths com espaços e acentos:** `Program Files`, `ProgramData` e paths Linux devem funcionar sem interpolação insegura.
+4. **LAN opt-in e upgrades:** primeira instalação LAN pode bindar `0.0.0.0`; reinstalação nunca reescreve uma configuração já existente.
 5. **Serviço que não fica ready:** instalador/script deve falhar explicitamente sem apagar estado existente.
 
 ---
@@ -76,12 +78,12 @@
 - Consumes: common package layout from Task 1.
 - Produces: Windows bundle containing `runtime/node.exe`, `platform/ObraNaMaoServer.exe`, `platform/ObraNaMaoServer.xml`, and safe env template.
 
-- [ ] **Step 1: Write failing tests** asserting service id/display name, bundled node path, `app/src/index.mjs`, automatic start, restart-on-failure, log path under ProgramData, and no secret-bearing env defaults.
+- [ ] **Step 1: Write failing tests** asserting service id/display name, bundled node path, `app/src/index.mjs`, automatic start, restart-on-failure, service account `NT AUTHORITY\LocalService`, log path under ProgramData, and no secret-bearing env defaults.
 - [ ] **Step 2: Run** `node --test apps/lan-server/tests/packaging-windows-service.test.mjs`; expected FAIL.
-- [ ] **Step 3: Implement WinSW XML** with service id `ObraNaMaoServer`, display name `Obra na Mão Server`, stop timeout, restart policy and relative bundled runtime command.
+- [ ] **Step 3: Implement WinSW XML** with service id `ObraNaMaoServer`, display name `Obra na Mão Server`, built-in `LocalService`, stop timeout, restart policy and relative bundled runtime command.
 - [ ] **Step 4: Implement env template** targeting `%ProgramData%\ArtiSys\Obra na Mão Server\{data,backups,logs}` with `127.0.0.1:4732` default and `SHOW_SETUP_CODE=false`.
 - [ ] **Step 5: Implement `build.ps1`** to download Node 22.14.0 Windows x64 and WinSW 2.12.0 during build only, verify hashes, call common builder, and never embed credentials.
-- [ ] **Step 6: Implement `service-control.ps1`** for install/start/stop/restart/uninstall of the wrapper without deleting ProgramData.
+- [ ] **Step 6: Implement `service-control.ps1`** for install/start/stop/restart/uninstall of the wrapper, granting `LocalService` write only on data/backups/logs and never deleting ProgramData.
 - [ ] **Step 7: Run tests**; expected PASS.
 - [ ] **Step 8: Commit** `feat(server): add Windows service package`.
 
@@ -97,10 +99,10 @@
 - Produces: `Obra-na-Mao-Server-Setup-<version>-x64.exe`.
 
 - [ ] **Step 1: Write failing tests** asserting Program Files binary destination, ProgramData persistence, no recursive delete of ProgramData, service stop before binary replacement, service start + readiness after install, and firewall task disabled by default.
-- [ ] **Step 2: Add Review Focus tests** for paths with spaces, reinstall preserving a sentinel file, and readiness failure leaving persistent data untouched.
+- [ ] **Step 2: Add Review Focus tests** for paths with spaces, reinstall preserving config/sentinel, readiness failure leaving persistent data untouched, and LAN opt-in writing `HOST=0.0.0.0` only when creating config for the first time.
 - [ ] **Step 3: Run tests**; expected FAIL.
-- [ ] **Step 4: Implement Inno script** with x64-only guard, upgrade-safe binary replacement, service registration/start, and default uninstall preserving ProgramData.
-- [ ] **Step 5: Implement firewall opt-in** named rule scoped to TCP configured port + `LocalSubnet`; uninstall removes only this named product rule.
+- [ ] **Step 4: Implement Inno script** with x64-only guard, upgrade-safe binary replacement, service registration/start, first-install config creation, and default uninstall preserving ProgramData.
+- [ ] **Step 5: Implement firewall/LAN opt-in** so the selected first install creates the named TCP rule scoped to `LocalSubnet` and initial bind `0.0.0.0`; default remains loopback. Existing config is never overwritten on upgrade. Uninstall removes only the named product rule.
 - [ ] **Step 6: Implement installer tool bootstrap** in CI/build script using Inno Setup 7.1.0 x64 and verified official SHA-256.
 - [ ] **Step 7: Run tests**; expected PASS.
 - [ ] **Step 8: Commit** `feat(server): add Windows installer lifecycle`.
@@ -155,7 +157,7 @@
 - Produces: Windows + Ubuntu packaging gates and CI artifacts only.
 
 - [ ] **Step 1: Write failing CI-contract test** asserting two jobs (`windows`, `linux`), LAN tests before packaging, no `gh release create`, and artifact upload only.
-- [ ] **Step 2: Implement Windows job**: checkout → Node from `.nvmrc` → LAN tests → packaging tests → Windows bundle → Inno compile → silent install smoke → `/ready` → serverId capture → service restart → same serverId → sentinel → reinstall → sentinel preserved → uninstall → service absent + ProgramData preserved → upload artifact.
+- [ ] **Step 2: Implement Windows job**: checkout → Node from `.nvmrc` → LAN tests → packaging tests → Windows bundle → Inno compile → silent install smoke → `/ready` → serverId capture → service restart → same serverId → sentinel → reinstall → sentinel/config preserved → uninstall → service absent + ProgramData preserved → upload artifact.
 - [ ] **Step 3: Implement Linux job**: checkout → Node from `.nvmrc` → LAN tests → packaging tests → `bash -n` → `systemd-analyze verify` → package build → install → `/ready` → serverId capture → restart → same serverId → sentinel → reinstall → persistence → uninstall → `/opt` absent + data/config preserved → upload tarball.
 - [ ] **Step 4: Ensure workflow permissions are read-only where possible** and contains no release/deploy step.
 - [ ] **Step 5: Run CI-contract test**; expected PASS.
@@ -186,9 +188,9 @@
 
 - Windows x64 installer builds from pinned/verified dependencies.
 - Node global is not required.
-- `ObraNaMaoServer` installs as automatic service and becomes `/ready`.
-- Restart and reinstall preserve `serverId`, DB and persistent sentinel.
-- Firewall is opt-in and `LocalSubnet` only.
+- `ObraNaMaoServer` runs under `NT AUTHORITY\LocalService`, installs as automatic service and becomes `/ready`.
+- Restart and reinstall preserve `serverId`, DB, config and persistent sentinel.
+- Default bind is loopback; LAN bind/firewall is explicit opt-in and `LocalSubnet` only.
 - Uninstall removes service/binários but preserves ProgramData.
 - Windows CI is green on final SHA.
 
