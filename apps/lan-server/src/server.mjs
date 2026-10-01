@@ -37,6 +37,18 @@ function requireAdminContext(context) {
   if (context?.member?.role !== 'admin') throw new LanAuthorizationError('Apenas Admin pode executar esta operação.', 403, 'admin_required')
 }
 
+function syncSourceScope(url) {
+  return {
+    companyId: Number(url.searchParams.get('company_id')),
+    workId: Number(url.searchParams.get('obra_id')),
+    remoteCompanyId: url.searchParams.get('remote_company_id') || null,
+    remoteProjectId: url.searchParams.get('remote_project_id') || null,
+    deviceId: url.searchParams.get('device_id') || null,
+    workName: url.searchParams.get('work_name') || null,
+    modules: String(url.searchParams.get('modules') || '').split(',').map(value => value.trim()).filter(Boolean)
+  }
+}
+
 async function readJson(request) {
   const chunks = []
   let total = 0
@@ -206,7 +218,26 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/api/v1/sync-source/capabilities') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         await authenticateLanRequest(request, security)
-        return sendJson(response, 200, { version: 1, modules: ['core', 'operation', 'planning'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'] })
+        return sendJson(response, 200, { version: 1, modules: ['core', 'operation', 'planning', 'finance', 'summary'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'] })
+      }
+
+      if (url.pathname === '/api/v1/sync-source/summary') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!finance?.syncSummary) return sendJson(response, 503, { error: 'finance_unavailable', message: 'Resumo central indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeBusinessRoute(context, { table: 'contas', method: 'GET' })
+        const scope = syncSourceScope(url)
+        return sendJson(response, 200, finance.syncSummary(scope, scope.modules))
+      }
+
+      if (url.pathname === '/api/v1/sync-source/obligations') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!finance?.syncObligations) return sendJson(response, 503, { error: 'finance_unavailable', message: 'Obrigações financeiras centrais indisponíveis.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeBusinessRoute(context, { table: 'contas', method: 'GET' })
+        const scope = syncSourceScope(url)
+        if (!scope.deviceId || !scope.remoteProjectId) throw new Error('Escopo remoto da obrigação financeira não informado.')
+        return sendJson(response, 200, finance.syncObligations(scope))
       }
 
       if (url.pathname === '/api/v1/field/rdo') {
