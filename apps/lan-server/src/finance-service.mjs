@@ -4,6 +4,8 @@ function paymentStatus(account, paid) {
     : 'parcialmente_pago'
 }
 
+const CLOSED_ACCOUNT_STATUSES = new Set(['pago', 'recebido', 'quitado', 'cancelado'])
+
 export class FinanceService {
   constructor({ repository, now = Date.now }) {
     this.repository = repository
@@ -157,5 +159,87 @@ export class FinanceService {
       trend,
       obras_atencao: attention
     }
+  }
+
+  assertSyncScope({ companyId, workId }) {
+    const company = Number(companyId)
+    const work = Number(workId)
+    if (!Number.isSafeInteger(company) || company <= 0 || !Number.isSafeInteger(work) || work <= 0) {
+      throw new Error('Escopo financeiro central inválido.')
+    }
+    const row = this.db.prepare('SELECT * FROM obras WHERE id=? AND empresa_id=? AND deleted_at IS NULL').get(work, company)
+    if (!row) throw new Error('Obra central não pertence à empresa informada.')
+    return row
+  }
+
+  syncAccounts({ companyId, workId }) {
+    this.assertSyncScope({ companyId, workId })
+    return this.db.prepare(`
+      SELECT c.*,f.nome AS beneficiary,
+        COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0) AS paid_cents
+      FROM contas c
+      LEFT JOIN fornecedores f ON f.id=c.fornecedor_id
+      WHERE c.empresa_id=? AND c.obra_id=? AND c.deleted_at IS NULL
+      ORDER BY c.id
+    `).all(Number(companyId), Number(workId))
+  }
+
+  syncSummary(scope, allowed = []) {
+    const work = this.assertSyncScope(scope)
+    const accounts = this.syncAccounts(scope)
+    const today = new Date(this.now()).toISOString().slice(0, 10)
+    const stages = this.db.prepare('SELECT * FROM cronograma_etapas WHERE obra_id=? AND deleted_at IS NULL').all(Number(scope.workId))
+    const rdos = this.db.prepare('SELECT * FROM rdos WHERE obra_id=? AND deleted_at IS NULL').all(Number(scope.workId))
+    const paid = type => accounts.filter(row => row.tipo === type).reduce((sum, row) => sum + Number(row.paid_cents || 0), 0)
+    const open = type => accounts.filter(row => row.tipo === type && !CLOSED_ACCOUNT_STATUSES.has(row.status))
+    const remaining = rows => rows.reduce((sum, row) => sum + Math.max(0, Number(row.valor_centavos || 0) - Number(row.paid_cents || 0)), 0)
+    const modules = {
+      obra360: {
+        physicalProgress: work.percentual_fisico,
+        activeStages: stages.filter(row => !['concluida', 'concluido', 'cancelada'].includes(row.status)).length,
+        overdueStages: stages.filter(row => row.previsto_fim && row.previsto_fim < today && !['concluida', 'concluido', 'cancelada'].includes(row.status)).length
+      },
+      rdo: {
+        total: rdos.length,
+        pending: rdos.filter(row => !['fechado', 'finalizado'].includes(row.status)).length,
+        finalized: rdos.filter(row => ['fechado', 'finalizado'].includes(row.status)).length
+      },
+      dre: {
+        revenue: paid('receber'),
+        expense: paid('pagar'),
+        result: paid('receber') - paid('pagar')
+      },
+      finance: {
+        payableCents: remaining(open('pagar')),
+        receivableCents: remaining(open('receber')),
+        overdueCents: remaining(open('pagar').filter(row => row.vencimento && row.vencimento < today)),
+        scope: 'work'
+      }
+    }
+    const requested = Array.isArray(allowed) ? allowed : []
+    return {
+      scope: {
+        companyId: scope.remoteCompanyId || String(scope.companyId),
+        projectId: scope.remoteProjectId || String(scope.workId),
+        workName: scope.workName || work.nome,
+        period: 'Histórico da obra · caixa'
+      },
+      modules: Object.fromEntries(Object.entries(modules).filter(([key]) => requested.includes(key)))
+    }
+  }
+
+  syncObligations(scope) {
+    const accounts = this.syncAccounts(scope).filter(account => account.tipo === 'pagar')
+    return accounts.map(account => ({
+      sourceId: `${scope.deviceId}:conta:${account.id}`,
+      sourceType: 'payable',
+      beneficiaryName: account.beneficiary || account.descricao,
+      description: account.descricao,
+      amountCents: account.valor_centavos,
+      dueDate: account.vencimento,
+      competence: account.competencia,
+      projectId: scope.remoteProjectId || String(scope.workId),
+      status: account.status
+    }))
   }
 }
