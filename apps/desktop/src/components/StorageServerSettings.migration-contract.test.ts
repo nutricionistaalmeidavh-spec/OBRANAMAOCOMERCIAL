@@ -6,7 +6,8 @@ describe('StorageServerSettings migration contract',()=>{
   const source=fs.readFileSync(path.resolve(import.meta.dirname,'StorageServerSettings.tsx'),'utf8')
 
   it('mostra os cinco blocos de armazenamento central',()=>{
-    for(const module of ['core','operation','planning','finance','rh']) expect(source).toContain(`moduleState('${module}')`)
+    expect(source).toContain("const keys:ModuleKey[]=['core','operation','planning','finance','rh']")
+    expect(source).toContain('storageApi.moduleState(key)')
     for(const label of ['Cadastros-base','RDO / operação','Planejamento','Financeiro','RH']) expect(source).toContain(label)
   })
 
