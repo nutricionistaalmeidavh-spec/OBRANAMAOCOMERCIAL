@@ -1,0 +1,75 @@
+name: PR60 F12 Finalize
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [feat/desktop-lan-server-foundation]
+    paths:
+      - '.github/workflows/pr60-f12-finalize.yml'
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/desktop-lan-server-foundation
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Apply guarded F12 wiring
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const mainPath = 'apps/desktop/electron/main.cjs'
+          let main = fs.readFileSync(mainPath, 'utf8')
+          const once = (text, before, after, label) => {
+            if (!text.includes(before)) throw new Error(`Pattern not found: ${label}`)
+            return text.replace(before, after)
+          }
+          if (!main.includes("require('./services/rh-source-service.cjs')")) {
+            main = once(main,
+              "const { FinanceSourceService } = require('./services/finance-source-service.cjs')",
+              "const { FinanceSourceService } = require('./services/finance-source-service.cjs')\nconst { RhSourceService } = require('./services/rh-source-service.cjs')",
+              'RhSourceService import')
+          }
+          if (!main.includes('const rh = new RhSourceService')) {
+            main = once(main,
+              "  const files = new FileService({ documentsDir: paths.documentsDir, db })",
+              "  const files = new FileService({ documentsDir: paths.documentsDir, db })\n  const localPayroll = new PayrollService({ db })\n  const localTime = new TimeService({ db, fileService: files })\n  const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })",
+              'RH service construction')
+          }
+          main = main.replace('    payroll: new PayrollService({ db }),', '    payroll: rh,')
+          main = main.replace('    time: new TimeService({ db, fileService: files }),', '    time: rh,')
+          main = main.replace("      finance: services.moduleStorage.state('finance')\n", "      finance: services.moduleStorage.state('finance'),\n      rh: services.moduleStorage.state('rh')\n")
+          main = main.replace('    const payment = services.payroll.confirm(payload)', '    const payment = await services.payroll.confirm(payload)')
+          fs.writeFileSync(mainPath, main)
+
+          const timePath = 'apps/desktop/electron/services/time-service.cjs'
+          let time = fs.readFileSync(timePath, 'utf8')
+          if (!time.includes('generateDocumentsFromContext(payload,context)')) {
+            const marker = '  async generateDocuments(payload){'
+            if (!time.includes(marker)) throw new Error('TimeService generation marker not found')
+            const methods = `  externalContext(context){const data={employee:context?.employee,point:context?.point,marks:Array.isArray(context?.marks)?context.marks:[]},company=context?.company||null,cargo=context?.cargo||null;if(!data.employee||!data.point)throw new Error('Contexto RH central incompleto para geração de documentos.');const issues=employeeIdentityIssues(data.employee,company);if(!cargo||!String(cargo.nome||'').trim())issues.push('cargo/função');if(issues.length)throw new Error('Complete o cadastro de '+String(data.employee.nome||'funcionário')+' antes de gerar documentos mensais: '+issues.join(', ')+'.');return{data,company,cargo,benefits:filterBenefitsByPolicy(Array.isArray(context?.benefits)?context.benefits:[],company?.politica_recibos)}}\n  printableEntryFromContext(payload,context){const {data,company,cargo,benefits}=this.externalContext(context);return{funcionario_id:data.employee.id,nome:data.employee.nome,ok:true,pointHtml:this.pointHtml(data,company,cargo),receiptHtml:this.receiptHtml(data,company,cargo,benefits,payload.paymentDate)}}\n  async generateDocumentsFromContext(payload,context){const pointSelected=payload.point!==false,receiptsSelected=payload.receipts!==false;if(!pointSelected&&!receiptsSelected)throw new Error('Selecione fichas de ponto e/ou recibos para gerar.');const {data,company,cargo,benefits}=this.externalContext(context),folders=this.fileService.employeeFolders(data.employee,company&&(company.nome_fantasia||company.razao_social)),parts=data.point.competencia.split('-'),monthlyFolder=path.join(folders.base,'Recibos',parts[0],parts[1]+' - '+MONTHS[Number(parts[1])-1]),unsignedFolder=path.join(monthlyFolder,'Não assinados'),signedFolder=path.join(monthlyFolder,'Assinados');fs.mkdirSync(unsignedFolder,{recursive:true});fs.mkdirSync(signedFolder,{recursive:true});const stamp=Date.now(),result={folder:monthlyFolder,unsignedFolder,signedFolder,documentStorage:'local-derived',registered:false};if(pointSelected){const pointPath=path.join(unsignedFolder,'Ficha de ponto - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf');await this.printHtml(this.pointHtml(data,company,cargo),pointPath);result.point={path:pointPath,registered:false,documentStorage:'local-derived'}}if(receiptsSelected&&benefits.length){const receiptPath=path.join(unsignedFolder,'Recibos de benefícios - '+data.point.competencia+' - '+sanitizeName(data.employee.nome)+' - '+stamp+'.pdf');await this.printHtml(this.receiptHtml(data,company,cargo,benefits,payload.paymentDate),receiptPath);result.receipt={path:receiptPath,registered:false,documentStorage:'local-derived'}}return result}\n`
+            time = time.replace(marker, methods + marker)
+            fs.writeFileSync(timePath, time)
+          }
+          NODE
+      - name: Syntax checks
+        run: |
+          node --check apps/desktop/electron/main.cjs
+          node --check apps/desktop/electron/services/rh-source-service.cjs
+          node --check apps/desktop/electron/services/time-service.cjs
+      - name: Commit guarded wiring
+        shell: bash
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/desktop/electron/main.cjs apps/desktop/electron/services/time-service.cjs
+          git commit -m "feat(f12): wire central RH into desktop runtime"
+          git push origin HEAD:feat/desktop-lan-server-foundation
