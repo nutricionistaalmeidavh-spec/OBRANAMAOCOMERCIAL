@@ -57,14 +57,18 @@ test('falha após inserir pagamento reverte toda confirmação da folha', () => 
   } finally { f.repository.close() }
 })
 
-test('pending central calcula quinzena seguinte apenas para funcionários ativos', () => {
+test('pending central preserva a regra local: segunda quinzena só existe quando há lançamento e apenas funcionário ativo entra', () => {
   const f = fixture()
   try {
+    const inactive = f.repository.save('funcionarios', { empresa_id: f.company.id, cargo_id: f.cargo.id, nome: 'Funcionário Inativo', status: 'inativo', salario_centavos: 250000 })
     const pending1 = f.payroll.pending('2026-10')
     assert.ok(pending1.some(item => item.funcionario_id === f.employee.id && item.quinzena === 1))
-    f.payroll.getEmployee({ funcionario_id: f.employee.id, competencia: '2026-10' })
+    assert.equal(pending1.some(item => item.funcionario_id === inactive.id), false)
+
+    f.payroll.saveVariable({ funcionario_id: f.employee.id, competencia: '2026-10', tipo: 'diaria_2q', descricao: 'Diária 2ª quinzena', natureza: 'credito', quinzena: 2, valor_centavos: 10000 })
     f.payroll.confirm({ funcionario_id: f.employee.id, competencia: '2026-10', quinzena: 1, data: '2026-10-15' })
     const pending2 = f.payroll.pending('2026-10')
-    assert.ok(pending2.some(item => item.funcionario_id === f.employee.id && item.quinzena === 2))
+    assert.ok(pending2.some(item => item.funcionario_id === f.employee.id && item.quinzena === 2 && item.valor_centavos === 10000))
+    assert.equal(pending2.some(item => item.funcionario_id === inactive.id), false)
   } finally { f.repository.close() }
 })
