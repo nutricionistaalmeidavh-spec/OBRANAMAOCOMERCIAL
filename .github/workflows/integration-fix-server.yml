@@ -1,0 +1,50 @@
+name: Integration server reconciliation fix
+
+on:
+  push:
+    branches:
+      - integration/f13-f17-f14-f16-final
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[server-fixed]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: integration/f13-f17-f14-f16-final
+      - name: Preserve F13/F17 services alongside F14 versioned server
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('apps/lan-server/src/server.mjs')
+          s = p.read_text()
+
+          old = "import { TimeService } from './time-service.mjs'\nimport { RevisionConflictError } from './concurrency-service.mjs'"
+          new = "import { TimeService } from './time-service.mjs'\nimport { MigrationService } from './migration-service.mjs'\nimport { RevisionConflictError } from './concurrency-service.mjs'"
+          assert s.count(old) == 1, 'MigrationService import anchor changed'
+          s = s.replace(old, new)
+
+          old = "export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {"
+          new = "export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, migrationService = null, centralBackupService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {"
+          assert s.count(old) == 1, 'createLanServer signature anchor changed'
+          s = s.replace(old, new)
+
+          old = "  const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)\n  return http.createServer(async (request, response) => {"
+          new = "  const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)\n  const migration = migrationService || (repository ? new MigrationService({ repository, security }) : null)\n  const centralStorage = centralBackupService\n  return http.createServer(async (request, response) => {"
+          assert s.count(old) == 1, 'service construction anchor changed'
+          s = s.replace(old, new)
+
+          p.write_text(s)
+          PY
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/lan-server/src/server.mjs
+          git commit -m "fix(integration): preserve migration and central backup with F14 [server-fixed]"
+          git push origin HEAD:integration/f13-f17-f14-f16-final
