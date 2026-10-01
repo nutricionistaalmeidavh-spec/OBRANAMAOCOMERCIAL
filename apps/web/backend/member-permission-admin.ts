@@ -1,6 +1,7 @@
 import {
   effectivePermissions,
   normalizePermissions,
+  roleTemplate,
   type MemberRole,
   type PermissionAction,
   type PermissionDomain,
@@ -46,7 +47,20 @@ export function validatePermissionAdministration(input: {
   const invalidChannel = channels.find(channel => !companyChannels.has(channel))
   if (invalidChannel) throw new Error(`Canal ${invalidChannel} não está disponível na licença da empresa.`)
 
-  const storedPermissions = normalizePermissions(input.permissions)
+  const requestedPermissions = normalizePermissions(input.permissions)
+  const templatePermissions = roleTemplate(input.role)
+  const applyingRoleTemplate = samePermissions(requestedPermissions, templatePermissions)
+  const storedPermissions = applyingRoleTemplate
+    ? effectivePermissions({
+        role: input.role,
+        customPermissions: undefined,
+        modules,
+        channels,
+        companyModules: [...companyModules],
+        companyChannels: [...companyChannels]
+      })
+    : requestedPermissions
+
   for (const [domain, actions] of Object.entries(storedPermissions) as Array<[PermissionDomain, PermissionAction[]]>) {
     if (!actions.length) continue
     const enabled = DOMAIN_MODULES[domain].some(module => modules.includes(module))
