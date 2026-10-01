@@ -40,7 +40,7 @@ function Read-ServiceEnvironment {
     $trimmed = $line.Trim()
     if (-not $trimmed -or $trimmed.StartsWith('#')) { continue }
     $pair = $trimmed.Split('=', 2)
-    if ($pair.Count -ne 2 -or -not $pair[0]) { throw "Linha inválida em $ConfigPath: $line" }
+    if ($pair.Count -ne 2 -or -not $pair[0]) { throw "Linha inválida em ${ConfigPath}: $line" }
     $value = [Environment]::ExpandEnvironmentVariables($pair[1])
     $entries += "$($pair[0])=$value"
   }
