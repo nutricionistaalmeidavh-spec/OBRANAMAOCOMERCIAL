@@ -20,7 +20,8 @@ describe('F14 Desktop revision callers', () => {
   it('maps the observed RDO root revision to expectedRevision before the LAN call', () => {
     const source = read('../electron/services/field-source-service.cjs')
     expect(source).toContain('expectedRevision: expectedRevision ?? revision')
-    expect(source).toContain('equipe.map(withoutRevision)')
+    expect(source).toContain("['equipe', 'equipamentos', 'ocorrencias', 'anexos']")
+    expect(source).toContain('root[key].map(withoutRevision)')
     expect(source).toContain('this.lanClient.saveDailyReport(remotePayload(payload))')
   })
 
