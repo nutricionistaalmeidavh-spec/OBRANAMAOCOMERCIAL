@@ -129,6 +129,29 @@ class ModuleMigrationService {
     return 'Migração central não está disponível neste momento.'
   }
 
+  assertCommittedSanity(remoteStatus, expectedCounts) {
+    if (remoteStatus?.status !== 'committed') throw new Error(`Migração central ainda não está commitada: ${remoteStatus?.status || 'estado desconhecido'}.`)
+    if (remoteStatus?.sanityOk !== true) throw new Error('Sanidade central não foi confirmada após o commit; o módulo continuará em migration-required.')
+    if (Array.isArray(remoteStatus?.missingTargets) && remoteStatus.missingTargets.length) throw new Error('Sanidade central encontrou mappings sem registro de destino.')
+    for (const [table, expected] of Object.entries(expectedCounts || {})) {
+      if (Number(remoteStatus?.counts?.[table] ?? -1) !== Number(expected)) throw new Error(`Contagem remota pós-commit divergente em ${table}.`)
+      if (Number(remoteStatus?.targetCounts?.[table] ?? -1) !== Number(expected)) throw new Error(`Sanidade de destinos pós-commit divergente em ${table}.`)
+    }
+    return remoteStatus
+  }
+
+  async confirmCommitted(migrationId, expectedCounts) {
+    const remoteStatus = await this.lanClient.migrationStatus(migrationId)
+    return this.assertCommittedSanity(remoteStatus, expectedCounts)
+  }
+
+  async activateCommitted(module, migrationId, expectedCounts, backup) {
+    const confirmed = await this.confirmCommitted(migrationId, expectedCounts)
+    this.moduleStorage.activateAfterMigration(module)
+    this.clearAttempt(module)
+    return { migrationId, module, backup, counts: expectedCounts, status: 'committed', sanityOk: true, centralStatus: confirmed }
+  }
+
   async migrate(moduleName) {
     const module = this.assertModule(moduleName)
     const preflight = await this.preflight(module)
@@ -184,16 +207,10 @@ class ModuleMigrationService {
         this.clearAttempt(module)
         throw new Error('A tentativa remota já foi revertida. Inicie a migração novamente.')
       }
-      if (remote?.status === 'committed') {
-        this.moduleStorage.activateAfterMigration(module)
-        this.clearAttempt(module)
-        return { migrationId, module, backup, counts: exported.counts, status: 'committed' }
-      }
+      if (remote?.status === 'committed') return await this.activateCommitted(module, migrationId, exported.counts, backup)
       if (remote?.status === 'validated') {
         await this.lanClient.migrationCommit(migrationId)
-        this.moduleStorage.activateAfterMigration(module)
-        this.clearAttempt(module)
-        return { migrationId, module, backup, counts: exported.counts, status: 'committed' }
+        return await this.activateCommitted(module, migrationId, exported.counts, backup)
       }
       if (remote?.status !== 'started') throw new Error(`Migração remota está em estado incompatível: ${remote?.status || 'desconhecido'}.`)
 
@@ -206,9 +223,7 @@ class ModuleMigrationService {
 
       await this.lanClient.migrationValidate(migrationId)
       await this.lanClient.migrationCommit(migrationId)
-      this.moduleStorage.activateAfterMigration(module)
-      this.clearAttempt(module)
-      return { migrationId, module, backup, counts: exported.counts, status: 'committed' }
+      return await this.activateCommitted(module, migrationId, exported.counts, backup)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (this.readAttempt(module)) this.writeAttempt(module, { ...attempt, status: 'failed', lastError: message, updatedAt: new Date().toISOString() })
