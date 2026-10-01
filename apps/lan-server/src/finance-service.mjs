@@ -101,7 +101,8 @@ export class FinanceService {
   dashboard(filters = {}) {
     const competencia = filters.competencia || new Date(this.now()).toISOString().slice(0, 7)
     const companyClause = filters.empresa_id ? ' AND empresa_id=@empresa_id' : ''
-    const params = { competencia, empresa_id: filters.empresa_id ? Number(filters.empresa_id) : undefined }
+    const companyParams = filters.empresa_id ? { empresa_id: Number(filters.empresa_id) } : {}
+    const financeParams = { competencia, ...companyParams }
     const sums = this.db.prepare(`
       SELECT
         COALESCE(SUM(CASE WHEN tipo='receber' AND status!='cancelado' THEN valor_centavos ELSE 0 END),0) receitas,
@@ -110,23 +111,23 @@ export class FinanceService {
         COALESCE(SUM(CASE WHEN tipo='receber' AND status IN ('pendente','vencido','parcialmente_pago') THEN valor_centavos ELSE 0 END),0) receber,
         COALESCE(SUM(CASE WHEN status='vencido' THEN valor_centavos ELSE 0 END),0) vencidos
       FROM contas WHERE deleted_at IS NULL AND competencia=@competencia ${companyClause}
-    `).get(params)
+    `).get(financeParams)
     const works = this.db.prepare(`
       SELECT COUNT(*) quantidade, COALESCE(SUM(valor_contratado_centavos),0) total
       FROM obras WHERE deleted_at IS NULL AND status NOT IN ('concluida','cancelada')${filters.empresa_id ? ' AND empresa_id=@empresa_id' : ''}
-    `).get(params)
+    `).get(companyParams)
     const budget = this.db.prepare(`
       SELECT COALESCE(SUM(i.quantidade*i.valor_unitario_centavos),0) total
       FROM itens_orcamentarios i JOIN obras o ON o.id=i.obra_id
       WHERE i.deleted_at IS NULL${filters.empresa_id ? ' AND o.empresa_id=@empresa_id' : ''}
-    `).get(params)
+    `).get(companyParams)
     const trend = this.db.prepare(`
       SELECT competencia,
         SUM(CASE WHEN tipo='receber' AND status!='cancelado' THEN valor_centavos ELSE 0 END) receitas,
         SUM(CASE WHEN tipo='pagar' AND status!='cancelado' THEN valor_centavos ELSE 0 END) despesas
       FROM contas WHERE deleted_at IS NULL AND substr(competencia,1,4)=substr(@competencia,1,4) ${companyClause}
       GROUP BY competencia ORDER BY competencia
-    `).all(params)
+    `).all(financeParams)
     const today = new Date(this.now()).toISOString().slice(0, 10)
     const attention = this.db.prepare(`
       SELECT o.id,o.nome,o.status,o.previsao_termino,o.percentual_fisico,o.valor_contratado_centavos,
@@ -137,7 +138,7 @@ export class FinanceService {
       GROUP BY o.id
       ORDER BY CASE WHEN o.previsao_termino IS NOT NULL AND o.previsao_termino < date('now') THEN 0 ELSE 1 END, o.previsao_termino ASC
       LIMIT 6
-    `).all(params).map(work => {
+    `).all(companyParams).map(work => {
       const reasons = []
       if (work.previsao_termino && work.previsao_termino < today) reasons.push('prazo vencido')
       if (work.orcado_centavos > work.valor_contratado_centavos && work.valor_contratado_centavos > 0) reasons.push('orcamento acima do contrato')
