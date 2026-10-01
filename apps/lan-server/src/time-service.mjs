@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { ConcurrencyService } from './concurrency-service.mjs'
 
 const ALLOWED_TYPES = new Set(['trabalho','falta','ferias','feriado','folga','afastado','sabado','domingo'])
 
@@ -39,6 +40,7 @@ export class TimeService {
   constructor({ repository }) {
     if (!repository?.connection) throw new Error('Repositório LAN inválido para Ponto.')
     this.repository = repository
+    this.concurrency = new ConcurrencyService({ db: repository.connection() })
   }
 
   get db() { return this.repository.connection() }
@@ -48,6 +50,7 @@ export class TimeService {
     if (!employee || employee.deleted_at || employee.status !== 'ativo') throw new Error('Funcionário ativo não encontrado.')
     const normalized = validCompetence(competence)
     let point = this.db.prepare('SELECT * FROM pontos_mensais WHERE empresa_id=? AND funcionario_id=? AND competencia=?').get(employee.empresa_id, employee.id, normalized)
+    const created = !point
     if (!point) {
       point = this.repository.save('pontos_mensais', {
         empresa_id: employee.empresa_id,
@@ -61,7 +64,8 @@ export class TimeService {
         jornada_fim: employee.jornada_fim || '17:00'
       })
     }
-    return { employee, point }
+    const revision = this.concurrency.current('pontos_mensais', point.id) || this.concurrency.initialize('pontos_mensais', point.id)
+    return { employee, point: { ...point, revision }, created }
   }
 
   get(payload) {
@@ -71,20 +75,22 @@ export class TimeService {
   }
 
   autoFill(payload) {
-    const base = this.ensure(payload.funcionario_id, payload.competencia)
-    const { employee, point } = base
-    const overwrite = Boolean(payload.overwrite)
-    const exists = this.db.prepare('SELECT id FROM ponto_marcacoes WHERE empresa_id=? AND ponto_mensal_id=? AND data=?')
-    const upsert = this.db.prepare(`
-      INSERT INTO ponto_marcacoes(empresa_id,ponto_mensal_id,data,tipo,entrada,intervalo_saida,intervalo_entrada,saida)
-      VALUES (?,?,?,?,?,?,?,?)
-      ON CONFLICT(ponto_mensal_id,data) DO UPDATE SET
-        tipo=excluded.tipo,entrada=excluded.entrada,intervalo_saida=excluded.intervalo_saida,
-        intervalo_entrada=excluded.intervalo_entrada,saida=excluded.saida,updated_at=CURRENT_TIMESTAMP
-    `)
-
     this.db.exec('BEGIN IMMEDIATE;')
     try {
+      const base = this.ensure(payload.funcionario_id, payload.competencia)
+      const { employee, point, created } = base
+      if (!created) this.concurrency.assertExpected('pontos_mensais', point.id, payload.expectedRevision, point)
+
+      const overwrite = Boolean(payload.overwrite)
+      const exists = this.db.prepare('SELECT id FROM ponto_marcacoes WHERE empresa_id=? AND ponto_mensal_id=? AND data=?')
+      const upsert = this.db.prepare(`
+        INSERT INTO ponto_marcacoes(empresa_id,ponto_mensal_id,data,tipo,entrada,intervalo_saida,intervalo_entrada,saida)
+        VALUES (?,?,?,?,?,?,?,?)
+        ON CONFLICT(ponto_mensal_id,data) DO UPDATE SET
+          tipo=excluded.tipo,entrada=excluded.entrada,intervalo_saida=excluded.intervalo_saida,
+          intervalo_entrada=excluded.intervalo_entrada,saida=excluded.saida,updated_at=CURRENT_TIMESTAMP
+      `)
+
       for (const day of monthDays(point.competencia)) {
         if (!overwrite && exists.get(employee.empresa_id, point.id, day.data)) continue
         const weekend = day.weekday === 0 ? 'domingo' : day.weekday === 6 ? 'sabado' : null
@@ -99,6 +105,7 @@ export class TimeService {
         upsert.run(employee.empresa_id, point.id, day.data, weekend || 'trabalho', values[0], values[1], values[2], values[3])
       }
       this.db.prepare('UPDATE pontos_mensais SET preenchimento_automatico=1,updated_at=CURRENT_TIMESTAMP WHERE empresa_id=? AND id=?').run(employee.empresa_id, point.id)
+      if (!created) this.concurrency.bump('pontos_mensais', point.id)
       this.db.exec('COMMIT;')
     } catch (error) {
       try { this.db.exec('ROLLBACK;') } catch {}
@@ -108,19 +115,21 @@ export class TimeService {
   }
 
   save(payload) {
-    const base = this.ensure(payload.funcionario_id, payload.competencia)
-    const { employee, point } = base
-    const upsert = this.db.prepare(`
-      INSERT INTO ponto_marcacoes(empresa_id,ponto_mensal_id,data,tipo,entrada,intervalo_saida,intervalo_entrada,saida,observacoes)
-      VALUES (?,?,?,?,?,?,?,?,?)
-      ON CONFLICT(ponto_mensal_id,data) DO UPDATE SET
-        tipo=excluded.tipo,entrada=excluded.entrada,intervalo_saida=excluded.intervalo_saida,
-        intervalo_entrada=excluded.intervalo_entrada,saida=excluded.saida,
-        observacoes=excluded.observacoes,updated_at=CURRENT_TIMESTAMP
-    `)
-
     this.db.exec('BEGIN IMMEDIATE;')
     try {
+      const base = this.ensure(payload.funcionario_id, payload.competencia)
+      const { employee, point, created } = base
+      if (!created) this.concurrency.assertExpected('pontos_mensais', point.id, payload.expectedRevision, point)
+
+      const upsert = this.db.prepare(`
+        INSERT INTO ponto_marcacoes(empresa_id,ponto_mensal_id,data,tipo,entrada,intervalo_saida,intervalo_entrada,saida,observacoes)
+        VALUES (?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(ponto_mensal_id,data) DO UPDATE SET
+          tipo=excluded.tipo,entrada=excluded.entrada,intervalo_saida=excluded.intervalo_saida,
+          intervalo_entrada=excluded.intervalo_entrada,saida=excluded.saida,
+          observacoes=excluded.observacoes,updated_at=CURRENT_TIMESTAMP
+      `)
+
       for (const row of payload.marks || []) {
         const tipo = ALLOWED_TYPES.has(row.tipo) ? row.tipo : 'trabalho'
         const values = tipo === 'trabalho'
@@ -129,6 +138,7 @@ export class TimeService {
         upsert.run(employee.empresa_id, point.id, row.data, tipo, values[0], values[1], values[2], values[3], row.observacoes || null)
       }
       this.db.prepare("UPDATE pontos_mensais SET status='preenchido',updated_at=CURRENT_TIMESTAMP WHERE empresa_id=? AND id=?").run(employee.empresa_id, point.id)
+      if (!created) this.concurrency.bump('pontos_mensais', point.id)
       this.db.exec('COMMIT;')
     } catch (error) {
       try { this.db.exec('ROLLBACK;') } catch {}

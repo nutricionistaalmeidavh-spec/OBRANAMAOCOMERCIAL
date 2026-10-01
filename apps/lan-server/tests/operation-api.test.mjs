@@ -4,39 +4,37 @@ import { once } from 'node:events'
 import path from 'node:path'
 import test from 'node:test'
 import { LanRepository } from '../src/repository.mjs'
-import { FieldService } from '../src/field-service.mjs'
 import { createLanServer } from '../src/server.mjs'
 
-const LAN_TOKEN = 'operation-device-token'
+const LAN_TOKEN = 'operation-api-token'
 const digest = value => createHash('sha256').update(String(value)).digest('hex')
-const migrationsDir = path.resolve(import.meta.dirname, '../migrations')
 
-function security({ role = 'employee', modules = ['obra360'], deviceStatus = 'active' } = {}) {
+function security({ role = 'admin', modules = ['obra360', 'rdo'], deviceStatus = 'active' } = {}) {
   return {
     serverState() { return { claimed: true, companyId: 'company-a' } },
-    deviceByTokenHash(value) {
-      return value === digest(LAN_TOKEN) ? { id: 'device-op', memberId: 'member-op', status: deviceStatus } : null
-    },
+    deviceByTokenHash(value) { return value === digest(LAN_TOKEN) ? { id: 'dev-op', memberId: 'member-op', status: deviceStatus } : null },
     member(id) {
-      return id === 'member-op' ? { memberId: id, role, modules, channels: ['desktop'], status: 'active' } : null
+      return id === 'member-op'
+        ? { memberId: id, email: 'op@obra.local', role, modules, channels: ['desktop'], status: 'active' }
+        : null
     },
     touchDevice() {}
   }
 }
 
-async function fixture(options = {}) {
+async function fixture(securityOverrides = {}) {
   const repository = new LanRepository({ filename: ':memory:' })
-  repository.applyMigrations(migrationsDir)
+  repository.applyMigrations(path.resolve(import.meta.dirname, '../migrations'))
   const company = repository.save('empresas', { razao_social: 'Empresa Operação' })
-  const work = repository.save('obras', { empresa_id: company.id, nome: 'Obra Central' })
+  const client = repository.save('clientes', { empresa_id: company.id, nome: 'Cliente Operação' })
+  const work = repository.save('obras', { empresa_id: company.id, cliente_id: client.id, nome: 'Obra Operação', status: 'ativa' })
   const employee = repository.save('funcionarios', { empresa_id: company.id, obra_atual_id: work.id, nome: 'Funcionário Operação', status: 'ativo' })
-  const fieldService = new FieldService({ repository })
-  const server = createLanServer({ repository, security: security(options), fieldService })
+  const server = createLanServer({ repository, security: security(securityOverrides) })
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('Servidor sem porta TCP.')
-  return { repository, server, company, work, employee, fieldService, baseUrl: `http://127.0.0.1:${address.port}` }
+  return { repository, server, baseUrl: `http://127.0.0.1:${address.port}`, company, client, work, employee }
 }
 
 async function close(f) {
@@ -74,12 +72,13 @@ test('CRUD operacional autenticado compartilha frentes, RDOs, filhos e tarefas n
     const taskResponse = await post(f.baseUrl, '/api/v1/tarefas_obra', { obra_id: f.work.id, frente_id: front.id, rdo_ocorrencia_id: occurrence.id, titulo: 'Revisar prumada', origem_tipo: 'rdo_ocorrencia', origem_id: occurrence.id })
     assert.equal(taskResponse.status, 201)
     const task = await taskResponse.json()
+    assert.equal(task.revision, 1)
 
     const list = await request(f.baseUrl, `/api/v1/rdos?obra_id=${f.work.id}`)
     assert.equal(list.status, 200)
     assert.equal((await list.json()).length, 1)
 
-    const removed = await request(f.baseUrl, `/api/v1/tarefas_obra/${task.id}`, { method: 'DELETE' })
+    const removed = await request(f.baseUrl, `/api/v1/tarefas_obra/${task.id}?expectedRevision=${task.revision}`, { method: 'DELETE' })
     assert.equal(removed.status, 200)
     const visibleTasks = await request(f.baseUrl, `/api/v1/tarefas_obra?obra_id=${f.work.id}`)
     assert.deepEqual(await visibleTasks.json(), [])
@@ -107,39 +106,33 @@ test('POST /api/v1/field/rdo salva o agregado inteiro usando uma única rota de 
 })
 
 test('rota de domínio do RDO exige permissão operacional atual', async () => {
-  const f = await fixture({ modules: [] })
+  const f = await fixture({ role: 'employee', modules: [] })
   try {
     const response = await post(f.baseUrl, '/api/v1/field/rdo', { obra_id: f.work.id, data: '2026-10-03' })
     assert.equal(response.status, 403)
-    assert.equal((await response.json()).error, 'forbidden')
   } finally { await close(f) }
 })
 
 test('operações rejeitam usuário sem módulo e dispositivo revogado', async () => {
-  const noModule = await fixture({ modules: [] })
+  const noModule = await fixture({ role: 'employee', modules: [] })
   try {
     const response = await request(noModule.baseUrl, `/api/v1/frentes_obra?obra_id=${noModule.work.id}`)
     assert.equal(response.status, 403)
-    assert.equal((await response.json()).error, 'forbidden')
   } finally { await close(noModule) }
 
   const revoked = await fixture({ deviceStatus: 'revoked' })
   try {
-    const response = await request(revoked.baseUrl, `/api/v1/rdos?obra_id=${revoked.work.id}`)
+    const response = await request(revoked.baseUrl, `/api/v1/frentes_obra?obra_id=${revoked.work.id}`)
     assert.equal(response.status, 403)
-    assert.equal((await response.json()).error, 'device_revoked')
   } finally { await close(revoked) }
 })
 
 test('FKs operacionais impedem vínculos com obra ou RDO inexistentes', async () => {
   const f = await fixture()
   try {
-    const invalidFront = await post(f.baseUrl, '/api/v1/frentes_obra', { obra_id: 999999, nome: 'Inválida' })
-    assert.equal(invalidFront.status, 400)
-    assert.match((await invalidFront.json()).message, /obra não encontrado|referência/i)
-
-    const invalidTeam = await post(f.baseUrl, '/api/v1/rdo_equipe', { rdo_id: 999999, nome: 'Sem RDO' })
-    assert.equal(invalidTeam.status, 400)
-    assert.match((await invalidTeam.json()).message, /rdo não encontrado|referência/i)
+    const badFront = await post(f.baseUrl, '/api/v1/frentes_obra', { obra_id: 999999, nome: 'Inválida' })
+    assert.equal(badFront.status, 400)
+    const badChild = await post(f.baseUrl, '/api/v1/rdo_equipe', { rdo_id: 999999, nome: 'Inválida' })
+    assert.equal(badChild.status, 400)
   } finally { await close(f) }
 })

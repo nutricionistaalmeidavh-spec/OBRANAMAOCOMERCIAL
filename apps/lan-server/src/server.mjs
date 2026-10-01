@@ -1,6 +1,6 @@
 import http from 'node:http'
 import { createHash, randomBytes } from 'node:crypto'
-import { authenticateLanRequest, authorizeBusinessRoute, LanAuthorizationError } from './authorization.mjs'
+import { authenticateLanRequest, authorizeAction, authorizeBusinessRoute, LanAuthorizationError } from './authorization.mjs'
 import { PairingError } from './pairing-service.mjs'
 import { FieldService } from './field-service.mjs'
 import { PlanningService } from './planning-service.mjs'
@@ -8,6 +8,8 @@ import { FinanceService } from './finance-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
 import { MigrationService } from './migration-service.mjs'
+import { RevisionConflictError } from './concurrency-service.mjs'
+import { createVersionedRepository } from './versioned-repository.mjs'
 
 export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.3.0'
@@ -83,7 +85,7 @@ async function readJson(request) {
   }
 }
 
-async function handleEntityRequest(request, response, url, repository, match, context) {
+async function handleEntityRequest(request, response, url, repository, versionedRepository, match, context) {
   if (!repository) return sendJson(response, 503, { error: 'repository_unavailable', message: 'Banco central do servidor indisponível.' })
 
   const table = match[1]
@@ -93,27 +95,31 @@ async function handleEntityRequest(request, response, url, repository, match, co
   if (id === null) {
     if (request.method === 'GET') {
       const filters = Object.fromEntries(url.searchParams.entries())
-      return sendJson(response, 200, repository.list(table, filters))
+      return sendJson(response, 200, versionedRepository ? versionedRepository.list(table, filters) : repository.list(table, filters))
     }
     if (request.method === 'POST') {
       const data = await readJson(request)
-      const saved = repository.save(table, data)
+      const saved = versionedRepository ? versionedRepository.create(table, data) : repository.save(table, data)
       return sendJson(response, 201, saved)
     }
     return methodNotAllowed(response, ['GET', 'POST'])
   }
 
   if (request.method === 'GET') {
-    const item = repository.get(table, id)
+    const item = versionedRepository ? versionedRepository.get(table, id) : repository.get(table, id)
     return item ? sendJson(response, 200, item) : sendJson(response, 404, { error: 'not_found' })
   }
   if (request.method === 'PUT') {
-    const data = await readJson(request)
-    const saved = repository.save(table, { ...data, id })
+    const body = await readJson(request)
+    const saved = versionedRepository
+      ? versionedRepository.update(table, id, body.expectedRevision, body.data)
+      : repository.save(table, { ...body, id })
     return saved ? sendJson(response, 200, saved) : sendJson(response, 404, { error: 'not_found' })
   }
   if (request.method === 'DELETE') {
-    const removed = repository.remove(table, id)
+    const removed = versionedRepository
+      ? versionedRepository.remove(table, id, url.searchParams.get('expectedRevision'))
+      : repository.remove(table, id)
     return removed ? sendJson(response, 200, { ok: true }) : sendJson(response, 404, { error: 'not_found' })
   }
   return methodNotAllowed(response, ['GET', 'PUT', 'DELETE'])
@@ -206,18 +212,19 @@ async function handleSetupClaim(request, response, { security, identity, cloudAu
   })
 }
 
-async function authorizeRh(request, security, method = 'POST') {
+async function authorizeRh(request, security, action = 'edit') {
   const context = await authenticateLanRequest(request, security)
-  authorizeBusinessRoute(context, { table: 'funcionarios', method })
+  authorizeAction(context, { domain: 'rh', action })
   return context
 }
 
 export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, migrationService = null, centralBackupService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
-  const field = fieldService || (repository ? new FieldService({ repository }) : null)
+  const versionedRepository = createVersionedRepository(repository)
+  const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
-  const payroll = payrollService || (repository ? new PayrollService({ repository }) : null)
-  const time = timeService || (repository ? new TimeService({ repository }) : null)
+  const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
+  const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
   const migration = migrationService || (repository ? new MigrationService({ repository, security }) : null)
   const centralStorage = centralBackupService
   return http.createServer(async (request, response) => {
@@ -281,7 +288,12 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/api/v1/sync-source/capabilities') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         await authenticateLanRequest(request, security)
-        return sendJson(response, 200, { version: 1, modules: ['core', 'operation', 'planning', 'finance', 'rh', 'summary'], bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'] })
+        return sendJson(response, 200, {
+          version: 1,
+          modules: ['core', 'operation', 'planning', 'finance', 'rh', 'summary'],
+          bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'],
+          ...(versionedRepository ? { features: ['optimistic-concurrency-v1'] } : {})
+        })
       }
 
       if (url.pathname === '/api/v1/sync-source/summary') {
@@ -307,8 +319,8 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!field?.saveDailyReport) return sendJson(response, 503, { error: 'field_unavailable', message: 'Serviço central de RDO indisponível.' })
         const context = await authenticateLanRequest(request, security)
-        authorizeBusinessRoute(context, { table: 'rdos', method: 'POST' })
         const body = await readJson(request)
+        authorizeAction(context, { domain: 'operation', action: body.id ? 'edit' : 'create' })
         return sendJson(response, 201, field.saveDailyReport(body))
       }
 
@@ -316,7 +328,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         if (!planning?.overview) return sendJson(response, 503, { error: 'planning_unavailable', message: 'Serviço central de Planejamento indisponível.' })
         const context = await authenticateLanRequest(request, security)
-        authorizeBusinessRoute(context, { table: 'cronograma_etapas', method: 'GET' })
+        authorizeAction(context, { domain: 'planning', action: 'view' })
         const obraId = Number(url.searchParams.get('obra_id'))
         return sendJson(response, 200, planning.overview(obraId))
       }
@@ -326,7 +338,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!finance?.accountPayment) return sendJson(response, 503, { error: 'finance_unavailable', message: 'Serviço financeiro central indisponível.' })
         const context = await authenticateLanRequest(request, security)
-        authorizeBusinessRoute(context, { table: 'contas', method: 'POST' })
+        authorizeAction(context, { domain: 'finance', action: 'approve' })
         const body = await readJson(request)
         return sendJson(response, 200, finance.accountPayment(Number(financePaymentMatch[1]), body.payment || {}, body.requestId))
       }
@@ -335,7 +347,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         if (!finance?.dre) return sendJson(response, 503, { error: 'finance_unavailable', message: 'Serviço financeiro central indisponível.' })
         const context = await authenticateLanRequest(request, security)
-        authorizeBusinessRoute(context, { table: 'contas', method: 'GET' })
+        authorizeAction(context, { domain: 'finance', action: 'view' })
         const filters = Object.fromEntries(url.searchParams.entries())
         return sendJson(response, 200, finance.dre(filters))
       }
@@ -344,7 +356,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         if (!finance?.dashboard) return sendJson(response, 503, { error: 'finance_unavailable', message: 'Serviço financeiro central indisponível.' })
         const context = await authenticateLanRequest(request, security)
-        authorizeBusinessRoute(context, { table: 'contas', method: 'GET' })
+        authorizeAction(context, { domain: 'finance', action: 'view' })
         const filters = Object.fromEntries(url.searchParams.entries())
         return sendJson(response, 200, finance.dashboard(filters))
       }
@@ -352,21 +364,21 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/api/v1/rh/payroll/employee') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!payroll?.getEmployee) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
-        await authorizeRh(request, security)
+        await authorizeRh(request, security, 'view')
         return sendJson(response, 200, payroll.getEmployee(await readJson(request)))
       }
 
       if (url.pathname === '/api/v1/rh/payroll/save-variable') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!payroll?.saveVariable) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
-        await authorizeRh(request, security)
+        await authorizeRh(request, security, 'edit')
         return sendJson(response, 200, payroll.saveVariable(await readJson(request)))
       }
 
       if (url.pathname === '/api/v1/rh/payroll/remove-variable') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!payroll?.removeVariable) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
-        await authorizeRh(request, security)
+        await authorizeRh(request, security, 'edit')
         const body = await readJson(request)
         return sendJson(response, 200, { ok: payroll.removeVariable(body.id) })
       }
@@ -374,14 +386,14 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/api/v1/rh/payroll/confirm') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!payroll?.confirm) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
-        await authorizeRh(request, security)
+        await authorizeRh(request, security, 'approve')
         return sendJson(response, 200, payroll.confirm(await readJson(request)))
       }
 
       if (url.pathname === '/api/v1/rh/payroll/pending') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!payroll?.pending) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
-        await authorizeRh(request, security, 'GET')
+        await authorizeRh(request, security, 'view')
         const body = await readJson(request)
         return sendJson(response, 200, payroll.pending(body.competencia))
       }
@@ -389,28 +401,28 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/api/v1/rh/time/get') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!time?.get) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Ponto central indisponível.' })
-        await authorizeRh(request, security, 'GET')
+        await authorizeRh(request, security, 'view')
         return sendJson(response, 200, time.get(await readJson(request)))
       }
 
       if (url.pathname === '/api/v1/rh/time/auto-fill') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!time?.autoFill) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Ponto central indisponível.' })
-        await authorizeRh(request, security)
+        await authorizeRh(request, security, 'edit')
         return sendJson(response, 200, time.autoFill(await readJson(request)))
       }
 
       if (url.pathname === '/api/v1/rh/time/save') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!time?.save) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Ponto central indisponível.' })
-        await authorizeRh(request, security)
+        await authorizeRh(request, security, 'edit')
         return sendJson(response, 200, time.save(await readJson(request)))
       }
 
       if (url.pathname === '/api/v1/rh/time/document-context') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!time?.documentContext) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Contexto central de documentos indisponível.' })
-        await authorizeRh(request, security, 'GET')
+        await authorizeRh(request, security, 'view')
         return sendJson(response, 200, time.documentContext(await readJson(request)))
       }
 
@@ -521,12 +533,22 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       const entityMatch = url.pathname.match(ENTITY_ROUTE)
       if (entityMatch) {
         const context = await authenticateLanRequest(request, security)
-        return await handleEntityRequest(request, response, url, repository, entityMatch, context)
+        return await handleEntityRequest(request, response, url, repository, versionedRepository, entityMatch, context)
       }
 
       return sendJson(response, 404, { error: 'not_found' })
     } catch (error) {
       if (error instanceof LanAuthorizationError || error instanceof PairingError) return sendJson(response, error.status, { error: error.code, message: error.message })
+      if (error instanceof RevisionConflictError) {
+        return sendJson(response, 409, {
+          error: error.code,
+          resourceType: error.resourceType,
+          resourceId: error.resourceId,
+          expectedRevision: error.expectedRevision,
+          currentRevision: error.currentRevision,
+          current: error.current
+        })
+      }
       if (error?.code === 'invalid_json') return sendJson(response, 400, { error: 'invalid_json', message: error.message })
       if (error?.code === 'payload_too_large') return sendJson(response, 413, { error: 'payload_too_large', message: error.message })
       const message = error instanceof Error ? error.message : String(error)

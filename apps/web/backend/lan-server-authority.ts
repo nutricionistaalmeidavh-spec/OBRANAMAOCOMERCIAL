@@ -1,4 +1,5 @@
 import { runtimeEnv } from '../cloudflare/sdk';
+import { effectivePermissions, permissionsRevision, type PermissionMatrix } from './member-permissions';
 
 export type LanServerMemberSnapshot = {
   memberId:string;
@@ -7,6 +8,8 @@ export type LanServerMemberSnapshot = {
   role:'admin'|'foreman'|'employee';
   modules:string[];
   channels:string[];
+  permissions:PermissionMatrix;
+  permissionsRevision:string;
   status:'active'|'revoked';
 };
 
@@ -131,9 +134,19 @@ export function createLanServerAuthority({db,nowMs=Date.now}:AuthorityDeps){
       const role=(['admin','foreman','employee'].includes(String(member.role))?String(member.role):'employee') as LanServerMemberSnapshot['role'];
       const requestedModules=listStrings(member.modules).length?listStrings(member.modules):defaultModules(role);
       const requestedChannels=listStrings(member.channels).length?listStrings(member.channels):defaultChannels(role);
+      const modules=intersect(access.modules,requestedModules);
+      const channels=intersect(access.channels,requestedChannels);
+      const permissions=effectivePermissions({
+        role,
+        customPermissions: member.permissions,
+        modules,
+        channels,
+        companyModules: access.modules,
+        companyChannels: access.channels,
+      });
       members.push({
         memberId:String(row.id),email:String(member.email||''),name:member.name?String(member.name):undefined,role,
-        modules:intersect(access.modules,requestedModules),channels:intersect(access.channels,requestedChannels),status:'active'
+        modules,channels,permissions,permissionsRevision:permissionsRevision(permissions),status:'active'
       });
     }
     const generatedAt=nowIso();

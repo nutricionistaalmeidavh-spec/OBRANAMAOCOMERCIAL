@@ -23,6 +23,22 @@ class DataAccessService {
     this.credentials = credentials || defaultCredentials(db)
     this.remote = remote || new LanDataClient({ storage: this.storage, credentials: this.credentials })
     this.moduleStorage = moduleStorage
+    this.observedRevisions = new Map()
+  }
+
+  revisionKey(table, id) {
+    return `${table}:${Number(id)}`
+  }
+
+  rememberRevision(table, value) {
+    if (!value || value.id === undefined || value.id === null || !Number.isFinite(Number(value.revision))) return value
+    this.observedRevisions.set(this.revisionKey(table, value.id), Number(value.revision))
+    return value
+  }
+
+  rememberMany(table, values) {
+    if (Array.isArray(values)) for (const value of values) this.rememberRevision(table, value)
+    return values
   }
 
   transportReady() {
@@ -62,22 +78,27 @@ class DataAccessService {
   }
 
   async list(table, filters) {
-    if (this.assertRoute(table) === 'remote') return this.remote.list(table, filters)
+    if (this.assertRoute(table) === 'remote') return this.rememberMany(table, await this.remote.list(table, filters))
     return this.db.list(table, filters)
   }
 
   async get(table, id) {
-    if (this.assertRoute(table) === 'remote') return this.remote.get(table, id)
+    if (this.assertRoute(table) === 'remote') return this.rememberRevision(table, await this.remote.get(table, id))
     return this.db.get(table, id)
   }
 
   async save(table, data) {
-    if (this.assertRoute(table) === 'remote') return this.remote.save(table, data)
+    if (this.assertRoute(table) === 'remote') return this.rememberRevision(table, await this.remote.save(table, data))
     return this.db.save(table, data)
   }
 
-  async remove(table, id) {
-    if (this.assertRoute(table) === 'remote') return this.remote.remove(table, id)
+  async remove(table, id, expectedRevision) {
+    if (this.assertRoute(table) === 'remote') {
+      const observedRevision = expectedRevision ?? this.observedRevisions.get(this.revisionKey(table, id))
+      const removed = await this.remote.remove(table, id, observedRevision)
+      if (removed) this.observedRevisions.delete(this.revisionKey(table, id))
+      return removed
+    }
     return this.db.remove(table, id)
   }
 }

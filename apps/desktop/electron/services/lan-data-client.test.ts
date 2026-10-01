@@ -19,16 +19,61 @@ describe('LanDataClient', () => {
     expect(options.headers.Authorization).toBe('Bearer lan-device-token')
   })
 
-  it('usa POST para criar e PUT para atualizar com o mesmo bearer', async () => {
+  it('usa POST para criar e PUT versionado para atualizar com o mesmo bearer', async () => {
     const { LanDataClient } = require('./lan-data-client.cjs')
     const fetchImpl=vi.fn(async(_url:string,options:any)=>({ok:true,status:options.method==='POST'?201:200,json:async()=>JSON.parse(options.body)}))
     const baseUrl='http://servidor:4732'
     const storage={state:()=>({mode:'server',operationalMode:'lan-client',baseUrl})}
     const client=new LanDataClient({storage,credentials:credentialsFor(baseUrl),fetchImpl})
     await client.save('clientes',{nome:'Cliente A',empresa_id:1})
-    await client.save('obras',{id:9,nome:'Obra A',empresa_id:1})
+    await client.save('obras',{id:9,revision:3,nome:'Obra A',empresa_id:1})
     expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe('Bearer lan-device-token')
     expect(fetchImpl.mock.calls[1][1].headers.Authorization).toBe('Bearer lan-device-token')
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({nome:'Cliente A',empresa_id:1})
+    expect(JSON.parse(fetchImpl.mock.calls[1][1].body)).toEqual({
+      expectedRevision:3,
+      data:{nome:'Obra A',empresa_id:1}
+    })
+  })
+
+  it('envia a revisão observada ao excluir um registro central', async () => {
+    const { LanDataClient } = require('./lan-data-client.cjs')
+    const baseUrl='http://servidor:4732'
+    const fetchImpl=vi.fn(async()=>({ok:true,status:200,json:async()=>({ok:true})}))
+    const client=new LanDataClient({storage:{state:()=>({mode:'server',operationalMode:'lan-client',baseUrl})},credentials:credentialsFor(baseUrl),fetchImpl})
+
+    await expect(client.remove('obras',9,4)).resolves.toBe(true)
+    const [url,options]=fetchImpl.mock.calls[0]
+    expect(url).toBe(`${baseUrl}/api/v1/obras/9?expectedRevision=4`)
+    expect(options.method).toBe('DELETE')
+  })
+
+  it('preserva o payload estruturado de revision_conflict para a camada de UX', async () => {
+    const { LanDataClient, LanRevisionConflictError } = require('./lan-data-client.cjs')
+    const baseUrl='http://servidor:4732'
+    const conflict={
+      error:'revision_conflict',
+      resourceType:'obras',
+      resourceId:'9',
+      expectedRevision:3,
+      currentRevision:4,
+      current:{id:9,nome:'Versão do servidor',revision:4}
+    }
+    const fetchImpl=vi.fn(async()=>({ok:false,status:409,json:async()=>conflict}))
+    const client=new LanDataClient({storage:{state:()=>({mode:'server',operationalMode:'lan-client',baseUrl})},credentials:credentialsFor(baseUrl),fetchImpl})
+
+    try {
+      await client.save('obras',{id:9,revision:3,nome:'Minha versão'})
+      throw new Error('esperava conflito de revisão')
+    } catch (error) {
+      expect(error).toBeInstanceOf(LanRevisionConflictError)
+      expect((error as any).code).toBe('revision_conflict')
+      expect((error as any).resourceType).toBe('obras')
+      expect((error as any).resourceId).toBe('9')
+      expect((error as any).expectedRevision).toBe(3)
+      expect((error as any).currentRevision).toBe(4)
+      expect((error as any).current).toEqual(conflict.current)
+    }
   })
 
   it('consulta capacidades da fonte central com a mesma credencial do dispositivo', async () => {

@@ -1,11 +1,39 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
+const revisionConflictListeners = new Set()
+
+function notifyRevisionConflict(details) {
+  for (const listener of revisionConflictListeners) {
+    try { listener(details) } catch {}
+  }
+}
+
 async function call(channel, payload) {
   const response = await ipcRenderer.invoke(channel, payload)
-  if (!response?.ok) { const error = new Error(response?.error?.message || 'Não foi possível concluir a operação.'); error.details = response?.error?.details; throw error }
+  if (!response?.ok) {
+    const error = new Error(response?.error?.message || 'Não foi possível concluir a operação.')
+    error.details = response?.error?.details
+    error.code = response?.error?.code
+    error.status = response?.error?.status
+    error.resourceType = response?.error?.resourceType
+    error.resourceId = response?.error?.resourceId
+    error.expectedRevision = response?.error?.expectedRevision
+    error.currentRevision = response?.error?.currentRevision
+    error.current = response?.error?.current
+    if (response?.error?.code === 'revision_conflict') {
+      notifyRevisionConflict({
+        resourceType: error.resourceType,
+        resourceId: error.resourceId,
+        expectedRevision: error.expectedRevision,
+        currentRevision: error.currentRevision,
+        current: error.current
+      })
+    }
+    throw error
+  }
   return response.data
 }
-const entity = (table) => ({ list: (filters) => call('entity:list', { table, filters }), get: (id) => call('entity:get', { table, id }), save: (data) => call('entity:save', { table, data }), remove: (id) => call('entity:remove', { table, id }) })
+const entity = (table) => ({ list: (filters) => call('entity:list', { table, filters }), get: (id) => call('entity:get', { table, id }), save: (data) => call('entity:save', { table, data }), remove: (id, revision) => call('entity:remove', { table, id, revision }) })
 
 contextBridge.exposeInMainWorld('fluxoDre', {
   app: { bootstrap: () => call('app:bootstrap'), retryDatabase: () => call('app:retry-database'), getLayout: () => call('app:get-layout'), setLayout: (layout) => call('app:set-layout', { layout }) }, product: { getEdition: () => call('product:get-edition'), setEdition: (edition) => call('product:set-edition', { edition }) }, demo: { seed: () => call('demo:seed') },
@@ -35,6 +63,12 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     refreshIdentity: () => call('lan:refresh-identity'),
     startAtLoginState: () => call('lan:start-at-login-state'),
     setStartAtLogin: (enabled) => call('lan:set-start-at-login', { enabled })
+  },
+  conflicts: {
+    onRevisionConflict: (listener) => {
+      revisionConflictListeners.add(listener)
+      return () => revisionConflictListeners.delete(listener)
+    }
   },
   empresas: entity('empresas'), clientes: entity('clientes'), fornecedores: entity('fornecedores'), obras: { ...entity('obras'), importSpreadsheets: () => call('works:import-spreadsheets'), overview: (obra_id) => call('works:overview', { obra_id }), timeline: (obra_id) => call('works:timeline', { obra_id }) }, etapas: entity('etapas_obra'), locais: entity('locais_obra'), orcamentos: entity('itens_orcamentarios'), cronograma: entity('cronograma_etapas'), rdos: entity('rdos'), rdoEquipe: entity('rdo_equipe'), rdoEquipamentos: entity('rdo_equipamentos'), rdoOcorrencias: entity('rdo_ocorrencias'), rdoAnexos: entity('rdo_anexos'),
   medicoes: { ...entity('medicoes'), saveWithItems: (data) => call('measurements:save', data), anexos: entity('medicao_anexos'), itensMedidos: entity('medicao_itens'), importAttachment: (data) => call('files:import-measurement', data), mapa: entity('medicao_mapa_itens') }, contas: { ...entity('contas'), payment: (id, payment) => call('accounts:payment', { id, payment }) },

@@ -34,10 +34,10 @@ describe('F17 migration runtime wiring',()=>{
     expect(typings).toContain('rollbackModuleMigration(module:ModuleStorageKey)')
   })
 
-  it('não introduz contratos F14 F15 ou F16',()=>{
-    for(const forbidden of ['expectedRevision','revisionConflict','granularPermissions','permissionMatrix']){
-      expect(main).not.toContain(forbidden)
-      expect(preload).not.toContain(forbidden)
-    }
+  it('preserva o wiring F17 ao coexistir com a concorrência F14',()=>{
+    expect(main).toContain('expectedRevision')
+    expect(main).toContain("ipcMain.handle('entity:remove'")
+    expect(preload).toContain('onRevisionConflict')
+    expect(preload).toContain("call('storage:migrate-module'")
   })
 })

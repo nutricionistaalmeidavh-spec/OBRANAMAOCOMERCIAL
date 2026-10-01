@@ -4,6 +4,8 @@ class RhSourceService {
     this.localTime = localTime
     this.lanClient = lanClient
     this.moduleStorage = moduleStorage
+    this.payrollRevisions = new Map()
+    this.timeRevisions = new Map()
   }
 
   state() {
@@ -12,6 +14,14 @@ class RhSourceService {
 
   blocked() {
     throw new Error('O RH central ainda não está ativo neste computador; nenhum dado será salvo localmente como fallback.')
+  }
+
+  payrollKey(payload = {}) {
+    return `${Number(payload.funcionario_id)}:${String(payload.competencia || '')}`
+  }
+
+  timeKey(payload = {}) {
+    return `${Number(payload.funcionario_id)}:${String(payload.competencia || '')}`
   }
 
   async localOrCentral(localCall, centralCall) {
@@ -24,7 +34,11 @@ class RhSourceService {
   async getEmployee(payload) {
     return this.localOrCentral(
       () => this.localPayroll.getEmployee(payload),
-      () => this.lanClient.payrollEmployee(payload)
+      async () => {
+        const result = await this.lanClient.payrollEmployee(payload)
+        if (Number.isFinite(Number(result?.sheet?.revision))) this.payrollRevisions.set(this.payrollKey(payload), Number(result.sheet.revision))
+        return result
+      }
     )
   }
 
@@ -45,7 +59,13 @@ class RhSourceService {
   async confirm(payload) {
     return this.localOrCentral(
       () => this.localPayroll.confirm(payload),
-      () => this.lanClient.payrollConfirm(payload)
+      async () => {
+        const key = this.payrollKey(payload)
+        const expectedRevision = payload.expectedRevision ?? this.payrollRevisions.get(key)
+        const result = await this.lanClient.payrollConfirm({ ...payload, expectedRevision })
+        if (Number.isFinite(Number(result?.sheetRevision))) this.payrollRevisions.set(key, Number(result.sheetRevision))
+        return result
+      }
     )
   }
 
@@ -59,21 +79,37 @@ class RhSourceService {
   async timeGet(payload) {
     return this.localOrCentral(
       () => this.localTime.get(payload),
-      () => this.lanClient.timeGet(payload)
+      async () => {
+        const result = await this.lanClient.timeGet(payload)
+        if (Number.isFinite(Number(result?.point?.revision))) this.timeRevisions.set(this.timeKey(payload), Number(result.point.revision))
+        return result
+      }
     )
   }
 
   async timeAutoFill(payload) {
     return this.localOrCentral(
       () => this.localTime.autoFill(payload),
-      () => this.lanClient.timeAutoFill(payload)
+      async () => {
+        const key = this.timeKey(payload)
+        const expectedRevision = payload.expectedRevision ?? this.timeRevisions.get(key)
+        const result = await this.lanClient.timeAutoFill({ ...payload, expectedRevision })
+        if (Number.isFinite(Number(result?.point?.revision))) this.timeRevisions.set(key, Number(result.point.revision))
+        return result
+      }
     )
   }
 
   async timeSave(payload) {
     return this.localOrCentral(
       () => this.localTime.save(payload),
-      () => this.lanClient.timeSave(payload)
+      async () => {
+        const key = this.timeKey(payload)
+        const expectedRevision = payload.expectedRevision ?? this.timeRevisions.get(key)
+        const result = await this.lanClient.timeSave({ ...payload, expectedRevision })
+        if (Number.isFinite(Number(result?.point?.revision))) this.timeRevisions.set(key, Number(result.point.revision))
+        return result
+      }
     )
   }
 

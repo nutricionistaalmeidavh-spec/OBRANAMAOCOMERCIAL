@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS lan_members_cache (
   role TEXT NOT NULL,
   modules_json TEXT NOT NULL,
   channels_json TEXT NOT NULL,
+  permissions_json TEXT,
+  permissions_revision TEXT,
   cloud_status TEXT NOT NULL,
   refreshed_at TEXT NOT NULL
 );
@@ -62,6 +64,11 @@ const parseJson = (value, fallback = []) => {
   try { return JSON.parse(String(value ?? '')) } catch { return fallback }
 }
 
+const parseOptionalJson = value => {
+  if (value === null || value === undefined || value === '') return undefined
+  try { return JSON.parse(String(value)) } catch { return undefined }
+}
+
 function mapMember(row) {
   if (!row) return null
   return {
@@ -71,6 +78,8 @@ function mapMember(row) {
     role: row.role,
     modules: parseJson(row.modules_json, []),
     channels: parseJson(row.channels_json, []),
+    permissions: parseOptionalJson(row.permissions_json),
+    permissionsRevision: row.permissions_revision || undefined,
     status: row.cloud_status,
     refreshedAt: row.refreshed_at
   }
@@ -97,6 +106,23 @@ export class LanSecurityRepository {
     this.db = db
     this.now = now
     this.db.exec(SCHEMA)
+    this.ensurePermissionCacheColumns()
+  }
+
+  ensurePermissionCacheColumns() {
+    const columns = new Set(this.db.prepare('PRAGMA table_info(lan_members_cache)').all().map(row => String(row.name)))
+    const missing = []
+    if (!columns.has('permissions_json')) missing.push('ALTER TABLE lan_members_cache ADD COLUMN permissions_json TEXT')
+    if (!columns.has('permissions_revision')) missing.push('ALTER TABLE lan_members_cache ADD COLUMN permissions_revision TEXT')
+    if (!missing.length) return
+    this.db.exec('BEGIN IMMEDIATE')
+    try {
+      for (const sql of missing) this.db.exec(sql)
+      this.db.exec('COMMIT')
+    } catch (error) {
+      try { this.db.exec('ROLLBACK') } catch {}
+      throw error
+    }
   }
 
   withTransaction(work) {
@@ -149,9 +175,11 @@ export class LanSecurityRepository {
     if (state?.companyId && String(snapshot?.companyId || '') !== String(state.companyId)) throw new Error('Snapshot pertence a outra empresa.')
     const refreshedAt = String(snapshot?.generatedAt || this.now())
     this.db.prepare('DELETE FROM lan_members_cache').run()
-    const insert = this.db.prepare('INSERT INTO lan_members_cache(member_id,email,display_name,role,modules_json,channels_json,cloud_status,refreshed_at) VALUES(?,?,?,?,?,?,?,?)')
+    const insert = this.db.prepare('INSERT INTO lan_members_cache(member_id,email,display_name,role,modules_json,channels_json,permissions_json,permissions_revision,cloud_status,refreshed_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
     for (const member of snapshot?.members || []) {
-      insert.run(String(member.memberId), String(member.email || ''), member.name ? String(member.name) : null, String(member.role || 'employee'), JSON.stringify(member.modules || []), JSON.stringify(member.channels || []), String(member.status || 'revoked'), refreshedAt)
+      const permissionsJson = member.permissions === undefined ? null : JSON.stringify(member.permissions)
+      const permissionsRevision = member.permissionsRevision === undefined ? null : String(member.permissionsRevision)
+      insert.run(String(member.memberId), String(member.email || ''), member.name ? String(member.name) : null, String(member.role || 'employee'), JSON.stringify(member.modules || []), JSON.stringify(member.channels || []), permissionsJson, permissionsRevision, String(member.status || 'revoked'), refreshedAt)
     }
     this.db.prepare('UPDATE lan_server_identity SET identity_revision=?,last_cloud_refresh_at=? WHERE id=1').run(String(snapshot?.revision || ''), refreshedAt)
   }

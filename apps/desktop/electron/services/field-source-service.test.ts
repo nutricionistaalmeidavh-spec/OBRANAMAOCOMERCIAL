@@ -14,17 +14,34 @@ function fixture(state: 'local'|'migration-required'|'central-ready'|'central-ac
 describe('FieldSourceService', () => {
   it.each(['local','migration-required'] as const)('%s preserva o FieldService local', async (state) => {
     const f = fixture(state)
-    await expect(f.service.saveDailyReport({ obra_id: 7, data: '2026-09-30' })).resolves.toEqual(expect.objectContaining({ source: 'local' }))
-    expect(f.local.saveDailyReport).toHaveBeenCalledTimes(1)
+    const payload = { obra_id: 7, data: '2026-09-30', revision: 4 }
+    await expect(f.service.saveDailyReport(payload)).resolves.toEqual(expect.objectContaining({ source: 'local', revision: 4 }))
+    expect(f.local.saveDailyReport).toHaveBeenCalledWith(payload)
     expect(f.lanClient.saveDailyReport).not.toHaveBeenCalled()
   })
 
-  it('central-active envia o agregado inteiro em uma única chamada LAN', async () => {
+  it('central-active envia o agregado inteiro com expectedRevision e remove revisões auxiliares do payload', async () => {
     const f = fixture('central-active')
-    const payload = { obra_id: 7, data: '2026-09-30', equipe: [{ nome: 'João' }], ocorrencias: [{ descricao: 'Teste' }] }
+    const payload = {
+      id: 9,
+      revision: 4,
+      obra_id: 7,
+      data: '2026-09-30',
+      equipe: [{ id: 11, revision: 2, nome: 'João' }],
+      equipamentos: [{ id: 12, revision: 3, nome: 'Martelete' }],
+      ocorrencias: [{ id: 13, revision: 5, descricao: 'Teste' }]
+    }
     await expect(f.service.saveDailyReport(payload)).resolves.toEqual(expect.objectContaining({ source: 'central' }))
     expect(f.lanClient.saveDailyReport).toHaveBeenCalledTimes(1)
-    expect(f.lanClient.saveDailyReport).toHaveBeenCalledWith(payload)
+    expect(f.lanClient.saveDailyReport).toHaveBeenCalledWith({
+      id: 9,
+      expectedRevision: 4,
+      obra_id: 7,
+      data: '2026-09-30',
+      equipe: [{ id: 11, nome: 'João' }],
+      equipamentos: [{ id: 12, nome: 'Martelete' }],
+      ocorrencias: [{ id: 13, descricao: 'Teste' }]
+    })
     expect(f.local.saveDailyReport).not.toHaveBeenCalled()
   })
 

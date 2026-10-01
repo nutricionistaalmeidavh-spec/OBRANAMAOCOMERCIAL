@@ -31,13 +31,15 @@ test('ponto central cria competência e autofill determinístico preserva fins d
   const f = fixture()
   try {
     const first = f.time.autoFill({ funcionario_id: f.employee.id, competencia: '2026-10' })
+    assert.equal(first.point.revision, 1)
     assert.equal(first.marks.length, 31)
     assert.ok(first.marks.some(mark => mark.tipo === 'sabado'))
     assert.ok(first.marks.some(mark => mark.tipo === 'domingo'))
     const snapshot = first.marks.map(mark => [mark.data, mark.tipo, mark.entrada, mark.saida])
-    const second = f.time.autoFill({ funcionario_id: f.employee.id, competencia: '2026-10', overwrite: true })
+    const second = f.time.autoFill({ funcionario_id: f.employee.id, competencia: '2026-10', overwrite: true, expectedRevision: first.point.revision })
     assert.deepEqual(second.marks.map(mark => [mark.data, mark.tipo, mark.entrada, mark.saida]), snapshot)
     assert.equal(second.point.preenchimento_automatico, 1)
+    assert.equal(second.point.revision, first.point.revision + 1)
   } finally { f.repository.close() }
 })
 
@@ -48,6 +50,7 @@ test('save central atualiza marcações atomicamente e normaliza horários/tipo'
       { data: '2026-10-01', tipo: 'trabalho', entrada: '07:02', intervalo_saida: '11:00', intervalo_entrada: '12:00', saida: '17:03', observacoes: 'normal' },
       { data: '2026-10-02', tipo: 'falta', entrada: '07:00', saida: '17:00', observacoes: 'atestado' }
     ] })
+    assert.equal(state.point.revision, 1)
     assert.equal(state.point.status, 'preenchido')
     assert.equal(state.marks[0].entrada, '07:02')
     assert.equal(state.marks[1].entrada, null)
@@ -57,11 +60,12 @@ test('save central atualiza marcações atomicamente e normaliza horários/tipo'
       CREATE TRIGGER fail_time_mark BEFORE INSERT ON ponto_marcacoes
       WHEN NEW.data='2026-10-04' BEGIN SELECT RAISE(ABORT, 'falha injetada ponto'); END;
     `)
-    assert.throws(() => f.time.save({ funcionario_id: f.employee.id, competencia: '2026-10', marks: [
+    assert.throws(() => f.time.save({ funcionario_id: f.employee.id, competencia: '2026-10', expectedRevision: state.point.revision, marks: [
       { data: '2026-10-03', tipo: 'trabalho', entrada: '07:00', saida: '17:00' },
       { data: '2026-10-04', tipo: 'trabalho', entrada: '07:00', saida: '17:00' }
     ] }), /falha injetada ponto/i)
     assert.equal(f.repository.connection().prepare("SELECT COUNT(*) AS n FROM ponto_marcacoes WHERE data='2026-10-03'").get().n, 0)
+    assert.equal(f.time.get({ funcionario_id: f.employee.id, competencia: '2026-10' }).point.revision, state.point.revision)
   } finally { f.repository.close() }
 })
 

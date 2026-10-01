@@ -1,8 +1,11 @@
+import { ConcurrencyService } from './concurrency-service.mjs'
+
 export class PayrollService {
   constructor({ repository, now = () => new Date().toISOString() }) {
     if (!repository?.connection) throw new Error('Repositório LAN inválido para Folha.')
     this.repository = repository
     this.now = now
+    this.concurrency = new ConcurrencyService({ db: repository.connection() })
   }
 
   get db() { return this.repository.connection() }
@@ -12,10 +15,12 @@ export class PayrollService {
     if (!employee || employee.deleted_at || employee.status !== 'ativo') throw new Error('Funcionário ativo não encontrado.')
     const cargo = employee.cargo_id ? this.repository.get('cargos', employee.cargo_id) : null
     let sheet = this.db.prepare('SELECT * FROM folhas_pagamento WHERE empresa_id=? AND competencia=?').get(employee.empresa_id, competencia)
+    const created = !sheet
     if (!sheet) sheet = this.repository.save('folhas_pagamento', { empresa_id: employee.empresa_id, competencia, status: 'aberta' })
     const paid = Number(this.db.prepare("SELECT COUNT(*) total FROM pagamentos_funcionario WHERE funcionario_id=? AND competencia=? AND status='pago'").get(employee.id, competencia)?.total || 0)
     if (!paid) this.syncFixed(sheet, employee, cargo)
-    return { employee, cargo, sheet }
+    const revision = this.concurrency.current('folhas_pagamento', sheet.id) || this.concurrency.initialize('folhas_pagamento', sheet.id)
+    return { employee, cargo, sheet: { ...sheet, revision }, created }
   }
 
   syncFixed(sheet, employee, cargo) {
@@ -121,18 +126,22 @@ export class PayrollService {
   }
 
   confirm(payload) {
-    const { employee, sheet } = this.ensureSheet(payload.funcionario_id, payload.competencia)
-    const quinzena = Number(payload.quinzena)
-    const existing = this.db.prepare("SELECT id FROM pagamentos_funcionario WHERE funcionario_id=? AND competencia=? AND quinzena=? AND status='pago'").get(employee.id, payload.competencia, quinzena)
-    if (existing) throw new Error('Esta quinzena já foi confirmada.')
-
-    const rows = this.db.prepare("SELECT * FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND quinzena=? AND status='pendente'").all(sheet.id, employee.id, quinzena)
-    const credits = rows.filter(row => row.natureza === 'credito').reduce((sum, row) => sum + Number(row.valor_centavos || 0), 0)
-    const discounts = rows.filter(row => row.natureza === 'desconto').reduce((sum, row) => sum + Number(row.valor_centavos || 0), 0)
-    const amount = Math.max(0, credits - discounts)
-
     this.db.exec('BEGIN IMMEDIATE;')
     try {
+      const { employee, sheet, created } = this.ensureSheet(payload.funcionario_id, payload.competencia)
+      if (!created) {
+        this.concurrency.assertExpected('folhas_pagamento', sheet.id, payload.expectedRevision, sheet)
+      }
+
+      const quinzena = Number(payload.quinzena)
+      const existing = this.db.prepare("SELECT id FROM pagamentos_funcionario WHERE funcionario_id=? AND competencia=? AND quinzena=? AND status='pago'").get(employee.id, payload.competencia, quinzena)
+      if (existing) throw new Error('Esta quinzena já foi confirmada.')
+
+      const rows = this.db.prepare("SELECT * FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND quinzena=? AND status='pendente'").all(sheet.id, employee.id, quinzena)
+      const credits = rows.filter(row => row.natureza === 'credito').reduce((sum, row) => sum + Number(row.valor_centavos || 0), 0)
+      const discounts = rows.filter(row => row.natureza === 'desconto').reduce((sum, row) => sum + Number(row.valor_centavos || 0), 0)
+      const amount = Math.max(0, credits - discounts)
+
       const payment = this.repository.save('pagamentos_funcionario', {
         empresa_id: employee.empresa_id,
         funcionario_id: employee.id,
@@ -147,8 +156,9 @@ export class PayrollService {
         confirmado_em: this.now()
       })
       this.db.prepare("UPDATE folha_lancamentos SET status='pago',updated_at=CURRENT_TIMESTAMP WHERE folha_id=? AND funcionario_id=? AND quinzena=? AND status='pendente'").run(sheet.id, employee.id, quinzena)
+      const sheetRevision = created ? sheet.revision : this.concurrency.bump('folhas_pagamento', sheet.id)
       this.db.exec('COMMIT;')
-      return payment
+      return { ...payment, sheetRevision }
     } catch (error) {
       try { this.db.exec('ROLLBACK;') } catch {}
       throw error

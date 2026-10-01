@@ -1,3 +1,5 @@
+const { RevisionConflictError } = require('./revision-conflict-error.cjs')
+
 const CORE_REMOTE_TABLES = new Set(['empresas', 'clientes', 'obras'])
 const OPERATION_REMOTE_TABLES = new Set(['frentes_obra', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
 const PLANNING_REMOTE_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'])
@@ -59,12 +61,16 @@ class LanDataClient {
       let payload = null
       try { payload = await response.json() } catch {}
       if (!response?.ok) {
+        if (response?.status === 409 && payload?.error === 'revision_conflict') {
+          throw new RevisionConflictError(payload)
+        }
         const rawMessage = payload?.message || `Servidor da empresa respondeu HTTP ${response?.status ?? 'inválido'}.`
         throw new Error(this.sanitizeMessage(rawMessage, state.token))
       }
       return payload
     } catch (error) {
       if (error?.name === 'AbortError') throw new Error('Tempo esgotado ao acessar o servidor da empresa.')
+      if (error instanceof RevisionConflictError) throw error
       if (error instanceof Error) throw new Error(this.sanitizeMessage(error.message, state.token))
       throw new Error('Não foi possível acessar o servidor da empresa.')
     } finally {
@@ -171,14 +177,20 @@ class LanDataClient {
     const id = data?.id ? Number(data.id) : null
     const body = { ...(data || {}) }
     delete body.id
-    return this.request(id ? 'PUT' : 'POST', id ? `/api/v1/${table}/${id}` : `/api/v1/${table}`, { body })
+    if (!id) {
+      delete body.revision
+      return this.request('POST', `/api/v1/${table}`, { body })
+    }
+    const expectedRevision = data?.revision
+    delete body.revision
+    return this.request('PUT', `/api/v1/${table}/${id}`, { body: { expectedRevision, data: body } })
   }
 
-  async remove(table, id) {
+  async remove(table, id, expectedRevision) {
     this.assertTable(table)
-    await this.request('DELETE', `/api/v1/${table}/${Number(id)}`)
+    await this.request('DELETE', `/api/v1/${table}/${Number(id)}`, { query: { expectedRevision } })
     return true
   }
 }
 
-module.exports = { LanDataClient, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES }
+module.exports = { LanDataClient, LanRevisionConflictError: RevisionConflictError, RevisionConflictError, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES }
