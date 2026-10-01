@@ -1,0 +1,53 @@
+name: PR60 Wire RH Catalog Once
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [feat/desktop-lan-server-foundation]
+    paths:
+      - '.github/workflows/pr60-wire-rh-catalog.yml'
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/desktop-lan-server-foundation
+          fetch-depth: 0
+      - name: Wire central RH catalog and remove this one-shot workflow
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs')
+          const file='apps/desktop/electron/main.cjs'
+          let text=fs.readFileSync(file,'utf8')
+          const catalogImport="const { CatalogService } = require('./services/catalog-service.cjs')"
+          const sourceImport="const { RhCatalogSourceService } = require('./services/rh-catalog-source-service.cjs')"
+          if(!text.includes(sourceImport)){
+            if(!text.includes(catalogImport)) throw new Error('CatalogService import not found')
+            text=text.replace(catalogImport,`${catalogImport}\n${sourceImport}`)
+          }
+          const rhLine="  const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })"
+          const catalogLine="  const catalog = new RhCatalogSourceService({ local: new CatalogService({ db }), dataAccess, moduleStorage })"
+          if(!text.includes(catalogLine)){
+            if(!text.includes(rhLine)) throw new Error('RH source construction not found')
+            text=text.replace(rhLine,`${rhLine}\n${catalogLine}`)
+          }
+          if(text.includes('    catalog: new CatalogService({ db }),')) text=text.replace('    catalog: new CatalogService({ db }),','    catalog,')
+          if(!text.includes('    catalog,')) throw new Error('Catalog return wiring not found')
+          fs.writeFileSync(file,text)
+          NODE
+          node --check apps/desktop/electron/main.cjs
+          node --check apps/desktop/electron/services/rh-catalog-source-service.cjs
+          git rm .github/workflows/pr60-wire-rh-catalog.yml
+      - name: Commit wiring
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/desktop/electron/main.cjs .github/workflows/pr60-wire-rh-catalog.yml
+          git commit -m "feat(f12): wire central RH catalog into Desktop"
+          git push origin HEAD:feat/desktop-lan-server-foundation
