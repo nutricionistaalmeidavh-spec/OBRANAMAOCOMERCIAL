@@ -19,6 +19,8 @@ if (-not $ProgramDataRoot) {
 }
 
 $firewallRuleName = "$productDirName (LAN)"
+$discoveryFirewallRuleName = "$productDirName Discovery (LAN)"
+$discoveryPort = 4733
 $ConfigPath = Join-Path $ProgramDataRoot 'config\server.env'
 $templatePath = Join-Path $InstallDir 'platform\server.env.template'
 $serviceControl = Join-Path $InstallDir 'platform\service-control.ps1'
@@ -55,14 +57,20 @@ function Ensure-InitialConfig {
 }
 
 function Ensure-LanFirewall([int]$ConfiguredPort) {
-  $existing = Get-NetFirewallRule -DisplayName $firewallRuleName -ErrorAction SilentlyContinue
-  if ($existing) { Remove-NetFirewallRule -DisplayName $firewallRuleName -ErrorAction SilentlyContinue }
+  foreach ($ruleName in @($firewallRuleName, $discoveryFirewallRuleName)) {
+    if (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue) {
+      Remove-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+    }
+  }
   New-NetFirewallRule -DisplayName $firewallRuleName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $ConfiguredPort -RemoteAddress LocalSubnet -Profile Domain,Private | Out-Null
+  New-NetFirewallRule -DisplayName $discoveryFirewallRuleName -Direction Inbound -Action Allow -Protocol UDP -LocalPort 4733 -RemoteAddress LocalSubnet -Profile Domain,Private | Out-Null
 }
 
 function Remove-ProductFirewall {
-  if (Get-NetFirewallRule -DisplayName $firewallRuleName -ErrorAction SilentlyContinue) {
-    Remove-NetFirewallRule -DisplayName $firewallRuleName -ErrorAction SilentlyContinue
+  foreach ($ruleName in @($firewallRuleName, $discoveryFirewallRuleName)) {
+    if (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue) {
+      Remove-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+    }
   }
 }
 
