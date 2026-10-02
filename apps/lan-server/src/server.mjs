@@ -375,6 +375,10 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const actor = await authenticateLanRequest(request, security)
         requireAdminContext(actor)
         const body = await readJson(request)
+        if (backupOperations?.runNow) {
+          const result = await backupOperations.runNow({ reason:body.reason || 'manual', actor })
+          return sendJson(response, 201, publicCentralBackup(result.backup))
+        }
         const result = await centralStorage.create({ reason:body.reason || 'manual', actor })
         return sendJson(response, 201, publicCentralBackup(result))
       }
