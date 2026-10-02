@@ -158,6 +158,31 @@ class LanSetupService {
     return this.request('/api/v1/admin/status', { authenticated: true })
   }
 
+  async operationsStatus() {
+    return this.request('/api/v1/admin/operations', { authenticated: true })
+  }
+
+  async listBackups() {
+    const result = await this.request('/api/v1/admin/storage/backups', { authenticated: true })
+    return Array.isArray(result?.backups) ? result.backups : []
+  }
+
+  async createBackup({ reason = 'manual' } = {}) {
+    return this.request('/api/v1/admin/storage/backup', { method:'POST', authenticated:true, body:{ reason } })
+  }
+
+  async testBackup({ backupId } = {}) {
+    return this.request('/api/v1/admin/storage/restore-test', { method:'POST', authenticated:true, body:{ backupId } })
+  }
+
+  async preUpgradeBackup() {
+    return this.request('/api/v1/admin/storage/pre-upgrade', { method:'POST', authenticated:true, body:{} })
+  }
+
+  async restoreBackup({ backupId } = {}) {
+    return this.request('/api/v1/admin/storage/restore', { method:'POST', authenticated:true, body:{ backupId } })
+  }
+
   async createPairing({ memberId } = {}) {
     return this.request('/api/v1/admin/pairing', { method: 'POST', authenticated: true, body: { targetMemberId: memberId } })
   }
