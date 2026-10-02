@@ -60,7 +60,7 @@ function isPrivateNetworkHost(host) {
 function validateExposure({ mode, transport, host }) {
   if (mode !== 'remote') return
   if (transport === 'local-network') throw new Error('Modo remote exige transporte seguro: private-network ou reverse-proxy.')
-  if (host === '0.0.0.0' || host === '::') throw new Error('Modo remote não pode escutar em interface pública/wildcard sem proteção.')
+  if (host === '0.0.0.0' || host === '::') throw new Error('Modo remote não pode escutar em interface pública/wildcard sem transporte seguro.')
   if (transport === 'reverse-proxy' && !isLoopbackHost(host)) {
     throw new Error('Transporte reverse-proxy exige listener loopback (127.0.0.1/::1).')
   }
