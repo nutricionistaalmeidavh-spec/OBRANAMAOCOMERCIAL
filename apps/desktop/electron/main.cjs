@@ -226,7 +226,14 @@ async function configureStorage(payload) {
 
 async function connectStorageAddress(address) {
   const previous = services.storage.state()
-  const result = await services.storage.connectAddress(address)
+  let rejectServerId = null
+  if (previous.operationalMode === 'lan-host') {
+    try {
+      const currentServer = await services.lanSetup.status()
+      rejectServerId = currentServer?.serverId || null
+    } catch {}
+  }
+  const result = await services.storage.connectAddress(address, { rejectServerId })
   if (previous.operationalMode === 'lan-host') await services.lanHost.stop()
   destroyTray()
   await refreshModuleCapabilitiesSafe()
