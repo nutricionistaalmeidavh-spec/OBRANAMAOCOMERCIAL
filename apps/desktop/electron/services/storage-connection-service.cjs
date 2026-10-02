@@ -242,7 +242,7 @@ class StorageConnectionService {
   async testConnection() {
     const state = this.state()
     if (state.mode !== 'server') throw new Error('Selecione Servidor da empresa antes de testar a conexão.')
-    return this.probeEndpoint(state)
+    return this.probeEndpoint(state, { timeoutMs: state.operationalMode === 'remote' ? this.remoteTimeoutMs : this.timeoutMs })
   }
 }
 
