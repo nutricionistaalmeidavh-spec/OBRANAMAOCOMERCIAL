@@ -37,6 +37,9 @@ test('Windows environment template is safe, persistent and loopback-only by defa
   assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_ENABLED=true$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS=24$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_RETENTION=7$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_ENABLED=true$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS=24$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_RETENTION=7$/m)
   assert.doesNotMatch(env, /(bearer|password|secret|device_token|server_token)\s*=/i)
 })
 
