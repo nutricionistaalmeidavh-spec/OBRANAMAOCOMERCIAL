@@ -26,6 +26,14 @@ describe('storage and Web/PWA public contract separation', () => {
     expect(storageBlock).not.toContain("call('online:session")
   })
 
+  it('guards lan-host against connecting to its own discovered identity before switching modes', () => {
+    const connectBlock = main.match(/async function connectStorageAddress\(address\) \{[\s\S]*?\r?\n\}/)?.[0] || ''
+    expect(connectBlock).toContain("previous.operationalMode === 'lan-host'")
+    expect(connectBlock).toContain('services.lanSetup.status()')
+    expect(connectBlock).toContain('rejectServerId')
+    expect(connectBlock).toContain('services.storage.connectAddress(address')
+  })
+
   it('keeps the existing online auth/session/sync API available', () => {
     expect(preload).toContain("passwordAuth: (input) => call('online:password-auth', input)")
     expect(preload).toContain("state: () => call('online:state')")
