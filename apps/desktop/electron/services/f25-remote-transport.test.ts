@@ -63,6 +63,7 @@ describe('F25 remote topology and transport policy',()=>{
     const credentials={token:vi.fn(()=> 'token-a'),clear:vi.fn(),rekey:vi.fn()}
     const service=new ServerReconnectService({storage,discovery,credentials,fetchImpl:vi.fn()})
     await expect(service.reconnect()).resolves.toMatchObject({status:'unreachable',serverId:'srv-a'})
+    expect(storage.probeAddress).toHaveBeenCalledWith('https://offline.example.com',{operationalMode:'remote'})
     expect(discovery.discover).not.toHaveBeenCalled()
     expect(storage.updateEndpointForServer).not.toHaveBeenCalled()
   })
