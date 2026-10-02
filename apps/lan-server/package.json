@@ -8,6 +8,8 @@
   },
   "scripts": {
     "start": "node src/index.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "packaging:test": "node --test tests/packaging-*.test.mjs",
+    "packaging:common": "node --test tests/packaging-common.test.mjs"
   }
 }

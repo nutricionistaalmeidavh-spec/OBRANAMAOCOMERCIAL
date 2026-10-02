@@ -1,0 +1,27 @@
+{
+  "node": {
+    "version": "22.14.0",
+    "windowsX64": {
+      "file": "node-v22.14.0-win-x64.zip",
+      "url": "https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip",
+      "sha256": "55b639295920b219bb2acbcfa00f90393a2789095b7323f79475c9f34795f217"
+    },
+    "linuxX64": {
+      "file": "node-v22.14.0-linux-x64.tar.xz",
+      "url": "https://nodejs.org/dist/v22.14.0/node-v22.14.0-linux-x64.tar.xz",
+      "sha256": "69b09dba5c8dcb05c4e4273a4340db1005abeafe3927efda2bc5b249e80437ec"
+    }
+  },
+  "winsw": {
+    "version": "2.12.0",
+    "file": "WinSW-x64.exe",
+    "url": "https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe",
+    "sha256": "05b82d46ad331cc16bdc00de5c6332c1ef818df8ceefcd49c726553209b3a0da"
+  },
+  "innoSetup": {
+    "version": "7.1.0",
+    "file": "innosetup-7.1.0-x64.exe",
+    "url": "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe",
+    "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+  }
+}
