@@ -11,7 +11,7 @@ type ModuleMigrationAttempt = { migrationId:string; module:ModuleStorageKey; sou
 type ModuleMigrationStatus = { module:ModuleStorageKey; attempt:ModuleMigrationAttempt|null; storage:ModuleStorageState }
 type ModuleMigrationPreflight = { module:ModuleStorageKey; state:ModuleStorageStateName; localCounts:Record<string,number>; capability:boolean; dependencies:{core:ModuleStorageStateName;blockedBy?:ModuleStorageKey|null}; canMigrate:boolean; reason?:string }
 type ModuleMigrationResult = { migrationId:string; module:ModuleStorageKey; status:string; counts?:Record<string,number>; backup?:{database?:string;manifest?:string;fingerprint?:string;folder?:string} }
-type StorageConnectionState = { mode:'local'|'server'; operationalMode:OperationalStorageMode; scheme:'http'|'https'; host:string; port:number; baseUrl:string }
+type StorageConnectionState = { mode:'local'|'server'; operationalMode:OperationalStorageMode; scheme:'http'|'https'; host:string; port:number; baseUrl:string; serverId:string|null }
 type StorageConnectionTest = { ok:true; baseUrl:string; latencyMs:number; serverId:string|null; health:{status:'ok';product:'Obra na Mão';apiVersion:'1'}; readiness?:{ready:boolean;status?:string;identity?:{serverId?:string|null}} }
 type DiscoveredServer = { serverId:string; name:string; host:string; port:number; baseUrl:string; apiVersion:'1'; ready:true; latencyMs:number }
 type LanMember = { memberId:string; email?:string; name?:string; role:string; modules?:string[]; channels?:string[]; status?:string }
@@ -19,6 +19,7 @@ type LanCredentialState = { paired:boolean; serverKey?:string; deviceId?:string|
 type LanHostState = { running:boolean; pid:number|null; startedAt:string|null; lastError:string|null; setupCode?:string|null }
 type LanSetupStatus = { serverId?:string|null; claimed?:boolean; company?:{id:string;name?:string}|null; credential?:LanCredentialState; host?:LanHostState }
 type LanAdminStatus = { company?:{id:string;name?:string}; revision?:string|null; lastCloudRefreshAt?:string|null; deviceCount?:number; stale?:boolean; paired?:LanCredentialState }
+type LanReconnectState = { status:'connected'|'pairing-required'|'unreachable'|'not-applicable'; serverId:string|null; reason?:string; endpointChanged:boolean; reusedCredential:boolean; baseUrl?:string; device?:{id:string;status:string}|null; member?:LanMember|null }
 type ExplorerEntry = { name:string; relativePath:string; kind:'folder'|'file'|'link'; extension:string; size:number|null; modifiedAt:string; canOpen:boolean }
 type ExplorerDirectory = { rootId:string; name:string; relativePath:string; parentRelativePath:string|null; items:ExplorerEntry[] }
 type ExplorerPreview = { rootId:string; name:string; relativePath:string; extension:string; size:number; modifiedAt:string; previewKind:'pdf'|'image'|'unsupported'; mimeType:string|null; dataUrl:string|null; previewBlockedReason:'size'|'type'|null }
@@ -58,7 +59,7 @@ interface Window { fluxoDre: {
   app: { bootstrap(): Promise<any>; retryDatabase(): Promise<boolean>; getLayout(): Promise<'command-center'|'classic'>; setLayout(layout:'command-center'|'classic'): Promise<'command-center'|'classic'> }; product:{getEdition():Promise<{edition:'construtora'|'empreiteira';locked:boolean}>;setEdition(edition:'construtora'|'empreiteira'):Promise<any>}; demo:{seed():Promise<any>}
   storage:{state():Promise<StorageConnectionState>;configure(input:{mode?:'local'|'server';operationalMode?:OperationalStorageMode;scheme?:'http'|'https';host?:string;port?:number;address?:string}):Promise<StorageConnectionState>;testConnection():Promise<StorageConnectionTest>;discoverServers():Promise<DiscoveredServer[]>;probeAddress(address:string):Promise<StorageConnectionTest>;connectAddress(address:string):Promise<{state:StorageConnectionState;server:StorageConnectionTest}>;moduleState(module:ModuleStorageKey):Promise<ModuleStorageState>;refreshModuleCapabilities():Promise<ModuleStorageStates>;migrationPreflight(module:ModuleStorageKey):Promise<ModuleMigrationPreflight>;migrationStatus(module:ModuleStorageKey):Promise<ModuleMigrationStatus>;migrateModule(module:ModuleStorageKey):Promise<ModuleMigrationResult>;rollbackModuleMigration(module:ModuleStorageKey):Promise<{module:ModuleStorageKey;status:string}>}
   lan:{
-    hostState():Promise<LanHostState>;startHost():Promise<LanHostState>;stopHost():Promise<LanHostState>;status():Promise<LanSetupStatus>;
+    hostState():Promise<LanHostState>;startHost():Promise<LanHostState>;stopHost():Promise<LanHostState>;status():Promise<LanSetupStatus>;reconnect():Promise<LanReconnectState>;
     claimHost(setupCode?:string):Promise<LanSetupStatus>;pair(code:string):Promise<LanCredentialState>;disconnect():Promise<LanCredentialState>;
     adminStatus():Promise<LanAdminStatus>;createPairing(memberId:string):Promise<{code:string;expiresAt:string;member?:LanMember}>;
     listDevices():Promise<Array<{id:string;memberId:string;installationId:string;deviceName:string;status:string;pairedAt?:string;lastSeenAt?:string}>>;
