@@ -161,16 +161,19 @@ Aprimorar `BackupService` para:
 - falha segura: se restore/open falhar, restaurar/reabrir a base anterior;
 - manifesto da tentativa de migração referenciando o backup criado.
 
-## 3. Controle explícito no Desktop
+## 3. Configuração única no Desktop
 
-A migração não ocorre automaticamente ao trocar para `lan-host`/`lan-client`.
+Decisão de produto atualizada em 2026-10-01: quando o usuário escolhe `lan-host` ou `lan-client` e confirma a configuração, a migração dos módulos centralizáveis passa a fazer parte da mesma jornada de setup.
 
-- `StorageServerSettings` mostra estado de cinco blocos: cadastros-base/core, operação, planejamento, financeiro e RH.
-- Quando um bloco estiver `migration-required`, a UI apresenta ação explícita de migração.
-- Módulos dependentes ficam visualmente bloqueados enquanto core não estiver `central-active`.
-- Antes de iniciar, a UI informa que será criado backup e que a base local não será apagada durante a cópia.
-- O usuário acompanha resultado por módulo; erro mantém `migration-required`.
-- A UI não oferece “forçar central-active”.
+- `StorageServerSettings` apresenta uma única ação principal: configurar o servidor e concluir a centralização.
+- Os estados `local`, `migration-required`, `central-ready` e `central-active` continuam existindo internamente e preservam todas as barreiras de segurança.
+- A UI orquestra a ordem obrigatória `core → operação → planejamento → financeiro → RH`, usando o `ModuleMigrationService` existente; não força estado e não pula preflight.
+- Cada módulo ainda realiza seu backup, cópia, validação, commit e retry idempotente de forma independente. A jornada visual, porém, é única.
+- O happy path mostra uma barra de progresso e o passo atual, não cinco cards/ações permanentes.
+- Estados por módulo, IDs de tentativa e rollback ficam em `Detalhes técnicos`, recolhidos por padrão.
+- Falha mantém o módulo seguro em `migration-required`, preserva a base local e expõe `Tentar novamente`; rollback é ação de recuperação, não etapa normal.
+- Pareamento/claim e permissão Admin continuam obrigatórios antes da migração. Se faltar uma credencial/código/Admin, a jornada pausa com instrução explícita e retoma depois.
+- A UI não oferece “forçar central-active” e não usa confirmação nativa do navegador.
 
 ## 4. Documentação e checklist da PR #60
 
@@ -282,6 +285,6 @@ A branch está pronta para integração quando:
 4. core existente não desaparece nem muda para remoto antes da migração;
 5. migração falha de modo seguro e repetível;
 6. backup/restore é validado antes da troca de banco;
-7. UI exige ação explícita para migrar e nunca força `central-active`;
+7. UI usa uma única jornada explícita de configuração, orquestra a migração segura automaticamente e nunca força `central-active`;
 8. documentação/checklist corresponde ao código final;
 9. nenhuma etapa de deploy/release foi executada.

@@ -6,6 +6,7 @@ import { CloudAuthorityClient } from './cloud-authority-client.mjs'
 import { PairingService } from './pairing-service.mjs'
 import { MigrationService } from './migration-service.mjs'
 import { RuntimeBackupService } from './runtime-backup-service.mjs'
+import { BackupOperationsService } from './backup-operations-service.mjs'
 import { createHealthService } from './health-service.mjs'
 import { loadRuntimeConfig, runtimeConfigForDiagnostics } from './runtime-config.mjs'
 import { ensureRuntimePaths, resolveRuntimePaths } from './runtime-paths.mjs'
@@ -43,6 +44,12 @@ function bootstrapServer() {
       serverVersion: LAN_SERVER_VERSION,
       expectedSchemaVersion: migrationState.version
     })
+    const backupOperations = new BackupOperationsService({
+      storage: centralBackupService,
+      enabled: runtimeConfig.backupEnabled,
+      intervalHours: runtimeConfig.backupIntervalHours,
+      retentionCount: runtimeConfig.backupRetentionCount
+    })
     const healthService = createHealthService({ centralStorage: centralBackupService, expectedSchemaVersion: migrationState.version })
     const server = attachReadinessRoute(createLanServer({
       serverVersion: LAN_SERVER_VERSION,
@@ -53,10 +60,12 @@ function bootstrapServer() {
       cloudBaseUrl,
       pairingService,
       migrationService,
-      centralBackupService
+      centralBackupService,
+      backupOperationsService: backupOperations,
+      runtimeInfo: { mode: runtimeConfig.mode, transport: runtimeConfig.transport }
     }), healthService)
 
-    return { server, repository, security, identity, cloudAuthority, migrationState, healthService, close: () => repository.close() }
+    return { server, repository, security, identity, cloudAuthority, migrationState, healthService, backupOperations, close: () => repository.close() }
   } catch (error) {
     try { repository.close() } catch {}
     throw error
@@ -72,7 +81,8 @@ try {
 }
 
 const resources = runtime.resources()
-const { security, identity, cloudAuthority, migrationState } = resources
+const { security, identity, cloudAuthority, migrationState, backupOperations } = resources
+backupOperations.start()
 
 async function refreshCachedIdentity() {
   if (!security.serverState()?.claimed) return
@@ -127,6 +137,7 @@ async function shutdown() {
   shuttingDown = true
   clearInterval(identityRefreshTimer)
   try {
+    backupOperations.stop()
     await discovery.stop()
     await runtime.stop()
     logger.info('server_stopped', { reason: 'signal' })

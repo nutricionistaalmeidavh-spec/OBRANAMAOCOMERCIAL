@@ -32,6 +32,12 @@ test('Linux environment template uses persistent system paths and safe loopback 
   assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_DIR=\/var\/lib\/obra-na-mao\/backups$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_LOG_DIR=\/var\/log\/obra-na-mao$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_SHOW_SETUP_CODE=false$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_ENABLED=true$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS=24$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_RETENTION=7$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_ENABLED=true$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS=24$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_RETENTION=7$/m)
   assert.doesNotMatch(env, /(bearer|password|secret|device_token|server_token)\s*=/i)
 })
 

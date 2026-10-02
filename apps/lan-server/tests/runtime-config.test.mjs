@@ -17,12 +17,15 @@ test('runtime config keeps safe backwards-compatible defaults', () => {
   assert.equal(config.instanceName, 'Obra na Mão Server')
   assert.equal(config.cloudBaseUrl, 'https://obra-na-mao-comercial.nutricionistaalmeidavh.workers.dev')
   assert.equal(config.showSetupCode, false)
+  assert.equal(config.backupEnabled, true)
+  assert.equal(config.backupIntervalHours, 24)
+  assert.equal(config.backupRetentionCount, 7)
   assert.equal(Object.isFrozen(config), true)
 })
 
 test('generic SERVER variables configure the headless runtime', () => {
   const config = loadRuntimeConfig({ env: { OBRA_NA_MAO_SERVER_HOST: ' 0.0.0.0 ', OBRA_NA_MAO_SERVER_PORT: '5843', OBRA_NA_MAO_SERVER_DATA_DIR: '/srv/obra/data', OBRA_NA_MAO_SERVER_BACKUP_DIR: '/srv/obra/backup', OBRA_NA_MAO_SERVER_LOG_DIR: '/srv/obra/log', OBRA_NA_MAO_SERVER_INSTANCE_NAME: ' Escritório Central ', OBRA_NA_MAO_PLATFORM_URL: ' https://example.test/ ' }, homeDir: HOME })
-  assert.deepEqual(config, { mode:'lan', transport:'local-network', host: '0.0.0.0', port: 5843, dataDir: path.resolve('/srv/obra/data'), backupDir: path.resolve('/srv/obra/backup'), logDir: path.resolve('/srv/obra/log'), instanceName: 'Escritório Central', cloudBaseUrl: 'https://example.test', showSetupCode: false })
+  assert.deepEqual(config, { mode:'lan', transport:'local-network', host: '0.0.0.0', port: 5843, dataDir: path.resolve('/srv/obra/data'), backupDir: path.resolve('/srv/obra/backup'), logDir: path.resolve('/srv/obra/log'), instanceName: 'Escritório Central', cloudBaseUrl: 'https://example.test', showSetupCode: false, backupEnabled:true, backupIntervalHours:24, backupRetentionCount:7 })
 })
 
 test('legacy LAN variables remain supported and generic SERVER variables take precedence', () => {
@@ -58,6 +61,20 @@ test('diagnostic config is allowlisted and never exposes secret-shaped values', 
   const config = { ...loadRuntimeConfig({ env: {}, homeDir: HOME }), token: 'token-secret', password: 'password-secret', pairingCode: 'pairing-secret', snapshot: { secret: 'snapshot-secret' }, authorization: 'Bearer super-secret' }
   const diagnostic = runtimeConfigForDiagnostics(config)
   const serialized = JSON.stringify(diagnostic)
-  assert.deepEqual(Object.keys(diagnostic).sort(), ['backupDir', 'dataDir', 'host', 'instanceName', 'logDir', 'mode', 'port', 'transport'].sort())
+  assert.deepEqual(Object.keys(diagnostic).sort(), ['backupDir', 'backupEnabled', 'backupIntervalHours', 'backupRetentionCount', 'dataDir', 'host', 'instanceName', 'logDir', 'mode', 'port', 'transport'].sort())
   for (const secret of ['token-secret', 'password-secret', 'pairing-secret', 'snapshot-secret', 'super-secret']) assert.equal(serialized.includes(secret), false)
+})
+
+
+test('operational backup policy is configurable and rejects invalid schedule values', () => {
+  const configured = loadRuntimeConfig({ env: {
+    OBRA_NA_MAO_SERVER_BACKUP_ENABLED:'false',
+    OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS:'6',
+    OBRA_NA_MAO_SERVER_BACKUP_RETENTION:'12'
+  }, homeDir: HOME })
+  assert.equal(configured.backupEnabled,false)
+  assert.equal(configured.backupIntervalHours,6)
+  assert.equal(configured.backupRetentionCount,12)
+  assert.throws(()=>loadRuntimeConfig({env:{OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS:'0'},homeDir:HOME}),/maior que zero/i)
+  assert.throws(()=>loadRuntimeConfig({env:{OBRA_NA_MAO_SERVER_BACKUP_RETENTION:'1.5'},homeDir:HOME}),/inteiro/i)
 })
