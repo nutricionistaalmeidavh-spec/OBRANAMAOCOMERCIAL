@@ -21,6 +21,7 @@ export class BackupOperationsService {
     this.timer = null
     this.lastRun = null
     this.nextRunAt = null
+    this.inFlight = null
   }
 
   policy() {
@@ -44,26 +45,30 @@ export class BackupOperationsService {
     return this.storage.listManagedBackups?.() || []
   }
 
-  async runNow({ reason = 'manual', actor = null } = {}) {
-    const startedAt = this.now()
-    try {
-      const backup = await this.storage.create({ reason, actor })
-      this.storage.verifyManagedBackup(backup.backupId, { enforceCurrentIdentity:true, actor })
-      const retention = this.storage.pruneManaged?.(this.retentionCount) || { retained:null, removed:[] }
-      const completedAt = this.now().toISOString()
-      this.lastRun = { status:'success', reason:String(reason || 'manual'), at:completedAt, backupId:backup.backupId }
-      return { backup, verified:true, retention }
-    } catch (error) {
-      this.lastRun = {
-        status:'failed',
-        reason:String(reason || 'manual'),
-        at:this.now().toISOString(),
-        error:error instanceof Error ? error.message : String(error)
+  runNow({ reason = 'manual', actor = null } = {}) {
+    if (this.inFlight) return this.inFlight
+    const operation = (async()=>{
+      try {
+        const backup = await this.storage.create({ reason, actor })
+        this.storage.verifyManagedBackup(backup.backupId, { enforceCurrentIdentity:true, actor })
+        const retention = this.storage.pruneManaged?.(this.retentionCount) || { retained:null, removed:[] }
+        const completedAt = this.now().toISOString()
+        this.lastRun = { status:'success', reason:String(reason || 'manual'), at:completedAt, backupId:backup.backupId }
+        return { backup, verified:true, retention }
+      } catch (error) {
+        this.lastRun = {
+          status:'failed',
+          reason:String(reason || 'manual'),
+          at:this.now().toISOString(),
+          error:error instanceof Error ? error.message : String(error)
+        }
+        throw error
+      } finally {
+        if (this.inFlight === operation) this.inFlight = null
       }
-      throw error
-    } finally {
-      void startedAt
-    }
+    })()
+    this.inFlight = operation
+    return operation
   }
 
   preUpgrade({ actor = null } = {}) {
