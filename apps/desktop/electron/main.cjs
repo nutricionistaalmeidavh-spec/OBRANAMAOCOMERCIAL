@@ -264,6 +264,12 @@ function registerIpc() {
   ipcMain.handle('lan:host-stop', envelope(() => services.lanHost.stop()))
   ipcMain.handle('lan:status', envelope(() => services.lanSetup.status()))
   ipcMain.handle('lan:reconnect', envelope(() => services.serverReconnect.reconnect()))
+  ipcMain.handle('lan:operations-status', envelope(() => services.lanSetup.operationsStatus()))
+  ipcMain.handle('lan:list-backups', envelope(() => services.lanSetup.listBackups()))
+  ipcMain.handle('lan:create-backup', envelope(({ reason }) => services.lanSetup.createBackup({ reason })))
+  ipcMain.handle('lan:test-backup', envelope(({ backupId }) => services.lanSetup.testBackup({ backupId })))
+  ipcMain.handle('lan:pre-upgrade-backup', envelope(() => services.lanSetup.preUpgradeBackup()))
+  ipcMain.handle('lan:restore-backup', envelope(({ backupId }) => services.lanSetup.restoreBackup({ backupId })))
   ipcMain.handle('lan:claim-host', envelope(async ({ setupCode }) => {
     const localSetupCode = setupCode || services.lanHost.state().setupCode
     const result = await services.lanSetup.claimHostedServer({ setupCode: localSetupCode })
