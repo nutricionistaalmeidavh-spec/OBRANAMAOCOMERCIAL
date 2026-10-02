@@ -20,8 +20,21 @@ function parsePort(value) {
   return port
 }
 
-function parseBoolean(value) {
-  return String(value || '').trim().toLowerCase() === 'true'
+function parseBoolean(value, fallback = false) {
+  if (value === undefined || value === null || String(value).trim() === '') return fallback
+  return String(value).trim().toLowerCase() === 'true'
+}
+
+function parsePositiveNumber(value, fallback, label) {
+  const raw = value === undefined || value === null || String(value).trim() === '' ? fallback : Number(value)
+  if (!Number.isFinite(raw) || raw <= 0) throw new Error(`${label} deve ser maior que zero.`)
+  return raw
+}
+
+function parsePositiveInteger(value, fallback, label) {
+  const raw = value === undefined || value === null || String(value).trim() === '' ? fallback : Number(value)
+  if (!Number.isInteger(raw) || raw < 1) throw new Error(`${label} deve ser um inteiro maior ou igual a 1.`)
+  return raw
 }
 
 function normalizeBaseUrl(value) { return value.trim().replace(/\/$/, '') }
@@ -81,10 +94,16 @@ export function loadRuntimeConfig({ env = process.env, homeDir = os.homedir() } 
   const instanceName = firstNonBlank(env.OBRA_NA_MAO_SERVER_INSTANCE_NAME) || DEFAULT_INSTANCE_NAME
   const cloudBaseUrl = normalizeBaseUrl(firstNonBlank(env.OBRA_NA_MAO_PLATFORM_URL, env.FLUXO_DRE_PLATFORM_URL) || DEFAULT_CLOUD_BASE_URL)
   const showSetupCode = parseBoolean(env.OBRA_NA_MAO_SERVER_SHOW_SETUP_CODE)
+  const backupEnabled = parseBoolean(env.OBRA_NA_MAO_SERVER_BACKUP_ENABLED, true)
+  const backupIntervalHours = parsePositiveNumber(env.OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS, 24, 'OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS')
+  const backupRetentionCount = parsePositiveInteger(env.OBRA_NA_MAO_SERVER_BACKUP_RETENTION, 7, 'OBRA_NA_MAO_SERVER_BACKUP_RETENTION')
   validateExposure({ mode, transport, host })
-  return Object.freeze({ mode, transport, host, port: parsePort(rawPort), dataDir, backupDir, logDir, instanceName, cloudBaseUrl, showSetupCode })
+  return Object.freeze({
+    mode, transport, host, port: parsePort(rawPort), dataDir, backupDir, logDir, instanceName, cloudBaseUrl, showSetupCode,
+    backupEnabled, backupIntervalHours, backupRetentionCount
+  })
 }
 
 export function runtimeConfigForDiagnostics(config) {
-  return Object.freeze({ mode: config.mode, transport: config.transport, host: config.host, port: config.port, dataDir: config.dataDir, backupDir: config.backupDir, logDir: config.logDir, instanceName: config.instanceName })
+  return Object.freeze({ mode: config.mode, transport: config.transport, host: config.host, port: config.port, dataDir: config.dataDir, backupDir: config.backupDir, logDir: config.logDir, instanceName: config.instanceName, backupEnabled:config.backupEnabled, backupIntervalHours:config.backupIntervalHours, backupRetentionCount:config.backupRetentionCount })
 }
