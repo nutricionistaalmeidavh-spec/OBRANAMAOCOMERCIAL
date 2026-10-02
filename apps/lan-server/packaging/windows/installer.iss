@@ -30,7 +30,7 @@ Source: "{#PackageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Source: "{#PackageDir}\platform\preinstall-stop.ps1"; Flags: dontcopy
 
 [UninstallRun]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File install-hooks.ps1 -Action Uninstall"; WorkingDir: "{app}\platform"; Flags: runhidden waituntilterminated; RunOnceId: "ObraNaMaoServerUninstall"
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File install-hooks.ps1 -Action Uninstall -InstallDir ""{app}"" -ProgramDataRoot ""{commonappdata}\ArtiSys\Obra na Mão Server"""; WorkingDir: "{app}\platform"; Flags: runhidden waituntilterminated; RunOnceId: "ObraNaMaoServerUninstall"
 
 [Code]
 var
@@ -74,7 +74,9 @@ begin
   begin
     PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
     PlatformDir := ExpandConstant('{app}\platform');
-    Params := '-NoProfile -ExecutionPolicy Bypass -File install-hooks.ps1 -Action Install ' + LanSwitch('');
+    Params := '-NoProfile -ExecutionPolicy Bypass -File install-hooks.ps1 -Action Install -InstallDir "' +
+      ExpandConstant('{app}') + '" -ProgramDataRoot "' +
+      ExpandConstant('{commonappdata}\ArtiSys\Obra na Mão Server') + '" ' + LanSwitch('');
     Log('ObraNaMaoServer postinstall: launching Windows PowerShell hook.');
     if not Exec(PowerShellPath, Params, PlatformDir, SW_HIDE, ewWaitUntilTerminated, ResultCode) then
     begin
