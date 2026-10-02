@@ -376,8 +376,9 @@ export default function StorageServerSettings({onMessage}:Props){
 
             {form.operationalMode==='remote'&&<div className="success-box"><strong>Conexão remota segura.</strong><br/><small>Use HTTPS para endereço público ou endereço privado da VPN/WireGuard. HTTP público é bloqueado.</small></div>}
 
+            <strong>Conectar manualmente</strong>
             <Field label="Endereço do servidor"><input value={manualAddress} onChange={event=>{setManualAddress(event.target.value);setManualProbe(null)}} placeholder={form.operationalMode==='remote'?'https://servidor.seudominio.com':'192.168.1.50 ou obra-server.local'}/></Field>
-            <small>{form.operationalMode==='remote'?<>Também pode usar um IP privado da VPN, como <strong>10.66.0.1:4732</strong>.</>:<>Pode ser IP, hostname ou HTTPS autorizado.</>}</small>
+            <small>{form.operationalMode==='remote'?<>Também pode usar um IP privado da VPN, como <strong>10.66.0.1:4732</strong>.</>:<>Pode ser IP, hostname ou HTTPS autorizado.</>} Se a conexão falhar, a configuração atual é preservada e não existe fallback local silencioso.</small>
             {manualProbe&&<div className="success-box">Servidor pronto: <strong>{manualProbe.baseUrl}</strong>{manualProbe.serverId?<> · ID {manualProbe.serverId}</>:null}.</div>}
             <div className="setting-actions"><Button variant="secondary" disabled={busy||!manualAddress.trim()} onClick={testManualAddress}>Testar conexão</Button><Button variant="secondary" disabled={busy||!manualAddress.trim()} onClick={()=>applyServerConnection(manualAddress)}>Conectar sem migrar</Button></div>
           </div>}
