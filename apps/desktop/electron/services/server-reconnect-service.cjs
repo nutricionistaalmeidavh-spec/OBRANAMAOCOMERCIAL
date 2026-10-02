@@ -46,7 +46,7 @@ class ServerReconnectService {
   async resolveIdentity(state) {
     const selectedId=String(state.serverId || '').trim()
     try {
-      const probe=await this.storage.probeAddress(state.baseUrl)
+      const probe=await this.storage.probeAddress(state.baseUrl, { operationalMode: state.operationalMode })
       const probedId=String(probe?.serverId || '').trim()
       if (!probedId) return { status:'unreachable', serverId:selectedId || null, reason:'identity_missing' }
       if (selectedId && probedId !== selectedId) return { status:'rediscover', serverId:selectedId, reason:'identity_mismatch' }
