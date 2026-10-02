@@ -3,18 +3,22 @@ param(
   [ValidateSet('Install','Uninstall')]
   [string]$Action,
   [string]$InstallDir,
-  [string]$ProgramDataRoot = (Join-Path $env:ProgramData 'ArtiSys\Obra na Mão Server'),
+  [string]$ProgramDataRoot,
   [switch]$LanAccess,
   [int]$Port = 4732,
   [int]$ReadyTimeoutSeconds = 30
 )
 
+$ErrorActionPreference = 'Stop'
+$productDirName = "Obra na M$([char]0x00E3)o Server"
 if (-not $InstallDir) {
   $InstallDir = Split-Path $PSScriptRoot -Parent
 }
+if (-not $ProgramDataRoot) {
+  $ProgramDataRoot = Join-Path $env:ProgramData (Join-Path 'ArtiSys' $productDirName)
+}
 
-$ErrorActionPreference = 'Stop'
-$firewallRuleName = 'Obra na Mão Server (LAN)'
+$firewallRuleName = "$productDirName (LAN)"
 $ConfigPath = Join-Path $ProgramDataRoot 'config\server.env'
 $templatePath = Join-Path $InstallDir 'platform\server.env.template'
 $serviceControl = Join-Path $InstallDir 'platform\service-control.ps1'
@@ -40,12 +44,12 @@ function Get-ConfigValue([string]$Name, [string]$DefaultValue) {
 function Ensure-InitialConfig {
   New-Item -ItemType Directory -Force -Path (Split-Path $ConfigPath -Parent) | Out-Null
   if (-not (Test-Path $ConfigPath)) {
-    if (-not (Test-Path $templatePath)) { throw "Template de configuração ausente: $templatePath" }
+    if (-not (Test-Path $templatePath)) { throw "Missing configuration template: $templatePath" }
     Copy-Item $templatePath $ConfigPath
     if ($LanAccess) {
       $content = Get-Content $ConfigPath -Raw
       $content = $content -replace '(?m)^OBRA_NA_MAO_SERVER_HOST=127\.0\.0\.1$', 'OBRA_NA_MAO_SERVER_HOST=0.0.0.0'
-      Set-Content -Path $ConfigPath -Value $content -Encoding utf8NoBOM
+      Set-Content -Path $ConfigPath -Value $content -Encoding UTF8
     }
   }
 }
@@ -74,8 +78,8 @@ function Wait-ServerReady([int]$ConfiguredPort) {
     }
     Start-Sleep -Milliseconds 250
   }
-  $message = "Obra na Mão Server não ficou /ready em $ReadyTimeoutSeconds segundos."
-  if ($lastError) { $message += " Último erro: $($lastError.Exception.Message)" }
+  $message = "ObraNaMaoServer did not become /ready in $ReadyTimeoutSeconds seconds."
+  if ($lastError) { $message += " Last error: $($lastError.Exception.Message)" }
   throw $message
 }
 
@@ -89,12 +93,12 @@ try {
 
       Write-HookLog 'registering service'
       & $serviceControl -Action Install -PackageDir $InstallDir -ProgramDataRoot $ProgramDataRoot -ConfigPath $ConfigPath
-      if ($LASTEXITCODE -ne 0) { throw 'Falha ao registrar o serviço Obra na Mão Server.' }
+      if ($LASTEXITCODE -ne 0) { throw 'Failed to register ObraNaMaoServer.' }
 
       if ($configuredHost -eq '0.0.0.0') { Ensure-LanFirewall $configuredPort }
       Write-HookLog 'starting service'
       & $serviceControl -Action Start -PackageDir $InstallDir -ProgramDataRoot $ProgramDataRoot -ConfigPath $ConfigPath
-      if ($LASTEXITCODE -ne 0) { throw 'Falha ao iniciar o serviço Obra na Mão Server.' }
+      if ($LASTEXITCODE -ne 0) { throw 'Failed to start ObraNaMaoServer.' }
       Wait-ServerReady $configuredPort
       Write-HookLog 'ready'
     }
