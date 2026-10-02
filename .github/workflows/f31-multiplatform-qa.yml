@@ -1,0 +1,66 @@
+name: F31 Multiplatform QA
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/lan-server/**'
+      - 'apps/desktop/**'
+      - '.github/workflows/f31-multiplatform-qa.yml'
+  workflow_dispatch:
+
+jobs:
+  server-contracts:
+    name: Server contracts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: F31 server integration gates
+        run: >
+          node --test
+          apps/lan-server/tests/f31-multiclient-scale.test.mjs
+          apps/lan-server/tests/f8-f12-multi-client.test.mjs
+          apps/lan-server/tests/f14-f16-integrated.test.mjs
+          apps/lan-server/tests/migration-full-pipeline.test.mjs
+          apps/lan-server/tests/f27-managed-backup-ops.test.mjs
+          apps/lan-server/tests/f26-remote-runtime-policy.test.mjs
+          apps/lan-server/tests/session-http.test.mjs
+
+  desktop-contracts:
+    name: Desktop connectivity contracts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install Desktop dependencies
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: F31 Desktop LAN/remote/reconnect/migration gates
+        run: >
+          npx vitest run
+          electron/services/f24-auth-lifecycle.test.ts
+          electron/services/server-reconnect-service.test.ts
+          electron/services/f25-remote-transport.test.ts
+          tests/storage-online-contract.test.ts
+          tests/f29-f30-server-wizard.test.ts
+          tests/storage-server-migration-ui.test.ts
