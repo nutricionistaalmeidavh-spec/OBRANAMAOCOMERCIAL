@@ -4,6 +4,7 @@ const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
 const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
 const { ServerDiscoveryService } = require('./services/server-discovery-service.cjs')
+const { ServerReconnectService } = require('./services/server-reconnect-service.cjs')
 const { ModuleStorageStateService } = require('./services/module-storage-state-service.cjs')
 const { ModuleMigrationService } = require('./services/module-migration-service.cjs')
 const { LanCredentialService } = require('./services/lan-credential-service.cjs')
@@ -81,6 +82,7 @@ function createServices() {
   const storage = new StorageConnectionService({ db })
   const serverDiscovery = new ServerDiscoveryService()
   const lanCredentials = new LanCredentialService({ dataDir: paths.dataDir, safeStorage })
+  const serverReconnect = new ServerReconnectService({ storage, discovery: serverDiscovery, credentials: lanCredentials })
   const dataAccess = new DataAccessService({ db, storage, credentials: lanCredentials })
   const moduleStorage = new ModuleStorageStateService({ database: db, storage, lanClient: dataAccess.remote })
   dataAccess.moduleStorage = moduleStorage
@@ -124,7 +126,7 @@ function createServices() {
   const backup = new BackupService({ db, ...paths })
   const migration = new ModuleMigrationService({ database: db, storage, moduleStorage, lanClient: dataAccess.remote, backup, appVersion: app.getVersion() })
   return {
-    paths, db, dataAccess, storage, serverDiscovery, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
+    paths, db, dataAccess, storage, serverDiscovery, serverReconnect, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
     backup,
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
@@ -261,6 +263,7 @@ function registerIpc() {
   ipcMain.handle('lan:host-start', envelope(async () => { const result = await services.lanHost.start(); if (isLanHostMode()) ensureTray(); return result }))
   ipcMain.handle('lan:host-stop', envelope(() => services.lanHost.stop()))
   ipcMain.handle('lan:status', envelope(() => services.lanSetup.status()))
+  ipcMain.handle('lan:reconnect', envelope(() => services.serverReconnect.reconnect()))
   ipcMain.handle('lan:claim-host', envelope(async ({ setupCode }) => {
     const localSetupCode = setupCode || services.lanHost.state().setupCode
     const result = await services.lanSetup.claimHostedServer({ setupCode: localSetupCode })
@@ -422,6 +425,8 @@ app.whenReady().then(async () => {
     if (isLanHostMode()) {
       await services.lanHost.start()
       ensureTray()
+    } else if (['lan-client','remote'].includes(services.storage.state().operationalMode)) {
+      try { await services.serverReconnect.reconnect() } catch (error) { console.warn('Falha ao reconectar servidor salvo:', error?.message || error) }
     }
     await refreshModuleCapabilitiesSafe()
     await createWindow()
