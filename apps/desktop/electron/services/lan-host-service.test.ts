@@ -7,6 +7,8 @@ const require = createRequire(import.meta.url)
 class FakeChild extends EventEmitter {
   pid = 321
   killed = false
+  stdout = new EventEmitter()
+  stderr = new EventEmitter()
   kill = vi.fn((_signal?: string) => { this.killed = true; queueMicrotask(() => this.emit('exit', 0, null)); return true })
 }
 
@@ -33,8 +35,18 @@ describe('LanHostService', () => {
     const [command,args,options] = spawnImpl.mock.calls[0]
     expect(command).toBe('electron.exe')
     expect(args).toEqual(['C:/resources/lan-server/src/index.mjs'])
-    expect(options.env).toMatchObject({ ELECTRON_RUN_AS_NODE:'1', OBRA_NA_MAO_LAN_HOST:'0.0.0.0', OBRA_NA_MAO_LAN_PORT:'4732', OBRA_NA_MAO_PLATFORM_URL:'https://cloud.example' })
+    expect(options.env).toMatchObject({ ELECTRON_RUN_AS_NODE:'1', OBRA_NA_MAO_LAN_HOST:'0.0.0.0', OBRA_NA_MAO_LAN_PORT:'4732', OBRA_NA_MAO_PLATFORM_URL:'https://cloud.example', OBRA_NA_MAO_SERVER_SHOW_SETUP_CODE:'true' })
     expect(options.env.OBRA_NA_MAO_LAN_DATA_DIR).toMatch(/lan-server/)
+  })
+
+  it('captura o setup code do runtime F18 sem gravá-lo no state enumerável', async () => {
+    const { LanHostService } = require('./lan-host-service.cjs')
+    const child = new FakeChild(), service = new LanHostService({ storage: storage('lan-host'), dataDir: 'C:/data', cloudBaseUrl: 'https://cloud.example', spawnImpl: () => child, execPath: 'electron.exe', serverEntry: 'server.mjs' })
+    await service.start()
+    child.stdout.emit('data', Buffer.from('Obra na Mão Server setup code (explicit opt-in): ABCDE-FGHIJ\n'))
+    expect(service.state()).toMatchObject({ setupCodeAvailable:true })
+    expect(service.state().setupCode).toBe('ABCDE-FGHIJ')
+    expect(JSON.stringify(service.state())).not.toContain('ABCDE-FGHIJ')
   })
 
   it('saída inesperada fica visível no state e não causa fallback local', async () => {
