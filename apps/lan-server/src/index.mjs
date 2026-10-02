@@ -95,12 +95,16 @@ const discovery = createDiscoveryService({
   serverId: state?.serverId,
   instanceName: runtimeConfig.instanceName
 })
-try {
-  const discoveryState = await discovery.start()
-  if (discoveryState.running) logger.info('lan_discovery_started', { port })
-  else logger.info('lan_discovery_disabled', { reason: discoveryState.reason })
-} catch (error) {
-  logger.warn('lan_discovery_unavailable', { error })
+if (runtimeConfig.mode === 'remote') {
+  logger.info('lan_discovery_disabled', { reason: 'remote_mode' })
+} else {
+  try {
+    const discoveryState = await discovery.start()
+    if (discoveryState.running) logger.info('lan_discovery_started', { port })
+    else logger.info('lan_discovery_disabled', { reason: discoveryState.reason })
+  } catch (error) {
+    logger.warn('lan_discovery_unavailable', { error })
+  }
 }
 if (state && !state.claimed) {
   if (runtimeConfig.showSetupCode && state.setupCode) {

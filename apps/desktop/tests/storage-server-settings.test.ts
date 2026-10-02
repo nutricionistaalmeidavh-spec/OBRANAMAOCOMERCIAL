@@ -14,6 +14,7 @@ describe('configuracao de dados e servidor', () => {
     expect(source).toContain('Somente neste computador')
     expect(source).toContain('Este computador é o principal / servidor local')
     expect(source).toContain('Conectar a um servidor da empresa')
+    expect(source).toContain('Servidor remoto próprio / VPS')
     expect(source).toContain('window.fluxoDre.storage.state()')
     expect(source).toContain('window.fluxoDre.storage.configure')
   })
@@ -41,10 +42,13 @@ describe('configuracao de dados e servidor', () => {
 
   it('não transforma falha de conexão em localhost/fallback silencioso', () => {
     expect(storage).toContain('applyServerConnection')
-    expect(storage).toContain('connectAddress(address)')
+    expect(storage).toContain('connectAddress(address,mode)')
     expect(storage).toContain('a configuração atual é preservada')
     expect(storage).toContain('não existe fallback local silencioso')
     expect(storage).not.toContain("host:effectiveHost||'127.0.0.1'")
+    expect(storage).toContain('HTTP público é bloqueado')
+    expect(storage).toContain('https://servidor.seudominio.com')
+    expect(storage).toContain('10.66.0.1:4732')
   })
 
   it('expõe operação e os demais módulos pelo contrato genérico sem centralização silenciosa', () => {

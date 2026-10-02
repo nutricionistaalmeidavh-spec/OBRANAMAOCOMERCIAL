@@ -1,0 +1,10 @@
+# F26 — exemplo de rede privada WireGuard.
+# Gere as chaves fora do repositório e substitua os placeholders localmente.
+[Interface]
+Address = 10.66.0.1/24
+ListenPort = 51820
+PrivateKey = <SERVER_PRIVATE_KEY>
+
+[Peer]
+PublicKey = <CLIENT_PUBLIC_KEY>
+AllowedIPs = 10.66.0.2/32

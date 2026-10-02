@@ -42,7 +42,7 @@ export default function StorageServerSettings({onMessage}:Props){
   useEffect(()=>{
     if(!storage.data)return
     setForm({operationalMode:storage.data.operationalMode,host:storage.data.host,port:String(storage.data.port)})
-    if(storage.data.operationalMode==='lan-client')setManualAddress(storage.data.baseUrl)
+    if(['lan-client','remote'].includes(storage.data.operationalMode))setManualAddress(storage.data.baseUrl)
   },[storage.data?.operationalMode,storage.data?.host,storage.data?.port,storage.data?.baseUrl])
 
   const refreshModuleState=async()=>{
@@ -85,7 +85,7 @@ export default function StorageServerSettings({onMessage}:Props){
   const effectiveHost=form.operationalMode==='lan-host'?'127.0.0.1':form.host
   const dirty=!!storage.data&&(
     form.operationalMode!==storage.data.operationalMode||
-    (form.operationalMode==='lan-client'
+    (['lan-client','remote'].includes(form.operationalMode)
       ?manualAddress.trim()!==storage.data.baseUrl
       :effectiveHost!==storage.data.host||form.port!==String(storage.data.port))
   )
@@ -119,9 +119,9 @@ export default function StorageServerSettings({onMessage}:Props){
       const result=await window.fluxoDre.lan.reconnect()
       const current=await window.fluxoDre.storage.state()
       storage.setData(current)
-      if(current.operationalMode==='lan-client'){
+      if(['lan-client','remote'].includes(current.operationalMode)){
         setManualAddress(current.baseUrl)
-        setForm({operationalMode:'lan-client',host:current.host,port:String(current.port)})
+        setForm({operationalMode:current.operationalMode as Mode,host:current.host,port:String(current.port)})
       }
       if(result.status==='connected'){
         onMessage(result.endpointChanged?'Servidor reencontrado na rede e reconectado sem novo pareamento.':'Servidor reconectado com a credencial já autorizada.')
@@ -134,17 +134,17 @@ export default function StorageServerSettings({onMessage}:Props){
     }catch(error:any){onMessage(error.message)}finally{setBusy(false)}
   }
 
-  const applyServerConnection=async(address:string)=>{
+  const applyServerConnection=async(address:string,mode:'lan-client'|'remote'=(form.operationalMode==='remote'?'remote':'lan-client'))=>{
     setBusy(true)
     onMessage('Validando e conectando ao servidor Obra na Mão...')
     try{
-      const result=await window.fluxoDre.storage.connectAddress(address)
+      const result=await window.fluxoDre.storage.connectAddress(address,mode)
       storage.setData(result.state)
-      setForm({operationalMode:'lan-client',host:result.state.host,port:String(result.state.port)})
+      setForm({operationalMode:result.state.operationalMode as Mode,host:result.state.host,port:String(result.state.port)})
       setManualAddress(result.state.baseUrl)
       setManualProbe(result.server)
       onMessage(`Servidor conectado — ${result.state.baseUrl} (${result.server.latencyMs} ms). Agora conclua a autorização/pareamento.`)
-      await refreshLan('lan-client')
+      await refreshLan(result.state.operationalMode as Mode)
     }catch(error:any){onMessage(error.message)}finally{setBusy(false)}
   }
 
@@ -160,7 +160,7 @@ export default function StorageServerSettings({onMessage}:Props){
   const testManualAddress=async()=>{
     setBusy(true);setManualProbe(null);onMessage('Testando o endereço informado...')
     try{
-      const result=await window.fluxoDre.storage.probeAddress(manualAddress)
+      const result=await window.fluxoDre.storage.probeAddress(manualAddress,form.operationalMode==='remote'?'remote':'lan-client')
       setManualProbe(result)
       onMessage(`Servidor compatível e pronto — ${result.baseUrl} (${result.latencyMs} ms).`)
     }catch(error:any){onMessage(error.message)}finally{setBusy(false)}
@@ -237,7 +237,7 @@ export default function StorageServerSettings({onMessage}:Props){
         <option value="local">Somente neste computador</option>
         <option value="lan-host">Este computador é o principal / servidor local</option>
         <option value="lan-client">Conectar a um servidor da empresa</option>
-        {form.operationalMode==='remote'&&<option value="remote" disabled>Servidor remoto próprio — etapa futura</option>}
+        <option value="remote">Servidor remoto próprio / VPS</option>
       </select>
     </Field>
 
@@ -245,17 +245,24 @@ export default function StorageServerSettings({onMessage}:Props){
       <Field label="Porta"><input type="number" min="1" max="65535" value={form.port} onChange={event=>setForm({...form,port:event.target.value})}/></Field>
     </div>}
 
-    {form.operationalMode==='lan-client'&&<div style={{marginTop:12}}>
-      <div className="setting-actions" style={{justifyContent:'space-between'}}>
-        <div><strong>Encontrar servidor automaticamente</strong><br/><small>Procura somente servidores Obra na Mão disponíveis nesta rede local.</small></div>
-        <Button variant="secondary" icon={<Search size={15}/>} disabled={busy||discovering} onClick={discoverServers}>{discovering?'Procurando...':'Procurar na rede'}</Button>
-      </div>
+    {['lan-client','remote'].includes(form.operationalMode)&&<div style={{marginTop:12}}>
+      {form.operationalMode==='lan-client'&&<>
+        <div className="setting-actions" style={{justifyContent:'space-between'}}>
+          <div><strong>Encontrar servidor automaticamente</strong><br/><small>Procura somente servidores Obra na Mão disponíveis nesta rede local.</small></div>
+          <Button variant="secondary" icon={<Search size={15}/>} disabled={busy||discovering} onClick={discoverServers}>{discovering?'Procurando...':'Procurar na rede'}</Button>
+        </div>
 
-      {!!discoveredServers.length&&<div style={{marginTop:10,display:'grid',gap:8}}>
-        {discoveredServers.map(server=><div key={server.serverId} className="success-box" style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}>
-          <div><strong><Wifi size={14} style={{verticalAlign:'-2px'}}/> {server.name}</strong><br/><small>{server.host}:{server.port} · {server.latencyMs} ms · pronto</small></div>
-          <Button disabled={busy} onClick={()=>applyServerConnection(server.baseUrl)}>Conectar</Button>
-        </div>)}
+        {!!discoveredServers.length&&<div style={{marginTop:10,display:'grid',gap:8}}>
+          {discoveredServers.map(server=><div key={server.serverId} className="success-box" style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}>
+            <div><strong><Wifi size={14} style={{verticalAlign:'-2px'}}/> {server.name}</strong><br/><small>{server.host}:{server.port} · {server.latencyMs} ms · pronto</small></div>
+            <Button disabled={busy} onClick={()=>applyServerConnection(server.baseUrl,'lan-client')}>Conectar</Button>
+          </div>)}
+        </div>}
+      </>}
+
+      {form.operationalMode==='remote'&&<div className="success-box" style={{marginBottom:12}}>
+        <strong>Conexão remota segura.</strong><br/>
+        <small>Use <strong>HTTPS</strong> para endereço público ou um endereço privado da VPN/WireGuard. HTTP público é bloqueado.</small>
       </div>}
 
       <div style={{marginTop:16,paddingTop:14,borderTop:'1px solid var(--border-color, #dfe4ec)'}}>
@@ -263,7 +270,7 @@ export default function StorageServerSettings({onMessage}:Props){
         <Field label="Endereço do servidor">
           <input value={manualAddress} onChange={event=>{setManualAddress(event.target.value);setManualProbe(null)}} placeholder="192.168.1.50 ou obra-server.local"/>
         </Field>
-        <small>Pode ser <strong>192.168.1.50</strong>, <strong>obra-server.local</strong>, <strong>192.168.1.50:4810</strong> ou um endereço HTTPS autorizado.</small>
+        <small>{form.operationalMode==='remote'?<>Use <strong>https://servidor.seudominio.com</strong> ou um IP privado da VPN, como <strong>10.66.0.1:4732</strong>.</>:<>Pode ser <strong>192.168.1.50</strong>, <strong>obra-server.local</strong>, <strong>192.168.1.50:4810</strong> ou um endereço HTTPS autorizado.</>}</small>
         {manualProbe&&<div className="success-box" style={{marginTop:8}}>Servidor pronto: <strong>{manualProbe.baseUrl}</strong>{manualProbe.serverId?<> · ID {manualProbe.serverId}</>:null}.</div>}
         <div className="setting-actions" style={{marginTop:10}}>
           <Button variant="secondary" icon={<RefreshCw size={15}/>} disabled={busy||!manualAddress.trim()} onClick={testManualAddress}>Testar conexão</Button>
@@ -273,10 +280,10 @@ export default function StorageServerSettings({onMessage}:Props){
     </div>}
 
     <div className="setting-actions" style={{marginTop:10}}>
-      {form.operationalMode!=='lan-client'&&<Button disabled={busy} onClick={save}>Salvar configuração</Button>}
+      {!['lan-client','remote'].includes(form.operationalMode)&&<Button disabled={busy} onClick={save}>Salvar configuração</Button>}
       {form.operationalMode==='lan-host'&&<Button variant="secondary" icon={<RefreshCw size={15}/>} disabled={dirty||busy} onClick={test}>Testar servidor</Button>}
     </div>
-    <small>{form.operationalMode==='local'?'Modo padrão, totalmente local e offline.':form.operationalMode==='lan-host'?'O servidor usa um SQLite central neste PC e os outros computadores acessam pela API LAN; o arquivo SQLite nunca é compartilhado pela rede.':'O Desktop só troca para o servidor depois que o endereço é validado. Se a conexão falhar, a configuração atual é preservada e não existe fallback local silencioso.'}</small>
+    <small>{form.operationalMode==='local'?'Modo padrão, totalmente local e offline.':form.operationalMode==='lan-host'?'O servidor usa um SQLite central neste PC e os outros computadores acessam pela API LAN; o arquivo SQLite nunca é compartilhado pela rede.':form.operationalMode==='remote'?'O servidor remoto usa a mesma API, autenticação, permissões e dados centrais. Endereço público exige HTTPS; HTTP é aceito somente em rede privada/VPN. Não existe fallback local silencioso.':'O Desktop só troca para o servidor depois que o endereço é validado. Se a conexão falhar, a configuração atual é preservada e não existe fallback local silencioso.'}</small>
 
     {(['core','operation','planning','finance','rh'] as ModuleKey[]).map(renderModule)}
 
@@ -284,7 +291,7 @@ export default function StorageServerSettings({onMessage}:Props){
       <div className="setting-actions" style={{justifyContent:'space-between'}}>
         <strong>Autorização da rede</strong>
         <div className="setting-actions">
-          {form.operationalMode==='lan-client'&&<Button variant="secondary" icon={<Wifi size={14}/>} disabled={busy} onClick={reconnect}>Reconectar servidor</Button>}
+          {['lan-client','remote'].includes(form.operationalMode)&&<Button variant="secondary" icon={<Wifi size={14}/>} disabled={busy} onClick={reconnect}>Reconectar servidor</Button>}
           <Button variant="secondary" icon={<RefreshCw size={14}/>} disabled={busy} onClick={()=>refreshLan()}>Atualizar estado</Button>
         </div>
       </div>
@@ -292,8 +299,8 @@ export default function StorageServerSettings({onMessage}:Props){
       {lanStatus&&<p>Servidor: <strong>{lanStatus.serverId||storage.data?.serverId||'—'}</strong> · {lanStatus.claimed?'vinculado à empresa':'ainda não reivindicado'} · Este PC: <strong>{paired?'pareado':'não pareado'}</strong>.</p>}
 
       {lanStatus&&!lanStatus.claimed&&<>
-        {form.operationalMode==='lan-client'&&<Field label="Código de configuração mostrado no servidor"><input value={setupCode} onChange={event=>setSetupCode(event.target.value.toUpperCase())} placeholder="XXXXX-XXXXX"/></Field>}
-        <Button disabled={busy||!online.data?.linked||(form.operationalMode==='lan-host'&&!hostState?.setupCodeAvailable)||(form.operationalMode==='lan-client'&&!setupCode.trim())} onClick={claim}>Autorizar servidor com minha conta Admin</Button>
+        {['lan-client','remote'].includes(form.operationalMode)&&<Field label="Código de configuração mostrado no servidor"><input value={setupCode} onChange={event=>setSetupCode(event.target.value.toUpperCase())} placeholder="XXXXX-XXXXX"/></Field>}
+        <Button disabled={busy||!online.data?.linked||(form.operationalMode==='lan-host'&&!hostState?.setupCodeAvailable)||(['lan-client','remote'].includes(form.operationalMode)&&!setupCode.trim())} onClick={claim}>Autorizar servidor com minha conta Admin</Button>
         {!online.data?.linked&&<small>Vincule este Desktop em “Conexão Obra na Mão” antes de reivindicar o servidor. A mesma identidade Web/PWA será reutilizada.</small>}
         {form.operationalMode==='lan-host'&&!hostState?.setupCodeAvailable&&<small>O processo servidor ainda está inicializando. Clique em “Atualizar estado” em alguns segundos.</small>}
       </>}

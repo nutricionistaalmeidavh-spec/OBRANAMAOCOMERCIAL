@@ -24,6 +24,8 @@ test('systemd unit runs the bundled F18 runtime as obra-na-mao with safe recover
 
 test('Linux environment template uses persistent system paths and safe loopback defaults', () => {
   const env = read('server.env.template')
+  assert.match(env, /^OBRA_NA_MAO_SERVER_MODE=lan$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_TRANSPORT=local-network$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_HOST=127\.0\.0\.1$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_PORT=4732$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_DATA_DIR=\/var\/lib\/obra-na-mao$/m)

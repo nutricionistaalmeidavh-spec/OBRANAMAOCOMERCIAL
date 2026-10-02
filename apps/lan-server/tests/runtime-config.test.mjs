@@ -7,6 +7,8 @@ const HOME = path.resolve('/tmp/obra-na-mao-home')
 
 test('runtime config keeps safe backwards-compatible defaults', () => {
   const config = loadRuntimeConfig({ env: {}, homeDir: HOME })
+  assert.equal(config.mode, 'lan')
+  assert.equal(config.transport, 'local-network')
   assert.equal(config.host, '127.0.0.1')
   assert.equal(config.port, 4732)
   assert.equal(config.dataDir, path.join(HOME, '.obra-na-mao-lan'))
@@ -20,7 +22,7 @@ test('runtime config keeps safe backwards-compatible defaults', () => {
 
 test('generic SERVER variables configure the headless runtime', () => {
   const config = loadRuntimeConfig({ env: { OBRA_NA_MAO_SERVER_HOST: ' 0.0.0.0 ', OBRA_NA_MAO_SERVER_PORT: '5843', OBRA_NA_MAO_SERVER_DATA_DIR: '/srv/obra/data', OBRA_NA_MAO_SERVER_BACKUP_DIR: '/srv/obra/backup', OBRA_NA_MAO_SERVER_LOG_DIR: '/srv/obra/log', OBRA_NA_MAO_SERVER_INSTANCE_NAME: ' Escritório Central ', OBRA_NA_MAO_PLATFORM_URL: ' https://example.test/ ' }, homeDir: HOME })
-  assert.deepEqual(config, { host: '0.0.0.0', port: 5843, dataDir: path.resolve('/srv/obra/data'), backupDir: path.resolve('/srv/obra/backup'), logDir: path.resolve('/srv/obra/log'), instanceName: 'Escritório Central', cloudBaseUrl: 'https://example.test', showSetupCode: false })
+  assert.deepEqual(config, { mode:'lan', transport:'local-network', host: '0.0.0.0', port: 5843, dataDir: path.resolve('/srv/obra/data'), backupDir: path.resolve('/srv/obra/backup'), logDir: path.resolve('/srv/obra/log'), instanceName: 'Escritório Central', cloudBaseUrl: 'https://example.test', showSetupCode: false })
 })
 
 test('legacy LAN variables remain supported and generic SERVER variables take precedence', () => {
@@ -56,6 +58,6 @@ test('diagnostic config is allowlisted and never exposes secret-shaped values', 
   const config = { ...loadRuntimeConfig({ env: {}, homeDir: HOME }), token: 'token-secret', password: 'password-secret', pairingCode: 'pairing-secret', snapshot: { secret: 'snapshot-secret' }, authorization: 'Bearer super-secret' }
   const diagnostic = runtimeConfigForDiagnostics(config)
   const serialized = JSON.stringify(diagnostic)
-  assert.deepEqual(Object.keys(diagnostic).sort(), ['backupDir', 'dataDir', 'host', 'instanceName', 'logDir', 'port'].sort())
+  assert.deepEqual(Object.keys(diagnostic).sort(), ['backupDir', 'dataDir', 'host', 'instanceName', 'logDir', 'mode', 'port', 'transport'].sort())
   for (const secret of ['token-secret', 'password-secret', 'pairing-secret', 'snapshot-secret', 'super-secret']) assert.equal(serialized.includes(secret), false)
 })

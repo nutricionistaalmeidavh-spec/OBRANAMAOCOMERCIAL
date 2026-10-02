@@ -1,4 +1,5 @@
 const { parseServerAddress } = require('./server-endpoint.cjs')
+const { remoteTransportFor, validateRemoteEndpoint } = require('./remote-transport-policy.cjs')
 
 const MODES = new Set(['local', 'server'])
 const OPERATIONAL_MODES = new Set(['local', 'lan-host', 'lan-client', 'remote'])
@@ -28,10 +29,11 @@ function buildBaseUrl({ scheme, host, port }) {
 }
 
 class StorageConnectionService {
-  constructor({ db, fetchImpl = globalThis.fetch, timeoutMs = 3000 }) {
+  constructor({ db, fetchImpl = globalThis.fetch, timeoutMs = 3000, remoteTimeoutMs = 10000 }) {
     this.db = db
     this.fetchImpl = fetchImpl
     this.timeoutMs = timeoutMs
+    this.remoteTimeoutMs = remoteTimeoutMs
   }
 
   read(key) {
@@ -98,7 +100,9 @@ class StorageConnectionService {
     }
 
     const serverId = String(this.read(SERVER_ID_KEY) || '').trim() || null
-    return { mode, operationalMode, scheme, host, port, baseUrl: buildBaseUrl({ scheme, host, port }), serverId }
+    const endpoint = { scheme, host, port }
+    const transport = operationalMode === 'remote' ? remoteTransportFor(endpoint) : 'local-network'
+    return { mode, operationalMode, scheme, host, port, baseUrl: buildBaseUrl(endpoint), serverId, transport }
   }
 
   configure({ mode, operationalMode, scheme, host, port, address, serverId } = {}) {
@@ -127,6 +131,8 @@ class StorageConnectionService {
       endpoint = { scheme: validScheme, host: validHost, port: validPort }
     }
 
+    if (validOperationalMode === 'remote') validateRemoteEndpoint(endpoint)
+
     this.write(MODE_KEY, validMode)
     this.write(OPERATIONAL_MODE_KEY, validOperationalMode)
     this.write(SCHEME_KEY, endpoint.scheme)
@@ -150,16 +156,17 @@ class StorageConnectionService {
     const expected = String(serverId || '').trim()
     if (!current.serverId || current.serverId !== expected) throw new Error('A identidade do servidor não corresponde à instância selecionada.')
     const endpoint = parseServerAddress(address)
+    if (current.operationalMode === 'remote') validateRemoteEndpoint(endpoint)
     this.write(SCHEME_KEY, endpoint.scheme)
     this.write(HOST_KEY, endpoint.host)
     this.write(PORT_KEY, endpoint.port)
     return this.state()
   }
 
-  async probeEndpoint(endpoint) {
+  async probeEndpoint(endpoint, { timeoutMs = this.timeoutMs } = {}) {
     const baseUrl = buildBaseUrl(endpoint)
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
     const startedAt = Date.now()
     try {
       const options = {
@@ -201,13 +208,18 @@ class StorageConnectionService {
     }
   }
 
-  async probeAddress(address) {
-    return this.probeEndpoint(parseServerAddress(address))
+  async probeAddress(address, { operationalMode = 'lan-client' } = {}) {
+    const endpoint = parseServerAddress(address)
+    if (operationalMode === 'remote') validateRemoteEndpoint(endpoint)
+    return this.probeEndpoint(endpoint, { timeoutMs: operationalMode === 'remote' ? this.remoteTimeoutMs : this.timeoutMs })
   }
 
-  async connectAddress(address, { rejectServerId = null, expectedServerId = null } = {}) {
+  async connectAddress(address, { rejectServerId = null, expectedServerId = null, operationalMode = 'lan-client' } = {}) {
+    const validOperationalMode = this.validateOperationalMode(operationalMode)
+    if (!['lan-client','remote'].includes(validOperationalMode)) throw new Error('Conexão manual aceita somente cliente LAN ou servidor remoto.')
     const endpoint = parseServerAddress(address)
-    const server = await this.probeEndpoint(endpoint)
+    if (validOperationalMode === 'remote') validateRemoteEndpoint(endpoint)
+    const server = await this.probeEndpoint(endpoint, { timeoutMs: validOperationalMode === 'remote' ? this.remoteTimeoutMs : this.timeoutMs })
     const blockedId = String(rejectServerId || '').trim()
     if (blockedId && server.serverId && String(server.serverId) === blockedId) {
       throw new Error('Este endereço aponta para o próprio servidor deste computador. Escolha outro servidor ou mantenha este computador como servidor local.')
@@ -218,7 +230,7 @@ class StorageConnectionService {
     }
     if (!server.serverId) throw new Error('Servidor Obra na Mão não informou uma identidade válida.')
     const state = this.configure({
-      operationalMode: 'lan-client',
+      operationalMode: validOperationalMode,
       scheme: endpoint.scheme,
       host: endpoint.host,
       port: endpoint.port,
@@ -230,7 +242,7 @@ class StorageConnectionService {
   async testConnection() {
     const state = this.state()
     if (state.mode !== 'server') throw new Error('Selecione Servidor da empresa antes de testar a conexão.')
-    return this.probeEndpoint(state)
+    return this.probeEndpoint(state, { timeoutMs: state.operationalMode === 'remote' ? this.remoteTimeoutMs : this.timeoutMs })
   }
 }
 

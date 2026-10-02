@@ -226,7 +226,7 @@ async function configureStorage(payload) {
   return state
 }
 
-async function connectStorageAddress(address) {
+async function connectStorageAddress(address, operationalMode = 'lan-client') {
   const previous = services.storage.state()
   let rejectServerId = null
   if (previous.operationalMode === 'lan-host') {
@@ -235,7 +235,7 @@ async function connectStorageAddress(address) {
       rejectServerId = currentServer?.serverId || null
     } catch {}
   }
-  const result = await services.storage.connectAddress(address, { rejectServerId })
+  const result = await services.storage.connectAddress(address, { rejectServerId, operationalMode })
   if (previous.operationalMode === 'lan-host') await services.lanHost.stop()
   destroyTray()
   await refreshModuleCapabilitiesSafe()
@@ -251,8 +251,8 @@ function registerIpc() {
   ipcMain.handle('storage:configure', envelope((payload) => configureStorage(payload)))
   ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))
   ipcMain.handle('storage:discover-servers', envelope(() => services.serverDiscovery.discover()))
-  ipcMain.handle('storage:probe-address', envelope(({ address }) => services.storage.probeAddress(address)))
-  ipcMain.handle('storage:connect-address', envelope(({ address }) => connectStorageAddress(address)))
+  ipcMain.handle('storage:probe-address', envelope(({ address, operationalMode }) => services.storage.probeAddress(address, { operationalMode })))
+  ipcMain.handle('storage:connect-address', envelope(({ address, operationalMode }) => connectStorageAddress(address, operationalMode)))
   ipcMain.handle('storage:module-state', envelope(({ module }) => services.moduleStorage.state(module)))
   ipcMain.handle('storage:refresh-module-capabilities', envelope(() => services.moduleStorage.refreshCapabilities()))
   ipcMain.handle('storage:migration-preflight', envelope(({ module }) => services.migration.preflight(module)))
