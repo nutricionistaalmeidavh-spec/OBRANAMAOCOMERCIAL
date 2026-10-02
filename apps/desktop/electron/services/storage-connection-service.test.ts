@@ -29,7 +29,7 @@ describe('StorageConnectionService', () => {
   it('mantem instalacoes existentes em modo local por padrao', () => {
     const { StorageConnectionService } = require('./storage-connection-service.cjs')
     const service = new StorageConnectionService({ db: fakeDb(), fetchImpl: vi.fn() })
-    expect(service.state()).toEqual({ mode: 'local', operationalMode: 'local', scheme: 'http', host: '127.0.0.1', port: 4732, baseUrl: 'http://127.0.0.1:4732', serverId: null })
+    expect(service.state()).toEqual({ mode: 'local', operationalMode: 'local', scheme: 'http', host: '127.0.0.1', port: 4732, baseUrl: 'http://127.0.0.1:4732', serverId: null, transport:'local-network' })
   })
 
   it('expõe local como papel operacional de uma instalação nova', () => {
@@ -51,8 +51,8 @@ describe('StorageConnectionService', () => {
     const { StorageConnectionService } = require('./storage-connection-service.cjs')
     const host = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', storage_operational_mode: 'lan-host' }), fetchImpl: vi.fn() })
     expect(host.state()).toMatchObject({ mode: 'server', operationalMode: 'lan-host' })
-    const remote = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', storage_operational_mode: 'remote', lan_server_host: 'srv.exemplo.com' }), fetchImpl: vi.fn() })
-    expect(remote.state()).toMatchObject({ mode: 'server', operationalMode: 'remote', host: 'srv.exemplo.com' })
+    const remote = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', storage_operational_mode: 'remote', lan_server_scheme:'https', lan_server_host: 'srv.exemplo.com', lan_server_port:'443' }), fetchImpl: vi.fn() })
+    expect(remote.state()).toMatchObject({ mode: 'server', operationalMode: 'remote', host: 'srv.exemplo.com', transport:'https' })
   })
 
   it('ignora valor operacional persistido inválido e usa o legado com segurança', () => {
@@ -72,7 +72,7 @@ describe('StorageConnectionService', () => {
     const db = fakeDb()
     const service = new StorageConnectionService({ db, fetchImpl: vi.fn() })
     expect(service.configure({ mode: 'server', host: 'servidor-escritorio.local', port: 4810 })).toEqual({
-      mode: 'server', operationalMode: 'lan-client', scheme: 'http', host: 'servidor-escritorio.local', port: 4810, baseUrl: 'http://servidor-escritorio.local:4810', serverId: null
+      mode: 'server', operationalMode: 'lan-client', scheme: 'http', host: 'servidor-escritorio.local', port: 4810, baseUrl: 'http://servidor-escritorio.local:4810', serverId: null, transport:'local-network'
     })
     expect(db.values.get('storage_mode')).toBe('server')
     expect(db.values.get('storage_operational_mode')).toBe('lan-client')
