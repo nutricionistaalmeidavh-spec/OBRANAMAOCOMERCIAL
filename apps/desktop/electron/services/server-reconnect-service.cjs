@@ -71,6 +71,7 @@ class ServerReconnectService {
 
     if (identity.status === 'rediscover') {
       const selectedId=String(identity.serverId || '').trim()
+      if (state.operationalMode === 'remote') return { status:'unreachable', serverId:selectedId || null, reason:identity.reason, endpointChanged:false, reusedCredential:false }
       if (!selectedId) return { status:'unreachable', serverId:null, reason:'identity_unknown', endpointChanged:false, reusedCredential:false }
       let found=[]
       try { found=await this.discovery.discover() } catch {}
