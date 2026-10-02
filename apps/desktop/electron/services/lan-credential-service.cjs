@@ -87,6 +87,18 @@ class LanCredentialService {
     return this.decodeToken(this.readAll()[key])
   }
 
+  rekey(fromServerKey, toServerKey) {
+    const fromKey = this.normalizeServerKey(fromServerKey)
+    const toKey = this.normalizeServerKey(toServerKey)
+    if (fromKey === toKey) return this.state(toKey)
+    const all = this.readAll()
+    if (!all[fromKey]) return this.state(toKey)
+    if (!all[toKey]) all[toKey] = all[fromKey]
+    delete all[fromKey]
+    this.writeAll(all)
+    return this.state(toKey)
+  }
+
   clear(serverKey) {
     const key = this.normalizeServerKey(serverKey)
     const all = this.readAll()
