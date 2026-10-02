@@ -1,9 +1,14 @@
+const { parseServerAddress } = require('./server-endpoint.cjs')
+
 const MODES = new Set(['local', 'server'])
 const OPERATIONAL_MODES = new Set(['local', 'lan-host', 'lan-client', 'remote'])
+const SCHEMES = new Set(['http', 'https'])
 const MODE_KEY = 'storage_mode'
 const OPERATIONAL_MODE_KEY = 'storage_operational_mode'
+const SCHEME_KEY = 'lan_server_scheme'
 const HOST_KEY = 'lan_server_host'
 const PORT_KEY = 'lan_server_port'
+const DEFAULT_SCHEME = 'http'
 const DEFAULT_HOST = '127.0.0.1'
 const DEFAULT_PORT = 4732
 
@@ -13,6 +18,12 @@ function legacyToOperational(mode) {
 
 function operationalToLegacy(operationalMode) {
   return operationalMode === 'local' ? 'local' : 'server'
+}
+
+function buildBaseUrl({ scheme, host, port }) {
+  const formattedHost = String(host).includes(':') ? `[${host}]` : host
+  const url = new URL(`${scheme}://${formattedHost}:${port}`)
+  return url.origin
 }
 
 class StorageConnectionService {
@@ -40,9 +51,15 @@ class StorageConnectionService {
     return mode
   }
 
+  validateScheme(scheme) {
+    const value = String(scheme || DEFAULT_SCHEME).toLowerCase()
+    if (!SCHEMES.has(value)) throw new Error('Protocolo do servidor inválido.')
+    return value
+  }
+
   validateHost(host) {
     const value = String(host ?? '').trim()
-    if (!value || /[:/@\\?#]/.test(value) || !/^[A-Za-z0-9.-]+$/.test(value)) {
+    if (!value || /[/@\\?#\s]/.test(value) || !/^[A-Za-z0-9.:-]+$/.test(value)) {
       throw new Error('Endereço do servidor inválido. Informe somente o host ou IP, sem protocolo ou caminho.')
     }
     return value
@@ -60,23 +77,29 @@ class StorageConnectionService {
     const savedOperationalMode = this.read(OPERATIONAL_MODE_KEY)
     const operationalMode = OPERATIONAL_MODES.has(savedOperationalMode) ? savedOperationalMode : legacyToOperational(mode)
 
+    let scheme = DEFAULT_SCHEME
+    const savedScheme = this.read(SCHEME_KEY)
+    if (savedScheme) {
+      try { scheme = this.validateScheme(savedScheme) } catch { scheme = DEFAULT_SCHEME }
+    }
+
     let host = DEFAULT_HOST
     const savedHost = this.read(HOST_KEY)
     if (savedHost) {
       try { host = this.validateHost(savedHost) } catch { host = DEFAULT_HOST }
     }
 
-    let port = DEFAULT_PORT
+    let port = scheme === 'https' ? 443 : DEFAULT_PORT
     const savedPort = this.read(PORT_KEY)
     if (savedPort !== undefined) {
       const parsed = Number(savedPort)
       if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 65535) port = parsed
     }
 
-    return { mode, operationalMode, host, port, baseUrl: `http://${host}:${port}` }
+    return { mode, operationalMode, scheme, host, port, baseUrl: buildBaseUrl({ scheme, host, port }) }
   }
 
-  configure({ mode, operationalMode, host, port }) {
+  configure({ mode, operationalMode, scheme, host, port, address } = {}) {
     let validOperationalMode
     let validMode
     if (operationalMode !== undefined) {
@@ -90,45 +113,91 @@ class StorageConnectionService {
       validOperationalMode = legacyToOperational(validMode)
     }
 
-    const requiresExplicitHost = validOperationalMode === 'lan-client' || validOperationalMode === 'remote'
-    const hostCandidate = requiresExplicitHost ? host : (host || DEFAULT_HOST)
-    const validHost = this.validateHost(hostCandidate)
-    const validPort = this.validatePort(port ?? DEFAULT_PORT)
+    let endpoint
+    if (address !== undefined) {
+      endpoint = parseServerAddress(address)
+    } else {
+      const validScheme = this.validateScheme(scheme || DEFAULT_SCHEME)
+      const requiresExplicitHost = validOperationalMode === 'lan-client' || validOperationalMode === 'remote'
+      const hostCandidate = requiresExplicitHost ? host : (host || DEFAULT_HOST)
+      const validHost = this.validateHost(hostCandidate)
+      const validPort = this.validatePort(port ?? (validScheme === 'https' ? 443 : DEFAULT_PORT))
+      endpoint = { scheme: validScheme, host: validHost, port: validPort }
+    }
+
     this.write(MODE_KEY, validMode)
     this.write(OPERATIONAL_MODE_KEY, validOperationalMode)
-    this.write(HOST_KEY, validHost)
-    this.write(PORT_KEY, validPort)
+    this.write(SCHEME_KEY, endpoint.scheme)
+    this.write(HOST_KEY, endpoint.host)
+    this.write(PORT_KEY, endpoint.port)
     return this.state()
+  }
+
+  async probeEndpoint(endpoint) {
+    const baseUrl = buildBaseUrl(endpoint)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    const startedAt = Date.now()
+    try {
+      const options = {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal
+      }
+      const [healthResponse, readyResponse] = await Promise.all([
+        this.fetchImpl(`${baseUrl}/health`, options),
+        this.fetchImpl(`${baseUrl}/ready`, options)
+      ])
+
+      if (!healthResponse?.ok) throw new Error(`Servidor respondeu HTTP ${healthResponse?.status ?? 'inválido'} no health check.`)
+      const health = await healthResponse.json()
+      if (health?.status !== 'ok' || health?.product !== 'Obra na Mão' || String(health?.apiVersion) !== '1') {
+        throw new Error('O endereço respondeu, mas não é um servidor Obra na Mão compatível.')
+      }
+
+      const readiness = typeof readyResponse?.json === 'function' ? await readyResponse.json() : null
+      if (!readyResponse?.ok || readiness?.ready !== true) {
+        throw new Error('O servidor Obra na Mão foi encontrado, mas ainda não está pronto para conexão.')
+      }
+
+      return {
+        ok: true,
+        baseUrl,
+        latencyMs: Math.max(0, Date.now() - startedAt),
+        health,
+        readiness,
+        serverId: readiness?.identity?.serverId || null
+      }
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error('Tempo esgotado ao conectar ao servidor da empresa.')
+      const message = error instanceof Error ? error.message : String(error)
+      if (/Servidor respondeu HTTP|não é um servidor Obra na Mão compatível|ainda não está pronto/.test(message)) throw error
+      throw new Error('Não foi possível conectar ao servidor da empresa.')
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  async probeAddress(address) {
+    return this.probeEndpoint(parseServerAddress(address))
+  }
+
+  async connectAddress(address) {
+    const endpoint = parseServerAddress(address)
+    const server = await this.probeEndpoint(endpoint)
+    const state = this.configure({
+      operationalMode: 'lan-client',
+      scheme: endpoint.scheme,
+      host: endpoint.host,
+      port: endpoint.port
+    })
+    return { state, server }
   }
 
   async testConnection() {
     const state = this.state()
     if (state.mode !== 'server') throw new Error('Selecione Servidor da empresa antes de testar a conexão.')
-
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
-    const startedAt = Date.now()
-
-    try {
-      const response = await this.fetchImpl(`${state.baseUrl}/health`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-        signal: controller.signal
-      })
-      if (!response?.ok) throw new Error(`Servidor respondeu HTTP ${response?.status ?? 'inválido'}.`)
-      const health = await response.json()
-      if (health?.status !== 'ok' || health?.product !== 'Obra na Mão' || String(health?.apiVersion) !== '1') {
-        throw new Error('O endereço respondeu, mas não é um servidor Obra na Mão compatível.')
-      }
-      return { ok: true, baseUrl: state.baseUrl, latencyMs: Math.max(0, Date.now() - startedAt), health }
-    } catch (error) {
-      if (error?.name === 'AbortError') throw new Error('Tempo esgotado ao conectar ao servidor da empresa.')
-      const message = error instanceof Error ? error.message : String(error)
-      if (/Servidor respondeu HTTP|não é um servidor Obra na Mão compatível/.test(message)) throw error
-      throw new Error('Não foi possível conectar ao servidor da empresa.')
-    } finally {
-      clearTimeout(timer)
-    }
+    return this.probeEndpoint(state)
   }
 }
 
