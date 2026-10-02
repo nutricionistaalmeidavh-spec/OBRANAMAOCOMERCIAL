@@ -24,12 +24,20 @@ test('systemd unit runs the bundled F18 runtime as obra-na-mao with safe recover
 
 test('Linux environment template uses persistent system paths and safe loopback defaults', () => {
   const env = read('server.env.template')
+  assert.match(env, /^OBRA_NA_MAO_SERVER_MODE=lan$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_TRANSPORT=local-network$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_HOST=127\.0\.0\.1$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_PORT=4732$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_DATA_DIR=\/var\/lib\/obra-na-mao$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_DIR=\/var\/lib\/obra-na-mao\/backups$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_LOG_DIR=\/var\/log\/obra-na-mao$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_SHOW_SETUP_CODE=false$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_ENABLED=true$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS=24$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_RETENTION=7$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_ENABLED=true$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS=24$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_RETENTION=7$/m)
   assert.doesNotMatch(env, /(bearer|password|secret|device_token|server_token)\s*=/i)
 })
 

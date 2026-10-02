@@ -1,0 +1,18 @@
+# F26 — HTTPS público com TLS válido via Caddy.
+# Defina OBRA_PUBLIC_HOST no ambiente do Caddy, por exemplo:
+# OBRA_PUBLIC_HOST=servidor.empresa.com
+#
+# O Obra na Mão Server deve permanecer em:
+# OBRA_NA_MAO_SERVER_MODE=remote
+# OBRA_NA_MAO_SERVER_TRANSPORT=reverse-proxy
+# OBRA_NA_MAO_SERVER_HOST=127.0.0.1
+
+{$OBRA_PUBLIC_HOST} {
+  encode zstd gzip
+  reverse_proxy 127.0.0.1:4732
+  header {
+    -Server
+    X-Content-Type-Options nosniff
+    Referrer-Policy no-referrer
+  }
+}

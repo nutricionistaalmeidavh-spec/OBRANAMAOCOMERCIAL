@@ -29,7 +29,7 @@ describe('StorageConnectionService', () => {
   it('mantem instalacoes existentes em modo local por padrao', () => {
     const { StorageConnectionService } = require('./storage-connection-service.cjs')
     const service = new StorageConnectionService({ db: fakeDb(), fetchImpl: vi.fn() })
-    expect(service.state()).toEqual({ mode: 'local', operationalMode: 'local', host: '127.0.0.1', port: 4732, baseUrl: 'http://127.0.0.1:4732' })
+    expect(service.state()).toEqual({ mode: 'local', operationalMode: 'local', scheme: 'http', host: '127.0.0.1', port: 4732, baseUrl: 'http://127.0.0.1:4732', serverId: null, transport:'local-network' })
   })
 
   it('expõe local como papel operacional de uma instalação nova', () => {
@@ -51,8 +51,8 @@ describe('StorageConnectionService', () => {
     const { StorageConnectionService } = require('./storage-connection-service.cjs')
     const host = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', storage_operational_mode: 'lan-host' }), fetchImpl: vi.fn() })
     expect(host.state()).toMatchObject({ mode: 'server', operationalMode: 'lan-host' })
-    const remote = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', storage_operational_mode: 'remote', lan_server_host: 'srv.exemplo.com' }), fetchImpl: vi.fn() })
-    expect(remote.state()).toMatchObject({ mode: 'server', operationalMode: 'remote', host: 'srv.exemplo.com' })
+    const remote = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', storage_operational_mode: 'remote', lan_server_scheme:'https', lan_server_host: 'srv.exemplo.com', lan_server_port:'443' }), fetchImpl: vi.fn() })
+    expect(remote.state()).toMatchObject({ mode: 'server', operationalMode: 'remote', host: 'srv.exemplo.com', transport:'https' })
   })
 
   it('ignora valor operacional persistido inválido e usa o legado com segurança', () => {
@@ -72,7 +72,7 @@ describe('StorageConnectionService', () => {
     const db = fakeDb()
     const service = new StorageConnectionService({ db, fetchImpl: vi.fn() })
     expect(service.configure({ mode: 'server', host: 'servidor-escritorio.local', port: 4810 })).toEqual({
-      mode: 'server', operationalMode: 'lan-client', host: 'servidor-escritorio.local', port: 4810, baseUrl: 'http://servidor-escritorio.local:4810'
+      mode: 'server', operationalMode: 'lan-client', scheme: 'http', host: 'servidor-escritorio.local', port: 4810, baseUrl: 'http://servidor-escritorio.local:4810', serverId: null, transport:'local-network'
     })
     expect(db.values.get('storage_mode')).toBe('server')
     expect(db.values.get('storage_operational_mode')).toBe('lan-client')
@@ -105,14 +105,15 @@ describe('StorageConnectionService', () => {
     expect(() => service.configure({ mode: 'server', host: '192.168.0.10', port })).toThrow(/porta/i)
   })
 
-  it('reconhece apenas o health check do Obra na Mao API v1', async () => {
+  it('reconhece apenas servidor Obra na Mao v1 que também esteja ready', async () => {
     const { StorageConnectionService } = require('./storage-connection-service.cjs')
     const fetchImpl = vi.fn(async (url: string) => {
-      expect(url).toBe('http://192.168.0.10:4732/health')
-      return response(200, { status: 'ok', product: 'Obra na Mão', apiVersion: '1' })
+      if (url === 'http://192.168.0.10:4732/health') return response(200, { status: 'ok', product: 'Obra na Mão', apiVersion: '1' })
+      if (url === 'http://192.168.0.10:4732/ready') return response(200, { ready: true, status: 'ready', identity: { serverId: 'srv-1' } })
+      throw new Error(`URL inesperada: ${url}`)
     })
     const service = new StorageConnectionService({ db: fakeDb({ storage_mode: 'server', lan_server_host: '192.168.0.10', lan_server_port: '4732' }), fetchImpl })
-    await expect(service.testConnection()).resolves.toMatchObject({ ok: true, baseUrl: 'http://192.168.0.10:4732', health: { status: 'ok', product: 'Obra na Mão', apiVersion: '1' } })
+    await expect(service.testConnection()).resolves.toMatchObject({ ok: true, baseUrl: 'http://192.168.0.10:4732', serverId: 'srv-1', health: { status: 'ok', product: 'Obra na Mão', apiVersion: '1' } })
   })
 
   it('rejeita HTTP 200 de outro servico', async () => {

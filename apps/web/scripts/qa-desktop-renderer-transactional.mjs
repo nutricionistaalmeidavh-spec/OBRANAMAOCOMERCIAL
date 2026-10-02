@@ -39,6 +39,9 @@ try{
         state:async()=>({mode:'local',operationalMode:'local',host:'127.0.0.1',port:4732,baseUrl:'http://127.0.0.1:4732'}),
         configure:async input=>({mode:input.operationalMode==='local'?'local':'server',operationalMode:input.operationalMode,host:input.host,port:input.port,baseUrl:`http://${input.host}:${input.port}`}),
         testConnection:async()=>({ok:true,baseUrl:'http://127.0.0.1:4732',latencyMs:7,health:{status:'ok',product:'Obra na Mão',apiVersion:'1'}}),
+        discoverServers:async()=>[],
+        probeAddress:async address=>({ok:true,baseUrl:address,serverId:'srv-qa',latencyMs:7,health:{status:'ok',product:'Obra na Mão',apiVersion:'1'},readiness:{ready:true}}),
+        connectAddress:async(address,operationalMode='lan-client')=>({state:{mode:'server',operationalMode,scheme:address.startsWith('https:')?'https':'http',host:'server.qa',port:address.startsWith('https:')?443:4732,baseUrl:address,serverId:'srv-qa',transport:address.startsWith('https:')?'https':'local-network'},server:{ok:true,baseUrl:address,serverId:'srv-qa',latencyMs:7}}),
         moduleState:async module=>({module,state:'local',localRecords:0}),
         refreshModuleCapabilities:async()=>Object.fromEntries(['core','operation','planning','finance','rh'].map(module=>[module,{module,state:'local',localRecords:0}])),
         migrationPreflight:async()=>({canMigrate:true,dependencies:{}}),
@@ -52,17 +55,19 @@ try{
         status:async()=>({serverId:'srv-qa',claimed:false,credential:{paired:false,member:null}}),
         claimHost:async()=>({company:{name:'Empresa QA'}}),pair:async()=>({paired:true}),disconnect:async()=>({paired:false}),
         adminStatus:async()=>({stale:false,deviceCount:0}),createPairing:async()=>({code:'QA123-45678',expiresAt:'2026-10-01T21:00:00.000Z'}),
-        listDevices:async()=>[],setDeviceStatus:async()=>({ok:true}),refreshIdentity:async()=>({ok:true}),
+        listDevices:async()=>[],setDeviceStatus:async()=>({ok:true}),refreshIdentity:async()=>({ok:true}),reconnect:async()=>({status:'connected',serverId:'srv-qa',endpointChanged:false,reusedCredential:true}),
+        operationsStatus:async()=>({server:{version:'0.3.0',apiVersion:'1',serverId:'srv-qa',runtime:{mode:'lan',transport:'local-network'}},readiness:{ready:true,status:'ready'},storage:{accessible:true,integrity:'ok',schemaVersion:6,maintenance:false},backup:{policy:{enabled:true,running:true,intervalHours:24,retentionCount:7,nextRunAt:null},lastBackup:null},devices:{total:0,active:0,revoked:0},authority:{company:{id:'company-qa',name:'Empresa QA'},revision:'r1',lastCloudRefreshAt:null,stale:false},sync:{authorityRevision:'r1',lastCloudRefreshAt:null,stale:false},capabilities:{version:1,modules:['core','operation','planning','finance','rh'],bridgeEntities:[],features:[]}}),
+        listBackups:async()=>[],createBackup:async()=>({backupId:'qa-backup'}),testBackup:async backupId=>({restorable:true,backupId,integrity:'ok'}),preUpgradeBackup:async()=>({backup:{backupId:'qa-pre-upgrade'},verified:true}),restoreBackup:async backupId=>({restored:true,backupId}),
         startAtLoginState:async()=>({enabled:false}),setStartAtLogin:async enabled=>({enabled})
       }
     };
   });
 
-  await page.goto(`${base}/#/configuracoes`,{waitUntil:'domcontentloaded'});await page.getByRole('heading',{name:'Configurações'}).waitFor({state:'visible'});
+  await page.goto(`${base}/#/configuracoes`,{waitUntil:'domcontentloaded'});await page.getByRole('heading',{name:'Configurações',exact:true}).waitFor({state:'visible'});
   await page.getByAltText('ArtiSys').waitFor({state:'visible'});
   const legacyBrand=page.getByText('Fluxo DRE',{exact:true});if(await legacyBrand.count()&&await legacyBrand.first().isVisible())throw new Error('QA renderer must use the command-center shell');
   await page.screenshot({path:path.join(outDir,'00-electron-settings-hub-command-center.png'),fullPage:true});
-  await page.getByRole('link',{name:'Configurações do sistema'}).click();await page.getByRole('heading',{name:'Configurações'}).waitFor({state:'visible'});
+  await page.getByRole('link',{name:'Configurações do sistema'}).click();await page.getByRole('heading',{name:'Configurações',exact:true}).waitFor({state:'visible'});
   await page.getByRole('heading',{name:'Dados e servidor'}).waitFor({state:'visible'});
   const storageMode=page.getByLabel('Onde os dados operacionais ficarão?');await storageMode.waitFor({state:'visible'});
   await page.getByRole('button',{name:'Salvar configuração'}).waitFor({state:'visible'});

@@ -12,6 +12,9 @@ describe('storage and Web/PWA public contract separation', () => {
     expect(storageBlock).toContain("state: () => call('storage:state')")
     expect(storageBlock).toContain("configure: (input) => call('storage:configure', input)")
     expect(storageBlock).toContain("testConnection: () => call('storage:test-connection')")
+    expect(storageBlock).toContain("discoverServers: () => call('storage:discover-servers')")
+    expect(storageBlock).toContain("probeAddress: (address, operationalMode = 'lan-client') => call('storage:probe-address'")
+    expect(storageBlock).toContain("connectAddress: (address, operationalMode = 'lan-client') => call('storage:connect-address'")
     expect(storageBlock).toContain("moduleState: (module) => call('storage:module-state'")
     expect(storageBlock).toContain("migrationPreflight: (module) => call('storage:migration-preflight'")
     expect(storageBlock).toContain("migrationStatus: (module) => call('storage:migration-status'")
@@ -21,6 +24,14 @@ describe('storage and Web/PWA public contract separation', () => {
     expect(storageBlock).not.toContain("call('online:")
     expect(storageBlock).not.toContain("call('online:sync")
     expect(storageBlock).not.toContain("call('online:session")
+  })
+
+  it('guards lan-host against connecting to its own discovered identity before switching modes', () => {
+    const connectBlock = main.match(/async function connectStorageAddress\(address, operationalMode = 'lan-client'\) \{[\s\S]*?\r?\n\}/)?.[0] || ''
+    expect(connectBlock).toContain("previous.operationalMode === 'lan-host'")
+    expect(connectBlock).toContain('services.lanSetup.status()')
+    expect(connectBlock).toContain('rejectServerId')
+    expect(connectBlock).toContain('services.storage.connectAddress(address')
   })
 
   it('keeps the existing online auth/session/sync API available', () => {
@@ -38,6 +49,11 @@ describe('storage and Web/PWA public contract separation', () => {
     const configureStorageBlock = main.match(/async function configureStorage\(payload\) \{[\s\S]*?\r?\n\}/)?.[0] || ''
     expect(main).toContain("ipcMain.handle('storage:configure', envelope((payload) => configureStorage(payload)))")
     expect(main).toContain("ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))")
+    expect(main).toContain("ipcMain.handle('storage:discover-servers', envelope(() => services.serverDiscovery.discover()))")
+    expect(main).toContain("ipcMain.handle('storage:probe-address', envelope(({ address, operationalMode }) => services.storage.probeAddress(address, { operationalMode })))")
+    expect(main).toContain("ipcMain.handle('storage:connect-address', envelope(({ address, operationalMode }) => connectStorageAddress(address, operationalMode)))")
+    expect(main).toContain("ipcMain.handle('lan:reconnect', envelope(() => services.serverReconnect.reconnect()))")
+    expect(main).toContain("await services.serverReconnect.reconnect()")
     expect(configureStorageBlock).toContain('services.storage.configure(payload)')
     expect(configureStorageBlock).toContain('services.lanHost')
     expect(configureStorageBlock).not.toContain('services.online')

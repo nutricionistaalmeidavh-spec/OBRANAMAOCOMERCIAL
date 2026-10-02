@@ -42,7 +42,7 @@ class LanHostService {
   captureOutput(child) {
     child.stdout?.on?.('data', chunk => {
       const text = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk || '')
-      const match = text.match(/Código de configuração LAN:\s*([A-Z0-9-]+)/i)
+      const match = text.match(/(?:Código de configuração LAN:|Obra na Mão Server setup code \(explicit opt-in\):)\s*([A-Z0-9-]+)/i)
       if (match?.[1]) this.setupCodeValue = match[1].toUpperCase()
     })
     child.stderr?.on?.('data', chunk => {
@@ -71,7 +71,8 @@ class LanHostService {
       OBRA_NA_MAO_LAN_DATA_DIR: serverDataDir,
       OBRA_NA_MAO_LAN_HOST: '0.0.0.0',
       OBRA_NA_MAO_LAN_PORT: String(state.port || 4732),
-      OBRA_NA_MAO_PLATFORM_URL: this.resolveCloudBaseUrl()
+      OBRA_NA_MAO_PLATFORM_URL: this.resolveCloudBaseUrl(),
+      OBRA_NA_MAO_SERVER_SHOW_SETUP_CODE: 'true'
     }
     const child = this.spawnImpl(this.execPath, [this.serverEntry], {
       env,

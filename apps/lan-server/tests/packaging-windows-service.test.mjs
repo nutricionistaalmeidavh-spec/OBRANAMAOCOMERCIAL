@@ -26,12 +26,20 @@ test('WinSW service runs the bundled F18 runtime as LocalService with automatic 
 
 test('Windows environment template is safe, persistent and loopback-only by default', () => {
   const env = read('server.env.template')
+  assert.match(env, /^OBRA_NA_MAO_SERVER_MODE=lan$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_TRANSPORT=local-network$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_HOST=127\.0\.0\.1$/m)
   assert.match(env, /^OBRA_NA_MAO_SERVER_PORT=4732$/m)
   assert.match(env, /OBRA_NA_MAO_SERVER_DATA_DIR=.*ProgramData.*ArtiSys.*Obra na Mão Server.*data/im)
   assert.match(env, /OBRA_NA_MAO_SERVER_BACKUP_DIR=.*ProgramData.*ArtiSys.*Obra na Mão Server.*backups/im)
   assert.match(env, /OBRA_NA_MAO_SERVER_LOG_DIR=.*ProgramData.*ArtiSys.*Obra na Mão Server.*logs/im)
   assert.match(env, /^OBRA_NA_MAO_SERVER_SHOW_SETUP_CODE=false$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_ENABLED=true$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS=24$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_RETENTION=7$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_ENABLED=true$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_INTERVAL_HOURS=24$/m)
+  assert.match(env, /^OBRA_NA_MAO_SERVER_BACKUP_RETENTION=7$/m)
   assert.doesNotMatch(env, /(bearer|password|secret|device_token|server_token)\s*=/i)
 })
 

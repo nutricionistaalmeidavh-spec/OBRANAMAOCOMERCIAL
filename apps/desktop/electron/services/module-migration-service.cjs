@@ -105,7 +105,7 @@ class ModuleMigrationService {
 
     const storage = this.storage.state()
     const operationalMode = storage.operationalMode || (storage.mode === 'server' ? 'lan-client' : 'local')
-    if (!['lan-host', 'lan-client'].includes(operationalMode) || storage.mode !== 'server') return { ...base, reason: 'storage_not_central' }
+    if (!['lan-host', 'lan-client', 'remote'].includes(operationalMode) || storage.mode !== 'server') return { ...base, reason: 'storage_not_central' }
     if (state?.state !== 'migration-required') return { ...base, reason: 'migration_not_required' }
     if (dependencyBlockedBy) return { ...base, reason: dependencyBlockedBy === 'core' ? 'core_dependency' : 'module_dependency' }
 
@@ -121,7 +121,7 @@ class ModuleMigrationService {
   }
 
   migrationBlockedMessage(reason, preflight = null) {
-    if (reason === 'storage_not_central') return 'Migração central exige servidor LAN configurado.'
+    if (reason === 'storage_not_central') return 'Migração central exige um servidor Obra na Mão configurado.'
     if (reason === 'migration_not_required') return 'Este módulo não está aguardando migração explícita.'
     if (reason === 'core_dependency') return 'Cadastros-base precisam ser migrados antes deste módulo.'
     if (reason === 'module_dependency') return `O módulo ${preflight?.dependencies?.blockedBy || 'anterior'} precisa estar central antes desta migração.`

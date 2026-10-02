@@ -42,6 +42,11 @@ function fixture({mode='lan-host', module='core', moduleState='migration-require
 }
 
 describe('ModuleMigrationService',()=>{
+  it('remote usa o mesmo protocolo de migração central sem motor paralelo',async()=>{
+    const remote=fixture({mode:'remote'})
+    await expect(remote.service.preflight('core')).resolves.toMatchObject({canMigrate:true,capability:true})
+  })
+
   it('preflight informa bloqueios sem iniciar escrita remota',async()=>{
     const local=fixture({mode:'local'})
     await expect(local.service.preflight('core')).resolves.toMatchObject({canMigrate:false,reason:'storage_not_central'})
