@@ -52,6 +52,8 @@ export function buildServerPackage({ repoRoot, outputDir, platform, arch, commit
 
   copyDirectory(path.join(serverRoot, 'src'), path.join(target, 'app', 'src'))
   copyDirectory(path.join(serverRoot, 'migrations'), path.join(target, 'app', 'migrations'))
+  const remoteAssets = path.join(serverRoot, 'packaging', 'remote')
+  if (fs.existsSync(remoteAssets)) copyDirectory(remoteAssets, path.join(target, 'remote'))
   fs.copyFileSync(packageJsonPath, path.join(target, 'app', 'package.json'))
 
   const runtimeName = platform === 'win32' ? 'node.exe' : 'node'
