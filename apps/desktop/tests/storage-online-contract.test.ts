@@ -13,8 +13,8 @@ describe('storage and Web/PWA public contract separation', () => {
     expect(storageBlock).toContain("configure: (input) => call('storage:configure', input)")
     expect(storageBlock).toContain("testConnection: () => call('storage:test-connection')")
     expect(storageBlock).toContain("discoverServers: () => call('storage:discover-servers')")
-    expect(storageBlock).toContain("probeAddress: (address) => call('storage:probe-address'")
-    expect(storageBlock).toContain("connectAddress: (address) => call('storage:connect-address'")
+    expect(storageBlock).toContain("probeAddress: (address, operationalMode = 'lan-client') => call('storage:probe-address'")
+    expect(storageBlock).toContain("connectAddress: (address, operationalMode = 'lan-client') => call('storage:connect-address'")
     expect(storageBlock).toContain("moduleState: (module) => call('storage:module-state'")
     expect(storageBlock).toContain("migrationPreflight: (module) => call('storage:migration-preflight'")
     expect(storageBlock).toContain("migrationStatus: (module) => call('storage:migration-status'")
@@ -27,7 +27,7 @@ describe('storage and Web/PWA public contract separation', () => {
   })
 
   it('guards lan-host against connecting to its own discovered identity before switching modes', () => {
-    const connectBlock = main.match(/async function connectStorageAddress\(address\) \{[\s\S]*?\r?\n\}/)?.[0] || ''
+    const connectBlock = main.match(/async function connectStorageAddress\(address, operationalMode = 'lan-client'\) \{[\s\S]*?\r?\n\}/)?.[0] || ''
     expect(connectBlock).toContain("previous.operationalMode === 'lan-host'")
     expect(connectBlock).toContain('services.lanSetup.status()')
     expect(connectBlock).toContain('rejectServerId')
@@ -50,8 +50,8 @@ describe('storage and Web/PWA public contract separation', () => {
     expect(main).toContain("ipcMain.handle('storage:configure', envelope((payload) => configureStorage(payload)))")
     expect(main).toContain("ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))")
     expect(main).toContain("ipcMain.handle('storage:discover-servers', envelope(() => services.serverDiscovery.discover()))")
-    expect(main).toContain("ipcMain.handle('storage:probe-address', envelope(({ address }) => services.storage.probeAddress(address)))")
-    expect(main).toContain("ipcMain.handle('storage:connect-address', envelope(({ address }) => connectStorageAddress(address)))")
+    expect(main).toContain("ipcMain.handle('storage:probe-address', envelope(({ address, operationalMode }) => services.storage.probeAddress(address, { operationalMode })))")
+    expect(main).toContain("ipcMain.handle('storage:connect-address', envelope(({ address, operationalMode }) => connectStorageAddress(address, operationalMode)))")
     expect(main).toContain("ipcMain.handle('lan:reconnect', envelope(() => services.serverReconnect.reconnect()))")
     expect(main).toContain("await services.serverReconnect.reconnect()")
     expect(configureStorageBlock).toContain('services.storage.configure(payload)')
