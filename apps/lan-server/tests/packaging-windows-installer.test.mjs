@@ -33,22 +33,27 @@ test('Inno installer is x64, stops the service before replacement and checks pos
   assert.match(stopHook, /WaitForStatus/i)
 })
 
-test('PowerShell lifecycle never evaluates PSScriptRoot inside parameter defaults or passes a Program Files script path through -File', () => {
+test('PowerShell lifecycle uses relative -File and receives Unicode paths from Inno', () => {
   const iss = read('installer.iss')
   const hooks = read('install-hooks.ps1')
 
   assert.match(hooks, /\[string\]\$InstallDir\s*(?:,|\r?\n)/i)
+  assert.match(hooks, /\[string\]\$ProgramDataRoot\s*(?:,|\r?\n)/i)
   assert.doesNotMatch(hooks, /\[string\]\$InstallDir\s*=\s*\(Split-Path\s+\$PSScriptRoot\s+-Parent\)/i)
   assert.match(hooks, /if\s*\(\s*-not\s+\$InstallDir\s*\)\s*\{\s*\$InstallDir\s*=\s*Split-Path\s+\$PSScriptRoot\s+-Parent\s*\}/is)
   assert.match(iss, /PlatformDir\s*:=\s*ExpandConstant\(['"]\{app\}\\platform['"]\)/i)
-  assert.match(iss, /Params\s*:=\s*['"]-NoProfile\s+-ExecutionPolicy\s+Bypass\s+-File\s+install-hooks\.ps1\s+-Action\s+Install/i)
+  assert.match(iss, /-File\s+install-hooks\.ps1\s+-Action\s+Install/i)
+  assert.match(iss, /-InstallDir\s+"/i)
+  assert.match(iss, /-ProgramDataRoot\s+"/i)
+  assert.match(iss, /\{commonappdata\}\\ArtiSys\\Obra na Mão Server/i)
   assert.match(iss, /Exec\s*\(\s*PowerShellPath\s*,\s*Params\s*,\s*PlatformDir\s*,/is)
   assert.doesNotMatch(iss, /-File\s+['"]?\{app\}\\platform\\install-hooks\.ps1/i)
 
   const uninstallLine = iss.split(/\r?\n/).find(line => /^Filename:.*powershell\.exe/i.test(line) && /Uninstall/i.test(line)) ?? ''
   assert.match(uninstallLine, /WorkingDir:\s*"\{app\}\\platform"/i)
   assert.match(uninstallLine, /-File\s+install-hooks\.ps1\s+-Action\s+Uninstall/i)
-  assert.doesNotMatch(uninstallLine, /-InstallDir/i)
+  assert.match(uninstallLine, /-InstallDir/i)
+  assert.match(uninstallLine, /-ProgramDataRoot/i)
 })
 
 test('Windows PowerShell service control delimits interpolated variables before colons', () => {
@@ -62,6 +67,15 @@ test('Windows service control applies LocalService without an empty password arg
   assert.match(serviceControl, /sc\.exe\s+config\s+\$serviceName\s+obj=\s+['"]NT AUTHORITY\\LocalService['"]/i)
   assert.doesNotMatch(serviceControl, /sc\.exe[^\n]*password=/i)
   assert.match(serviceControl, /\$LASTEXITCODE\s*-ne\s*0/i)
+})
+
+test('Windows PowerShell 5.1 scripts avoid hard-coded non-ASCII ProgramData paths', () => {
+  const hooks = read('install-hooks.ps1')
+  const serviceControl = read('service-control.ps1')
+  assert.match(hooks, /\[char\]0x00E3/i)
+  assert.match(serviceControl, /\[char\]0x00E3/i)
+  assert.doesNotMatch(hooks, /Join-Path\s+\$env:ProgramData\s+['"][^'"]*Mão/i)
+  assert.doesNotMatch(serviceControl, /Join-Path\s+\$env:ProgramData\s+['"][^'"]*Mão/i)
 })
 
 test('Windows install hook records sanitized operational progress and failures', () => {
@@ -80,7 +94,7 @@ test('LAN access is an unchecked opt-in task, never a default firewall opening',
   const hooks = read('install-hooks.ps1')
   assert.match(hooks, /New-NetFirewallRule/i)
   assert.match(hooks, /LocalSubnet/i)
-  assert.match(hooks, /Obra na Mão Server \(LAN\)/i)
+  assert.match(hooks, /\$firewallRuleName\s*=\s*"\$productDirName \(LAN\)"/i)
   assert.match(hooks, /0\.0\.0\.0/)
   assert.match(hooks, /127\.0\.0\.1/)
 })
@@ -98,7 +112,7 @@ test('first install creates config once; upgrades preserve existing config and p
 test('uninstall removes only service and product firewall rule, not ProgramData', () => {
   const hooks = read('install-hooks.ps1')
   assert.match(hooks, /Remove-NetFirewallRule/i)
-  assert.match(hooks, /Obra na Mão Server \(LAN\)/i)
+  assert.match(hooks, /\$firewallRuleName/i)
   assert.match(hooks, /Uninstall/i)
   assert.doesNotMatch(hooks, /Remove-Item[^\n]*ProgramDataRoot/i)
 })
