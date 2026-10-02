@@ -5,39 +5,45 @@ import { describe, expect, it } from 'vitest'
 describe('StorageServerSettings migration contract',()=>{
   const source=fs.readFileSync(path.resolve(process.cwd(),'src/components/StorageServerSettings.tsx'),'utf8')
 
-  it('mostra os cinco blocos de armazenamento central',()=>{
-    for(const module of ['core','operation','planning','finance','rh']) expect(source).toMatch(new RegExp(`(?:${module}:'|['\"]${module}['\"])`))
+  it('mantém a ordem segura dos cinco módulos como detalhe interno',()=>{
+    for(const module of ['core','operation','planning','finance','rh']) expect(source).toMatch(new RegExp(`(?:${module}:'|['\\"]${module}['\\"])`))
     for(const label of ['Cadastros-base','RDO / operação','Planejamento','Financeiro','RH']) expect(source).toContain(label)
+    expect(source).toContain("const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh']")
     for(const state of ['local','migration-required','central-ready','central-active']) expect(source).toContain(state)
   })
 
-  it('oferece migração explícita com backup e preservação local sem controle de força',()=>{
+  it('orquestra a migração automaticamente em uma única configuração',()=>{
+    expect(source).toContain('centralizeAll')
+    expect(source).toContain('Configurar servidor e migrar dados')
     expect(source).toContain('migrateModule')
-    expect(source).toContain('Migrar para servidor')
+    expect(source).toContain('migrationPreflight')
+    expect(source).toContain('refreshModuleCapabilities')
     expect(source).toMatch(/backup/i)
-    expect(source).toMatch(/dados locais|base local/i)
-    expect(source).toMatch(/não serão apagados|permanecem intactos/i)
+    expect(source).not.toContain('Migrar para servidor')
+  })
+
+  it('não expõe cinco ações permanentes no happy path',()=>{
+    expect(source).not.toContain('const renderModule')
+    expect(source).toContain('Detalhes técnicos')
+    expect(source).toContain('<progress')
+    expect(source).toContain('storage-module-list')
+    expect(source).toContain('Servidor pronto')
+  })
+
+  it('mantém retry idempotente e rollback como recuperação técnica',()=>{
+    expect(source).toContain('Tentar novamente')
+    expect(source).toContain('rollbackModuleMigration')
+    expect(source).toContain('Reverter tentativa')
+    expect(source).toContain('<Confirm')
+    expect(source).not.toContain('window.confirm')
     expect(source).not.toContain('forceCentralActive')
     expect(source).not.toContain('setModuleState')
   })
 
-  it('respeita toda a cadeia de dependências antes da migração',()=>{
-    expect(source).toContain('dependencyBlockedBy')
-    expect(source).toContain('blockedBy')
-    expect(source).toContain('Conclua a migração/ativação desse bloco')
-  })
-
-  it('expõe retry idempotente e rollback explícito de tentativa pendente',()=>{
-    expect(source).toContain('migrationStatus')
-    expect(source).toContain('Tentar novamente')
-    expect(source).toContain('rollbackModuleMigration')
-    expect(source).toContain('Reverter tentativa')
-    expect(source).toMatch(/reutiliza a mesma tentativa|evitar duplicação/i)
-  })
-
-  it('não introduz UX de F14 F15 ou F16',()=>{
-    expect(source).not.toContain('expectedRevision')
-    expect(source).not.toContain('forceCentralActive')
+  it('preserva bloqueios de segurança e não força ativação central',()=>{
+    expect(source).toContain('preflight?.canMigrate')
+    expect(source).toContain("status?.credential?.member?.role!=='admin'")
+    expect(source).toContain("state?.state!=='central-active'")
     expect(source).not.toContain('permissionMatrix')
     expect(source).not.toContain('granularPermissions')
   })
