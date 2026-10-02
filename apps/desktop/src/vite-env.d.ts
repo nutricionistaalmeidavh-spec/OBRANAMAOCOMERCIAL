@@ -20,6 +20,17 @@ type LanHostState = { running:boolean; pid:number|null; startedAt:string|null; l
 type LanSetupStatus = { serverId?:string|null; claimed?:boolean; company?:{id:string;name?:string}|null; credential?:LanCredentialState; host?:LanHostState }
 type LanAdminStatus = { company?:{id:string;name?:string}; revision?:string|null; lastCloudRefreshAt?:string|null; deviceCount?:number; stale?:boolean; paired?:LanCredentialState }
 type LanReconnectState = { status:'connected'|'pairing-required'|'unreachable'|'not-applicable'; serverId:string|null; reason?:string; endpointChanged:boolean; reusedCredential:boolean; baseUrl?:string; device?:{id:string;status:string}|null; member?:LanMember|null }
+type ServerBackup = { backupId:string; createdAt?:string; fingerprint?:string; schemaVersion?:number; serverId?:string|null; companyId?:string|null; serverVersion?:string|null; sizeBytes?:number; reason?:string; integrity?:string }
+type ServerOperationsStatus = {
+  server:{version:string;apiVersion:string;serverId:string|null;runtime:{mode:string|null;transport:string|null}}
+  readiness:{ready:boolean;status:string}
+  storage:{accessible?:boolean;integrity?:string;schemaVersion?:number;sizeBytes?:number;lastBackup?:ServerBackup|null;maintenance?:boolean}
+  backup:{policy:{enabled:boolean;running:boolean;intervalHours:number;retentionCount:number;lastRun?:any;nextRunAt?:string|null};lastBackup?:ServerBackup|null}
+  devices:{total:number;active:number;revoked:number}
+  authority:{company:{id:string|null;name:string|null};revision:string|null;lastCloudRefreshAt:string|null;stale:boolean}
+  sync:{authorityRevision:string|null;lastCloudRefreshAt:string|null;stale:boolean}
+  capabilities:{version:number;modules:string[];bridgeEntities:string[];features:string[]}
+}
 type ExplorerEntry = { name:string; relativePath:string; kind:'folder'|'file'|'link'; extension:string; size:number|null; modifiedAt:string; canOpen:boolean }
 type ExplorerDirectory = { rootId:string; name:string; relativePath:string; parentRelativePath:string|null; items:ExplorerEntry[] }
 type ExplorerPreview = { rootId:string; name:string; relativePath:string; extension:string; size:number; modifiedAt:string; previewKind:'pdf'|'image'|'unsupported'; mimeType:string|null; dataUrl:string|null; previewBlockedReason:'size'|'type'|null }
@@ -60,6 +71,7 @@ interface Window { fluxoDre: {
   storage:{state():Promise<StorageConnectionState>;configure(input:{mode?:'local'|'server';operationalMode?:OperationalStorageMode;scheme?:'http'|'https';host?:string;port?:number;address?:string}):Promise<StorageConnectionState>;testConnection():Promise<StorageConnectionTest>;discoverServers():Promise<DiscoveredServer[]>;probeAddress(address:string,operationalMode?:'lan-client'|'remote'):Promise<StorageConnectionTest>;connectAddress(address:string,operationalMode?:'lan-client'|'remote'):Promise<{state:StorageConnectionState;server:StorageConnectionTest}>;moduleState(module:ModuleStorageKey):Promise<ModuleStorageState>;refreshModuleCapabilities():Promise<ModuleStorageStates>;migrationPreflight(module:ModuleStorageKey):Promise<ModuleMigrationPreflight>;migrationStatus(module:ModuleStorageKey):Promise<ModuleMigrationStatus>;migrateModule(module:ModuleStorageKey):Promise<ModuleMigrationResult>;rollbackModuleMigration(module:ModuleStorageKey):Promise<{module:ModuleStorageKey;status:string}>}
   lan:{
     hostState():Promise<LanHostState>;startHost():Promise<LanHostState>;stopHost():Promise<LanHostState>;status():Promise<LanSetupStatus>;reconnect():Promise<LanReconnectState>;
+    operationsStatus():Promise<ServerOperationsStatus>;listBackups():Promise<ServerBackup[]>;createBackup(reason?:string):Promise<ServerBackup>;testBackup(backupId:string):Promise<{restorable:boolean;backupId:string;integrity?:string}>;preUpgradeBackup():Promise<any>;restoreBackup(backupId:string):Promise<any>;
     claimHost(setupCode?:string):Promise<LanSetupStatus>;pair(code:string):Promise<LanCredentialState>;disconnect():Promise<LanCredentialState>;
     adminStatus():Promise<LanAdminStatus>;createPairing(memberId:string):Promise<{code:string;expiresAt:string;member?:LanMember}>;
     listDevices():Promise<Array<{id:string;memberId:string;installationId:string;deviceName:string;status:string;pairedAt?:string;lastSeenAt?:string}>>;
