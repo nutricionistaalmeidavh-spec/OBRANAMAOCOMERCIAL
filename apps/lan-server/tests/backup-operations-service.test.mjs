@@ -59,3 +59,25 @@ test('scheduler is explicit, unrefd and can be stopped without running when disa
   assert.equal(disabled.service.start().running,false)
   assert.equal(disabled.scheduled,null)
 })
+
+
+test('concurrent backup triggers share one in-flight operation instead of creating duplicates',async()=>{
+  let release
+  let creates=0
+  const storage={
+    create:async()=>{creates+=1;await new Promise(resolve=>{release=resolve});return{backupId:'b-one'}},
+    verifyManagedBackup:()=>({integrity:'ok'}),
+    pruneManaged:()=>({removed:[],retained:1}),
+    listManagedBackups:()=>[]
+  }
+  const service=new BackupOperationsService({storage})
+  const first=service.runNow({reason:'scheduled'})
+  const second=service.runNow({reason:'manual'})
+  await Promise.resolve()
+  assert.equal(creates,1)
+  release()
+  const [a,b]=await Promise.all([first,second])
+  assert.equal(a.backup.backupId,'b-one')
+  assert.equal(b.backup.backupId,'b-one')
+  assert.equal(creates,1)
+})
