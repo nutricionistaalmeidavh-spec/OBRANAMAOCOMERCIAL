@@ -182,9 +182,13 @@ class StorageConnectionService {
     return this.probeEndpoint(parseServerAddress(address))
   }
 
-  async connectAddress(address) {
+  async connectAddress(address, { rejectServerId = null } = {}) {
     const endpoint = parseServerAddress(address)
     const server = await this.probeEndpoint(endpoint)
+    const blockedId = String(rejectServerId || '').trim()
+    if (blockedId && server.serverId && String(server.serverId) === blockedId) {
+      throw new Error('Este endereço aponta para o próprio servidor deste computador. Escolha outro servidor ou mantenha este computador como servidor local.')
+    }
     const state = this.configure({
       operationalMode: 'lan-client',
       scheme: endpoint.scheme,
