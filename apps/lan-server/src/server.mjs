@@ -48,6 +48,38 @@ function publicCentralBackup(result = {}) {
   return Object.fromEntries(allowed.filter(key => result?.[key] !== undefined).map(key => [key, result[key]]))
 }
 
+const SERVER_CAPABILITIES = Object.freeze({
+  version:1,
+  modules:['core','operation','planning','finance','rh','summary'],
+  bridgeEntities:['frentes_obra','tarefas_obra','rdos','cronograma_etapas'],
+  features:['optimistic-concurrency-v1']
+})
+
+function publicBackupOperation(result = {}) {
+  return {
+    ...(result.backup ? { backup:publicCentralBackup(result.backup) } : {}),
+    ...(result.verified !== undefined ? { verified:!!result.verified } : {}),
+    ...(result.retention ? { retention:{ retained:result.retention.retained ?? null, removed:Array.isArray(result.retention.removed)?result.retention.removed:[] } } : {})
+  }
+}
+
+function publicBackupPolicy(status = {}) {
+  return {
+    enabled:status.enabled === true,
+    running:status.running === true,
+    intervalHours:Number(status.intervalHours || 0),
+    retentionCount:Number(status.retentionCount || 0),
+    lastRun:status.lastRun ? {
+      status:status.lastRun.status || null,
+      reason:status.lastRun.reason || null,
+      at:status.lastRun.at || null,
+      backupId:status.lastRun.backupId || null,
+      error:status.lastRun.error || null
+    } : null,
+    nextRunAt:status.nextRunAt || null
+  }
+}
+
 function syncSourceScope(url) {
   return {
     companyId: Number(url.searchParams.get('company_id')),
@@ -218,7 +250,7 @@ async function authorizeRh(request, security, action = 'edit') {
   return context
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, migrationService = null, centralBackupService = null, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, migrationService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const versionedRepository = createVersionedRepository(repository)
   const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
@@ -227,6 +259,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
   const migration = migrationService || (repository ? new MigrationService({ repository, security }) : null)
   const centralStorage = centralBackupService
+  const backupOperations = backupOperationsService
   return http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://localhost')
@@ -270,6 +303,72 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, publicCentralBackup(centralStorage.health()))
       }
 
+      if (url.pathname === '/api/v1/admin/operations') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        const state = security?.serverState?.() || {}
+        const lastRefreshMs = state.lastCloudRefreshAt ? Date.parse(state.lastCloudRefreshAt) : NaN
+        const stale = !Number.isFinite(lastRefreshMs) || nowMs() - lastRefreshMs > identityStaleMs
+        const health = centralStorage?.health?.() || { accessible:false, integrity:'unknown', maintenance:false }
+        const backup = publicBackupPolicy(backupOperations?.status?.() || {})
+        const devices = security?.listDevices?.() || []
+        const authority = {
+          company:{ id:state.companyId || null, name:state.companyName || null },
+          revision:state.identityRevision || null,
+          lastCloudRefreshAt:state.lastCloudRefreshAt || null,
+          stale
+        }
+        const ready = health.accessible === true && health.integrity === 'ok' && health.maintenance !== true
+        return sendJson(response, 200, {
+          server:{
+            version:serverVersion,
+            apiVersion:LAN_API_VERSION,
+            serverId:state.serverId || null,
+            runtime:{ mode:runtimeInfo?.mode || null, transport:runtimeInfo?.transport || null }
+          },
+          readiness:{ ready, status:ready?'ready':'not_ready' },
+          storage:publicCentralBackup(health),
+          backup:{ policy:backup, lastBackup:health.lastBackup || null },
+          devices:{
+            total:devices.length,
+            active:devices.filter(item=>item?.status === 'active').length,
+            revoked:devices.filter(item=>item?.status === 'revoked').length
+          },
+          authority,
+          sync:{ authorityRevision:authority.revision, lastCloudRefreshAt:authority.lastCloudRefreshAt, stale:authority.stale },
+          capabilities:SERVER_CAPABILITIES
+        })
+      }
+
+      if (url.pathname === '/api/v1/admin/storage/backups') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!backupOperations?.list) return sendJson(response, 503, { error:'backup_operations_unavailable', message:'Lista de backups operacionais indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        return sendJson(response, 200, { backups:backupOperations.list().map(publicCentralBackup) })
+      }
+
+      if (url.pathname === '/api/v1/admin/storage/restore-test') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!backupOperations?.testRestore) return sendJson(response, 503, { error:'backup_operations_unavailable', message:'Teste de restore indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        const body = await readJson(request)
+        if (!body.backupId) throw new Error('Identificador do backup central não informado.')
+        const result = await backupOperations.testRestore(body.backupId,{ actor })
+        return sendJson(response, 200, { restorable:result.restorable === true, ...publicCentralBackup(result) })
+      }
+
+      if (url.pathname === '/api/v1/admin/storage/pre-upgrade') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!backupOperations?.preUpgrade) return sendJson(response, 503, { error:'backup_operations_unavailable', message:'Backup pré-upgrade indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        const result = await backupOperations.preUpgrade({ actor })
+        return sendJson(response, 201, publicBackupOperation(result))
+      }
+
       if (url.pathname === '/api/v1/admin/storage/backup') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!centralStorage?.create) return sendJson(response, 503, { error:'storage_admin_unavailable', message:'Backup do storage central indisponível.' })
@@ -310,10 +409,8 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         await authenticateLanRequest(request, security)
         return sendJson(response, 200, {
-          version: 1,
-          modules: ['core', 'operation', 'planning', 'finance', 'rh', 'summary'],
-          bridgeEntities: ['frentes_obra', 'tarefas_obra', 'rdos', 'cronograma_etapas'],
-          ...(versionedRepository ? { features: ['optimistic-concurrency-v1'] } : {})
+          ...SERVER_CAPABILITIES,
+          features: versionedRepository ? SERVER_CAPABILITIES.features : []
         })
       }
 
