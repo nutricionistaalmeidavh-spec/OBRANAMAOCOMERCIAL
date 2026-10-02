@@ -241,6 +241,27 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, { product: 'Obra na Mão', apiVersion: LAN_API_VERSION, serverVersion })
       }
 
+      if (url.pathname === '/api/v1/session') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        const actor = await authenticateLanRequest(request, security)
+        const state = security?.serverState?.() || {}
+        const member = actor.member || {}
+        return sendJson(response, 200, {
+          serverId: state.serverId || null,
+          companyId: actor.companyId || state.companyId || null,
+          device: { id: actor.device.id, status: actor.device.status },
+          member: {
+            memberId: member.memberId,
+            email: member.email,
+            name: member.name,
+            role: member.role,
+            modules: Array.isArray(member.modules) ? member.modules : [],
+            channels: Array.isArray(member.channels) ? member.channels : [],
+            status: member.status
+          }
+        })
+      }
+
       if (url.pathname === '/api/v1/admin/storage/health') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         if (!centralStorage?.health) return sendJson(response, 503, { error:'storage_admin_unavailable', message:'Diagnóstico do storage central indisponível.' })

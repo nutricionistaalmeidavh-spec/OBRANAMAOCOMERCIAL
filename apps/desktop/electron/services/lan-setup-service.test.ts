@@ -11,14 +11,16 @@ function deps(){
     state:vi.fn(()=>({paired:false,deviceId:null,member:null})),
     token:vi.fn(()=>''),
     store:vi.fn((value:any)=>{stored.push(value);return{paired:true,deviceId:value.deviceId,member:value.member}}),
-    clear:vi.fn(()=>({paired:false,deviceId:null,member:null}))
+    clear:vi.fn(()=>({paired:false,deviceId:null,member:null})),
+    rekey:vi.fn((_from:string,to:string)=>({paired:false,serverKey:to,deviceId:null,member:null}))
   }
   const online={
     installationId:vi.fn(()=> 'install-a'),
     session:vi.fn(async()=>({role:'admin',platformRole:'user'})),
     startLanServerClaim:vi.fn(async()=>({claimToken:'cloud-claim',expiresAt:'2026-09-29T20:10:00.000Z'}))
   }
-  const storage={state:()=>({mode:'server',operationalMode:'lan-host',baseUrl:'http://127.0.0.1:4732'})}
+  let storageState:any={mode:'server',operationalMode:'lan-host',baseUrl:'http://127.0.0.1:4732',serverId:null}
+  const storage={state:()=>({...storageState}),bindServerIdentity:vi.fn((serverId:string)=>{storageState={...storageState,serverId};return{...storageState}})}
   return{stored,credentials,online,storage}
 }
 
@@ -37,7 +39,7 @@ describe('LanSetupService',()=>{
     const service=new LanSetupService({...fx,fetchImpl,deviceName:'PC Principal'})
     const result=await service.claimHostedServer({setupCode:'ABCD-EFGH'})
     expect(fx.online.startLanServerClaim).toHaveBeenCalledWith('server-a')
-    expect(fx.credentials.store).toHaveBeenCalledWith(expect.objectContaining({serverKey:'http://127.0.0.1:4732',deviceId:'lan-device-a',token:'lan-secret'}))
+    expect(fx.credentials.store).toHaveBeenCalledWith(expect.objectContaining({serverKey:'server-a',deviceId:'lan-device-a',token:'lan-secret'}))
     expect(JSON.stringify(result)).not.toContain('lan-secret')
   })
 
@@ -53,13 +55,15 @@ describe('LanSetupService',()=>{
   it('pair stores token securely and returns only safe pairing state',async()=>{
     const {LanSetupService}=require('./lan-setup-service.cjs')
     const fx=deps()
-    const fetchImpl=vi.fn(async(_url:string,options:any)=>{
+    const fetchImpl=vi.fn(async(url:string,options:any)=>{
+      if(url.endsWith('/api/v1/setup/status'))return response(200,{claimed:true,serverId:'server-a'})
+      expect(url).toMatch(/api\/v1\/pair\/claim$/)
       expect(JSON.parse(options.body)).toEqual({code:'PAIR-1234',installationId:'install-a',deviceName:'PC 2'})
       return response(201,{device:{id:'device-b'},member:{memberId:'member-b',role:'foreman'},deviceToken:'paired-secret'})
     })
     const service=new LanSetupService({...fx,fetchImpl,deviceName:'PC 2'})
     const result=await service.pair({code:'PAIR-1234'})
-    expect(fx.credentials.store).toHaveBeenCalledWith(expect.objectContaining({deviceId:'device-b',token:'paired-secret'}))
+    expect(fx.credentials.store).toHaveBeenCalledWith(expect.objectContaining({serverKey:'server-a',deviceId:'device-b',token:'paired-secret'}))
     expect(JSON.stringify(result)).not.toContain('paired-secret')
   })
 

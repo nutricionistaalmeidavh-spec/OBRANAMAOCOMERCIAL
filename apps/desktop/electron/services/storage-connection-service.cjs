@@ -8,6 +8,7 @@ const OPERATIONAL_MODE_KEY = 'storage_operational_mode'
 const SCHEME_KEY = 'lan_server_scheme'
 const HOST_KEY = 'lan_server_host'
 const PORT_KEY = 'lan_server_port'
+const SERVER_ID_KEY = 'lan_server_id'
 const DEFAULT_SCHEME = 'http'
 const DEFAULT_HOST = '127.0.0.1'
 const DEFAULT_PORT = 4732
@@ -96,10 +97,11 @@ class StorageConnectionService {
       if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 65535) port = parsed
     }
 
-    return { mode, operationalMode, scheme, host, port, baseUrl: buildBaseUrl({ scheme, host, port }) }
+    const serverId = String(this.read(SERVER_ID_KEY) || '').trim() || null
+    return { mode, operationalMode, scheme, host, port, baseUrl: buildBaseUrl({ scheme, host, port }), serverId }
   }
 
-  configure({ mode, operationalMode, scheme, host, port, address } = {}) {
+  configure({ mode, operationalMode, scheme, host, port, address, serverId } = {}) {
     let validOperationalMode
     let validMode
     if (operationalMode !== undefined) {
@@ -127,6 +129,27 @@ class StorageConnectionService {
 
     this.write(MODE_KEY, validMode)
     this.write(OPERATIONAL_MODE_KEY, validOperationalMode)
+    this.write(SCHEME_KEY, endpoint.scheme)
+    this.write(HOST_KEY, endpoint.host)
+    this.write(PORT_KEY, endpoint.port)
+    if (serverId !== undefined) this.write(SERVER_ID_KEY, String(serverId || '').trim())
+    return this.state()
+  }
+
+  bindServerIdentity(serverId) {
+    const value = String(serverId || '').trim()
+    if (!value) throw new Error('Identidade do servidor não informada.')
+    const current = this.state().serverId
+    if (current && current !== value) throw new Error('A identidade deste servidor não corresponde à instância selecionada.')
+    this.write(SERVER_ID_KEY, value)
+    return this.state()
+  }
+
+  updateEndpointForServer(serverId, address) {
+    const current = this.state()
+    const expected = String(serverId || '').trim()
+    if (!current.serverId || current.serverId !== expected) throw new Error('A identidade do servidor não corresponde à instância selecionada.')
+    const endpoint = parseServerAddress(address)
     this.write(SCHEME_KEY, endpoint.scheme)
     this.write(HOST_KEY, endpoint.host)
     this.write(PORT_KEY, endpoint.port)
@@ -182,18 +205,24 @@ class StorageConnectionService {
     return this.probeEndpoint(parseServerAddress(address))
   }
 
-  async connectAddress(address, { rejectServerId = null } = {}) {
+  async connectAddress(address, { rejectServerId = null, expectedServerId = null } = {}) {
     const endpoint = parseServerAddress(address)
     const server = await this.probeEndpoint(endpoint)
     const blockedId = String(rejectServerId || '').trim()
     if (blockedId && server.serverId && String(server.serverId) === blockedId) {
       throw new Error('Este endereço aponta para o próprio servidor deste computador. Escolha outro servidor ou mantenha este computador como servidor local.')
     }
+    const expectedId = String(expectedServerId || '').trim()
+    if (expectedId && String(server.serverId || '') !== expectedId) {
+      throw new Error('A identidade do servidor encontrado não corresponde à instância selecionada.')
+    }
+    if (!server.serverId) throw new Error('Servidor Obra na Mão não informou uma identidade válida.')
     const state = this.configure({
       operationalMode: 'lan-client',
       scheme: endpoint.scheme,
       host: endpoint.host,
-      port: endpoint.port
+      port: endpoint.port,
+      serverId: server.serverId
     })
     return { state, server }
   }

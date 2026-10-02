@@ -10,6 +10,7 @@ const RH_REMOTE_TABLES = new Set([
   'epis', 'funcionario_epis'
 ])
 const REMOTE_TABLES = new Set([...CORE_REMOTE_TABLES, ...OPERATION_REMOTE_TABLES, ...PLANNING_REMOTE_TABLES, ...FINANCE_REMOTE_TABLES, ...RH_REMOTE_TABLES])
+const TERMINAL_AUTH_ERRORS = new Set(['invalid_device_token','device_revoked','member_not_authorized','desktop_channel_required'])
 
 class LanDataClient {
   constructor({ storage, credentials, fetchImpl = globalThis.fetch, timeoutMs = 5000 }) {
@@ -26,7 +27,7 @@ class LanDataClient {
   connection() {
     const state = this.storage.state()
     if (state.mode !== 'server' || !state.baseUrl) throw new Error('Servidor da empresa não está configurado.')
-    const serverKey = String(state.serverKey || state.baseUrl)
+    const serverKey = String(state.serverId || state.serverKey || state.baseUrl)
     const token = this.credentials?.token?.(serverKey) || ''
     if (!token) throw new Error('Este computador ainda não está pareado/autorizado neste servidor da empresa.')
     return { ...state, serverKey, token }
@@ -64,6 +65,7 @@ class LanDataClient {
         if (response?.status === 409 && payload?.error === 'revision_conflict') {
           throw new RevisionConflictError(payload)
         }
+        if (TERMINAL_AUTH_ERRORS.has(String(payload?.error || ''))) this.credentials?.clear?.(state.serverKey)
         const rawMessage = payload?.message || `Servidor da empresa respondeu HTTP ${response?.status ?? 'inválido'}.`
         throw new Error(this.sanitizeMessage(rawMessage, state.token))
       }

@@ -1,5 +1,7 @@
 const os = require('node:os')
 
+const TERMINAL_AUTH_ERRORS = new Set(['invalid_device_token','device_revoked','member_not_authorized','desktop_channel_required'])
+
 class LanSetupService {
   constructor({ storage, credentials, online, fetchImpl = globalThis.fetch, deviceName = os.hostname() || 'Computador', timeoutMs = 10000, setupCodeProvider = null }) {
     if (!storage || !credentials || !online) throw new Error('Dependências de configuração LAN incompletas.')
@@ -15,7 +17,7 @@ class LanSetupService {
   connection() {
     const state = this.storage.state()
     if (state.operationalMode === 'local' || !state.baseUrl) throw new Error('Nenhum servidor LAN está selecionado.')
-    return { ...state, serverKey: String(state.serverKey || state.baseUrl) }
+    return { ...state, serverKey: String(state.serverId || state.serverKey || state.baseUrl) }
   }
 
   async request(path, { method = 'GET', body, authenticated = false } = {}) {
@@ -40,6 +42,7 @@ class LanSetupService {
       let payload = {}
       try { payload = await response.json() } catch {}
       if (!response?.ok) {
+        if (authenticated && TERMINAL_AUTH_ERRORS.has(String(payload?.error || ''))) this.credentials.clear?.(state.serverKey)
         const raw = String(payload?.message || payload?.error || `Servidor LAN respondeu HTTP ${response?.status ?? 'inválido'}.`)
         const message = token ? raw.split(token).join('[credencial protegida]') : raw
         throw new Error(message)
@@ -53,13 +56,26 @@ class LanSetupService {
     }
   }
 
+  reconcileIdentity(setup, connection = this.connection()) {
+    const serverId = String(setup?.serverId || '').trim()
+    if (!serverId) throw new Error('Servidor LAN não informou uma identidade válida.')
+    if (connection.serverId && String(connection.serverId) !== serverId) {
+      throw new Error('A identidade do servidor encontrado não corresponde à instância selecionada.')
+    }
+    if (!connection.serverId && typeof this.storage.bindServerIdentity === 'function') this.storage.bindServerIdentity(serverId)
+    this.credentials.rekey?.(connection.baseUrl, serverId)
+    const current = this.storage.state()
+    return { ...current, serverId, serverKey: serverId }
+  }
+
   async status() {
-    const state = this.connection()
+    const connection = this.connection()
     const setup = await this.request('/api/v1/setup/status')
+    const state = this.reconcileIdentity(setup, connection)
     return {
       serverKey: state.serverKey,
       baseUrl: state.baseUrl,
-      serverId: setup.serverId || null,
+      serverId: state.serverId,
       claimed: !!setup.claimed,
       credential: this.credentials.state(state.serverKey)
     }
@@ -82,8 +98,9 @@ class LanSetupService {
   }
 
   async claimHostedServer({ setupCode } = {}) {
-    const connection = this.connection()
+    const initialConnection = this.connection()
     const setup = await this.request('/api/v1/setup/status')
+    const connection = this.reconcileIdentity(setup, initialConnection)
     if (setup.claimed) throw new Error('Este servidor LAN já foi configurado.')
     if (!setup.serverId) throw new Error('Servidor LAN não informou uma identidade válida.')
     const session = await this.online.session()
@@ -101,11 +118,13 @@ class LanSetupService {
     })
     if (!result?.deviceToken || !result?.device?.id) throw new Error('Servidor LAN não retornou a credencial inicial do computador.')
     const member = result.device.member || null
-    const credential = this.credentials.store({ serverKey: connection.serverKey, deviceId: result.device.id, member, token: result.deviceToken })
+    const resolvedServerId = String(result.serverId || setup.serverId || '').trim()
+    if (resolvedServerId !== connection.serverId) throw new Error('A identidade retornada pelo servidor mudou durante a configuração.')
+    const credential = this.credentials.store({ serverKey: connection.serverId, deviceId: result.device.id, member, token: result.deviceToken })
     return {
-      serverKey: connection.serverKey,
+      serverKey: connection.serverId,
       baseUrl: connection.baseUrl,
-      serverId: result.serverId || setup.serverId,
+      serverId: connection.serverId,
       claimed: true,
       company: result.company || null,
       credential
@@ -113,7 +132,10 @@ class LanSetupService {
   }
 
   async pair({ code } = {}) {
-    const connection = this.connection()
+    const initialConnection = this.connection()
+    const setup = await this.request('/api/v1/setup/status')
+    if (!setup?.claimed) throw new Error('O servidor ainda não foi configurado para aceitar pareamento.')
+    const connection = this.reconcileIdentity(setup, initialConnection)
     const result = await this.request('/api/v1/pair/claim', {
       method: 'POST',
       body: {
@@ -123,8 +145,8 @@ class LanSetupService {
       }
     })
     if (!result?.deviceToken || !result?.device?.id) throw new Error('Pareamento LAN não retornou uma credencial válida.')
-    const credential = this.credentials.store({ serverKey: connection.serverKey, deviceId: result.device.id, member: result.member || null, token: result.deviceToken })
-    return { serverKey: connection.serverKey, baseUrl: connection.baseUrl, paired: true, credential }
+    const credential = this.credentials.store({ serverKey: connection.serverId, deviceId: result.device.id, member: result.member || null, token: result.deviceToken })
+    return { serverKey: connection.serverId, baseUrl: connection.baseUrl, serverId: connection.serverId, paired: true, credential }
   }
 
   disconnect() {

@@ -56,6 +56,7 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     startHost: () => call('lan:host-start'),
     stopHost: () => call('lan:host-stop'),
     status: () => call('lan:status'),
+    reconnect: () => call('lan:reconnect'),
     claimHost: (setupCode) => call('lan:claim-host', { setupCode }),
     pair: (code) => call('lan:pair', { code }),
     disconnect: () => call('lan:disconnect'),

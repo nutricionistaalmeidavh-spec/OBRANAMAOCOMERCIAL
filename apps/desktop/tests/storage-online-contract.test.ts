@@ -52,6 +52,8 @@ describe('storage and Web/PWA public contract separation', () => {
     expect(main).toContain("ipcMain.handle('storage:discover-servers', envelope(() => services.serverDiscovery.discover()))")
     expect(main).toContain("ipcMain.handle('storage:probe-address', envelope(({ address }) => services.storage.probeAddress(address)))")
     expect(main).toContain("ipcMain.handle('storage:connect-address', envelope(({ address }) => connectStorageAddress(address)))")
+    expect(main).toContain("ipcMain.handle('lan:reconnect', envelope(() => services.serverReconnect.reconnect()))")
+    expect(main).toContain("await services.serverReconnect.reconnect()")
     expect(configureStorageBlock).toContain('services.storage.configure(payload)')
     expect(configureStorageBlock).toContain('services.lanHost')
     expect(configureStorageBlock).not.toContain('services.online')

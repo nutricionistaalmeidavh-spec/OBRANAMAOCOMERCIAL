@@ -113,6 +113,27 @@ export default function StorageServerSettings({onMessage}:Props){
 
   const test=async()=>{setBusy(true);onMessage('Testando servidor Obra na Mão...');try{const result=await window.fluxoDre.storage.testConnection();onMessage(`Servidor encontrado — ${result.baseUrl} (${result.latencyMs} ms).`);await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
 
+  const reconnect=async()=>{
+    setBusy(true);onMessage('Reconectando ao servidor selecionado...')
+    try{
+      const result=await window.fluxoDre.lan.reconnect()
+      const current=await window.fluxoDre.storage.state()
+      storage.setData(current)
+      if(current.operationalMode==='lan-client'){
+        setManualAddress(current.baseUrl)
+        setForm({operationalMode:'lan-client',host:current.host,port:String(current.port)})
+      }
+      if(result.status==='connected'){
+        onMessage(result.endpointChanged?'Servidor reencontrado na rede e reconectado sem novo pareamento.':'Servidor reconectado com a credencial já autorizada.')
+      }else if(result.status==='pairing-required'){
+        onMessage('A credencial deste computador não é mais válida. Faça um novo pareamento para continuar.')
+      }else if(result.status==='unreachable'){
+        onMessage('O servidor selecionado não está acessível. Nenhum outro servidor foi usado como substituto.')
+      }
+      await refreshLan(current.operationalMode as Mode)
+    }catch(error:any){onMessage(error.message)}finally{setBusy(false)}
+  }
+
   const applyServerConnection=async(address:string)=>{
     setBusy(true)
     onMessage('Validando e conectando ao servidor Obra na Mão...')
@@ -260,9 +281,15 @@ export default function StorageServerSettings({onMessage}:Props){
     {(['core','operation','planning','finance','rh'] as ModuleKey[]).map(renderModule)}
 
     {isServerMode&&!dirty&&<div style={{marginTop:16,borderTop:'1px solid var(--border-color, #dfe4ec)',paddingTop:14}}>
-      <div className="setting-actions" style={{justifyContent:'space-between'}}><strong>Autorização da rede</strong><Button variant="secondary" icon={<RefreshCw size={14}/>} disabled={busy} onClick={()=>refreshLan()}>Atualizar estado</Button></div>
+      <div className="setting-actions" style={{justifyContent:'space-between'}}>
+        <strong>Autorização da rede</strong>
+        <div className="setting-actions">
+          {form.operationalMode==='lan-client'&&<Button variant="secondary" icon={<Wifi size={14}/>} disabled={busy} onClick={reconnect}>Reconectar servidor</Button>}
+          <Button variant="secondary" icon={<RefreshCw size={14}/>} disabled={busy} onClick={()=>refreshLan()}>Atualizar estado</Button>
+        </div>
+      </div>
       {form.operationalMode==='lan-host'&&<p><Status value={hostState?.running?'ativo':'inativo'}/> Processo servidor {hostState?.running?'em execução':'parado'}{hostState?.lastError?` — ${hostState.lastError}`:''}.</p>}
-      {lanStatus&&<p>Servidor: <strong>{lanStatus.serverId||'—'}</strong> · {lanStatus.claimed?'vinculado à empresa':'ainda não reivindicado'} · Este PC: <strong>{paired?'pareado':'não pareado'}</strong>.</p>}
+      {lanStatus&&<p>Servidor: <strong>{lanStatus.serverId||storage.data?.serverId||'—'}</strong> · {lanStatus.claimed?'vinculado à empresa':'ainda não reivindicado'} · Este PC: <strong>{paired?'pareado':'não pareado'}</strong>.</p>}
 
       {lanStatus&&!lanStatus.claimed&&<>
         {form.operationalMode==='lan-client'&&<Field label="Código de configuração mostrado no servidor"><input value={setupCode} onChange={event=>setSetupCode(event.target.value.toUpperCase())} placeholder="XXXXX-XXXXX"/></Field>}
