@@ -51,42 +51,38 @@ describe('configuracao de dados e servidor', () => {
     expect(storage).toContain('10.66.0.1:4732')
   })
 
-  it('expõe operação e os demais módulos pelo contrato genérico sem centralização silenciosa', () => {
+  it('orquestra todos os módulos automaticamente sem centralização silenciosa', () => {
     expect(preload).toContain("call('storage:module-state'")
     expect(main).toContain("ipcMain.handle('storage:module-state'")
-    expect(storage).toContain("const keys:ModuleKey[]=['core','operation','planning','finance','rh']")
-    expect(storage).toContain('storageApi.moduleState(key)')
-    expect(storage).toContain("operation:'RDO / operação'")
-    expect(storage).toContain("planning:'Planejamento'")
-    expect(storage).toContain("finance:'Financeiro'")
-    expect(storage).toContain("rh:'RH'")
-    expect(storage).toContain('Migração necessária')
-    expect(storage).toContain('Os dados locais permanecem neste computador')
-    expect(storage).toContain('Banco central ativo')
+    expect(storage).toContain("const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh']")
+    expect(storage).toContain('migrationPreflight')
+    expect(storage).toContain('migrateModule')
+    expect(storage).toContain('Configurar servidor e migrar dados')
+    expect(storage).toContain('central-active')
+    expect(storage).not.toContain('Migrar para servidor')
   })
 
-  it('expõe a cadeia real de dependências e bloqueia módulos posteriores até o anterior estar central', () => {
-    expect(storage).toContain('dependencyBlockedBy')
-    expect(storage).toContain('blockedBy')
-    expect(storage).toContain('Conclua a migração/ativação desse bloco')
-    expect(storage).toContain('Cadastros-base → RDO/operação → Planejamento → Financeiro → RH')
-    expect(storage).toContain("state?.state==='central-ready'&&blockedBy")
-    expect(storage).toContain('Não haverá fallback local silencioso')
+  it('esconde a máquina de estados no happy path e mantém diagnóstico recolhível', () => {
+    expect(storage).toContain('Detalhes técnicos')
+    expect(storage).toContain('storage-module-list')
+    expect(storage).toContain('storage-progress-panel')
+    expect(storage).toContain('<progress')
   })
 
-  it('mantém retry/rollback explícitos em vez de ativação forçada', () => {
+  it('mantém retry/rollback explícitos como recovery em vez de ativação forçada', () => {
     expect(storage).toContain('migrationStatus')
     expect(storage).toContain('Tentar novamente')
     expect(storage).toContain('rollbackModuleMigration')
     expect(storage).toContain('Reverter tentativa')
+    expect(storage).toContain('<Confirm')
+    expect(storage).not.toContain('window.confirm')
     expect(storage).not.toContain('forceCentralActive')
     expect(storage).not.toContain('setModuleState')
   })
 
   it('mantém em destaque a identidade atual Web/PWA e não a transforma em assinatura', () => {
     expect(source).toContain('Web/PWA continua incluído')
-    expect(source).toContain('Login, PWA e a sincronização online')
-    expect(source).toContain('não são substituídos nem passam a exigir assinatura')
+    expect(source).toContain('login, PWA e sincronização online')
   })
 
   it('deixa claro que o PC-servidor não concede privilégio administrativo', () => {
