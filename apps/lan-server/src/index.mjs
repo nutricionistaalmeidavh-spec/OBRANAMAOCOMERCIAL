@@ -12,6 +12,7 @@ import { ensureRuntimePaths, resolveRuntimePaths } from './runtime-paths.mjs'
 import { attachReadinessRoute } from './readiness-route.mjs'
 import { createRuntime } from './server-runtime.mjs'
 import { createRuntimeLogger } from './runtime-logger.mjs'
+import { createDiscoveryService } from './discovery-service.mjs'
 import { createLanServer, LAN_SERVER_VERSION, refreshIdentitySnapshot } from './server.mjs'
 
 const runtimeConfig = loadRuntimeConfig()
@@ -88,6 +89,19 @@ logger.info('server_started', {
   ...runtimeConfigForDiagnostics(runtimeConfig)
 })
 const state = identity.state()
+const discovery = createDiscoveryService({
+  host,
+  servicePort: port,
+  serverId: state?.serverId,
+  instanceName: runtimeConfig.instanceName
+})
+try {
+  const discoveryState = await discovery.start()
+  if (discoveryState.running) logger.info('lan_discovery_started', { port })
+  else logger.info('lan_discovery_disabled', { reason: discoveryState.reason })
+} catch (error) {
+  logger.warn('lan_discovery_unavailable', { error })
+}
 if (state && !state.claimed) {
   if (runtimeConfig.showSetupCode && state.setupCode) {
     process.stdout.write(`Obra na Mão Server setup code (explicit opt-in): ${state.setupCode}\n`)
@@ -109,6 +123,7 @@ async function shutdown() {
   shuttingDown = true
   clearInterval(identityRefreshTimer)
   try {
+    await discovery.stop()
     await runtime.stop()
     logger.info('server_stopped', { reason: 'signal' })
     process.exit(0)
