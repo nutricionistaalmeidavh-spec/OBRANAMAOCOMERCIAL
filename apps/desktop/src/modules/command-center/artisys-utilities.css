@@ -64,3 +64,159 @@
 
 @media(max-width:1320px){.route-configuracoes .settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.route-configuracoes .setting-card-feature{grid-column:span 1}.route-importacao .import-months{grid-template-columns:repeat(2,minmax(0,1fr))}.artisys-hub-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:980px){.route-documentos .toolbar-left{grid-template-columns:1fr}.route-documentos .filters{grid-template-columns:1fr}.route-configuracoes .settings-grid{grid-template-columns:1fr}.route-importacao .import-months{grid-template-columns:1fr}.route-configuracoes .benefit-config{grid-template-columns:1fr}.route-cadastros .segmented{min-width:0;width:100%}.artisys-hub-grid{grid-template-columns:1fr}}
+
+.storage-setup-card{
+  grid-column:1/-1;
+  min-height:0;
+  padding:0;
+  overflow:hidden;
+  border-color:#cddaf1;
+  background:#fff;
+  box-shadow:0 16px 34px rgba(23,48,101,.07);
+}
+.storage-setup-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding:18px 20px;
+  border-bottom:1px solid #e4eaf3;
+  background:linear-gradient(135deg,#fbfcff 0%,#f5f8ff 100%);
+}
+.storage-setup-title{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.storage-setup-title h3{margin:1px 0 5px;font-size:15px;color:#101936}
+.storage-setup-title p{margin:0;max-width:760px;min-height:0!important;color:#69758f;font-size:11px;line-height:1.5}
+.storage-setup-icon{
+  width:40px;height:40px;display:grid;place-items:center;flex:none;
+  border-radius:13px;background:#edf3ff;color:#1557e8;border:1px solid #d7e3fb;
+  box-shadow:inset 0 1px 0 #fff;
+}
+.storage-overall-status{
+  display:inline-flex;align-items:center;gap:7px;flex:none;
+  min-height:32px;padding:0 10px;border:1px solid #dfe6f0;border-radius:999px;
+  background:#f8faff;color:#59667e;font-size:10px;font-weight:750;
+}
+.storage-overall-status.is-ready{border-color:#c7ebeb;background:#eaf8f7;color:#087b83}
+.storage-overall-status.is-error{border-color:#f0ccd2;background:#fff1f2;color:#c84151}
+
+.storage-setup-body{
+  display:grid;
+  grid-template-columns:minmax(0,1.05fr) minmax(330px,.8fr);
+  gap:18px;
+  padding:20px;
+}
+.storage-setup-controls{display:grid;align-content:start;gap:13px}
+.storage-network-fields{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:10px}
+.storage-primary-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.storage-cloud-note{
+  margin:0!important;padding:10px 12px;min-height:0!important;
+  border-left:3px solid #0b59f5;border-radius:9px;
+  background:#f4f7ff;color:#59667e!important;font-size:10px!important;line-height:1.45;
+}
+.storage-cloud-note strong{color:#21355e}
+
+.storage-progress-panel{
+  align-self:start;
+  padding:16px;
+  border:1px solid #dce4f0;border-radius:14px;
+  background:#f8faff;
+}
+.storage-progress-panel.is-ready{border-color:#c7e7df;background:#f0faf7}
+.storage-progress-panel.is-error{border-color:#efcbd1;background:#fff7f8}
+.storage-progress-copy{display:flex;align-items:flex-start;gap:10px}
+.storage-progress-copy>span{
+  width:32px;height:32px;display:grid;place-items:center;flex:none;
+  border-radius:10px;background:#edf3ff;color:#1557e8;
+}
+.storage-progress-panel.is-ready .storage-progress-copy>span{background:#e2f6f2;color:#087b83}
+.storage-progress-panel.is-error .storage-progress-copy>span{background:#ffe7ea;color:#c84151}
+.storage-progress-copy strong{display:block;color:#17213b;font-size:12px}
+.storage-progress-copy p{margin:4px 0 0!important;min-height:0!important;color:#69758f!important;font-size:10px!important;line-height:1.45}
+.storage-progress-bar{
+  width:100%;height:7px;margin:16px 0 6px;display:block;
+  appearance:none;border:0;border-radius:999px;overflow:hidden;background:#e4eaf3;
+}
+.storage-progress-bar::-webkit-progress-bar{background:#e4eaf3;border-radius:999px}
+.storage-progress-bar::-webkit-progress-value{background:linear-gradient(90deg,#0b59f5,#0bb8f0);border-radius:999px}
+.storage-progress-bar::-moz-progress-bar{background:#0b59f5;border-radius:999px}
+.storage-progress-panel.is-ready .storage-progress-bar::-webkit-progress-value{background:#0c929d}
+.storage-progress-panel.is-ready .storage-progress-bar::-moz-progress-bar{background:#0c929d}
+.storage-progress-meta{display:flex;justify-content:space-between;gap:12px;color:#7a859b;font-size:9px}
+.storage-error-summary,.storage-waiting-note,.storage-ready-note{
+  margin-top:13px;padding:11px 12px;border-radius:10px;font-size:10px;line-height:1.45
+}
+.storage-error-summary{border:1px solid #f0ccd2;background:#fff;color:#9f3341}
+.storage-error-summary p{margin:4px 0 9px!important;min-height:0!important;color:#8c5260!important}
+.storage-waiting-note{border:1px solid #efd6bd;background:#fff8ef;color:#8c541f}
+.storage-waiting-note p{margin:4px 0 0!important;min-height:0!important;color:#8c6a48!important}
+.storage-ready-note{display:flex;align-items:flex-start;gap:8px;border:1px solid #c7ebeb;background:#fff;color:#087b83}
+.storage-ready-note svg{flex:none;margin-top:1px}
+
+.storage-tech-details{
+  border-top:1px solid #e5eaf2;
+  background:#fbfcff;
+}
+.storage-tech-details summary{
+  min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:0 20px;cursor:pointer;list-style:none;color:#53617a;font-size:10px;font-weight:750;
+}
+.storage-tech-details summary::-webkit-details-marker{display:none}
+.storage-tech-details summary svg{transition:transform 160ms}
+.storage-tech-details[open] summary svg{transform:rotate(180deg)}
+.storage-tech-details summary:hover{background:#f6f9ff;color:#1557e8}
+.storage-tech-details summary:focus-visible{outline:2px solid #8b7ffb;outline-offset:-3px}
+.storage-tech-content{padding:0 20px 18px}
+.storage-module-list{
+  overflow:hidden;border:1px solid #e2e8f1;border-radius:12px;background:#fff;
+}
+.storage-module-row{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(160px,.55fr) auto;
+  align-items:center;gap:12px;min-height:58px;padding:9px 12px;border-bottom:1px solid #e8edf4;
+}
+.storage-module-row:last-child{border-bottom:0}
+.storage-module-row strong{display:block;color:#17213b;font-size:10px}
+.storage-module-row small{display:block;margin-top:3px;color:#8390a3;font-size:8.5px}
+.storage-module-state{display:flex;align-items:flex-end;flex-direction:column;gap:2px}
+.storage-server-facts{
+  display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;
+}
+.storage-server-facts span{
+  padding:7px 9px;border:1px solid #e1e7f0;border-radius:8px;background:#fff;color:#7a859b;font-size:9px
+}
+.storage-server-facts strong{color:#344158}
+.storage-inline-toggle{
+  display:flex;align-items:center;gap:8px;margin-top:12px;color:#53617a;font-size:10px;
+}
+.storage-inline-toggle input{accent-color:#0b59f5}
+.storage-tech-actions,.storage-admin-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.storage-admin-copy{margin:0 0 8px!important;min-height:0!important;color:#69758f!important;font-size:10px!important}
+.storage-pairing-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px;margin-top:12px
+}
+.storage-pair-code{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  margin-top:10px;padding:10px 12px;border:1px solid #c7ebeb;border-radius:10px;background:#eff9f8
+}
+.storage-pair-code strong{font-size:13px;color:#087b83;letter-spacing:.05em}
+.storage-pair-code small{color:#5d7d7b}
+.storage-device-table{margin-top:12px}
+
+@media(max-width:1180px){
+  .storage-setup-body{grid-template-columns:1fr}
+  .storage-progress-panel{order:-1}
+}
+@media(max-width:1040px){
+  .storage-setup-head{flex-direction:column}
+  .storage-overall-status{align-self:flex-start}
+  .storage-network-fields{grid-template-columns:1fr}
+  .storage-module-row{grid-template-columns:1fr auto}
+  .storage-module-row>.button{grid-column:1/-1;justify-self:start}
+  .storage-module-state{align-items:flex-start}
+  .storage-pairing-row{grid-template-columns:1fr}
+  .storage-pairing-row>.button{justify-self:start}
+}
+
+.storage-network-picker{display:grid;gap:10px}
+.storage-setup-steps{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.storage-setup-steps small{padding:4px 7px;border:1px solid #dfe6f0;border-radius:999px;background:#fff;color:#69758f;font-size:8.5px}
+.storage-admin-details .setting-actions{flex-wrap:wrap}
