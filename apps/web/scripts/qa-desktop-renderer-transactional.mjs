@@ -63,11 +63,11 @@ try{
     };
   });
 
-  await page.goto(`${base}/#/configuracoes`,{waitUntil:'domcontentloaded'});await page.getByRole('heading',{name:'Configurações'}).waitFor({state:'visible'});
+  await page.goto(`${base}/#/configuracoes`,{waitUntil:'domcontentloaded'});await page.getByRole('heading',{name:'Configurações',exact:true}).waitFor({state:'visible'});
   await page.getByAltText('ArtiSys').waitFor({state:'visible'});
   const legacyBrand=page.getByText('Fluxo DRE',{exact:true});if(await legacyBrand.count()&&await legacyBrand.first().isVisible())throw new Error('QA renderer must use the command-center shell');
   await page.screenshot({path:path.join(outDir,'00-electron-settings-hub-command-center.png'),fullPage:true});
-  await page.getByRole('link',{name:'Configurações do sistema'}).click();await page.getByRole('heading',{name:'Configurações'}).waitFor({state:'visible'});
+  await page.getByRole('link',{name:'Configurações do sistema'}).click();await page.getByRole('heading',{name:'Configurações',exact:true}).waitFor({state:'visible'});
   await page.getByRole('heading',{name:'Dados e servidor'}).waitFor({state:'visible'});
   const storageMode=page.getByLabel('Onde os dados operacionais ficarão?');await storageMode.waitFor({state:'visible'});
   await page.getByRole('button',{name:'Salvar configuração'}).waitFor({state:'visible'});
