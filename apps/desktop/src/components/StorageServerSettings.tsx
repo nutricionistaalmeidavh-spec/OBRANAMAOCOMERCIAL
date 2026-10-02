@@ -393,6 +393,7 @@ export default function StorageServerSettings({onMessage}:Props){
           </div>
 
           <p className="storage-cloud-note"><strong>Web/PWA continua incluído.</strong> A fonte operacional muda, mas login, PWA e sincronização online continuam independentes desta configuração.</p>
+          {isServerMode&&<p className="storage-cloud-note"><strong>Sem fallback silencioso.</strong> Se o servidor falhar, a configuração anterior é preservada e o Desktop não troca para SQLite local automaticamente.</p>}
         </div>
 
         <div className={`storage-progress-panel ${setupReady?'is-ready':''} ${progress.stage==='error'?'is-error':''}`} aria-live="polite">
