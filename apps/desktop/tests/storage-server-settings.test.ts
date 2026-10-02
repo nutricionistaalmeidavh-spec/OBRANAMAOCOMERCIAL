@@ -22,15 +22,25 @@ describe('configuracao de dados e servidor', () => {
     expect(source).toContain('Endereço do servidor')
     expect(source).toContain('Porta')
     expect(source).toContain('Testar servidor')
+    expect(source).toContain('Encontrar servidor automaticamente')
+    expect(source).toContain('Conectar manualmente')
+    expect(source).toContain('Procurar na rede')
+    expect(source).toContain('Testar conexão')
     expect(source).toContain('window.fluxoDre.storage.testConnection()')
+    expect(source).toContain('window.fluxoDre.storage.discoverServers()')
+    expect(source).toContain('window.fluxoDre.storage.probeAddress')
+    expect(source).toContain('window.fluxoDre.storage.connectAddress')
     expect(source).toContain('window.fluxoDre.lan.claimHost')
     expect(source).toContain('window.fluxoDre.lan.pair')
     expect(source).not.toContain('deviceToken')
     expect(source).not.toContain('serverToken')
   })
 
-  it('não transforma host vazio de um servidor existente em localhost silenciosamente', () => {
-    expect(storage).toContain('host:effectiveHost')
+  it('não transforma falha de conexão em localhost/fallback silencioso', () => {
+    expect(storage).toContain('applyServerConnection')
+    expect(storage).toContain('connectAddress(address)')
+    expect(storage).toContain('a configuração atual é preservada')
+    expect(storage).toContain('não existe fallback local silencioso')
     expect(storage).not.toContain("host:effectiveHost||'127.0.0.1'")
   })
 
