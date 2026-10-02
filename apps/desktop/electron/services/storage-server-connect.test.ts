@@ -67,4 +67,17 @@ describe('F23 manual server connection',()=>{
     expect(db.values.get('lan_server_host')).toBeUndefined()
     expect(db.values.get('lan_server_scheme')).toBeUndefined()
   })
+  it('rejects connecting a lan-host Desktop to its own server identity before persisting',async()=>{
+    const db=fakeDb({storage_mode:'server',storage_operational_mode:'lan-host',lan_server_host:'127.0.0.1',lan_server_port:'4732'})
+    const fetchImpl=vi.fn(async(url:string)=>{
+      if(url.endsWith('/health'))return response(200,{status:'ok',product:'Obra na Mão',apiVersion:'1'})
+      if(url.endsWith('/ready'))return response(200,{ready:true,status:'ready',identity:{serverId:'srv-self'}})
+      throw new Error('unexpected')
+    })
+    const service=new StorageConnectionService({db,fetchImpl})
+    await expect(service.connectAddress('192.168.1.50',{rejectServerId:'srv-self'})).rejects.toThrow(/próprio|proprio|mesmo servidor/i)
+    expect(service.state()).toMatchObject({operationalMode:'lan-host',host:'127.0.0.1',port:4732})
+    expect(db.values.get('lan_server_host')).toBe('127.0.0.1')
+  })
+
 })
