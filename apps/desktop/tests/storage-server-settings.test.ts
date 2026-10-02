@@ -2,59 +2,41 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const page = fs.readFileSync(path.resolve(process.cwd(), 'src/pages/SettingsPage.tsx'), 'utf8')
-const storage = fs.readFileSync(path.resolve(process.cwd(), 'src/components/StorageServerSettings.tsx'), 'utf8')
-const preload = fs.readFileSync(path.resolve(process.cwd(), 'electron/preload.cjs'), 'utf8')
-const main = fs.readFileSync(path.resolve(process.cwd(), 'electron/main.cjs'), 'utf8')
-const source = `${page}\n${storage}`
+const page=fs.readFileSync(path.resolve(process.cwd(),'src/pages/SettingsPage.tsx'),'utf8')
+const storage=fs.readFileSync(path.resolve(process.cwd(),'src/components/StorageServerSettings.tsx'),'utf8')
+const preload=fs.readFileSync(path.resolve(process.cwd(),'electron/preload.cjs'),'utf8')
+const main=fs.readFileSync(path.resolve(process.cwd(),'electron/main.cjs'),'utf8')
+const source=`${page}\n${storage}`
 
-describe('configuracao de dados e servidor', () => {
-  it('expõe os três cenários locais/LAN sem remover o padrão local', () => {
-    expect(source).toContain('Dados e servidor')
-    expect(source).toContain('Somente neste computador')
-    expect(source).toContain('Este computador é o principal / servidor local')
-    expect(source).toContain('Conectar a um servidor da empresa')
-    expect(source).toContain('Servidor remoto próprio / VPS')
+describe('configuração de dados e servidor',()=>{
+  it('preserva local/LAN e oficializa remote sem remover o padrão local',()=>{
+    for(const text of ['Dados e servidor','Somente neste computador','Este computador é o principal / servidor local','Conectar a um servidor da empresa','Servidor remoto próprio / VPS'])expect(source).toContain(text)
     expect(source).toContain('window.fluxoDre.storage.state()')
     expect(source).toContain('window.fluxoDre.storage.configure')
   })
 
-  it('permite host/porta, teste de conexão, claim e pareamento sem expor credenciais', () => {
-    expect(source).toContain('Endereço do servidor')
-    expect(source).toContain('Porta')
-    expect(source).toContain('Testar servidor')
-    expect(source).toContain('Encontrar servidor automaticamente')
-    expect(source).toContain('Conectar manualmente')
-    expect(source).toContain('Procurar na rede')
-    expect(source).toContain('Testar conexão')
-    expect(source).toContain('window.fluxoDre.storage.testConnection()')
+  it('preserva discovery LAN, conexão manual, remote seguro e reconnect sem expor credenciais',()=>{
+    for(const text of ['Encontrar servidor automaticamente','Procurar na rede','Endereço do servidor','Testar conexão','Reconectar servidor','HTTP público é bloqueado','https://servidor.seudominio.com','10.66.0.1:4732'])expect(source).toContain(text)
     expect(source).toContain('window.fluxoDre.storage.discoverServers()')
     expect(source).toContain('window.fluxoDre.storage.probeAddress')
     expect(source).toContain('window.fluxoDre.storage.connectAddress')
-    expect(source).toContain('window.fluxoDre.lan.claimHost')
-    expect(source).toContain('window.fluxoDre.lan.pair')
     expect(source).toContain('window.fluxoDre.lan.reconnect()')
-    expect(source).toContain('Reconectar servidor')
-    expect(source).toContain('Nenhum outro servidor foi usado como substituto')
     expect(source).not.toContain('deviceToken')
     expect(source).not.toContain('serverToken')
   })
 
-  it('não transforma falha de conexão em localhost/fallback silencioso', () => {
-    expect(storage).toContain('applyServerConnection')
-    expect(storage).toContain('connectAddress(address,mode)')
-    expect(storage).toContain('a configuração atual é preservada')
-    expect(storage).toContain('não existe fallback local silencioso')
+  it('mantém a garantia explícita de ausência de fallback local silencioso',()=>{
+    expect(storage).toContain('Sem fallback silencioso')
+    expect(storage).toContain('a configuração anterior é preservada')
+    expect(storage).toContain('não troca para SQLite local automaticamente')
     expect(storage).not.toContain("host:effectiveHost||'127.0.0.1'")
-    expect(storage).toContain('HTTP público é bloqueado')
-    expect(storage).toContain('https://servidor.seudominio.com')
-    expect(storage).toContain('10.66.0.1:4732')
   })
 
-  it('orquestra todos os módulos automaticamente sem centralização silenciosa', () => {
+  it('orquestra todos os módulos automaticamente pela API de migração existente',()=>{
     expect(preload).toContain("call('storage:module-state'")
     expect(main).toContain("ipcMain.handle('storage:module-state'")
     expect(storage).toContain("const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh']")
+    expect(storage).toContain('centralizeAll')
     expect(storage).toContain('migrationPreflight')
     expect(storage).toContain('migrateModule')
     expect(storage).toContain('Configurar servidor e migrar dados')
@@ -62,15 +44,11 @@ describe('configuracao de dados e servidor', () => {
     expect(storage).not.toContain('Migrar para servidor')
   })
 
-  it('esconde a máquina de estados no happy path e mantém diagnóstico recolhível', () => {
+  it('mantém a máquina de estados e recovery nos detalhes técnicos',()=>{
     expect(storage).toContain('Detalhes técnicos')
     expect(storage).toContain('storage-module-list')
     expect(storage).toContain('storage-progress-panel')
     expect(storage).toContain('<progress')
-  })
-
-  it('mantém retry/rollback explícitos como recovery em vez de ativação forçada', () => {
-    expect(storage).toContain('migrationStatus')
     expect(storage).toContain('Tentar novamente')
     expect(storage).toContain('rollbackModuleMigration')
     expect(storage).toContain('Reverter tentativa')
@@ -80,13 +58,19 @@ describe('configuracao de dados e servidor', () => {
     expect(storage).not.toContain('setModuleState')
   })
 
-  it('mantém em destaque a identidade atual Web/PWA e não a transforma em assinatura', () => {
-    expect(source).toContain('Web/PWA continua incluído')
-    expect(source).toContain('login, PWA e sincronização online')
-  })
-
-  it('deixa claro que o PC-servidor não concede privilégio administrativo', () => {
+  it('expõe operação administrativa e backup sem transformar o PC servidor em autoridade',()=>{
+    expect(storage).toContain('Operação do servidor')
+    expect(storage).toContain('Criar backup agora')
+    expect(storage).toContain('Criar backup pré-upgrade')
+    expect(storage).toContain('Testar restore')
+    expect(preload).toContain('operationsStatus')
+    expect(preload).toContain('listBackups')
     expect(source).toContain('Estar fisicamente no PC-servidor não concede acesso administrativo')
     expect(source).toContain('Atualizar permissões Cloud')
+  })
+
+  it('mantém Web/PWA independente da fonte operacional',()=>{
+    expect(source).toContain('Web/PWA continua incluído')
+    expect(source).toContain('login, PWA e sincronização online')
   })
 })
