@@ -55,6 +55,15 @@ const SERVER_CAPABILITIES = Object.freeze({
   features:['optimistic-concurrency-v1']
 })
 
+function publicServerCapabilities(versionedRepository) {
+  return {
+    version:SERVER_CAPABILITIES.version,
+    modules:SERVER_CAPABILITIES.modules,
+    bridgeEntities:SERVER_CAPABILITIES.bridgeEntities,
+    ...(versionedRepository ? { features:SERVER_CAPABILITIES.features } : {})
+  }
+}
+
 function publicBackupOperation(result = {}) {
   return {
     ...(result.backup ? { backup:publicCentralBackup(result.backup) } : {}),
@@ -341,7 +350,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
           },
           authority,
           sync:{ authorityRevision:authority.revision, lastCloudRefreshAt:authority.lastCloudRefreshAt, stale:authority.stale },
-          capabilities:SERVER_CAPABILITIES
+          capabilities:publicServerCapabilities(versionedRepository)
         })
       }
 
@@ -416,10 +425,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/api/v1/sync-source/capabilities') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         await authenticateLanRequest(request, security)
-        return sendJson(response, 200, {
-          ...SERVER_CAPABILITIES,
-          features: versionedRepository ? SERVER_CAPABILITIES.features : []
-        })
+        return sendJson(response, 200, publicServerCapabilities(versionedRepository))
       }
 
       if (url.pathname === '/api/v1/sync-source/summary') {
