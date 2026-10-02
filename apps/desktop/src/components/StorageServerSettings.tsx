@@ -1,4 +1,4 @@
-import { RefreshCw, Server, ShieldCheck, Unplug } from 'lucide-react'
+import { RefreshCw, Search, Server, ShieldCheck, Unplug, Wifi } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAsync } from '../hooks/useAsync'
 import { Button, Card, Field, Status } from './ui'
@@ -33,9 +33,17 @@ export default function StorageServerSettings({onMessage}:Props){
   const [pairTarget,setPairTarget]=useState('')
   const [pairInvite,setPairInvite]=useState<any>(null)
   const [startAtLogin,setStartAtLogin]=useState(false)
+  const [manualAddress,setManualAddress]=useState('')
+  const [manualProbe,setManualProbe]=useState<any>(null)
+  const [discoveredServers,setDiscoveredServers]=useState<any[]>([])
+  const [discovering,setDiscovering]=useState(false)
   const [busy,setBusy]=useState(false)
 
-  useEffect(()=>{if(storage.data)setForm({operationalMode:storage.data.operationalMode,host:storage.data.host,port:String(storage.data.port)})},[storage.data?.operationalMode,storage.data?.host,storage.data?.port])
+  useEffect(()=>{
+    if(!storage.data)return
+    setForm({operationalMode:storage.data.operationalMode,host:storage.data.host,port:String(storage.data.port)})
+    if(storage.data.operationalMode==='lan-client')setManualAddress(storage.data.baseUrl)
+  },[storage.data?.operationalMode,storage.data?.host,storage.data?.port,storage.data?.baseUrl])
 
   const refreshModuleState=async()=>{
     const keys:ModuleKey[]=['core','operation','planning','finance','rh']
@@ -75,12 +83,21 @@ export default function StorageServerSettings({onMessage}:Props){
   useEffect(()=>{if(storage.data)void refreshLan(storage.data.operationalMode as Mode)},[storage.data?.operationalMode,storage.data?.baseUrl])
 
   const effectiveHost=form.operationalMode==='lan-host'?'127.0.0.1':form.host
-  const dirty=!!storage.data&&(form.operationalMode!==storage.data.operationalMode||effectiveHost!==storage.data.host||form.port!==String(storage.data.port))
+  const dirty=!!storage.data&&(
+    form.operationalMode!==storage.data.operationalMode||
+    (form.operationalMode==='lan-client'
+      ?manualAddress.trim()!==storage.data.baseUrl
+      :effectiveHost!==storage.data.host||form.port!==String(storage.data.port))
+  )
   const isServerMode=form.operationalMode!=='local'
   const isAdmin=lanStatus?.credential?.member?.role==='admin'
   const paired=!!lanStatus?.credential?.paired
 
-  const changeMode=(mode:Mode)=>setForm(current=>({...current,operationalMode:mode,host:mode==='lan-host'||mode==='local'?'127.0.0.1':(current.host==='127.0.0.1'?'':current.host)}))
+  const changeMode=(mode:Mode)=>{
+    setManualProbe(null)
+    if(mode!=='lan-client')setDiscoveredServers([])
+    setForm(current=>({...current,operationalMode:mode,host:mode==='lan-host'||mode==='local'?'127.0.0.1':(current.host==='127.0.0.1'?'':current.host)}))
+  }
 
   const save=async()=>{
     setBusy(true);onMessage('Salvando configuração de dados...')
@@ -95,6 +112,38 @@ export default function StorageServerSettings({onMessage}:Props){
   }
 
   const test=async()=>{setBusy(true);onMessage('Testando servidor Obra na Mão...');try{const result=await window.fluxoDre.storage.testConnection();onMessage(`Servidor encontrado — ${result.baseUrl} (${result.latencyMs} ms).`);await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
+
+  const applyServerConnection=async(address:string)=>{
+    setBusy(true)
+    onMessage('Validando e conectando ao servidor Obra na Mão...')
+    try{
+      const result=await window.fluxoDre.storage.connectAddress(address)
+      storage.setData(result.state)
+      setForm({operationalMode:'lan-client',host:result.state.host,port:String(result.state.port)})
+      setManualAddress(result.state.baseUrl)
+      setManualProbe(result.server)
+      onMessage(`Servidor conectado — ${result.state.baseUrl} (${result.server.latencyMs} ms). Agora conclua a autorização/pareamento.`)
+      await refreshLan('lan-client')
+    }catch(error:any){onMessage(error.message)}finally{setBusy(false)}
+  }
+
+  const discoverServers=async()=>{
+    setDiscovering(true);setDiscoveredServers([]);onMessage('Procurando servidores Obra na Mão nesta rede...')
+    try{
+      const servers=await window.fluxoDre.storage.discoverServers()
+      setDiscoveredServers(servers)
+      onMessage(servers.length?`${servers.length} servidor(es) Obra na Mão encontrado(s) na rede.`:'Nenhum servidor Obra na Mão foi encontrado automaticamente nesta rede.')
+    }catch(error:any){onMessage(error.message)}finally{setDiscovering(false)}
+  }
+
+  const testManualAddress=async()=>{
+    setBusy(true);setManualProbe(null);onMessage('Testando o endereço informado...')
+    try{
+      const result=await window.fluxoDre.storage.probeAddress(manualAddress)
+      setManualProbe(result)
+      onMessage(`Servidor compatível e pronto — ${result.baseUrl} (${result.latencyMs} ms).`)
+    }catch(error:any){onMessage(error.message)}finally{setBusy(false)}
+  }
   const claim=async()=>{setBusy(true);onMessage('Autorizando o servidor com a conta Administrador atual...');try{const result=await window.fluxoDre.lan.claimHost(form.operationalMode==='lan-host'?undefined:setupCode);setSetupCode('');onMessage(`Servidor vinculado${result.company?.name?` à ${result.company.name}`:''}. Este computador recebeu sua credencial LAN.`);await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
   const pair=async()=>{setBusy(true);onMessage('Pareando este computador...');try{await window.fluxoDre.lan.pair(pairCode);setPairCode('');onMessage('Computador pareado e autorizado no servidor da empresa.');await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
   const disconnect=async()=>{setBusy(true);try{await window.fluxoDre.lan.disconnect();onMessage('Credencial LAN removida somente deste computador. A conta Web/PWA não foi alterada.');await refreshLan()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
@@ -171,16 +220,42 @@ export default function StorageServerSettings({onMessage}:Props){
       </select>
     </Field>
 
-    {isServerMode&&<div className="form-grid" style={{marginTop:10}}>
-      {form.operationalMode==='lan-client'&&<Field label="Endereço do servidor"><input value={form.host} onChange={event=>setForm({...form,host:event.target.value})} placeholder="192.168.0.10"/></Field>}
+    {form.operationalMode==='lan-host'&&<div className="form-grid" style={{marginTop:10}}>
       <Field label="Porta"><input type="number" min="1" max="65535" value={form.port} onChange={event=>setForm({...form,port:event.target.value})}/></Field>
     </div>}
 
+    {form.operationalMode==='lan-client'&&<div style={{marginTop:12}}>
+      <div className="setting-actions" style={{justifyContent:'space-between'}}>
+        <div><strong>Encontrar servidor automaticamente</strong><br/><small>Procura somente servidores Obra na Mão disponíveis nesta rede local.</small></div>
+        <Button variant="secondary" icon={<Search size={15}/>} disabled={busy||discovering} onClick={discoverServers}>{discovering?'Procurando...':'Procurar na rede'}</Button>
+      </div>
+
+      {!!discoveredServers.length&&<div style={{marginTop:10,display:'grid',gap:8}}>
+        {discoveredServers.map(server=><div key={server.serverId} className="success-box" style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}>
+          <div><strong><Wifi size={14} style={{verticalAlign:'-2px'}}/> {server.name}</strong><br/><small>{server.host}:{server.port} · {server.latencyMs} ms · pronto</small></div>
+          <Button disabled={busy} onClick={()=>applyServerConnection(server.baseUrl)}>Conectar</Button>
+        </div>)}
+      </div>}
+
+      <div style={{marginTop:16,paddingTop:14,borderTop:'1px solid var(--border-color, #dfe4ec)'}}>
+        <strong>Conectar manualmente</strong>
+        <Field label="Endereço do servidor">
+          <input value={manualAddress} onChange={event=>{setManualAddress(event.target.value);setManualProbe(null)}} placeholder="192.168.1.50 ou obra-server.local"/>
+        </Field>
+        <small>Pode ser <strong>192.168.1.50</strong>, <strong>obra-server.local</strong>, <strong>192.168.1.50:4810</strong> ou um endereço HTTPS autorizado.</small>
+        {manualProbe&&<div className="success-box" style={{marginTop:8}}>Servidor pronto: <strong>{manualProbe.baseUrl}</strong>{manualProbe.serverId?<> · ID {manualProbe.serverId}</>:null}.</div>}
+        <div className="setting-actions" style={{marginTop:10}}>
+          <Button variant="secondary" icon={<RefreshCw size={15}/>} disabled={busy||!manualAddress.trim()} onClick={testManualAddress}>Testar conexão</Button>
+          <Button disabled={busy||!manualAddress.trim()} onClick={()=>applyServerConnection(manualAddress)}>Conectar</Button>
+        </div>
+      </div>
+    </div>}
+
     <div className="setting-actions" style={{marginTop:10}}>
-      <Button disabled={busy} onClick={save}>Salvar configuração</Button>
-      {isServerMode&&<Button variant="secondary" icon={<RefreshCw size={15}/>} disabled={dirty||busy} onClick={test}>Testar servidor</Button>}
+      {form.operationalMode!=='lan-client'&&<Button disabled={busy} onClick={save}>Salvar configuração</Button>}
+      {form.operationalMode==='lan-host'&&<Button variant="secondary" icon={<RefreshCw size={15}/>} disabled={dirty||busy} onClick={test}>Testar servidor</Button>}
     </div>
-    <small>{form.operationalMode==='local'?'Modo padrão, totalmente local e offline.':form.operationalMode==='lan-host'?'O servidor usa um SQLite central neste PC e os outros computadores acessam pela API LAN; o arquivo SQLite nunca é compartilhado pela rede.':'Informe o IP/host da máquina que executa o Obra na Mão Server. O banco permanece somente no servidor.'}</small>
+    <small>{form.operationalMode==='local'?'Modo padrão, totalmente local e offline.':form.operationalMode==='lan-host'?'O servidor usa um SQLite central neste PC e os outros computadores acessam pela API LAN; o arquivo SQLite nunca é compartilhado pela rede.':'O Desktop só troca para o servidor depois que o endereço é validado. Se a conexão falhar, a configuração atual é preservada e não existe fallback local silencioso.'}</small>
 
     {(['core','operation','planning','finance','rh'] as ModuleKey[]).map(renderModule)}
 
