@@ -3,6 +3,7 @@ const path = require('node:path')
 const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
 const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
+const { ServerDiscoveryService } = require('./services/server-discovery-service.cjs')
 const { ModuleStorageStateService } = require('./services/module-storage-state-service.cjs')
 const { ModuleMigrationService } = require('./services/module-migration-service.cjs')
 const { LanCredentialService } = require('./services/lan-credential-service.cjs')
@@ -78,6 +79,7 @@ function createServices() {
   const db = new DatabaseService(paths)
   db.open()
   const storage = new StorageConnectionService({ db })
+  const serverDiscovery = new ServerDiscoveryService()
   const lanCredentials = new LanCredentialService({ dataDir: paths.dataDir, safeStorage })
   const dataAccess = new DataAccessService({ db, storage, credentials: lanCredentials })
   const moduleStorage = new ModuleStorageStateService({ database: db, storage, lanClient: dataAccess.remote })
@@ -122,7 +124,7 @@ function createServices() {
   const backup = new BackupService({ db, ...paths })
   const migration = new ModuleMigrationService({ database: db, storage, moduleStorage, lanClient: dataAccess.remote, backup, appVersion: app.getVersion() })
   return {
-    paths, db, dataAccess, storage, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
+    paths, db, dataAccess, storage, serverDiscovery, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
     backup,
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
@@ -222,6 +224,15 @@ async function configureStorage(payload) {
   return state
 }
 
+async function connectStorageAddress(address) {
+  const previous = services.storage.state()
+  const result = await services.storage.connectAddress(address)
+  if (previous.operationalMode === 'lan-host') await services.lanHost.stop()
+  destroyTray()
+  await refreshModuleCapabilitiesSafe()
+  return result
+}
+
 function registerIpc() {
   ipcMain.handle('app:bootstrap', envelope(() => ({ dataPath: services.paths.dataDir, documentsPath: services.documentRoot.getRoot(), databasePath: services.db.dbPath, firstRun: services.db.list('empresas').length === 0, version: app.getVersion(), product: services.product.getEdition(), layout: services.uiPreferences.getLayout() })))
   ipcMain.handle('app:retry-database', envelope(() => withSyncStopped(() => { services.db.close(); services.db.open(); return true })))
@@ -230,6 +241,9 @@ function registerIpc() {
   ipcMain.handle('storage:state', envelope(() => services.storage.state()))
   ipcMain.handle('storage:configure', envelope((payload) => configureStorage(payload)))
   ipcMain.handle('storage:test-connection', envelope(() => services.storage.testConnection()))
+  ipcMain.handle('storage:discover-servers', envelope(() => services.serverDiscovery.discover()))
+  ipcMain.handle('storage:probe-address', envelope(({ address }) => services.storage.probeAddress(address)))
+  ipcMain.handle('storage:connect-address', envelope(({ address }) => connectStorageAddress(address)))
   ipcMain.handle('storage:module-state', envelope(({ module }) => services.moduleStorage.state(module)))
   ipcMain.handle('storage:refresh-module-capabilities', envelope(() => services.moduleStorage.refreshCapabilities()))
   ipcMain.handle('storage:migration-preflight', envelope(({ module }) => services.migration.preflight(module)))
