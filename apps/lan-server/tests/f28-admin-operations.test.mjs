@@ -15,7 +15,7 @@ const security={
 }
 const centralStorage={health:()=>({accessible:true,integrity:'ok',schemaVersion:6,claimed:true,serverId:'srv-a',companyId:'company-a',sizeBytes:321,lastBackup:{backupId:'b1',createdAt:'2026-10-01T10:00:00.000Z'},maintenance:false})}
 const backupOperations={
-  status:()=>({enabled:true,running:true,intervalHours:24,retentionCount:7,lastRun:{status:'success',at:'2026-10-01T10:00:00.000Z'},nextRunAt:'2026-10-02T10:00:00.000Z'}),
+  status:()=>({enabled:true,running:true,intervalHours:24,retentionCount:7,lastRun:{status:'failed',at:'2026-10-01T10:00:00.000Z',error:'C:\\private\\path-marker'},nextRunAt:'2026-10-02T10:00:00.000Z'}),
   list:()=>[{backupId:'b1',createdAt:'2026-10-01T10:00:00.000Z',reason:'scheduled',integrity:'ok'}],
   testRestore:async id=>({restorable:true,backupId:id,integrity:'ok'}),
   preUpgrade:async()=>({backup:{backupId:'pre-1'},verified:true,retention:{removed:[]}})
@@ -41,7 +41,7 @@ test('admin operations aggregates version readiness backup devices authority syn
   assert.equal(body.authority.revision,'r8')
   assert.ok(body.capabilities.modules.includes('finance'))
   const serialized=JSON.stringify(body)
-  for(const secret of ['admin-token','server-secret','tokenHash','setupCode'])assert.equal(serialized.includes(secret),false)
+  for(const secret of ['admin-token','server-secret','path-marker','tokenHash','setupCode'])assert.equal(serialized.includes(secret),false)
 }))
 
 test('admin can list backups, test restore and create pre-upgrade backup without receiving filesystem paths',()=>withServer(async base=>{
