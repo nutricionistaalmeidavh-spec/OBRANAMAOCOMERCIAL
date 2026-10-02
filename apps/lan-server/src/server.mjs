@@ -63,6 +63,11 @@ function publicBackupOperation(result = {}) {
   }
 }
 
+function publicOperationalStorageHealth(health = {}) {
+  const allowed = ['accessible','integrity','schemaVersion','serverId','companyId','sizeBytes','maintenance','claimed','migrationsApplied','lastBackup']
+  return Object.fromEntries(allowed.filter(key => health?.[key] !== undefined).map(key => [key, key === 'lastBackup' ? publicCentralBackup(health[key]) : health[key]]))
+}
+
 function publicBackupPolicy(status = {}) {
   return {
     enabled:status.enabled === true,
@@ -73,8 +78,7 @@ function publicBackupPolicy(status = {}) {
       status:status.lastRun.status || null,
       reason:status.lastRun.reason || null,
       at:status.lastRun.at || null,
-      backupId:status.lastRun.backupId || null,
-      error:status.lastRun.error || null
+      backupId:status.lastRun.backupId || null
     } : null,
     nextRunAt:status.nextRunAt || null
   }
@@ -328,7 +332,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
             runtime:{ mode:runtimeInfo?.mode || null, transport:runtimeInfo?.transport || null }
           },
           readiness:{ ready, status:ready?'ready':'not_ready' },
-          storage:publicCentralBackup(health),
+          storage:publicOperationalStorageHealth(health),
           backup:{ policy:backup, lastBackup:health.lastBackup || null },
           devices:{
             total:devices.length,
