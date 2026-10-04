@@ -398,7 +398,9 @@ export const REQUIRED_SCHEMA_TABLES=[
   'oauth_states',
   'api_rate_limits',
   'schema_metadata',
-  'api_error_log'
+  'api_error_log',
+  'lan_server_claims',
+  'lan_server_grants'
 ] as const;
 export const REQUIRED_SCHEMA_MIGRATIONS=[
   '0002_versioning_observability.sql',
@@ -462,6 +464,39 @@ async function ensureSchemaContract(env:RuntimeEnv){
     created_at TEXT NOT NULL
   )`).run();
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_api_error_log_created ON api_error_log(created_at DESC)').run();
+
+  // Additive runtime safety net for LAN authorization.
+  // Canonical migration 0010 remains the source of truth; these statements only
+  // prevent an older Git-deploy pipeline from publishing code before the D1
+  // migration was applied. No existing table, row, var or secret is modified.
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS lan_server_claims (
+    id TEXT PRIMARY KEY,
+    token_hash TEXT NOT NULL UNIQUE,
+    server_id TEXT NOT NULL,
+    company_id TEXT NOT NULL,
+    issued_by_device_id TEXT NOT NULL,
+    issued_by_member_id TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    consumed_at TEXT,
+    created_at TEXT NOT NULL
+  )`).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_lan_server_claims_token_hash ON lan_server_claims(token_hash)').run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_lan_server_claims_server_company ON lan_server_claims(server_id, company_id, created_at DESC)').run();
+
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS lan_server_grants (
+    id TEXT PRIMARY KEY,
+    token_hash TEXT NOT NULL UNIQUE,
+    server_id TEXT NOT NULL,
+    company_id TEXT NOT NULL,
+    claiming_member_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','revoked')),
+    created_at TEXT NOT NULL,
+    last_seen_at TEXT,
+    revoked_at TEXT
+  )`).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_lan_server_grants_token_hash ON lan_server_grants(token_hash)').run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_lan_server_grants_server_company ON lan_server_grants(server_id, company_id, created_at DESC)').run();
+
   schemaContractReady=true;
 }
 
