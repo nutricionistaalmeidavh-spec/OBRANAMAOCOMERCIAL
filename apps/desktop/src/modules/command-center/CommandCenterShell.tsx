@@ -6,14 +6,14 @@ import artisysIcon from '../../assets/artisys-icon.svg'
 import { WorkContextBar } from '../../components/WorkContextBar'
 import { GlobalAiAssistant } from '../../components/GlobalAiAssistant'
 import { matchesNavigation } from '../../utils/ux'
-import { COMMAND_NAVIGATION_GROUPS, routeClassName, routeMeta } from '../../routes/registry'
+import { canonicalPath, COMMAND_NAVIGATION_GROUPS, routeClassName, routeMeta } from '../../routes/registry'
 
 export default function CommandCenterShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [search, setSearch] = useState('')
   const [closedGroups, setClosedGroups] = useState<string[]>([])
   const [favorites, setFavorites] = useState<string[]>(() => {
-    try { const value = JSON.parse(localStorage.getItem('artisys.commercial.favorites') || '[]'); return Array.isArray(value) ? value.filter(item => typeof item === 'string') : [] } catch { return [] }
+    try { const value = JSON.parse(localStorage.getItem('artisys.commercial.favorites') || '[]'); return Array.isArray(value) ? [...new Set(value.filter(item => typeof item === 'string').map(item => canonicalPath(item)))] : [] } catch { return [] }
   })
   const toggleFavorite = (to: string) => setFavorites(previous => {
     const next = previous.includes(to) ? previous.filter(item => item !== to) : [...previous, to]
