@@ -7,6 +7,7 @@ import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
+import { CompensationPolicyService } from './compensation-policy-service.mjs'
 import { MigrationService } from './migration-service.mjs'
 import { RevisionConflictError } from './concurrency-service.mjs'
 import { createVersionedRepository } from './versioned-repository.mjs'
@@ -263,13 +264,14 @@ async function authorizeRh(request, security, action = 'edit') {
   return context
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, migrationService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, compensationPolicyService = null, migrationService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const versionedRepository = createVersionedRepository(repository)
   const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
   const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
+  const compensationPolicy = compensationPolicyService || (versionedRepository ? new CompensationPolicyService({ repository }) : null)
   const migration = migrationService || (repository ? new MigrationService({ repository, security }) : null)
   const centralStorage = centralBackupService
   const backupOperations = backupOperationsService
@@ -491,6 +493,13 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         authorizeAction(context, { domain: 'finance', action: 'view' })
         const filters = Object.fromEntries(url.searchParams.entries())
         return sendJson(response, 200, finance.dashboard(filters))
+      }
+
+      if (url.pathname === '/api/v1/rh/catalog/compensation-policy') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!compensationPolicy?.save) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Política central de remuneração indisponível.' })
+        await authorizeRh(request, security, 'edit')
+        return sendJson(response, 200, compensationPolicy.save(await readJson(request)))
       }
 
       if (url.pathname === '/api/v1/rh/payroll/employee') {
