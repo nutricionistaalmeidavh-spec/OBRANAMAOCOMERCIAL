@@ -25,6 +25,25 @@ describe('configuração de dados e servidor',()=>{
     expect(source).not.toContain('serverToken')
   })
 
+  it('prioriza descoberta automática para PCs e mantém QR fora do pareamento obrigatório de computador',()=>{
+    expect(source).toContain('Computadores e acesso')
+    expect(source).toContain('Como você quer usar o Obra na Mão?')
+    expect(source).toContain('Usar em outros computadores nesta rede')
+    expect(source).toContain('Outro computador não precisa de QR Code')
+    expect(source).toContain('Configuração avançada')
+    expect(storage).toContain("if(mode==='lan-client')void discoverServers()")
+    expect(storage).toContain('Porta da rede local')
+  })
+
+  it('oferece liberação assistida e restrita do firewall para o computador principal',()=>{
+    expect(preload).toContain("call('lan:firewall-state')")
+    expect(preload).toContain("call('lan:enable-local-access')")
+    expect(main).toContain("ipcMain.handle('lan:firewall-state'")
+    expect(main).toContain("ipcMain.handle('lan:enable-local-access'")
+    expect(storage).toContain('Liberar acesso nesta rede')
+    expect(storage).toContain('Somente rede local privada')
+  })
+
   it('mantém a garantia explícita de ausência de fallback local silencioso',()=>{
     expect(storage).toContain('Sem fallback silencioso')
     expect(storage).toContain('a configuração anterior é preservada')
