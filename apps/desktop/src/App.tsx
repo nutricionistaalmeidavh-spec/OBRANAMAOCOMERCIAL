@@ -103,7 +103,7 @@ export default function App() {
       <Route path={ROUTES.import} element={<ImportPage/>}/>
       <Route path={ROUTES.settings} element={isClassic ? <SettingsPage/> : <SettingsHubPage/>}/>
       <Route path={ROUTES.systemSettings} element={<SettingsPage/>}/>
-      {LEGACY_ROUTE_ALIASES.map(alias=><Route key={alias.from} path={alias.from} element={<Navigate to={alias.to} replace/>}/>)}
+      {LEGACY_ROUTE_ALIASES.map(alias=><Route key={alias.from} path={alias.from} element={<LegacyRouteRedirect to={alias.to}/>}/>)}
       <Route path="*" element={<Navigate to={ROUTES.dashboard} replace/>}/>
     </Routes></RouteBoundary></Shell></WorkContextProvider></ErrorBoundary>
     {revisionConflict && <RevisionConflictDialog conflict={revisionConflict} onClose={() => setRevisionConflict(null)}/>} 
@@ -122,6 +122,11 @@ function RevisionConflictDialog({ conflict, onClose }: { conflict: RevisionConfl
       </div>
     </div>
   </div>
+}
+
+function LegacyRouteRedirect({ to }: { to: string }) {
+  const location = useLocation()
+  return <Navigate to={{ pathname:to, search:location.search, hash:location.hash }} replace/>
 }
 
 function RouteBoundary({ children }: { children: ReactNode }) {
