@@ -9,6 +9,7 @@ const { ModuleStorageStateService } = require('./services/module-storage-state-s
 const { ModuleMigrationService } = require('./services/module-migration-service.cjs')
 const { LanCredentialService } = require('./services/lan-credential-service.cjs')
 const { LanHostService } = require('./services/lan-host-service.cjs')
+const { LanFirewallService } = require('./services/lan-firewall-service.cjs')
 const { LanSetupService } = require('./services/lan-setup-service.cjs')
 const { FileService } = require('./services/file-service.cjs')
 const { ManagedDirectoryService } = require('./services/managed-directory-service.cjs')
@@ -122,11 +123,12 @@ function createServices() {
     cloudBaseUrl: () => online.state().baseUrl,
     serverEntry: resolveLanServerEntry()
   })
+  const lanFirewall = new LanFirewallService()
   const lanSetup = new LanSetupService({ storage, credentials: lanCredentials, online })
   const backup = new BackupService({ db, ...paths })
   const migration = new ModuleMigrationService({ database: db, storage, moduleStorage, lanClient: dataAccess.remote, backup, appVersion: app.getVersion() })
   return {
-    paths, db, dataAccess, storage, serverDiscovery, serverReconnect, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
+    paths, db, dataAccess, storage, serverDiscovery, serverReconnect, moduleStorage, migration, lanCredentials, lanHost, lanFirewall, lanSetup, files, documentRoot, explorer, explorerContext,
     backup,
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog }),
@@ -262,6 +264,8 @@ function registerIpc() {
   ipcMain.handle('lan:host-state', envelope(() => services.lanHost.state()))
   ipcMain.handle('lan:host-start', envelope(async () => { const result = await services.lanHost.start(); if (isLanHostMode()) ensureTray(); return result }))
   ipcMain.handle('lan:host-stop', envelope(() => services.lanHost.stop()))
+  ipcMain.handle('lan:firewall-state', envelope(() => services.lanFirewall.state({ port: services.storage.state().port })))
+  ipcMain.handle('lan:enable-local-access', envelope(() => services.lanFirewall.enable({ port: services.storage.state().port })))
   ipcMain.handle('lan:status', envelope(() => services.lanSetup.status()))
   ipcMain.handle('lan:reconnect', envelope(() => services.serverReconnect.reconnect()))
   ipcMain.handle('lan:operations-status', envelope(() => services.lanSetup.operationsStatus()))
