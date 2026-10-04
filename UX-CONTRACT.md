@@ -18,6 +18,14 @@
 | Migração local → central | `docs/superpowers/specs/2026-10-01-pr60-security-migration-hardening-design.md` | Arquitetura/Dados | 2026-10-01 |
 | Permissões LAN/Cloud | `docs/superpowers/specs/2026-10-01-f14-f16-concurrency-permissions-admin-design.md` | Segurança/Permissões | 2026-10-01 |
 
+## Canonical domain ownership
+
+- Domain owner matrix: `docs/CANONICAL_DOMAIN_OWNERS.md`.
+- Cargos, salário-base e benefícios pertencem a Pessoas & RH → Cargos e remuneração.
+- Folha e pagamentos consome esses valores; Configurações do sistema não é owner de política de RH.
+- Cargo + vínculos de benefícios são salvos pela operação única `catalogo.saveCompensationPolicy`, com rollback integral em falha.
+- Paths, aliases, sidebar e breadcrumb são derivados de `apps/desktop/src/routes/registry.ts`.
+
 ## Visual contract
 
 - Project `DESIGN.md`: `DESIGN.md`.
