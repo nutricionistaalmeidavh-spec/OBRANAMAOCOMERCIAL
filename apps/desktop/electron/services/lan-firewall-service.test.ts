@@ -27,6 +27,7 @@ describe('LanFirewallService',()=>{
     expect(command).toContain('4733')
     expect(command).toContain('LocalSubnet')
     expect(command).toContain('Domain,Private')
+    expect(command).toContain('Get-NetFirewallPortFilter')
     expect(command).not.toContain('Profile Any')
     expect(command).not.toContain('RemoteAddress Any')
   })
