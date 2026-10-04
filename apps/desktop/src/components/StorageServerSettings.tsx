@@ -24,6 +24,7 @@ export default function StorageServerSettings({onMessage}:Props){
   const [form,setForm]=useState<Form>({operationalMode:'local',host:'127.0.0.1',port:'4732'})
   const [lanStatus,setLanStatus]=useState<any>(null)
   const [hostState,setHostState]=useState<any>(null)
+  const [firewallState,setFirewallState]=useState<any>(null)
   const [adminStatus,setAdminStatus]=useState<any>(null)
   const [operations,setOperations]=useState<any>(null)
   const [backups,setBackups]=useState<any[]>([])
@@ -76,14 +77,14 @@ export default function StorageServerSettings({onMessage}:Props){
 
   const readLanState=async(mode:Mode=form.operationalMode)=>{
     if(mode==='local'){
-      setLanStatus(null);setHostState(null);setAdminStatus(null);setOperations(null);setBackups([]);setDevices([])
+      setLanStatus(null);setHostState(null);setFirewallState(null);setAdminStatus(null);setOperations(null);setBackups([]);setDevices([])
       await refreshModuleState()
       return null
     }
     if(mode==='lan-host'){
-      const [host,login]=await Promise.all([window.fluxoDre.lan.hostState(),window.fluxoDre.lan.startAtLoginState()])
-      setHostState(host);setStartAtLogin(login.enabled)
-    }else setHostState(null)
+      const [host,login,firewall]=await Promise.all([window.fluxoDre.lan.hostState(),window.fluxoDre.lan.startAtLoginState(),window.fluxoDre.lan.firewallState()])
+      setHostState(host);setStartAtLogin(login.enabled);setFirewallState(firewall)
+    }else{setHostState(null);setFirewallState(null)}
 
     const status=await window.fluxoDre.lan.status()
     setLanStatus(status)
@@ -128,6 +129,7 @@ export default function StorageServerSettings({onMessage}:Props){
     if(mode!=='lan-client')setDiscoveredServers([])
     setForm(current=>({...current,operationalMode:mode,host:mode==='lan-host'||mode==='local'?'127.0.0.1':(current.host==='127.0.0.1'?'':current.host)}))
     setProgress({stage:'idle',completed:0,total:MODULE_ORDER.length,message:''})
+    if(mode==='lan-client')void discoverServers()
   }
 
   const centralizeAll=async()=>{
@@ -307,6 +309,7 @@ export default function StorageServerSettings({onMessage}:Props){
   const toggleDevice=async(device:any)=>{setBusy(true);try{await window.fluxoDre.lan.setDeviceStatus(device.id,device.status==='active'?'revoked':'active');onMessage(device.status==='active'?'Computador revogado.':'Computador reativado.');await readLanState()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
   const refreshIdentity=async()=>{setBusy(true);try{await window.fluxoDre.lan.refreshIdentity();onMessage('Usuários e permissões atualizados a partir do Obra na Mão Cloud.');await readLanState()}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
   const toggleStartAtLogin=async(enabled:boolean)=>{try{const state=await window.fluxoDre.lan.setStartAtLogin(enabled);setStartAtLogin(state.enabled);onMessage(state.enabled?'Obra na Mão configurado para iniciar com o Windows.':'Inicialização automática desativada.')}catch(error:any){onMessage(error.message)}}
+  const enableLanAccess=async()=>{setBusy(true);try{const state=await window.fluxoDre.lan.enableLocalAccess();setFirewallState(state);onMessage('Acesso liberado somente para dispositivos da rede local privada.')}catch(error:any){onMessage(error.message)}finally{setBusy(false)}}
 
   const createBackupNow=async()=>{
     setBusy(true)
