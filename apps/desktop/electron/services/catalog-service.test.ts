@@ -21,8 +21,8 @@ afterEach(()=>{for(const item of created.splice(0)){item.db.close();fs.rmSync(it
 describe('CatalogService compensation policy',()=>{
   it('salva cargo e vínculos como uma única transação',()=>{
     const {catalog}=setup()
-    const cafe=catalog.saveBenefit({nome:'Café',tipo:'alimentacao',valor_padrao_centavos:0})
-    const transporte=catalog.saveBenefit({nome:'Vale-transporte',tipo:'transporte',valor_padrao_centavos:0})
+    const cafe=catalog.saveBenefit({nome:'Café policy QA',tipo:'alimentacao',valor_padrao_centavos:0})
+    const transporte=catalog.saveBenefit({nome:'Vale-transporte policy QA',tipo:'transporte',valor_padrao_centavos:0})
     const result=catalog.saveCompensationPolicy({
       cargo:{nome:'Encanador',cbo:'724110',salario_base_centavos:300000},
       links:[
@@ -37,7 +37,8 @@ describe('CatalogService compensation policy',()=>{
 
   it('faz rollback do cargo e de todos os vínculos quando qualquer item falha',()=>{
     const {db,catalog}=setup()
-    const cafe=catalog.saveBenefit({nome:'Café',tipo:'alimentacao',valor_padrao_centavos:0})
+    const cafe=catalog.saveBenefit({nome:'Café rollback QA',tipo:'alimentacao',valor_padrao_centavos:0})
+    const beforeLinks=db.db.prepare('SELECT COUNT(*) total FROM cargo_beneficios').get().total
     expect(()=>catalog.saveCompensationPolicy({
       cargo:{nome:'Cargo rollback',salario_base_centavos:200000},
       links:[
@@ -46,6 +47,6 @@ describe('CatalogService compensation policy',()=>{
       ],
     })).toThrow()
     expect(db.db.prepare("SELECT COUNT(*) total FROM cargos WHERE nome='Cargo rollback'").get().total).toBe(0)
-    expect(db.db.prepare('SELECT COUNT(*) total FROM cargo_beneficios').get().total).toBe(0)
+    expect(db.db.prepare('SELECT COUNT(*) total FROM cargo_beneficios').get().total).toBe(beforeLinks)
   })
 })
