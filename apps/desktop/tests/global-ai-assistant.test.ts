@@ -16,7 +16,9 @@ describe('global AI assistant',()=>{
 
   it('keeps the full assistant route for deep analysis and compatibility',()=>{
     const app=read('../src/App.tsx')
-    expect(app).toContain('path="/assistente-ia"')
+    const registry=read('../src/routes/registry.ts')
+    expect(app).toContain('path={ROUTES.ai}')
+    expect(registry).toContain("ai:'/assistente-ia'")
     const global=read('../src/components/GlobalAiAssistant.tsx')
     expect(global).toContain('Abrir assistente completo')
     expect(global).toContain("to='/assistente-ia'")
