@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 describe('StorageServerSettings migration UI contract',()=>{
   it('apresenta uma única jornada de configuração com progresso',()=>{
     const source=fs.readFileSync(path.resolve(process.cwd(),'src/components/StorageServerSettings.tsx'),'utf8')
-    expect(source).toContain('Dados e servidor')
+    expect(source).toContain('Computadores e acesso')
     expect(source).toContain('Configurar servidor e migrar dados')
     expect(source).toContain('storage-progress-panel')
     expect(source).toContain('<progress')
