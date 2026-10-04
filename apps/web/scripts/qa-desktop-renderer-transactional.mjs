@@ -32,7 +32,7 @@ try{
       },
       conflicts:{onRevisionConflict:()=>()=>{}},
       empresas:{list:async()=>[{id:1,razao_social:'Empresa Local QA',nome_fantasia:'Empresa QA'}]},obras:{list:async()=>[{id:10,empresa_id:1,nome:'Obra Local QA'}]},
-      catalogo:{list:async()=>({cargos:[],beneficios:[],links:[]}),saveCargo:async value=>value,saveBenefit:async value=>value,saveLink:async value=>value,deactivate:async()=>true},
+      catalogo:{list:async()=>({cargos:[],beneficios:[],links:[]}),saveCargo:async value=>value,saveCompensationPolicy:async value=>value,saveBenefit:async value=>value,saveLink:async value=>value,deactivate:async()=>true},
       updater:{state:async()=>({status:'current',currentVersion:'1.0.0-qa',availableVersion:null,progress:null,error:null,supported:true}),check:async()=>({status:'current',currentVersion:'1.0.0-qa',availableVersion:null,progress:null,error:null,supported:true}),download:async()=>false,install:async()=>false,onStateChanged:()=>()=>{}},
       backup:{create:async()=>true,restore:async()=>true,openDataFolder:async()=>true},documentos:{chooseRoot:async()=>true,openFolder:async()=>true},product:{setEdition:async edition=>mark('product.setEdition',edition)},demo:{seed:async()=>true},
       storage:{
