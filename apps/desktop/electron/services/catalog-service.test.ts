@@ -24,13 +24,13 @@ describe('CatalogService compensation policy',()=>{
     const cafe=catalog.saveBenefit({nome:'Café policy QA',tipo:'alimentacao',valor_padrao_centavos:0})
     const transporte=catalog.saveBenefit({nome:'Vale-transporte policy QA',tipo:'transporte',valor_padrao_centavos:0})
     const result=catalog.saveCompensationPolicy({
-      cargo:{nome:'Encanador',cbo:'724110',salario_base_centavos:300000},
+      cargo:{nome:'Encanador policy QA',cbo:'724110',salario_base_centavos:300000},
       links:[
         {beneficio_id:cafe.id,valor_centavos:9000,quinzena:1,natureza:'credito',ativo:1},
         {beneficio_id:transporte.id,valor_centavos:25000,quinzena:1,natureza:'credito',ativo:1},
       ],
     })
-    expect(result.cargo).toMatchObject({nome:'Encanador',salario_base_centavos:300000})
+    expect(result.cargo).toMatchObject({nome:'Encanador policy QA',salario_base_centavos:300000})
     expect(result.links).toHaveLength(2)
     expect(result.links.map((item:any)=>item.valor_centavos)).toEqual([9000,25000])
   })
