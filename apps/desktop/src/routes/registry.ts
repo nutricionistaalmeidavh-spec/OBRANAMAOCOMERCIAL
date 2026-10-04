@@ -138,7 +138,7 @@ const ROUTE_META:Record<string,{section:string;label:string}>={
   [ROUTES.import]:{section:'Configuracoes',label:'Importar planilha'},
 }
 
-const ALIAS_TO_CANONICAL=new Map(LEGACY_ROUTE_ALIASES.map(item=>[item.from,item.to]))
+const ALIAS_TO_CANONICAL=new Map<string,string>(LEGACY_ROUTE_ALIASES.map(item=>[item.from,item.to]))
 
 export function canonicalPath(pathname:string){
   return ALIAS_TO_CANONICAL.get(pathname)||pathname
