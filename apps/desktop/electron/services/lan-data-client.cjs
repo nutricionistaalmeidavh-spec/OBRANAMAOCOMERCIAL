@@ -128,6 +128,10 @@ class LanDataClient {
     return this.request('GET', '/api/v1/finance/dashboard', { query: filters })
   }
 
+  async saveCompensationPolicy(payload) {
+    return this.request('POST', '/api/v1/rh/catalog/compensation-policy', { body: payload })
+  }
+
   async payrollEmployee(payload) {
     return this.request('POST', '/api/v1/rh/payroll/employee', { body: payload })
   }
