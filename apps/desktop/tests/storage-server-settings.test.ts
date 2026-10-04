@@ -10,7 +10,7 @@ const source=`${page}\n${storage}`
 
 describe('configuração de dados e servidor',()=>{
   it('preserva local/LAN e oficializa remote sem remover o padrão local',()=>{
-    for(const text of ['Dados e servidor','Somente neste computador','Este computador é o principal / servidor local','Conectar a um servidor da empresa','Servidor remoto próprio / VPS'])expect(source).toContain(text)
+    for(const text of ['Computadores e acesso','Somente neste computador','Usar em outros computadores nesta rede','Conectar este computador a uma instalação existente','Servidor remoto próprio / VPS'])expect(source).toContain(text)
     expect(source).toContain('window.fluxoDre.storage.state()')
     expect(source).toContain('window.fluxoDre.storage.configure')
   })
