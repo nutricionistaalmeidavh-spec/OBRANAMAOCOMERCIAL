@@ -40,7 +40,12 @@ class LanFirewallService{
     const command=[
       "$api=Get-NetFirewallRule -DisplayName '"+psLiteral(API_RULE)+"' -ErrorAction SilentlyContinue",
       "$discovery=Get-NetFirewallRule -DisplayName '"+psLiteral(DISCOVERY_RULE)+"' -ErrorAction SilentlyContinue",
-      "if($api -and $discovery){'true'}else{'false'}"
+      "$apiPort=if($api){(Get-NetFirewallPortFilter -AssociatedNetFirewallRule $api | Select-Object -First 1 -ExpandProperty LocalPort)}else{''}",
+      "$discoveryPort=if($discovery){(Get-NetFirewallPortFilter -AssociatedNetFirewallRule $discovery | Select-Object -First 1 -ExpandProperty LocalPort)}else{''}",
+      "$apiRemote=if($api){(Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $api | Select-Object -First 1 -ExpandProperty RemoteAddress)}else{''}",
+      "$discoveryRemote=if($discovery){(Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $discovery | Select-Object -First 1 -ExpandProperty RemoteAddress)}else{''}",
+      "$ok=$api -and $discovery -and [string]$apiPort -eq '"+apiPort+"' -and [string]$discoveryPort -eq '"+DISCOVERY_PORT+"' -and ($apiRemote -contains 'LocalSubnet') -and ($discoveryRemote -contains 'LocalSubnet')",
+      "if($ok){'true'}else{'false'}"
     ].join(';')
     try{
       const output=await this.run(['-NoProfile','-NonInteractive','-Command',command],{timeout:8000})
