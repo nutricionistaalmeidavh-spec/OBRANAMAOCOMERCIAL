@@ -1,0 +1,117 @@
+name: One-off LAN D1 migration 0010
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/oneoff-lan-d1-migration-0010.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  migrate-lan-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::CLOUDFLARE_API_TOKEN is not configured."; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::CLOUDFLARE_ACCOUNT_ID is not configured."; exit 1; }
+
+      - name: Install web dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Guard current remote migration state
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESULT="$(npx wrangler d1 execute obra-na-mao-comercial --remote --config wrangler.jsonc --json --command "
+            SELECT
+              SUM(CASE WHEN name IN (
+                '0001_base.sql',
+                '0002_versioning_observability.sql',
+                '0003_schema_contract_hardening.sql',
+                '0004_billing_and_license_service.sql',
+                '0005_commercial_plan_catalog.sql',
+                '0006_hosted_checkout.sql',
+                '0007_reserved_lifetime_license.sql',
+                '0008_product_license_authority.sql',
+                '0009_debora_manual_sales.sql'
+              ) THEN 1 ELSE 0 END) AS predecessors,
+              SUM(CASE WHEN name='0010_lan_server_security.sql' THEN 1 ELSE 0 END) AS target
+            FROM d1_migrations;
+          ")"
+          printf '%s\n' "$RESULT"
+
+          printf '%s' "$RESULT" | grep -Eq '"predecessors"[[:space:]]*:[[:space:]]*9' || {
+            echo "::error::Remote D1 is not at the expected 0009 baseline. No migration was applied."
+            exit 1
+          }
+
+          if printf '%s' "$RESULT" | grep -Eq '"target"[[:space:]]*:[[:space:]]*1'; then
+            echo "LAN migration 0010 is already applied; keeping this run idempotent."
+            echo "MIGRATION_ALREADY_APPLIED=true" >> "$GITHUB_ENV"
+          else
+            echo "MIGRATION_ALREADY_APPLIED=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Apply only pending canonical migration
+        if: env.MIGRATION_ALREADY_APPLIED != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Repository guard: 0010 must remain purely additive.
+          grep -Eq '^CREATE TABLE IF NOT EXISTS lan_server_claims' cloudflare/migrations/0010_lan_server_security.sql
+          grep -Eq '^CREATE TABLE IF NOT EXISTS lan_server_grants' cloudflare/migrations/0010_lan_server_security.sql
+          if grep -Eiq '\b(ALTER|DROP|DELETE|UPDATE|REPLACE|TRUNCATE)\b' cloudflare/migrations/0010_lan_server_security.sql; then
+            echo "::error::Migration 0010 is no longer additive-only. Aborting."
+            exit 1
+          fi
+
+          npx wrangler d1 migrations apply obra-na-mao-comercial --remote --config wrangler.jsonc
+
+      - name: Verify LAN schema and migration record
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESULT="$(npx wrangler d1 execute obra-na-mao-comercial --remote --config wrangler.jsonc --json --command "
+            SELECT
+              (SELECT COUNT(*) FROM sqlite_master
+                WHERE type='table'
+                  AND name IN ('lan_server_claims','lan_server_grants')) AS tables_ready,
+              (SELECT COUNT(*) FROM d1_migrations
+                WHERE name='0010_lan_server_security.sql') AS migration_recorded;
+          ")"
+          printf '%s\n' "$RESULT"
+
+          printf '%s' "$RESULT" | grep -Eq '"tables_ready"[[:space:]]*:[[:space:]]*2' || {
+            echo "::error::LAN tables were not verified."
+            exit 1
+          }
+          printf '%s' "$RESULT" | grep -Eq '"migration_recorded"[[:space:]]*:[[:space:]]*1' || {
+            echo "::error::Migration 0010 was not recorded by Wrangler."
+            exit 1
+          }
+
+      - name: Confirm no application deployment
+        run: |
+          echo "D1 schema migration completed."
+          echo "No Worker deploy was executed."
+          echo "No Desktop build or Desktop release was executed."
