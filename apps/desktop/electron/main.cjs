@@ -265,7 +265,11 @@ function registerIpc() {
   ipcMain.handle('lan:host-start', envelope(async () => { const result = await services.lanHost.start(); if (isLanHostMode()) ensureTray(); return result }))
   ipcMain.handle('lan:host-stop', envelope(() => services.lanHost.stop()))
   ipcMain.handle('lan:firewall-state', envelope(() => services.lanFirewall.state({ port: services.storage.state().port })))
-  ipcMain.handle('lan:enable-local-access', envelope(() => services.lanFirewall.enable({ port: services.storage.state().port })))
+  ipcMain.handle('lan:enable-local-access', envelope(() => {
+    const state=services.storage.state()
+    if(state.operationalMode!=='lan-host')throw new Error('Ative este computador como servidor local antes de liberar o acesso pela rede.')
+    return services.lanFirewall.enable({ port: state.port })
+  }))
   ipcMain.handle('lan:status', envelope(() => services.lanSetup.status()))
   ipcMain.handle('lan:reconnect', envelope(() => services.serverReconnect.reconnect()))
   ipcMain.handle('lan:operations-status', envelope(() => services.lanSetup.operationsStatus()))
