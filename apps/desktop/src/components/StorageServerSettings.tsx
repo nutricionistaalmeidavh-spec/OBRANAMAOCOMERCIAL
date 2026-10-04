@@ -288,7 +288,7 @@ export default function StorageServerSettings({onMessage}:Props){
     }catch(error:any){onMessage(error.message)}finally{setBusy(false)}
   }
 
-  const discoverServers=async()=>{
+  async function discoverServers(){
     setDiscovering(true);setDiscoveredServers([]);onMessage('Procurando servidores Obra na Mão nesta rede...')
     try{
       const servers=await window.fluxoDre.storage.discoverServers();setDiscoveredServers(servers)
