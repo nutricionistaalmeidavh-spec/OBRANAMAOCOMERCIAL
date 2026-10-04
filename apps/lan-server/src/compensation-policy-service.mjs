@@ -54,8 +54,7 @@ export class CompensationPolicyService {
         if(existing){
           const id=Number(existing.id)
           const observed=this.concurrency.current('cargo_beneficios',id)||this.concurrency.initialize('cargo_beneficios',id)
-          const expected=input.revision??(Number(input.id)===id?undefined:observed)
-          this.concurrency.assertExpected('cargo_beneficios',id,expected,{...existing,revision:observed})
+          this.concurrency.assertExpected('cargo_beneficios',id,input.revision,{...existing,revision:observed})
           const saved=this.repository.save('cargo_beneficios',{...data,id})
           savedLinks.push(this.decorate('cargo_beneficios',saved,this.concurrency.bump('cargo_beneficios',id)))
         }else{
