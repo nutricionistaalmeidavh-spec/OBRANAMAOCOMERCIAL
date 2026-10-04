@@ -73,7 +73,7 @@ export default function CompensationPage(){
   const benefitUsage=(benefitId:number)=>{
     const links=(catalog.data?.links||[]).filter((link:any)=>link.beneficio_id===benefitId&&link.ativo)
     if(!links.length)return{label:'Sem vínculo ativo',detail:'Defina o valor ao vincular o benefício a um cargo.'}
-    const values=[...new Set(links.map((link:any)=>Number(link.valor_centavos)||0))].sort((a,b)=>a-b)
+    const values=[...new Set<number>(links.map((link:any)=>Number(link.valor_centavos)||0))].sort((a,b)=>a-b)
     if(values.length===1)return{label:`${links.length} cargo${links.length===1?'':'s'} · ${brl(values[0])}`,detail:'Valor efetivo usado pela folha para esses cargos.'}
     return{label:`${links.length} cargos · ${brl(values[0])} a ${brl(values[values.length-1])}`,detail:'O valor efetivo varia conforme o cargo.'}
   }
