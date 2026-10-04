@@ -1,14 +1,12 @@
-import { Cloud, DatabaseBackup, Edit3, FolderCog, FolderOpen, HardHat, ListTree, PanelsTopLeft, Plus, RefreshCw, RotateCcw, ShieldCheck, Trash2, Unplug, WalletCards } from 'lucide-react'
-import { FormEvent, useEffect, useState } from 'react'
-import { brl, toCents } from '../utils/format'
+import { Cloud, DatabaseBackup, FolderCog, FolderOpen, HardHat, ListTree, PanelsTopLeft, RefreshCw, RotateCcw, ShieldCheck, Unplug } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useAsync } from '../hooks/useAsync'
 import SyncSettings from '../components/SyncSettings'
 import StorageServerSettings from '../components/StorageServerSettings'
-import { Button, Card, Confirm, Field, FormActions, Loading, Modal, PageHeader, Status } from '../components/ui'
+import { Button, Card, PageHeader } from '../components/ui'
 
 export default function SettingsPage(){
   const boot=useAsync(()=>window.fluxoDre.app.bootstrap(),[])
-  const catalog=useAsync(()=>window.fluxoDre.catalogo.list(),[])
   const online=useAsync(()=>window.fluxoDre.online.state(),[])
   const [message,setMessage]=useState('')
   const [onlineUrl,setOnlineUrl]=useState('')
@@ -18,19 +16,10 @@ export default function SettingsPage(){
   const checkOnline=async()=>{setMessage('Verificando autorização...');try{const status=await window.fluxoDre.online.status();await online.reload();setMessage(status.linked?'Desktop vinculado com sucesso. Agora você pode testar a conexão online.':'A autorização ainda está pendente.')}catch(error:any){setMessage(error.message)}}
   const testOnline=async()=>{setMessage('Testando conexão online...');try{const session=await window.fluxoDre.online.session();setMessage(`Conexão online ativa${session?.company?.name?` — ${session.company.name}`:''}.`);await online.reload()}catch(error:any){setMessage(error.message)}}
   const disconnectOnline=async()=>{try{await window.fluxoDre.online.disconnect();await online.reload();window.location.reload()}catch(error:any){setMessage(error.message)}}
-  const [cargo,setCargo]=useState<any>(null)
-  const [benefit,setBenefit]=useState<any>(null)
-  const [remove,setRemove]=useState<any>(null)
   const changeLayout=async(layout:'command-center'|'classic')=>{if(layout===boot.data?.layout)return;setMessage('Aplicando layout...');try{await window.fluxoDre.app.setLayout(layout);window.location.reload()}catch(error:any){setMessage(error.message)}}
   const action=async(fn:()=>Promise<any>,success:string)=>{setMessage('Processando...');try{const result=await fn();setMessage(result?success:'Operação cancelada.');await boot.reload()}catch(error:any){setMessage(error.message)}}
-  const editCargo=(item:any={nome:'',cbo:'',salario:''})=>{
-    const links=(catalog.data?.beneficios||[]).map((b:any)=>{const link=catalog.data?.links.find((x:any)=>x.cargo_id===item.id&&x.beneficio_id===b.id);return {beneficio_id:b.id,nome:b.nome,enabled:!!link?.ativo,valor:link?(link.valor_centavos/100).toFixed(2).replace('.',','):(b.valor_padrao_centavos/100).toFixed(2).replace('.',','),quinzena:link?.quinzena||1,natureza:link?.natureza||'credito'}})
-    setCargo({...item,salario:item.id?(item.salario_base_centavos/100).toFixed(2).replace('.',','):'',links})
-  }
-  const saveCargo=async(event:FormEvent)=>{event.preventDefault();const saved=await window.fluxoDre.catalogo.saveCargo({...cargo,salario_base_centavos:toCents(cargo.salario)});for(const link of cargo.links)await window.fluxoDre.catalogo.saveLink({...link,cargo_id:saved.id,valor_centavos:toCents(link.valor),ativo:link.enabled?1:0});setCargo(null);await catalog.reload();setMessage('Cargo e valores fixos salvos.')}
-  const saveBenefit=async(event:FormEvent)=>{event.preventDefault();await window.fluxoDre.catalogo.saveBenefit({...benefit,valor_padrao_centavos:toCents(benefit.valor)});setBenefit(null);await catalog.reload();setMessage('Benefício salvo.')}
   return <>
-    <PageHeader title="Configurações" description="Dados locais, pastas espelhadas, cargos, benefícios e manutenção."/>
+    <PageHeader title="Configurações" description="Dados locais, conectividade, pastas, backup, produto e manutenção do aplicativo."/>
     <div className="settings-grid">
       <SyncSettings/>
       <StorageServerSettings onMessage={setMessage}/>
@@ -44,21 +33,8 @@ export default function SettingsPage(){
       <Card className="setting-card"><ListTree size={21} color="#2f67d8"/><h3>Dados ficticios</h3><p>Cria uma obra demo com hidraulica, prumadas, checklist por pavimento, medicao, contrato, compras, RDO e pendencias.</p><Button onClick={()=>action(()=>window.fluxoDre.demo.seed(),'Dados ficticios carregados. Abra Obras, Frentes ou Medicoes para visualizar.')}>Carregar demo</Button></Card>
     </div>
 
-    <div className="settings-section">
-      <div className="section-heading"><div><HardHat size={20}/><div><h2>Cargos e valores fixos</h2><p>Salário e benefícios usados automaticamente na folha.</p></div></div><Button icon={<Plus size={16}/>} onClick={()=>editCargo()}>Novo cargo</Button></div>
-      <Card>{catalog.loading?<Loading/>:<div className="table-wrap"><table className="data-table"><thead><tr><th>Cargo</th><th>CBO</th><th className="number">Salário-base</th><th>Benefícios vinculados</th><th>Status</th><th></th></tr></thead><tbody>{catalog.data?.cargos.map((item:any)=>{const links=catalog.data.links.filter((x:any)=>x.cargo_id===item.id&&x.ativo);return <tr key={item.id}><td><strong>{item.nome}</strong></td><td>{item.cbo||'—'}</td><td className="number">{brl(item.salario_base_centavos)}</td><td>{links.length?links.map((link:any)=>{const b=catalog.data.beneficios.find((x:any)=>x.id===link.beneficio_id);return <span className="benefit-chip" key={link.id}>{b?.nome}: {brl(link.valor_centavos)}</span>}):<span className="muted-text">Sem benefícios</span>}</td><td><Status value={item.ativo?'ativo':'inativo'}/></td><td><div className="row-actions"><button className="icon-button" onClick={()=>editCargo(item)} title="Editar"><Edit3 size={15}/></button>{item.ativo===1&&<button className="icon-button danger-icon" onClick={()=>setRemove({type:'cargo',...item})} title="Inativar"><Trash2 size={15}/></button>}</div></td></tr>})}</tbody></table></div>}</Card>
-    </div>
-
-    <div className="settings-section">
-      <div className="section-heading"><div><WalletCards size={20}/><div><h2>Tipos de benefícios</h2><p>Cadastre alimentação, café, transporte, prêmio e outros valores fixos.</p></div></div><Button variant="secondary" icon={<Plus size={16}/>} onClick={()=>setBenefit({nome:'',tipo:'alimentacao',valor:''})}>Novo benefício</Button></div>
-      <Card><div className="table-wrap"><table className="data-table"><thead><tr><th>Benefício</th><th>Tipo</th><th className="number">Valor sugerido</th><th>Status</th><th></th></tr></thead><tbody>{catalog.data?.beneficios.map((item:any)=><tr key={item.id}><td><strong>{item.nome}</strong></td><td>{item.tipo}</td><td className="number">{brl(item.valor_padrao_centavos)}</td><td><Status value={item.ativo?'ativo':'inativo'}/></td><td><div className="row-actions"><button className="icon-button" onClick={()=>setBenefit({...item,valor:(item.valor_padrao_centavos/100).toFixed(2).replace('.',',')})}><Edit3 size={15}/></button>{item.ativo===1&&<button className="icon-button danger-icon" onClick={()=>setRemove({type:'beneficio',...item})}><Trash2 size={15}/></button>}</div></td></tr>)}</tbody></table></div></Card>
-    </div>
-
     {message&&<div className="success-box" style={{marginTop:14}}>{message}</div>}
     <Card style={{marginTop:14}}><div className="card-header"><h2>Informações técnicas</h2><ListTree size={17}/></div><div className="card-body form-grid"><div><small>Versão</small><strong style={{display:'block'}}>{boot.data?.version||'1.0.0'}</strong></div><div><small>Banco de dados</small><strong className="path-text" style={{display:'block'}}>{boot.data?.databasePath}</strong></div></div></Card>
 
-    <Modal open={!!cargo} title={cargo?.id?'Editar cargo':'Novo cargo'} onClose={()=>setCargo(null)} size="lg"><form onSubmit={saveCargo}><div className="modal-body"><div className="form-grid form-grid-3"><Field label="Nome" required><input required value={cargo?.nome||''} onChange={e=>setCargo({...cargo,nome:e.target.value})}/></Field><Field label="CBO"><input value={cargo?.cbo||''} onChange={e=>setCargo({...cargo,cbo:e.target.value})}/></Field><Field label="Salário-base" required><input required value={cargo?.salario||''} onChange={e=>setCargo({...cargo,salario:e.target.value})} placeholder="0,00"/></Field></div><h3 className="section-title" style={{marginTop:22}}>Benefícios fixos da função</h3><div className="benefit-config-list">{cargo?.links?.map((link:any,index:number)=><div className={`benefit-config ${link.enabled?'enabled':''}`} key={link.beneficio_id}><label className="benefit-toggle"><input type="checkbox" checked={link.enabled} onChange={e=>{const links=[...cargo.links];links[index]={...link,enabled:e.target.checked};setCargo({...cargo,links})}}/><strong>{link.nome}</strong></label><input disabled={!link.enabled} value={link.valor} onChange={e=>{const links=[...cargo.links];links[index]={...link,valor:e.target.value};setCargo({...cargo,links})}} placeholder="0,00"/><select disabled={!link.enabled} value={link.quinzena} onChange={e=>{const links=[...cargo.links];links[index]={...link,quinzena:Number(e.target.value)};setCargo({...cargo,links})}}><option value="1">1ª quinzena</option><option value="2">2ª quinzena</option></select></div>)}</div></div><FormActions onCancel={()=>setCargo(null)} submitLabel="Salvar cargo"/></form></Modal>
-    <Modal open={!!benefit} title={benefit?.id?'Editar benefício':'Novo benefício'} onClose={()=>setBenefit(null)}><form onSubmit={saveBenefit}><div className="modal-body form-grid"><Field label="Nome" required wide><input required value={benefit?.nome||''} onChange={e=>setBenefit({...benefit,nome:e.target.value})}/></Field><Field label="Tipo"><select value={benefit?.tipo||'alimentacao'} onChange={e=>setBenefit({...benefit,tipo:e.target.value})}><option value="alimentacao">Alimentação</option><option value="transporte">Transporte</option><option value="premio">Prêmio</option><option value="outro">Outro</option></select></Field><Field label="Valor sugerido"><input value={benefit?.valor||''} onChange={e=>setBenefit({...benefit,valor:e.target.value})} placeholder="0,00"/></Field></div><FormActions onCancel={()=>setBenefit(null)}/></form></Modal>
-    <Confirm open={!!remove} title={`Inativar ${remove?.type==='cargo'?'cargo':'benefício'}`} description="O cadastro deixará de aparecer nas novas seleções. Históricos existentes serão preservados." danger onCancel={()=>setRemove(null)} onConfirm={async()=>{await window.fluxoDre.catalogo.deactivate(remove.type,remove.id);setRemove(null);catalog.reload()}}/>
   </>
 }
