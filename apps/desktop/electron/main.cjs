@@ -122,7 +122,7 @@ function createServices() {
     cloudBaseUrl: () => online.state().baseUrl,
     serverEntry: resolveLanServerEntry()
   })
-  const lanSetup = new LanSetupService({ storage, credentials: lanCredentials, online })
+  const lanSetup = new LanSetupService({ storage, credentials: lanCredentials, online, setupCodeProvider: () => lanHost.setupCode() })
   const backup = new BackupService({ db, ...paths })
   const migration = new ModuleMigrationService({ database: db, storage, moduleStorage, lanClient: dataAccess.remote, backup, appVersion: app.getVersion() })
   return {
