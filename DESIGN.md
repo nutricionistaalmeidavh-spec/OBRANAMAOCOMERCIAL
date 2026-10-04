@@ -68,7 +68,7 @@ Inter/system-ui é a família principal. Títulos e dados usam peso para hierarq
 
 ## Layout
 
-O Command Center é o shell canônico. Configurações agrupam tarefas por intenção. Uma operação composta deve ocupar uma superfície principal de largura total quando isso reduzir fragmentação. Estados técnicos detalhados ficam em disclosure/accordion, não competem com a ação principal.
+O Command Center é o shell canônico. Configurações agrupam somente tarefas de sistema por intenção; política de pessoas, cargos, salários e benefícios pertence a Pessoas & RH. Cargos e remuneração é o owner visual dos valores-base consumidos pela Folha. Uma operação composta deve ocupar uma superfície principal de largura total quando isso reduzir fragmentação. Estados técnicos detalhados ficam em disclosure/accordion, não competem com a ação principal.
 
 ## Elevation & Depth
 
