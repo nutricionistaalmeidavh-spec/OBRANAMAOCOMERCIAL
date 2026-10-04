@@ -40,6 +40,7 @@ describe('configuração de dados e servidor',()=>{
     expect(preload).toContain("call('lan:enable-local-access')")
     expect(main).toContain("ipcMain.handle('lan:firewall-state'")
     expect(main).toContain("ipcMain.handle('lan:enable-local-access'")
+    expect(main).toContain("operationalMode!=='lan-host'")
     expect(storage).toContain('Liberar acesso nesta rede')
     expect(storage).toContain('Somente rede local privada')
   })
