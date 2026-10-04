@@ -2,7 +2,7 @@ import { db, error, json } from '../cloudflare/sdk';
 import { deviceByToken, type Device } from './desktop-store';
 import { authenticateLanServer, createLanClaim, lanServerSnapshot, redeemLanClaim, revokeLanServerGrant } from './lan-server-authority';
 
-type MemberRecord={id:string;companyId:string;projectId:string;email:string;name?:string;role:string;modules?:string[];channels?:string[]};
+type MemberRecord={id:string;projectMemberId?:string;companyId:string;projectId:string;email:string;name?:string;role:string;modules?:string[];channels?:string[]};
 type PlatformRecord={id:string;status?:string};
 
 const norm=(value:unknown)=>String(value||'').trim().toLowerCase();
@@ -47,7 +47,9 @@ export const LAN_SERVER_ROUTES={
     if(!validServerId(serverId))return error('Identificador do servidor LAN inválido.',400);
     const admin=await adminDesktopContext(String(body.deviceToken||''));
     if(!admin)return error('Apenas Admin autorizado no Desktop pode vincular servidor LAN.',403);
-    return json(await createLanClaim({companyId:admin.device.companyId!,serverId,issuedByDeviceId:admin.device.id,issuedByMemberId:admin.member.id}));
+    const canonicalMemberId=String(admin.member.projectMemberId||admin.member.id||'').trim();
+    if(!canonicalMemberId)return error('Vínculo do administrador com a obra está incompleto.',409);
+    return json(await createLanClaim({companyId:admin.device.companyId!,serverId,issuedByDeviceId:admin.device.id,issuedByMemberId:canonicalMemberId}));
   }],
   'POST /api/lan/claim/redeem':[async(ctx:any)=>{
     const body=record(ctx.body),serverId=String(body.serverId||'').trim(),claimToken=String(body.claimToken||'').trim();
