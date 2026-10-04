@@ -25,10 +25,12 @@ import ProcurementPage from './pages/ProcurementPage'
 import ProcurementContractsHubPage from './pages/ProcurementContractsHubPage'
 import HrTemplatesPage from './pages/HrTemplatesPage'
 import RhHubPage from './pages/RhHubPage'
+import CompensationPage from './pages/CompensationPage'
 import FrontsPage from './pages/FrontsPage'
 import ContractsPage from './pages/ContractsPage'
 import TasksPage from './pages/TasksPage'
 import { DesktopLogin } from './components/DesktopLogin'
+import { LEGACY_ROUTE_ALIASES, ROUTES } from './routes/registry'
 
 export default function App() {
   const connection = useAsync(() => window.fluxoDre.online.state(), [])
@@ -74,33 +76,35 @@ export default function App() {
 
   return <>
     <ErrorBoundary><WorkContextProvider><Shell><RouteBoundary><Routes>
-      <Route path="/" element={<DashboardPage/>}/>
-      <Route path="/assistente-ia" element={<AiAssistantPage/>}/>
-      <Route path="/dre" element={<DrePage/>}/>
-      <Route path="/financeiro" element={<FinancePage/>}/>
-      <Route path="/folha" element={<PayrollPage/>}/>
-      <Route path="/orcamento" element={<BudgetPage/>}/>
-      <Route path="/medicoes" element={<MeasurementsPage/>}/>
-      <Route path="/compras-contratos" element={<ProcurementContractsHubPage/>}/>
-      <Route path="/compras" element={<ProcurementPage/>}/>
-      <Route path="/contratos" element={<ContractsPage/>}/>
-      <Route path="/cadastros" element={<RegistriesPage/>}/>
-      <Route path="/obras" element={<WorksPage/>}/>
-      <Route path="/obras/:id" element={<WorkDetailPage/>}/>
-      <Route path="/frentes" element={<FrontsPage/>}/>
-      <Route path="/planejamento" element={<SchedulePage/>}/>
-      <Route path="/rdo" element={<DailyReportPage/>}/>
-      <Route path="/tarefas" element={<TasksPage/>}/>
-      <Route path="/rh" element={<RhHubPage/>}/>
-      <Route path="/funcionarios" element={<EmployeesPage/>}/>
-      <Route path="/registro-funcionario" element={<EmployeeRegistrationPage/>}/>
-      <Route path="/ponto" element={<TimeSheetPage/>}/>
-      <Route path="/rh/modelos" element={<HrTemplatesPage/>}/>
-      <Route path="/documentos" element={<DocumentsPage/>}/>
-      <Route path="/importacao" element={<ImportPage/>}/>
-      <Route path="/configuracoes" element={isClassic ? <SettingsPage/> : <SettingsHubPage/>}/>
-      <Route path="/configuracoes/sistema" element={<SettingsPage/>}/>
-      <Route path="*" element={<Navigate to="/" replace/>}/>
+      <Route path={ROUTES.dashboard} element={<DashboardPage/>}/>
+      <Route path={ROUTES.ai} element={<AiAssistantPage/>}/>
+      <Route path={ROUTES.dre} element={<DrePage/>}/>
+      <Route path={ROUTES.finance} element={<FinancePage/>}/>
+      <Route path={ROUTES.budget} element={<BudgetPage/>}/>
+      <Route path={ROUTES.measurements} element={<MeasurementsPage/>}/>
+      <Route path={ROUTES.procurementContracts} element={<ProcurementContractsHubPage/>}/>
+      <Route path={ROUTES.procurement} element={<ProcurementPage/>}/>
+      <Route path={ROUTES.contracts} element={<ContractsPage/>}/>
+      <Route path={ROUTES.registries} element={<RegistriesPage/>}/>
+      <Route path={ROUTES.works} element={<WorksPage/>}/>
+      <Route path={ROUTES.workDetail} element={<WorkDetailPage/>}/>
+      <Route path={ROUTES.fronts} element={<FrontsPage/>}/>
+      <Route path={ROUTES.planning} element={<SchedulePage/>}/>
+      <Route path={ROUTES.dailyReport} element={<DailyReportPage/>}/>
+      <Route path={ROUTES.tasks} element={<TasksPage/>}/>
+      <Route path={ROUTES.rh} element={<RhHubPage/>}/>
+      <Route path={ROUTES.rhEmployees} element={<EmployeesPage/>}/>
+      <Route path={ROUTES.rhAdmissions} element={<EmployeeRegistrationPage/>}/>
+      <Route path={ROUTES.rhCompensation} element={<CompensationPage/>}/>
+      <Route path={ROUTES.rhPayroll} element={<PayrollPage/>}/>
+      <Route path={ROUTES.rhTime} element={<TimeSheetPage/>}/>
+      <Route path={ROUTES.rhTemplates} element={<HrTemplatesPage/>}/>
+      <Route path={ROUTES.documents} element={<DocumentsPage/>}/>
+      <Route path={ROUTES.import} element={<ImportPage/>}/>
+      <Route path={ROUTES.settings} element={isClassic ? <SettingsPage/> : <SettingsHubPage/>}/>
+      <Route path={ROUTES.systemSettings} element={<SettingsPage/>}/>
+      {LEGACY_ROUTE_ALIASES.map(alias=><Route key={alias.from} path={alias.from} element={<Navigate to={alias.to} replace/>}/>)}
+      <Route path="*" element={<Navigate to={ROUTES.dashboard} replace/>}/>
     </Routes></RouteBoundary></Shell></WorkContextProvider></ErrorBoundary>
     {revisionConflict && <RevisionConflictDialog conflict={revisionConflict} onClose={() => setRevisionConflict(null)}/>} 
   </>
