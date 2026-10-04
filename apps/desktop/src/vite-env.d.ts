@@ -76,6 +76,7 @@ interface Window { fluxoDre: {
     adminStatus():Promise<LanAdminStatus>;createPairing(memberId:string):Promise<{code:string;expiresAt:string;member?:LanMember}>;
     listDevices():Promise<Array<{id:string;memberId:string;installationId:string;deviceName:string;status:string;pairedAt?:string;lastSeenAt?:string}>>;
     setDeviceStatus(deviceId:string,status:'active'|'revoked'):Promise<any>;refreshIdentity():Promise<LanAdminStatus>;
+    firewallState():Promise<{supported:boolean;enabled:boolean;port:number;discoveryPort:number;scope:string;error?:string}>;enableLocalAccess():Promise<{supported:boolean;enabled:boolean;port:number;discoveryPort:number;scope:string;error?:string}>;
     startAtLoginState():Promise<{enabled:boolean}>;setStartAtLogin(enabled:boolean):Promise<{enabled:boolean}>
   }
   conflicts:{onRevisionConflict(listener:(details:RevisionConflictDetails)=>void):()=>void}
