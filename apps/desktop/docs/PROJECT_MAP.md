@@ -74,7 +74,7 @@ Ao mudar uma operação que cruza camadas, confira apenas os pontos corresponden
 | `/assistente-ia` | `AiAssistantPage.tsx` | Assistente IA atual; permanece acessível até a fase de IA global |
 | `/dre` | `DrePage.tsx` | DRE mensal/anual e CSV |
 | `/financeiro` | `FinancePage.tsx` | Contas e pagamentos |
-| `/folha` | `PayrollPage.tsx` | Folha por competência |
+| `/rh/folha` | `PayrollPage.tsx` | Folha por competência; `/folha` é alias legado |
 | `/orcamento` | `BudgetPage.tsx` | Itens orçamentários; navegação no hub Financeiro |
 | `/medicoes` | `MeasurementsPage.tsx` | Medições; navegação no hub Financeiro |
 | `/compras-contratos` | `ProcurementContractsHubPage.tsx` | Hub financeiro de compras, contratos e parceiros |
@@ -88,16 +88,19 @@ Ao mudar uma operação que cruza camadas, confira apenas os pontos corresponden
 | `/rdo` | `DailyReportPage.tsx` | Diário de obra, equipe e ocorrências |
 | `/tarefas` | `TasksPage.tsx` | Tarefas e pendências operacionais |
 | `/rh` | `RhHubPage.tsx` | Hub de Pessoas & RH |
-| `/funcionarios` | `EmployeesPage.tsx` | Funcionários |
-| `/registro-funcionario` | `EmployeeRegistrationPage.tsx` | Admissão e documentos |
-| `/ponto` | `TimeSheetPage.tsx` | Ponto mensal |
+| `/rh/funcionarios` | `EmployeesPage.tsx` | Funcionários; `/funcionarios` é alias legado |
+| `/rh/admissoes` | `EmployeeRegistrationPage.tsx` | Admissão e documentos; `/registro-funcionario` é alias legado |
+| `/rh/ponto` | `TimeSheetPage.tsx` | Ponto mensal; `/ponto` é alias legado |
+| `/rh/remuneracao` | `CompensationPage.tsx` | Owner canônico de cargos, salário-base e benefícios por cargo |
 | `/rh/modelos` | `HrTemplatesPage.tsx` | Modelos e regras documentais de RH |
 | `/documentos` | `DocumentsPage.tsx` | Arquivos e documentos; acesso pelo hub Configurações |
 | `/importacao` | `ImportPage.tsx` | Importadores legado 2026 e universal por mapeamento; acesso pelo hub Configurações |
 | `/configuracoes` | `SettingsHubPage.tsx` | Hub de documentos, importação e configurações |
-| `/configuracoes/sistema` | `SettingsPage.tsx` | Pastas, backup, integrações, produto, layout, cargos e benefícios |
+| `/configuracoes/sistema` | `SettingsPage.tsx` | Pastas, backup, integrações, produto, layout e manutenção |
 
 As rotas diretas dos módulos continuam registradas para preservar favoritos, links internos e compatibilidade. A reorganização de 2026-09-05 muda apenas os pontos de entrada da navegação.
+
+Desde o P0 de canonicalização de RH, `src/routes/registry.ts` é o owner de paths, aliases, grupos de navegação e breadcrumbs. As rotas históricas de RH permanecem somente como redirects `replace` para `/rh/*`.
 
 ## Serviços do processo principal
 
@@ -113,7 +116,7 @@ As rotas diretas dos módulos continuam registradas para preservar favoritos, li
 - `document-root-service.cjs`: raiz configurável dos documentos.
 - `import-service.cjs`: prévia e confirmação do modelo específico de 2026.
 - `universal-import-service.cjs`: análise de Excel/CSV, mapeamento assistido e importação transacional por área.
-- `catalog-service.cjs`: cargos, benefícios e vínculos.
+- `catalog-service.cjs`: catálogo local de cargos/benefícios; `saveCompensationPolicy` salva cargo + vínculos em transação única.
 - `backup-service.cjs`: backup, restauração e pasta de dados locais.
 
 ## Banco de dados
