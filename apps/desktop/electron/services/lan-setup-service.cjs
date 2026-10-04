@@ -3,7 +3,7 @@ const os = require('node:os')
 const TERMINAL_AUTH_ERRORS = new Set(['invalid_device_token','device_revoked','member_not_authorized','desktop_channel_required'])
 
 class LanSetupService {
-  constructor({ storage, credentials, online, fetchImpl = globalThis.fetch, deviceName = os.hostname() || 'Computador', timeoutMs = 10000, setupCodeProvider = null }) {
+  constructor({ storage, credentials, online, fetchImpl = globalThis.fetch, deviceName = os.hostname() || 'Computador', timeoutMs = 10000, setupCodeProvider = null, setupCodeWaitMs = 3000, setupCodePollMs = 50 }) {
     if (!storage || !credentials || !online) throw new Error('Dependências de configuração LAN incompletas.')
     this.storage = storage
     this.credentials = credentials
@@ -12,6 +12,8 @@ class LanSetupService {
     this.deviceName = String(deviceName || 'Computador')
     this.timeoutMs = timeoutMs
     this.setupCodeProvider = setupCodeProvider
+    this.setupCodeWaitMs = Math.max(0, Number(setupCodeWaitMs) || 0)
+    this.setupCodePollMs = Math.max(1, Number(setupCodePollMs) || 1)
   }
 
   connection() {
@@ -89,12 +91,19 @@ class LanSetupService {
     return { claimToken: result.claimToken, expiresAt: result.expiresAt }
   }
 
-  resolveSetupCode(explicitCode) {
+  async resolveSetupCode(explicitCode) {
     const explicit = String(explicitCode || '').trim().toUpperCase()
     if (explicit) return explicit
-    const internal = typeof this.setupCodeProvider === 'function' ? String(this.setupCodeProvider() || '').trim().toUpperCase() : ''
-    if (!internal) throw new Error('Código de configuração do servidor ainda não está disponível.')
-    return internal
+    if (typeof this.setupCodeProvider !== 'function') throw new Error('Código de configuração do servidor ainda não está disponível.')
+
+    const startedAt = Date.now()
+    while (true) {
+      const internal = String(this.setupCodeProvider() || '').trim().toUpperCase()
+      if (internal) return internal
+      if ((Date.now() - startedAt) >= this.setupCodeWaitMs) break
+      await new Promise(resolve => setTimeout(resolve, this.setupCodePollMs))
+    }
+    throw new Error('Código de configuração do servidor ainda não está disponível.')
   }
 
   async claimHostedServer({ setupCode } = {}) {
@@ -110,7 +119,7 @@ class LanSetupService {
     const result = await this.request('/api/v1/setup/claim', {
       method: 'POST',
       body: {
-        setupCode: this.resolveSetupCode(setupCode),
+        setupCode: await this.resolveSetupCode(setupCode),
         claimToken: claim.claimToken,
         installationId: this.online.installationId(),
         deviceName: this.deviceName
