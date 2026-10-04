@@ -18,7 +18,7 @@ describe('LanFirewallService',()=>{
     const calls:string[][]=[]
     const execFileImpl=vi.fn((_file:string,args:string[],_options:any,callback:(error:any,stdout:string,stderr:string)=>void)=>{
       calls.push(args)
-      callback(null,'','')
+      callback(null,calls.length>1?'true':'','')
     })
     const service=new LanFirewallService({platform:'win32',execFileImpl})
     await service.enable({port:4732})
