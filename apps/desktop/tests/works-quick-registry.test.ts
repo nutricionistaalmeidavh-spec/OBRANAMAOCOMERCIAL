@@ -19,7 +19,9 @@ describe('cadastro rapido no fluxo de obras',()=>{
 
   it('mantem cadastros visiveis na navegacao principal do command center',()=>{
     const shell=read('../src/modules/command-center/CommandCenterShell.tsx')
-    expect(shell).toContain("to: '/cadastros'")
-    expect(shell).toContain("label: 'Clientes e empresas'")
+    const registry=read('../src/routes/registry.ts')
+    expect(shell).toContain('COMMAND_NAVIGATION_GROUPS')
+    expect(registry).toContain("registries:'/cadastros'")
+    expect(registry).toContain("label:'Clientes e empresas'")
   })
 })
