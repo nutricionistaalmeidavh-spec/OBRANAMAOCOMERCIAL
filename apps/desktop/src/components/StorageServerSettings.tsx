@@ -351,39 +351,64 @@ export default function StorageServerSettings({onMessage}:Props){
   return <>
     <Card className="setting-card setting-card-feature storage-setup-card">
       <div className="storage-setup-head">
-        <div className="storage-setup-title"><span className="storage-setup-icon"><Server size={20}/></span><div><h3>Dados e servidor</h3><p>Escolha a fonte dos dados. O assistente conduz identificação, claim, storage, rede, backup, segurança e validação.</p></div></div>
+        <div className="storage-setup-title"><span className="storage-setup-icon"><Server size={20}/></span><div><h3>Computadores e acesso</h3><p>Escolha como sua equipe vai usar o Obra na Mão. A configuração de servidor, rede, segurança, backup e migração continua sendo feita pelo assistente.</p></div></div>
         <span className={`storage-overall-status ${setupReady?'is-ready':progress.stage==='error'?'is-error':''}`}>{statusIcon}{statusTitle}</span>
       </div>
 
       <div className="storage-setup-body">
         <div className="storage-setup-controls">
-          <Field label="Onde os dados operacionais ficarão?">
+          <Field label="Como você quer usar o Obra na Mão?">
             <select value={form.operationalMode} disabled={storage.loading||busy} onChange={event=>changeMode(event.target.value as Mode)}>
               <option value="local">Somente neste computador</option>
-              <option value="lan-host">Este computador é o principal / servidor local</option>
-              <option value="lan-client">Conectar a um servidor da empresa</option>
+              <option value="lan-host">Usar em outros computadores nesta rede</option>
+              <option value="lan-client">Conectar este computador a uma instalação existente</option>
               <option value="remote">Servidor remoto próprio / VPS</option>
             </select>
           </Field>
 
-          {form.operationalMode==='lan-host'&&<Field label="Porta"><input type="number" min="1" max="65535" value={form.port} onChange={event=>setForm({...form,port:event.target.value})}/></Field>}
+          {form.operationalMode==='lan-host'&&<>
+            <div className="success-box">
+              <strong>Este computador será o principal.</strong><br/>
+              <small>Os outros PCs encontram esta instalação automaticamente quando estiverem na mesma rede. Outro computador não precisa de QR Code.</small>
+              {!dirty&&firewallState?.supported!==false&&<div className="setting-actions" style={{marginTop:10,alignItems:'center'}}>
+                <Button variant="secondary" disabled={busy||firewallState?.enabled} onClick={enableLanAccess}>{firewallState?.enabled?'Acesso já liberado':'Liberar acesso nesta rede'}</Button>
+                <small>Somente rede local privada: TCP {form.port} e UDP 4733, perfis Private/Domain e escopo LocalSubnet.</small>
+              </div>}
+              {!dirty&&firewallState?.supported===false&&<small>A liberação assistida de firewall é específica do Windows; neste sistema, configure a rede pelo sistema operacional.</small>}
+              {dirty&&<small>Salve a configuração primeiro. Depois o Obra na Mão poderá liberar o acesso local de forma restrita.</small>}
+            </div>
+            <details className="storage-tech-details">
+              <summary><span>Configuração avançada</span><ChevronDown size={16}/></summary>
+              <div className="storage-tech-content">
+                <Field label="Porta da rede local"><input type="number" min="1" max="65535" value={form.port} onChange={event=>setForm({...form,port:event.target.value})}/></Field>
+                <small>A porta normalmente não precisa ser alterada. O acesso automático usa a mesma porta configurada pelo servidor.</small>
+              </div>
+            </details>
+          </>}
 
           {['lan-client','remote'].includes(form.operationalMode)&&<div className="storage-network-picker">
             {form.operationalMode==='lan-client'&&<>
               <div className="setting-actions" style={{justifyContent:'space-between'}}>
-                <div><strong>Encontrar servidor automaticamente</strong><br/><small>Procura somente servidores Obra na Mão nesta rede local.</small></div>
-                <Button variant="secondary" icon={<Search size={15}/>} disabled={busy||discovering} onClick={discoverServers}>{discovering?'Procurando...':'Procurar na rede'}</Button>
+                <div><strong>Encontrar servidor automaticamente</strong><br/><small>O Obra na Mão procura instalações compatíveis nesta rede local; não é necessário informar IP ou porta.</small></div>
+                <Button variant="secondary" icon={<Search size={15}/>} disabled={busy||discovering} onClick={discoverServers}>{discovering?'Procurando servidores automaticamente...':'Procurar na rede novamente'}</Button>
               </div>
-              {!!discoveredServers.length&&<div style={{display:'grid',gap:8,marginTop:8}}>{discoveredServers.map(server=><div key={server.serverId} className="success-box" style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}><div><strong><Wifi size={14}/> {server.name}</strong><br/><small>{server.host}:{server.port} · {server.latencyMs} ms</small></div><Button disabled={busy} onClick={()=>applyServerConnection(server.baseUrl,'lan-client')}>Usar servidor</Button></div>)}</div>}
+              <p className="storage-cloud-note"><strong>Sem QR para PCs.</strong> Outro computador não precisa de QR Code: instale o Obra na Mão, escolha esta opção e selecione o servidor encontrado. O código temporário continua sendo a autorização de pareamento.</p>
+              {!!discoveredServers.length&&<div style={{display:'grid',gap:8,marginTop:8}}>{discoveredServers.map(server=><div key={server.serverId} className="success-box" style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}><div><strong><Wifi size={14}/> {server.name}</strong><br/><small>Disponível nesta rede · {server.latencyMs} ms</small><details><summary>Detalhes técnicos</summary><small>{server.host}:{server.port} · ID {server.serverId}</small></details></div><Button disabled={busy} onClick={()=>applyServerConnection(server.baseUrl,'lan-client')}>Usar servidor</Button></div>)}</div>}
+              {!discovering&&!discoveredServers.length&&<small>Nenhum servidor foi selecionado ainda. A busca é iniciada automaticamente ao escolher esta opção.</small>}
             </>}
 
             {form.operationalMode==='remote'&&<div className="success-box"><strong>Conexão remota segura.</strong><br/><small>Use HTTPS para endereço público ou endereço privado da VPN/WireGuard. HTTP público é bloqueado.</small></div>}
 
-            <strong>Conectar manualmente</strong>
-            <Field label="Endereço do servidor"><input value={manualAddress} onChange={event=>{setManualAddress(event.target.value);setManualProbe(null)}} placeholder={form.operationalMode==='remote'?'https://servidor.seudominio.com':'192.168.1.50 ou obra-server.local'}/></Field>
-            <small>{form.operationalMode==='remote'?<>Também pode usar um IP privado da VPN, como <strong>10.66.0.1:4732</strong>.</>:<>Pode ser IP, hostname ou HTTPS autorizado.</>} Se a conexão falhar, a configuração atual é preservada e não existe fallback local silencioso.</small>
-            {manualProbe&&<div className="success-box">Servidor pronto: <strong>{manualProbe.baseUrl}</strong>{manualProbe.serverId?<> · ID {manualProbe.serverId}</>:null}.</div>}
-            <div className="setting-actions"><Button variant="secondary" disabled={busy||!manualAddress.trim()} onClick={testManualAddress}>Testar conexão</Button><Button variant="secondary" disabled={busy||!manualAddress.trim()} onClick={()=>applyServerConnection(manualAddress)}>Conectar sem migrar</Button></div>
+            <details className="storage-tech-details" open={form.operationalMode==='remote'}>
+              <summary><span>Configuração avançada</span><ChevronDown size={16}/></summary>
+              <div className="storage-tech-content">
+                <strong>Conectar manualmente</strong>
+                <Field label="Endereço do servidor"><input value={manualAddress} onChange={event=>{setManualAddress(event.target.value);setManualProbe(null)}} placeholder={form.operationalMode==='remote'?'https://servidor.seudominio.com':'192.168.1.50 ou obra-server.local'}/></Field>
+                <small>{form.operationalMode==='remote'?<>Também pode usar um IP privado da VPN, como <strong>10.66.0.1:4732</strong>.</>:<>Pode ser IP, hostname ou HTTPS autorizado.</>} Se a conexão falhar, a configuração atual é preservada e não existe fallback local silencioso.</small>
+                {manualProbe&&<div className="success-box">Servidor pronto: <strong>{manualProbe.baseUrl}</strong>{manualProbe.serverId?<> · ID {manualProbe.serverId}</>:null}.</div>}
+                <div className="setting-actions"><Button variant="secondary" disabled={busy||!manualAddress.trim()} onClick={testManualAddress}>Testar conexão</Button><Button variant="secondary" disabled={busy||!manualAddress.trim()} onClick={()=>applyServerConnection(manualAddress)}>Conectar sem migrar</Button></div>
+              </div>
+            </details>
           </div>}
 
           {isServerMode&&!dirty&&lanStatus&&!lanStatus.claimed&&['lan-client','remote'].includes(form.operationalMode)&&<Field label="Código de configuração do servidor"><input value={setupCode} onChange={event=>setSetupCode(event.target.value.toUpperCase())} placeholder="XXXXX-XXXXX"/></Field>}
