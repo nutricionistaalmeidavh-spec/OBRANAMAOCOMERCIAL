@@ -377,6 +377,7 @@ function registerIpc() {
   ipcMain.handle('scanner:save-signed', envelope((payload) => services.scanner.saveSigned(payload)))
   ipcMain.handle('catalog:list', envelope(() => services.catalog.list()))
   ipcMain.handle('catalog:save-cargo', envelope((data) => services.catalog.saveCargo(data)))
+  ipcMain.handle('catalog:save-compensation-policy', envelope((data) => services.catalog.saveCompensationPolicy(data)))
   ipcMain.handle('catalog:save-benefit', envelope((data) => services.catalog.saveBenefit(data)))
   ipcMain.handle('catalog:save-link', envelope((data) => services.catalog.saveLink(data)))
   ipcMain.handle('catalog:deactivate', envelope((data) => services.catalog.deactivate(data.type, data.id)))
