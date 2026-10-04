@@ -1,0 +1,29 @@
+labels:
+  platform: windows/amd64
+  backend: local
+
+when:
+  - event: push
+    branch:
+      - main
+
+steps:
+  - name: migrar-d1-lan-0010
+    image: powershell.exe
+    commands:
+      - '$ErrorActionPreference = "Stop"'
+      - 'Set-Location .\apps\web'
+      - 'Write-Host "[Obra] One-off D1 LAN migration 0010"'
+      - 'npm.cmd ci --no-audit --no-fund'
+      - 'npx.cmd wrangler whoami'
+      - '$sql = "SELECT SUM(CASE WHEN name IN (''''0001_base.sql'''',''''0002_versioning_observability.sql'''',''''0003_schema_contract_hardening.sql'''',''''0004_billing_and_license_service.sql'''',''''0005_commercial_plan_catalog.sql'''',''''0006_hosted_checkout.sql'''',''''0007_reserved_lifetime_license.sql'''',''''0008_product_license_authority.sql'''',''''0009_debora_manual_sales.sql'''') THEN 1 ELSE 0 END) AS predecessors, SUM(CASE WHEN name=''''0010_lan_server_security.sql'''' THEN 1 ELSE 0 END) AS target FROM d1_migrations;"'
+      - '$state = (& npx.cmd wrangler d1 execute obra-na-mao-comercial --remote --config wrangler.jsonc --json --command $sql 2>&1 | Out-String)'
+      - 'Write-Host $state'
+      - 'if ($state -notmatch ''"predecessors"\s*:\s*9'') { throw "D1 remoto nao esta no baseline esperado 0009. Abortando sem alteracao." }'
+      - 'if ($state -notmatch ''"target"\s*:\s*1'') { npx.cmd wrangler d1 migrations apply obra-na-mao-comercial --remote --config wrangler.jsonc; if ($LASTEXITCODE -ne 0) { throw "Falha ao aplicar migration 0010." } } else { Write-Host "0010 ja aplicada; seguindo apenas para verificacao." }'
+      - '$verifySql = "SELECT (SELECT COUNT(*) FROM sqlite_master WHERE type=''''table'''' AND name IN (''''lan_server_claims'''',''''lan_server_grants'''')) AS tables_ready, (SELECT COUNT(*) FROM d1_migrations WHERE name=''''0010_lan_server_security.sql'''') AS migration_recorded;"'
+      - '$verify = (& npx.cmd wrangler d1 execute obra-na-mao-comercial --remote --config wrangler.jsonc --json --command $verifySql 2>&1 | Out-String)'
+      - 'Write-Host $verify'
+      - 'if ($verify -notmatch ''"tables_ready"\s*:\s*2'') { throw "Tabelas LAN nao foram verificadas." }'
+      - 'if ($verify -notmatch ''"migration_recorded"\s*:\s*1'') { throw "Migration 0010 nao ficou registrada." }'
+      - 'Write-Host "SUCESSO: migration 0010 aplicada/verificada. Nenhum Worker deploy, var, secret ou Desktop foi alterado."'
