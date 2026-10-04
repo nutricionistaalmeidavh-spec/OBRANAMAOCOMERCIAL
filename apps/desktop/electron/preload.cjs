@@ -55,6 +55,8 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     hostState: () => call('lan:host-state'),
     startHost: () => call('lan:host-start'),
     stopHost: () => call('lan:host-stop'),
+    firewallState: () => call('lan:firewall-state'),
+    enableLocalAccess: () => call('lan:enable-local-access'),
     status: () => call('lan:status'),
     reconnect: () => call('lan:reconnect'),
     operationsStatus: () => call('lan:operations-status'),

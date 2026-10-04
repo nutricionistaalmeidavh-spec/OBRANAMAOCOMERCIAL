@@ -58,6 +58,7 @@ try{
         listDevices:async()=>[],setDeviceStatus:async()=>({ok:true}),refreshIdentity:async()=>({ok:true}),reconnect:async()=>({status:'connected',serverId:'srv-qa',endpointChanged:false,reusedCredential:true}),
         operationsStatus:async()=>({server:{version:'0.3.0',apiVersion:'1',serverId:'srv-qa',runtime:{mode:'lan',transport:'local-network'}},readiness:{ready:true,status:'ready'},storage:{accessible:true,integrity:'ok',schemaVersion:6,maintenance:false},backup:{policy:{enabled:true,running:true,intervalHours:24,retentionCount:7,nextRunAt:null},lastBackup:null},devices:{total:0,active:0,revoked:0},authority:{company:{id:'company-qa',name:'Empresa QA'},revision:'r1',lastCloudRefreshAt:null,stale:false},sync:{authorityRevision:'r1',lastCloudRefreshAt:null,stale:false},capabilities:{version:1,modules:['core','operation','planning','finance','rh'],bridgeEntities:[],features:[]}}),
         listBackups:async()=>[],createBackup:async()=>({backupId:'qa-backup'}),testBackup:async backupId=>({restorable:true,backupId,integrity:'ok'}),preUpgradeBackup:async()=>({backup:{backupId:'qa-pre-upgrade'},verified:true}),restoreBackup:async backupId=>({restored:true,backupId}),
+        firewallState:async()=>({supported:true,enabled:false,port:4732,discoveryPort:4733,scope:'local-subnet'}),enableLocalAccess:async()=>({supported:true,enabled:true,port:4732,discoveryPort:4733,scope:'local-subnet'}),
         startAtLoginState:async()=>({enabled:false}),setStartAtLogin:async enabled=>({enabled})
       }
     };
@@ -68,8 +69,8 @@ try{
   const legacyBrand=page.getByText('Fluxo DRE',{exact:true});if(await legacyBrand.count()&&await legacyBrand.first().isVisible())throw new Error('QA renderer must use the command-center shell');
   await page.screenshot({path:path.join(outDir,'00-electron-settings-hub-command-center.png'),fullPage:true});
   await page.getByRole('link',{name:'Configurações do sistema'}).click();await page.getByRole('heading',{name:'Configurações',exact:true}).waitFor({state:'visible'});
-  await page.getByRole('heading',{name:'Dados e servidor'}).waitFor({state:'visible'});
-  const storageMode=page.getByLabel('Onde os dados operacionais ficarão?');await storageMode.waitFor({state:'visible'});
+  await page.getByRole('heading',{name:'Computadores e acesso'}).waitFor({state:'visible'});
+  const storageMode=page.getByLabel('Como você quer usar o Obra na Mão?');await storageMode.waitFor({state:'visible'});
   await page.getByRole('button',{name:'Salvar configuração'}).waitFor({state:'visible'});
   await storageMode.selectOption('lan-host');
   await page.getByRole('button',{name:'Configurar servidor e migrar dados'}).waitFor({state:'visible'});
