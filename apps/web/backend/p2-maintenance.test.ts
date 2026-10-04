@@ -39,6 +39,25 @@ describe('P2 maintenance boundaries', () => {
     }
   });
 
+  it('keeps the LAN schema fallback additive and aligned with migration 0010', () => {
+    const sdk = readFileSync(resolve(process.cwd(), 'cloudflare/sdk.ts'), 'utf8');
+    const migration = readFileSync(resolve(process.cwd(), 'cloudflare/migrations/0010_lan_server_security.sql'), 'utf8');
+    const lanFallback = sdk.slice(
+      sdk.indexOf('// Additive runtime safety net for LAN authorization.'),
+      sdk.indexOf('schemaContractReady=true;', sdk.indexOf('// Additive runtime safety net for LAN authorization.')),
+    );
+
+    expect(REQUIRED_SCHEMA_TABLES).toContain('lan_server_claims');
+    expect(REQUIRED_SCHEMA_TABLES).toContain('lan_server_grants');
+
+    for (const table of ['lan_server_claims', 'lan_server_grants']) {
+      expect(migration).toContain(`CREATE TABLE IF NOT EXISTS ${table}`);
+      expect(lanFallback).toContain(`CREATE TABLE IF NOT EXISTS ${table}`);
+    }
+
+    expect(lanFallback).not.toMatch(/\\b(?:ALTER|DROP|DELETE|UPDATE|REPLACE|TRUNCATE)\\b/i);
+  });
+
   it('does not report schema ready from code constants alone', () => {
     const ready = assessSchemaState({
       tableNames: REQUIRED_SCHEMA_TABLES,
