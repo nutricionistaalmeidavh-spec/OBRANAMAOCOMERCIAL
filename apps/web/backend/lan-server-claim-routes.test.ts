@@ -43,12 +43,21 @@ async function seedDesktop(role:'admin'|'foreman'|'employee'='admin'){
   state.bucket('projects').set('project-a',{companyId:'company-a',name:'Obra A',customer:'Cliente',createdAt:now,createdBy:'user-a'});
   state.bucket('devices').set('device-a',{installationId:'installation-a',name:'PC Admin',platform:'win32',companyId:'company-a',projectId:'project-a',userId:'user-a',email,status:'active',tokenExpiresAt:'2099-01-01T00:00:00.000Z',createdAt:now,updatedAt:now,lastSeenAt:now});
   state.bucket(deviceTokenTable(token)).set('token-ref',{deviceId:'device-a'});
-  state.bucket(accessTable(email)).set('member-a',{companyId:'company-a',projectId:'project-a',email,userId:'user-a',name:'Admin',role,modules:['obra360'],channels:['desktop','mobile'],createdAt:now,updatedAt:now});
+  state.bucket(accessTable(email)).set('access-a',{projectMemberId:'member-a',companyId:'company-a',projectId:'project-a',email,userId:'user-a',name:'Admin',role,modules:['obra360'],channels:['desktop','mobile'],createdAt:now,updatedAt:now});
   return token;
 }
 
 describe('LAN server claim routes',()=>{
   beforeEach(()=>state.reset());
+
+  it('uses the canonical project member id instead of the access-index record id',async()=>{
+    const routes=(handler as unknown as{routes:Record<string,readonly unknown[]>}).routes;
+    const token=await seedDesktop('admin');
+    const response=await last(routes['POST /api/desktop/lan/claim/start'])({body:{deviceToken:token,serverId:'server-a'},query:{},params:{}});
+    expect(response.status).toBe(200);
+    expect(state.createLanClaim).toHaveBeenCalledWith(expect.objectContaining({issuedByMemberId:'member-a'}));
+    expect(state.createLanClaim).not.toHaveBeenCalledWith(expect.objectContaining({issuedByMemberId:'access-a'}));
+  });
 
   it('allows an authorized admin Desktop to create a short-lived server claim',async()=>{
     const routes=(handler as unknown as{routes:Record<string,readonly unknown[]>}).routes;
