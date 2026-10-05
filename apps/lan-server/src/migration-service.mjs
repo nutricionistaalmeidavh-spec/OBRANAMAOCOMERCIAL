@@ -60,11 +60,10 @@ const asText = value => String(value)
 const canonicalCounts = (module, counts = {}) => Object.fromEntries(MODULE_TABLES[module].map(table => [table, Number(counts?.[table] || 0)]))
 
 export class MigrationService {
-  constructor({ repository, security = null, sharedFileService = null, now = () => new Date().toISOString() }) {
+  constructor({ repository, security = null, now = () => new Date().toISOString() }) {
     if (!repository?.connection || !repository?.save) throw new Error('Repositório LAN inválido para migração.')
     this.repository = repository
     this.security = security
-    this.sharedFileService = sharedFileService
     this.now = now
   }
 
@@ -296,9 +295,7 @@ export class MigrationService {
         if (seeded) { targetId = Number(seeded.id); createdTarget = 0 }
       }
       if (!targetId) {
-        const saved = table === 'arquivos' && this.sharedFileService
-          ? this.sharedFileService.storeMigratedFile({ ...remapped, __file_base64:data?.__file_base64 })
-          : this.repository.save(table, remapped)
+        const saved = this.repository.save(table, remapped)
         if (!saved?.id) throw new Error('Registro central não retornou ID.')
         targetId = Number(saved.id)
       }
