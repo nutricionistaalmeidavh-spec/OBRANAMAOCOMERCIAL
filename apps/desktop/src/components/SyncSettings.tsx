@@ -18,10 +18,17 @@ export default function SyncSettings() {
   const refresh = async () => setState(await window.fluxoDre.online.syncState())
   useEffect(() => {
     let active = true
-    const update = () => window.fluxoDre.online.syncState().then(value => { if (active) setState(value) }).catch(reason => { if (active) setError(reason.message) })
+    const apply = (value:DesktopSyncState) => { if (active) setState(value) }
+    const update = () => window.fluxoDre.online.syncState().then(apply).catch(reason => { if (active) setError(reason.message) })
+    const unsubscribe = window.fluxoDre.online.onSyncStateChanged(apply)
+    const onVisibility = () => { if (document.visibilityState === 'visible') void update() }
     void update()
-    const timer = setInterval(update, 5000)
-    return () => { active = false; clearInterval(timer) }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      active = false
+      unsubscribe()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [])
   useEffect(() => {
     if (state?.scope) { setCompanyId(String(state.scope.companyId)); setWorkId(String(state.scope.workId)) }
