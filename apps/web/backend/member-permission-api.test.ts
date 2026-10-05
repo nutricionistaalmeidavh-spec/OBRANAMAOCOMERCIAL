@@ -32,7 +32,10 @@ async function bootstrap(){
   const user={userId:'owner-user',email:'owner@example.com',name:'Owner'};
   const response=await last(routes()['GET /api/bootstrap'])({user,body:{},query:{},params:{}});
   expect(response.status).toBe(200);
-  return{user,data:await body(response)};
+  const data=await body(response);
+  const companyId=String(data.membership.companyId);
+  await memory.db.add(`company_storage_${companyId.replace(/[^a-zA-Z0-9_-]/g,'_')}`,[{mode:'lan-server',serverId:'server-test-01'}]);
+  return{user,data};
 }
 
 describe('granular member governance API',()=>{
@@ -82,5 +85,30 @@ describe('granular member governance API',()=>{
     expect(entry.details.diff.permissions).toBeTruthy();
     expect(JSON.stringify(entry)).not.toContain('token');
     expect(JSON.stringify(entry)).not.toContain('secret');
+  });
+
+
+  it('revokes and reactivates a collaborator without deleting the canonical member',async()=>{
+    const {user}=await bootstrap();
+    const created=await last(routes()['POST /api/members'])({user,body:{email:'foreman@test.local',role:'foreman',modules:['obra360','rdo'],channels:['mobile'],permissions:{core:['view'],operation:['view']}},query:{},params:{}});
+    expect(created.status).toBe(200);
+    const member=(await body(created)).member;
+    const revoke=await last(routes()['PUT /api/members/:id/status'])({user,body:{status:'revoked'},query:{},params:{id:member.id}});
+    expect(revoke.status).toBe(200);
+    const readRevoked=await last(routes()['GET /api/members'])({user,body:{},query:{},params:{}});
+    expect((await body(readRevoked)).members.find((item:any)=>item.id===member.id)?.status).toBe('revoked');
+    const reactivate=await last(routes()['PUT /api/members/:id/status'])({user,body:{status:'active'},query:{},params:{id:member.id}});
+    expect(reactivate.status).toBe(200);
+    const readActive=await last(routes()['GET /api/members'])({user,body:{},query:{},params:{}});
+    expect((await body(readActive)).members.find((item:any)=>item.id===member.id)?.status).toBe('active');
+  });
+
+  it('does not allow revoking the canonical owner or last active Admin',async()=>{
+    const {user,data}=await bootstrap();
+    const ownerId=String(data.membership.id||data.membership.projectMemberId||'');
+    const members=await last(routes()['GET /api/members'])({user,body:{},query:{},params:{}});
+    const owner=(await body(members)).members.find((item:any)=>item.email==='owner@example.com');
+    const response=await last(routes()['PUT /api/members/:id/status'])({user,body:{status:'revoked'},query:{},params:{id:owner?.id||ownerId}});
+    expect(response.status).toBe(409);
   });
 });
