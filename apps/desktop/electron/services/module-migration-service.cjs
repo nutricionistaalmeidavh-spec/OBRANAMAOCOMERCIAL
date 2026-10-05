@@ -2,11 +2,13 @@ const { createHash, randomUUID } = require('node:crypto')
 
 const MODULE_TABLES = Object.freeze({
   core: ['empresas', 'clientes', 'obras'],
-  operation: ['frentes_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
-  planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'],
-  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'],
+  operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
+  planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
+  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'],
   rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis']
 })
+
+const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:1, operation:2, planning:2, finance:2, rh:1 })
 
 const SOURCE_KEY = 'migration_source_fingerprint'
 const ATTEMPT_PREFIX = 'module_migration_attempt_'
@@ -239,8 +241,10 @@ class ModuleMigrationService {
 
     const capabilities = await this.lanClient.syncSourceCapabilities()
     const supported = Array.isArray(capabilities?.modules) && capabilities.modules.includes(module)
-    if (!supported) return { ...base, reason: 'capability_missing' }
-    return { ...base, capability: true, canMigrate: true }
+    const requiredVersion = Number(MODULE_CONTRACT_VERSIONS[module] || 1)
+    const remoteVersion = Number(capabilities?.moduleContractVersions?.[module] || 1)
+    if (!supported || remoteVersion < requiredVersion) return { ...base, reason: 'capability_missing', requiredVersion, remoteVersion }
+    return { ...base, capability: true, canMigrate: true, requiredVersion, remoteVersion }
   }
 
   status(moduleName) {
@@ -275,7 +279,7 @@ class ModuleMigrationService {
 
   async activateCommitted(module, migrationId, expectedCounts, backup) {
     const confirmed = await this.confirmCommitted(migrationId, expectedCounts)
-    this.moduleStorage.activateAfterMigration(module)
+    this.moduleStorage.activateAfterMigration(module, MODULE_CONTRACT_VERSIONS[module])
     this.clearAttempt(module)
     return { migrationId, module, backup, counts: expectedCounts, status: 'committed', sanityOk: true, centralStatus: confirmed }
   }
@@ -369,4 +373,4 @@ class ModuleMigrationService {
   }
 }
 
-module.exports = { ModuleMigrationService, MODULE_TABLES }
+module.exports = { ModuleMigrationService, MODULE_TABLES, MODULE_CONTRACT_VERSIONS }
