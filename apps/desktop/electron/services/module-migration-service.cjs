@@ -70,12 +70,140 @@ class ModuleMigrationService {
   writeAttempt(moduleName, attempt) { this.configSet(this.attemptKey(moduleName), JSON.stringify(attempt)) }
   clearAttempt(moduleName) { this.configDelete(this.attemptKey(moduleName)) }
 
+  tableHasColumn(table, column) {
+    try {
+      return this.database.db.prepare(`PRAGMA table_info(${table})`).all().some(item => String(item.name) === String(column))
+    } catch {
+      return false
+    }
+  }
+
+  activeCompanyIds() {
+    const where = this.tableHasColumn('empresas', 'deleted_at') ? ' WHERE deleted_at IS NULL' : ''
+    return this.database.db.prepare(`SELECT id FROM empresas${where} ORDER BY id`).all()
+      .map(row => Number(row.id))
+      .filter(value => Number.isSafeInteger(value) && value > 0)
+  }
+
+  distinctCompanyIds(sql, ...params) {
+    try {
+      return [...new Set(this.database.db.prepare(sql).all(...params)
+        .map(row => Number(row.empresa_id))
+        .filter(value => Number.isSafeInteger(value) && value > 0))]
+        .sort((a, b) => a - b)
+    } catch {
+      return []
+    }
+  }
+
+  relatedRhCompanyIds(table, row) {
+    const id = Number(row?.id)
+    const funcionarioId = Number(row?.funcionario_id)
+    const cargoId = Number(row?.cargo_id)
+    const beneficioId = Number(row?.beneficio_id)
+    const folhaId = Number(row?.folha_id)
+    const pontoMensalId = Number(row?.ponto_mensal_id)
+
+    if (table === 'funcionarios') {
+      if (!Number(row?.obra_atual_id)) return []
+      return this.distinctCompanyIds('SELECT empresa_id FROM obras WHERE id=?', Number(row.obra_atual_id))
+    }
+    if (table === 'cargos') {
+      return this.distinctCompanyIds('SELECT empresa_id FROM funcionarios WHERE cargo_id=? AND empresa_id IS NOT NULL', id)
+    }
+    if (table === 'beneficios') {
+      return this.distinctCompanyIds(`
+        SELECT f.empresa_id FROM funcionario_beneficios fb
+        JOIN funcionarios f ON f.id=fb.funcionario_id
+        WHERE fb.beneficio_id=? AND f.empresa_id IS NOT NULL
+        UNION
+        SELECT f.empresa_id FROM cargo_beneficios cb
+        JOIN funcionarios f ON f.cargo_id=cb.cargo_id
+        WHERE cb.beneficio_id=? AND f.empresa_id IS NOT NULL
+      `, id, id)
+    }
+    if (table === 'epis') {
+      return this.distinctCompanyIds(`
+        SELECT f.empresa_id FROM funcionario_epis fe
+        JOIN funcionarios f ON f.id=fe.funcionario_id
+        WHERE fe.epi_id=? AND f.empresa_id IS NOT NULL
+      `, id)
+    }
+    if (table === 'funcionario_obras' || table === 'funcionario_beneficios' || table === 'pagamentos_funcionario' || table === 'pontos_mensais' || table === 'funcionario_epis') {
+      return this.distinctCompanyIds('SELECT empresa_id FROM funcionarios WHERE id=? AND empresa_id IS NOT NULL', funcionarioId)
+    }
+    if (table === 'cargo_beneficios') {
+      const byCargo = this.distinctCompanyIds('SELECT empresa_id FROM funcionarios WHERE cargo_id=? AND empresa_id IS NOT NULL', cargoId)
+      if (byCargo.length) return byCargo
+      return this.distinctCompanyIds(`
+        SELECT f.empresa_id FROM funcionario_beneficios fb
+        JOIN funcionarios f ON f.id=fb.funcionario_id
+        WHERE fb.beneficio_id=? AND f.empresa_id IS NOT NULL
+      `, beneficioId)
+    }
+    if (table === 'folhas_pagamento') {
+      const byEntries = this.distinctCompanyIds(`
+        SELECT f.empresa_id FROM folha_lancamentos fl
+        JOIN funcionarios f ON f.id=fl.funcionario_id
+        WHERE fl.folha_id=? AND f.empresa_id IS NOT NULL
+        UNION
+        SELECT f.empresa_id FROM pagamentos_funcionario pf
+        JOIN funcionarios f ON f.id=pf.funcionario_id
+        WHERE pf.folha_id=? AND f.empresa_id IS NOT NULL
+      `, id, id)
+      return byEntries
+    }
+    if (table === 'folha_lancamentos') {
+      const bySheet = this.distinctCompanyIds('SELECT empresa_id FROM folhas_pagamento WHERE id=? AND empresa_id IS NOT NULL', folhaId)
+      if (bySheet.length) return bySheet
+      return this.distinctCompanyIds('SELECT empresa_id FROM funcionarios WHERE id=? AND empresa_id IS NOT NULL', funcionarioId)
+    }
+    if (table === 'ponto_marcacoes') {
+      return this.distinctCompanyIds(`
+        SELECT f.empresa_id FROM pontos_mensais p
+        JOIN funcionarios f ON f.id=p.funcionario_id
+        WHERE p.id=? AND f.empresa_id IS NOT NULL
+      `, pontoMensalId)
+    }
+    return []
+  }
+
+  resolveLegacyRhCompanyId(table, row) {
+    const direct = Number(row?.empresa_id)
+    const related = this.relatedRhCompanyIds(table, row)
+    const companies = this.activeCompanyIds()
+
+    if (Number.isSafeInteger(direct) && direct > 0) {
+      if (!companies.includes(direct)) throw new Error(`Empresa ${direct} de ${table} #${row?.id ?? '?'} não existe na origem.`)
+      const conflicting = related.filter(companyId => companyId !== direct)
+      if (conflicting.length) {
+        throw new Error(`Empresa divergente em ${table} #${row?.id ?? '?'}: empresa_id=${direct}, vínculos=${related.join(',')}.`)
+      }
+      return direct
+    }
+
+    if (related.length === 1) return related[0]
+    if (related.length > 1) {
+      throw new Error(`Empresa ambígua para ${table} #${row?.id ?? '?'}: vínculos encontrados com empresas ${related.join(', ')}.`)
+    }
+    if (companies.length === 1) return companies[0]
+    if (!companies.length) throw new Error(`Empresa de ${table} #${row?.id ?? '?'} não pôde ser determinada: nenhuma empresa local ativa.`)
+    throw new Error(`Empresa de ${table} #${row?.id ?? '?'} não pôde ser determinada: base multiempresa sem vínculo inequívoco.`)
+  }
+
+  normalizeExportRow(module, table, row) {
+    if (module !== 'rh') return { ...row }
+    return { ...row, empresa_id: this.resolveLegacyRhCompanyId(table, row) }
+  }
+
   exportModule(moduleName) {
     const module = this.assertModule(moduleName)
     const records = {}
     const counts = {}
     for (const table of MODULE_TABLES[module]) {
-      const rows = [...(this.database.list(table, {}) || [])].sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+      const rows = [...(this.database.list(table, {}) || [])]
+        .sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+        .map(row => this.normalizeExportRow(module, table, row))
       records[table] = rows
       counts[table] = rows.length
     }
