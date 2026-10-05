@@ -1,5 +1,5 @@
 {
-  "name": "Obra na Mão Comercial — captura Financeiro Desktop real",
+  "name": "Obra na Mão Comercial — captura Financeiro Desktop QA",
   "durationTargetSec": 30,
   "steps": [
     {"name": "shell-ready", "action": "waitFor", "selector": ".artisys-desktop-shell", "timeoutMs": 20000},
