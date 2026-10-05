@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useWorkContext } from '../hooks/useWorkContext'
 import { CalendarDays, CheckCircle2, Clock3, Edit3, Plus, Trash2, UserRound, WalletCards } from 'lucide-react'
 import { FormEvent, useMemo, useState } from 'react'
-import { brl, competenceLabel, currentCompetence, toCents, today } from '../utils/format'
+import { brl, competenceLabel, toCents, today } from '../utils/format'
 import { useAsync } from '../hooks/useAsync'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal, PageHeader, Segmented, Status } from '../components/ui'
 
@@ -18,7 +18,7 @@ const variables=[
 
 export default function PayrollPage(){
   const [tab,setTab]=useState('funcionarios')
-  const { competencia, setCompetencia, empresaId, obraId } = useWorkContext()
+  const { competencia } = useWorkContext()
   const [employee,setEmployee]=useState('')
   const [version,setVersion]=useState(0)
   const [modal,setModal]=useState(false)
