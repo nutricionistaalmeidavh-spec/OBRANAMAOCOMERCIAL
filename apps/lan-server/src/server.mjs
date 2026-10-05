@@ -718,6 +718,34 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (action === 'rollback') return sendJson(response, 200, migration.rollback(migrationId, actor))
       }
 
+      if (url.pathname === '/api/v1/files/upload') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!fileStore?.saveBuffer) return sendJson(response, 503, { error:'file_storage_unavailable', message:'Storage central de arquivos indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeDocumentAction(context, 'create')
+        const bytes = await readBytes(request)
+        const originalName = decodeURIComponent(String(request.headers['x-file-name'] || 'arquivo'))
+        const mimeType = String(request.headers['x-file-mime'] || '') || null
+        const origin = String(request.headers['x-file-origin'] || '') || 'importado'
+        return sendJson(response, 201, fileStore.saveBuffer(bytes, { originalName, mimeType, origin }))
+      }
+
+      const fileContentMatch = url.pathname.match(FILE_CONTENT_ROUTE)
+      if (fileContentMatch) {
+        if (!fileStore?.read) return sendJson(response, 503, { error:'file_storage_unavailable', message:'Storage central de arquivos indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        if (request.method === 'GET') {
+          authorizeDocumentAction(context, 'view')
+          const payload = fileStore.read(Number(fileContentMatch[1]))
+          return sendBytes(response, 200, payload.buffer, payload.file)
+        }
+        if (request.method === 'DELETE') {
+          authorizeDocumentAction(context, 'delete')
+          return sendJson(response, 200, { ok:fileStore.remove(Number(fileContentMatch[1])) })
+        }
+        return methodNotAllowed(response, ['GET','DELETE'])
+      }
+
       if (url.pathname === '/api/v1/setup/status') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         const state = identity?.state?.() || security?.serverState?.()
