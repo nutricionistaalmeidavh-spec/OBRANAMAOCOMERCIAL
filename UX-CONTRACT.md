@@ -35,6 +35,14 @@
 - O owner Web usa o evento explícito `owner:rendered`; `owner-loja-online.ts` não observa mutações globais do DOM.
 - Nenhuma dependência paga é necessária para esses fluxos; o core permanece local/self-hosted/open source.
 
+## P2 — Lifecycle e estado canônicos
+
+- `public/field-lifecycle.js` é o único owner dos eventos `field:rendered` e `field:sheet-rendered`; enhancers registram callbacks pela API `window.fieldLifecycle.register`.
+- A Central Loja Online continua no lifecycle explícito `owner:rendered`; nenhuma UI de produto depende de `MutationObserver` global.
+- `SyncSettings` recebe mudanças pelo canal `online:sync-state-changed`; não existe polling de 5 segundos. A leitura direta permanece apenas para bootstrap e retorno de visibilidade.
+- `StorageServerSettings` centraliza o estado transitório da configuração (busy, discovery, progresso e confirmações) em `setupUiReducer`; estados de domínio/servidor continuam vindo das APIs autoritativas.
+- O PWA inclui o lifecycle canônico no cache offline e o carrega antes dos enhancers em `sistema.html`, `obra.html` e `gestao.html`.
+
 ## Visual contract
 
 - Project `DESIGN.md`: `DESIGN.md`.
