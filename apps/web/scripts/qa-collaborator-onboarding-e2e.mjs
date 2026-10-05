@@ -128,7 +128,7 @@ try{
   await memberPage.getByLabel('Código de convite').fill(inviteCode);
   await memberPage.getByRole('button',{name:'Ativar meu acesso'}).click();
   await memberPage.getByRole('heading',{name:'Olá, João QA'}).waitFor({state:'visible'});
-  await memberPage.getByText('QA onboarding').waitFor({state:'visible'});
+  await memberPage.getByText('QA onboarding',{exact:true}).waitFor({state:'visible'});
   if(commercialActivationTouched)throw new Error('Member invitation incorrectly touched commercial activation.');
   if(!memberRequests.some(item=>item.pathname==='/api/access/claim'&&item.body.code===inviteCode))throw new Error('PWA did not claim the member invitation.');
   await memberPage.screenshot({path:path.join(outDir,'02-member-pwa-claimed.png'),fullPage:true});
