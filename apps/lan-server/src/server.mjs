@@ -5,6 +5,9 @@ import { PairingError } from './pairing-service.mjs'
 import { FieldService } from './field-service.mjs'
 import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
+import { MeasurementService } from './measurement-service.mjs'
+import { ProcurementService } from './procurement-service.mjs'
+import { ContractsService } from './contracts-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
 import { CompensationPolicyService } from './compensation-policy-service.mjs'
@@ -266,11 +269,14 @@ async function authorizeRh(request, security, action = 'edit') {
   return context
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, compensationPolicyService = null, migrationService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, measurementService = null, procurementService = null, contractsService = null, payrollService = null, timeService = null, compensationPolicyService = null, migrationService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const versionedRepository = createVersionedRepository(repository)
   const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
+  const measurements = measurementService || (repository ? new MeasurementService({ repository }) : null)
+  const procurement = procurementService || (repository ? new ProcurementService({ repository }) : null)
+  const contracts = contractsService || (repository ? new ContractsService({ repository }) : null)
   const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
   const compensationPolicy = compensationPolicyService || (versionedRepository ? new CompensationPolicyService({ repository }) : null)
@@ -467,6 +473,63 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         authorizeAction(context, { domain: 'planning', action: 'view' })
         const obraId = Number(url.searchParams.get('obra_id'))
         return sendJson(response, 200, planning.overview(obraId))
+      }
+
+      if (url.pathname === '/api/v1/measurements/save') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!measurements?.save) return sendJson(response, 503, { error:'measurement_unavailable', message:'Serviço central de medições indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        const body = await readJson(request)
+        authorizeAction(context, { domain:'planning', action:body.id ? 'edit' : 'create' })
+        return sendJson(response, 200, measurements.save(body))
+      }
+
+      if (url.pathname === '/api/v1/procurement/summary') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!procurement?.summary) return sendJson(response, 503, { error:'procurement_unavailable', message:'Serviço central de compras indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'finance', action:'view' })
+        return sendJson(response, 200, procurement.summary(Number(url.searchParams.get('obra_id'))))
+      }
+
+      if (url.pathname === '/api/v1/procurement/order') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!procurement?.createOrder) return sendJson(response, 503, { error:'procurement_unavailable', message:'Serviço central de compras indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'finance', action:'create' })
+        return sendJson(response, 201, procurement.createOrder(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/procurement/receive') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!procurement?.receiveMaterial) return sendJson(response, 503, { error:'procurement_unavailable', message:'Serviço central de recebimento indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'finance', action:'edit' })
+        return sendJson(response, 201, procurement.receiveMaterial(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/procurement/stock') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!procurement?.moveStock) return sendJson(response, 503, { error:'procurement_unavailable', message:'Serviço central de estoque indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'finance', action:'edit' })
+        return sendJson(response, 201, procurement.moveStock(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/contracts/create') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!contracts?.create) return sendJson(response, 503, { error:'contracts_unavailable', message:'Serviço central de contratos indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'finance', action:'create' })
+        return sendJson(response, 201, contracts.create(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/contracts/addendum') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!contracts?.addendum) return sendJson(response, 503, { error:'contracts_unavailable', message:'Serviço central de aditivos indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'finance', action:'edit' })
+        return sendJson(response, 201, contracts.addendum(await readJson(request)))
       }
 
       const financePaymentMatch = url.pathname.match(FINANCE_PAYMENT_ROUTE)
