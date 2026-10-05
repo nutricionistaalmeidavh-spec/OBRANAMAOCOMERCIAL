@@ -48,16 +48,18 @@ export class DocumentStorageService {
     const destination=path.join(this.filesDir,storageName)
     fs.writeFileSync(destination,bytes,{flag:'wx'})
     try{
-      return this.repository.save('arquivos',{
+      let saved=this.repository.save('arquivos',{
         nome_original:safeName(data?.nome_original||storageName),
         nome_armazenado:storageName,
-        caminho:`server://file/${storageName}`,
+        caminho:`pending://${storageName}`,
         tamanho:bytes.length,
         extensao:extension||null,
         mime_type:data?.mime_type||null,
         hash:sha256(bytes),
         origem:data?.origem||'importado'
       })
+      saved=this.repository.save('arquivos',{...saved,id:saved.id,caminho:`server://file/${saved.id}`})
+      return saved
     }catch(error){try{fs.unlinkSync(destination)}catch{};throw error}
   }
   store({file,document}={}){
@@ -69,10 +71,11 @@ export class DocumentStorageService {
     fs.writeFileSync(destination,bytes,{flag:'wx'})
     this.db.exec('BEGIN IMMEDIATE')
     try{
-      const savedFile=this.repository.save('arquivos',{
-        nome_original:safeName(file?.name||storageName),nome_armazenado:storageName,caminho:`server://file/${storageName}`,
+      let savedFile=this.repository.save('arquivos',{
+        nome_original:safeName(file?.name||storageName),nome_armazenado:storageName,caminho:`pending://${storageName}`,
         tamanho:bytes.length,extensao:extension||null,mime_type:file?.mimeType||null,hash:sha256(bytes),origem:file?.origin||'importado'
       })
+      savedFile=this.repository.save('arquivos',{...savedFile,id:savedFile.id,caminho:`server://file/${savedFile.id}`})
       const savedDocument=this.repository.save('documentos',{...(document||{}),arquivo_id:savedFile.id})
       if(document?.rdo_id)this.repository.save('rdo_anexos',{rdo_id:Number(document.rdo_id),frente_id:document.frente_id||null,documento_id:savedDocument.id,legenda:document.titulo||null})
       if(document?.medicao_id)this.repository.save('medicao_anexos',{medicao_id:Number(document.medicao_id),documento_id:savedDocument.id,tipo:document.tipo||'comprovante'})
