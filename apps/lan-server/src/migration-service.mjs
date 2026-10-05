@@ -237,7 +237,7 @@ export class MigrationService {
           let source
           try { source = JSON.parse(row.source_data_json || '{}') } catch { source = {} }
           if (String(source?.[field] ?? '') !== String(targetSourceId)) continue
-          this.repository.save(sourceTable, { id:Number(row.target_id), [field]:Number(targetId) })
+          this.db.prepare(`UPDATE ${sourceTable} SET ${field}=? WHERE id=?`).run(Number(targetId), Number(row.target_id))
         }
       }
     }
