@@ -21,7 +21,7 @@ describe('ArtiSys desktop final visual pass',()=>{
     expect(shell).toContain('routeClassName')
     expect(shell).toContain('location.pathname')
     for(const route of ['documentos','cadastros','importacao','configuracoes'])expect(css).toContain(`.route-${route}`)
-    for(const selector of ['.settings-grid','.setting-card','.import-months','.locked-value','.benefit-config','.artisys-hub-grid','.artisys-hub-card'])expect(css).toContain(selector)
+    for(const selector of ['.settings-group-grid','.setting-card','.settings-support-tools','.import-months','.locked-value','.artisys-hub-grid','.artisys-hub-card'])expect(css).toContain(selector)
   })
 
   it('preserves document file operations and filters',()=>{
@@ -36,10 +36,11 @@ describe('ArtiSys desktop final visual pass',()=>{
     for(const contract of ['importadorUniversal.choose','importadorUniversal.preview','importadorUniversal.commit','importacoes.preview','importacoes.commit'])expect(importer).toContain(contract)
   })
 
-  it('keeps system settings focused on system maintenance and moves RH ownership out',()=>{
+  it('keeps system settings grouped by system intent and moves RH ownership out',()=>{
     const settings=read('../src/pages/SettingsPage.tsx')
     const compensation=read('../src/pages/CompensationPage.tsx')
-    for(const contract of ['backup.create','backup.restore','online.setBaseUrl','online.start','online.status','online.session','online.disconnect',"changeLayout('command-center')","changeLayout('classic')"])expect(settings).toContain(contract)
+    for(const contract of ['Dados e conectividade','Arquivos e proteção','Preferências','Aplicativo','Ferramentas de suporte','backup.create','backup.restore','online.setBaseUrl','online.start','online.status','online.session','online.disconnect',"changeLayout('command-center')","changeLayout('classic')"])expect(settings).toContain(contract)
+    expect(settings).not.toContain('<Card className="setting-card"><ListTree')
     expect(settings).not.toContain('catalogo.saveCargo')
     expect(settings).not.toContain('catalogo.saveBenefit')
     expect(compensation).toContain('catalogo.saveCompensationPolicy')
