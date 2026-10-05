@@ -14,7 +14,7 @@ const migratedTables = [
   'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
   'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis',
   'module_migrations', 'module_migration_records', 'record_revisions',
-  'fontes_documentais', 'arquivos', 'documentos', 'medicao_anexos', 'contrato_anexos', 'pedido_compra_anexos', 'documentos_editaveis', 'modelos_documento_rh'
+  'fontes_documentais', 'arquivos', 'documentos', 'medicao_anexos', 'contrato_anexos', 'pedido_compra_anexos', 'documentos_editaveis', 'modelos_documento_rh', 'empresa_documentos_admissionais', 'cargo_epi_kits'
 ]
 
 test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', () => {
