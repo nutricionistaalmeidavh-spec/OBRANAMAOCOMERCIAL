@@ -130,7 +130,15 @@ export class MigrationService {
   }
 
   uniqueCompanyId() {
-    const rows = this.db.prepare("SELECT id FROM empresas WHERE COALESCE(deleted_at,'')='' ORDER BY id LIMIT 2").all()
+    let rows
+    try {
+      const columns = this.db.prepare('PRAGMA table_info(empresas)').all().map(row => String(row.name))
+      rows = columns.includes('deleted_at')
+        ? this.db.prepare("SELECT id FROM empresas WHERE deleted_at IS NULL ORDER BY id LIMIT 2").all()
+        : this.db.prepare('SELECT id FROM empresas ORDER BY id LIMIT 2').all()
+    } catch {
+      return null
+    }
     if (rows.length !== 1) return null
     return Number(rows[0].id)
   }
