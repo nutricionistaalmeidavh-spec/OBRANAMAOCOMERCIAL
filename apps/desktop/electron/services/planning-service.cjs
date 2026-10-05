@@ -1,4 +1,4 @@
-const { planningCurve, planningCash } = require('@obranamao/domain-core')
+const { planningCurve, planningCash } = require('./domain-core.cjs')
 
 class PlanningService {
   constructor({ db }) { this.db = db }
