@@ -2,9 +2,9 @@ export const PERMISSION_DOMAINS = Object.freeze(['core', 'operation', 'planning'
 export const PERMISSION_ACTIONS = Object.freeze(['view', 'create', 'edit', 'delete', 'approve'])
 
 const CORE_TABLES = new Set(['empresas', 'clientes', 'obras'])
-const OPERATION_TABLES = new Set(['frentes_obra', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
-const PLANNING_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'])
-const FINANCE_TABLES = new Set(['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'])
+const OPERATION_TABLES = new Set(['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
+const PLANNING_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'])
+const FINANCE_TABLES = new Set(['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'])
 const RH_TABLES = new Set([
   'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios',
   'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos',
