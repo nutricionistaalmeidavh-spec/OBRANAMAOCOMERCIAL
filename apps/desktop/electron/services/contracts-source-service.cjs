@@ -25,14 +25,18 @@ class ContractsSourceService {
     if (state === 'local' || state === 'migration-required') return this.local.createReceivable(payload)
     if (state !== 'central-active') return this.blocked()
 
+    const edition = this.product?.getEdition?.()?.edition || 'construtora'
     if (payload?.id) {
-      const { conta: _conta, ...data } = payload
-      return this.dataAccess.save('contratos_obra', data)
+      const { revision, expectedRevision, ...rest } = payload
+      return this.lanClient.contractCreate({
+        ...rest,
+        expectedRevision:expectedRevision ?? revision,
+        edition
+      })
     }
 
     const { key, requestId } = this.request('contract', payload)
     try {
-      const edition = this.product?.getEdition?.()?.edition || 'construtora'
       const result = await this.lanClient.contractCreate({ ...payload, requestId, edition })
       this.pending.delete(key)
       return result
