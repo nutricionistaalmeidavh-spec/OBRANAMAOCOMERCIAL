@@ -178,7 +178,7 @@
         "GET /api/members",
         "POST /api/members"
       ],
-      "surface": "Obra360 / Configurações / Acessos e sincronização / Usuários e permissões",
+      "surface": "Obra360 / Configurações / Equipe e continuidade / Equipe e acessos",
       "action": "Criar ou editar acesso e perfil",
       "profiles": [
         "admin"
@@ -196,7 +196,7 @@
         "GET /api/members",
         "POST /api/members"
       ],
-      "surface": "Obra360 / Configurações / Acessos e sincronização / Usuários e permissões",
+      "surface": "Obra360 / Configurações / Equipe e continuidade / Equipe e acessos",
       "action": "Selecionar módulos e canais por usuário dentro da licença da empresa",
       "profiles": [
         "admin"
@@ -213,7 +213,7 @@
         "GET /api/mobile/admin/devices",
         "PUT /api/mobile/admin/devices/:id"
       ],
-      "surface": "Obra360 / Configurações / Acessos e sincronização / Computadores autorizados",
+      "surface": "Obra360 / Configurações / Equipe e continuidade / Computadores autorizados",
       "action": "Listar, revogar e reativar computadores do próprio tenant",
       "profiles": [
         "admin"
@@ -231,7 +231,7 @@
         "GET /api/mobile/sync/conflicts",
         "IPC online:sync-state"
       ],
-      "surface": "Obra360 / Configurações / Acessos e sincronização / Saúde da sincronização + Electron / Configurações / Sincronização desktop ↔ online",
+      "surface": "Obra360 / Configurações / Equipe e continuidade / Sincronização da obra + Electron / Configurações / Sincronização da obra",
       "action": "Consultar revisões, datas de atividade, dispositivos, pendências e conflitos nos dois lados da operação",
       "profiles": [
         "admin",
@@ -299,7 +299,7 @@
         "IPC online:sync-now",
         "IPC online:sync-resolve-local"
       ],
-      "surface": "Electron / Configurações / Sincronização desktop ↔ online + Obra360 / Obra360 + Saúde da sincronização",
+      "surface": "Electron / Configurações / Sincronização da obra + Obra360 / Obra + Sincronização da obra",
       "action": "Configurar escopo, sincronizar manualmente, visualizar/atualizar itens do Desktop e resolver divergências",
       "profiles": [
         "admin",
@@ -433,7 +433,7 @@
         "POST /api/mobile/sync/conflicts/resolve",
         "IPC online:sync-resolve-local"
       ],
-      "surface": "Obra360 / Obra360 + Electron / Configurações / Sincronização desktop ↔ online",
+      "surface": "Obra360 / Obra + Electron / Configurações / Sincronização da obra",
       "action": "Escolher explicitamente qual lado prevalece em uma divergência",
       "profiles": [
         "admin",
