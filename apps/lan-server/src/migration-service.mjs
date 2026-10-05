@@ -3,7 +3,8 @@ const MODULE_TABLES = Object.freeze({
   operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
   planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
   finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'],
-  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis']
+  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis'],
+  documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh']
 })
 
 const REF_MAP = Object.freeze({
@@ -17,11 +18,11 @@ const REF_MAP = Object.freeze({
   rdo_equipe: { rdo_id: 'rdos', frente_id: 'frentes_obra', funcionario_id: { table: 'funcionarios', deferred: true } },
   rdo_equipamentos: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
   rdo_ocorrencias: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
-  rdo_anexos: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
+  rdo_anexos: { rdo_id: 'rdos', frente_id: 'frentes_obra', documento_id: { table: 'documentos', deferred: true } },
   tarefas_obra: { obra_id: 'obras', frente_id: 'frentes_obra', rdo_ocorrencia_id: 'rdo_ocorrencias' },
   etapas_obra: { obra_id: 'obras', frente_id: 'frentes_obra' },
   cronograma_etapas: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra' },
-  itens_orcamentarios: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra' },
+  itens_orcamentarios: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra', fonte_documental_id: { table:'fontes_documentais', deferred:true } },
   medicoes: { obra_id: 'obras', frente_id: 'frentes_obra', contrato_id: { table: 'contratos_obra', deferred: true } },
   medicao_itens: { medicao_id: 'medicoes', item_orcamentario_id: 'itens_orcamentarios', etapa_id: 'etapas_obra' },
   medicao_mapa_itens: { obra_id: 'obras', medicao_id: 'medicoes' },
@@ -48,17 +49,28 @@ const REF_MAP = Object.freeze({
   pagamentos_funcionario: { empresa_id: 'empresas', funcionario_id: 'funcionarios', folha_id: 'folhas_pagamento' },
   pontos_mensais: { empresa_id: 'empresas', funcionario_id: 'funcionarios' },
   ponto_marcacoes: { empresa_id: 'empresas', ponto_mensal_id: 'pontos_mensais' },
-  funcionario_epis: { empresa_id: 'empresas', funcionario_id: 'funcionarios', epi_id: 'epis' }
+  funcionario_epis: { empresa_id: 'empresas', funcionario_id: 'funcionarios', epi_id: 'epis' },
+  documentos: {
+    arquivo_id:'arquivos', empresa_id:'empresas', obra_id:'obras', frente_id:'frentes_obra', funcionario_id:'funcionarios',
+    conta_id:'contas', medicao_id:'medicoes', item_orcamentario_id:'itens_orcamentarios', fornecedor_id:'fornecedores',
+    rdo_id:'rdos', contrato_id:'contratos_obra', contrato_aditivo_id:'contrato_aditivos', pedido_compra_id:'pedidos_compra',
+    recebimento_material_id:'recebimentos_materiais', documento_origem_id:{table:'documentos',deferred:true}
+  },
+  medicao_anexos: { medicao_id:'medicoes', documento_id:'documentos' },
+  contrato_anexos: { contrato_id:'contratos_obra', documento_id:'documentos' },
+  pedido_compra_anexos: { pedido_compra_id:'pedidos_compra', documento_id:'documentos' },
+  documentos_editaveis: { documento_id:'documentos' }
 })
 
 const asText = value => String(value)
 const canonicalCounts = (module, counts = {}) => Object.fromEntries(MODULE_TABLES[module].map(table => [table, Number(counts?.[table] || 0)]))
 
 export class MigrationService {
-  constructor({ repository, security = null, now = () => new Date().toISOString() }) {
+  constructor({ repository, security = null, fileStorage = null, now = () => new Date().toISOString() }) {
     if (!repository?.connection || !repository?.save) throw new Error('Repositório LAN inválido para migração.')
     this.repository = repository
     this.security = security
+    this.fileStorage = fileStorage
     this.now = now
   }
 
@@ -205,12 +217,15 @@ export class MigrationService {
         if (seeded) { targetId = Number(seeded.id); createdTarget = 0 }
       }
       if (!targetId) {
-        const saved = this.repository.save(table, remapped)
+        const saved = table === 'arquivos' && data?.__content_base64
+          ? this.fileStorage?.storeFileRecord?.(remapped, data.__content_base64)
+          : this.repository.save(table, remapped)
+        if (table === 'arquivos' && data?.__content_base64 && !this.fileStorage?.storeFileRecord) throw new Error('Storage físico central indisponível para migrar arquivos.')
         if (!saved?.id) throw new Error('Registro central não retornou ID.')
         targetId = Number(saved.id)
       }
       this.db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_target,source_data_json,created_at) VALUES(?,?,?,?,?,?,?,?)')
-        .run(String(migrationId), table, asText(sourceId), table, targetId, createdTarget, JSON.stringify(data || {}), this.now())
+        .run(String(migrationId), table, asText(sourceId), table, targetId, createdTarget, JSON.stringify(table === 'arquivos' ? { ...(data || {}), __content_base64: undefined } : (data || {})), this.now())
       this.backfillDeferredReferences(migrationRow.source_fingerprint, table, sourceId, targetId)
       this.db.exec('COMMIT')
       return { sourceTable: table, sourceId, targetId, reused: false }
@@ -295,6 +310,7 @@ export class MigrationService {
       for (const record of records) {
         if (Number(record.created_target) !== 1) continue
         if (!MODULE_TABLES[row.module].includes(record.target_table)) throw new Error('Tabela de rollback inválida.')
+        if(record.target_table==='arquivos'&&this.fileStorage?.removeFile){this.fileStorage.removeFile(Number(record.target_id));continue}
         this.db.prepare(`DELETE FROM ${record.target_table} WHERE id=?`).run(Number(record.target_id))
       }
       this.db.prepare("UPDATE module_migrations SET status='rolled_back',rolled_back_at=? WHERE migration_id=?").run(this.now(), String(migrationId))
