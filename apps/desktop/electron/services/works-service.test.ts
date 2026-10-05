@@ -40,7 +40,7 @@ describe('WorksService canonical overview routing',()=>{
     expect(result.obra.nome).toBe('Central')
     expect(result.orcado_centavos).toBe(10000)
     expect(result.frentes[0]).toMatchObject({id:11,orcado_centavos:10000,comprometido_centavos:3000,pago_centavos:3000,pendencias_abertas:1})
-    expect(result.availability).toMatchObject({core:true,operation:true,planning:true,finance:true,rh:false,documentos:false,contratos:false,compras:false,medicoes:false})
+    expect(result.availability).toMatchObject({core:true,operation:true,planning:true,finance:true,rh:false,documentos:false,contratos:true,compras:true,medicoes:true})
     expect(dataAccess.list).not.toHaveBeenCalledWith('funcionario_obras',expect.anything())
     expect(db.workOverview).not.toHaveBeenCalled()
   })
