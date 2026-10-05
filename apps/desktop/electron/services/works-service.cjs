@@ -23,13 +23,17 @@ class WorksService {
     const financeReady = this.moduleState('finance') === 'central-active'
     const rhReady = this.moduleState('rh') === 'central-active'
 
-    const [frentesRaw, rdosRaw, tarefasRaw, cronograma, itens, contas, funcionarioObras] = await Promise.all([
+    const [frentesRaw, rdosRaw, tarefasRaw, cronograma, itens, medicoes, contas, contratos, compras, documentos, funcionarioObras] = await Promise.all([
       operationReady ? this.dataAccess.list('frentes_obra', { obra_id: obraId }) : [],
       operationReady ? this.dataAccess.list('rdos', { obra_id: obraId }) : [],
       operationReady ? this.dataAccess.list('tarefas_obra', { obra_id: obraId }) : [],
       planningReady ? this.dataAccess.list('cronograma_etapas', { obra_id: obraId }) : [],
       planningReady ? this.dataAccess.list('itens_orcamentarios', { obra_id: obraId }) : [],
+      planningReady ? this.dataAccess.list('medicoes', { obra_id: obraId }) : [],
       financeReady ? this.dataAccess.list('contas', { obra_id: obraId }) : [],
+      financeReady ? this.dataAccess.list('contratos_obra', { obra_id: obraId }) : [],
+      financeReady ? this.dataAccess.list('pedidos_compra', { obra_id: obraId }) : [],
+      rhReady ? this.dataAccess.list('documentos', { obra_id: obraId }) : [],
       rhReady ? this.dataAccess.list('funcionario_obras', { obra_id: obraId }) : []
     ])
 
@@ -65,25 +69,43 @@ class WorksService {
     for (const account of activeAccounts) {
       const frontId = Number(account.frente_id || 0)
       if (!frontId) continue
-      const current = accountsByFront.get(frontId) || { comprometido: 0, pago: 0 }
+      const current = accountsByFront.get(frontId) || { comprometido: 0, pago: 0, recebido: 0 }
       if (account.tipo === 'pagar') {
         current.comprometido += Number(account.valor_centavos || 0)
         if (['pago', 'parcialmente_pago'].includes(account.status)) current.pago += Number(account.valor_centavos || 0)
+      } else if (account.tipo === 'receber' && account.status === 'recebido') {
+        current.recebido += Number(account.valor_centavos || 0)
       }
       accountsByFront.set(frontId, current)
     }
 
+    const contractedByFront = new Map()
+    for (const contract of (contratos || []).filter(item => !['cancelado','encerrado'].includes(String(item.status || '')))) {
+      const frontId = Number(contract.frente_id || 0)
+      if (!frontId) continue
+      contractedByFront.set(frontId, Number(contractedByFront.get(frontId) || 0) + Number(contract.valor_centavos || 0))
+    }
+
+    const measuredByFront = new Map()
+    let totalMeasured = 0
+    for (const measurement of (medicoes || []).filter(item => item.status !== 'cancelada')) {
+      const value = Number(measurement.valor_liquido_centavos || 0)
+      totalMeasured += value
+      const frontId = Number(measurement.frente_id || 0)
+      if (frontId) measuredByFront.set(frontId, Number(measuredByFront.get(frontId) || 0) + value)
+    }
+
     const frentes = (frentesRaw || []).map(front => {
       const frontId = Number(front.id)
-      const account = accountsByFront.get(frontId) || { comprometido: 0, pago: 0 }
+      const account = accountsByFront.get(frontId) || { comprometido: 0, pago: 0, recebido: 0 }
       return {
         ...front,
         orcado_centavos: Number(budgetByFront.get(frontId) || 0),
         comprometido_centavos: account.comprometido,
-        contratado_centavos: 0,
+        contratado_centavos: Number(contractedByFront.get(frontId) || 0),
         pago_centavos: account.pago,
-        medido_centavos: 0,
-        recebido_centavos: 0,
+        medido_centavos: Number(measuredByFront.get(frontId) || 0),
+        recebido_centavos: account.recebido,
         pendencias_abertas: pending.filter(item => Number(item.frente_id || 0) === frontId).length
       }
     })
@@ -98,26 +120,26 @@ class WorksService {
       obra,
       financeiro,
       orcado_centavos: Math.round(orcado),
-      medido_centavos: 0,
+      medido_centavos: Math.round(totalMeasured),
       cronograma: (cronograma || []).slice().sort((a, b) => String(a.previsto_inicio || '').localeCompare(String(b.previsto_inicio || ''))),
       rdos: (rdosRaw || []).slice().sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))).slice(0, 5),
       pendencias,
       frentes,
       equipe_total: activeEmployees.size,
-      documentos: [],
-      contratos: [],
-      compras: [],
-      serverPartial: true,
+      documentos: (documentos || []).slice(0, 8),
+      contratos: (contratos || []).slice(0, 8),
+      compras: (compras || []).slice(0, 8),
+      serverPartial: !(operationReady && planningReady && financeReady && rhReady),
       availability: {
         core: true,
         operation: operationReady,
         planning: planningReady,
         finance: financeReady,
         rh: rhReady,
-        medicoes: false,
-        documentos: false,
-        contratos: false,
-        compras: false
+        medicoes: planningReady,
+        documentos: rhReady,
+        contratos: financeReady,
+        compras: financeReady
       }
     }
   }
