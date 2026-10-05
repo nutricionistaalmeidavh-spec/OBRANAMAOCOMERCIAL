@@ -33,28 +33,28 @@ class ProcurementSourceService {
     }
   }
 
-  summary(obraId) {
+  async summary(obraId) {
     const state = this.state()
     if (state === 'local' || state === 'migration-required') return this.local.summary(obraId)
     if (state === 'central-active') return this.lanClient.procurementSummary(obraId)
     return this.blocked()
   }
 
-  createOrder(payload) {
+  async createOrder(payload) {
     const state = this.state()
     if (state === 'local' || state === 'migration-required') return this.local.createOrder(payload)
     if (state !== 'central-active') return this.blocked()
     return this.central('order', payload, requestId => this.lanClient.procurementCreateOrder({ ...payload, requestId }))
   }
 
-  receiveMaterial(payload) {
+  async receiveMaterial(payload) {
     const state = this.state()
     if (state === 'local' || state === 'migration-required') return this.local.receiveMaterial(payload)
     if (state !== 'central-active') return this.blocked()
     return this.central('receive', payload, requestId => this.lanClient.procurementReceiveMaterial({ ...payload, requestId }))
   }
 
-  moveStock(payload) {
+  async moveStock(payload) {
     const state = this.state()
     if (state === 'local' || state === 'migration-required') return this.local.moveStock(payload)
     if (state !== 'central-active') return this.blocked()
