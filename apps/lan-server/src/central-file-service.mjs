@@ -40,7 +40,7 @@ export class CentralFileService {
         hash,
         origem:origin
       })
-      return created
+      return this.repository.save('arquivos', { id:created.id, caminho:`server://file/${created.id}` }) || created
     } catch (error) {
       try { fs.unlinkSync(destination) } catch {}
       throw error
