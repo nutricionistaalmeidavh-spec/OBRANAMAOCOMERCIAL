@@ -112,6 +112,22 @@ function syncSourceScope(url) {
   }
 }
 
+async function readBytes(request, limit = MAX_FILE_BYTES) {
+  const chunks = []
+  let total = 0
+  for await (const chunk of request) {
+    total += chunk.length
+    if (total > limit) {
+      const error = new Error('Arquivo excede o limite de 64 MB.')
+      error.code = 'payload_too_large'
+      throw error
+    }
+    chunks.push(chunk)
+  }
+  if (!chunks.length) throw new Error('Arquivo vazio não pode ser enviado.')
+  return Buffer.concat(chunks)
+}
+
 async function readJson(request) {
   const chunks = []
   let total = 0
