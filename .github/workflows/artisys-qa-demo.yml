@@ -79,11 +79,10 @@ jobs:
       - name: Install pinned ArtiSys QA runtime
         run: npm install --prefix qa/runtime --no-audit --no-fund
 
-      - name: Install visual capture dependencies
+      - name: Verify visual capture dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y ffmpeg xvfb
-          npx --prefix qa/runtime playwright install-deps chromium
+          command -v ffmpeg
+          command -v xvfb-run
 
       - name: Prepare isolated demo data
         shell: bash
