@@ -10,7 +10,7 @@ const MODULE_TABLES = Object.freeze({
   documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais']
 })
 
-const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:1, operation:2, planning:2, finance:2, rh:2, documents:1 })
+const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:2, operation:2, planning:2, finance:2, rh:2, documents:1 })
 
 const SOURCE_KEY = 'migration_source_fingerprint'
 const ATTEMPT_PREFIX = 'module_migration_attempt_'
