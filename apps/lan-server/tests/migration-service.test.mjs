@@ -17,9 +17,14 @@ function fixture() {
     save(table, data) {
       assert.ok(allowed.has(table))
       const keys = Object.keys(data).filter(key => key !== 'id')
+      if (data.id) {
+        db.prepare(`UPDATE ${table} SET ${keys.map(key=>`${key}=?`).join(',')} WHERE id=?`).run(...keys.map(key=>data[key]), Number(data.id))
+        return db.prepare(`SELECT * FROM ${table} WHERE id=?`).get(Number(data.id))
+      }
       const result = db.prepare(`INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map(()=>'?').join(',')})`).run(...keys.map(key => data[key]))
       return db.prepare(`SELECT * FROM ${table} WHERE id=?`).get(Number(result.lastInsertRowid))
-    }
+    },
+    get(table,id){ return db.prepare(`SELECT * FROM ${table} WHERE id=?`).get(Number(id)) || null }
   }
   const audit=[]
   const security={appendAudit:event=>{audit.push(event);return audit.length}}

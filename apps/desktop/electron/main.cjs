@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, Tray, safeStorage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, Menu, Tray, safeStorage } = require('electron')
 const path = require('node:path')
 const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
@@ -11,6 +11,7 @@ const { LanCredentialService } = require('./services/lan-credential-service.cjs'
 const { LanHostService } = require('./services/lan-host-service.cjs')
 const { LanSetupService } = require('./services/lan-setup-service.cjs')
 const { FileService } = require('./services/file-service.cjs')
+const { FileSourceService } = require('./services/file-source-service.cjs')
 const { ManagedDirectoryService } = require('./services/managed-directory-service.cjs')
 const { DocumentExplorerContextService } = require('./services/document-explorer-context-service.cjs')
 const { syncRegisteredPaths, removeRegisteredPaths } = require('./services/file-registry-paths.cjs')
@@ -31,10 +32,13 @@ const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
 const { FinanceSourceService } = require('./services/finance-source-service.cjs')
+const { MeasurementSourceService } = require('./services/measurement-source-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
 const { FieldSourceService } = require('./services/field-source-service.cjs')
 const { ProcurementService } = require('./services/procurement-service.cjs')
+const { ProcurementSourceService } = require('./services/procurement-source-service.cjs')
 const { ContractsService } = require('./services/contracts-service.cjs')
+const { ContractsSourceService } = require('./services/contracts-source-service.cjs')
 const { ProductService } = require('./services/product-service.cjs')
 const { DemoDataService } = require('./services/demo-data-service.cjs')
 const { UiPreferencesService } = require('./services/ui-preferences-service.cjs')
@@ -91,10 +95,21 @@ function createServices() {
   const localPlanning = new PlanningService({ db })
   const planning = new PlanningSourceService({ local: localPlanning, lanClient: dataAccess.remote, moduleStorage })
   const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
+  const measurements = new MeasurementSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
-  const files = new FileService({ documentsDir: paths.documentsDir, db })
+  const localFiles = new FileService({ documentsDir: paths.documentsDir, db })
+  const files = new FileSourceService({
+    local:localFiles,
+    dataAccess,
+    lanClient:dataAccess.remote,
+    moduleStorage,
+    dialog,
+    shell,
+    clipboard,
+    cacheDir:path.join(paths.dataDir, 'shared-cache')
+  })
   const localPayroll = new PayrollService({ db })
-  const localTime = new TimeService({ db, fileService: files })
+  const localTime = new TimeService({ db, fileService: localFiles })
   const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })
   const catalog = new RhCatalogSourceService({ local: new CatalogService({ db }), dataAccess, moduleStorage })
   const rhDocuments = new RhDocumentService({ rh, localTime, fileService: files, dataAccess })
@@ -105,7 +120,7 @@ function createServices() {
     generateDocuments: payload => rhDocuments.generateDocuments(payload),
     generateForAll: payload => rhDocuments.generateForAll(payload)
   }
-  const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
+  const documentRoot = new DocumentRootService({ db, files:localFiles, defaultDir: paths.documentsDir })
   const explorer = new ManagedDirectoryService({
     roots: { documents: () => documentRoot.getRoot() }, shell, dialog,
     onPathChanged: (previous, next) => syncRegisteredPaths(db, previous, next),
@@ -113,6 +128,10 @@ function createServices() {
   })
   const explorerContext = new DocumentExplorerContextService({ db, explorer, rootId: 'documents' })
   const product = new ProductService({ db })
+  const localProcurement = new ProcurementService({ db })
+  const procurement = new ProcurementSourceService({ local: localProcurement, lanClient: dataAccess.remote, moduleStorage })
+  const localContracts = new ContractsService({ db, product })
+  const contracts = new ContractsSourceService({ local: localContracts, lanClient: dataAccess.remote, moduleStorage, product })
   const uiPreferences = new UiPreferencesService({ db })
   const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
   const sync = new SyncCoordinator({
@@ -136,15 +155,15 @@ function createServices() {
     paths, db, dataAccess, storage, serverDiscovery, serverReconnect, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
     backup,
     importer: new ImportService({ db }),
-    documents: new DocumentService({ db, fileService: files, dialog }),
+    documents: new DocumentService({ db, fileService: localFiles, dialog }),
     payroll: rh,
     catalog,
     time,
-    scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
+    scanner: new ScannerService({ db, fileService: localFiles, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
-    works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance,
-    product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product }), online, sync
+    works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, measurements,
+    product, uiPreferences, procurement, contracts, demo: new DemoDataService({ db, product }), online, sync
   }
 }
 
@@ -314,7 +333,7 @@ function registerIpc() {
   ipcMain.handle('contracts:addendum', envelope((payload) => services.contracts.createAddendum(payload)))
   ipcMain.handle('dre:get', envelope((filters) => services.finance.dre(filters)))
   ipcMain.handle('accounts:payment', envelope(({ id, payment }) => services.finance.accountPayment(id, payment)))
-  ipcMain.handle('measurements:save', envelope((payload) => services.db.saveMeasurement(payload)))
+  ipcMain.handle('measurements:save', envelope((payload) => services.measurements.saveWithItems(payload)))
   ipcMain.handle('works:import-spreadsheets', envelope(() => services.workImport.chooseAndImport()))
   ipcMain.handle('files:import-employee', envelope((payload) => services.files.importForEmployee(payload)))
   ipcMain.handle('files:import-measurement', envelope((payload) => services.files.importForMeasurement(payload)))
@@ -322,7 +341,7 @@ function registerIpc() {
   ipcMain.handle('files:open', envelope(({ path: filePath }) => services.files.open(filePath)))
   ipcMain.handle('files:reveal', envelope(({ path: filePath }) => services.files.reveal(filePath)))
   ipcMain.handle('files:copy-path', envelope(({ path: filePath }) => services.files.copyPath(filePath)))
-  ipcMain.handle('files:open-folder', envelope(() => services.documentRoot.openRoot()))
+  ipcMain.handle('files:open-folder', envelope(() => services.files.openDocumentsFolder()))
   ipcMain.handle('files:choose-root', envelope(() => services.documentRoot.chooseRoot()))
   ipcMain.handle('files:get-root', envelope(() => services.documentRoot.getRoot()))
   ipcMain.handle('explorer:list', envelope((payload) => services.explorer.list(payload)))

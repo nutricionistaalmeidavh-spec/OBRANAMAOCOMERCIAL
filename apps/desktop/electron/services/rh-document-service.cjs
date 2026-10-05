@@ -70,19 +70,51 @@ class RhDocumentService {
       unsignedFolder,
       signedFolder,
       source: 'central-rh',
-      storage: 'local-derived',
+      storage: 'central-shared',
       registeredInLocalDatabase: false
     }
 
     if (pointSelected) {
       const pointPath = path.join(unsignedFolder, `Ficha de ponto - ${data.point.competencia} - ${sanitizeName(data.employee.nome)} - ${stamp}.pdf`)
       await this.localTime.printHtml(this.localTime.pointHtml(data, context.company, context.cargo), pointPath)
-      result.point = { path: pointPath, storage: 'local-derived', registeredInLocalDatabase: false }
+      const shared = await this.fileService.registerGeneratedFile?.({
+        sourcePath:pointPath,
+        document:{
+          empresa_id:context.company.id,
+          obra_id:context.employee.obra_atual_id || null,
+          funcionario_id:context.employee.id,
+          categoria:'ficha_ponto',
+          titulo:`Ficha de ponto - ${data.point.competencia} - ${data.employee.nome}`,
+          status_assinatura:'nao_assinado'
+        }
+      })
+      result.point = {
+        path:shared?.file?.caminho || pointPath,
+        documentId:shared?.document?.id || null,
+        storage:shared ? 'central-shared' : 'local-derived',
+        registeredInLocalDatabase:false
+      }
     }
     if (receiptsSelected && context.benefits.length) {
       const receiptPath = path.join(unsignedFolder, `Recibos de benefícios - ${data.point.competencia} - ${sanitizeName(data.employee.nome)} - ${stamp}.pdf`)
       await this.localTime.printHtml(this.localTime.receiptHtml(data, context.company, context.cargo, context.benefits, payload.paymentDate), receiptPath)
-      result.receipt = { path: receiptPath, storage: 'local-derived', registeredInLocalDatabase: false }
+      const shared = await this.fileService.registerGeneratedFile?.({
+        sourcePath:receiptPath,
+        document:{
+          empresa_id:context.company.id,
+          obra_id:context.employee.obra_atual_id || null,
+          funcionario_id:context.employee.id,
+          categoria:'recibo_beneficios',
+          titulo:`Recibos de benefícios - ${data.point.competencia} - ${data.employee.nome}`,
+          status_assinatura:'nao_assinado'
+        }
+      })
+      result.receipt = {
+        path:shared?.file?.caminho || receiptPath,
+        documentId:shared?.document?.id || null,
+        storage:shared ? 'central-shared' : 'local-derived',
+        registeredInLocalDatabase:false
+      }
     }
     return result
   }

@@ -170,6 +170,6 @@ describe('LanDataClient', () => {
     const fetchImpl=vi.fn(async()=>({ok:false,status:400,json:async()=>({error:'validation_error',message:'Empresa obrigatória.'})}))
     const client=new LanDataClient({storage:{state:()=>({mode:'server',operationalMode:'lan-client',baseUrl})},credentials:credentialsFor(baseUrl),fetchImpl})
     await expect(client.save('obras',{nome:'Sem empresa'})).rejects.toThrow('Empresa obrigatória.')
-    await expect(client.list('documentos',{})).rejects.toThrow('Entidade ainda não disponível no servidor da empresa.')
+    await expect(client.list('configuracoes',{})).rejects.toThrow('Entidade ainda não disponível no servidor da empresa.')
   })
 })

@@ -2,14 +2,15 @@ const { createHash, randomUUID } = require('node:crypto')
 
 const MODULE_TABLES = Object.freeze({
   core: ['empresas', 'clientes', 'obras'],
-  operation: ['frentes_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
-  planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'],
-  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'],
-  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis']
+  operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'tarefas_obra'],
+  planning: ['fontes_documentais', 'etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
+  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'],
+  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'arquivos', 'documentos', 'rdo_anexos', 'medicao_anexos', 'contrato_anexos', 'pedido_compra_anexos', 'documentos_editaveis', 'modelos_documento_rh']
 })
 
 const SOURCE_KEY = 'migration_source_fingerprint'
 const ATTEMPT_PREFIX = 'module_migration_attempt_'
+const MIGRATION_FORMAT_VERSION = 2
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)
@@ -70,12 +71,76 @@ class ModuleMigrationService {
   writeAttempt(moduleName, attempt) { this.configSet(this.attemptKey(moduleName), JSON.stringify(attempt)) }
   clearAttempt(moduleName) { this.configDelete(this.attemptKey(moduleName)) }
 
+  singleLocalCompanyId() {
+    const columns = this.database.db.prepare('PRAGMA table_info(empresas)').all().map(column => String(column.name))
+    const where = columns.includes('deleted_at') ? ' WHERE deleted_at IS NULL' : ''
+    const rows = this.database.db.prepare(`SELECT id FROM empresas${where} ORDER BY id`).all()
+    return rows.length === 1 ? Number(rows[0].id) : null
+  }
+
+  distinctCompanyIds(sql, ...params) {
+    return [...new Set(this.database.db.prepare(sql).all(...params)
+      .map(row => Number(row.empresa_id))
+      .filter(value => Number.isSafeInteger(value) && value > 0))]
+  }
+
+  resolveLegacyRhCompanyId(table, row) {
+    const direct = Number(row?.empresa_id)
+    if (Number.isSafeInteger(direct) && direct > 0) return direct
+
+    let candidates = []
+    if (table === 'cargos') {
+      candidates = this.distinctCompanyIds('SELECT empresa_id FROM funcionarios WHERE cargo_id=? AND empresa_id IS NOT NULL', Number(row.id))
+    } else if (table === 'beneficios') {
+      candidates = this.distinctCompanyIds(`
+        SELECT f.empresa_id FROM funcionario_beneficios fb JOIN funcionarios f ON f.id=fb.funcionario_id
+        WHERE fb.beneficio_id=? AND f.empresa_id IS NOT NULL
+        UNION
+        SELECT f.empresa_id FROM cargo_beneficios cb JOIN funcionarios f ON f.cargo_id=cb.cargo_id
+        WHERE cb.beneficio_id=? AND f.empresa_id IS NOT NULL
+      `, Number(row.id), Number(row.id))
+    } else if (table === 'epis') {
+      candidates = this.distinctCompanyIds('SELECT f.empresa_id FROM funcionario_epis fe JOIN funcionarios f ON f.id=fe.funcionario_id WHERE fe.epi_id=? AND f.empresa_id IS NOT NULL', Number(row.id))
+    } else if (table === 'funcionario_obras' || table === 'funcionario_beneficios' || table === 'pagamentos_funcionario' || table === 'pontos_mensais' || table === 'funcionario_epis') {
+      candidates = this.distinctCompanyIds('SELECT empresa_id FROM funcionarios WHERE id=? AND empresa_id IS NOT NULL', Number(row.funcionario_id))
+    } else if (table === 'cargo_beneficios') {
+      candidates = this.distinctCompanyIds('SELECT empresa_id FROM funcionarios WHERE cargo_id=? AND empresa_id IS NOT NULL', Number(row.cargo_id))
+    } else if (table === 'folha_lancamentos') {
+      candidates = this.distinctCompanyIds('SELECT empresa_id FROM folhas_pagamento WHERE id=? AND empresa_id IS NOT NULL', Number(row.folha_id))
+      if (!candidates.length) candidates = this.distinctCompanyIds('SELECT empresa_id FROM funcionarios WHERE id=? AND empresa_id IS NOT NULL', Number(row.funcionario_id))
+    } else if (table === 'ponto_marcacoes') {
+      candidates = this.distinctCompanyIds(`
+        SELECT f.empresa_id FROM pontos_mensais p JOIN funcionarios f ON f.id=p.funcionario_id
+        WHERE p.id=? AND f.empresa_id IS NOT NULL
+      `, Number(row.ponto_mensal_id))
+    }
+
+    if (candidates.length === 1) return candidates[0]
+    const single = this.singleLocalCompanyId()
+    if (single) return single
+    const suffix = candidates.length > 1 ? 'há vínculos com mais de uma empresa' : 'há mais de uma empresa local e o registro não possui vínculo suficiente'
+    throw new Error(`Não foi possível determinar a empresa de ${table} #${row?.id ?? '?' }: ${suffix}.`)
+  }
+
+  normalizeExportRow(module, table, row) {
+    if (module !== 'rh') return { ...row }
+    const rhTables = new Set([
+      'cargos','beneficios','epis','funcionarios','funcionario_obras','cargo_beneficios',
+      'funcionario_beneficios','folhas_pagamento','folha_lancamentos','pagamentos_funcionario',
+      'pontos_mensais','ponto_marcacoes','funcionario_epis'
+    ])
+    if (!rhTables.has(table)) return { ...row }
+    return { ...row, empresa_id: this.resolveLegacyRhCompanyId(table, row) }
+  }
+
   exportModule(moduleName) {
     const module = this.assertModule(moduleName)
     const records = {}
     const counts = {}
     for (const table of MODULE_TABLES[module]) {
-      const rows = [...(this.database.list(table, {}) || [])].sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+      const rows = [...(this.database.list(table, {}) || [])]
+        .sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+        .map(row => this.normalizeExportRow(module, table, row))
       records[table] = rows
       counts[table] = rows.length
     }
@@ -152,6 +217,18 @@ class ModuleMigrationService {
     return { migrationId, module, backup, counts: expectedCounts, status: 'committed', sanityOk: true, centralStatus: confirmed }
   }
 
+  async resetLegacyAttempt(module, attempt) {
+    if (!attempt?.migrationId || Number(attempt.formatVersion || 0) >= MIGRATION_FORMAT_VERSION) return attempt
+    const remote = await this.lanClient.migrationStatus(attempt.migrationId)
+    if (['started','validated'].includes(String(remote?.status || ''))) {
+      await this.lanClient.migrationRollback(attempt.migrationId)
+    } else if (!['committed','rolled_back'].includes(String(remote?.status || ''))) {
+      throw new Error('A tentativa anterior usa um formato antigo e não pôde ser reconciliada com segurança.')
+    }
+    this.clearAttempt(module)
+    return null
+  }
+
   async migrate(moduleName) {
     const module = this.assertModule(moduleName)
     const preflight = await this.preflight(module)
@@ -161,6 +238,7 @@ class ModuleMigrationService {
     const sourceFingerprint = this.sourceFingerprint()
     const sourceDataHash = digest({ module, records: exported.records })
     let attempt = this.readAttempt(module)
+    attempt = await this.resetLegacyAttempt(module, attempt)
 
     if (attempt) {
       const sameSource = attempt.sourceFingerprint === sourceFingerprint
@@ -178,6 +256,7 @@ class ModuleMigrationService {
       attempt = {
         migrationId,
         module,
+        formatVersion:MIGRATION_FORMAT_VERSION,
         sourceFingerprint,
         sourceDataHash,
         expectedCounts: exported.counts,
@@ -217,7 +296,12 @@ class ModuleMigrationService {
       for (const table of MODULE_TABLES[module]) {
         for (const row of exported.records[table]) {
           if (row?.id === null || row?.id === undefined) throw new Error(`Registro local sem ID em ${table}.`)
-          await this.lanClient.migrationRecord(migrationId, { sourceTable: table, sourceId: row.id, data: row })
+          if (table === 'arquivos') {
+            if (!this.lanClient.migrationFile) throw new Error('Servidor/cliente não suporta migração de arquivos compartilhados.')
+            await this.lanClient.migrationFile(migrationId, row.id, row)
+          } else {
+            await this.lanClient.migrationRecord(migrationId, { sourceTable: table, sourceId: row.id, data: row })
+          }
         }
       }
 

@@ -5,6 +5,9 @@ import { PairingError } from './pairing-service.mjs'
 import { FieldService } from './field-service.mjs'
 import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
+import { MeasurementService } from './measurement-service.mjs'
+import { ProcurementService } from './procurement-service.mjs'
+import { ContractsService } from './contracts-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
 import { CompensationPolicyService } from './compensation-policy-service.mjs'
@@ -13,14 +16,17 @@ import { RevisionConflictError } from './concurrency-service.mjs'
 import { createVersionedRepository } from './versioned-repository.mjs'
 
 export const LAN_API_VERSION = '1'
-export const LAN_SERVER_VERSION = '0.3.0'
+export const LAN_SERVER_VERSION = '0.4.0'
 
 const MAX_BODY_BYTES = 1024 * 1024
+const MAX_FILE_BYTES = 64 * 1024 * 1024
 const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
-const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|frentes_obra|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|fornecedores|categorias_financeiras|contas|pagamentos_conta|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis)(?:\/(\d+))?\/?$/
+const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|locais_obra|fontes_documentais|frentes_obra|subfrentes_obra|checklist_frente_itens|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|medicoes|medicao_itens|medicao_mapa_itens|medicao_anexos|fornecedores|categorias_financeiras|contas|pagamentos_conta|solicitacoes_compra|cotacoes_compra|pedidos_compra|pedido_compra_itens|recebimentos_materiais|movimentacoes_estoque|contratos_obra|contrato_aditivos|contrato_anexos|pedido_compra_anexos|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis|arquivos|documentos|documentos_editaveis|modelos_documento_rh)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
 const FINANCE_PAYMENT_ROUTE = /^\/api\/v1\/finance\/accounts\/(\d+)\/payment\/?$/
 const MIGRATION_ROUTE = /^\/api\/v1\/migrations\/([^/]+)\/(record|status|validate|commit|rollback)\/?$/
+const MIGRATION_FILE_ROUTE = /^\/api\/v1\/migrations\/([^/]+)\/file\/?$/
+const FILE_CONTENT_ROUTE = /^\/api\/v1\/files\/(\d+)\/content\/?$/
 
 const digest = value => createHash('sha256').update(String(value)).digest('hex')
 const randomDeviceToken = () => randomBytes(32).toString('hex')
@@ -53,7 +59,7 @@ const SERVER_CAPABILITIES = Object.freeze({
   version:1,
   modules:['core','operation','planning','finance','rh','summary'],
   bridgeEntities:['frentes_obra','tarefas_obra','rdos','cronograma_etapas'],
-  features:['optimistic-concurrency-v1']
+  features:['optimistic-concurrency-v1','full-local-parity-v1']
 })
 
 function publicServerCapabilities(versionedRepository) {
@@ -104,6 +110,46 @@ function syncSourceScope(url) {
     workName: url.searchParams.get('work_name') || null,
     modules: String(url.searchParams.get('modules') || '').split(',').map(value => value.trim()).filter(Boolean)
   }
+}
+
+async function readBytes(request, limit = MAX_FILE_BYTES) {
+  const chunks = []
+  let total = 0
+  for await (const chunk of request) {
+    total += chunk.length
+    if (total > limit) {
+      const error = new Error('Arquivo excede o limite de 64 MB.')
+      error.code = 'payload_too_large'
+      throw error
+    }
+    chunks.push(chunk)
+  }
+  if (!chunks.length) throw new Error('Arquivo vazio não pode ser enviado.')
+  return Buffer.concat(chunks)
+}
+
+function sendBytes(response, status, buffer, file = {}) {
+  const filename = encodeURIComponent(String(file.nome_original || file.nome_armazenado || 'arquivo'))
+  response.writeHead(status, {
+    'content-type': file.mime_type || 'application/octet-stream',
+    'content-length': buffer.length,
+    'content-disposition': `attachment; filename*=UTF-8''${filename}`,
+    'cache-control':'no-store'
+  })
+  response.end(buffer)
+}
+
+function authorizeDocumentAction(context, action) {
+  let lastError = null
+  for (const domain of ['operation','planning','finance','rh']) {
+    try {
+      authorizeAction(context, { domain, action })
+      return
+    } catch (error) {
+      lastError = error
+    }
+  }
+  throw lastError || new LanAuthorizationError('Sem permissão para arquivos compartilhados.', 403, 'forbidden')
 }
 
 async function readJson(request) {
@@ -264,15 +310,19 @@ async function authorizeRh(request, security, action = 'edit') {
   return context
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, payrollService = null, timeService = null, compensationPolicyService = null, migrationService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, measurementService = null, procurementService = null, contractsService = null, payrollService = null, timeService = null, compensationPolicyService = null, migrationService = null, centralFileService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const versionedRepository = createVersionedRepository(repository)
   const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
+  const measurements = measurementService || (repository ? new MeasurementService({ repository }) : null)
+  const procurement = procurementService || (repository ? new ProcurementService({ repository }) : null)
+  const contracts = contractsService || (repository ? new ContractsService({ repository }) : null)
   const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
   const compensationPolicy = compensationPolicyService || (versionedRepository ? new CompensationPolicyService({ repository }) : null)
   const migration = migrationService || (repository ? new MigrationService({ repository, security }) : null)
+  const fileStore = centralFileService
   const centralStorage = centralBackupService
   const backupOperations = backupOperationsService
   return http.createServer(async (request, response) => {
@@ -467,6 +517,63 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, planning.overview(obraId))
       }
 
+      if (url.pathname === '/api/v1/measurements/save') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!measurements?.saveWithItems) return sendJson(response, 503, { error: 'measurement_unavailable', message: 'Serviço central de medições indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        const body = await readJson(request)
+        authorizeAction(context, { domain: 'planning', action: body.id ? 'edit' : 'create' })
+        return sendJson(response, 200, measurements.saveWithItems(body))
+      }
+
+      if (url.pathname === '/api/v1/procurement/summary') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!procurement?.summary) return sendJson(response, 503, { error: 'procurement_unavailable', message: 'Compras centrais indisponíveis.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain: 'finance', action: 'view' })
+        return sendJson(response, 200, procurement.summary(Number(url.searchParams.get('obra_id'))))
+      }
+
+      if (url.pathname === '/api/v1/procurement/order') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!procurement?.createOrder) return sendJson(response, 503, { error: 'procurement_unavailable', message: 'Compras centrais indisponíveis.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain: 'finance', action: 'create' })
+        return sendJson(response, 201, procurement.createOrder(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/procurement/receive') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!procurement?.receiveMaterial) return sendJson(response, 503, { error: 'procurement_unavailable', message: 'Recebimento central indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain: 'finance', action: 'edit' })
+        return sendJson(response, 201, procurement.receiveMaterial(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/procurement/stock') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!procurement?.moveStock) return sendJson(response, 503, { error: 'procurement_unavailable', message: 'Estoque central indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain: 'finance', action: 'edit' })
+        return sendJson(response, 201, procurement.moveStock(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/contracts/create') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!contracts?.createReceivable) return sendJson(response, 503, { error: 'contracts_unavailable', message: 'Contratos centrais indisponíveis.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain: 'finance', action: 'create' })
+        return sendJson(response, 201, contracts.createReceivable(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/contracts/addendum') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!contracts?.createAddendum) return sendJson(response, 503, { error: 'contracts_unavailable', message: 'Aditivos centrais indisponíveis.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain: 'finance', action: 'edit' })
+        return sendJson(response, 201, contracts.createAddendum(await readJson(request)))
+      }
+
       const financePaymentMatch = url.pathname.match(FINANCE_PAYMENT_ROUTE)
       if (financePaymentMatch) {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
@@ -575,6 +682,26 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 201, migration.start(await readJson(request), actor))
       }
 
+      const migrationFileMatch = url.pathname.match(MIGRATION_FILE_ROUTE)
+      if (migrationFileMatch) {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!migration?.importFileRecord || !fileStore?.saveBuffer) return sendJson(response, 503, { error:'migration_file_unavailable', message:'Migração de arquivos compartilhados indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        const migrationId = decodeURIComponent(migrationFileMatch[1])
+        const sourceId = url.searchParams.get('source_id')
+        const bytes = await readBytes(request)
+        const originalName = decodeURIComponent(String(request.headers['x-file-name'] || 'arquivo'))
+        const mimeType = String(request.headers['x-file-mime'] || '') || null
+        const origin = String(request.headers['x-file-origin'] || '') || 'migrado'
+        return sendJson(response, 201, migration.importFileRecord(migrationId, {
+          sourceId,
+          data:{ nome_original:originalName, mime_type:mimeType, origem:origin },
+          bytes,
+          fileStore
+        }, actor))
+      }
+
       const migrationMatch = url.pathname.match(MIGRATION_ROUTE)
       if (migrationMatch) {
         if (!migration) return sendJson(response, 503, { error: 'migration_unavailable', message: 'Migração central indisponível.' })
@@ -591,6 +718,34 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (action === 'validate') return sendJson(response, 200, migration.validate(migrationId, actor))
         if (action === 'commit') return sendJson(response, 200, migration.commit(migrationId, actor))
         if (action === 'rollback') return sendJson(response, 200, migration.rollback(migrationId, actor))
+      }
+
+      if (url.pathname === '/api/v1/files/upload') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!fileStore?.saveBuffer) return sendJson(response, 503, { error:'file_storage_unavailable', message:'Storage central de arquivos indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeDocumentAction(context, 'create')
+        const bytes = await readBytes(request)
+        const originalName = decodeURIComponent(String(request.headers['x-file-name'] || 'arquivo'))
+        const mimeType = String(request.headers['x-file-mime'] || '') || null
+        const origin = String(request.headers['x-file-origin'] || '') || 'importado'
+        return sendJson(response, 201, fileStore.saveBuffer(bytes, { originalName, mimeType, origin }))
+      }
+
+      const fileContentMatch = url.pathname.match(FILE_CONTENT_ROUTE)
+      if (fileContentMatch) {
+        if (!fileStore?.read) return sendJson(response, 503, { error:'file_storage_unavailable', message:'Storage central de arquivos indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        if (request.method === 'GET') {
+          authorizeDocumentAction(context, 'view')
+          const payload = fileStore.read(Number(fileContentMatch[1]))
+          return sendBytes(response, 200, payload.buffer, payload.file)
+        }
+        if (request.method === 'DELETE') {
+          authorizeDocumentAction(context, 'delete')
+          return sendJson(response, 200, { ok:fileStore.remove(Number(fileContentMatch[1])) })
+        }
+        return methodNotAllowed(response, ['GET','DELETE'])
       }
 
       if (url.pathname === '/api/v1/setup/status') {

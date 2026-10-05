@@ -1,26 +1,39 @@
 const MODULE_TABLES = Object.freeze({
   core: ['empresas', 'clientes', 'obras'],
-  operation: ['frentes_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
-  planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'],
-  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'],
-  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis']
+  operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'tarefas_obra'],
+  planning: ['fontes_documentais', 'etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
+  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'],
+  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'arquivos', 'documentos', 'rdo_anexos', 'medicao_anexos', 'contrato_anexos', 'pedido_compra_anexos', 'documentos_editaveis', 'modelos_documento_rh']
 })
 
 const REF_MAP = Object.freeze({
   clientes: { empresa_id: 'empresas' },
   obras: { empresa_id: 'empresas', cliente_id: 'clientes' },
+  locais_obra: { obra_id: 'obras' },
   frentes_obra: { obra_id: 'obras' },
+  subfrentes_obra: { obra_id: 'obras', frente_id: 'frentes_obra' },
+  checklist_frente_itens: { obra_id: 'obras', frente_id: 'frentes_obra', subfrente_id: 'subfrentes_obra' },
   rdos: { obra_id: 'obras', frente_id: 'frentes_obra' },
   rdo_equipe: { rdo_id: 'rdos', frente_id: 'frentes_obra', funcionario_id: { table: 'funcionarios', deferred: true } },
   rdo_equipamentos: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
   rdo_ocorrencias: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
-  rdo_anexos: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
   tarefas_obra: { obra_id: 'obras', frente_id: 'frentes_obra', rdo_ocorrencia_id: 'rdo_ocorrencias' },
   etapas_obra: { obra_id: 'obras', frente_id: 'frentes_obra' },
   cronograma_etapas: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra' },
-  itens_orcamentarios: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra' },
+  itens_orcamentarios: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra', local_id: 'locais_obra', fonte_documental_id: 'fontes_documentais' },
+  medicoes: { obra_id: 'obras', frente_id: 'frentes_obra', contrato_id: { table: 'contratos_obra', deferred: true } },
+  medicao_itens: { medicao_id: 'medicoes', item_orcamentario_id: 'itens_orcamentarios', etapa_id: 'etapas_obra' },
+  medicao_mapa_itens: { obra_id: 'obras', medicao_id: 'medicoes' },
   fornecedores: { empresa_id: 'empresas' },
-  contas: { empresa_id: 'empresas', obra_id: 'obras', frente_id: 'frentes_obra', fornecedor_id: 'fornecedores', cliente_id: 'clientes', categoria_id: 'categorias_financeiras' },
+  contas: { empresa_id: 'empresas', obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', fornecedor_id: 'fornecedores', cliente_id: 'clientes', categoria_id: 'categorias_financeiras', medicao_id: 'medicoes', solicitacao_compra_id: { table: 'solicitacoes_compra', deferred: true }, pedido_compra_id: { table: 'pedidos_compra', deferred: true }, contrato_id: { table: 'contratos_obra', deferred: true } },
+  solicitacoes_compra: { obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', cotacao_escolhida_id: { table: 'cotacoes_compra', deferred: true } },
+  cotacoes_compra: { solicitacao_id: 'solicitacoes_compra', fornecedor_id: 'fornecedores' },
+  pedidos_compra: { obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', solicitacao_id: 'solicitacoes_compra', cotacao_id: 'cotacoes_compra', fornecedor_id: 'fornecedores', conta_id: 'contas' },
+  pedido_compra_itens: { pedido_compra_id: 'pedidos_compra' },
+  recebimentos_materiais: { pedido_compra_id: 'pedidos_compra', pedido_item_id: 'pedido_compra_itens', obra_id: 'obras', frente_id: 'frentes_obra', documento_id: { table: 'documentos', deferred: true } },
+  movimentacoes_estoque: { obra_id: 'obras', frente_id: 'frentes_obra', pedido_item_id: 'pedido_compra_itens', documento_id: { table: 'documentos', deferred: true } },
+  contratos_obra: { obra_id: 'obras', frente_id: 'frentes_obra', cliente_id: 'clientes', fornecedor_id: 'fornecedores', documento_principal_id: { table: 'documentos', deferred: true }, conta_id: 'contas' },
+  contrato_aditivos: { contrato_id: 'contratos_obra', documento_id: { table: 'documentos', deferred: true } },
   pagamentos_conta: { conta_id: 'contas' },
   cargos: { empresa_id: 'empresas' },
   beneficios: { empresa_id: 'empresas' },
@@ -34,7 +47,13 @@ const REF_MAP = Object.freeze({
   pagamentos_funcionario: { empresa_id: 'empresas', funcionario_id: 'funcionarios', folha_id: 'folhas_pagamento' },
   pontos_mensais: { empresa_id: 'empresas', funcionario_id: 'funcionarios' },
   ponto_marcacoes: { empresa_id: 'empresas', ponto_mensal_id: 'pontos_mensais' },
-  funcionario_epis: { empresa_id: 'empresas', funcionario_id: 'funcionarios', epi_id: 'epis' }
+  funcionario_epis: { empresa_id: 'empresas', funcionario_id: 'funcionarios', epi_id: 'epis' },
+  documentos: { arquivo_id: 'arquivos', empresa_id: 'empresas', obra_id: 'obras', frente_id: 'frentes_obra', funcionario_id: 'funcionarios', conta_id: 'contas', medicao_id: 'medicoes', item_orcamentario_id: 'itens_orcamentarios', fornecedor_id: 'fornecedores', rdo_id: 'rdos', contrato_id: 'contratos_obra', contrato_aditivo_id: 'contrato_aditivos', pedido_compra_id: 'pedidos_compra', recebimento_material_id: 'recebimentos_materiais', documento_origem_id: { table: 'documentos', deferred: true } },
+  rdo_anexos: { rdo_id: 'rdos', frente_id: 'frentes_obra', documento_id: 'documentos' },
+  medicao_anexos: { medicao_id: 'medicoes', documento_id: 'documentos' },
+  contrato_anexos: { contrato_id: 'contratos_obra', documento_id: 'documentos' },
+  pedido_compra_anexos: { pedido_compra_id: 'pedidos_compra', documento_id: 'documentos' },
+  documentos_editaveis: { documento_id: 'documentos' }
 })
 
 const asText = value => String(value)
@@ -118,6 +137,73 @@ export class MigrationService {
       .get(String(sourceFingerprint), String(sourceTable), asText(sourceId), String(currentMigrationId), String(currentMigrationId)) || null
   }
 
+  companyIdFrom(table, id) {
+    if (id === null || id === undefined || id === '') return null
+    try {
+      const row = this.db.prepare(`SELECT empresa_id FROM ${table} WHERE id=?`).get(Number(id))
+      const value = Number(row?.empresa_id)
+      return Number.isSafeInteger(value) && value > 0 ? value : null
+    } catch {
+      return null
+    }
+  }
+
+  uniqueCompanyId() {
+    let rows
+    try {
+      const columns = this.db.prepare('PRAGMA table_info(empresas)').all().map(row => String(row.name))
+      rows = columns.includes('deleted_at')
+        ? this.db.prepare("SELECT id FROM empresas WHERE deleted_at IS NULL ORDER BY id LIMIT 2").all()
+        : this.db.prepare('SELECT id FROM empresas ORDER BY id LIMIT 2').all()
+    } catch {
+      return null
+    }
+    if (rows.length !== 1) return null
+    return Number(rows[0].id)
+  }
+
+  inferRhCompanyId(table, clean) {
+    const explicit = Number(clean.empresa_id)
+    if (Number.isSafeInteger(explicit) && explicit > 0) return explicit
+
+    const candidates = []
+    const add = value => {
+      const id = Number(value)
+      if (Number.isSafeInteger(id) && id > 0 && !candidates.includes(id)) candidates.push(id)
+    }
+    if (table === 'funcionarios') {
+      add(this.companyIdFrom('obras', clean.obra_atual_id))
+      add(this.companyIdFrom('cargos', clean.cargo_id))
+    } else if (table === 'funcionario_obras') {
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+      add(this.companyIdFrom('obras', clean.obra_id))
+    } else if (table === 'cargo_beneficios') {
+      add(this.companyIdFrom('cargos', clean.cargo_id))
+      add(this.companyIdFrom('beneficios', clean.beneficio_id))
+    } else if (table === 'funcionario_beneficios') {
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+      add(this.companyIdFrom('beneficios', clean.beneficio_id))
+    } else if (table === 'folhas_pagamento') {
+      add(this.companyIdFrom('contas', clean.conta_id))
+    } else if (table === 'folha_lancamentos') {
+      add(this.companyIdFrom('folhas_pagamento', clean.folha_id))
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+    } else if (table === 'pagamentos_funcionario') {
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+      add(this.companyIdFrom('folhas_pagamento', clean.folha_id))
+    } else if (table === 'pontos_mensais') {
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+    } else if (table === 'ponto_marcacoes') {
+      add(this.companyIdFrom('pontos_mensais', clean.ponto_mensal_id))
+    } else if (table === 'funcionario_epis') {
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+      add(this.companyIdFrom('epis', clean.epi_id))
+    }
+
+    if (candidates.length > 1) throw new Error(`Empresa do registro RH ambígua em ${table}.`)
+    return candidates[0] || this.uniqueCompanyId()
+  }
+
   remapData(migration, sourceTable, data) {
     const clean = { ...(data || {}) }
     delete clean.id
@@ -132,21 +218,44 @@ export class MigrationService {
       }
       clean[field] = Number(mapping.target_id)
     }
+
+    if (MODULE_TABLES.rh.includes(sourceTable)) {
+      const companyId = this.inferRhCompanyId(sourceTable, clean)
+      if (companyId) clean.empresa_id = companyId
+    }
     return clean
   }
 
-  backfillDeferredEmployee(sourceFingerprint, sourceEmployeeId, targetEmployeeId) {
-    const rows = this.db.prepare(`SELECT r.target_id,r.source_data_json FROM module_migration_records r JOIN module_migrations m ON m.migration_id=r.migration_id
-      WHERE m.source_fingerprint=? AND m.status='committed' AND r.source_table='rdo_equipe'`).all(String(sourceFingerprint))
-    for (const row of rows) {
-      let source
-      try { source = JSON.parse(row.source_data_json || '{}') } catch { source = {} }
-      if (String(source.funcionario_id ?? '') === String(sourceEmployeeId)) {
-        this.db.prepare('UPDATE rdo_equipe SET funcionario_id=? WHERE id=?').run(Number(targetEmployeeId), Number(row.target_id))
+  backfillDeferredReferences(sourceFingerprint, targetSourceTable, targetSourceId, targetId) {
+    for (const [sourceTable, fields] of Object.entries(REF_MAP)) {
+      for (const [field, rawTarget] of Object.entries(fields || {})) {
+        const config = typeof rawTarget === 'string' ? { table: rawTarget, deferred: false } : rawTarget
+        if (!config?.deferred || config.table !== targetSourceTable) continue
+        const rows = this.db.prepare(`SELECT r.target_id,r.source_data_json FROM module_migration_records r JOIN module_migrations m ON m.migration_id=r.migration_id
+          WHERE m.source_fingerprint=? AND m.status IN ('started','validated','committed') AND r.source_table=?`).all(String(sourceFingerprint), String(sourceTable))
+        for (const row of rows) {
+          let source
+          try { source = JSON.parse(row.source_data_json || '{}') } catch { source = {} }
+          if (String(source?.[field] ?? '') !== String(targetSourceId)) continue
+          this.db.prepare(`UPDATE ${sourceTable} SET ${field}=? WHERE id=?`).run(Number(targetId), Number(row.target_id))
+        }
       }
     }
   }
 
+  importFileRecord(migrationId, { sourceId, data, bytes, fileStore }, _actor = null) {
+    const migrationRow = this.row(migrationId)
+    if (!migrationRow) throw new Error('Migração não encontrada.')
+    if (migrationRow.status !== 'started') throw new Error('Migração não está aberta para importação.')
+    if (migrationRow.module !== 'rh') throw new Error('Arquivos compartilhados pertencem à etapa final de RH/documentos.')
+    if (!fileStore?.saveBuffer) throw new Error('Storage central de arquivos indisponível.')
+    const existing = this.db.prepare('SELECT target_id FROM module_migration_records WHERE migration_id=? AND source_table=? AND source_id=?').get(String(migrationId), 'arquivos', asText(sourceId))
+    if (existing) return { sourceTable:'arquivos', sourceId, targetId:Number(existing.target_id), reused:true }
+    const source = data || {}
+    const created = fileStore.saveBuffer(bytes, { originalName:source.nome_original || source.nome_armazenado || ('arquivo-' + sourceId), mimeType:source.mime_type || null, origin:source.origem || 'migrado' })
+    this.db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_target,source_data_json,created_at) VALUES(?,?,?,?,?,?,?,?)').run(String(migrationId), 'arquivos', asText(sourceId), 'arquivos', Number(created.id), 1, JSON.stringify(source), this.now())
+    return { sourceTable:'arquivos', sourceId, targetId:Number(created.id), reused:false }
+  }
   importRecord(migrationId, { sourceTable, sourceId, data }, _actor = null) {
     const migrationRow = this.row(migrationId)
     if (!migrationRow) throw new Error('Migração não encontrada.')
@@ -158,6 +267,17 @@ export class MigrationService {
     const existing = this.db.prepare('SELECT target_id FROM module_migration_records WHERE migration_id=? AND source_table=? AND source_id=?')
       .get(String(migrationId), table, asText(sourceId))
     if (existing) return { sourceTable: table, sourceId, targetId: Number(existing.target_id), reused: true }
+
+    // Supplemental migrations introduced by schema expansion must not duplicate
+    // records that were already committed by an earlier migration from the
+    // same Desktop/source fingerprint.
+    const prior = this.mappingFor(migrationRow.source_fingerprint, table, sourceId, migrationRow.migration_id)
+    if (prior && this.repository.get(table, Number(prior.target_id))) {
+      this.db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_target,source_data_json,created_at) VALUES(?,?,?,?,?,?,?,?)')
+        .run(String(migrationId), table, asText(sourceId), table, Number(prior.target_id), 0, JSON.stringify(data || {}), this.now())
+      this.backfillDeferredReferences(migrationRow.source_fingerprint, table, sourceId, Number(prior.target_id))
+      return { sourceTable: table, sourceId, targetId: Number(prior.target_id), reused: true }
+    }
 
     const remapped = this.remapData(migrationRow, table, data)
     this.db.exec('BEGIN IMMEDIATE')
@@ -181,7 +301,7 @@ export class MigrationService {
       }
       this.db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_target,source_data_json,created_at) VALUES(?,?,?,?,?,?,?,?)')
         .run(String(migrationId), table, asText(sourceId), table, targetId, createdTarget, JSON.stringify(data || {}), this.now())
-      if (table === 'funcionarios') this.backfillDeferredEmployee(migrationRow.source_fingerprint, sourceId, targetId)
+      this.backfillDeferredReferences(migrationRow.source_fingerprint, table, sourceId, targetId)
       this.db.exec('COMMIT')
       return { sourceTable: table, sourceId, targetId, reused: false }
     } catch (error) {

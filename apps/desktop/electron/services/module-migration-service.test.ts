@@ -21,14 +21,14 @@ function fixture({mode='lan-host', module='core', moduleState='migration-require
     }}
   }
   const calls:any[]=[]
-  const expectedCounts=()=>Object.fromEntries(Object.entries(data).map(([table,items]:any)=>[table,items.length]))
+  let remoteExpectedCounts:any={}
   const lanClient:any={
     syncSourceCapabilities:vi.fn(async()=>({modules:capabilities})),
-    migrationStart:vi.fn(async(input:any)=>{calls.push(['start',input]);return {status:'started',...input}}),
+    migrationStart:vi.fn(async(input:any)=>{remoteExpectedCounts={...(input.expectedCounts||{})};calls.push(['start',input]);return {status:'started',...input}}),
     migrationRecord:vi.fn(async(id:string,record:any)=>{calls.push(['record',id,record]);return {targetId:record.sourceId,reused:false}}),
     migrationValidate:vi.fn(async(id:string)=>{calls.push(['validate',id]);return {status:'validated',sanityOk:true}}),
     migrationCommit:vi.fn(async(id:string)=>{calls.push(['commit',id]);return {status:'committed',sanityOk:true}}),
-    migrationStatus:vi.fn(async(id:string)=>{calls.push(['status',id]);return {migrationId:id,status:'committed',sanityOk:true,counts:expectedCounts(),targetCounts:expectedCounts(),missingTargets:[]}}),
+    migrationStatus:vi.fn(async(id:string)=>{calls.push(['status',id]);return {migrationId:id,status:'committed',sanityOk:true,counts:{...remoteExpectedCounts},targetCounts:{...remoteExpectedCounts},missingTargets:[]}}),
     migrationRollback:vi.fn(async(id:string)=>{calls.push(['rollback',id]);return {status:'rolled_back'}})
   }
   const backup:any={createSafetySnapshot:vi.fn(async(context:any)=>{calls.push(['backup',context]);return {database:'/backup.sqlite',manifest:'/manifest.json',fingerprint:`backup-${calls.filter(x=>x[0]==='backup').length}`}})}
@@ -107,6 +107,19 @@ describe('ModuleMigrationService',()=>{
     expect(f.calls.find(x=>x[0]==='record')[2].sourceId).toBe(1)
   })
 
+  it('reconcilia tentativa antiga falha antes de iniciar a migração no formato atual',async()=>{
+    const f=fixture()
+    f.config.set('module_migration_attempt_core',JSON.stringify({
+      migrationId:'legacy-1',module:'core',sourceFingerprint:'source-1',sourceDataHash:'hash-antigo',
+      expectedCounts:{empresas:1,clientes:0,obras:0},status:'failed'
+    }))
+    f.lanClient.migrationStatus.mockResolvedValueOnce({migrationId:'legacy-1',status:'started'})
+    await expect(f.service.migrate('core')).resolves.toMatchObject({status:'committed'})
+    expect(f.lanClient.migrationRollback).toHaveBeenCalledWith('legacy-1')
+    expect(f.lanClient.migrationStart).toHaveBeenCalledWith(expect.objectContaining({migrationId:'mig-1'}))
+    expect(f.config.has('module_migration_attempt_core')).toBe(false)
+  })
+
   it('recusa retry quando os dados do módulo mudaram desde a tentativa',async()=>{
     const f=fixture()
     f.lanClient.migrationRecord.mockRejectedValueOnce(new Error('timeout'))
@@ -138,4 +151,44 @@ describe('ModuleMigrationService',()=>{
     expect(f.config.get('migration_source_fingerprint')).toBe('source-1')
     expect(f.service.sourceDataHash('core')).not.toBe(f.service.sourceDataHash('operation'))
   })
+
+  it('normaliza empresa_id de tabelas RH legadas antes de enviar ao servidor central',()=>{
+    const data:any={
+      empresas:[{id:1,razao_social:'MH',deleted_at:null}],
+      cargos:[{id:2,nome:'Encanador'}],
+      beneficios:[{id:3,nome:'Café'}],
+      epis:[{id:4,nome:'Botina'}],
+      funcionarios:[{id:10,empresa_id:1,cargo_id:2,nome:'João'}],
+      funcionario_obras:[{id:11,funcionario_id:10,obra_id:7,inicio:'2026-01-01'}],
+      cargo_beneficios:[{id:12,cargo_id:2,beneficio_id:3,valor_centavos:0}],
+      funcionario_beneficios:[{id:13,funcionario_id:10,beneficio_id:3}],
+      folhas_pagamento:[{id:14,empresa_id:1,competencia:'2026-10'}],
+      folha_lancamentos:[{id:15,folha_id:14,funcionario_id:10,tipo:'salario'}],
+      pagamentos_funcionario:[{id:16,funcionario_id:10,folha_id:14,competencia:'2026-10',valor_centavos:1}],
+      pontos_mensais:[{id:17,funcionario_id:10,competencia:'2026-10'}],
+      ponto_marcacoes:[{id:18,ponto_mensal_id:17,data:'2026-10-01'}],
+      funcionario_epis:[{id:19,funcionario_id:10,epi_id:4,data_entrega:'2026-10-01'}]
+    }
+    const database:any={
+      list(table:string){return [...(data[table]||[])].map((row:any)=>({...row}))},
+      db:{prepare(sql:string){return {
+        all(...params:any[]){
+          if(sql.startsWith('PRAGMA table_info(empresas)'))return [{name:'id'},{name:'deleted_at'}]
+          if(sql.startsWith('SELECT id FROM empresas'))return data.empresas.map((row:any)=>({id:row.id}))
+          if(sql.includes('FROM funcionarios WHERE cargo_id='))return data.funcionarios.filter((row:any)=>row.cargo_id===Number(params[0])).map((row:any)=>({empresa_id:row.empresa_id}))
+          if(sql.includes('FROM funcionario_beneficios'))return [{empresa_id:1}]
+          if(sql.includes('FROM funcionario_epis fe'))return [{empresa_id:1}]
+          if(sql.includes('FROM funcionarios WHERE id='))return data.funcionarios.filter((row:any)=>row.id===Number(params[0])).map((row:any)=>({empresa_id:row.empresa_id}))
+          if(sql.includes('FROM folhas_pagamento WHERE id='))return data.folhas_pagamento.filter((row:any)=>row.id===Number(params[0])).map((row:any)=>({empresa_id:row.empresa_id}))
+          if(sql.includes('FROM pontos_mensais p'))return [{empresa_id:1}]
+          return []
+        },
+        get(){return undefined},run(){return {changes:1}}
+      }}
+    }}
+    const service=new ModuleMigrationService({database,storage:{state:()=>({mode:'server',operationalMode:'lan-host'})},moduleStorage:{},lanClient:{},backup:{}})
+    const exported=service.exportModule('rh')
+    for(const rows of Object.values(exported.records) as any[])for(const row of rows as any[])expect(row.empresa_id).toBe(1)
+  })
+
 })
