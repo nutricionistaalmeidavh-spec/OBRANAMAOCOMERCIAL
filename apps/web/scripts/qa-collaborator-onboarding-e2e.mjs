@@ -90,6 +90,7 @@ try{
   await adminPage.locator('[data-screen="settings"]').first().click();
   await adminPage.locator('#adminGovernanceCard').waitFor({state:'visible',timeout:7000});
   await adminPage.locator('#governancePermissionsBtn').click();
+  await adminPage.locator('#addGovMember').click();
   await adminPage.locator('#govMemberEmail').fill(member.email);
   await adminPage.locator('#govMemberRole').selectOption('employee');
   await adminPage.locator('#govMemberEmployee').selectOption('emp-1');
@@ -165,9 +166,9 @@ try{
   await desktopPage.getByLabel('Crie sua senha (mínimo 8 caracteres)').fill('senha-qa-123');
   await desktopPage.getByRole('button',{name:'Ativar meu acesso'}).click();
   await desktopPage.getByRole('heading',{name:'Conectar ao computador principal'}).waitFor({state:'visible'});
-  await desktopPage.getByText('servidor local').waitFor({state:'visible'});
+  await desktopPage.getByText('Fonte da empresa: computador principal da empresa',{exact:true}).waitFor({state:'visible'});
   await desktopPage.screenshot({path:path.join(outDir,'03-member-desktop-canonical-server.png'),fullPage:true});
-  await desktopPage.getByRole('button',{name:'Encontrar e conectar automaticamente'}).click();
+  await desktopPage.getByRole('button',{name:'Encontrar computador principal'}).click();
   await desktopPage.getByRole('heading',{name:'Entre na sua empresa'}).waitFor({state:'visible'});
   const desktopCalls=await desktopPage.evaluate(()=>window.__onboardingCalls||[]);
   const passwordCall=desktopCalls.find(item=>item.name==='online.passwordAuth')?.payload;

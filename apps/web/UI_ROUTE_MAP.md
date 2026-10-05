@@ -51,7 +51,7 @@ O `field.js` possui quatro abas persistentes no rodapé:
 | ID interno | Rótulo | Renderer | Status visual |
 |---|---|---|---|
 | `today` | Dias | `renderDay()` | Premium |
-| `obra360` | Obra360 | `renderObra360()` | Premium v2 |
+| `obra360` | Obra | `renderObra360()` | Premium v2 |
 | `team` | Equipe | `renderTeam()` | Premium v2 |
 | `management` | Gestão | `renderManagement()` | Premium |
 

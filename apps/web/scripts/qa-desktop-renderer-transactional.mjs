@@ -82,15 +82,15 @@ try{
   const desktopAccess=teamDialog.locator('[data-team-channel="desktop"]');if(!await desktopAccess.isChecked())await desktopAccess.check();
   await teamDialog.getByRole('button',{name:'Salvar e gerar convite'}).click();
   await page.getByText(/Código de convite: NEWQA001/).waitFor({state:'visible'});
-  const syncCard=page.locator('#sync-settings');await syncCard.waitFor({state:'visible'});await syncCard.getByText('Sincronização desktop ↔ online').waitFor({state:'visible'});await syncCard.getByText('2 envio(s) pendente(s) · 1 conflito(s)').waitFor({state:'visible'});
+  const syncCard=page.locator('#sync-settings');await syncCard.waitFor({state:'visible'});await syncCard.getByText('Sincronização da obra').waitFor({state:'visible'});await syncCard.getByText('2 alteração(ões) aguardando envio · 1 conflito(s)').waitFor({state:'visible'});
   await page.screenshot({path:path.join(outDir,'01-electron-settings-sync.png'),fullPage:true});
 
   await page.getByRole('button',{name:'Testar conexão'}).click();await page.getByText('Conexão online ativa — Empresa QA.').waitFor({state:'visible'});
   await syncCard.getByLabel('Empresa local').selectOption('1');await syncCard.getByLabel('Obra local').selectOption('10');await syncCard.getByRole('button',{name:'Conferir vínculo e ativar'}).click();
   const publishDialog=page.getByRole('dialog',{name:'Confirmar publicação desta obra'});await publishDialog.waitFor({state:'visible'});await publishDialog.getByRole('button',{name:'Confirmar'}).click();await syncCard.getByText('Vínculo de sincronização configurado.').waitFor({state:'visible'});
 
-  await syncCard.getByRole('button',{name:'Sincronizar agora'}).click();await syncCard.getByText('Tentativa concluída. Confira as pendências abaixo.').waitFor({state:'visible'});await syncCard.getByText('0 envio(s) pendente(s) · 1 conflito(s)').waitFor({state:'visible'});
-  await syncCard.getByRole('button',{name:'Usar dados online'}).click();const conflictDialog=page.getByRole('dialog',{name:'Resolver divergência'});await conflictDialog.waitFor({state:'visible'});await conflictDialog.getByRole('button',{name:'Confirmar'}).click();await syncCard.getByText('Conflito revisado. Acompanhe a próxima sincronização.').waitFor({state:'visible'});await syncCard.getByText('0 envio(s) pendente(s) · 0 conflito(s)').waitFor({state:'visible'});
+  await syncCard.getByRole('button',{name:'Sincronizar agora'}).click();await syncCard.getByText('Tentativa concluída. Confira as pendências abaixo.').waitFor({state:'visible'});await syncCard.getByText('0 alteração(ões) aguardando envio · 1 conflito(s)').waitFor({state:'visible'});
+  await syncCard.getByRole('button',{name:'Usar versão do Obra360'}).click();const conflictDialog=page.getByRole('dialog',{name:'Resolver divergência'});await conflictDialog.waitFor({state:'visible'});await conflictDialog.getByRole('button',{name:'Confirmar'}).click();await syncCard.getByText('Conflito revisado. Acompanhe a próxima sincronização.').waitFor({state:'visible'});await syncCard.getByText('0 alteração(ões) aguardando envio · 0 conflito(s)').waitFor({state:'visible'});
   await page.screenshot({path:path.join(outDir,'02-electron-sync-reconciled.png'),fullPage:true});
 
   const calls=await page.evaluate(()=>window.__desktopQaCalls||[]);
