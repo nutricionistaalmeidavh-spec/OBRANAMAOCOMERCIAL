@@ -52,8 +52,9 @@ describe('DocumentService central admission generation',()=>{
 
     expect(result.generated).toHaveLength(1)
     expect(result.generated[0]).toMatchObject({id:41,storage:'central',registeredInCentralDatabase:true})
-    expect(fileService.registerCentralFile).toHaveBeenCalledTimes(1)
+    expect(fileService.registerCentralFile).toHaveBeenCalledTimes(2)
     expect(fileService.registerCentralFile).toHaveBeenCalledWith(expect.any(String),expect.objectContaining({empresa_id:1,obra_id:9,funcionario_id:7,categoria:'ordem_servico'}))
+    expect(fileService.registerCentralFile).toHaveBeenCalledWith(expect.any(String),expect.objectContaining({empresa_id:1,obra_id:9,funcionario_id:7,categoria:'dossie_admissao'}))
     expect(localDb.get).not.toHaveBeenCalled()
   })
 })
