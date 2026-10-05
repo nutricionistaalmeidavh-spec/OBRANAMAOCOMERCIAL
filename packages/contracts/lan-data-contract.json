@@ -30,14 +30,12 @@
     },
     "planning": {
       "tables": [
-        "fontes_documentais",
         "etapas_obra",
         "cronograma_etapas",
         "itens_orcamentarios",
         "medicoes",
         "medicao_itens",
-        "medicao_mapa_itens",
-        "medicao_anexos"
+        "medicao_mapa_itens"
       ]
     },
     "finance": {
@@ -53,9 +51,7 @@
         "recebimentos_materiais",
         "movimentacoes_estoque",
         "contratos_obra",
-        "contrato_aditivos",
-        "contrato_anexos",
-        "pedido_compra_anexos"
+        "contrato_aditivos"
       ]
     },
     "rh": {
@@ -78,10 +74,15 @@
     },
     "documents": {
       "tables": [
+        "fontes_documentais",
         "arquivos",
         "documentos",
+        "medicao_anexos",
+        "contrato_anexos",
+        "pedido_compra_anexos",
         "documentos_editaveis",
-        "modelos_documento_rh"
+        "modelos_documento_rh",
+        "empresa_documentos_admissionais"
       ]
     }
   },
@@ -116,6 +117,7 @@
     "operation": 2,
     "planning": 2,
     "finance": 2,
-    "rh": 1
+    "rh": 2,
+    "documents": 1
   }
 }
