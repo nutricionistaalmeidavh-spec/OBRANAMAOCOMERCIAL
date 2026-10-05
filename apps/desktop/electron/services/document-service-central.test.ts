@@ -46,7 +46,7 @@ describe('DocumentService central admission generation',()=>{
     }
     const moduleStorage={state:(module:string)=>({state:['rh','documents','core'].includes(module)?'central-active':'central-active'})}
     const service=new DocumentService({db:localDb,fileService,dialog:null,dataAccess,moduleStorage})
-    service.printHtml=vi.fn(writePdf)
+    service.printHtml=vi.fn(async(_html:string,destination:string)=>writePdf(destination))
 
     const result=await service.generate({funcionario_id:7,selected:['ordem_servico']})
 
