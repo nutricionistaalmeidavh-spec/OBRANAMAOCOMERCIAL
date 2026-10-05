@@ -1,4 +1,4 @@
-const { LanDataClient, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES } = require('./lan-data-client.cjs')
+const { LanDataClient, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES, DOCUMENT_REMOTE_TABLES } = require('./lan-data-client.cjs')
 const { StorageConnectionService } = require('./storage-connection-service.cjs')
 const { LanCredentialService } = require('./lan-credential-service.cjs')
 
@@ -53,6 +53,7 @@ class DataAccessService {
     if (PLANNING_REMOTE_TABLES.has(table)) return 'planning'
     if (FINANCE_REMOTE_TABLES.has(table)) return 'finance'
     if (RH_REMOTE_TABLES.has(table)) return 'rh'
+    if (DOCUMENT_REMOTE_TABLES.has(table)) return 'documents'
     return null
   }
 
@@ -71,7 +72,7 @@ class DataAccessService {
     const route = this.route(table)
     if (route === 'blocked') {
       const module = this.moduleForTable(table)
-      const label = module === 'core' ? 'Cadastros-base' : module === 'planning' ? 'Planejamento' : module === 'finance' ? 'Financeiro' : module === 'rh' ? 'RH' : 'RDO/operação'
+      const label = module === 'core' ? 'Cadastros-base' : module === 'planning' ? 'Planejamento' : module === 'finance' ? 'Financeiro' : module === 'rh' ? 'RH' : module === 'documents' ? 'Documentos' : 'RDO/operação'
       throw new Error(`O módulo ${label} central ainda não está ativo; nenhum dado será salvo localmente como fallback.`)
     }
     return route
