@@ -90,6 +90,7 @@ try{
   await adminPage.locator('[data-screen="settings"]').first().click();
   await adminPage.locator('#adminGovernanceCard').waitFor({state:'visible',timeout:7000});
   await adminPage.locator('#governancePermissionsBtn').click();
+  await adminPage.locator('#addGovMember').click();
   await adminPage.locator('#govMemberEmail').fill(member.email);
   await adminPage.locator('#govMemberRole').selectOption('employee');
   await adminPage.locator('#govMemberEmployee').selectOption('emp-1');
