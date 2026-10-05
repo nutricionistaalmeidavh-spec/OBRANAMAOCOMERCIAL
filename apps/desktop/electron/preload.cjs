@@ -119,6 +119,11 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     passwordAuth: (input) => call('online:password-auth', input),
     passwordSetup: (input) => call('online:password-setup', input),
     syncState: () => call('online:sync-state'),
+    onSyncStateChanged: (listener) => {
+      const handler = (_event, state) => listener(state)
+      ipcRenderer.on('online:sync-state-changed', handler)
+      return () => ipcRenderer.removeListener('online:sync-state-changed', handler)
+    },
     configureSync: (scope) => call('online:sync-configure', scope),
     syncNow: () => call('online:sync-now'),
     resolveLocalConflict: (id, resolution) => call('online:sync-resolve-local', { id, resolution }),
