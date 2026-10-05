@@ -231,9 +231,6 @@ async function refreshModuleCapabilitiesSafe() {
 async function configureStorage(payload) {
   const previous = services.storage.state()
   const requestedOperational = payload.operationalMode || (payload.mode === 'server' ? 'lan-client' : 'local')
-  if (requestedOperational === 'local' && previous.operationalMode !== 'local' && services.online.deviceToken?.()) {
-    await services.online.setCompanyStorageTopology({ mode: 'local-single' })
-  }
   if (previous.operationalMode === 'lan-host' && requestedOperational !== 'lan-host') await services.lanHost.stop()
   const state = services.storage.configure(payload)
   if (state.operationalMode === 'lan-host') {
