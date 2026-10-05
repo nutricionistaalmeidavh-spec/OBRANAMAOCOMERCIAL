@@ -66,7 +66,6 @@ export class CentralBackupService {
     this.dataDir=dataDir
     this.migrationsDir=migrationsDir
     this.filesDir=filesDir ? path.resolve(filesDir) : path.join(dataDir,'files')
-    fs.mkdirSync(this.filesDir,{recursive:true})
     this.databasePath=databasePath || path.join(dataDir,'obra-na-mao-lan.sqlite')
     this.serverVersion=String(serverVersion || '')
     this.expectedSchemaVersion=expectedSchemaVersion === null ? null : Number(expectedSchemaVersion)
