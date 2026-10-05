@@ -1,3 +1,23 @@
+ALTER TABLE empresas ADD COLUMN politica_recibos TEXT;
+ALTER TABLE funcionarios ADD COLUMN cor TEXT;
+ALTER TABLE funcionarios ADD COLUMN deficiencia TEXT;
+ALTER TABLE funcionarios ADD COLUMN ctps_uf TEXT;
+ALTER TABLE funcionarios ADD COLUMN ctps_expedicao TEXT;
+ALTER TABLE funcionarios ADD COLUMN cnh_categoria TEXT;
+ALTER TABLE funcionarios ADD COLUMN titulo_eleitor_zona TEXT;
+ALTER TABLE funcionarios ADD COLUMN titulo_eleitor_secao TEXT;
+ALTER TABLE funcionarios ADD COLUMN reservista_categoria TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_logradouro TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_numero TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_complemento TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_bairro TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_cidade TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_uf TEXT;
+ALTER TABLE funcionarios ADD COLUMN matricula_esocial TEXT;
+ALTER TABLE funcionarios ADD COLUMN fgts_optante INTEGER;
+ALTER TABLE funcionarios ADD COLUMN fgts_opcao_em TEXT;
+ALTER TABLE funcionarios ADD COLUMN beneficiarios TEXT;
+
 CREATE TABLE IF NOT EXISTS fontes_documentais (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   tipo TEXT NOT NULL,
