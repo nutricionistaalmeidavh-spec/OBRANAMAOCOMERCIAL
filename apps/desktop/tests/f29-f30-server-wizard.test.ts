@@ -20,7 +20,7 @@ describe('F29/F30 server setup and assisted migration',()=>{
   })
 
   it('orchestrates mandatory migration order through the existing migration API only',()=>{
-    expect(source).toContain("const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh']")
+    expect(source).toContain("const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh','documents']")
     expect(source).toContain('centralizeAll')
     expect(source).toContain('migrationPreflight')
     expect(source).toContain('migrateModule')
