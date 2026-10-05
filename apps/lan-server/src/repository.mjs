@@ -46,7 +46,10 @@ const TABLE_FIELDS = {
     'telefone', 'email', 'endereco', 'cep', 'departamento', 'admissao', 'salario_centavos', 'status',
     'banco', 'agencia', 'conta_bancaria', 'pix', 'matricula', 'jornada_inicio', 'jornada_fim',
     'intervalo_inicio', 'intervalo_fim', 'experiencia_dias', 'experiencia_fim', 'vale_transporte_opcao',
-    'vale_transporte_detalhes', 'observacoes'
+    'vale_transporte_detalhes', 'cor', 'deficiencia', 'ctps_uf', 'ctps_expedicao', 'cnh_categoria',
+    'titulo_eleitor_zona', 'titulo_eleitor_secao', 'reservista_categoria', 'endereco_logradouro',
+    'endereco_numero', 'endereco_complemento', 'endereco_bairro', 'endereco_cidade', 'endereco_uf',
+    'matricula_esocial', 'fgts_optante', 'fgts_opcao_em', 'beneficiarios', 'observacoes'
   ]),
   funcionario_obras: new Set(['empresa_id', 'funcionario_id', 'obra_id', 'inicio', 'fim', 'observacoes']),
   cargo_beneficios: new Set(['empresa_id', 'cargo_id', 'beneficio_id', 'valor_centavos', 'quinzena', 'natureza', 'ativo']),
