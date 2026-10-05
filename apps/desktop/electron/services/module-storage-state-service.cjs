@@ -1,6 +1,14 @@
 const MODULES = new Set(['core', 'operation', 'planning', 'finance', 'rh'])
 const STATES = new Set(['local', 'central-ready', 'central-active', 'migration-required'])
 const KEY_PREFIX = 'module_storage_state_'
+const PARITY_VERSION = 2
+const PARITY_PREFIX = 'module_storage_parity_version_'
+const PARITY_TABLES = Object.freeze({
+  operation: ['locais_obra','subfrentes_obra','checklist_frente_itens'],
+  planning: ['fontes_documentais','medicoes','medicao_itens','medicao_mapa_itens'],
+  finance: ['solicitacoes_compra','cotacoes_compra','pedidos_compra','pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos'],
+  rh: ['arquivos','documentos','rdo_anexos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh']
+})
 const MODULE_DEPENDENCIES = Object.freeze({
   core: [],
   operation: ['core'],
@@ -60,6 +68,26 @@ class ModuleStorageStateService {
     const state = this.storage.state()
     return state.operationalMode || (state.mode === 'server' ? 'lan-client' : 'local')
   }
+  parityVersion(moduleName) {
+    const module = this.assertModule(moduleName)
+    if (module === 'core') return PARITY_VERSION
+    const raw = this.database.db.prepare('SELECT valor FROM configuracoes WHERE chave=?').get(`${PARITY_PREFIX}${module}`)?.valor
+    return Number(raw || 0)
+  }
+
+  markParityCurrent(moduleName) {
+    const module = this.assertModule(moduleName)
+    if (module === 'core') return PARITY_VERSION
+    this.database.db.prepare('INSERT INTO configuracoes(chave,valor,updated_at) VALUES(?,?,CURRENT_TIMESTAMP) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor,updated_at=CURRENT_TIMESTAMP')
+      .run(`${PARITY_PREFIX}${module}`, String(PARITY_VERSION))
+    return PARITY_VERSION
+  }
+
+  parityPendingCount(moduleName) {
+    const module = this.assertModule(moduleName)
+    return (PARITY_TABLES[module] || []).reduce((total, table) => total + this.countActive(table), 0)
+  }
+
 
   tableColumns(table) {
     return new Set(this.database.db.prepare(`PRAGMA table_info(${table})`).all().map(column => column.name))
@@ -168,6 +196,21 @@ class ModuleStorageStateService {
 
     const persisted = this.read(module)
     if (persisted === 'migration-required') return { ...details, state: persisted }
+
+    // Existing installations may already have the original five modules marked
+    // central-active. If this release finds records in tables added by the full
+    // parity expansion, require one idempotent supplemental migration. The LAN
+    // migration layer reuses previous source mappings, so old records are not
+    // duplicated.
+    if (persisted === 'central-active' && this.parityVersion(module) < PARITY_VERSION) {
+      const parityPending = this.parityPendingCount(module)
+      if (parityPending > 0) {
+        this.write(module, 'migration-required')
+        return { ...details, parityPending, state: 'migration-required' }
+      }
+      this.markParityCurrent(module)
+    }
+
     if (localRecords > 0 && persisted !== 'central-active') {
       this.write(module, 'migration-required')
       return { ...details, state: 'migration-required' }
@@ -195,6 +238,7 @@ class ModuleStorageStateService {
     const dependencyBlockedBy = this.dependencyBlockedBy(module)
     if (dependencyBlockedBy) throw new Error(`O módulo ${dependencyBlockedBy} precisa estar central antes de ${module}.`)
     this.write(module, 'central-active')
+    this.markParityCurrent(module)
     return this.state(module)
   }
 
