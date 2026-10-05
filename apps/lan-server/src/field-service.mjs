@@ -44,8 +44,7 @@ export class FieldService {
         if (task) this.repository.save('tarefas_obra', task)
       }
 
-      for (const row of rdoChildRows(anexos, rdo.id, data.frente_id, 'anexos')) this.repository.save('rdo_anexos', row))
-      }
+      for (const row of rdoChildRows(anexos, rdo.id, data.frente_id, 'anexos')) this.repository.save('rdo_anexos', row)
 
       const revision = payload.id
         ? this.concurrency.bump('rdos', rdo.id)
