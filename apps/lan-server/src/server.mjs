@@ -140,14 +140,16 @@ function sendBytes(response, status, buffer, file = {}) {
 }
 
 function authorizeDocumentAction(context, action) {
-  try {
-    authorizeAction(context, { domain:'operation', action })
-    return
-  } catch (operationError) {
-    const modules = Array.isArray(context?.member?.modules) ? context.member.modules.map(String) : []
-    if (!modules.includes('rh')) throw operationError
-    authorizeAction(context, { domain:'rh', action })
+  let lastError = null
+  for (const domain of ['operation','planning','finance','rh']) {
+    try {
+      authorizeAction(context, { domain, action })
+      return
+    } catch (error) {
+      lastError = error
+    }
   }
+  throw lastError || new LanAuthorizationError('Sem permissão para arquivos compartilhados.', 403, 'forbidden')
 }
 
 async function readJson(request) {
