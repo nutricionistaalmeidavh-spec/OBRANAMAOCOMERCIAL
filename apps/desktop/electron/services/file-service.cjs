@@ -254,7 +254,7 @@ class FileService {
   async deleteDocument({ id, deletePhysical = false }) {
     if(this.documentRoute()==='remote'){
       if(!this.lanClient)throw new Error('Storage documental central indisponível.')
-      await this.lanClient.deleteDocument(Number(id))
+      await this.lanClient.deleteDocument(Number(id),{deletePhysical})
       return true
     }
     const document = this.db.get('documentos', id)
