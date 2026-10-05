@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, ChevronDown, Circle, LoaderCircle, RefreshCw, RotateCcw, Search, Server, ShieldCheck, Unplug, Wifi } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useReducer, useState } from 'react'
 import { useAsync } from '../hooks/useAsync'
 import { Button, Card, Confirm, Field, Status } from './ui'
 
@@ -9,6 +9,36 @@ type Form={operationalMode:Mode;host:string;port:string}
 type ModuleKey='core'|'operation'|'planning'|'finance'|'rh'
 type SetupStage='idle'|'saving'|'checking'|'authorizing'|'backup'|'migrating'|'validating'|'waiting'|'ready'|'error'
 type SetupProgress={stage:SetupStage;completed:number;total:number;current?:ModuleKey;message:string;error?:string}
+
+type SetupUiState={
+  busy:boolean
+  discovering:boolean
+  rollbackTarget:ModuleKey|null
+  restoreTarget:string|null
+  progress:SetupProgress
+}
+type SetupUiAction=
+  |{type:'busy';value:boolean}
+  |{type:'discovering';value:boolean}
+  |{type:'rollback-target';value:ModuleKey|null}
+  |{type:'restore-target';value:string|null}
+  |{type:'progress';value:SetupProgress|((current:SetupProgress)=>SetupProgress)}
+
+const initialSetupUiState:SetupUiState={
+  busy:false,
+  discovering:false,
+  rollbackTarget:null,
+  restoreTarget:null,
+  progress:{stage:'idle',completed:0,total:MODULE_ORDER.length,message:''},
+}
+function setupUiReducer(state:SetupUiState,action:SetupUiAction):SetupUiState{
+  if(action.type==='busy')return{...state,busy:action.value}
+  if(action.type==='discovering')return{...state,discovering:action.value}
+  if(action.type==='rollback-target')return{...state,rollbackTarget:action.value}
+  if(action.type==='restore-target')return{...state,restoreTarget:action.value}
+  const progress=typeof action.value==='function'?action.value(state.progress):action.value
+  return{...state,progress}
+}
 
 const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh']
 const MODULE_LABELS:Record<ModuleKey,string>={core:'Cadastros-base',operation:'RDO / operação',planning:'Planejamento',finance:'Financeiro',rh:'RH'}
@@ -36,11 +66,13 @@ export default function StorageServerSettings({onMessage}:Props){
   const [manualAddress,setManualAddress]=useState('')
   const [manualProbe,setManualProbe]=useState<any>(null)
   const [discoveredServers,setDiscoveredServers]=useState<any[]>([])
-  const [discovering,setDiscovering]=useState(false)
-  const [busy,setBusy]=useState(false)
-  const [rollbackTarget,setRollbackTarget]=useState<ModuleKey|null>(null)
-  const [restoreTarget,setRestoreTarget]=useState<string|null>(null)
-  const [progress,setProgress]=useState<SetupProgress>({stage:'idle',completed:0,total:MODULE_ORDER.length,message:''})
+  const [setupUi,dispatchSetupUi]=useReducer(setupUiReducer,initialSetupUiState)
+  const {busy,discovering,rollbackTarget,restoreTarget,progress}=setupUi
+  const setBusy=(value:boolean)=>dispatchSetupUi({type:'busy',value})
+  const setDiscovering=(value:boolean)=>dispatchSetupUi({type:'discovering',value})
+  const setRollbackTarget=(value:ModuleKey|null)=>dispatchSetupUi({type:'rollback-target',value})
+  const setRestoreTarget=(value:string|null)=>dispatchSetupUi({type:'restore-target',value})
+  const setProgress=(value:SetupProgress|((current:SetupProgress)=>SetupProgress))=>dispatchSetupUi({type:'progress',value})
 
   useEffect(()=>{
     if(!storage.data)return
