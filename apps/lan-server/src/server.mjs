@@ -506,7 +506,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (!documents?.deleteDocument) return sendJson(response, 503, { error:'documents_unavailable', message:'Storage documental central indisponível.' })
         const context = await authenticateLanRequest(request, security)
         authorizeAction(context, { domain:'documents', action:'delete' })
-        return sendJson(response, 200, { ok:documents.deleteDocument(Number(documentDeleteMatch[1])) })
+        return sendJson(response, 200, { ok:documents.deleteDocument(Number(documentDeleteMatch[1]),{deletePhysical:url.searchParams.get('delete_physical')==='1'}) })
       }
 
       if (url.pathname === '/api/v1/field/rdo') {
