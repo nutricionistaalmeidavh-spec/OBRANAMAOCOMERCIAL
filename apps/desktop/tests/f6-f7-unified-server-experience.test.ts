@@ -9,7 +9,8 @@ describe('Fase 6/7 — experiência única e recovery do servidor',()=>{
     for(const text of [
       'Encontrar computador principal',
       'Usar este computador',
-      'Autorizar este computador',
+      'Código de pareamento',
+      'pareando este computador',
       'Computador conectado',
     ]) expect(source).toContain(text)
   })
