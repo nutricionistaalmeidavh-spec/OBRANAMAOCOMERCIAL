@@ -46,7 +46,7 @@ test('persistencia central cobre empresas, clientes e obras com relacionamentos'
 test('repository rejeita tabelas e campos fora do contrato e respeita FKs', () => {
   const repository = new LanRepository({ filename: ':memory:' })
   try {
-    assert.throws(() => repository.list('documentos'), /Entidade não disponível/)
+    assert.throws(() => repository.list('entidade_inexistente'), /Entidade não disponível/)
     assert.throws(() => repository.save('empresas', { campo_inexistente: 'x' }), /Nenhum dado válido/)
     assert.throws(() => repository.save('clientes', { empresa_id: 999, nome: 'Órfão' }), /empresa não encontrado|referência|constraint|foreign/i)
   } finally {
