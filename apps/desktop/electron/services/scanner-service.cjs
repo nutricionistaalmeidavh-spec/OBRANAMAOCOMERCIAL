@@ -149,11 +149,13 @@ try {
 }
 
 class ScannerService {
-  constructor({ db, fileService, dataDir, platform = process.platform, acquirePage = null }) {
+  constructor({ db, fileService, dataDir, platform = process.platform, acquirePage = null, dataAccess = null, moduleStorage = null }) {
     this.db = db
     this.fileService = fileService
     this.dataDir = dataDir
     this.platform = platform
+    this.dataAccess = dataAccess
+    this.moduleStorage = moduleStorage
     this.sessions = new Map()
     this.busy = false
     this.disposed = false
@@ -333,9 +335,39 @@ class ScannerService {
     return this.runOperation(session, (signal) => this.persistSigned(session, documentId, replace, signal))
   }
 
+  documentsCentral() {
+    return this.moduleStorage?.state?.('documents')?.state === 'central-active'
+  }
+
+  async persistCentralSigned(session, documentId, replace, signal) {
+    if (!this.dataAccess || !this.fileService?.registerCentralFile) throw new Error('Fonte documental central indisponível para o scanner.')
+    const original=await this.dataAccess.get('documentos',Number(documentId))
+    if (!original || original.deleted_at || original.status_assinatura === 'assinado' || !original.arquivo_id || !original.funcionario_id) throw new Error('Documento de funcionário inválido para digitalização.')
+    const existing=(await this.dataAccess.list('documentos',{documento_origem_id:Number(original.id),status_assinatura:'assinado'})||[])
+      .filter(item=>!item.deleted_at).sort((a,b)=>Number(b.versao||0)-Number(a.versao||0)||Number(b.id)-Number(a.id))
+    if(existing.length&&!replace) return {conflict:true,path:`server://document/${existing[0].id}`,existingDocumentId:existing[0].id}
+    const version=Math.max(0,...existing.map(item=>Number(item.versao||0)))+1
+    const destination=path.join(this.cacheDir,`signed-${Number(original.id)}-${crypto.randomUUID()}.pdf`)
+    try{
+      await this.makePdf(session,destination)
+      this.assertActive(signal)
+      const document=await this.fileService.registerCentralFile(destination,{
+        empresa_id:original.empresa_id,obra_id:original.obra_id||null,frente_id:original.frente_id||null,funcionario_id:original.funcionario_id,
+        categoria:original.categoria,titulo:original.titulo,status_assinatura:'assinado',documento_origem_id:original.id,versao:version,
+        observacoes:'Versão assinada digitalizada pelo scanner no Obra na Mão.'
+      })
+      session.cancelled=true
+      try{this.clearSession(session)}catch(error){console.error('Não foi possível limpar a sessão salva.',error)}
+      return {conflict:false,path:document.path,document}
+    }finally{
+      try{fs.rmSync(destination,{force:true})}catch{}
+    }
+  }
+
   async persistSigned(session, documentId, replace, signal) {
     if (!Number.isSafeInteger(documentId) || documentId <= 0 || typeof replace !== 'boolean') throw new Error('Parâmetros de salvamento inválidos.')
     if (!session.pages.length) throw new Error('Nenhuma página foi digitalizada.')
+    if (this.documentsCentral()) return this.persistCentralSigned(session,documentId,replace,signal)
     const original = this.db.get('documentos', documentId)
     if (!original || original.deleted_at || original.status_assinatura === 'assinado' || !original.arquivo_id || !original.funcionario_id) throw new Error('Documento de funcionário inválido para digitalização.')
     const originalFile = this.db.get('arquivos', original.arquivo_id)
