@@ -19,7 +19,7 @@ describe('obras no modo servidor', () => {
     expect(source).toContain("disabled={!selectedId||!moduleActive('operation')}")
     expect(source).toContain("disabled={!selectedId||!moduleActive('planning')}")
     expect(source).toContain("disabled={!selectedId||!moduleActive('core')}")
-    expect(source).toContain('nenhum card é bloqueado apenas por estar em modo servidor')
+    expect(source).toContain('As áreas disponíveis abaixo usam os dados compartilhados da empresa')
   })
 
   it('mantém importação de planilhas local bloqueada no modo servidor', () => {
