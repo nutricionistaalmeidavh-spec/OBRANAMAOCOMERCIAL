@@ -11,13 +11,13 @@ const source=`${page}\n${storage}`
 
 describe('configuração de dados e servidor',()=>{
   it('preserva local/LAN e oficializa remote sem remover o padrão local',()=>{
-    for(const text of ['Dados e servidor','Somente neste computador','Este computador é o principal / servidor local','Conectar a um servidor da empresa','Servidor remoto próprio / VPS'])expect(source).toContain(text)
+    for(const text of ['Como sua empresa usa o Obra na Mão?','Somente neste computador — uso individual','Vários computadores — este é o computador principal','Vários computadores — conectar a esta empresa','Acesso remoto avançado — servidor próprio'])expect(source).toContain(text)
     expect(source).toContain('window.fluxoDre.storage.state()')
     expect(source).toContain('window.fluxoDre.storage.configure')
   })
 
   it('preserva discovery LAN, conexão manual, remote seguro e reconnect sem expor credenciais',()=>{
-    for(const text of ['Encontrar servidor automaticamente','Procurar na rede','Endereço do servidor','Testar conexão','Reconectar servidor','HTTP público é bloqueado','https://servidor.seudominio.com','10.66.0.1:4732'])expect(source).toContain(text)
+    for(const text of ['Encontrar a empresa nesta rede','Encontrar computador principal','Endereço do computador principal','Verificar endereço','Reconectar','HTTP público é bloqueado','https://servidor.seudominio.com','10.66.0.1:4732'])expect(source).toContain(text)
     expect(source).toContain('window.fluxoDre.storage.discoverServers()')
     expect(source).toContain('window.fluxoDre.storage.probeAddress')
     expect(source).toContain('window.fluxoDre.storage.connectAddress')
@@ -27,9 +27,9 @@ describe('configuração de dados e servidor',()=>{
   })
 
   it('mantém a garantia explícita de ausência de fallback local silencioso',()=>{
-    expect(storage).toContain('Sem fallback silencioso')
-    expect(storage).toContain('a configuração anterior é preservada')
-    expect(storage).toContain('não troca para SQLite local automaticamente')
+    expect(storage).toContain('Se a conexão falhar, seus dados ficam protegidos')
+    expect(storage).toContain('preserva a configuração atual')
+    expect(storage).toContain('não troca de fonte de dados sozinho')
     expect(storage).not.toContain("host:effectiveHost||'127.0.0.1'")
   })
 
@@ -40,7 +40,7 @@ describe('configuração de dados e servidor',()=>{
     expect(storage).toContain('centralizeAll')
     expect(storage).toContain('migrationPreflight')
     expect(storage).toContain('migrateModule')
-    expect(storage).toContain('Configurar servidor e migrar dados')
+    expect(storage).toContain('Configurar uso compartilhado')
     expect(storage).toContain('central-active')
     expect(storage).not.toContain('Migrar para servidor')
   })
@@ -55,7 +55,7 @@ describe('configuração de dados e servidor',()=>{
   })
 
   it('mantém a máquina de estados e recovery nos detalhes técnicos',()=>{
-    expect(storage).toContain('Detalhes técnicos')
+    expect(storage).toContain('Avançado e diagnóstico')
     expect(storage).toContain('storage-module-list')
     expect(storage).toContain('storage-progress-panel')
     expect(storage).toContain('<progress')
@@ -92,7 +92,7 @@ describe('configuração de dados e servidor',()=>{
   })
 
   it('mantém Web/PWA independente da fonte operacional',()=>{
-    expect(source).toContain('Web/PWA continua incluído')
-    expect(source).toContain('login, PWA e sincronização online')
+    expect(source).toContain('Acesso Web/PWA continua disponível')
+    expect(source).toContain('onde ficam os dados operacionais do Desktop')
   })
 })
