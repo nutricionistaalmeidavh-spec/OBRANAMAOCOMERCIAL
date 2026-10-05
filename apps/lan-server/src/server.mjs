@@ -13,11 +13,11 @@ import { RevisionConflictError } from './concurrency-service.mjs'
 import { createVersionedRepository } from './versioned-repository.mjs'
 
 export const LAN_API_VERSION = '1'
-export const LAN_SERVER_VERSION = '0.3.0'
+export const LAN_SERVER_VERSION = '0.4.0'
 
 const MAX_BODY_BYTES = 1024 * 1024
 const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
-const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|frentes_obra|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|fornecedores|categorias_financeiras|contas|pagamentos_conta|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis)(?:\/(\d+))?\/?$/
+const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|locais_obra|fontes_documentais|frentes_obra|subfrentes_obra|checklist_frente_itens|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|medicoes|medicao_itens|medicao_mapa_itens|medicao_anexos|fornecedores|categorias_financeiras|contas|pagamentos_conta|solicitacoes_compra|cotacoes_compra|pedidos_compra|pedido_compra_itens|recebimentos_materiais|movimentacoes_estoque|contratos_obra|contrato_aditivos|contrato_anexos|pedido_compra_anexos|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis|arquivos|documentos|documentos_editaveis|modelos_documento_rh)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
 const FINANCE_PAYMENT_ROUTE = /^\/api\/v1\/finance\/accounts\/(\d+)\/payment\/?$/
 const MIGRATION_ROUTE = /^\/api\/v1\/migrations\/([^/]+)\/(record|status|validate|commit|rollback)\/?$/
@@ -53,7 +53,7 @@ const SERVER_CAPABILITIES = Object.freeze({
   version:1,
   modules:['core','operation','planning','finance','rh','summary'],
   bridgeEntities:['frentes_obra','tarefas_obra','rdos','cronograma_etapas'],
-  features:['optimistic-concurrency-v1']
+  features:['optimistic-concurrency-v1','full-local-parity-v1']
 })
 
 function publicServerCapabilities(versionedRepository) {
