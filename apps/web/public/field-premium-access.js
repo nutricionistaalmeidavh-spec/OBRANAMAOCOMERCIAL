@@ -128,8 +128,7 @@
     enhanceAccountSheet();
   }
 
-  document.addEventListener('field:rendered',enhance);
-  document.addEventListener('field:sheet-rendered',enhanceAccountSheet);
+  window.fieldLifecycle?.register({screen:enhance,sheet:enhanceAccountSheet});
   enhance();
 })();
 
