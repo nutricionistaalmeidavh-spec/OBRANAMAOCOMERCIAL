@@ -1,4 +1,4 @@
-const { rdoChildRows, rdoOccurrenceTask } = require('@obranamao/domain-core')
+const { rdoChildRows, rdoOccurrenceTask } = require('./domain-core.cjs')
 
 class FieldService {
   constructor({ db }) { this.db = db }
