@@ -1,5 +1,5 @@
 import { Copy, ExternalLink, FilePlus, FolderOpen, LocateFixed, ScanLine, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button, Card, Confirm, Empty, Field, Loading, Modal, PageHeader, SearchInput, Segmented, Status } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
 import { canScanDocument, DocumentScannerModal, FileExplorer } from '../modules/file-explorer'
@@ -23,6 +23,10 @@ export default function DocumentsPage() {
   const works = useAsync(() => window.fluxoDre.obras.list(), [])
   const fronts = useAsync(() => work ? window.fluxoDre.frentes.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
   const scannerCapabilities = useAsync<ScannerCapabilities | null>(() => window.fluxoDre.scanner.capabilities().catch(() => null), [])
+  const storage = useAsync(() => window.fluxoDre.storage.state(), [])
+  const rhStorage = useAsync(() => window.fluxoDre.storage.moduleState('rh'), [])
+  const sharedCentral = storage.data?.mode === 'server' && rhStorage.data?.state === 'central-active'
+  useEffect(() => { if (sharedCentral && view !== 'registros') setView('registros') }, [sharedCentral, view])
   const rows = useMemo(() => docs.data?.filter((doc: any) => {
     const tabOk = tab === 'todos' || doc.status_assinatura === tab || doc.categoria === tab
     const searchOk = doc.titulo.toLowerCase().includes(search.toLowerCase()) || doc.categoria.toLowerCase().includes(search.toLowerCase())
