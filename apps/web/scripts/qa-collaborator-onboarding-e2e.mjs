@@ -90,16 +90,18 @@ try{
   await adminPage.locator('[data-screen="settings"]').first().click();
   await adminPage.locator('#adminGovernanceCard').waitFor({state:'visible',timeout:7000});
   await adminPage.locator('#governancePermissionsBtn').click();
+  await adminPage.screenshot({path:path.join(outDir,'01-admin-equipe-acessos.png'),fullPage:true});
   await adminPage.locator('#govMemberEmail').fill(member.email);
   await adminPage.locator('#govMemberRole').selectOption('employee');
   await adminPage.locator('#govMemberEmployee').selectOption('emp-1');
   const desktopChannel=adminPage.locator('[data-gov-channel="desktop"]');
   if(!await desktopChannel.isChecked())await desktopChannel.check();
+  await adminPage.screenshot({path:path.join(outDir,'02-admin-colaborador-preenchido.png'),fullPage:true});
   await adminPage.locator('#saveGovMemberBtn').click();
   await adminPage.getByText(member.email).waitFor({state:'visible'});
   await adminPage.getByText(new RegExp(inviteCode)).waitFor({state:'visible'});
   if(!inviteCreated||!member.channels.includes('desktop')||member.desktopStorage.serverId!==serverId)throw new Error('Admin did not create a Desktop invitation bound to the canonical company server.');
-  await adminPage.screenshot({path:path.join(outDir,'01-admin-created-invite.png'),fullPage:true});
+  await adminPage.screenshot({path:path.join(outDir,'03-admin-convite-gerado.png'),fullPage:true});
   await adminPage.locator('#sheet .close').click();
 
   // B. The invited collaborator claims the same invitation in Web/PWA.
@@ -125,13 +127,15 @@ try{
 
   await memberPage.goto(`${webBase}/obra.html#obra`,{waitUntil:'domcontentloaded'});
   await memberPage.getByRole('heading',{name:'Como você deseja começar?'}).waitFor({state:'visible'});
+  await memberPage.screenshot({path:path.join(outDir,'04-pwa-escolha-primeiro-acesso.png'),fullPage:true});
   await memberPage.getByLabel('Código de convite').fill(inviteCode);
+  await memberPage.screenshot({path:path.join(outDir,'05-pwa-convite-preenchido.png'),fullPage:true});
   await memberPage.getByRole('button',{name:'Ativar meu acesso'}).click();
   await memberPage.getByRole('heading',{name:'Olá, João QA'}).waitFor({state:'visible'});
   await memberPage.getByText('QA onboarding',{exact:true}).waitFor({state:'visible'});
   if(commercialActivationTouched)throw new Error('Member invitation incorrectly touched commercial activation.');
   if(!memberRequests.some(item=>item.pathname==='/api/access/claim'&&item.body.code===inviteCode))throw new Error('PWA did not claim the member invitation.');
-  await memberPage.screenshot({path:path.join(outDir,'02-member-pwa-claimed.png'),fullPage:true});
+  await memberPage.screenshot({path:path.join(outDir,'06-pwa-acesso-ativado.png'),fullPage:true});
 
   // C/F. The exact same invitation path is accepted directly by Desktop,
   // inherits the canonical LAN server, completes storage, and Google remains available.
@@ -159,14 +163,25 @@ try{
 
   await desktopPage.goto(desktopBase,{waitUntil:'domcontentloaded'});
   await desktopPage.getByRole('heading',{name:'Entre na sua empresa'}).waitFor({state:'visible'});
+  await desktopPage.screenshot({path:path.join(outDir,'07-desktop-maquina-nova.png'),fullPage:true});
+  await desktopPage.getByRole('button',{name:'Ativar uma nova empresa'}).click();
+  await desktopPage.getByRole('heading',{name:'Ativar uma nova empresa'}).waitFor({state:'visible'});
+  await desktopPage.screenshot({path:path.join(outDir,'08-desktop-ativar-nova-empresa.png'),fullPage:true});
+  await desktopPage.getByRole('button',{name:'Já tenho acesso'}).click();
   await desktopPage.getByRole('button',{name:'Recebi um convite de uma empresa'}).click();
+  await desktopPage.getByRole('heading',{name:'Entrar em uma empresa existente'}).waitFor({state:'visible'});
+  await desktopPage.screenshot({path:path.join(outDir,'09-desktop-convite-vazio.png'),fullPage:true});
   await desktopPage.getByLabel('E-mail').fill(member.email);
   await desktopPage.getByLabel('Código de convite').fill(inviteCode);
   await desktopPage.getByLabel('Crie sua senha (mínimo 8 caracteres)').fill('senha-qa-123');
+  await desktopPage.screenshot({path:path.join(outDir,'10-desktop-convite-preenchido.png'),fullPage:true});
   await desktopPage.getByRole('button',{name:'Ativar meu acesso'}).click();
   await desktopPage.getByRole('heading',{name:'Conectar ao computador principal'}).waitFor({state:'visible'});
   await desktopPage.getByText('servidor local').waitFor({state:'visible'});
-  await desktopPage.screenshot({path:path.join(outDir,'03-member-desktop-canonical-server.png'),fullPage:true});
+  await desktopPage.screenshot({path:path.join(outDir,'11-desktop-conectar-computador-principal.png'),fullPage:true});
+  await desktopPage.getByLabel('Endereço do servidor (opcional)').fill('http://192.168.1.10:4732');
+  await desktopPage.screenshot({path:path.join(outDir,'12-desktop-endereco-manual-opcional.png'),fullPage:true});
+  await desktopPage.getByLabel('Endereço do servidor (opcional)').fill('');
   await desktopPage.getByRole('button',{name:'Encontrar e conectar automaticamente'}).click();
   await desktopPage.getByRole('heading',{name:'Entre na sua empresa'}).waitFor({state:'visible'});
   const desktopCalls=await desktopPage.evaluate(()=>window.__onboardingCalls||[]);
@@ -188,7 +203,7 @@ try{
   await memberPage.reload({waitUntil:'domcontentloaded'});
   await memberPage.getByRole('heading',{name:'Como você deseja começar?'}).waitFor({state:'visible'});
   if(await memberPage.getByRole('heading',{name:'Olá, João QA'}).count())throw new Error('Revoked member still rendered the operational PWA.');
-  await adminPage.screenshot({path:path.join(outDir,'04-admin-revoked-member.png'),fullPage:true});
+  await adminPage.screenshot({path:path.join(outDir,'13-admin-colaborador-revogado.png'),fullPage:true});
 
   const report={
     schemaVersion:1,status:'passed',generatedAt:new Date().toISOString(),
@@ -201,7 +216,7 @@ try{
     expectedServerId:serverId,
     googleAuthPreserved:afterGoogle.some(item=>item.name==='online.start'),
     canonicalRevocationCutsPwa:memberRevoked,
-    screenshots:['01-admin-created-invite.png','02-member-pwa-claimed.png','03-member-desktop-canonical-server.png','04-admin-revoked-member.png'],
+    screenshots:['01-admin-equipe-acessos.png','02-admin-colaborador-preenchido.png','03-admin-convite-gerado.png','04-pwa-escolha-primeiro-acesso.png','05-pwa-convite-preenchido.png','06-pwa-acesso-ativado.png','07-desktop-maquina-nova.png','08-desktop-ativar-nova-empresa.png','09-desktop-convite-vazio.png','10-desktop-convite-preenchido.png','11-desktop-conectar-computador-principal.png','12-desktop-endereco-manual-opcional.png','13-admin-colaborador-revogado.png'],
     adminRequests,memberRequests,desktopCalls:afterGoogle
   };
   await fs.writeFile(path.join(outDir,'report.json'),JSON.stringify(report,null,2)+'\n','utf8');
