@@ -11,6 +11,22 @@ class TestD1 {
 
   constructor() {
     this.db.exec(readFileSync(migrationPath, 'utf8'));
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS lan_device_enrollments (
+        id TEXT PRIMARY KEY,
+        token_hash TEXT NOT NULL UNIQUE,
+        server_id TEXT NOT NULL,
+        company_id TEXT NOT NULL,
+        member_id TEXT NOT NULL,
+        cloud_device_id TEXT NOT NULL,
+        installation_id TEXT NOT NULL,
+        device_name TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        consumed_at TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_lan_device_enrollments_token_hash ON lan_device_enrollments(token_hash);
+    `);
   }
 
   prepare(sql: string) {
@@ -109,5 +125,41 @@ describe('LAN server authority persistence', () => {
 
     await authority.revokeLanServerGrant({ serverId: 'server-live', companyId: 'company-a' });
     expect(await authority.authenticateLanServer(redeemed.serverToken)).toBeNull();
+  });
+
+
+  it('issues a one-use device enrollment bound to company, member, server and installation', async () => {
+    const db = new TestD1();
+    const now = Date.parse('2026-10-05T18:00:00.000Z');
+    const authority = createLanServerAuthority({ db: db as any, nowMs: () => now });
+
+    const claim = await authority.createLanClaim({
+      companyId:'company-a', serverId:'server-a', issuedByDeviceId:'admin-device', issuedByMemberId:'admin-member'
+    });
+    const grant = await authority.redeemLanClaim({ serverId:'server-a', claimToken:claim.claimToken });
+
+    const enrollment = await authority.createDeviceEnrollment({
+      companyId:'company-a', serverId:'server-a', memberId:'member-a',
+      cloudDeviceId:'cloud-device-a', installationId:'install-a', deviceName:'PC João'
+    });
+    expect(enrollment.enrollmentToken).toMatch(/^[a-f0-9]{64}$/);
+    const stored = db.db.prepare('SELECT token_hash,consumed_at FROM lan_device_enrollments').get() as any;
+    expect(stored.token_hash).not.toBe(enrollment.enrollmentToken);
+    expect(stored.consumed_at).toBeNull();
+
+    await expect(authority.redeemDeviceEnrollment({
+      serverToken:grant.serverToken, serverId:'server-a', enrollmentToken:enrollment.enrollmentToken, installationId:'install-other'
+    })).rejects.toThrow(/instalação/i);
+
+    const redeemed = await authority.redeemDeviceEnrollment({
+      serverToken:grant.serverToken, serverId:'server-a', enrollmentToken:enrollment.enrollmentToken, installationId:'install-a'
+    });
+    expect(redeemed).toMatchObject({
+      companyId:'company-a', serverId:'server-a', memberId:'member-a',
+      cloudDeviceId:'cloud-device-a', installationId:'install-a', deviceName:'PC João'
+    });
+    await expect(authority.redeemDeviceEnrollment({
+      serverToken:grant.serverToken, serverId:'server-a', enrollmentToken:enrollment.enrollmentToken, installationId:'install-a'
+    })).rejects.toThrow(/utiliz|inválid|expir/i);
   });
 });
