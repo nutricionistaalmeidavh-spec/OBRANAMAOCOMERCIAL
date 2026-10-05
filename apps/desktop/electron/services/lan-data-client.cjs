@@ -110,7 +110,7 @@ class LanDataClient {
   }
 
   async downloadFile(id) {
-    return this.requestBytes('GET', `/api/v1/files/${Number(id)}/content`)
+    return this.requestBytes('GET', `/api/v1/documents/files/${Number(id)}/content`)
   }
 
   async deleteDocument(id) {
