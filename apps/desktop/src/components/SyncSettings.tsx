@@ -58,6 +58,7 @@ export default function SyncSettings() {
       <h3>Sincronização da obra</h3>
       <p>Escolha qual obra deste computador deve continuar disponível também no Obra360. As demais obras permanecem separadas.</p>
       <p><strong>Celular e Desktop trabalham sobre a mesma obra.</strong> Depois do vínculo, as alterações são conciliadas automaticamente quando houver conexão.</p>
+      <details><summary>Como funciona entre computadores</summary><p><strong>Web/PWA continua incluído</strong> e não depende de este computador ser o coordenador da sincronização.</p></details>
       {lanClient && <p role="status"><strong>A sincronização central é responsabilidade do PC principal.</strong> Este computador continua usando os dados do servidor da empresa e acompanha o estado online, mas não executa push/pull central diretamente.</p>}
       <div className="form-grid">
         <Field label="Empresa local"><select value={companyId} disabled={busy || lanClient} onChange={event => { setCompanyId(event.target.value); setWorkId('') }}><option value="">Selecione...</option>{companies.data?.map(item => <option key={item.id} value={item.id}>{item.razao_social || item.nome_fantasia}</option>)}</select></Field>
