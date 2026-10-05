@@ -1,0 +1,48 @@
+{
+  "name": "Obra na Mão Comercial Desktop — auditoria RH atual",
+  "steps": [
+    {"name":"shell-ready","action":"waitFor","selector":".artisys-desktop-shell","timeoutMs":20000},
+    {"name":"abrir-configuracoes","action":"click","selector":"a[href='#/configuracoes']"},
+    {"name":"abrir-configuracoes-sistema","action":"click","selector":"a[href='#/configuracoes/sistema']"},
+    {"name":"abrir-ferramentas-suporte","action":"click","text":"Ferramentas de suporte"},
+    {"name":"carregar-dados-demo","action":"click","text":"Carregar demo"},
+    {"name":"demo-estavel","action":"waitForTimeout","timeoutMs":700},
+    {"name":"ir-rh","action":"click","selector":"a[href='#/rh']"},
+    {"name":"rh-estavel","action":"waitForTimeout","timeoutMs":350},
+    {"name":"01-rh-hub","action":"screenshot","selector":"body"},
+
+    {"name":"ir-cadastro-jornada","action":"click","text":"1. Cadastro","exact":true},
+    {"name":"cadastro-estavel","action":"waitForTimeout","timeoutMs":350},
+    {"name":"02-registro-funcionario","action":"screenshot","selector":"body"},
+    {"name":"voltar-rh-cadastro","action":"click","selector":"a[href='#/rh']"},
+
+    {"name":"ir-rh-funcionarios","action":"click","selector":".rh-card-link[href='#/rh/funcionarios']"},
+    {"name":"funcionarios-estavel","action":"waitForTimeout","timeoutMs":350},
+    {"name":"03-funcionarios","action":"screenshot","selector":"body"},
+    {"name":"voltar-rh-funcionarios","action":"click","selector":"a[href='#/rh']"},
+
+    {"name":"ir-rh-remuneracao","action":"click","selector":".rh-card-link[href='#/rh/remuneracao']"},
+    {"name":"remuneracao-estavel","action":"waitForTimeout","timeoutMs":350},
+    {"name":"04-remuneracao","action":"screenshot","selector":"body"},
+    {"name":"voltar-rh-remuneracao","action":"click","selector":"a[href='#/rh']"},
+
+    {"name":"ir-rh-folha","action":"click","selector":".rh-card-link[href='#/rh/folha']"},
+    {"name":"folha-estavel","action":"waitForTimeout","timeoutMs":350},
+    {"name":"05-folha","action":"screenshot","selector":"body"},
+    {"name":"voltar-rh-folha","action":"click","selector":"a[href='#/rh']"},
+
+    {"name":"ir-rh-ponto","action":"click","selector":".rh-card-link[href='#/rh/ponto']"},
+    {"name":"ponto-estavel","action":"waitForTimeout","timeoutMs":350},
+    {"name":"06-ponto","action":"screenshot","selector":"body"},
+    {"name":"voltar-rh-ponto","action":"click","selector":"a[href='#/rh']"},
+
+    {"name":"ir-rh-modelos","action":"click","selector":".rh-card-link[href='#/rh/modelos']"},
+    {"name":"modelos-estavel","action":"waitForTimeout","timeoutMs":350},
+    {"name":"07-modelos","action":"screenshot","selector":"body"},
+    {"name":"voltar-rh-modelos","action":"click","selector":"a[href='#/rh']"},
+
+    {"name":"ir-conferencia-jornada","action":"click","text":"5. Conferência","exact":true},
+    {"name":"conferencia-estavel","action":"waitForTimeout","timeoutMs":350},
+    {"name":"08-conferencia-documentos","action":"screenshot","selector":"body"}
+  ]
+}
