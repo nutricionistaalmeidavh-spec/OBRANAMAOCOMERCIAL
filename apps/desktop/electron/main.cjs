@@ -115,7 +115,14 @@ function createServices() {
   const product = new ProductService({ db })
   const uiPreferences = new UiPreferencesService({ db })
   const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
-  const sync = new SyncCoordinator({ database: db, online, dataProvider: syncDataProvider })
+  const sync = new SyncCoordinator({
+    database: db,
+    online,
+    dataProvider: syncDataProvider,
+    onStateChanged: state => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('online:sync-state-changed', state)
+    }
+  })
   const lanHost = new LanHostService({
     storage,
     dataDir: paths.dataDir,
