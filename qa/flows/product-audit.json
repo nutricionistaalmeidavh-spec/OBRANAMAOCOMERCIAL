@@ -296,7 +296,7 @@
     {
       "name": "ir-rh-funcionarios",
       "action": "click",
-      "selector": "a[href='#/rh/funcionarios']"
+      "selector": ".rh-card-link[href='#/rh/funcionarios']"
     },
     {
       "name": "rh-funcionarios-estavel",
@@ -316,7 +316,7 @@
     {
       "name": "ir-rh-admissoes",
       "action": "click",
-      "selector": "a[href='#/rh/admissoes']"
+      "selector": ".rh-card-link[href='#/rh/admissoes']"
     },
     {
       "name": "rh-admissoes-estavel",
@@ -336,7 +336,7 @@
     {
       "name": "ir-rh-remuneracao",
       "action": "click",
-      "selector": "a[href='#/rh/remuneracao']"
+      "selector": ".rh-card-link[href='#/rh/remuneracao']"
     },
     {
       "name": "rh-remuneracao-estavel",
@@ -356,7 +356,7 @@
     {
       "name": "ir-rh-folha",
       "action": "click",
-      "selector": "a[href='#/rh/folha']"
+      "selector": ".rh-card-link[href='#/rh/folha']"
     },
     {
       "name": "rh-folha-estavel",
@@ -376,7 +376,7 @@
     {
       "name": "ir-rh-ponto",
       "action": "click",
-      "selector": "a[href='#/rh/ponto']"
+      "selector": ".rh-card-link[href='#/rh/ponto']"
     },
     {
       "name": "rh-ponto-estavel",
@@ -396,7 +396,7 @@
     {
       "name": "ir-rh-modelos",
       "action": "click",
-      "selector": "a[href='#/rh/modelos']"
+      "selector": ".rh-card-link[href='#/rh/modelos']"
     },
     {
       "name": "rh-modelos-estavel",
