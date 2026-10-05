@@ -64,7 +64,6 @@ class DataAccessService {
 
     const moduleState = this.moduleStorage?.state?.(module)?.state
     if (moduleState === 'central-active') return 'remote'
-    if (moduleState === 'migration-required' || moduleState === 'local') return 'local'
     return 'blocked'
   }
 
