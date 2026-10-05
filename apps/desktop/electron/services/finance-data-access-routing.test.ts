@@ -20,10 +20,10 @@ describe('DataAccessService finance routing', () => {
     expect(f.db.list).not.toHaveBeenCalled()
   })
 
-  it('migration-required mantém financeiro legado no SQLite local', async () => {
+  it('migration-required bloqueia financeiro em modo Server sem fallback SQLite', async () => {
     const f = fixture('migration-required')
-    await expect(f.service.list('contas', { empresa_id: 7 })).resolves.toEqual([{ id: 1, source: 'local' }])
-    expect(f.db.list).toHaveBeenCalledWith('contas', { empresa_id: 7 })
+    await expect(f.service.list('contas', { empresa_id: 7 })).rejects.toThrow(/Financeiro|central|fallback/i)
+    expect(f.db.list).not.toHaveBeenCalled()
     expect(f.remote.list).not.toHaveBeenCalled()
   })
 
