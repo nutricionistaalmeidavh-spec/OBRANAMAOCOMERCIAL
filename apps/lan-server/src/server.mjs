@@ -16,9 +16,10 @@ import { RevisionConflictError } from './concurrency-service.mjs'
 import { createVersionedRepository } from './versioned-repository.mjs'
 
 export const LAN_API_VERSION = '1'
-export const LAN_SERVER_VERSION = '0.3.0'
+export const LAN_SERVER_VERSION = '0.4.0'
 
 const MAX_BODY_BYTES = 1024 * 1024
+const MAX_DOCUMENT_BODY_BYTES = 36 * 1024 * 1024
 const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
 const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|locais_obra|frentes_obra|subfrentes_obra|checklist_frente_itens|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|medicoes|medicao_itens|medicao_mapa_itens|fornecedores|categorias_financeiras|contas|pagamentos_conta|solicitacoes_compra|cotacoes_compra|pedidos_compra|pedido_compra_itens|recebimentos_materiais|movimentacoes_estoque|contratos_obra|contrato_aditivos|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
@@ -39,6 +40,12 @@ function sendJson(response, status, body, extraHeaders = {}) {
   response.end(payload)
 }
 
+function sendBytes(response,status,bytes,{contentType='application/octet-stream',fileName='arquivo'}={}){
+  const safe=String(fileName||'arquivo').replace(/[\r\n"]/g,'_')
+  response.writeHead(status,{'content-type':contentType,'content-length':bytes.length,'content-disposition':`inline; filename="${safe}"`,'cache-control':'private, no-store'})
+  response.end(bytes)
+}
+
 function methodNotAllowed(response, allow) {
   return sendJson(response, 405, { error: 'method_not_allowed' }, { allow: allow.join(', ') })
 }
@@ -54,10 +61,10 @@ function publicCentralBackup(result = {}) {
 
 const SERVER_CAPABILITIES = Object.freeze({
   version:1,
-  modules:['core','operation','planning','finance','rh','summary'],
-  moduleContractVersions:{core:1,operation:2,planning:2,finance:2,rh:1},
+  modules:['core','operation','planning','finance','rh','documents','summary'],
+  moduleContractVersions:{core:1,operation:2,planning:2,finance:2,rh:1,documents:1},
   bridgeEntities:['frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra'],
-  features:['optimistic-concurrency-v1','phase2-5-parity-v1']
+  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1']
 })
 
 function publicServerCapabilities(versionedRepository) {
@@ -111,12 +118,12 @@ function syncSourceScope(url) {
   }
 }
 
-async function readJson(request) {
+async function readJson(request, maxBytes = MAX_BODY_BYTES) {
   const chunks = []
   let total = 0
   for await (const chunk of request) {
     total += chunk.length
-    if (total > MAX_BODY_BYTES) {
+    if (total > maxBytes) {
       const error = new Error('Corpo da requisição excede 1 MB.')
       error.code = 'payload_too_large'
       throw error
@@ -283,7 +290,7 @@ async function authorizeRh(request, security, action = 'edit') {
   return context
 }
 
-export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, measurementService = null, procurementService = null, contractsService = null, payrollService = null, timeService = null, compensationPolicyService = null, migrationService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
+export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, measurementService = null, procurementService = null, contractsService = null, payrollService = null, timeService = null, compensationPolicyService = null, migrationService = null, documentStorageService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const versionedRepository = createVersionedRepository(repository)
   const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
@@ -296,7 +303,8 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
   const compensationPolicy = compensationPolicyService || (versionedRepository ? new CompensationPolicyService({ repository }) : null)
-  const migration = migrationService || (repository ? new MigrationService({ repository, security }) : null)
+  const migration = migrationService || (repository ? new MigrationService({ repository, security, fileStorage:documentStorageService }) : null)
+  const documents = documentStorageService
   const centralStorage = centralBackupService
   const backupOperations = backupOperationsService
   return http.createServer(async (request, response) => {
@@ -471,6 +479,32 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const scope = syncSourceScope(url)
         if (!scope.deviceId || !scope.remoteProjectId) throw new Error('Escopo remoto da obrigação financeira não informado.')
         return sendJson(response, 200, finance.syncObligations(scope))
+      }
+
+      if (url.pathname === '/api/v1/documents/upload') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!documents?.store) return sendJson(response, 503, { error:'documents_unavailable', message:'Storage documental central indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'documents', action:'create' })
+        return sendJson(response, 201, documents.store(await readJson(request, MAX_DOCUMENT_BODY_BYTES)))
+      }
+
+      const fileContentMatch = url.pathname.match(FILE_CONTENT_ROUTE)
+      if (fileContentMatch) {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!documents?.read) return sendJson(response, 503, { error:'documents_unavailable', message:'Storage documental central indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'documents', action:'view' })
+        const item=documents.read(Number(fileContentMatch[1]))
+        return sendBytes(response,200,item.bytes,{contentType:item.file.mime_type||'application/octet-stream',fileName:item.file.nome_original||item.file.nome_armazenado})
+      }
+
+      const documentDeleteMatch = url.pathname.match(DOCUMENT_DELETE_ROUTE)
+      if (documentDeleteMatch && request.method === 'DELETE') {
+        if (!documents?.deleteDocument) return sendJson(response, 503, { error:'documents_unavailable', message:'Storage documental central indisponível.' })
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'documents', action:'delete' })
+        return sendJson(response, 200, { ok:documents.deleteDocument(Number(documentDeleteMatch[1])) })
       }
 
       if (url.pathname === '/api/v1/field/rdo') {
@@ -669,7 +703,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         }
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         requireAdminContext(actor)
-        if (action === 'record') return sendJson(response, 201, migration.importRecord(migrationId, await readJson(request), actor))
+        if (action === 'record') return sendJson(response, 201, migration.importRecord(migrationId, await readJson(request, MAX_DOCUMENT_BODY_BYTES), actor))
         if (action === 'validate') return sendJson(response, 200, migration.validate(migrationId, actor))
         if (action === 'commit') return sendJson(response, 200, migration.commit(migrationId, actor))
         if (action === 'rollback') return sendJson(response, 200, migration.rollback(migrationId, actor))
