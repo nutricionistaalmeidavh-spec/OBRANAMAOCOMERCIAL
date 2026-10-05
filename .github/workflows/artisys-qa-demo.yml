@@ -79,10 +79,9 @@ jobs:
       - name: Install pinned ArtiSys QA runtime
         run: npm install --prefix qa/runtime --no-audit --no-fund
 
-      - name: Verify visual capture dependencies
-        run: |
-          command -v ffmpeg
-          command -v xvfb-run
+      - name: Install minimal visual capture dependencies
+        timeout-minutes: 5
+        run: sudo apt-get install -y --no-install-recommends ffmpeg xvfb
 
       - name: Prepare isolated demo data
         shell: bash
