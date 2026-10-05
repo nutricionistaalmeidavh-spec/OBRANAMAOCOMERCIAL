@@ -36,7 +36,7 @@ describe('configuração de dados e servidor',()=>{
   it('orquestra todos os módulos automaticamente pela API de migração existente',()=>{
     expect(preload).toContain("call('storage:module-state'")
     expect(main).toContain("ipcMain.handle('storage:module-state'")
-    expect(storage).toContain("const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh']")
+    expect(storage).toContain("const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh','documents']")
     expect(storage).toContain('centralizeAll')
     expect(storage).toContain('migrationPreflight')
     expect(storage).toContain('migrateModule')
