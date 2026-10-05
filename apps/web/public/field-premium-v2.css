@@ -139,3 +139,14 @@ dialog#sheet:has(.premium-sheet){padding:0;border:0;background:transparent;box-s
   .internal-hero{min-height:154px;padding:22px 66px 21px 18px;gap:12px}.internal-hero-glyph{width:44px;height:44px;border-radius:14px;font-size:19px}.internal-hero-copy h1{font-size:27px}.internal-hero-copy p{max-width:220px;font-size:11px}.internal-back{width:42px;height:42px;top:13px;right:13px}
   .premium-sheet{border-radius:24px 24px 0 0!important}.premium-sheet .sheet-head{padding:20px 54px 16px 18px}.premium-sheet .sheet-head h2{font-size:20px}
 }
+
+
+/* Obra360 continuity: domain-first bridge and human conflict comparison */
+.bridge-domain-section{display:grid;gap:10px}
+.bridge-origin{margin-top:4px;opacity:.72}
+.conflict-diff{display:grid;gap:6px;margin-top:12px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.conflict-diff-head,.conflict-diff-row{display:grid;grid-template-columns:minmax(90px,.8fr) minmax(0,1fr) minmax(0,1fr);gap:8px;padding:9px 10px;align-items:start}
+.conflict-diff-head{background:var(--soft);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.conflict-diff-row{border-top:1px solid var(--line);font-size:12px}
+.conflict-diff-row span{overflow-wrap:anywhere}
+@media(max-width:520px){.conflict-diff-head,.conflict-diff-row{grid-template-columns:1fr}.conflict-diff-head span:first-child{display:none}.conflict-diff-row strong{padding-bottom:3px}.conflict-diff-row span::before{display:block;font-size:10px;font-weight:700;text-transform:uppercase;opacity:.62}.conflict-diff-row span:nth-child(2)::before{content:'Obra360'}.conflict-diff-row span:nth-child(3)::before{content:'Computador'}}
