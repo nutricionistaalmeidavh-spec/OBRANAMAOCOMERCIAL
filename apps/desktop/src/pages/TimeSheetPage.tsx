@@ -42,7 +42,7 @@ export default function TimeSheetPage(){
         <div><h2 style={{margin:'0 0 5px',fontSize:15}}>Documentos da competência</h2><p style={{margin:0,maxWidth:700}}>Gere os documentos do colaborador selecionado ou abra o lote mensal para gerar, imprimir ou reimprimir todos.</p></div>
         <div className="row-actions" style={{gap:8,flexWrap:'wrap'}}>
           <Button variant="secondary" icon={<UsersRound size={16}/>} onClick={()=>setBatchOpen((value)=>!value)} disabled={busy}>Gerar e imprimir todos</Button>
-          <Button icon={<FileDown size={15}/>} onClick={generate} disabled={busy||!employee||!marks.length}>Gerar documentos</Button>
+          <Button icon={<FileDown size={15}/>} onClick={generate} disabled={busy||!employee||!marks.length}>Gerar deste funcionário</Button>
         </div>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10,marginTop:14}}>
