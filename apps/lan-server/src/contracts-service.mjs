@@ -82,8 +82,10 @@ export class ContractsService {
     }
   }
 
+  create(payload = {}) { return this.saveContract(payload) }
+
   addendum(payload = {}) {
-    const { requestId, ...data } = payload
+    const { requestId, expectedContractRevision, ...data } = payload
     const key = keyOf(requestId)
     const replay = this.db.prepare('SELECT * FROM contrato_aditivos WHERE request_id=?').get(key)
     if (replay) return { ...replay, replayed:true }
@@ -92,6 +94,8 @@ export class ContractsService {
     try {
       const contract = this.repository.get('contratos_obra', Number(data.contrato_id))
       if (!contract || contract.deleted_at) throw new Error('Contrato não encontrado.')
+      const observedRevision = this.concurrency.current('contratos_obra', contract.id) || this.concurrency.initialize('contratos_obra', contract.id)
+      if (String(data.status || '') === 'contratado') this.concurrency.assertExpected('contratos_obra', contract.id, expectedContractRevision, { ...contract, revision:observedRevision })
       const raced = this.db.prepare('SELECT * FROM contrato_aditivos WHERE request_id=?').get(key)
       if (raced) {
         this.db.exec('COMMIT')
