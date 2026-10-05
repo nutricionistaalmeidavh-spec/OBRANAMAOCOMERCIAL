@@ -255,6 +255,17 @@ export class MigrationService {
       .get(String(migrationId), table, asText(sourceId))
     if (existing) return { sourceTable: table, sourceId, targetId: Number(existing.target_id), reused: true }
 
+    // Supplemental migrations introduced by schema expansion must not duplicate
+    // records that were already committed by an earlier migration from the
+    // same Desktop/source fingerprint.
+    const prior = this.mappingFor(migrationRow.source_fingerprint, table, sourceId, migrationRow.migration_id)
+    if (prior && this.repository.get(table, Number(prior.target_id))) {
+      this.db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_target,source_data_json,created_at) VALUES(?,?,?,?,?,?,?,?)')
+        .run(String(migrationId), table, asText(sourceId), table, Number(prior.target_id), 0, JSON.stringify(data || {}), this.now())
+      this.backfillDeferredReferences(migrationRow.source_fingerprint, table, sourceId, Number(prior.target_id))
+      return { sourceTable: table, sourceId, targetId: Number(prior.target_id), reused: true }
+    }
+
     const remapped = this.remapData(migrationRow, table, data)
     this.db.exec('BEGIN IMMEDIATE')
     try {
