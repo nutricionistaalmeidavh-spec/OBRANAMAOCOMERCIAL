@@ -41,6 +41,7 @@ it('keeps field render events owned only by the lifecycle orchestrator',()=>{
   const access=readFileSync('public/field-premium-access.js','utf8');
   const main=readFileSync('src/main.ts','utf8');
   const governance=readFileSync('src/admin-governance.ts','utf8');
+  const client=readFileSync('src/field-lifecycle-client.ts','utf8');
   expect(lifecycle.split("document.addEventListener('field:rendered'").length-1).toBe(1);
   expect(lifecycle.split("document.addEventListener('field:sheet-rendered'").length-1).toBe(1);
   for(const source of [access,main,governance]){
@@ -48,6 +49,8 @@ it('keeps field render events owned only by the lifecycle orchestrator',()=>{
     expect(source).not.toContain("document.addEventListener('field:sheet-rendered'");
   }
   expect(access).toContain('fieldLifecycle?.register');
-  expect(main).toContain('fieldLifecycle?.register');
-  expect(governance).toContain('fieldLifecycle?.register');
+  expect(main).toContain('registerFieldLifecycle');
+  expect(governance).toContain('registerFieldLifecycle');
+  expect(client).toContain("'field:lifecycle-ready'");
+  expect(client).toContain('window.fieldLifecycle.register');
 });
