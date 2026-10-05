@@ -180,7 +180,7 @@ try{
 
   // D. Revoking the canonical member cuts the PWA access without deleting/reusing the commercial license.
   await adminPage.locator('#governancePermissionsBtn').click();
-  const memberRow=adminPage.locator(`[data-member-id="${member.id}"]`);
+  const memberRow=adminPage.locator(`div.governance-member[data-member-id="${member.id}"]`);
   await memberRow.waitFor({state:'visible'});
   await memberRow.getByRole('button',{name:'Revogar acesso'}).click();
   await adminPage.getByText('Revogado').waitFor({state:'visible'});
