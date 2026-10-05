@@ -18,7 +18,11 @@ describe('canonical domain owner contract', () => {
   ]
 
   it('todos os adapters de regras extraídas consomem o mesmo domain core', () => {
-    for (const file of consumers) expect(read(file), file).toContain('@obranamao/domain-core')
+    for (const file of consumers) {
+      const source = read(file)
+      expect(source, file).toMatch(/@obranamao\/domain-core|\.\/domain-core\.cjs/)
+    }
+    expect(read('apps/lan-server/src/domain-core.cjs')).toContain('packages/domain-core/index.cjs')
   })
 
   it('não reintroduz cálculo duplicado de líquido da folha nos adapters', () => {
