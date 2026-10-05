@@ -36,6 +36,14 @@ const ROLE_PERMISSIONS:Record<Role,PermissionMatrix>={
 function roleLabel(role:Role){return role==='admin'?'Admin':role==='foreman'?'Encarregado':'Funcionário'}
 function memberStatus(member:Member){return member.status==='revoked'?'Revogado':member.userId?'Ativo':'Aguardando primeiro acesso'}
 function employeeLabel(employee:Employee){return employee.nome||employee.name||String(employee.id)}
+function normalizePermissionMatrix(value?:Record<string,string[]>|PermissionMatrix|null):PermissionMatrix{
+  const out=EMPTY()
+  if(!value)return out
+  for(const domain of Object.keys(out) as PermissionDomain[]){
+    out[domain]=(value[domain]||[]).filter((action):action is PermissionAction=>ACTIONS.includes(action as PermissionAction))
+  }
+  return out
+}
 function cleanPermissions(value:PermissionMatrix,modules:string[]):PermissionMatrix{
   const out=EMPTY(),enabled=(domain:PermissionDomain)=>domain==='core'||domain==='planning'?modules.includes('obra360'):domain==='operation'?modules.includes('obra360')||modules.includes('rdo'):domain==='finance'?modules.includes('finance')||modules.includes('dre'):modules.includes('rh')
   for(const domain of Object.keys(out) as PermissionDomain[]){
@@ -72,7 +80,14 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
         window.fluxoDre.funcionarios.list(),
         window.fluxoDre.online.companyDevices()
       ])
-      setTeam(teamData)
+      setTeam({
+        ...teamData,
+        members:teamData.members.map(member=>({
+          ...member,
+          permissions:member.permissions?normalizePermissionMatrix(member.permissions):null,
+          effectivePermissions:member.effectivePermissions?normalizePermissionMatrix(member.effectivePermissions):undefined
+        }))
+      })
       setEmployees((localEmployees||[]) as Employee[])
       setDevices(deviceData?.devices||[])
     }catch(cause){setError(cause as Error)}
@@ -98,7 +113,7 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
     setEmployeeId(member?.employeeId||'')
     setModules((member?.modules?.length?member.modules:ROLE_MODULES[nextRole]).filter(value=>availableModules.includes(value)))
     setChannels((member?.channels?.length?member.channels:ROLE_CHANNELS[nextRole]).filter(value=>availableChannels.includes(value)&&!(value==='desktop'&&desktopDisabled)))
-    setPermissions(member?.permissions||ROLE_PERMISSIONS[nextRole])
+    setPermissions(member?.permissions?normalizePermissionMatrix(member.permissions):ROLE_PERMISSIONS[nextRole])
   }
 
   const closeEditor=()=>setEditing(undefined)
