@@ -113,7 +113,7 @@
     "inferencePolicy": "Preservar empresa_id quando válido; inferir por relações canônicas quando inequívoco; usar empresa única apenas quando existir exatamente uma; bloquear registros ambíguos ou órfãos em bases multiempresa."
   },
   "moduleContractVersions": {
-    "core": 1,
+    "core": 2,
     "operation": 2,
     "planning": 2,
     "finance": 2,
