@@ -136,12 +136,26 @@ async function readJson(request) {
   }
 }
 
+const COMPOUND_MUTATION_TABLES = new Set(['medicoes','medicao_itens','pedidos_compra','pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contrato_aditivos'])
+const COMPOUND_CREATE_TABLES = new Set(['contratos_obra'])
+
+function assertCanonicalEntityMutation(table, method, id) {
+  if (method === 'GET') return
+  if (COMPOUND_MUTATION_TABLES.has(table)) {
+    throw new Error(`A alteração de ${table} deve usar a operação canônica do domínio para preservar atomicidade e idempotência.`)
+  }
+  if (method === 'POST' && id === null && COMPOUND_CREATE_TABLES.has(table)) {
+    throw new Error(`A criação de ${table} deve usar a operação canônica do domínio.`)
+  }
+}
+
 async function handleEntityRequest(request, response, url, repository, versionedRepository, match, context) {
   if (!repository) return sendJson(response, 503, { error: 'repository_unavailable', message: 'Banco central do servidor indisponível.' })
 
   const table = match[1]
   const id = match[2] ? Number(match[2]) : null
   authorizeBusinessRoute(context, { table, method: request.method })
+  assertCanonicalEntityMutation(table, request.method, id)
 
   if (id === null) {
     if (request.method === 'GET') {
