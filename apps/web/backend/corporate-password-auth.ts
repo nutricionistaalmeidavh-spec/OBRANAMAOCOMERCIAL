@@ -59,13 +59,13 @@ async function sessionUser(env:Env,request:Request){
   if(!row||row.expires_at<now())return null;return{userId:row.user_id,email:row.email,name:row.name||''};
 }
 async function stableUserId(email:string){return'pwd:'+(await sha256Hex(norm(email))).slice(0,24)}
-async function createSession(env:Env,email:string,name?:string){
+async function createSession(env:Env,email:string,name?:string,extra:Record<string,unknown>={}){
   const normalized=norm(email),userId=await stableUserId(normalized),sessionId=crypto.randomUUID().replace(/-/g,'')+crypto.randomUUID().replace(/-/g,''),stamp=now(),expiresAt=new Date(Date.now()+SESSION_TTL_MS).toISOString();
   await env.DB.prepare('INSERT INTO auth_sessions(id,user_id,email,name,expires_at,created_at) VALUES(?,?,?,?,?,?)').bind(sessionId,userId,normalized,name||'',expiresAt,stamp).run();
   const headers=new Headers({'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'same-origin'});
   headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}`);
   headers.append('set-cookie',`obn_auth=1; Path=/; Secure; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}`);
-  return new Response(JSON.stringify({ok:true,user:{userId,email:normalized,name:name||''}}),{status:200,headers});
+  return new Response(JSON.stringify({ok:true,user:{userId,email:normalized,name:name||''},...extra}),{status:200,headers});
 }
 async function consumeRateLimit(env:Env,request:Request,scope:string,limit:number,windowSeconds:number){
   const rawIp=(request.headers.get('cf-connecting-ip')||request.headers.get('x-forwarded-for')||'unknown').split(',')[0].trim(),bucket=Math.floor(Date.now()/1000/windowSeconds),key=`${scope}:${(await sha256Hex(rawIp)).slice(0,16)}`;
@@ -77,30 +77,69 @@ async function readBody(request:Request){try{return await request.json() as Reco
 async function validLicenseCode(license:License,code:string){if(license.code===code)return true;return license.code==='RESERVED'&&(await sha256Hex(code))===RESERVED_FIRST_ACCESS_HASH}
 async function login(request:Request,env:Env){
   if(!await consumeRateLimit(env,request,'auth-password',10,600))return fail('Muitas tentativas. Aguarde antes de tentar novamente.',429);
-  const body=await readBody(request),email=norm(body.email),password=String(body.password||'');if(!/^\S+@\S+\.\S+$/.test(email)||!password)return fail('E-mail ou senha inválidos.',401);
-  const record=await credential(env,email);if(!record||!await verifyPasswordRecord(password,record))return fail('E-mail ou senha inválidos.',401);
-  const access=await platformAccess(env,email);if(access?.status==='blocked')return fail('Acesso bloqueado. Procure o administrador.',403);if(access&&access.status!=='active')return fail('Primeiro acesso pendente. Use seu código de liberação.',403);
-  if(!access&&!await licenseByEmail(env,email))return fail('Acesso ainda não configurado para esta conta.',403);
+  const body=await readBody(request),email=norm(body.email),password=String(body.password||'');if(!/^\S+@\S+\.\S+$/.test(email)||!password)return fail('E-mail ou senha invÃ¡lidos.',401);
+  const record=await credential(env,email);if(!record||!await verifyPasswordRecord(password,record))return fail('E-mail ou senha invÃ¡lidos.',401);
+  const access=await platformAccess(env,email);if(access?.status==='blocked')return fail('Acesso bloqueado. Procure o administrador.',403);if(access&&access.status!=='active')return fail('Primeiro acesso pendente. Use seu cÃ³digo de liberaÃ§Ã£o.',403);
+  if(!access&&!await licenseByEmail(env,email))return fail('Acesso ainda nÃ£o configurado para esta conta.',403);
   return createSession(env,email,access?.name);
 }
+type MemberInvite={refId:string;refSnapshot:string;memberId:string;memberSnapshot:string;projectId:string;companyId:string;member:Record<string,unknown>};
+async function memberInviteByCode(env:Env,email:string,code:string):Promise<MemberInvite|null>{
+  if(!/^[A-Z0-9]{8}$/.test(code))return null;
+  const table=`invite_${safe(code)}`;
+  const refRow=await env.DB.prepare('SELECT id,record_json FROM kv_records WHERE collection=? ORDER BY updated_at DESC LIMIT 1').bind(table).first<{id:string;record_json:string}>();
+  if(!refRow?.record_json)return null;
+  let ref:Record<string,unknown>;try{ref=JSON.parse(refRow.record_json)}catch{return null}
+  const projectId=String(ref.projectId||''),companyId=String(ref.companyId||''),memberId=String(ref.projectMemberId||'');
+  if(!projectId||!companyId||!memberId||String(ref.code||'').toUpperCase()!==code)return null;
+  const memberRow=await env.DB.prepare('SELECT record_json FROM kv_records WHERE collection=? AND id=? LIMIT 1').bind(`members_${safe(projectId)}`,memberId).first<{record_json:string}>();
+  if(!memberRow?.record_json)return null;
+  let member:Record<string,unknown>;try{member=JSON.parse(memberRow.record_json)}catch{return null}
+  if(norm(String(member.email||''))!==email||String(member.joinCode||'').toUpperCase()!==code||member.userId)return null;
+  return{refId:refRow.id,refSnapshot:refRow.record_json,memberId,memberSnapshot:memberRow.record_json,projectId,companyId,member};
+}
+
 async function firstAccess(request:Request,env:Env){
   if(!await consumeRateLimit(env,request,'auth-first-access',6,900))return fail('Muitas tentativas. Aguarde antes de tentar novamente.',429);
-  const body=await readBody(request),email=norm(body.email),code=String(body.code||'').trim().toUpperCase(),password=String(body.password||'');if(!/^\S+@\S+\.\S+$/.test(email)||!code||password.length<8)return fail('Informe e-mail, código de liberação e uma senha inicial com ao menos 8 caracteres.',400);
-  if(await credential(env,email))return fail('O primeiro acesso desta conta já foi concluído. Entre com e-mail e senha.',409);
-  const access=await platformAccess(env,email);if(access?.platformRole==='superadmin')return fail('Use o método administrativo de autenticação.',403);if(access?.status==='blocked')return fail('Acesso bloqueado. Procure o administrador.',403);
-  const license=await licenseByEmail(env,email),legacyMatch=!!access?.provisionalCode&&access.provisionalCode===code,licenseMatch=!!license&&await validLicenseCode(license,code);if(!legacyMatch&&!licenseMatch)return fail('Código de liberação inválido.',401);
-  const userId=await stableUserId(email);if(license?.claimedBy&&license.claimedBy!==userId)return fail('Este código de liberação já foi utilizado.',409);
+  const body=await readBody(request),email=norm(body.email),code=String(body.code||'').trim().toUpperCase(),password=String(body.password||''),accessPurpose=String(body.accessPurpose||'').trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)||!code||password.length<8)return fail('Informe e-mail, código de liberação e uma senha inicial com ao menos 8 caracteres.',400);
+  if(accessPurpose&&!['company-activation','member-invitation'].includes(accessPurpose))return fail('Tipo de primeiro acesso inválido.',400);
+  const access=await platformAccess(env,email);
+  if(access?.platformRole==='superadmin')return fail('Use o método administrativo de autenticação.',403);
+  if(access?.status==='blocked')return fail('Acesso bloqueado. Procure o administrador.',403);
+  const [license,invite]=await Promise.all([licenseByEmail(env,email),memberInviteByCode(env,email,code)]);
+  const legacyMatch=!!access?.provisionalCode&&access.provisionalCode===code,licenseMatch=!!license&&await validLicenseCode(license,code),inviteMatch=!!invite;
+  if(!legacyMatch&&!licenseMatch&&!inviteMatch)return fail('Código de liberação inválido.',401);
+  if(accessPurpose==='company-activation'&&inviteMatch)return fail('Este código é um convite para uma empresa existente. Escolha “Recebi um convite”.',400);
+  if(accessPurpose==='member-invitation'&&!inviteMatch)return fail('Este código ativa uma nova empresa. Escolha “Ativar uma nova empresa”.',400);
+
+  const existingCredential=await credential(env,email);
+  if(existingCredential){
+    if(inviteMatch&&await verifyPasswordRecord(password,existingCredential)){
+      return createSession(env,email,String(invite!.member.name||access?.name||''),{accessPurpose:'member-invitation'});
+    }
+    return fail('O primeiro acesso desta conta já foi concluído. Entre com e-mail e senha.',409);
+  }
+
+  const userId=await stableUserId(email);
+  if(license?.claimedBy&&license.claimedBy!==userId)return fail('Este código de liberação já foi utilizado.',409);
   const record=await createPasswordRecord(password),stamp=now();
-  // D1 batch is transactional. The insert is the single winner, and every mutation
-  // is tied to its fresh salted hash. Re-read snapshots atomically to reject a code
-  // revoked, claimed or rebound while password hashing was in progress.
-  const source=licenseMatch?license!:access!;
-  const sourceCollection=licenseMatch?'licenses':'platform_accesses';
-  const statements=[env.DB.prepare(`INSERT INTO password_credentials(email,algorithm,salt,password_hash,iterations,created_at,updated_at)
-    SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM kv_records WHERE collection=? AND id=? AND record_json=?)
-    AND (? IS NULL OR EXISTS(SELECT 1 FROM kv_records WHERE collection='platform_accesses' AND id=? AND record_json=?))
-    ON CONFLICT(email) DO NOTHING`).bind(email,record.algorithm,record.salt,record.hash,record.iterations,record.createdAt,record.updatedAt,
-      sourceCollection,source.id,source.snapshot,access?.id||null,access?.id||null,access?.snapshot||null)];
+  const statements:any[]=[];
+  if(inviteMatch){
+    statements.push(env.DB.prepare(`INSERT INTO password_credentials(email,algorithm,salt,password_hash,iterations,created_at,updated_at)
+      SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM kv_records WHERE collection=? AND id=? AND record_json=?)
+      AND EXISTS(SELECT 1 FROM kv_records WHERE collection=? AND id=? AND record_json=?)
+      ON CONFLICT(email) DO NOTHING`).bind(email,record.algorithm,record.salt,record.hash,record.iterations,record.createdAt,record.updatedAt,
+        `invite_${safe(code)}`,invite!.refId,invite!.refSnapshot,`members_${safe(invite!.projectId)}`,invite!.memberId,invite!.memberSnapshot));
+  }else{
+    const source=licenseMatch?license!:access!;
+    const sourceCollection=licenseMatch?'licenses':'platform_accesses';
+    statements.push(env.DB.prepare(`INSERT INTO password_credentials(email,algorithm,salt,password_hash,iterations,created_at,updated_at)
+      SELECT ?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM kv_records WHERE collection=? AND id=? AND record_json=?)
+      AND (? IS NULL OR EXISTS(SELECT 1 FROM kv_records WHERE collection='platform_accesses' AND id=? AND record_json=?))
+      ON CONFLICT(email) DO NOTHING`).bind(email,record.algorithm,record.salt,record.hash,record.iterations,record.createdAt,record.updatedAt,
+        sourceCollection,source.id,source.snapshot,access?.id||null,access?.id||null,access?.snapshot||null));
+  }
   const winner=`EXISTS(SELECT 1 FROM password_credentials WHERE email=? AND password_hash=? AND salt=?)`;
   if(access&&legacyMatch){
     statements.push(env.DB.prepare(`UPDATE kv_records SET record_json=json_set(json_remove(record_json,'$.provisionalCode'),'$.status','active','$.claimedBy',?,'$.updatedAt',?),updated_at=?
@@ -112,12 +151,12 @@ async function firstAccess(request:Request,env:Env){
       WHERE collection='licenses' AND id=? AND ${winner}`).bind(userId,stamp,stamp,license!.id,email,record.hash,record.salt));
   }
   const results=await env.DB.batch(statements);
-  if(Number(results[0]?.meta?.changes||0)!==1)return fail('Primeiro acesso j� conclu�do ou libera��o alterada. Entre com sua senha ou consulte o administrador.',409);
-  return createSession(env,email,access?.name);
+  if(Number(results[0]?.meta?.changes||0)!==1)return fail('Primeiro acesso já concluído ou liberação alterada. Entre com sua senha ou consulte o administrador.',409);
+  return createSession(env,email,String(invite?.member.name||access?.name||''),inviteMatch?{accessPurpose:'member-invitation'}:{accessPurpose:'company-activation'});
 }
 async function changePassword(request:Request,env:Env){
-  const user=await sessionUser(env,request);if(!user)return fail('Autenticação necessária.',401);const body=await readBody(request),current=String(body.currentPassword||''),next=String(body.newPassword||'');if(next.length<8)return fail('A nova senha deve ter ao menos 8 caracteres.',400);
-  const record=await credential(env,user.email);if(!record||!await verifyPasswordRecord(current,record))return fail('Senha atual inválida.',401);await saveCredential(env,user.email,await createPasswordRecord(next));return json({ok:true});
+  const user=await sessionUser(env,request);if(!user)return fail('AutenticaÃ§Ã£o necessÃ¡ria.',401);const body=await readBody(request),current=String(body.currentPassword||''),next=String(body.newPassword||'');if(next.length<8)return fail('A nova senha deve ter ao menos 8 caracteres.',400);
+  const record=await credential(env,user.email);if(!record||!await verifyPasswordRecord(current,record))return fail('Senha atual invÃ¡lida.',401);await saveCredential(env,user.email,await createPasswordRecord(next));return json({ok:true});
 }
 
 export async function handleCorporatePasswordAuth(request:Request,env:Env):Promise<Response|null>{
