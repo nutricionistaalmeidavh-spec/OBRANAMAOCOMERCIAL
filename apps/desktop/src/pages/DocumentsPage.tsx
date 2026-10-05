@@ -6,7 +6,8 @@ import { canScanDocument, DocumentScannerModal, FileExplorer } from '../modules/
 import { brDate } from '../utils/format'
 
 export default function DocumentsPage() {
-  const [view, setView] = useState<'pastas' | 'registros'>('pastas')
+  const rhContext = new URLSearchParams(location.search).get('context') === 'rh'
+  const [view, setView] = useState<'pastas' | 'registros'>(rhContext ? 'registros' : 'pastas')
   const [tab, setTab] = useState('todos')
   const [search, setSearch] = useState('')
   const [work, setWork] = useState(new URLSearchParams(location.search).get('obra') || '')
@@ -44,7 +45,7 @@ export default function DocumentsPage() {
   }
 
   return <>
-    <PageHeader title="Central de documentos" description="Explore, organize, visualize e digitalize documentos de obra, contratos, compras e RH em um único lugar." actions={<>{!serverMode&&<Button variant="secondary" icon={<FolderOpen size={16}/>} onClick={() => window.fluxoDre.documentos.openFolder()}>Abrir pasta no Windows</Button>}{effectiveView === 'registros' && <Button icon={<FilePlus size={16}/>} disabled={!documentsActive} onClick={() => { setForm({ ...form, obra_id: work, frente_id: front }); setUpload(true) }}>Importar documento</Button>}</>}/>
+    <PageHeader title={rhContext?"Conferência de documentos de RH":"Central de documentos"} description={rhContext?"Revise, imprima e acompanhe os documentos dos colaboradores em um único lugar.":"Explore, organize, visualize e digitalize documentos de obra, contratos, compras e RH em um único lugar."} actions={<>{!serverMode&&<Button variant="secondary" icon={<FolderOpen size={16}/>} onClick={() => window.fluxoDre.documentos.openFolder()}>Abrir pasta no Windows</Button>}{effectiveView === 'registros' && <Button icon={<FilePlus size={16}/>} disabled={!documentsActive} onClick={() => { setForm({ ...form, obra_id: work, frente_id: front }); setUpload(true) }}>Importar documento</Button>}</>}/>
     {serverMode&&!documentsActive&&<div className="success-box" style={{ marginBottom: 14 }}><strong>Documentos ainda não estão ativos no servidor.</strong> Conclua a etapa Documentos em Configurações. Nenhum registro local será exibido como fallback.</div>}
     {!serverMode&&<div className="toolbar"><div className="toolbar-left"><Segmented value={view} onChange={(value) => setView(value as 'pastas' | 'registros')} options={[{ value: 'pastas', label: 'Pastas' }, { value: 'registros', label: 'Registros' }]}/></div></div>}
     {effectiveView === 'pastas' ? <FileExplorer rootId="documents" rootLabel="Documentos" documentFeatures title="Pastas de documentos" description="Navegue, visualize, organize e digitalize arquivos dentro da área documental protegida do sistema."/> : <>
