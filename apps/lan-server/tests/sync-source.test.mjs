@@ -67,7 +67,7 @@ test('sync source capabilities anuncia o contrato central das fases 0-6', async 
     assert.deepEqual(capabilities, {
       version: 1,
       modules: ['core', 'operation', 'planning', 'finance', 'rh', 'documents', 'summary'],
-      moduleContractVersions: { core:1, operation:2, planning:2, finance:2, rh:1, documents:1 },
+      moduleContractVersions: { core:1, operation:2, planning:2, finance:2, rh:2, documents:1 },
       bridgeEntities: ['frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'tarefas_obra', 'rdos', 'cronograma_etapas', 'medicoes', 'pedidos_compra', 'contratos_obra']
     })
     assert.equal(capabilities.modules.includes('rh'), true)
