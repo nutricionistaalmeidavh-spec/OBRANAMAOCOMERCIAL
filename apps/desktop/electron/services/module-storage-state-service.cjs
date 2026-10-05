@@ -82,7 +82,11 @@ class ModuleStorageStateService {
   }
 
   financeLocalRecordCount() {
-    return this.countActive('fornecedores') + this.countActive('contas') + this.countActive('pagamentos_conta') + this.customFinanceCategoryCount()
+    const tables = [
+      'fornecedores','contas','pagamentos_conta','solicitacoes_compra','cotacoes_compra','pedidos_compra',
+      'pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos'
+    ]
+    return tables.reduce((total, table) => total + this.countActive(table), 0) + this.customFinanceCategoryCount()
   }
 
   customRhCargoCount() {
@@ -129,7 +133,9 @@ class ModuleStorageStateService {
   rhLocalRecordCount() {
     const operationalTables = [
       'funcionarios', 'funcionario_obras', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos',
-      'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis'
+      'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis',
+      'arquivos', 'documentos', 'rdo_anexos', 'medicao_anexos', 'contrato_anexos', 'pedido_compra_anexos',
+      'documentos_editaveis', 'modelos_documento_rh'
     ]
     const operational = operationalTables.reduce((total, table) => total + this.countActive(table), 0)
     return operational + this.customRhCargoCount() + this.customRhBenefitCount() + this.customRhCargoBenefitCount() + this.customRhEpiCount()
@@ -141,8 +147,8 @@ class ModuleStorageStateService {
     if (module === 'finance') return this.financeLocalRecordCount()
     if (module === 'rh') return this.rhLocalRecordCount()
     const tables = module === 'operation'
-      ? ['frentes_obra', 'tarefas_obra', 'rdos']
-      : ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios']
+      ? ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias']
+      : ['fontes_documentais', 'etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens']
     return tables.reduce((total, table) => total + this.countActive(table), 0)
   }
 
