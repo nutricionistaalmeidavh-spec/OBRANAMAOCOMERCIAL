@@ -8,8 +8,9 @@ import { MODULE_TABLES } from '../src/migration-service.mjs'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const contract = JSON.parse(fs.readFileSync(path.resolve(here, '../../../packages/contracts/lan-data-contract.json'), 'utf8'))
 
-test('LAN Server usa exatamente o contrato RH da fase 1', () => {
-  assert.deepEqual(MODULE_TABLES.rh, contract.phase1RhMigration.tables)
+test('LAN Server usa o owner RH final e preserva o escopo legado da fase 1', () => {
+  assert.deepEqual(MODULE_TABLES.rh, contract.targetModules.rh.tables)
+  for (const table of contract.phase1RhMigration.tables) assert.equal(MODULE_TABLES.rh.includes(table), true, table)
 })
 
 test('contrato target não possui entidade compartilhada com owner duplicado', () => {
