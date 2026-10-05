@@ -92,7 +92,7 @@ export default function WorksPage() {
       setQuickRegistry(null)
       setQuickForm(null)
     } catch (error) {
-      setQuickError(error instanceof Error ? error.message : 'Nao foi possivel salvar o cadastro.')
+      setQuickError(error instanceof Error ? error.message : 'Não foi possível salvar o cadastro.')
     } finally {
       setQuickSaving(false)
     }
@@ -118,34 +118,34 @@ export default function WorksPage() {
   const frontCount = selectedOverview?.frentes?.length || 0
   const stageCount = selectedOverview?.cronograma?.length || 0
   const rdoCount = selectedOverview?.rdos?.length || 0
-  const pendingCount = selectedOverview?.pendencias?.length || 0
+  const pendingCount = selectedOverview?.pendências?.length || 0
   const totalContratado = selectedOverview?.frentes?.reduce((sum: number, item: any) => sum + Number(item.contratado_centavos || 0), 0) || 0
   const totalPago = selectedOverview?.frentes?.reduce((sum: number, item: any) => sum + Number(item.pago_centavos || 0), 0) || 0
 
   return <>
-    <PageHeader title="Obras" description="Escolha uma obra e acompanhe as areas operacionais em um unico hub." actions={<div className="row-actions"><Button variant="secondary" icon={<Upload size={16}/>} onClick={importSpreadsheets} disabled={importing||serverMode}>Importar planilhas</Button><Button icon={<Plus size={16}/>} onClick={() => open()}>Nova obra</Button></div>}/>
-    {serverMode && <div className="success-box" style={{ marginBottom: 14 }}><strong>Servidor da empresa ativo.</strong> Cada área operacional é liberada pelo estado canônico do próprio módulo; nenhum card é bloqueado apenas por estar em modo servidor.</div>}
+    <PageHeader title="Obras" description="Escolha a obra atual e acesse execução, planejamento e resultado em um único lugar." actions={<div className="row-actions"><Button variant="secondary" icon={<Upload size={16}/>} onClick={importSpreadsheets} disabled={importing||serverMode}>Importar planilhas</Button><Button icon={<Plus size={16}/>} onClick={() => open()}>Nova obra</Button></div>}/>
+    {serverMode && <div className="success-box" style={{ marginBottom: 14 }}><strong>Servidor da empresa ativo.</strong> As áreas disponíveis abaixo usam os dados compartilhados da empresa.</div>}
     {works.loading ? <Card><Loading/></Card> : works.data?.length ? <>
       <div className="filters">
-        <Field label="Obra em foco"><select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Selecione uma obra</option>{works.data.map((work: any) => <option key={work.id} value={work.id}>{work.nome}</option>)}</select><small>{serverMode ? 'A seleção usa o cadastro central e abre apenas os módulos já ativos no servidor.' : 'Os cards abaixo usam esta obra e abrem as telas completas ja filtradas.'}</small></Field>
+        <Field label="Obra atual"><select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Selecione uma obra</option>{works.data.map((work: any) => <option key={work.id} value={work.id}>{work.nome}</option>)}</select><small>{serverMode ? 'Esta seleção define a obra usada nos acessos e resumos abaixo.' : 'Esta seleção define a obra usada nos acessos e resumos abaixo.'}</small></Field>
       </div>
       <div className="dashboard-grid">
         <Card>
-          <div className="card-header"><div><h2>Carteira de obras</h2><span>Selecione a obra de trabalho</span></div></div>
+          <div className="card-header"><div><h2>Todas as obras</h2><span>Troque a obra atual sem perder o contexto</span></div></div>
           <div className="work-cards" style={{ gridTemplateColumns: '1fr', padding: 16 }}>
             {works.data.map((work: any) => {
               const isSelected = String(work.id) === selectedId
               return <Card className="work-card" key={work.id} style={{ boxShadow: 'none', borderColor: isSelected ? '#93b4f4' : undefined }}>
                 <div onClick={() => setSelectedId(String(work.id))}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <div><h3>{work.nome}</h3><p>{work.codigo || 'Sem codigo'} - {companies.data?.find((company: any) => company.id === work.empresa_id)?.nome_fantasia || 'Empresa'}</p></div>
+                    <div><h3>{work.nome}</h3><p>{work.codigo || 'Sem código'} - {companies.data?.find((company: any) => company.id === work.empresa_id)?.nome_fantasia || 'Empresa'}</p></div>
                     <Status value={work.status}/>
                   </div>
                   <div className="work-metrics">
                     <div><span>Contratado</span><strong>{brl(work.valor_contratado_centavos)}</strong></div>
-                    <div><span>Inicio</span><strong>{brDate(work.data_inicio)}</strong></div>
-                    <div><span>Avanco fisico</span><strong>{Number(work.percentual_fisico || 0).toFixed(1)}%</strong></div>
-                    <div><span>Previsao</span><strong>{brDate(work.previsao_termino)}</strong></div>
+                    <div><span>Início</span><strong>{brDate(work.data_inicio)}</strong></div>
+                    <div><span>Avanço físico</span><strong>{Number(work.percentual_fisico || 0).toFixed(1)}%</strong></div>
+                    <div><span>Previsão</span><strong>{brDate(work.previsao_termino)}</strong></div>
                   </div>
                 </div>
                 <div className="row-actions" style={{ marginTop: 10 }}>
@@ -158,32 +158,32 @@ export default function WorksPage() {
           </div>
         </Card>
         <Card>
-          <div className="card-header"><div><h2>Unidade gerencial</h2><span>{selectedWork?.nome || 'Selecione uma obra'}</span></div>{selectedId && moduleActive('core') && <Button variant="secondary" icon={<ArrowRight size={15}/>} onClick={() => navigate(`/obras/${selectedId}`)}>Abrir 360</Button>}</div>
-          {!selectedId ? <Empty title="Selecione uma obra" description="Depois disso os cards mostram os resumos operacionais."/> : !moduleActive('core') ? <Empty title="Cadastros-base ainda não ativos" description="Conclua a etapa de Cadastros-base na configuração do servidor."/> : overview.loading ? <Loading/> : <div className="card-body">
-            <p style={{ fontSize: 12, color: '#647084', display: 'flex', gap: 7, alignItems: 'center', marginTop: 0 }}><MapPin size={15}/>{selectedWork?.endereco || 'Endereco nao informado'}</p>
+          <div className="card-header"><div><h2>Resumo da obra</h2><span>{selectedWork?.nome || 'Selecione uma obra'}</span></div>{selectedId && moduleActive('core') && <Button variant="secondary" icon={<ArrowRight size={15}/>} onClick={() => navigate(`/obras/${selectedId}`)}>Abrir 360</Button>}</div>
+          {!selectedId ? <Empty title="Selecione uma obra" description="Depois disso os cards mostram os resumos operacionais."/> : !moduleActive('core') ? <Empty title="Esta obra ainda está sendo preparada" description="Conclua a configuração do servidor para liberar o resumo desta obra."/> : overview.loading ? <Loading/> : <div className="card-body">
+            <p style={{ fontSize: 12, color: '#647084', display: 'flex', gap: 7, alignItems: 'center', marginTop: 0 }}><MapPin size={15}/>{selectedWork?.endereco || 'Endereço não informado'}</p>
             <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(130px, 1fr))', marginBottom: 14 }}>
-              <Kpi label="Orcado" value={brl(selectedOverview?.orcado_centavos || 0)}/>
+              <Kpi label="Orçado" value={brl(selectedOverview?.orcado_centavos || 0)}/>
               <Kpi label="Contratado" value={brl(totalContratado)}/>
               <Kpi label="Pago" value={brl(totalPago)}/>
-              <Kpi label="Pendencias" value={String(pendingCount)}/>
+              <Kpi label="Pendências" value={String(pendingCount)}/>
             </div>
-            <p style={{ fontSize: 11, color: '#7c8798', marginBottom: 0 }}>{selectedWork?.observacoes || 'Sem observacoes cadastradas.'}</p>
+            <p style={{ fontSize: 11, color: '#7c8798', marginBottom: 0 }}>{selectedWork?.observacoes || 'Sem observações cadastradas.'}</p>
           </div>}
         </Card>
       </div>
       <div className="work-cards" style={{ marginTop: 16 }}>
-        <OperationCard icon={<BriefcaseBusiness size={22}/>} title="Frentes de servico" text="Especialidades, subfrentes e checklist por pavimento ou geral." metric={`${frontCount} frentes`} detail={`${selectedOverview?.frentes?.filter((front: any) => front.status === 'ativa').length || 0} ativas`} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Conclua a migração de RDO / operação.':undefined} onClick={() => navigate(`/frentes?obra=${selectedId}`)}/>
-        <OperationCard icon={<CalendarClock size={22}/>} title="Planejamento" text="Etapas, Curva S, previsto x realizado e caixa por obra." metric={`${stageCount} etapas`} detail={selectedOverview?.cronograma?.[0] ? `Proxima: ${selectedOverview.cronograma[0].nome}` : 'Sem etapas'} disabled={!selectedId||!moduleActive('planning')} disabledReason={serverMode&&!moduleActive('planning')?'Conclua a migração de Planejamento.':undefined} onClick={() => navigate(`/planejamento?obra=${selectedId}`)}/>
-        <OperationCard icon={<NotebookPen size={22}/>} title="Diario de obra" text="RDOs, equipe, equipamentos, ocorrencias, anexos e pendencias." metric={`${rdoCount} RDOs`} detail={pendingCount ? `${pendingCount} pendencias abertas` : 'Sem pendencias'} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Conclua a migração de RDO / operação.':undefined} onClick={() => navigate(`/rdo?obra=${selectedId}`)}/>
-        <OperationCard icon={<HardHat size={22}/>} title="Obra 360" text="Resumo financeiro e operacional canônico da obra." metric={selectedOverview?.availability?.medicoes===false?'—':brl(selectedOverview?.medido_centavos || 0)} detail={selectedOverview?.serverPartial?'Resumo central parcial':'Medido na obra'} disabled={!selectedId||!moduleActive('core')} disabledReason={serverMode&&!moduleActive('core')?'Conclua a migração de Cadastros-base.':undefined} onClick={() => navigate(`/obras/${selectedId}`)}/>
+        <OperationCard icon={<BriefcaseBusiness size={22}/>} title="Frentes de serviço" text="Especialidades, subfrentes e checklist por pavimento ou geral." metric={`${frontCount} frentes`} detail={`${selectedOverview?.frentes?.filter((front: any) => front.status === 'ativa').length || 0} ativas`} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Esta área ainda está sendo preparada no servidor.':undefined} onClick={() => navigate(`/frentes?obra=${selectedId}`)}/>
+        <OperationCard icon={<CalendarClock size={22}/>} title="Planejamento" text="Etapas, Curva S, previsto x realizado e caixa por obra." metric={`${stageCount} etapas`} detail={selectedOverview?.cronograma?.[0] ? `Próxima: ${selectedOverview.cronograma[0].nome}` : 'Sem etapas'} disabled={!selectedId||!moduleActive('planning')} disabledReason={serverMode&&!moduleActive('planning')?'Esta área ainda está sendo preparada no servidor.':undefined} onClick={() => navigate(`/planejamento?obra=${selectedId}`)}/>
+        <OperationCard icon={<NotebookPen size={22}/>} title="Diário de obra" text="RDOs, equipe, equipamentos, ocorrências, anexos e pendências." metric={`${rdoCount} RDOs`} detail={pendingCount ? `${pendingCount} pendências abertas` : 'Sem pendências'} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Esta área ainda está sendo preparada no servidor.':undefined} onClick={() => navigate(`/rdo?obra=${selectedId}`)}/>
+        <OperationCard icon={<HardHat size={22}/>} title="Obra 360" text="Resumo financeiro e operacional da obra." metric={selectedOverview?.availability?.medicoes===false?'—':brl(selectedOverview?.medido_centavos || 0)} detail={selectedOverview?.serverPartial?'Resumo disponível':'Medições da obra'} disabled={!selectedId||!moduleActive('core')} disabledReason={serverMode&&!moduleActive('core')?'Esta área ainda está sendo preparada no servidor.':undefined} onClick={() => navigate(`/obras/${selectedId}`)}/>
       </div>
-    </> : <Card><Empty title="Nenhuma obra cadastrada" description="Cadastre a primeira obra para organizar orcamento, medicao e resultado." action={<Button onClick={() => open()}>Cadastrar obra</Button>}/></Card>}
+    </> : <Card><Empty title="Nenhuma obra cadastrada" description="Cadastre a primeira obra para organizar orçamento, medições e resultado." action={<Button onClick={() => open()}>Cadastrar obra</Button>}/></Card>}
     {notice && <div className="success-box" style={{ marginTop: 14 }}>{notice}</div>}
     <Modal open={modal} title={form.id ? 'Editar obra' : 'Nova obra'} onClose={() => setModal(false)} size="lg">
       <form onSubmit={submit}>
         <div className="modal-body form-grid form-grid-3">
           <Field label="Nome" required><input required value={form.nome} onChange={(event) => setForm({ ...form, nome: event.target.value })}/></Field>
-          <Field label="Codigo"><input value={form.codigo || ''} onChange={(event) => setForm({ ...form, codigo: event.target.value })}/></Field>
+          <Field label="Código"><input value={form.codigo || ''} onChange={(event) => setForm({ ...form, codigo: event.target.value })}/></Field>
           <Field label="Empresa" required>
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 8 }}>
               <select required value={form.empresa_id} onChange={(event) => setForm({ ...form, empresa_id: event.target.value })}><option value="">Selecione</option>{companies.data?.map((item: any) => <option value={item.id} key={item.id}>{item.nome_fantasia || item.razao_social}</option>)}</select>
@@ -196,13 +196,13 @@ export default function WorksPage() {
               <button type="button" className="icon-button" onClick={() => openQuickRegistry('cliente')} title="Cadastrar novo cliente" aria-label="Cadastrar novo cliente"><Plus size={16}/></button>
             </div>
           </Field>
-          <Field label="Responsavel"><input value={form.responsavel || ''} onChange={(event) => setForm({ ...form, responsavel: event.target.value })}/></Field>
+          <Field label="Responsável"><input value={form.responsavel || ''} onChange={(event) => setForm({ ...form, responsavel: event.target.value })}/></Field>
           <Field label="Valor contratado"><input value={form.valor} onChange={(event) => setForm({ ...form, valor: event.target.value })} placeholder="0,00"/></Field>
-          <Field label="Data de inicio"><input type="date" value={form.data_inicio || ''} onChange={(event) => setForm({ ...form, data_inicio: event.target.value })}/></Field>
-          <Field label="Previsao de termino"><input type="date" value={form.previsao_termino || ''} onChange={(event) => setForm({ ...form, previsao_termino: event.target.value })}/></Field>
-          <Field label="Status"><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="planejada">Planejada</option><option value="ativa">Ativa</option><option value="pausada">Pausada</option><option value="concluida">Concluida</option></select></Field>
-          <Field label="Endereco" wide><input value={form.endereco || ''} onChange={(event) => setForm({ ...form, endereco: event.target.value })}/></Field>
-          <Field label="Observacoes" wide><textarea value={form.observacoes || ''} onChange={(event) => setForm({ ...form, observacoes: event.target.value })}/></Field>
+          <Field label="Data de início"><input type="date" value={form.data_inicio || ''} onChange={(event) => setForm({ ...form, data_inicio: event.target.value })}/></Field>
+          <Field label="Previsão de termino"><input type="date" value={form.previsao_termino || ''} onChange={(event) => setForm({ ...form, previsao_termino: event.target.value })}/></Field>
+          <Field label="Status"><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="planejada">Planejada</option><option value="ativa">Ativa</option><option value="pausada">Pausada</option><option value="concluida">Concluída</option></select></Field>
+          <Field label="Endereço" wide><input value={form.endereco || ''} onChange={(event) => setForm({ ...form, endereco: event.target.value })}/></Field>
+          <Field label="Observações" wide><textarea value={form.observacoes || ''} onChange={(event) => setForm({ ...form, observacoes: event.target.value })}/></Field>
         </div>
         <FormActions onCancel={() => setModal(false)}/>
       </form>
@@ -211,26 +211,26 @@ export default function WorksPage() {
       <form onSubmit={submitQuickRegistry}>
         <div className="modal-body form-grid">
           {quickRegistry === 'empresa' ? <>
-            <Field label="Razao social" required><input required value={quickForm?.razao_social || ''} onChange={(event) => setQuickForm({ ...quickForm, razao_social: event.target.value })}/></Field>
+            <Field label="Razão social" required><input required value={quickForm?.razao_social || ''} onChange={(event) => setQuickForm({ ...quickForm, razao_social: event.target.value })}/></Field>
             <Field label="Nome fantasia"><input value={quickForm?.nome_fantasia || ''} onChange={(event) => setQuickForm({ ...quickForm, nome_fantasia: event.target.value })}/></Field>
             <Field label="CNPJ"><input value={quickForm?.cnpj || ''} onChange={(event) => setQuickForm({ ...quickForm, cnpj: event.target.value })}/></Field>
             <Field label="Telefone"><input value={quickForm?.telefone || ''} onChange={(event) => setQuickForm({ ...quickForm, telefone: event.target.value })}/></Field>
             <Field label="E-mail"><input type="email" value={quickForm?.email || ''} onChange={(event) => setQuickForm({ ...quickForm, email: event.target.value })}/></Field>
-            <Field label="Endereco" wide><input value={quickForm?.endereco || ''} onChange={(event) => setQuickForm({ ...quickForm, endereco: event.target.value })}/></Field>
-            <Field label="Observacoes" wide><textarea value={quickForm?.observacoes || ''} onChange={(event) => setQuickForm({ ...quickForm, observacoes: event.target.value })}/></Field>
+            <Field label="Endereço" wide><input value={quickForm?.endereco || ''} onChange={(event) => setQuickForm({ ...quickForm, endereco: event.target.value })}/></Field>
+            <Field label="Observações" wide><textarea value={quickForm?.observacoes || ''} onChange={(event) => setQuickForm({ ...quickForm, observacoes: event.target.value })}/></Field>
           </> : <>
             <Field label="Nome" required><input required value={quickForm?.nome || ''} onChange={(event) => setQuickForm({ ...quickForm, nome: event.target.value })}/></Field>
             <Field label="CPF/CNPJ"><input value={quickForm?.documento || ''} onChange={(event) => setQuickForm({ ...quickForm, documento: event.target.value })}/></Field>
             <Field label="Telefone"><input value={quickForm?.telefone || ''} onChange={(event) => setQuickForm({ ...quickForm, telefone: event.target.value })}/></Field>
             <Field label="E-mail"><input type="email" value={quickForm?.email || ''} onChange={(event) => setQuickForm({ ...quickForm, email: event.target.value })}/></Field>
-            <Field label="Observacoes" wide><textarea value={quickForm?.observacoes || ''} onChange={(event) => setQuickForm({ ...quickForm, observacoes: event.target.value })}/></Field>
+            <Field label="Observações" wide><textarea value={quickForm?.observacoes || ''} onChange={(event) => setQuickForm({ ...quickForm, observacoes: event.target.value })}/></Field>
           </>}
           {quickError && <p role="alert" className="field-wide" style={{ margin: 0, color: '#b42318', fontSize: 12 }}>{quickError}</p>}
         </div>
         <FormActions onCancel={closeQuickRegistry} submitLabel="Cadastrar" loading={quickSaving}/>
       </form>
     </Modal>
-    <Confirm open={!!remove} title="Excluir obra" description="A obra sera removida logicamente. Os arquivos fisicos nao serao apagados." danger onCancel={() => setRemove(null)} onConfirm={async () => { await window.fluxoDre.obras.remove(remove.id); setRemove(null); works.reload(); overview.reload() }}/>
+    <Confirm open={!!remove} title="Excluir obra" description="A obra será desativada. Os arquivos físicos não serão apagados." danger onCancel={() => setRemove(null)} onConfirm={async () => { await window.fluxoDre.obras.remove(remove.id); setRemove(null); works.reload(); overview.reload() }}/>
   </>
 }
 
