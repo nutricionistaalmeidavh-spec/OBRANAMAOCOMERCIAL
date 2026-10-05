@@ -40,4 +40,5 @@
     refreshSheet(){schedule('sheet')},
     counts(){return{screen:screenHandlers.size,sheet:sheetHandlers.size}}
   };
+  document.dispatchEvent(new CustomEvent('field:lifecycle-ready'));
 })();
