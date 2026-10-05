@@ -14,7 +14,7 @@ describe('StorageServerSettings migration contract',()=>{
 
   it('orquestra a migração automaticamente em uma única configuração',()=>{
     expect(source).toContain('centralizeAll')
-    expect(source).toContain('Configurar servidor e migrar dados')
+    expect(source).toContain('Configurar uso compartilhado')
     expect(source).toContain('migrateModule')
     expect(source).toContain('migrationPreflight')
     expect(source).toContain('refreshModuleCapabilities')
@@ -24,7 +24,7 @@ describe('StorageServerSettings migration contract',()=>{
 
   it('não expõe cinco ações permanentes no happy path',()=>{
     expect(source).not.toContain('const renderModule')
-    expect(source).toContain('Detalhes técnicos')
+    expect(source).toContain('Avançado e diagnóstico')
     expect(source).toContain('<progress')
     expect(source).toContain('storage-module-list')
     expect(source).toContain('Servidor pronto')

@@ -68,12 +68,12 @@ try{
   const legacyBrand=page.getByText('Fluxo DRE',{exact:true});if(await legacyBrand.count()&&await legacyBrand.first().isVisible())throw new Error('QA renderer must use the command-center shell');
   await page.screenshot({path:path.join(outDir,'00-electron-settings-hub-command-center.png'),fullPage:true});
   await page.getByRole('link',{name:'Configurações do sistema'}).click();await page.getByRole('heading',{name:'Configurações',exact:true}).waitFor({state:'visible'});
-  await page.getByRole('heading',{name:'Dados e servidor'}).waitFor({state:'visible'});
-  const storageMode=page.getByLabel('Onde os dados operacionais ficarão?');await storageMode.waitFor({state:'visible'});
+  await page.getByRole('heading',{name:'Como sua empresa usa o Obra na Mão?'}).waitFor({state:'visible'});
+  const storageMode=page.getByLabel('Cenário de uso');await storageMode.waitFor({state:'visible'});
   await page.getByRole('button',{name:'Salvar configuração'}).waitFor({state:'visible'});
   await storageMode.selectOption('lan-host');
-  await page.getByRole('button',{name:'Configurar servidor e migrar dados'}).waitFor({state:'visible'});
-  await page.getByText('Detalhes técnicos').waitFor({state:'visible'});
+  await page.getByRole('button',{name:'Configurar uso compartilhado'}).waitFor({state:'visible'});
+  await page.getByText('Avançado e diagnóstico').waitFor({state:'visible'});
   await page.getByRole('heading',{name:'Conexão Obra na Mão'}).waitFor({state:'visible'});await page.getByText('Online vinculado').waitFor({state:'visible'});
   const syncCard=page.locator('#sync-settings');await syncCard.waitFor({state:'visible'});await syncCard.getByText('Sincronização desktop ↔ online').waitFor({state:'visible'});await syncCard.getByText('2 envio(s) pendente(s) · 1 conflito(s)').waitFor({state:'visible'});
   await page.screenshot({path:path.join(outDir,'01-electron-settings-sync.png'),fullPage:true});
