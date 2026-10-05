@@ -220,7 +220,8 @@ async function refreshModuleCapabilitiesSafe() {
       operation: services.moduleStorage.state('operation'),
       planning: services.moduleStorage.state('planning'),
       finance: services.moduleStorage.state('finance'),
-      rh: services.moduleStorage.state('rh')
+      rh: services.moduleStorage.state('rh'),
+      documents: services.moduleStorage.state('documents')
     }
   }
 }
