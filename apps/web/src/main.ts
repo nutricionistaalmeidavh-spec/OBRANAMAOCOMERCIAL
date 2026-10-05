@@ -129,7 +129,7 @@ function activateRoleUI(role:Role){
     const note=document.getElementById('dayNote') as HTMLTextAreaElement|null;if(note)note.disabled=true;
     const dlg=document.getElementById('sheet');if(dlg){dlg.querySelectorAll('input[type="checkbox"]').forEach(el=>{(el as HTMLInputElement).disabled=true});const complete=dlg.querySelector('#complete') as HTMLElement|null;if(complete)complete.style.display='none'}
   };
-  apply();document.addEventListener('field:rendered',apply);document.addEventListener('field:sheet-rendered',apply);
+  apply();window.fieldLifecycle?.register({screen:apply,sheet:apply});
   document.addEventListener('click',e=>{if(role==='admin')return;const t=e.target as Element|null;if(!t)return;const forbidden=t.closest('[data-screen="settings"],[data-screen="more"],[data-screen="issues"],[data-screen="management"],#newPlan,#newSession,[data-field-action],.plan-delete,.plan-start,#compensate,.session-actions');if(forbidden){e.preventDefault();e.stopImmediatePropagation();showStandalone('Acesso não permitido para este perfil.')}},true);
 }
 
