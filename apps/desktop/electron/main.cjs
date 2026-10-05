@@ -144,7 +144,7 @@ function createServices() {
     paths, db, dataAccess, storage, serverDiscovery, serverReconnect, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
     backup,
     importer: new ImportService({ db }),
-    documents: new DocumentService({ db, fileService: files, dialog }),
+    documents: new DocumentService({ db, fileService: files, dialog, dataAccess, moduleStorage }),
     payroll: rh,
     catalog,
     time,
