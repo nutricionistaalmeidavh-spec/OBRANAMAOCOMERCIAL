@@ -88,9 +88,8 @@ function rdoOccurrenceTask(row, data, occurrenceId) {
 function paymentStatus(account, paid) {
   const total = money(account?.valor_centavos)
   const amount = money(paid)
-  if (amount <= 0) return account?.status === 'vencido' ? 'vencido' : 'pendente'
   if (amount < total) return 'parcialmente_pago'
-  return 'pago'
+  return account?.tipo === 'pagar' ? 'pago' : 'recebido'
 }
 
 module.exports = { payrollAmount, payrollPendingRows, planningCurve, planningCash, rdoChildRows, rdoOccurrenceTask, paymentStatus }
