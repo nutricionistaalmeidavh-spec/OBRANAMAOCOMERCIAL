@@ -172,7 +172,7 @@ describe('ModuleMigrationService',()=>{
         },
         get(){return undefined},run(){return {changes:1}}
       }}
-    }
+    }}
     const service=new ModuleMigrationService({database,storage:{state:()=>({mode:'server',operationalMode:'lan-host'})},moduleStorage:{},lanClient:{},backup:{}})
     const exported=service.exportModule('rh')
     for(const rows of Object.values(exported.records) as any[])for(const row of rows as any[])expect(row.empresa_id).toBe(1)
