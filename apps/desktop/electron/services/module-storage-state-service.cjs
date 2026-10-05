@@ -2,7 +2,7 @@ const MODULES = new Set(['core', 'operation', 'planning', 'finance', 'rh', 'docu
 const STATES = new Set(['local', 'central-ready', 'central-active', 'migration-required'])
 const KEY_PREFIX = 'module_storage_state_'
 const VERSION_KEY_PREFIX = 'module_storage_contract_version_'
-const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:1, operation:2, planning:2, finance:2, rh:2, documents:1 })
+const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:2, operation:2, planning:2, finance:2, rh:2, documents:1 })
 const MODULE_DEPENDENCIES = Object.freeze({
   core: [],
   operation: ['core'],
