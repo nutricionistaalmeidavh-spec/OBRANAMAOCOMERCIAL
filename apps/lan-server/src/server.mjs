@@ -21,7 +21,7 @@ export const LAN_SERVER_VERSION = '0.4.0'
 const MAX_BODY_BYTES = 1024 * 1024
 const MAX_DOCUMENT_BODY_BYTES = 36 * 1024 * 1024
 const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
-const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|locais_obra|frentes_obra|subfrentes_obra|checklist_frente_itens|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|medicoes|medicao_itens|medicao_mapa_itens|fornecedores|categorias_financeiras|contas|pagamentos_conta|solicitacoes_compra|cotacoes_compra|pedidos_compra|pedido_compra_itens|recebimentos_materiais|movimentacoes_estoque|contratos_obra|contrato_aditivos|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis|fontes_documentais|arquivos|documentos|medicao_anexos|contrato_anexos|pedido_compra_anexos|documentos_editaveis|modelos_documento_rh)(?:\/(\d+))?\/?$/
+const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|locais_obra|frentes_obra|subfrentes_obra|checklist_frente_itens|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|medicoes|medicao_itens|medicao_mapa_itens|fornecedores|categorias_financeiras|contas|pagamentos_conta|solicitacoes_compra|cotacoes_compra|pedidos_compra|pedido_compra_itens|recebimentos_materiais|movimentacoes_estoque|contratos_obra|contrato_aditivos|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis|fontes_documentais|arquivos|documentos|medicao_anexos|contrato_anexos|pedido_compra_anexos|documentos_editaveis|modelos_documento_rh|empresa_documentos_admissionais|cargo_epi_kits)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
 const FINANCE_PAYMENT_ROUTE = /^\/api\/v1\/finance\/accounts\/(\d+)\/payment\/?$/
 const MIGRATION_ROUTE = /^\/api\/v1\/migrations\/([^/]+)\/(record|status|validate|commit|rollback)\/?$/
@@ -64,7 +64,7 @@ function publicCentralBackup(result = {}) {
 const SERVER_CAPABILITIES = Object.freeze({
   version:1,
   modules:['core','operation','planning','finance','rh','documents','summary'],
-  moduleContractVersions:{core:1,operation:2,planning:2,finance:2,rh:1,documents:1},
+  moduleContractVersions:{core:1,operation:2,planning:2,finance:2,rh:2,documents:1},
   bridgeEntities:['frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra'],
   features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1']
 })
