@@ -52,14 +52,16 @@ function publicCentralBackup(result = {}) {
 const SERVER_CAPABILITIES = Object.freeze({
   version:1,
   modules:['core','operation','planning','finance','rh','summary'],
-  bridgeEntities:['frentes_obra','tarefas_obra','rdos','cronograma_etapas'],
-  features:['optimistic-concurrency-v1']
+  moduleContractVersions:{core:1,operation:2,planning:2,finance:2,rh:1},
+  bridgeEntities:['frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra'],
+  features:['optimistic-concurrency-v1','phase2-5-parity-v1']
 })
 
 function publicServerCapabilities(versionedRepository) {
   return {
     version:SERVER_CAPABILITIES.version,
     modules:SERVER_CAPABILITIES.modules,
+    moduleContractVersions:SERVER_CAPABILITIES.moduleContractVersions,
     bridgeEntities:SERVER_CAPABILITIES.bridgeEntities,
     ...(versionedRepository ? { features:SERVER_CAPABILITIES.features } : {})
   }
