@@ -70,13 +70,43 @@ class OnlineService {
 
   state() {
     const cfg = this.readConfig()
+    const storageRequired = cfg.storageRequired && cfg.storageRequired.serverId ? cfg.storageRequired : null
     return {
       baseUrl: this.baseUrl,
       installationId: this.installationId(),
-      linked: this.qaLinked || !!this.deviceToken(),
+      linked: this.qaLinked || (!!this.deviceToken() && !storageRequired),
       linkedAt: this.qaLinked ? 'qa-isolated-session' : (cfg.linkedAt || null),
-      pending: cfg.pending ? { expiresAt: cfg.pending.expiresAt || null } : null
+      pending: cfg.pending ? { expiresAt: cfg.pending.expiresAt || null } : null,
+      storageRequired
     }
+  }
+
+  storageBinding(session) {
+    const explicit = session?.desktopStorage
+    if (explicit?.serverId && ['lan-server', 'remote'].includes(String(explicit.mode || ''))) {
+      return { mode: String(explicit.mode), serverId: String(explicit.serverId), autoEnroll: explicit.autoEnroll !== false }
+    }
+    const topology = session?.storageTopology
+    if (topology?.serverId && ['lan-server', 'remote'].includes(String(topology.mode || ''))) {
+      return { mode: String(topology.mode), serverId: String(topology.serverId), autoEnroll: true }
+    }
+    return null
+  }
+
+  setRequiredStorage(binding) {
+    const next = binding?.serverId ? { mode: String(binding.mode || 'lan-server'), serverId: String(binding.serverId), autoEnroll: binding.autoEnroll !== false } : null
+    this.writeConfig({ storageRequired: next })
+    return next
+  }
+
+  clearRequiredStorage(serverId = '') {
+    const cfg = this.readConfig()
+    const current = cfg.storageRequired
+    if (current?.serverId && serverId && String(current.serverId) !== String(serverId)) {
+      throw new Error('O servidor conectado não corresponde à fonte operacional da empresa.')
+    }
+    this.writeConfig({ storageRequired: null })
+    return this.state()
   }
 
   setBaseUrl(value) {
@@ -91,6 +121,7 @@ class OnlineService {
       delete current.tokenEncoding
       delete current.linkedAt
       delete current.pending
+      delete current.storageRequired
     }
     fs.writeFileSync(this.configPath, JSON.stringify({ ...current, baseUrl: next, updatedAt: new Date().toISOString() }, null, 2), { mode: 0o600 })
     return this.state()
@@ -126,18 +157,22 @@ class OnlineService {
     }
   }
 
-  async passwordAuth({ email, password, code, firstAccess = false } = {}) {
+  async passwordAuth({ email, password, code, firstAccess = false, accessPurpose = '' } = {}) {
     if (!this.baseUrl.startsWith('https://')) throw new Error('O acesso por senha exige uma conexão HTTPS segura.')
     if (this.passwordBusy) throw new Error('Aguarde a autenticação em andamento.')
     this.passwordBusy = true
     this.passwordSession = null
     try {
       const auth = {}
-      await this.request(`/api/auth/password/${firstAccess ? 'first-access' : 'login'}`, {
+      const normalizedCode = String(code || '').trim().toUpperCase()
+      const authResult = await this.request(`/api/auth/password/${firstAccess ? 'first-access' : 'login'}`, {
         email: String(email || '').trim().toLowerCase(), password: String(password || ''),
-        ...(firstAccess ? { code: String(code || '').trim().toUpperCase() } : {})
+        ...(firstAccess ? { code: normalizedCode, ...(accessPurpose ? { accessPurpose: String(accessPurpose) } : {}) } : {})
       }, 15000, auth)
       if (!auth.cookie) throw new Error('O servidor não retornou uma sessão de autenticação válida.')
+      if (firstAccess && authResult?.accessPurpose === 'member-invitation') {
+        await this.request('/api/access/claim', { code: normalizedCode }, 15000, auth)
+      }
       this.passwordSession = { ...auth, baseUrl: this.baseUrl }
       return await this.completePasswordLink()
     } finally { this.passwordBusy = false }
@@ -162,10 +197,14 @@ class OnlineService {
     const session = await this.request('/api/desktop/session', { deviceToken: result.deviceToken })
     if (!session.authorized || String(session.company?.id) !== String(bootstrap.company.id)) throw new Error('A empresa da sessão não corresponde à conta autenticada.')
     this.assertTenant(session.company.id)
-    this.writeConfig({ tenant: { companyId: String(session.company.id), companyName: session.company.name || '', baseUrl: this.baseUrl } })
+    const storageRequired = this.storageBinding(session) || this.storageBinding(bootstrap)
+    this.writeConfig({
+      tenant: { companyId: String(session.company.id), companyName: session.company.name || '', baseUrl: this.baseUrl },
+      storageRequired
+    })
     this.storeToken(result.deviceToken)
     this.passwordSession = null
-    return { linked: true, needsSetup: false, company: session.company, project: session.project }
+    return { linked: !storageRequired, needsSetup: false, company: session.company, project: session.project, storageRequired }
   }
 
   assertTenant(companyId) {
@@ -206,9 +245,13 @@ class OnlineService {
       const session = await this.request('/api/desktop/session', { deviceToken: result.deviceToken })
       if (!session.authorized || !session.company?.id) throw new Error('Conclua o vínculo da sua empresa antes de autorizar este computador.')
       this.assertTenant(session.company.id)
-      this.writeConfig({ tenant: { companyId: String(session.company.id), companyName: session.company.name || '', baseUrl: this.baseUrl } })
+      const storageRequired = this.storageBinding(session)
+      this.writeConfig({
+        tenant: { companyId: String(session.company.id), companyName: session.company.name || '', baseUrl: this.baseUrl },
+        storageRequired
+      })
       this.storeToken(result.deviceToken)
-      return { status: 'approved', linked: true, deviceId: result.deviceId }
+      return { status: 'approved', linked: !storageRequired, deviceId: result.deviceId, storageRequired }
     }
     return { status: 'pending', linked: false, expiresAt: result.expiresAt || cfg.pending.expiresAt }
   }
@@ -223,12 +266,81 @@ class OnlineService {
     return this.request('/api/desktop/session', { deviceToken: this.requireToken() })
   }
 
+  async setCompanyStorageTopology({ mode, serverId } = {}) {
+    const cleanMode = String(mode || '').trim()
+    if (!['local-single', 'lan-server', 'remote'].includes(cleanMode)) throw new Error('Modo de armazenamento da empresa inválido.')
+    const result = await this.request('/api/desktop/storage/topology', {
+      deviceToken: this.requireToken(),
+      mode: cleanMode,
+      serverId: serverId ? String(serverId).trim() : undefined
+    })
+    return result.storageTopology
+  }
+
   async startLanServerClaim(serverId) {
     const value = String(serverId || '').trim()
     if (!value) throw new Error('Servidor LAN não identificado.')
     const result = await this.request('/api/desktop/lan/claim/start', { deviceToken: this.requireToken(), serverId: value })
     return { claimToken: result.claimToken, expiresAt: result.expiresAt }
   }
+
+  async startLanDeviceEnrollment(serverId) {
+    const value = String(serverId || '').trim()
+    if (!value) throw new Error('Servidor LAN da empresa não identificado.')
+    const required = this.readConfig().storageRequired
+    if (!required?.serverId || String(required.serverId) !== value) throw new Error('Este servidor não corresponde à fonte operacional exigida pela empresa.')
+    const result = await this.request('/api/desktop/lan/enroll/start', { deviceToken: this.requireToken(), serverId: value })
+    if (!result?.enrollmentToken) throw new Error('A Cloud não retornou a matrícula do computador.')
+    return { serverId: value, enrollmentToken: result.enrollmentToken, expiresAt: result.expiresAt }
+  }
+
+  async setStorageTopology({ mode, serverId, validateOnly = false } = {}) {
+    const value = String(mode || '').trim()
+    if (!['local-single', 'lan-server', 'remote'].includes(value)) throw new Error('Modo de uso da empresa inválido.')
+    return this.request('/api/desktop/storage/topology', {
+      deviceToken: this.requireToken(),
+      mode: value,
+      serverId: String(serverId || '').trim() || undefined,
+      validateOnly: validateOnly === true
+    })
+  }
+
+
+  async membersList() {
+    return this.request('/api/desktop/members/list', { deviceToken: this.requireToken() })
+  }
+
+  async memberSave(input = {}) {
+    const payload = input && typeof input === 'object' ? input : {}
+    return this.request('/api/desktop/members/save', {
+      deviceToken: this.requireToken(),
+      email: String(payload.email || '').trim().toLowerCase(),
+      role: String(payload.role || ''),
+      employeeId: payload.employeeId ? String(payload.employeeId) : undefined,
+      modules: Array.isArray(payload.modules) ? payload.modules.map(String) : [],
+      channels: Array.isArray(payload.channels) ? payload.channels.map(String) : [],
+      permissions: payload.permissions
+    })
+  }
+
+  async memberStatus(memberId, status) {
+    const value = status === 'revoked' ? 'revoked' : 'active'
+    return this.request('/api/desktop/members/status', {
+      deviceToken: this.requireToken(),
+      memberId: String(memberId || ''),
+      status: value
+    })
+  }
+
+  async companyDevices() {
+    return this.request('/api/desktop/devices', { deviceToken: this.requireToken() })
+  }
+
+  async revokeCompanyDevice(deviceId) {
+    return this.request('/api/desktop/devices/revoke', { deviceToken: this.requireToken(), deviceId: String(deviceId || '') })
+  }
+
+
 
   disconnect() {
     this.passwordSession = null
@@ -237,6 +349,7 @@ class OnlineService {
     delete cfg.tokenEncoding
     delete cfg.linkedAt
     delete cfg.pending
+    delete cfg.storageRequired
     fs.writeFileSync(this.configPath, JSON.stringify({ ...cfg, updatedAt: new Date().toISOString() }, null, 2), { mode: 0o600 })
     return this.state()
   }
