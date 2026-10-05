@@ -17,7 +17,6 @@ const REF_MAP = Object.freeze({
   rdo_equipe: { rdo_id: 'rdos', frente_id: 'frentes_obra', funcionario_id: { table: 'funcionarios', deferred: true } },
   rdo_equipamentos: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
   rdo_ocorrencias: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
-  rdo_anexos: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
   tarefas_obra: { obra_id: 'obras', frente_id: 'frentes_obra', rdo_ocorrencia_id: 'rdo_ocorrencias' },
   etapas_obra: { obra_id: 'obras', frente_id: 'frentes_obra' },
   cronograma_etapas: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra' },
