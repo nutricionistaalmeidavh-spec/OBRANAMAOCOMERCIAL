@@ -243,6 +243,19 @@ export class MigrationService {
     }
   }
 
+  importFileRecord(migrationId, { sourceId, data, bytes, fileStore }, _actor = null) {
+    const migrationRow = this.row(migrationId)
+    if (!migrationRow) throw new Error('Migração não encontrada.')
+    if (migrationRow.status !== 'started') throw new Error('Migração não está aberta para importação.')
+    if (migrationRow.module !== 'rh') throw new Error('Arquivos compartilhados pertencem à etapa final de RH/documentos.')
+    if (!fileStore?.saveBuffer) throw new Error('Storage central de arquivos indisponível.')
+    const existing = this.db.prepare('SELECT target_id FROM module_migration_records WHERE migration_id=? AND source_table=? AND source_id=?').get(String(migrationId), 'arquivos', asText(sourceId))
+    if (existing) return { sourceTable:'arquivos', sourceId, targetId:Number(existing.target_id), reused:true }
+    const source = data || {}
+    const created = fileStore.saveBuffer(bytes, { originalName:source.nome_original || source.nome_armazenado || ('arquivo-' + sourceId), mimeType:source.mime_type || null, origin:source.origem || 'migrado' })
+    this.db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_target,source_data_json,created_at) VALUES(?,?,?,?,?,?,?,?)').run(String(migrationId), 'arquivos', asText(sourceId), 'arquivos', Number(created.id), 1, JSON.stringify(source), this.now())
+    return { sourceTable:'arquivos', sourceId, targetId:Number(created.id), reused:false }
+  }
   importRecord(migrationId, { sourceTable, sourceId, data }, _actor = null) {
     const migrationRow = this.row(migrationId)
     if (!migrationRow) throw new Error('Migração não encontrada.')
