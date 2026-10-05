@@ -31,10 +31,13 @@ const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
 const { FinanceSourceService } = require('./services/finance-source-service.cjs')
+const { MeasurementSourceService } = require('./services/measurement-source-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
 const { FieldSourceService } = require('./services/field-source-service.cjs')
 const { ProcurementService } = require('./services/procurement-service.cjs')
+const { ProcurementSourceService } = require('./services/procurement-source-service.cjs')
 const { ContractsService } = require('./services/contracts-service.cjs')
+const { ContractsSourceService } = require('./services/contracts-source-service.cjs')
 const { ProductService } = require('./services/product-service.cjs')
 const { DemoDataService } = require('./services/demo-data-service.cjs')
 const { UiPreferencesService } = require('./services/ui-preferences-service.cjs')
@@ -91,6 +94,7 @@ function createServices() {
   const localPlanning = new PlanningService({ db })
   const planning = new PlanningSourceService({ local: localPlanning, lanClient: dataAccess.remote, moduleStorage })
   const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
+  const measurements = new MeasurementSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
   const localPayroll = new PayrollService({ db })
@@ -113,6 +117,10 @@ function createServices() {
   })
   const explorerContext = new DocumentExplorerContextService({ db, explorer, rootId: 'documents' })
   const product = new ProductService({ db })
+  const localProcurement = new ProcurementService({ db })
+  const procurement = new ProcurementSourceService({ local: localProcurement, lanClient: dataAccess.remote, moduleStorage })
+  const localContracts = new ContractsService({ db, product })
+  const contracts = new ContractsSourceService({ local: localContracts, lanClient: dataAccess.remote, moduleStorage, dataAccess, product })
   const uiPreferences = new UiPreferencesService({ db })
   const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
   const sync = new SyncCoordinator({
@@ -143,8 +151,8 @@ function createServices() {
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
-    works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance,
-    product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product }), online, sync
+    works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, measurements,
+    product, uiPreferences, procurement, contracts, demo: new DemoDataService({ db, product }), online, sync
   }
 }
 
@@ -314,7 +322,7 @@ function registerIpc() {
   ipcMain.handle('contracts:addendum', envelope((payload) => services.contracts.createAddendum(payload)))
   ipcMain.handle('dre:get', envelope((filters) => services.finance.dre(filters)))
   ipcMain.handle('accounts:payment', envelope(({ id, payment }) => services.finance.accountPayment(id, payment)))
-  ipcMain.handle('measurements:save', envelope((payload) => services.db.saveMeasurement(payload)))
+  ipcMain.handle('measurements:save', envelope((payload) => services.measurements.saveWithItems(payload)))
   ipcMain.handle('works:import-spreadsheets', envelope(() => services.workImport.chooseAndImport()))
   ipcMain.handle('files:import-employee', envelope((payload) => services.files.importForEmployee(payload)))
   ipcMain.handle('files:import-measurement', envelope((payload) => services.files.importForMeasurement(payload)))
