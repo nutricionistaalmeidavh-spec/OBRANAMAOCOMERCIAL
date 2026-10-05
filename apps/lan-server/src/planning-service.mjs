@@ -1,4 +1,4 @@
-import domainCore from '@obranamao/domain-core'
+import domainCore from './domain-core.cjs'
 const { planningCurve } = domainCore
 export class PlanningService {
   constructor({ repository }) {
