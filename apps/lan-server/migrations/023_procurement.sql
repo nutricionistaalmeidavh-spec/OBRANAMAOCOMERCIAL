@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS pedidos_compra (
   entrega_prevista TEXT,
   status TEXT NOT NULL DEFAULT 'emitido',
   conta_id INTEGER REFERENCES contas(id),
+  request_id TEXT UNIQUE,
   observacoes TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
