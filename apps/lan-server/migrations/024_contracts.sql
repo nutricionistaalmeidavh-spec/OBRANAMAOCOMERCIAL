@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS contratos_obra (
   data_fim TEXT,
   status TEXT NOT NULL DEFAULT 'ativo',
   conta_id INTEGER REFERENCES contas(id),
+  request_id TEXT UNIQUE,
   observacoes TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
