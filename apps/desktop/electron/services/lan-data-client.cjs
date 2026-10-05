@@ -1,9 +1,9 @@
 const { RevisionConflictError } = require('./revision-conflict-error.cjs')
 
 const CORE_REMOTE_TABLES = new Set(['empresas', 'clientes', 'obras'])
-const OPERATION_REMOTE_TABLES = new Set(['frentes_obra', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
-const PLANNING_REMOTE_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'])
-const FINANCE_REMOTE_TABLES = new Set(['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'])
+const OPERATION_REMOTE_TABLES = new Set(['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'arquivos', 'documentos', 'documentos_editaveis', 'modelos_documento_rh', 'contrato_anexos', 'pedido_compra_anexos'])
+const PLANNING_REMOTE_TABLES = new Set(['fontes_documentais', 'etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens', 'medicao_anexos'])
+const FINANCE_REMOTE_TABLES = new Set(['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'])
 const RH_REMOTE_TABLES = new Set([
   'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
   'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes',
@@ -114,6 +114,34 @@ class LanDataClient {
 
   async planningOverview(obraId) {
     return this.request('GET', '/api/v1/planning/overview', { query: { obra_id: Number(obraId) } })
+  }
+
+  async saveMeasurement(payload) {
+    return this.request('POST', '/api/v1/measurements/save', { body: payload })
+  }
+
+  async procurementSummary(obraId) {
+    return this.request('GET', '/api/v1/procurement/summary', { query: { obra_id: Number(obraId) } })
+  }
+
+  async procurementCreateOrder(payload) {
+    return this.request('POST', '/api/v1/procurement/order', { body: payload })
+  }
+
+  async procurementReceiveMaterial(payload) {
+    return this.request('POST', '/api/v1/procurement/receive', { body: payload })
+  }
+
+  async procurementMoveStock(payload) {
+    return this.request('POST', '/api/v1/procurement/stock', { body: payload })
+  }
+
+  async contractCreate(payload) {
+    return this.request('POST', '/api/v1/contracts/create', { body: payload })
+  }
+
+  async contractAddendum(payload) {
+    return this.request('POST', '/api/v1/contracts/addendum', { body: payload })
   }
 
   async accountPayment(id, payment, requestId) {
