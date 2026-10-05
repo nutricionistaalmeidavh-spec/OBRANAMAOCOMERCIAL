@@ -13,7 +13,8 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "npm run test:web --if-present && npm run test:desktop --if-present && npm run test:lan-server --if-present",
+    "test": "npm run test:domain-core && npm run test:web --if-present && npm run test:desktop --if-present && npm run test:lan-server --if-present",
+    "test:domain-core": "npm --workspace @obranamao/domain-core test",
     "build": "npm run build:web --if-present && npm run build:desktop --if-present",
     "test:web": "npm --prefix apps/web test",
     "build:web": "npm --prefix apps/web run build",
