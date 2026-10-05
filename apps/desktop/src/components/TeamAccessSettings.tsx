@@ -68,6 +68,7 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
   const [modules,setModules]=useState<string[]>([])
   const [channels,setChannels]=useState<string[]>([])
   const [permissions,setPermissions]=useState<PermissionMatrix>(ROLE_PERMISSIONS.employee)
+  const [customPermissions,setCustomPermissions]=useState(false)
 
   const load=async()=>{
     setLoading(true);setError(null)
@@ -113,7 +114,9 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
     setEmployeeId(member?.employeeId||'')
     setModules((member?.modules?.length?member.modules:ROLE_MODULES[nextRole]).filter(value=>availableModules.includes(value)))
     setChannels((member?.channels?.length?member.channels:ROLE_CHANNELS[nextRole]).filter(value=>availableChannels.includes(value)&&!(value==='desktop'&&desktopDisabled)))
-    setPermissions(member?.permissions?normalizePermissionMatrix(member.permissions):ROLE_PERMISSIONS[nextRole])
+    const nextPermissions=member?.permissions?normalizePermissionMatrix(member.permissions):ROLE_PERMISSIONS[nextRole]
+    setPermissions(nextPermissions)
+    setCustomPermissions(Boolean(member?.permissions&&JSON.stringify(nextPermissions)!==JSON.stringify(ROLE_PERMISSIONS[nextRole])))
   }
 
   const closeEditor=()=>setEditing(undefined)
@@ -124,9 +127,11 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
     setModules(ROLE_MODULES[next].filter(value=>availableModules.includes(value)))
     setChannels(ROLE_CHANNELS[next].filter(value=>availableChannels.includes(value)&&!(value==='desktop'&&desktopDisabled)))
     setPermissions(ROLE_PERMISSIONS[next])
+    setCustomPermissions(false)
     if(next!=='employee')setEmployeeId('')
   }
   const togglePermission=(domain:PermissionDomain,action:PermissionAction)=>{
+    setCustomPermissions(true)
     setPermissions(current=>({...current,[domain]:current[domain].includes(action)?current[domain].filter(item=>item!==action):[...current[domain],action]}))
   }
 
@@ -223,7 +228,12 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
             return <label key={channel} title={disabled?'Disponível quando a empresa usar Vários computadores':undefined}><input type="checkbox" data-team-channel={channel} checked={channels.includes(channel)} disabled={disabled} onChange={()=>toggle(channel,channels,setChannels)}/> {CHANNEL_LABELS[channel]||channel}</label>
           })}</div>{desktopDisabled&&<small>Desktop adicional indisponível neste modo. Web / celular pode ser liberado normalmente.</small>}</div>
 
-          <div><strong>Ações permitidas</strong><p className="path-text">Permissões detalhadas do mesmo membro utilizado no Web/PWA.</p><div className="table-wrap"><table className="data-table"><thead><tr><th>Área</th>{ACTIONS.map(action=><th key={action}>{ACTION_LABELS[action]}</th>)}</tr></thead><tbody>{(Object.keys(DOMAIN_LABELS) as PermissionDomain[]).map(domain=><tr key={domain}><td>{DOMAIN_LABELS[domain]}</td>{ACTIONS.map(action=><td key={action}><input type="checkbox" aria-label={`${DOMAIN_LABELS[domain]} — ${ACTION_LABELS[action]}`} checked={permissions[domain].includes(action)} onChange={()=>togglePermission(domain,action)}/></td>)}</tr>)}</tbody></table></div></div>
+          <div>
+            <strong>Permissões recomendadas para {roleLabel(role)}</strong>
+            <p className="path-text">O perfil escolhido já aplica o conjunto recomendado. Abra as opções abaixo somente se esta pessoa precisar de uma exceção.</p>
+            <Button type="button" variant="ghost" onClick={()=>setCustomPermissions(value=>!value)}>{customPermissions?'Ocultar permissões avançadas':'Personalizar permissões'}</Button>
+            {customPermissions&&<div className="table-wrap" style={{marginTop:10}}><table className="data-table"><thead><tr><th>Área</th>{ACTIONS.map(action=><th key={action}>{ACTION_LABELS[action]}</th>)}</tr></thead><tbody>{(Object.keys(DOMAIN_LABELS) as PermissionDomain[]).map(domain=><tr key={domain}><td>{DOMAIN_LABELS[domain]}</td>{ACTIONS.map(action=><td key={action}><input type="checkbox" aria-label={`${DOMAIN_LABELS[domain]} — ${ACTION_LABELS[action]}`} checked={permissions[domain].includes(action)} onChange={()=>togglePermission(domain,action)}/></td>)}</tr>)}</tbody></table><Button type="button" variant="secondary" onClick={()=>{setPermissions(ROLE_PERMISSIONS[role]);setCustomPermissions(false)}}>Usar permissões recomendadas para {roleLabel(role)}</Button></div>}
+          </div>
 
           {channels.includes('desktop')&&team.storageTopology.serverId&&<div className="success-box"><strong>Desktop vinculado ao servidor da empresa.</strong> Ao usar o convite no Desktop, este usuário será direcionado automaticamente ao servidor <code>{team.storageTopology.serverId}</code>.</div>}
           {!editing&&<div className="success-box"><strong>Convite único.</strong> Ao salvar, o sistema gera um código de convite para este colaborador. Esse código entra em uma empresa existente e não ativa uma nova licença.</div>}
