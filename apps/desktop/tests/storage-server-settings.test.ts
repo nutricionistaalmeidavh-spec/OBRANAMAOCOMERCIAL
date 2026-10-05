@@ -45,6 +45,15 @@ describe('configuração de dados e servidor',()=>{
     expect(storage).not.toContain('Migrar para servidor')
   })
 
+  it('centraliza o estado transitório do setup em reducer em vez de hooks independentes',()=>{
+    expect(storage).toContain('useReducer(setupUiReducer,initialSetupUiState)')
+    expect(storage).toContain("type SetupStage='idle'|'saving'|'checking'|'authorizing'|'backup'|'migrating'|'validating'|'waiting'|'ready'|'error'")
+    expect(storage).toContain("dispatchSetupUi({type:'progress',value})")
+    expect(storage).not.toContain('const [busy,setBusy]=useState')
+    expect(storage).not.toContain('const [progress,setProgress]=useState')
+    expect(storage).not.toContain('const [discovering,setDiscovering]=useState')
+  })
+
   it('mantém a máquina de estados e recovery nos detalhes técnicos',()=>{
     expect(storage).toContain('Detalhes técnicos')
     expect(storage).toContain('storage-module-list')
