@@ -216,7 +216,7 @@
     {
       "name": "voltar-obras",
       "action": "click",
-      "selector": "a[href='#/obras']"
+      "selector": ".command-sidebar a[href='#/obras']"
     },
     {
       "name": "ir-frentes",
