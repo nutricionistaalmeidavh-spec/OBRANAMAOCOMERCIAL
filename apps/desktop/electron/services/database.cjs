@@ -5,7 +5,7 @@ const Database = require('better-sqlite3')
 const TABLES = new Set([
   'empresas','clientes','fornecedores','obras','etapas_obra','locais_obra','itens_orcamentarios',
   'medicoes','medicao_itens','categorias_financeiras','contas','pagamentos_conta','cargos',
-  'funcionarios','funcionario_obras','beneficios','funcionario_beneficios','folhas_pagamento',
+  'funcionarios','funcionario_obras','beneficios','cargo_beneficios','funcionario_beneficios','folhas_pagamento',
   'folha_lancamentos','pagamentos_funcionario','epis','funcionario_epis','documentos','arquivos',
   'pastas_vinculadas','fontes_documentais','importacoes','importacao_linhas','configuracoes','pontos_mensais','ponto_marcacoes','medicao_mapa_itens',
   'cronograma_etapas','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','perfis_importacao',
