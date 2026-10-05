@@ -341,7 +341,7 @@ function registerIpc() {
   ipcMain.handle('files:open', envelope(({ path: filePath }) => services.files.open(filePath)))
   ipcMain.handle('files:reveal', envelope(({ path: filePath }) => services.files.reveal(filePath)))
   ipcMain.handle('files:copy-path', envelope(({ path: filePath }) => services.files.copyPath(filePath)))
-  ipcMain.handle('files:open-folder', envelope(() => services.documentRoot.openRoot()))
+  ipcMain.handle('files:open-folder', envelope(() => services.files.openDocumentsFolder()))
   ipcMain.handle('files:choose-root', envelope(() => services.documentRoot.chooseRoot()))
   ipcMain.handle('files:get-root', envelope(() => services.documentRoot.getRoot()))
   ipcMain.handle('explorer:list', envelope((payload) => services.explorer.list(payload)))
