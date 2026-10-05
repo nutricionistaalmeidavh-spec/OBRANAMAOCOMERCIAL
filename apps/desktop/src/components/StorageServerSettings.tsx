@@ -6,7 +6,7 @@ import { Button, Card, Confirm, Field, Status } from './ui'
 type Props={onMessage:(message:string)=>void}
 type Mode='local'|'lan-host'|'lan-client'|'remote'
 type Form={operationalMode:Mode;host:string;port:string}
-type ModuleKey='core'|'operation'|'planning'|'finance'|'rh'
+type ModuleKey='core'|'operation'|'planning'|'finance'|'rh'|'documents'
 type SetupStage='idle'|'saving'|'checking'|'authorizing'|'backup'|'migrating'|'validating'|'waiting'|'ready'|'error'
 type SetupProgress={stage:SetupStage;completed:number;total:number;current?:ModuleKey;message:string;error?:string}
 
@@ -24,8 +24,8 @@ type SetupUiAction=
   |{type:'restore-target';value:string|null}
   |{type:'progress';value:SetupProgress|((current:SetupProgress)=>SetupProgress)}
 
-const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh']
-const MODULE_LABELS:Record<ModuleKey,string>={core:'Cadastros-base',operation:'RDO / operação',planning:'Planejamento',finance:'Financeiro',rh:'RH'}
+const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh','documents']
+const MODULE_LABELS:Record<ModuleKey,string>={core:'Cadastros-base',operation:'RDO / operação',planning:'Planejamento',finance:'Financeiro',rh:'RH',documents:'Documentos e anexos'}
 const STATE_LABELS:Record<string,string>={local:'Local','migration-required':'Aguardando migração','central-ready':'Preparando','central-active':'No servidor'}
 const SETUP_STEPS=['Identificação','Claim','Storage','Rede','Backup','Segurança','Validação'] as const
 
@@ -50,8 +50,8 @@ export default function StorageServerSettings({onMessage}:Props){
   const storage=useAsync(()=>window.fluxoDre.storage.state(),[])
   const online=useAsync(()=>window.fluxoDre.online.state(),[])
   const storageApi=window.fluxoDre.storage
-  const [modules,setModules]=useState<Record<ModuleKey,any>>({core:null,operation:null,planning:null,finance:null,rh:null})
-  const [attempts,setAttempts]=useState<Record<ModuleKey,any>>({core:null,operation:null,planning:null,finance:null,rh:null})
+  const [modules,setModules]=useState<Record<ModuleKey,any>>({core:null,operation:null,planning:null,finance:null,rh:null,documents:null})
+  const [attempts,setAttempts]=useState<Record<ModuleKey,any>>({core:null,operation:null,planning:null,finance:null,rh:null,documents:null})
   const [form,setForm]=useState<Form>({operationalMode:'local',host:'127.0.0.1',port:'4732'})
   const [lanStatus,setLanStatus]=useState<any>(null)
   const [hostState,setHostState]=useState<any>(null)
