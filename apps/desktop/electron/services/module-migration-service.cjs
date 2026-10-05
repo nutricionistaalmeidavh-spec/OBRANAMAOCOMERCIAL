@@ -10,6 +10,7 @@ const MODULE_TABLES = Object.freeze({
 
 const SOURCE_KEY = 'migration_source_fingerprint'
 const ATTEMPT_PREFIX = 'module_migration_attempt_'
+const MIGRATION_FORMAT_VERSION = 2
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)
@@ -216,6 +217,18 @@ class ModuleMigrationService {
     return { migrationId, module, backup, counts: expectedCounts, status: 'committed', sanityOk: true, centralStatus: confirmed }
   }
 
+  async resetLegacyAttempt(module, attempt) {
+    if (!attempt?.migrationId || Number(attempt.formatVersion || 0) >= MIGRATION_FORMAT_VERSION) return attempt
+    const remote = await this.lanClient.migrationStatus(attempt.migrationId)
+    if (['started','validated'].includes(String(remote?.status || ''))) {
+      await this.lanClient.migrationRollback(attempt.migrationId)
+    } else if (!['committed','rolled_back'].includes(String(remote?.status || ''))) {
+      throw new Error('A tentativa anterior usa um formato antigo e não pôde ser reconciliada com segurança.')
+    }
+    this.clearAttempt(module)
+    return null
+  }
+
   async migrate(moduleName) {
     const module = this.assertModule(moduleName)
     const preflight = await this.preflight(module)
@@ -225,6 +238,7 @@ class ModuleMigrationService {
     const sourceFingerprint = this.sourceFingerprint()
     const sourceDataHash = digest({ module, records: exported.records })
     let attempt = this.readAttempt(module)
+    attempt = await this.resetLegacyAttempt(module, attempt)
 
     if (attempt) {
       const sameSource = attempt.sourceFingerprint === sourceFingerprint
@@ -242,6 +256,7 @@ class ModuleMigrationService {
       attempt = {
         migrationId,
         module,
+        formatVersion:MIGRATION_FORMAT_VERSION,
         sourceFingerprint,
         sourceDataHash,
         expectedCounts: exported.counts,
