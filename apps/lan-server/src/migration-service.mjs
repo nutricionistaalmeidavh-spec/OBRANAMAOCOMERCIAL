@@ -1,4 +1,4 @@
-export const MODULE_TABLES = Object.freeze({
+const MODULE_TABLES = Object.freeze({
   core: ['empresas', 'clientes', 'obras'],
   operation: ['frentes_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
   planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'],
