@@ -66,3 +66,43 @@ Todas essas entidades precisam chegar ao servidor com `empresa_id` canônico.
 - `central-active` somente após commit + sanidade;
 - rollback remove apenas destinos criados pela tentativa;
 - base multiempresa ambígua falha antes da primeira escrita remota do módulo RH.
+
+
+## Fases 2 a 5 — invariantes de paridade central
+
+### Fase 2 — Operação
+
+- `subfrentes_obra` pertence a uma única `frente_obra` e à mesma obra.
+- `checklist_frente_itens` só pode referenciar subfrente da mesma frente e obra.
+- Frente ou subfrente com dependências não pode ser movida para outro owner.
+- Em `central-active`, frentes, subfrentes e checklist usam somente o Server; não existe fallback SQLite silencioso.
+- Escritas genéricas continuam versionadas por `revision`.
+
+### Fase 3 — Medições
+
+- Cabeçalho, itens e conta vinculada são persistidos em uma única transação.
+- Quantidade acumulada é validada dentro da transação.
+- Excesso sobre o orçamento exige justificativa explícita.
+- Edição usa optimistic concurrency e rejeita revisão obsoleta.
+- Retry usa chave idempotente estável quando a resposta da primeira tentativa é ambígua.
+
+### Fase 4 — Compras e estoque
+
+- Pedido, itens, atualização da solicitação/cotação e conta a pagar formam uma operação atômica.
+- Recebimento e entrada automática de estoque formam uma operação atômica.
+- Pedido, recebimento e movimentação usam `requestId` idempotente.
+- Recebimento nunca pode ultrapassar a quantidade pedida.
+- Saída nunca pode deixar saldo de estoque negativo.
+- Relações solicitação/cotação/pedido precisam pertencer ao mesmo fluxo e obra.
+
+### Fase 5 — Contratos
+
+- Criação/edição de contrato passa pelo serviço canônico de contratos.
+- Conta vinculada é criada/atualizada na mesma transação do contrato.
+- Aditivo contratado altera contrato e conta uma única vez.
+- Criação e aditivo usam idempotência; edição e aplicação financeira usam optimistic concurrency.
+- Relações com obra, frente, cliente e fornecedor respeitam o mesmo tenant/empresa.
+
+### Limite intencional antes da Fase 6
+
+Anexos e bytes de documentos continuam bloqueados no modo Server até a implementação do armazenamento central compartilhado da Fase 6. Esse bloqueio evita criar metadados centrais apontando para arquivos físicos exclusivos de um único PC.
