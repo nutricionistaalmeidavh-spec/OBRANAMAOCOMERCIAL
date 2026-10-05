@@ -24,6 +24,11 @@ type SetupUiAction=
   |{type:'restore-target';value:string|null}
   |{type:'progress';value:SetupProgress|((current:SetupProgress)=>SetupProgress)}
 
+const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh']
+const MODULE_LABELS:Record<ModuleKey,string>={core:'Cadastros-base',operation:'RDO / operação',planning:'Planejamento',finance:'Financeiro',rh:'RH'}
+const STATE_LABELS:Record<string,string>={local:'Local','migration-required':'Aguardando migração','central-ready':'Preparando','central-active':'No servidor'}
+const SETUP_STEPS=['Identificação','Claim','Storage','Rede','Backup','Segurança','Validação'] as const
+
 const initialSetupUiState:SetupUiState={
   busy:false,
   discovering:false,
@@ -40,10 +45,6 @@ function setupUiReducer(state:SetupUiState,action:SetupUiAction):SetupUiState{
   return{...state,progress}
 }
 
-const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh']
-const MODULE_LABELS:Record<ModuleKey,string>={core:'Cadastros-base',operation:'RDO / operação',planning:'Planejamento',finance:'Financeiro',rh:'RH'}
-const STATE_LABELS:Record<string,string>={local:'Local','migration-required':'Aguardando migração','central-ready':'Preparando','central-active':'No servidor'}
-const SETUP_STEPS=['Identificação','Claim','Storage','Rede','Backup','Segurança','Validação'] as const
 
 export default function StorageServerSettings({onMessage}:Props){
   const storage=useAsync(()=>window.fluxoDre.storage.state(),[])
