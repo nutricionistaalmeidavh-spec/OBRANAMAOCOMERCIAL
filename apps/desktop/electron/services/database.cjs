@@ -1,4 +1,4 @@
-const { paymentStatus } = require('@obranamao/domain-core')
+const { paymentStatus } = require('./domain-core.cjs')
 const fs = require('node:fs')
 const path = require('node:path')
 const Database = require('better-sqlite3')
