@@ -19,8 +19,8 @@ function localFixture() {
   db.open(); localFixtures.push({ dir, db })
   const catalog = new CatalogService({ db })
   const company = db.save('empresas', { razao_social: 'Paridade', status: 'ativa' })
-  const cargo = catalog.saveCargo({ nome: 'Encanador', cbo: '724110', salario_base_centavos: 250000 })
-  const benefit = catalog.saveBenefit({ nome: 'Café', tipo: 'alimentacao', valor_padrao_centavos: 18000 })
+  const cargo = catalog.saveCargo({ nome: 'Encanador Paridade', cbo: '724110', salario_base_centavos: 250000 })
+  const benefit = catalog.saveBenefit({ nome: 'Café Paridade', tipo: 'alimentacao', valor_padrao_centavos: 18000 })
   catalog.saveLink({ cargo_id: cargo.id, beneficio_id: benefit.id, valor_centavos: 18000, quinzena: 1, natureza: 'credito', ativo: 1 })
   const employee = db.save('funcionarios', { empresa_id: company.id, cargo_id: cargo.id, nome: 'Funcionário', status: 'ativo', salario_centavos: 250000 })
   return { payroll: new LocalPayrollService({ db }), employee }
@@ -31,8 +31,8 @@ function lanFixture() {
   repository.applyMigrations(path.resolve(import.meta.dirname, '../../lan-server/migrations'))
   lanFixtures.push(repository)
   const company = repository.save('empresas', { razao_social: 'Paridade' })
-  const cargo = repository.save('cargos', { empresa_id: company.id, nome: 'Encanador', salario_base_centavos: 250000, ativo: 1 })
-  const benefit = repository.save('beneficios', { empresa_id: company.id, nome: 'Café', tipo: 'alimentacao', valor_padrao_centavos: 18000, ativo: 1 })
+  const cargo = repository.save('cargos', { empresa_id: company.id, nome: 'Encanador Paridade', salario_base_centavos: 250000, ativo: 1 })
+  const benefit = repository.save('beneficios', { empresa_id: company.id, nome: 'Café Paridade', tipo: 'alimentacao', valor_padrao_centavos: 18000, ativo: 1 })
   repository.save('cargo_beneficios', { empresa_id: company.id, cargo_id: cargo.id, beneficio_id: benefit.id, valor_centavos: 18000, quinzena: 1, natureza: 'credito', ativo: 1 })
   const employee = repository.save('funcionarios', { empresa_id: company.id, cargo_id: cargo.id, nome: 'Funcionário', status: 'ativo', salario_centavos: 250000 })
   return { payroll: new LanPayrollService({ repository }), employee }
