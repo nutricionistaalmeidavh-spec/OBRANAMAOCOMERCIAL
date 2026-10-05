@@ -1,6 +1,8 @@
 const MODULES = new Set(['core', 'operation', 'planning', 'finance', 'rh'])
 const STATES = new Set(['local', 'central-ready', 'central-active', 'migration-required'])
 const KEY_PREFIX = 'module_storage_state_'
+const VERSION_KEY_PREFIX = 'module_storage_contract_version_'
+const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:1, operation:2, planning:2, finance:2, rh:1 })
 const MODULE_DEPENDENCIES = Object.freeze({
   core: [],
   operation: ['core'],
@@ -48,6 +50,22 @@ class ModuleStorageStateService {
     return STATES.has(value) ? value : null
   }
 
+  readVersion(moduleName) {
+    const module = this.assertModule(moduleName)
+    const raw = this.database.db.prepare('SELECT valor FROM configuracoes WHERE chave=?').get(`${VERSION_KEY_PREFIX}${module}`)?.valor
+    const value = Number(raw)
+    return Number.isInteger(value) && value > 0 ? value : null
+  }
+
+  writeVersion(moduleName, version) {
+    const module = this.assertModule(moduleName)
+    const value = Number(version)
+    if (!Number.isInteger(value) || value < 1) throw new Error('Versão de contrato de módulo inválida.')
+    this.database.db.prepare('INSERT INTO configuracoes(chave,valor,updated_at) VALUES(?,?,CURRENT_TIMESTAMP) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor,updated_at=CURRENT_TIMESTAMP')
+      .run(`${VERSION_KEY_PREFIX}${module}`, String(value))
+    return value
+  }
+
   write(moduleName, state) {
     const module = this.assertModule(moduleName)
     if (!STATES.has(state) || state === 'local') throw new Error('Estado central de módulo inválido.')
@@ -82,7 +100,11 @@ class ModuleStorageStateService {
   }
 
   financeLocalRecordCount() {
-    return this.countActive('fornecedores') + this.countActive('contas') + this.countActive('pagamentos_conta') + this.customFinanceCategoryCount()
+    const tables = [
+      'fornecedores','contas','pagamentos_conta','solicitacoes_compra','cotacoes_compra','pedidos_compra',
+      'pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos'
+    ]
+    return tables.reduce((total, table) => total + this.countActive(table), 0) + this.customFinanceCategoryCount()
   }
 
   customRhCargoCount() {
@@ -141,8 +163,8 @@ class ModuleStorageStateService {
     if (module === 'finance') return this.financeLocalRecordCount()
     if (module === 'rh') return this.rhLocalRecordCount()
     const tables = module === 'operation'
-      ? ['frentes_obra', 'tarefas_obra', 'rdos']
-      : ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios']
+      ? ['locais_obra','frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','rdo_anexos']
+      : ['etapas_obra','cronograma_etapas','itens_orcamentarios','medicoes','medicao_itens','medicao_mapa_itens']
     return tables.reduce((total, table) => total + this.countActive(table), 0)
   }
 
@@ -161,7 +183,13 @@ class ModuleStorageStateService {
     if (this.operationalMode() === 'local') return { ...details, state: 'local' }
 
     const persisted = this.read(module)
-    if (persisted === 'migration-required') return { ...details, state: persisted }
+    const requiredVersion = Number(MODULE_CONTRACT_VERSIONS[module] || 1)
+    const recordedVersion = this.readVersion(module) || (persisted === 'central-active' ? 1 : 0)
+    if (persisted === 'migration-required') return { ...details, state: persisted, contractVersion: recordedVersion, requiredContractVersion: requiredVersion }
+    if (persisted === 'central-active' && recordedVersion < requiredVersion) {
+      this.write(module, 'migration-required')
+      return { ...details, state: 'migration-required', contractVersion: recordedVersion, requiredContractVersion: requiredVersion, contractUpgradeRequired: true }
+    }
     if (localRecords > 0 && persisted !== 'central-active') {
       this.write(module, 'migration-required')
       return { ...details, state: 'migration-required' }
@@ -182,12 +210,13 @@ class ModuleStorageStateService {
     return { ...details, state: 'central-ready' }
   }
 
-  activateAfterMigration(moduleName) {
+  activateAfterMigration(moduleName, contractVersion = MODULE_CONTRACT_VERSIONS[String(moduleName)] || 1) {
     const module = this.assertModule(moduleName)
     const current = this.state(module)
     if (!['migration-required', 'central-ready'].includes(current.state)) throw new Error('Módulo não está aguardando ativação central.')
     const dependencyBlockedBy = this.dependencyBlockedBy(module)
     if (dependencyBlockedBy) throw new Error(`O módulo ${dependencyBlockedBy} precisa estar central antes de ${module}.`)
+    this.writeVersion(module, contractVersion)
     this.write(module, 'central-active')
     return this.state(module)
   }
@@ -208,6 +237,7 @@ class ModuleStorageStateService {
       const available = modules.includes(module)
       const dependencyBlockedBy = this.dependencyBlockedBy(module)
       const state = this.write(module, available && !dependencyBlockedBy ? 'central-active' : 'central-ready')
+      if (state === 'central-active' && current.localRecords === 0) this.writeVersion(module, MODULE_CONTRACT_VERSIONS[module] || 1)
       result[module] = {
         ...current,
         state,
@@ -221,4 +251,4 @@ class ModuleStorageStateService {
   }
 }
 
-module.exports = { ModuleStorageStateService, MODULE_DEPENDENCIES }
+module.exports = { ModuleStorageStateService, MODULE_DEPENDENCIES, MODULE_CONTRACT_VERSIONS }
