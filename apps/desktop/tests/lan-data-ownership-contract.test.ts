@@ -19,12 +19,14 @@ describe('LAN data ownership contract v1', () => {
     for (const table of contract.localOnly as string[]) expect(owners.has(table), `${table} não pode ser shared e local-only`).toBe(false)
   })
 
-  it('congela o escopo RH da fase 1 igual ao motor de migração Desktop', () => {
-    expect(MODULE_TABLES.rh).toEqual(contract.phase1RhMigration.tables)
+  it('mantém o motor de migração Desktop igual aos owners canônicos finais', () => {
+    for (const [moduleName, spec] of Object.entries(contract.targetModules) as any) {
+      expect(MODULE_TABLES[moduleName], moduleName).toEqual(spec.tables)
+    }
   })
 
-  it('mantém todas as tabelas RH da fase 1 sob owner RH', () => {
-    const rh = new Set(contract.targetModules.rh.tables)
+  it('mantém todas as tabelas RH da fase 1 sob o owner RH final', () => {
+    const rh = new Set(MODULE_TABLES.rh)
     for (const table of contract.phase1RhMigration.tables as string[]) expect(rh.has(table), table).toBe(true)
   })
 })
