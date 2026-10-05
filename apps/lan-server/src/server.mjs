@@ -25,7 +25,7 @@ const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|locais_obra|frentes_o
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
 const FINANCE_PAYMENT_ROUTE = /^\/api\/v1\/finance\/accounts\/(\d+)\/payment\/?$/
 const MIGRATION_ROUTE = /^\/api\/v1\/migrations\/([^/]+)\/(record|status|validate|commit|rollback)\/?$/
-const FILE_CONTENT_ROUTE = /^\/api\/v1\/documents\/files\/(\d+)\/content\/?$/
+const FILE_CONTENT_ROUTE = /^\/api\/v1\/files\/(\d+)\/content\/?$/
 const DOCUMENT_DELETE_ROUTE = /^\/api\/v1\/documents\/(\d+)\/?$/
 
 const digest = value => createHash('sha256').update(String(value)).digest('hex')
@@ -57,7 +57,7 @@ function requireAdminContext(context) {
 }
 
 function publicCentralBackup(result = {}) {
-  const allowed = ['backupId','createdAt','fingerprint','schemaVersion','serverId','companyId','serverVersion','sizeBytes','reason','integrity','restored','safetyBackupId','maintenance','accessible','claimed','migrationsApplied','lastBackup','error']
+  const allowed = ['backupId','createdAt','fingerprint','schemaVersion','serverId','companyId','serverVersion','sizeBytes','filesCount','filesSizeBytes','filesFingerprint','reason','integrity','restored','safetyBackupId','maintenance','accessible','claimed','migrationsApplied','lastBackup','error']
   return Object.fromEntries(allowed.filter(key => result?.[key] !== undefined).map(key => [key, result[key]]))
 }
 
