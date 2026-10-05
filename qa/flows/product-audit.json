@@ -1,0 +1,518 @@
+{
+  "name": "Obra na Mão Comercial Desktop — auditoria produto usuário final",
+  "steps": [
+    {
+      "name": "shell-ready",
+      "action": "waitFor",
+      "selector": ".artisys-desktop-shell",
+      "timeoutMs": 20000
+    },
+    {
+      "name": "abrir-configuracoes",
+      "action": "click",
+      "selector": "a[href='#/configuracoes']"
+    },
+    {
+      "name": "abrir-configuracoes-sistema",
+      "action": "click",
+      "selector": "a[href='#/configuracoes/sistema']"
+    },
+    {
+      "name": "abrir-ferramentas-suporte",
+      "action": "click",
+      "text": "Ferramentas de suporte"
+    },
+    {
+      "name": "carregar-dados-demo",
+      "action": "click",
+      "text": "Carregar demo"
+    },
+    {
+      "name": "demo-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 700
+    },
+    {
+      "name": "ir-painel",
+      "action": "click",
+      "selector": "a[href='#/']"
+    },
+    {
+      "name": "painel-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "01-painel",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-dre",
+      "action": "click",
+      "selector": "a[href='#/dre']"
+    },
+    {
+      "name": "dre-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "02-dre",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-contas",
+      "action": "click",
+      "selector": "a[href='#/financeiro']"
+    },
+    {
+      "name": "contas-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "03-contas",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-orcamento",
+      "action": "click",
+      "selector": "a[href='#/orcamento']"
+    },
+    {
+      "name": "orcamento-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "04-orcamento",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-medicoes",
+      "action": "click",
+      "selector": "a[href='#/medicoes']"
+    },
+    {
+      "name": "medicoes-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "05-medicoes",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-compras-contratos",
+      "action": "click",
+      "selector": "a[href='#/compras-contratos']"
+    },
+    {
+      "name": "compras-contratos-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 300
+    },
+    {
+      "name": "06-compras-contratos-hub",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-compras",
+      "action": "click",
+      "selector": "a[href='#/compras']"
+    },
+    {
+      "name": "compras-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "07-compras",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "voltar-compras-contratos-1",
+      "action": "click",
+      "selector": "a[href='#/compras-contratos']"
+    },
+    {
+      "name": "ir-contratos",
+      "action": "click",
+      "selector": "a[href='#/contratos']"
+    },
+    {
+      "name": "contratos-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "08-contratos",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "voltar-compras-contratos-2",
+      "action": "click",
+      "selector": "a[href='#/compras-contratos']"
+    },
+    {
+      "name": "ir-cadastros",
+      "action": "click",
+      "selector": "a[href='#/cadastros']"
+    },
+    {
+      "name": "cadastros-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "09-clientes-empresas",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-obras",
+      "action": "click",
+      "selector": "a[href='#/obras']"
+    },
+    {
+      "name": "obras-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 500
+    },
+    {
+      "name": "10-obras",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "obra360-disponivel",
+      "action": "waitFor",
+      "text": "Abrir 360",
+      "timeoutMs": 10000
+    },
+    {
+      "name": "ir-obra360",
+      "action": "click",
+      "text": "Abrir 360"
+    },
+    {
+      "name": "obra360-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 500
+    },
+    {
+      "name": "11-obra360",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "voltar-obras",
+      "action": "click",
+      "selector": "a[href='#/obras']"
+    },
+    {
+      "name": "ir-frentes",
+      "action": "click",
+      "selector": "a[href='#/frentes']"
+    },
+    {
+      "name": "frentes-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "12-frentes",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-planejamento",
+      "action": "click",
+      "selector": "a[href='#/planejamento']"
+    },
+    {
+      "name": "planejamento-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "13-planejamento",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-rdo",
+      "action": "click",
+      "selector": "a[href='#/rdo']"
+    },
+    {
+      "name": "rdo-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "14-diario-obra",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-tarefas",
+      "action": "click",
+      "selector": "a[href='#/tarefas']"
+    },
+    {
+      "name": "tarefas-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "15-tarefas",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-rh",
+      "action": "click",
+      "selector": "a[href='#/rh']"
+    },
+    {
+      "name": "rh-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 300
+    },
+    {
+      "name": "16-rh-hub",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-rh-funcionarios",
+      "action": "click",
+      "selector": "a[href='#/rh/funcionarios']"
+    },
+    {
+      "name": "rh-funcionarios-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "17-rh-funcionarios",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "voltar-rh-1",
+      "action": "click",
+      "selector": "a[href='#/rh']"
+    },
+    {
+      "name": "ir-rh-admissoes",
+      "action": "click",
+      "selector": "a[href='#/rh/admissoes']"
+    },
+    {
+      "name": "rh-admissoes-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "18-rh-admissoes",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "voltar-rh-2",
+      "action": "click",
+      "selector": "a[href='#/rh']"
+    },
+    {
+      "name": "ir-rh-remuneracao",
+      "action": "click",
+      "selector": "a[href='#/rh/remuneracao']"
+    },
+    {
+      "name": "rh-remuneracao-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "19-rh-remuneracao",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "voltar-rh-3",
+      "action": "click",
+      "selector": "a[href='#/rh']"
+    },
+    {
+      "name": "ir-rh-folha",
+      "action": "click",
+      "selector": "a[href='#/rh/folha']"
+    },
+    {
+      "name": "rh-folha-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "20-rh-folha",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "voltar-rh-4",
+      "action": "click",
+      "selector": "a[href='#/rh']"
+    },
+    {
+      "name": "ir-rh-ponto",
+      "action": "click",
+      "selector": "a[href='#/rh/ponto']"
+    },
+    {
+      "name": "rh-ponto-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "21-rh-ponto",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "voltar-rh-5",
+      "action": "click",
+      "selector": "a[href='#/rh']"
+    },
+    {
+      "name": "ir-rh-modelos",
+      "action": "click",
+      "selector": "a[href='#/rh/modelos']"
+    },
+    {
+      "name": "rh-modelos-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "22-rh-modelos",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-configuracoes",
+      "action": "click",
+      "selector": "a[href='#/configuracoes']"
+    },
+    {
+      "name": "configuracoes-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 300
+    },
+    {
+      "name": "23-configuracoes-hub",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-documentos",
+      "action": "click",
+      "selector": "a[href='#/documentos']"
+    },
+    {
+      "name": "documentos-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "24-documentos",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "voltar-configuracoes-1",
+      "action": "click",
+      "selector": "a[href='#/configuracoes']"
+    },
+    {
+      "name": "ir-importacao",
+      "action": "click",
+      "selector": "a[href='#/importacao']"
+    },
+    {
+      "name": "importacao-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "25-importacao",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "voltar-configuracoes-2",
+      "action": "click",
+      "selector": "a[href='#/configuracoes']"
+    },
+    {
+      "name": "ir-configuracoes-sistema",
+      "action": "click",
+      "selector": "a[href='#/configuracoes/sistema']"
+    },
+    {
+      "name": "configuracoes-sistema-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 450
+    },
+    {
+      "name": "26-configuracoes-sistema",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-painel-final",
+      "action": "click",
+      "selector": "a[href='#/']"
+    },
+    {
+      "name": "abrir-ia-global",
+      "action": "click",
+      "selector": ".global-ai-trigger"
+    },
+    {
+      "name": "ia-drawer-visivel",
+      "action": "waitFor",
+      "selector": "#global-ai-drawer",
+      "timeoutMs": 5000
+    },
+    {
+      "name": "27-ia-drawer",
+      "action": "screenshot",
+      "selector": "body"
+    },
+    {
+      "name": "ir-assistente-ia",
+      "action": "click",
+      "selector": "#global-ai-drawer a[href='#/assistente-ia']"
+    },
+    {
+      "name": "assistente-ia-estavel",
+      "action": "waitForTimeout",
+      "timeoutMs": 350
+    },
+    {
+      "name": "28-assistente-ia",
+      "action": "screenshot",
+      "selector": "body"
+    }
+  ]
+}
