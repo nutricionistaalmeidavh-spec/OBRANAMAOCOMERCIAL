@@ -13,9 +13,9 @@ describe('F29/F30 server setup and assisted migration',()=>{
     expect(source).toContain('Backup')
     expect(source).toContain('Segurança')
     expect(source).toContain('Validação')
-    expect(source).toContain('Configurar servidor e migrar dados')
-    expect(source).toContain('Encontrar servidor automaticamente')
-    expect(source).toContain('Servidor remoto próprio / VPS')
+    expect(source).toContain('Configurar uso compartilhado')
+    expect(source).toContain('Encontrar a empresa nesta rede')
+    expect(source).toContain('Acesso remoto avançado — servidor próprio')
     expect(source).toContain('HTTP público é bloqueado')
   })
 
@@ -31,7 +31,7 @@ describe('F29/F30 server setup and assisted migration',()=>{
   })
 
   it('keeps technical recovery with app-owned confirmation and exposes server operations',()=>{
-    expect(source).toContain('Detalhes técnicos')
+    expect(source).toContain('Avançado e diagnóstico')
     expect(source).toContain('Tentar novamente')
     expect(source).toContain('Reverter tentativa')
     expect(source).toContain('<Confirm')
