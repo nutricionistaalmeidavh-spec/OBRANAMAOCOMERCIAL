@@ -28,6 +28,7 @@ const { ScannerService } = require('./services/scanner-service.cjs')
 const { WorkImportService } = require('./services/work-import-service.cjs')
 const { UniversalImportService } = require('./services/universal-import-service.cjs')
 const { WorksService } = require('./services/works-service.cjs')
+const { WorksSourceService } = require('./services/works-source-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
 const { FinanceSourceService } = require('./services/finance-source-service.cjs')
@@ -90,6 +91,8 @@ function createServices() {
   const field = new FieldSourceService({ local: localField, lanClient: dataAccess.remote, moduleStorage })
   const localPlanning = new PlanningService({ db })
   const planning = new PlanningSourceService({ local: localPlanning, lanClient: dataAccess.remote, moduleStorage })
+  const localWorks = new WorksService({ db })
+  const works = new WorksSourceService({ local: localWorks, dataAccess, moduleStorage })
   const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db })
@@ -143,7 +146,7 @@ function createServices() {
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
-    works: new WorksService({ db }), planning, field, finance,
+    works, planning, field, finance,
     product, uiPreferences, procurement: new ProcurementService({ db }), contracts: new ContractsService({ db, product }), demo: new DemoDataService({ db, product }), online, sync
   }
 }
