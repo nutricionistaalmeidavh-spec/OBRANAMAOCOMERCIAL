@@ -85,6 +85,21 @@ describe('LanSetupService',()=>{
     expect(JSON.stringify(result)).not.toContain('paired-secret')
   })
 
+  it('auto-enroll stores LAN credential without asking for a second pairing code',async()=>{
+    const {LanSetupService}=require('./lan-setup-service.cjs')
+    const fx=deps()
+    const fetchImpl=vi.fn(async(url:string,options:any)=>{
+      if(url.endsWith('/api/v1/setup/status'))return response(200,{claimed:true,serverId:'server-a'})
+      expect(url).toMatch(/api\/v1\/pair\/enroll$/)
+      expect(JSON.parse(options.body)).toEqual({enrollmentToken:'enroll-secret',installationId:'install-a',deviceName:'PC João'})
+      return response(201,{device:{id:'device-auto'},member:{memberId:'member-a',role:'foreman'},deviceToken:'lan-auto-secret'})
+    })
+    const service=new LanSetupService({...fx,fetchImpl,deviceName:'PC João'})
+    const result=await service.enroll({enrollmentToken:'enroll-secret'})
+    expect(fx.credentials.store).toHaveBeenCalledWith(expect.objectContaining({serverKey:'server-a',deviceId:'device-auto',token:'lan-auto-secret'}))
+    expect(JSON.stringify(result)).not.toContain('lan-auto-secret')
+  })
+
   it('disconnect clears only LAN credential for current server',()=>{
     const {LanSetupService}=require('./lan-setup-service.cjs')
     const fx=deps(),service=new LanSetupService({...fx,fetchImpl:vi.fn(),deviceName:'PC'})
