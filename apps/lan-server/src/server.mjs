@@ -136,8 +136,8 @@ async function readJson(request) {
   }
 }
 
-const COMPOUND_MUTATION_TABLES = new Set(['medicoes','medicao_itens','pedidos_compra','pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contrato_aditivos'])
-const COMPOUND_CREATE_TABLES = new Set(['contratos_obra'])
+const COMPOUND_MUTATION_TABLES = new Set(['medicoes','medicao_itens','pedidos_compra','pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos'])
+const COMPOUND_CREATE_TABLES = new Set([])
 
 function assertCanonicalEntityMutation(table, method, id) {
   if (method === 'GET') return
@@ -534,8 +534,9 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!contracts?.create) return sendJson(response, 503, { error:'contracts_unavailable', message:'Serviço central de contratos indisponível.' })
         const context = await authenticateLanRequest(request, security)
-        authorizeAction(context, { domain:'finance', action:'create' })
-        return sendJson(response, 201, contracts.create(await readJson(request)))
+        const body = await readJson(request)
+        authorizeAction(context, { domain:'finance', action:body.id ? 'edit' : 'create' })
+        return sendJson(response, body.id ? 200 : 201, contracts.create(body))
       }
 
       if (url.pathname === '/api/v1/contracts/addendum') {
