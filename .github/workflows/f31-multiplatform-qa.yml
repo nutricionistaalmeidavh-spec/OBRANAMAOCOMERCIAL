@@ -9,6 +9,7 @@ on:
     paths:
       - 'apps/lan-server/**'
       - 'apps/desktop/**'
+      - 'apps/web/**'
       - '.github/workflows/f31-multiplatform-qa.yml'
   workflow_dispatch:
 
@@ -62,5 +63,26 @@ jobs:
           electron/services/server-reconnect-service.test.ts
           electron/services/f25-remote-transport.test.ts
           tests/storage-online-contract.test.ts
+          electron/services/storage-online-compatibility.test.ts
+          electron/services/sync-coordinator.test.ts
+          electron/services/central-planning-sync.test.ts
           tests/f29-f30-server-wizard.test.ts
           tests/storage-server-migration-ui.test.ts
+
+
+  pwa-sync-regression:
+    name: PWA sync regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install Web dependencies
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Phase 9 Desktop Cloud PWA bridge regression
+        run: npx vitest run backend/p3-workflows.test.ts
