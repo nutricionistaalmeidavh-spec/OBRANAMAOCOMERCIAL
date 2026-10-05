@@ -66,7 +66,7 @@ export default function App() {
 
   if (connection.loading) return <div className="app-loading">Carregando acesso...</div>
   if (connection.error) return <div className="app-loading">Não foi possível carregar o acesso. Reinicie o aplicativo.</div>
-  if (!connection.data?.linked) return <DesktopLogin onLinked={() => { void connection.reload() }}/>
+  if (!connection.data?.linked) return <DesktopLogin storageRequired={connection.data?.storageRequired || null} onLinked={() => { void connection.reload() }}/>
 
   const isClassic = layoutPreference.data === 'classic'
   const Shell = isClassic ? ClassicAppShell : CommandCenterShell
