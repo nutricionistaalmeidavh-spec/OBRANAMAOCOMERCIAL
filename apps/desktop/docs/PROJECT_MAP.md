@@ -3,6 +3,7 @@
 ## Entrega comercial — 2026-09-05
 
 - `electron/services/sync-coordinator.cjs` e migration `017_desktop_sync.sql`: vínculo explícito empresa/obra/dispositivo, outbox SQLite, repetição idempotente, leitura de bridge e revisão de conflitos. Não associa pessoas por nome nem mistura obras.
+- O renderer recebe `online:sync-state-changed` pelo preload; `SyncSettings.tsx` não faz polling periódico e relê o estado apenas no bootstrap/retorno de visibilidade.
 - IPC/preload: `online:sync-state`, `online:sync-configure`, `online:sync-now`, `online:sync-resolve-local`. `src/components/SyncSettings.tsx` em Configurações confirma o vínculo e mostra estado/pendências. Alteração de conexão, restauração e encerramento aguardam a sincronização em andamento.
 - `useWorkContext.tsx`/`WorkContextBar.tsx`: competência e contexto persistidos. Dashboard consolidado por empresa; DRE/Contas usam empresa/obra; folha e ponto usam competência. O contexto não implica que todas as telas tenham filtro global.
 - Shell: busca, grupos recolhíveis e favoritos; navegação compacta por Financeiro, Obras, Pessoas & RH e Configurações. Compras/Contratos e Configurações usam páginas-hub sem remover as rotas diretas dos módulos.
@@ -248,3 +249,9 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 - **Release Desktop:** publicação automática continua congelada por `DESKTOP_AUTO_RELEASE_ENABLED=false`; CI, build e artefatos continuam funcionando.
 - **Fora do escopo:** migração automática do SQLite legado, descoberta automática LAN, servidor remoto público pronto para produção, R2/billing/Cloud pago e qualquer segundo sincronizador paralelo ao fluxo Desktop ↔ Cloudflare/D1 ↔ PWA.
 - **QA integrado:** `apps/lan-server/tests/f8-f12-multi-client.test.mjs` valida compartilhamento multi-PC dos módulos centrais; `apps/desktop/tests/f8-f12-central-flow.test.ts` valida roteamento central e ausência de fallback local.
+
+
+## P2 lifecycle e estado
+
+- `src/components/StorageServerSettings.tsx`: reducer para busy/discovery/progresso/confirmações do setup.
+- Web/PWA: `public/field-lifecycle.js` é o owner único dos eventos de render; enhancers apenas se registram.
