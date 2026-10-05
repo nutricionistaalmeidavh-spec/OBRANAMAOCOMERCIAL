@@ -1,4 +1,4 @@
-const { payrollAmount, payrollPendingRows } = require('@obranamao/domain-core')
+const { payrollAmount, payrollPendingRows } = require('./domain-core.cjs')
 
 class PayrollService {
   constructor({ db }) { this.db = db }
