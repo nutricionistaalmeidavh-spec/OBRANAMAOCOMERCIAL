@@ -4,7 +4,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 
 const REQUIRED_TABLES = [
-  'empresas','clientes','obras','frentes_obra','cronograma_etapas','contas','funcionarios',
+  'empresas','clientes','obras','frentes_obra','cronograma_etapas','contas','funcionarios','arquivos','documentos','empresa_documentos_admissionais','cargo_epi_kits',
   'lan_server_identity','lan_members_cache','lan_devices','lan_pairing_codes','lan_audit','module_migrations','module_migration_records'
 ]
 
