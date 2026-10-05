@@ -25,6 +25,8 @@ const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|locais_obra|frentes_o
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
 const FINANCE_PAYMENT_ROUTE = /^\/api\/v1\/finance\/accounts\/(\d+)\/payment\/?$/
 const MIGRATION_ROUTE = /^\/api\/v1\/migrations\/([^/]+)\/(record|status|validate|commit|rollback)\/?$/
+const FILE_CONTENT_ROUTE = /^\/api\/v1\/documents\/files\/(\d+)\/content\/?$/
+const DOCUMENT_DELETE_ROUTE = /^\/api\/v1\/documents\/(\d+)\/?$/
 
 const digest = value => createHash('sha256').update(String(value)).digest('hex')
 const randomDeviceToken = () => randomBytes(32).toString('hex')
