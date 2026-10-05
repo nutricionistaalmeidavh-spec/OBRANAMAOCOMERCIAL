@@ -9,6 +9,7 @@ export default function DocumentsPage() {
   const rhContext = new URLSearchParams(location.search).get('context') === 'rh'
   const [view, setView] = useState<'pastas' | 'registros'>(rhContext ? 'registros' : 'pastas')
   const [tab, setTab] = useState('todos')
+  const [employee, setEmployee] = useState('')
   const [search, setSearch] = useState('')
   const [work, setWork] = useState(new URLSearchParams(location.search).get('obra') || '')
   const [front, setFront] = useState('')
@@ -34,8 +35,9 @@ export default function DocumentsPage() {
     const searchOk = doc.titulo.toLowerCase().includes(search.toLowerCase()) || doc.categoria.toLowerCase().includes(search.toLowerCase())
     const workOk = !work || String(doc.obra_id || '') === work
     const frontOk = !front || String(doc.frente_id || '') === front
-    return tabOk && searchOk && workOk && frontOk
-  }) || [], [docs.data, tab, search, work, front])
+    const employeeOk = !rhContext || (!employee ? Boolean(doc.funcionario_id) : String(doc.funcionario_id || '') === employee)
+    return tabOk && searchOk && workOk && frontOk && employeeOk
+  }) || [], [docs.data, tab, search, work, front, employee, rhContext])
   const getPath = (document: any) => files.data?.find((file: any) => file.id === document.arquivo_id)?.caminho
   const importDoc = async () => {
     const result = mode === 'funcionario'
