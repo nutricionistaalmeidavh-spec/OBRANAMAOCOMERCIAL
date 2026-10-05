@@ -8,3 +8,12 @@
 .field-sync-status{padding:10px 16px;border-bottom:1px solid #cbd5e1;background:#f0f6ff;color:#18334f;font-size:13px;line-height:1.5;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .field-sync-status button{min-height:40px;padding:6px 12px;border:1px solid currentColor;border-radius:8px;background:transparent;color:inherit;cursor:pointer}
 .field-sync-status button:focus-visible,.management-module:focus-visible{outline:3px solid #1673cf;outline-offset:3px}
+
+
+/* Explicit first-access paths: commercial activation and member invitation. */
+.auth-card.auth-card-wide{width:min(920px,calc(100vw - 32px));max-width:920px}
+.first-access-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px}
+.first-access-choice{display:flex;flex-direction:column;gap:10px;padding:18px;min-width:0}
+.first-access-choice>.form{margin-top:auto}
+.first-access-choice .auth-btn{width:100%}
+@media(max-width:720px){.first-access-choice-grid{grid-template-columns:1fr}.auth-card.auth-card-wide{width:min(100%,calc(100vw - 24px))}}
