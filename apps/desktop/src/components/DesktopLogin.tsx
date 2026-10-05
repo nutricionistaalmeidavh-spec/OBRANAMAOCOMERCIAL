@@ -16,6 +16,7 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
   const [message, setMessage] = useState('')
   const [storagePending, setStoragePending] = useState<CompanyStorageRequirement|null>(storageRequired || null)
   const [serverAddress, setServerAddress] = useState('')
+  const [manualAddress, setManualAddress] = useState(false)
   const firstAccess = mode !== 'login'
 
   async function submit(event: FormEvent) {
@@ -34,6 +35,8 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
       }
       if (result.storageRequired) {
         setStoragePending(result.storageRequired)
+        setManualAddress(false)
+        setServerAddress('')
         setMessage(result.message || 'Acesso confirmado. Conecte este computador à mesma rede do computador principal.')
       }
       if (result.linked) onLinked()
@@ -41,14 +44,19 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
     finally { setBusy(false) }
   }
 
-  async function completeStorage() {
+  async function completeStorage(addressOverride?:string) {
     setBusy(true); setMessage('')
     try {
-      const result = await window.fluxoDre.online.completeStorage(serverAddress.trim())
-      if (result.linked) { setStoragePending(null); onLinked(); return }
+      const address=addressOverride!==undefined?addressOverride:serverAddress.trim()
+      const result = await window.fluxoDre.online.completeStorage(address)
+      if (result.linked) { setStoragePending(null); setManualAddress(false); onLinked(); return }
       setStoragePending(result.storageRequired || storagePending)
+      if((result.storageRequired||storagePending)?.mode!=='remote')setManualAddress(true)
       setMessage(result.message || 'O computador principal ainda não foi encontrado.')
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Não foi possível conectar ao computador principal.') }
+    } catch (error) {
+      if(storagePending?.mode!=='remote')setManualAddress(true)
+      setMessage(error instanceof Error ? error.message : 'Não foi possível conectar ao computador principal.')
+    }
     finally { setBusy(false) }
   }
 
@@ -59,6 +67,8 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
         const result = await window.fluxoDre.online.status()
         if (result.storageRequired) {
           setStoragePending(result.storageRequired)
+          setManualAddress(false)
+          setServerAddress('')
           setMessage(result.message || 'Conta autorizada. Agora conecte este computador à rede da empresa.')
         } else if (result.linked) onLinked()
         else setMessage('Autorize no navegador e depois verifique novamente.')
@@ -76,15 +86,27 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
     return <Card style={{ width: '100%', maxWidth: 480, margin: '32px auto', padding: 28 }}>
       <small>OBRA NA MÃO · DESKTOP COMERCIAL</small>
       <h1>{remote?'Conectar ao servidor da empresa':'Conectar ao computador principal'}</h1>
-      <p>{remote?'Seu acesso já está autorizado. Informe o endereço HTTPS configurado pelo administrador.':'Seu acesso já está autorizado. Este computador deve usar a mesma fonte de dados do computador principal.'}</p>
+      <p>{remote?'Seu acesso já está autorizado. Informe o endereço HTTPS configurado pelo administrador.':'Seu acesso já está autorizado. Vamos procurar automaticamente o computador principal da empresa nesta rede.'}</p>
       <div style={{ display:'grid', gap:12 }}>
-        <p><strong>Fonte da empresa:</strong> {remote?'servidor remoto autorizado':'servidor local'}</p>
-        <Field label={remote?'Endereço HTTPS do servidor':'Endereço do servidor (opcional)'}>
-          <input value={serverAddress} onChange={event=>setServerAddress(event.target.value)} placeholder={remote?'https://servidor.empresa.com':'http://192.168.1.10:4732'} required={remote}/>
-        </Field>
-        {!remote && <small>Deixe em branco para localizar automaticamente na rede. Se informar um endereço, ele só será aceito se pertencer ao servidor já vinculado à empresa.</small>}
-        {message && <p role="status" style={{ overflowWrap:'anywhere' }}>{message}</p>}
-        <Button type="button" disabled={busy||remote&&!serverAddress.trim()} onClick={completeStorage}>{busy ? 'Conectando...' : serverAddress.trim()?'Conectar a este servidor':'Encontrar e conectar automaticamente'}</Button>
+        <p><strong>Fonte da empresa:</strong> {remote?'servidor remoto autorizado':'computador principal da empresa'}</p>
+        {remote ? <>
+          <Field label="Endereço HTTPS do servidor">
+            <input value={serverAddress} onChange={event=>setServerAddress(event.target.value)} placeholder="https://servidor.empresa.com" required/>
+          </Field>
+          {message && <p role="status" style={{ overflowWrap:'anywhere' }}>{message}</p>}
+          <Button type="button" disabled={busy||!serverAddress.trim()} onClick={()=>void completeStorage()}>{busy ? 'Conectando...' : 'Conectar ao servidor'}</Button>
+        </> : <>
+          {message && <p role="status" style={{ overflowWrap:'anywhere' }}>{message}</p>}
+          <Button type="button" disabled={busy} onClick={()=>void completeStorage('')}>{busy ? 'Procurando...' : 'Encontrar computador principal'}</Button>
+          {!manualAddress && <Button type="button" variant="ghost" disabled={busy} onClick={()=>setManualAddress(true)}>Não encontrou o computador principal? Informar endereço manualmente</Button>}
+          {manualAddress && <div style={{ display:'grid', gap:10 }}>
+            <Field label="Endereço do computador principal">
+              <input value={serverAddress} onChange={event=>setServerAddress(event.target.value)} placeholder="http://192.168.1.10:4732"/>
+            </Field>
+            <small>Use esta opção somente como recuperação. O endereço só será aceito se pertencer ao servidor já vinculado à empresa.</small>
+            <Button type="button" variant="secondary" disabled={busy||!serverAddress.trim()} onClick={()=>void completeStorage()}>{busy ? 'Verificando...' : 'Verificar endereço'}</Button>
+          </div>}
+        </>}
       </div>
     </Card>
   }
