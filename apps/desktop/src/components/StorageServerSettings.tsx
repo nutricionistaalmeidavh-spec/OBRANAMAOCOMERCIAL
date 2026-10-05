@@ -9,6 +9,7 @@ type Form={operationalMode:Mode;host:string;port:string}
 type ModuleKey='core'|'operation'|'planning'|'finance'|'rh'|'documents'
 type SetupStage='idle'|'saving'|'checking'|'authorizing'|'backup'|'migrating'|'validating'|'waiting'|'ready'|'error'
 type SetupProgress={stage:SetupStage;completed:number;total:number;current?:ModuleKey;message:string;error?:string}
+type ConnectionState='idle'|'checking'|'connected'|'unavailable'|'pairing-required'
 
 type SetupUiState={
   busy:boolean
@@ -67,6 +68,7 @@ export default function StorageServerSettings({onMessage}:Props){
   const [manualAddress,setManualAddress]=useState('')
   const [manualProbe,setManualProbe]=useState<any>(null)
   const [discoveredServers,setDiscoveredServers]=useState<any[]>([])
+  const [connectionState,setConnectionState]=useState<ConnectionState>('idle')
   const [setupUi,dispatchSetupUi]=useReducer(setupUiReducer,initialSetupUiState)
   const {busy,discovering,rollbackTarget,restoreTarget,progress}=setupUi
   const setBusy=(value:boolean)=>dispatchSetupUi({type:'busy',value})
@@ -158,6 +160,7 @@ export default function StorageServerSettings({onMessage}:Props){
 
   const changeMode=(mode:Mode)=>{
     setManualProbe(null)
+    setConnectionState('idle')
     if(mode!=='lan-client')setDiscoveredServers([])
     setForm(current=>({...current,operationalMode:mode,host:mode==='lan-host'||mode==='local'?'127.0.0.1':(current.host==='127.0.0.1'?'':current.host)}))
     setProgress({stage:'idle',completed:0,total:MODULE_ORDER.length,message:''})
@@ -291,7 +294,7 @@ export default function StorageServerSettings({onMessage}:Props){
   }
 
   const reconnect=async()=>{
-    setBusy(true);onMessage('Reconectando ao servidor selecionado...')
+    setBusy(true);setConnectionState('checking');onMessage('Reconectando ao servidor selecionado...')
     try{
       const result=await window.fluxoDre.lan.reconnect()
       const current=await window.fluxoDre.storage.state()
@@ -300,23 +303,23 @@ export default function StorageServerSettings({onMessage}:Props){
         setManualAddress(current.baseUrl)
         setForm({operationalMode:current.operationalMode as Mode,host:current.host,port:String(current.port)})
       }
-      if(result.status==='connected')onMessage(result.endpointChanged?'Servidor reencontrado na rede e reconectado sem novo pareamento.':'Servidor reconectado com a credencial já autorizada.')
-      else if(result.status==='pairing-required')onMessage('A credencial deste computador não é mais válida. Faça um novo pareamento.')
-      else if(result.status==='unreachable')onMessage('O servidor selecionado não está acessível. Nenhum outro servidor foi usado como substituto.')
+      if(result.status==='connected'){setConnectionState('connected');onMessage(result.endpointChanged?'Servidor reencontrado na rede e reconectado sem novo pareamento.':'Servidor reconectado com a credencial já autorizada.')}
+      else if(result.status==='pairing-required'){setConnectionState('pairing-required');onMessage('A credencial deste computador não é mais válida. Faça um novo pareamento.')}
+      else if(result.status==='unreachable'){setConnectionState('unavailable');onMessage('O servidor selecionado não está acessível. Nenhum outro servidor foi usado como substituto.')}
       await readLanState(current.operationalMode as Mode)
-    }catch(error:any){onMessage(error.message)}finally{setBusy(false)}
+    }catch(error:any){setConnectionState('unavailable');onMessage(error.message)}finally{setBusy(false)}
   }
 
   const applyServerConnection=async(address:string,mode:'lan-client'|'remote'=(form.operationalMode==='remote'?'remote':'lan-client'))=>{
-    setBusy(true);onMessage('Validando e conectando ao servidor Obra na Mão...')
+    setBusy(true);setConnectionState('checking');onMessage('Validando e conectando ao servidor Obra na Mão...')
     try{
       const result=await window.fluxoDre.storage.connectAddress(address,mode)
       storage.setData(result.state)
       setForm({operationalMode:result.state.operationalMode as Mode,host:result.state.host,port:String(result.state.port)})
-      setManualAddress(result.state.baseUrl);setManualProbe(result.server)
+      setManualAddress(result.state.baseUrl);setManualProbe(result.server);setConnectionState('connected')
       onMessage(`Servidor conectado — ${result.state.baseUrl} (${result.server.latencyMs} ms).`)
       await readLanState(result.state.operationalMode as Mode)
-    }catch(error:any){onMessage(error.message)}finally{setBusy(false)}
+    }catch(error:any){setConnectionState('unavailable');onMessage(error.message)}finally{setBusy(false)}
   }
 
   const discoverServers=async()=>{
@@ -328,10 +331,10 @@ export default function StorageServerSettings({onMessage}:Props){
   }
 
   const testManualAddress=async()=>{
-    setBusy(true);setManualProbe(null);onMessage('Testando o endereço informado...')
+    setBusy(true);setConnectionState('checking');setManualProbe(null);onMessage('Testando o endereço informado...')
     try{
       const result=await window.fluxoDre.storage.probeAddress(manualAddress,form.operationalMode==='remote'?'remote':'lan-client')
-      setManualProbe(result);onMessage(`Servidor compatível e pronto — ${result.baseUrl} (${result.latencyMs} ms).`)
+      setManualProbe(result);setConnectionState('connected');onMessage(`Servidor compatível e pronto — ${result.baseUrl} (${result.latencyMs} ms).`)
     }catch(error:any){onMessage(error.message)}finally{setBusy(false)}
   }
 
@@ -425,6 +428,8 @@ export default function StorageServerSettings({onMessage}:Props){
             {['lan-client','remote'].includes(form.operationalMode)&&!dirty&&<Button variant="secondary" icon={<Wifi size={14}/>} disabled={busy} onClick={reconnect}>Reconectar</Button>}
           </div>
 
+          {isServerMode&&connectionState==='unavailable'&&<div className="storage-error-summary" role="status"><strong>Servidor temporariamente indisponível</strong><p>Seus dados continuam no computador principal. Nenhum dado foi movido para este computador e o Obra na Mão não troca para uma cópia local.</p><Button variant="secondary" icon={<RefreshCw size={15}/>} disabled={busy||discovering} onClick={reconnect}>Tentar reconectar</Button></div>}
+          {isServerMode&&connectionState==='connected'&&<div className="storage-ready-note" role="status"><CheckCircle2 size={17}/><span><strong>Conexão restabelecida.</strong> Este computador voltou a usar a fonte compartilhada autorizada.</span></div>}
           <p className="storage-cloud-note"><strong>Acesso Web/PWA continua disponível.</strong> Esta escolha define apenas onde ficam os dados operacionais do Desktop.</p>
           {isServerMode&&<p className="storage-cloud-note"><strong>Se a conexão falhar, seus dados ficam protegidos.</strong> O Desktop preserva a configuração atual e não troca de fonte de dados sozinho.</p>}
         </div>
@@ -438,7 +443,7 @@ export default function StorageServerSettings({onMessage}:Props){
           </>}
           {progress.stage==='error'&&<div className="storage-error-summary"><strong>Ação necessária</strong><p>{progress.error}</p><Button variant="secondary" onClick={configureAndFinish} disabled={busy}>Tentar novamente</Button></div>}
           {progress.stage==='waiting'&&!online.data?.linked&&<div className="storage-waiting-note"><strong>Conexão online necessária</strong><p>Vincule este Desktop em “Conexão Obra na Mão” e volte aqui para concluir.</p></div>}
-          {setupReady&&<div className="storage-ready-note"><ShieldCheck size={17}/><span><strong>Dados centralizados.</strong> Os computadores autorizados usam a mesma fonte operacional.</span></div>}
+          {setupReady&&<div className="storage-ready-note"><ShieldCheck size={17}/><span><strong>Computador conectado.</strong> Os computadores autorizados usam a mesma fonte operacional.</span></div>}
         </div>
       </div>
 
