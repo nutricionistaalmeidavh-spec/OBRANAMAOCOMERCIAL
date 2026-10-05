@@ -1,3 +1,5 @@
+const { payrollAmount, payrollPendingRows } = require('./domain-core.cjs')
+
 class PayrollService {
   constructor({ db }) { this.db = db }
 
@@ -79,9 +81,7 @@ class PayrollService {
     const existing = this.db.db.prepare("SELECT id FROM pagamentos_funcionario WHERE funcionario_id=? AND competencia=? AND quinzena=? AND status='pago'").get(employee.id, payload.competencia, quinzena)
     if (existing) throw new Error('Esta quinzena já foi confirmada.')
     const rows = this.db.db.prepare("SELECT * FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND quinzena=? AND status='pendente'").all(sheet.id, employee.id, quinzena)
-    const credits = rows.filter((x) => x.natureza === 'credito').reduce((sum, x) => sum + x.valor_centavos, 0)
-    const discounts = rows.filter((x) => x.natureza === 'desconto').reduce((sum, x) => sum + x.valor_centavos, 0)
-    const amount = Math.max(0, credits - discounts)
+    const amount = payrollAmount(rows)
     return this.db.db.transaction(() => {
       const payment = this.db.save('pagamentos_funcionario', { funcionario_id: employee.id, folha_id: sheet.id, competencia: payload.competencia, quinzena, valor_centavos: amount, data: payload.data, status: 'pago', observacoes: payload.observacoes || null, forma_pagamento: payload.forma_pagamento || 'PIX', confirmado_em: new Date().toISOString() })
       this.db.db.prepare("UPDATE folha_lancamentos SET status='pago',updated_at=CURRENT_TIMESTAMP WHERE folha_id=? AND funcionario_id=? AND quinzena=? AND status='pendente'").run(sheet.id, employee.id, quinzena)
@@ -94,15 +94,7 @@ class PayrollService {
     const result = []
     for (const employee of employees) {
       const data = this.getEmployee({ funcionario_id: employee.id, competencia })
-      const paid = new Set(data.payments.filter((item) => item.status === 'pago').map((item) => item.quinzena))
-      for (const quinzena of [1, 2]) {
-        if (paid.has(quinzena)) continue
-        const rows = data.launches.filter((item) => item.quinzena === quinzena)
-        if (quinzena === 2 && !rows.length) continue
-        const credits = rows.filter((item) => item.natureza === 'credito').reduce((sum, item) => sum + item.valor_centavos, 0)
-        const discounts = rows.filter((item) => item.natureza === 'desconto').reduce((sum, item) => sum + item.valor_centavos, 0)
-        result.push({ funcionario_id: employee.id, funcionario_nome: employee.nome, cargo_nome: data.cargo?.nome || 'Sem cargo', competencia, quinzena, valor_centavos: Math.max(0, credits - discounts), status: 'pendente' })
-      }
+      result.push(...payrollPendingRows({ employee, cargo: data.cargo, competencia, launches: data.launches, payments: data.payments }))
     }
     return result
   }

@@ -1,3 +1,4 @@
+const { paymentStatus } = require('./domain-core.cjs')
 const fs = require('node:fs')
 const path = require('node:path')
 const Database = require('better-sqlite3')
@@ -241,7 +242,7 @@ class DatabaseService {
       this.db.prepare('INSERT INTO pagamentos_conta(conta_id,valor_centavos,data,forma_pagamento,observacoes) VALUES (?,?,?,?,?)')
         .run(conta.id, valor, payment.data, payment.forma_pagamento || null, payment.observacoes || null)
       const paid = this.db.prepare('SELECT COALESCE(SUM(valor_centavos),0) total FROM pagamentos_conta WHERE conta_id=?').get(conta.id).total
-      const status = paid >= conta.valor_centavos ? (conta.tipo === 'pagar' ? 'pago' : 'recebido') : 'parcialmente_pago'
+      const status = paymentStatus(conta, paid)
       this.db.prepare('UPDATE contas SET status=?,data_efetiva=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(status, payment.data, conta.id)
       return { ...this.get('contas', conta.id), pago_centavos: paid }
     })()

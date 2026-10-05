@@ -1,3 +1,5 @@
+import domainCore from './domain-core.cjs'
+const { planningCurve } = domainCore
 export class PlanningService {
   constructor({ repository }) {
     if (!repository?.connection || !repository?.get) throw new Error('Repositório LAN inválido para Planejamento.')
@@ -25,21 +27,7 @@ export class PlanningService {
       WHERE obra_id=? AND deleted_at IS NULL
     `).get(id).total
 
-    let planned = 0
-    let actual = 0
-    const curve = stages.map(stage => {
-      planned += Number(stage.custo_planejado_centavos || 0)
-      actual += Number(stage.custo_realizado_centavos || 0)
-      return {
-        etapa_id: stage.id,
-        nome: stage.nome,
-        data: stage.previsto_fim || stage.previsto_inicio,
-        previsto_centavos: planned,
-        realizado_centavos: actual,
-        percentual_previsto: Number(stage.percentual_previsto),
-        percentual_realizado: Number(stage.percentual_realizado)
-      }
-    })
+    const curve = planningCurve(stages)
 
     const fronts = this.db.prepare(`
       SELECT f.id,f.nome,

@@ -1,3 +1,5 @@
+import domainCore from './domain-core.cjs'
+const { payrollAmount, payrollPendingRows } = domainCore
 import { ConcurrencyService } from './concurrency-service.mjs'
 
 export class PayrollService {
@@ -138,9 +140,7 @@ export class PayrollService {
       if (existing) throw new Error('Esta quinzena já foi confirmada.')
 
       const rows = this.db.prepare("SELECT * FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND quinzena=? AND status='pendente'").all(sheet.id, employee.id, quinzena)
-      const credits = rows.filter(row => row.natureza === 'credito').reduce((sum, row) => sum + Number(row.valor_centavos || 0), 0)
-      const discounts = rows.filter(row => row.natureza === 'desconto').reduce((sum, row) => sum + Number(row.valor_centavos || 0), 0)
-      const amount = Math.max(0, credits - discounts)
+      const amount = payrollAmount(rows)
 
       const payment = this.repository.save('pagamentos_funcionario', {
         empresa_id: employee.empresa_id,
@@ -170,23 +170,7 @@ export class PayrollService {
     const result = []
     for (const employee of employees) {
       const data = this.getEmployee({ funcionario_id: employee.id, competencia })
-      const paid = new Set(data.payments.filter(item => item.status === 'pago').map(item => item.quinzena))
-      for (const quinzena of [1, 2]) {
-        if (paid.has(quinzena)) continue
-        const rows = data.launches.filter(item => item.quinzena === quinzena)
-        if (quinzena === 2 && !rows.length) continue
-        const credits = rows.filter(item => item.natureza === 'credito').reduce((sum, item) => sum + Number(item.valor_centavos || 0), 0)
-        const discounts = rows.filter(item => item.natureza === 'desconto').reduce((sum, item) => sum + Number(item.valor_centavos || 0), 0)
-        result.push({
-          funcionario_id: employee.id,
-          funcionario_nome: employee.nome,
-          cargo_nome: data.cargo?.nome || 'Sem cargo',
-          competencia,
-          quinzena,
-          valor_centavos: Math.max(0, credits - discounts),
-          status: 'pendente'
-        })
-      }
+      result.push(...payrollPendingRows({ employee, cargo: data.cargo, competencia, launches: data.launches, payments: data.payments }))
     }
     return result
   }
