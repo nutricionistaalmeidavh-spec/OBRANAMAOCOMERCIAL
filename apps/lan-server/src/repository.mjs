@@ -32,6 +32,8 @@ const TABLE_FIELDS = {
   pedido_compra_anexos: new Set(['pedido_compra_id','documento_id','tipo']),
   documentos_editaveis: new Set(['documento_id','conteudo_html','revisao']),
   modelos_documento_rh: new Set(['chave','nome','conteudo_html','ativo','arquivo_origem']),
+  empresa_documentos_admissionais: new Set(['empresa_id','documento_key','ativo','obrigatorio','modelo_id','titulo_customizado','configuracao_json']),
+  cargo_epi_kits: new Set(['empresa_id','cargo_id','epi_id','quantidade_texto','ativo']),
   fornecedores: new Set(['empresa_id', 'nome', 'documento', 'telefone', 'email', 'observacoes']),
   categorias_financeiras: new Set(['nome', 'natureza', 'grupo_dre', 'ativa']),
   contas: new Set(['tipo', 'empresa_id', 'obra_id', 'frente_id', 'etapa_id', 'fornecedor_id', 'cliente_id', 'categoria_id', 'medicao_id', 'solicitacao_compra_id', 'pedido_compra_id', 'contrato_id', 'descricao', 'competencia', 'emissao', 'vencimento', 'valor_bruto_centavos', 'retencoes_centavos', 'descontos_centavos', 'valor_centavos', 'forma_pagamento', 'status', 'data_efetiva', 'recorrencia', 'parcela_atual', 'total_parcelas', 'origem_tipo', 'origem_id', 'observacoes']),
@@ -95,6 +97,8 @@ const TABLE_META = {
   pedido_compra_anexos: { softDelete: false, updatedAt: false, order: 'id DESC' },
   documentos_editaveis: { softDelete: false, updatedAt: true, order: 'id DESC' },
   modelos_documento_rh: { softDelete: false, updatedAt: true, order: 'nome COLLATE NOCASE, id' },
+  empresa_documentos_admissionais: { softDelete: false, updatedAt: true, order: 'documento_key COLLATE NOCASE, id' },
+  cargo_epi_kits: { softDelete: false, updatedAt: true, order: 'cargo_id, epi_id, id' },
   fornecedores: { softDelete: true, updatedAt: true, order: 'nome COLLATE NOCASE, id' },
   categorias_financeiras: { softDelete: false, updatedAt: false, order: 'nome COLLATE NOCASE, id' },
   contas: { softDelete: true, updatedAt: true, order: 'vencimento DESC, id DESC' },
@@ -278,7 +282,7 @@ export class LanRepository {
 
   validateRhOwnership(table, data, clean) {
     const rhTables = new Set([
-      'cargos', 'beneficios', 'funcionarios', 'funcionario_obras', 'cargo_beneficios',
+      'cargos', 'beneficios', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'cargo_epi_kits',
       'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario',
       'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis'
     ])
@@ -299,6 +303,9 @@ export class LanRepository {
     } else if (table === 'cargo_beneficios') {
       this.rhCompanyReference('cargos', value('cargo_id'), companyId, 'Cargo')
       this.rhCompanyReference('beneficios', value('beneficio_id'), companyId, 'Benefício')
+    } else if (table === 'cargo_epi_kits') {
+      this.rhCompanyReference('cargos', value('cargo_id'), companyId, 'Cargo')
+      this.rhCompanyReference('epis', value('epi_id'), companyId, 'EPI')
     } else if (table === 'funcionario_beneficios') {
       this.rhCompanyReference('funcionarios', value('funcionario_id'), companyId, 'Funcionário')
       this.rhCompanyReference('beneficios', value('beneficio_id'), companyId, 'Benefício')
