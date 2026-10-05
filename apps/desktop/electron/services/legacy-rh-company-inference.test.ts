@@ -97,7 +97,7 @@ describe('legacy RH company inference',()=>{
     db.save('empresas',{razao_social:'Empresa B',status:'ativa'})
     const migration=service(db)
     await expect(migration.migrate('rh')).rejects.toThrow(/base multiempresa sem vínculo inequívoco/i)
-    expect(migration.lanClient?.migrationStart).toBeUndefined()
+    expect(migration.lanClient.migrationStart).not.toHaveBeenCalled()
   })
 
   it('detecta empresa_id legado que contradiz a obra atual do funcionário',()=>{
