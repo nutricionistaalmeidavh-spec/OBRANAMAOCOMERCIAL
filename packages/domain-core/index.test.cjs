@@ -47,7 +47,7 @@ test('RDO normaliza filhos e gera tarefa somente para ocorrência aberta', () =>
 })
 
 test('financeiro deriva status de pagamento por valor acumulado', () => {
-  assert.equal(paymentStatus({ valor_centavos: 10000 }, 0), 'pendente')
-  assert.equal(paymentStatus({ valor_centavos: 10000 }, 4000), 'parcialmente_pago')
-  assert.equal(paymentStatus({ valor_centavos: 10000 }, 10000), 'pago')
+  assert.equal(paymentStatus({ tipo: 'pagar', valor_centavos: 10000 }, 4000), 'parcialmente_pago')
+  assert.equal(paymentStatus({ tipo: 'pagar', valor_centavos: 10000 }, 10000), 'pago')
+  assert.equal(paymentStatus({ tipo: 'receber', valor_centavos: 10000 }, 10000), 'recebido')
 })
