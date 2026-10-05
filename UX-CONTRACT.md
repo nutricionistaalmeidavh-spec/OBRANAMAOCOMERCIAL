@@ -26,6 +26,15 @@
 - Cargo + vínculos de benefícios são salvos pela operação única `catalogo.saveCompensationPolicy`, com rollback integral em falha.
 - Paths, aliases, sidebar e breadcrumb são derivados de `apps/desktop/src/routes/registry.ts`.
 
+## P1 — Configurações e lifecycle responsivo
+
+- Configurações do sistema são agrupadas por intenção: **Dados e conectividade**, **Arquivos e proteção**, **Preferências** e **Aplicativo**.
+- Cards simples têm altura orientada pelo conteúdo; não existe altura mínima global para igualar cards vizinhos.
+- O setup de servidor usa **container queries** porque a largura útil depende da sidebar e do grid pai, não apenas do viewport.
+- Dados de demonstração ficam atrás de **Ferramentas de suporte** recolhidas por padrão e não competem com tarefas normais.
+- O owner Web usa o evento explícito `owner:rendered`; `owner-loja-online.ts` não observa mutações globais do DOM.
+- Nenhuma dependência paga é necessária para esses fluxos; o core permanece local/self-hosted/open source.
+
 ## Visual contract
 
 - Project `DESIGN.md`: `DESIGN.md`.
