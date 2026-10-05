@@ -51,6 +51,18 @@ export class CloudAuthorityClient {
     return await this.request('/api/lan/claim/redeem', { body: { serverId: String(serverId), claimToken: String(claimToken) } })
   }
 
+  async redeemEnrollment({ serverToken, serverId, enrollmentToken, installationId }) {
+    if (!serverToken || !serverId || !enrollmentToken || !installationId) throw new Error('Dados da matrícula LAN incompletos.')
+    return await this.request('/api/lan/enroll/redeem', {
+      headers: { authorization: `Bearer ${String(serverToken)}` },
+      body: {
+        serverId: String(serverId),
+        enrollmentToken: String(enrollmentToken),
+        installationId: String(installationId)
+      }
+    })
+  }
+
   async snapshot({ serverToken }) {
     if (!serverToken) throw new Error('Token do servidor LAN não informado.')
     return await this.request('/api/lan/server/snapshot', { headers: { authorization: `Bearer ${String(serverToken)}` } })
