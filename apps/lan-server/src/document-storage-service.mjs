@@ -103,7 +103,7 @@ export class DocumentStorageService {
     try{fs.unlinkSync(this.pathFor(file))}catch{}
     return this.repository.remove('arquivos',Number(id))
   }
-  deleteDocument(id){
+  deleteDocument(id,{deletePhysical=false}={}){
     const document=this.repository.get('documentos',Number(id))
     if(!document)return true
     const fileId=Number(document.arquivo_id||0)
@@ -115,7 +115,7 @@ export class DocumentStorageService {
       this.repository.remove('documentos',Number(id))
       this.db.exec('COMMIT')
     }catch(error){try{this.db.exec('ROLLBACK')}catch{};throw error}
-    if(fileId){
+    if(fileId&&deletePhysical){
       const refs=Number(this.db.prepare('SELECT COUNT(*) n FROM documentos WHERE arquivo_id=? AND deleted_at IS NULL').get(fileId)?.n||0)
       if(!refs)this.removeFile(fileId)
     }
