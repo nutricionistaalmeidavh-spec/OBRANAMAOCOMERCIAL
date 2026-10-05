@@ -1,5 +1,6 @@
 import { Cloud, DatabaseBackup, FolderCog, FolderOpen, HardHat, ListTree, PanelsTopLeft, RefreshCw, RotateCcw, ShieldCheck, Unplug, Wrench } from 'lucide-react'
-import { ReactNode, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useAsync } from '../hooks/useAsync'
 import SyncSettings from '../components/SyncSettings'
 import StorageServerSettings from '../components/StorageServerSettings'
@@ -33,7 +34,6 @@ export default function SettingsPage(){
 
     <SettingsGroup title="Dados e conectividade" description="Defina onde os dados operacionais vivem e como este Desktop se conecta aos demais canais.">
       <SyncSettings/>
-      <StorageServerSettings onMessage={setMessage}/>
       <Card className="setting-card setting-card-wide">
         <Cloud size={21}/>
         <div className="setting-card-copy">
@@ -52,6 +52,7 @@ export default function SettingsPage(){
         </div>
         <small className="path-text">{online.data?.baseUrl||'Carregando endpoint...'}</small>
       </Card>
+      <StorageServerSettings onMessage={setMessage}/>
     </SettingsGroup>
 
     <SettingsGroup title="Arquivos e proteção" description="Pasta documental, backup e proteções locais do Desktop.">
