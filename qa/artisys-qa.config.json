@@ -8,7 +8,7 @@
   "defaultViewport": "desktop",
   "capture": {
     "video": true,
-    "screenshotEachStep": true,
+    "screenshotEachStep": false,
     "fps": 4
   },
   "demoCaptureViewport": {
@@ -28,7 +28,8 @@
     }
   },
   "flows": {
-    "smoke": "flows/smoke.json"
+    "smoke": "flows/smoke.json",
+    "rh-audit": "flows/rh-audit.json"
   },
   "demos": {
     "quick-30s": {
