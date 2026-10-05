@@ -40,7 +40,7 @@ function normalizePermissionMatrix(value?:Record<string,string[]>|PermissionMatr
   const out=EMPTY()
   if(!value)return out
   for(const domain of Object.keys(out) as PermissionDomain[]){
-    out[domain]=(value[domain]||[]).filter((action):action is PermissionAction=>ACTIONS.includes(action as PermissionAction))
+    out[domain]=(value[domain]||[]).filter(action=>ACTIONS.includes(action as PermissionAction)) as PermissionAction[]
   }
   return out
 }
