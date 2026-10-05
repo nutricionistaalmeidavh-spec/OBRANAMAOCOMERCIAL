@@ -39,7 +39,7 @@
     "electronVersion": "43.4.1"
   },
   "dependencies": {
-    "@obranamao/domain-core": "1.0.0",
+    "@obranamao/domain-core": "file:../../packages/domain-core",
     "better-sqlite3": "^13.0.2",
     "electron-updater": "^6.6.2",
     "exceljs": "^4.4.0",
