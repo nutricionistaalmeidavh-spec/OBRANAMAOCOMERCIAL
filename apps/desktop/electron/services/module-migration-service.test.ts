@@ -21,14 +21,14 @@ function fixture({mode='lan-host', module='core', moduleState='migration-require
     }}
   }
   const calls:any[]=[]
-  const expectedCounts=()=>Object.fromEntries(Object.entries(data).map(([table,items]:any)=>[table,items.length]))
+  let remoteExpectedCounts:any={}
   const lanClient:any={
     syncSourceCapabilities:vi.fn(async()=>({modules:capabilities})),
-    migrationStart:vi.fn(async(input:any)=>{calls.push(['start',input]);return {status:'started',...input}}),
+    migrationStart:vi.fn(async(input:any)=>{remoteExpectedCounts={...(input.expectedCounts||{})};calls.push(['start',input]);return {status:'started',...input}}),
     migrationRecord:vi.fn(async(id:string,record:any)=>{calls.push(['record',id,record]);return {targetId:record.sourceId,reused:false}}),
     migrationValidate:vi.fn(async(id:string)=>{calls.push(['validate',id]);return {status:'validated',sanityOk:true}}),
     migrationCommit:vi.fn(async(id:string)=>{calls.push(['commit',id]);return {status:'committed',sanityOk:true}}),
-    migrationStatus:vi.fn(async(id:string)=>{calls.push(['status',id]);return {migrationId:id,status:'committed',sanityOk:true,counts:expectedCounts(),targetCounts:expectedCounts(),missingTargets:[]}}),
+    migrationStatus:vi.fn(async(id:string)=>{calls.push(['status',id]);return {migrationId:id,status:'committed',sanityOk:true,counts:{...remoteExpectedCounts},targetCounts:{...remoteExpectedCounts},missingTargets:[]}}),
     migrationRollback:vi.fn(async(id:string)=>{calls.push(['rollback',id]);return {status:'rolled_back'}})
   }
   const backup:any={createSafetySnapshot:vi.fn(async(context:any)=>{calls.push(['backup',context]);return {database:'/backup.sqlite',manifest:'/manifest.json',fingerprint:`backup-${calls.filter(x=>x[0]==='backup').length}`}})}
