@@ -18,19 +18,22 @@ describe('operational pages in server mode',()=>{
     expect(fronts).not.toContain('Subfrentes e checklist ainda não possuem fonte central canônica')
   })
 
-  it('allows central RDO while guarding local-only attachments and RH identity',()=>{
+  it('allows central RDO attachments only when the documents module is canonical-active',()=>{
     expect(rdo).toContain("window.fluxoDre.storage.moduleState('operation')")
     expect(rdo).toContain("window.fluxoDre.storage.moduleState('rh')")
-    expect(rdo).toContain('disabled={serverMode}')
-    expect(rdo).toContain('Anexos ainda usam a fonte local')
+    expect(rdo).toContain("window.fluxoDre.storage.moduleState('documents')")
+    expect(rdo).toContain("documentsStorage.data?.state === 'central-active'")
+    expect(rdo).not.toContain('disabled={serverMode}')
+    expect(rdo).not.toContain('Anexos ainda usam a fonte local')
     expect(rdo).toContain('rhActive ? window.fluxoDre.funcionarios.list() : Promise.resolve([])')
   })
 
-  it('mantém anexos locais protegidos até a Fase 6 sem bloquear medições, compras e contratos centrais',()=>{
+  it('routes measurement procurement and contract attachments by documents module readiness',()=>{
     for(const source of [measurements,procurement,contracts]){
-      expect(source).toContain("window.fluxoDre.storage.state()")
-      expect(source).toContain("const serverMode = storage.data?.mode === 'server'")
-      expect(source).toContain('Anexos serão liberados na Fase 6 de documentos compartilhados')
+      expect(source).toContain("window.fluxoDre.storage.moduleState('documents')")
+      expect(source).toContain("documentsStorage.data?.state === 'central-active'")
+      expect(source).not.toContain('Anexos serão liberados na Fase 6 de documentos compartilhados')
+      expect(source).not.toContain('disabled={serverMode}')
     }
   })
 })
