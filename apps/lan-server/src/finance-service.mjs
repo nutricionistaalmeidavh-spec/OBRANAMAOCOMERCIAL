@@ -1,9 +1,5 @@
-function paymentStatus(account, paid) {
-  return paid >= Number(account.valor_centavos || 0)
-    ? (account.tipo === 'pagar' ? 'pago' : 'recebido')
-    : 'parcialmente_pago'
-}
-
+import domainCore from '@obranamao/domain-core'
+const { paymentStatus } = domainCore
 const CLOSED_ACCOUNT_STATUSES = new Set(['pago', 'recebido', 'quitado', 'cancelado'])
 
 export class FinanceService {
