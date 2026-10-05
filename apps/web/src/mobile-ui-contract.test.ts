@@ -58,7 +58,8 @@ describe('mobile premium UI contract',()=>{
     for(const surface of ['floors','floor-detail','issues','planning','settings'])expect(enhancer).toContain(`'${surface}'`);
     expect(enhancer).toContain('enhanceInternalSurface');
     expect(enhancer).toContain('enhanceSheet');
-    expect(enhancer).toContain("document.addEventListener('field:sheet-rendered',enhanceSheet)");
+    expect(enhancer).toContain('fieldLifecycle?.register({screen:enhance,sheet:enhanceSheet})');
+    expect(enhancer).not.toContain("document.addEventListener('field:sheet-rendered'");
     expect(enhancer).not.toContain('MutationObserver');
 
     for(const selector of [
