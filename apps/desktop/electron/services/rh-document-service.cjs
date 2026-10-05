@@ -70,19 +70,28 @@ class RhDocumentService {
       unsignedFolder,
       signedFolder,
       source: 'central-rh',
-      storage: 'local-derived',
-      registeredInLocalDatabase: false
+      storage: 'central',
+      registeredInLocalDatabase: false,
+      registeredInCentralDatabase: true
     }
 
     if (pointSelected) {
       const pointPath = path.join(unsignedFolder, `Ficha de ponto - ${data.point.competencia} - ${sanitizeName(data.employee.nome)} - ${stamp}.pdf`)
       await this.localTime.printHtml(this.localTime.pointHtml(data, context.company, context.cargo), pointPath)
-      result.point = { path: pointPath, storage: 'local-derived', registeredInLocalDatabase: false }
+      const registered=await this.fileService.registerCentralFile(pointPath,{
+        empresa_id:context.employee.empresa_id,obra_id:context.employee.obra_atual_id||null,funcionario_id:context.employee.id,
+        categoria:'ponto',titulo:`Ficha de ponto - ${data.point.competencia}`,status_assinatura:'nao_assinado',versao:1
+      })
+      result.point = { ...registered, localPath:pointPath }
     }
     if (receiptsSelected && context.benefits.length) {
       const receiptPath = path.join(unsignedFolder, `Recibos de benefícios - ${data.point.competencia} - ${sanitizeName(data.employee.nome)} - ${stamp}.pdf`)
       await this.localTime.printHtml(this.localTime.receiptHtml(data, context.company, context.cargo, context.benefits, payload.paymentDate), receiptPath)
-      result.receipt = { path: receiptPath, storage: 'local-derived', registeredInLocalDatabase: false }
+      const registered=await this.fileService.registerCentralFile(receiptPath,{
+        empresa_id:context.employee.empresa_id,obra_id:context.employee.obra_atual_id||null,funcionario_id:context.employee.id,
+        categoria:'recibo_beneficios',titulo:`Recibos de benefícios - ${data.point.competencia}`,status_assinatura:'nao_assinado',versao:1
+      })
+      result.receipt = { ...registered, localPath:receiptPath }
     }
     return result
   }
@@ -118,7 +127,7 @@ class RhDocumentService {
     if (payload?.reprint) {
       const entries = await this.prepareCentralEntries(payload)
       const printed = await this.localTime.printEntries(entries, payload)
-      return { ...printed, reprint: true, source: 'central-rh', storage: 'local-derived' }
+      return { ...printed, reprint: true, source: 'central-rh', storage: 'central' }
     }
 
     const employees = await this.centralEmployees()
