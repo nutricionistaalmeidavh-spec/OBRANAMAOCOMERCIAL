@@ -9,8 +9,15 @@ export class MeasurementService {
   }
 
   save(payload = {}) {
-    const { itens = [], conta = null, expectedRevision, revision, ...raw } = payload
+    const { itens = [], conta = null, expectedRevision, revision, requestId = null, ...raw } = payload
     const data = { ...raw }
+    const creating = !data.id
+    const key = creating ? String(requestId || '').trim() : null
+    if (creating && !key) throw new Error('Identificador idempotente da medição não informado.')
+    if (creating) {
+      const replay = this.db.prepare('SELECT * FROM medicoes WHERE request_id=?').get(key)
+      if (replay) return { ...replay, revision:this.concurrency.current('medicoes', replay.id) || this.concurrency.initialize('medicoes', replay.id), itens:this.repository.list('medicao_itens', { medicao_id:replay.id }), replayed:true }
+    }
     delete data.conta
     delete data.itens
     this.db.exec('BEGIN IMMEDIATE')
@@ -44,6 +51,7 @@ export class MeasurementService {
         }
       }
 
+      if (creating) data.request_id = key
       const measurement = this.repository.save('medicoes', data)
       if (!measurement?.id) throw new Error('Medição central não pôde ser salva.')
       if (data.id) this.db.prepare('DELETE FROM medicao_itens WHERE medicao_id=?').run(measurement.id)
@@ -106,6 +114,10 @@ export class MeasurementService {
       return result
     } catch (error) {
       try { this.db.exec('ROLLBACK') } catch {}
+      if (creating && /UNIQUE constraint failed: medicoes\.request_id/i.test(String(error?.message || ''))) {
+        const existing = this.db.prepare('SELECT * FROM medicoes WHERE request_id=?').get(key)
+        if (existing) return { ...existing, revision:this.concurrency.current('medicoes', existing.id) || this.concurrency.initialize('medicoes', existing.id), itens:this.repository.list('medicao_itens', { medicao_id:existing.id }), replayed:true }
+      }
       throw error
     }
   }
