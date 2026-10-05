@@ -15,12 +15,12 @@ const cards = [
 export default function RhHubPage(){
   return <>
     <PageHeader title="RH" description="Gestão dos colaboradores, remuneração, folha, ponto e documentos trabalhistas em um único fluxo."/>
-    <ol className="rh-journey" aria-label="Jornada de admissão">
+    <section aria-labelledby="rh-admission-flow-title">\n      <div className="section-heading"><div><h2 id="rh-admission-flow-title">Fluxo de admissão</h2><p>Siga as etapas para cadastrar, gerar e conferir a documentação do colaborador.</p></div></div>\n    <ol className="rh-journey" aria-label="Jornada de admissão">
       <li><Link to={ROUTES.rhAdmissions}>1. Cadastro</Link><small>Dados pessoais e documentos.</small></li>
       <li><Link to={ROUTES.rhAdmissions}>2. Contrato</Link><small>Empresa, cargo, jornada e remuneração.</small></li>
       <li><Link to={ROUTES.rhAdmissions}>3. Benefícios e EPI</Link><small>Confira benefícios e itens entregues.</small></li>
       <li><Link to={ROUTES.rhAdmissions}>4. Documentos</Link><small>Gere o kit admissional.</small></li>
-      <li><Link to={ROUTES.documents}>5. Conferência</Link><small>Revise, imprima e acompanhe os arquivos.</small></li>
+      <li><Link to={`${ROUTES.documents}?context=rh`}>5. Conferência</Link><small>Revise, imprima e acompanhe os documentos de RH.</small></li>
     </ol>
     <div className="artisys-rh-hub">
       {cards.map(({to,title,description,icon:Icon})=><Link to={to} key={to} className="rh-card-link"><Card className="artisys-rh-card">
