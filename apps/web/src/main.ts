@@ -92,7 +92,48 @@ async function signIn(){try{await auth.signIn({scope:'openid email profile offli
 function showStandalone(text:string){let el=document.getElementById('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';document.body.appendChild(el)}el.textContent=text;el.classList.add('show');setTimeout(()=>el?.classList.remove('show'),2600)}
 
 async function fetchBootstrap():Promise<Bootstrap>{return phoneMode()?(await api.post('/api/phone/bootstrap',{token:phoneToken()})).data as Bootstrap:(await api.get('/api/bootstrap')).data as Bootstrap}
-function renderClaim(b:Bootstrap){nav().style.display='none';setHeader();const canCreate=b.authorized===true;(root().innerHTML=`<section class="auth-page"><div class="auth-card"><small>Primeiro acesso</small><h2>Ativar FLUXODRE</h2><p>O login identifica sua conta, mas o acesso ao sistema precisa estar liberado.</p><div class="form"><label>Código de acesso ou ativação<input id="joinCode" maxlength="12" autocomplete="one-time-code" placeholder="Código recebido na compra"></label></div><button id="joinBtn" class="btn auth-btn">Ativar acesso</button>${canCreate?`<div class="auth-divider"><span>licença autorizada</span></div><h3>Cadastrar minha operação</h3><p class="meta">Módulos liberados: ${esc((b.license?.modules||[]).join(' · ')||'licença completa')}.</p><div class="form"><label>Empresa<input id="companyName" placeholder="Sua empresa"></label><label>Obra<input id="projectName" placeholder="Primeira obra"></label><label>Cliente<input id="customerName" placeholder="Cliente da obra"></label></div><button id="claimBtn" class="linkbtn auth-btn">Criar empresa e obra</button>`:'<div class="card notice"><b>i</b><div><strong>Conta ainda não liberada</strong><div class="meta">Use o código/link único recebido ou peça a liberação do seu e-mail.</div></div></div>'}</div></section>`, document.dispatchEvent(new CustomEvent('field:rendered')));document.getElementById('joinBtn')?.addEventListener('click',async()=>{const code=(document.getElementById('joinCode') as HTMLInputElement).value.trim().toUpperCase();if(!code)return showStandalone('Informe o código de acesso.');try{try{await api.post('/api/access/claim',{code})}catch{await api.post('/api/license/claim',{code})}await start()}catch(e){showStandalone(apiError(e))}});document.getElementById('claimBtn')?.addEventListener('click',async()=>{const companyName=(document.getElementById('companyName') as HTMLInputElement).value.trim(),projectName=(document.getElementById('projectName') as HTMLInputElement).value.trim(),customer=(document.getElementById('customerName') as HTMLInputElement).value.trim();if(!companyName||!projectName)return showStandalone('Informe empresa e obra.');try{await api.post('/api/bootstrap/claim',{companyName,projectName,customer});await start()}catch(e){showStandalone(apiError(e))}})}
+function renderClaim(b:Bootstrap){
+  nav().style.display='none';setHeader();
+  const canCreate=b.authorized===true;
+  root().innerHTML=`<section class="auth-page"><div class="auth-card auth-card-wide"><small>Primeiro acesso</small><h2>Como você deseja começar?</h2><p>Escolha o caminho correspondente ao acesso que você recebeu. Convite de colaborador e ativação comercial são autorizações diferentes.</p>
+    <div class="first-access-choice-grid">
+      <div class="card first-access-choice">
+        <strong>Ativar uma nova empresa</strong>
+        <p class="meta">Use exclusivamente o código de ativação recebido na compra. Esse código pode ativar a licença e iniciar uma nova operação.</p>
+        <div class="form"><label>Código recebido na compra<input id="licenseCode" maxlength="12" autocomplete="one-time-code" placeholder="Código de ativação"></label></div>
+        <button id="activateCompanyBtn" class="btn auth-btn">Ativar código da compra</button>
+        ${canCreate?`<div class="auth-divider"><span>licença autorizada</span></div><h3>Cadastrar minha operação</h3><p class="meta">Módulos liberados: ${esc((b.license?.modules||[]).join(' · ')||'licença completa')}.</p><div class="form"><label>Empresa<input id="companyName" placeholder="Sua empresa"></label><label>Obra<input id="projectName" placeholder="Primeira obra"></label><label>Cliente<input id="customerName" placeholder="Cliente da obra"></label></div><button id="claimBtn" class="linkbtn auth-btn">Criar empresa e obra</button>`:''}
+      </div>
+      <div class="card first-access-choice">
+        <strong>Entrar em uma empresa existente</strong>
+        <p class="meta">Use o Código de convite enviado pelo administrador. Este convite não ativa uma nova licença; ele adiciona sua conta à empresa existente com o perfil e os canais definidos pelo Admin.</p>
+        <div class="form"><label>Código de convite<input id="memberCode" maxlength="8" autocomplete="one-time-code" placeholder="Código enviado pelo administrador"></label></div>
+        <button id="joinExistingBtn" class="btn auth-btn">Ativar meu acesso</button>
+      </div>
+    </div>
+  </div></section>`;
+  document.dispatchEvent(new CustomEvent('field:rendered'));
+
+  document.getElementById('activateCompanyBtn')?.addEventListener('click',async()=>{
+    const code=(document.getElementById('licenseCode') as HTMLInputElement).value.trim().toUpperCase();
+    if(!code)return showStandalone('Informe o código recebido na compra.');
+    try{await api.post('/api/license/claim',{code});await start()}catch(e){showStandalone(apiError(e))}
+  });
+
+  document.getElementById('joinExistingBtn')?.addEventListener('click',async()=>{
+    const code=(document.getElementById('memberCode') as HTMLInputElement).value.trim().toUpperCase();
+    if(!code)return showStandalone('Informe o código de convite.');
+    try{await api.post('/api/access/claim',{code});await start()}catch(e){showStandalone(apiError(e))}
+  });
+
+  document.getElementById('claimBtn')?.addEventListener('click',async()=>{
+    const companyName=(document.getElementById('companyName') as HTMLInputElement).value.trim(),
+      projectName=(document.getElementById('projectName') as HTMLInputElement).value.trim(),
+      customer=(document.getElementById('customerName') as HTMLInputElement).value.trim();
+    if(!companyName||!projectName)return showStandalone('Informe empresa e obra.');
+    try{await api.post('/api/bootstrap/claim',{companyName,projectName,customer});await start()}catch(e){showStandalone(apiError(e))}
+  });
+}
 function apiError(e:unknown){const x=e as {response?:{data?:{error?:string;message?:string}};message?:string};return x.response?.data?.error||x.response?.data?.message||x.message||'Não foi possível concluir a operação.'}
 
 async function renderMigration(b:Bootstrap){nav().style.display='none';setHeader('admin',true);const local=await readLocalState();const employeeCount=Array.isArray(local?.employees)?local!.employees!.length:0;(root().innerHTML=`<section class="auth-page"><div class="auth-card"><small>${esc(b.project?.name||'Obra')}</small><h2>Ativar dados compartilhados</h2><p>A obra foi criada. Agora escolha como iniciar o banco central.</p>${messageCard('Dados neste aparelho',`${employeeCount} funcionário(s) detectados. O arquivo local será preservado como segurança.`)}<button id="migrateBtn" class="btn auth-btn">Migrar dados deste aparelho</button><button id="freshBtn" class="linkbtn auth-btn">Iniciar com estrutura padrão</button></div></section>`, document.dispatchEvent(new CustomEvent('field:rendered')));document.getElementById('migrateBtn')?.addEventListener('click',()=>importLocal(local||seedState(b)));document.getElementById('freshBtn')?.addEventListener('click',()=>importLocal(seedState(b)))}

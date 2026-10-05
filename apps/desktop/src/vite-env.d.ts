@@ -3,6 +3,7 @@ type EntityApi = { list(filters?: Record<string, unknown>): Promise<any[]>; get(
 type RevisionConflictDetails = { resourceType:string|null; resourceId:string|null; expectedRevision:number; currentRevision:number; current:any }
 type UpdaterState = { status:'idle'|'checking'|'current'|'available'|'downloading'|'downloaded'|'error'|'unsupported'; currentVersion:string; availableVersion:string|null; progress:number|null; error:string|null; supported:boolean }
 type OperationalStorageMode = 'local'|'lan-host'|'lan-client'|'remote'
+type CompanyStorageRequirement = { mode:'lan-server'|'remote'; serverId:string; autoEnroll?:boolean }
 type ModuleStorageKey = 'core'|'operation'|'planning'|'finance'|'rh'|'documents'
 type ModuleStorageStateName = 'local'|'central-ready'|'central-active'|'migration-required'
 type ModuleStorageState = { module:ModuleStorageKey; state:ModuleStorageStateName; localRecords:number; capabilityAvailable?:boolean; dependencyBlockedBy?:ModuleStorageKey; coreDependencyBlocked?:boolean }
@@ -91,17 +92,24 @@ interface Window { fluxoDre: {
   catalogo: { list():Promise<any>; saveCargo(data:any):Promise<any>; saveCompensationPolicy(data:any):Promise<any>; saveBenefit(data:any):Promise<any>; saveLink(data:any):Promise<any>; deactivate(type:string,id:number):Promise<any> }
   importacoes: EntityApi & { preview():Promise<any>; commit(token:string):Promise<any> }; importadorUniversal:{choose():Promise<any>;preview(token:string,options:any):Promise<any>;commit(token:string,options:any):Promise<any>}; relatorios:{dashboard(filters?:any):Promise<any>;dre(filters?:any):Promise<any[]>};
   online:{
-    passwordAuth(input:{email:string;password:string;code?:string;firstAccess:boolean}):Promise<{linked:boolean;needsSetup:boolean;company?:{id:string;name:string};project?:{id:string;name:string}}>;
-    passwordSetup(input:{companyName:string;projectName:string}):Promise<{linked:boolean;needsSetup:boolean;company?:{id:string;name:string};project?:{id:string;name:string}}>;
+    passwordAuth(input:{email:string;password:string;code?:string;firstAccess:boolean;accessPurpose?:'company-activation'|'member-invitation'}):Promise<{linked:boolean;needsSetup:boolean;company?:{id:string;name:string};project?:{id:string;name:string};storageRequired?:CompanyStorageRequirement|null;message?:string}>;
+    passwordSetup(input:{companyName:string;projectName:string}):Promise<{linked:boolean;needsSetup:boolean;company?:{id:string;name:string};project?:{id:string;name:string};storageRequired?:CompanyStorageRequirement|null;message?:string}>;
     syncState():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     onSyncStateChanged(listener:(state:import('../../../packages/contracts/src/desktop-sync').DesktopSyncState)=>void):()=>void;
     configureSync(scope:{companyId:number;workId:number}):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     syncNow():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     resolveLocalConflict(id:number,resolution:import('../../../packages/contracts/src/desktop-sync').LocalConflictResolution):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
-    state():Promise<{baseUrl:string;installationId:string;linked:boolean;linkedAt:string|null;pending:{expiresAt:string|null}|null}>;
+    state():Promise<{baseUrl:string;installationId:string;linked:boolean;linkedAt:string|null;pending:{expiresAt:string|null}|null;storageRequired:CompanyStorageRequirement|null}>;
     setBaseUrl(baseUrl:string):Promise<any>;
     start(activationCode?:string):Promise<{approvalUrl:string;expiresAt:string}>;
-    status():Promise<{status:'idle'|'pending'|'approved';linked:boolean;expiresAt?:string;deviceId?:string}>;
+    status():Promise<{status:'idle'|'pending'|'approved';linked:boolean;expiresAt?:string;deviceId?:string;storageRequired?:CompanyStorageRequirement|null;message?:string}>;
+    completeStorage(address?:string):Promise<{linked:boolean;storageStatus:string;storageRequired?:CompanyStorageRequirement|null;message?:string}>;
+    setStorageTopology(input:{mode:'local-single'|'lan-server'|'remote';serverId?:string;validateOnly?:boolean}):Promise<any>;
+    membersList():Promise<{members:Array<{id:string;email:string;name?:string;role:'admin'|'foreman'|'employee';employeeId?:string;userId?:string;joinCode?:string;status:'active'|'revoked';modules:string[];channels:string[];desktopStorage?:{mode:'lan-server'|'remote';serverId:string;autoEnroll?:boolean}|null;permissions?:Record<string,string[]>|null;effectivePermissions?:Record<string,string[]>;permissionsRevision?:string}>;companyAccess:{modules:string[];channels:string[]};storageTopology:{mode:'local-single'|'lan-server'|'remote';serverId?:string|null}}>;
+    memberSave(input:{email:string;role:'admin'|'foreman'|'employee';employeeId?:string;modules?:string[];channels?:string[];permissions?:Record<string,string[]>}):Promise<any>;
+    memberStatus(memberId:string,status:'active'|'revoked'):Promise<{member:{id:string;email:string;role:string;status:'active'|'revoked'}}>;
+    companyDevices():Promise<{devices:Array<{id:string;name:string;platform?:string;email?:string;status:'active'|'revoked';lastSeenAt?:string;installationId?:string}>}>;
+    revokeCompanyDevice(deviceId:string):Promise<{ok:boolean}>;
     session():Promise<any>;disconnect():Promise<any>;syncPull(sinceRevision?:number):Promise<any>;syncPush(changes:any[]):Promise<any>;
     publishMobileSummary(summary:any):Promise<any>;financeRead(view:string):Promise<any>;financeWrite(action:string,input:any):Promise<any>;
     publishFinanceReference(obligations:any[]):Promise<any>;aiAnalyze(input:any):Promise<any>;conflicts():Promise<any>;resolveConflict(conflictId:string,resolution:'accept_desktop'|'keep_mobile'):Promise<any>

@@ -73,6 +73,35 @@ export class PairingService {
     return { key, state }
   }
 
+  enrollAuthorized({ memberId, installationId, deviceName }) {
+    const cleanMemberId = String(memberId || '').trim()
+    const cleanInstallationId = String(installationId || '').trim()
+    const cleanDeviceName = String(deviceName || '').trim()
+    if (!cleanMemberId || !cleanInstallationId || !cleanDeviceName) {
+      throw new PairingError('Dados da matrícula Desktop incompletos.', 400, 'invalid_enrollment')
+    }
+    const member = this.security.member?.(cleanMemberId)
+    if (!this.validDesktopMember(member)) {
+      throw new PairingError('Usuário não possui autorização Desktop ativa.', 403, 'member_not_authorized')
+    }
+    const deviceToken = String(this.tokenFactory())
+    const device = this.security.createDevice({
+      memberId: member.memberId,
+      installationId: cleanInstallationId,
+      deviceName: cleanDeviceName,
+      tokenHash: digest(deviceToken)
+    })
+    this.security.appendAudit?.({
+      actorMemberId: member.memberId,
+      actorDeviceId: device.id,
+      action: 'device_enrolled',
+      targetType: 'device',
+      targetId: device.id,
+      details: { installationId: cleanInstallationId, source: 'cloud_invitation' }
+    })
+    return { device: publicDevice(device), member, deviceToken }
+  }
+
   claim({ code, installationId, deviceName, clientKey = 'unknown' }) {
     const attempt = this.attemptState(clientKey)
     if (attempt.state.count >= this.maxAttempts) throw new PairingError('Muitas tentativas de pareamento. Aguarde e tente novamente.', 429, 'pairing_rate_limited')

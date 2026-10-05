@@ -28,7 +28,14 @@ type GrantRow = {
   last_seen_at:string|null; revoked_at:string|null;
 };
 
+type EnrollmentRow = {
+  id:string; token_hash:string; server_id:string; company_id:string; member_id:string;
+  cloud_device_id:string; installation_id:string; device_name:string;
+  expires_at:string; consumed_at:string|null; created_at:string;
+};
+
 const CLAIM_TTL_MS = 10 * 60 * 1000;
+const ENROLLMENT_TTL_MS = 5 * 60 * 1000;
 const MODULES = ['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'];
 const CHANNELS = ['desktop','mobile'];
 
@@ -105,6 +112,34 @@ export function createLanServerAuthority({db,nowMs=Date.now}:AuthorityDeps){
     return Number(result.meta?.changes||0)>0;
   }
 
+  async function createDeviceEnrollment(input:{companyId:string;serverId:string;memberId:string;cloudDeviceId:string;installationId:string;deviceName:string}){
+    const companyId=String(input.companyId||'').trim(),serverId=String(input.serverId||'').trim(),memberId=String(input.memberId||'').trim();
+    const cloudDeviceId=String(input.cloudDeviceId||'').trim(),installationId=String(input.installationId||'').trim(),deviceName=String(input.deviceName||'Computador').trim().slice(0,80);
+    if(!companyId||!serverId||!memberId||!cloudDeviceId||!installationId||!deviceName)throw new Error('Dados da matrícula Desktop incompletos.');
+    const enrollmentToken=randomToken(),tokenHash=await digest(enrollmentToken),createdAt=nowIso(),expiresAt=new Date(nowMs()+ENROLLMENT_TTL_MS).toISOString();
+    await db.prepare('INSERT INTO lan_device_enrollments(id,token_hash,server_id,company_id,member_id,cloud_device_id,installation_id,device_name,expires_at,consumed_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
+      .bind(id(),tokenHash,serverId,companyId,memberId,cloudDeviceId,installationId,deviceName,expiresAt,null,createdAt).run();
+    return {enrollmentToken,expiresAt,serverId};
+  }
+
+  async function redeemDeviceEnrollment(input:{serverToken:string;serverId:string;enrollmentToken:string;installationId:string}){
+    const serverToken=String(input.serverToken||'').trim(),serverId=String(input.serverId||'').trim(),enrollmentToken=String(input.enrollmentToken||'').trim(),installationId=String(input.installationId||'').trim();
+    if(!serverToken||!serverId||!enrollmentToken||!installationId)throw new Error('Matrícula Desktop inválida.');
+    const grant=await authenticateLanServer(serverToken);
+    if(!grant||grant.serverId!==serverId)throw new Error('Servidor LAN não autorizado para esta matrícula.');
+    const tokenHash=await digest(enrollmentToken);
+    const row=await db.prepare('SELECT * FROM lan_device_enrollments WHERE token_hash=? AND server_id=? AND company_id=? LIMIT 1')
+      .bind(tokenHash,serverId,grant.companyId).first<EnrollmentRow>();
+    if(!row||row.consumed_at)throw new Error('Matrícula Desktop inválida ou já utilizada.');
+    if(Date.parse(row.expires_at)<=nowMs())throw new Error('Matrícula Desktop expirada.');
+    if(row.installation_id!==installationId)throw new Error('Esta matrícula pertence a outra instalação Desktop.');
+    const consumedAt=nowIso();
+    const consumed=await db.prepare('UPDATE lan_device_enrollments SET consumed_at=? WHERE id=? AND consumed_at IS NULL AND expires_at>?')
+      .bind(consumedAt,row.id,consumedAt).run();
+    if(Number(consumed.meta?.changes||0)!==1)throw new Error('Matrícula Desktop inválida ou já utilizada.');
+    return {companyId:row.company_id,serverId:row.server_id,memberId:row.member_id,cloudDeviceId:row.cloud_device_id,installationId:row.installation_id,deviceName:row.device_name};
+  }
+
   async function companyAccess(companyId:string){
     const companyRow=await db.prepare("SELECT record_json FROM kv_records WHERE collection='companies' AND id=? LIMIT 1").bind(companyId).first<{record_json:string}>();
     const company=parseRecord<Record<string,unknown>>(companyRow?.record_json);
@@ -146,7 +181,7 @@ export function createLanServerAuthority({db,nowMs=Date.now}:AuthorityDeps){
       });
       members.push({
         memberId:String(row.id),email:String(member.email||''),name:member.name?String(member.name):undefined,role,
-        modules,channels,permissions,permissionsRevision:permissionsRevision(permissions),status:'active'
+        modules,channels,permissions,permissionsRevision:permissionsRevision(permissions),status:String(member.status||'active')==='revoked'?'revoked':'active'
       });
     }
     const generatedAt=nowIso();
@@ -154,7 +189,7 @@ export function createLanServerAuthority({db,nowMs=Date.now}:AuthorityDeps){
     return {companyId:cleanCompanyId,revision,generatedAt,members};
   }
 
-  return {createLanClaim,redeemLanClaim,authenticateLanServer,revokeLanServerGrant,lanServerSnapshot};
+  return {createLanClaim,redeemLanClaim,authenticateLanServer,revokeLanServerGrant,createDeviceEnrollment,redeemDeviceEnrollment,lanServerSnapshot};
 }
 
 function defaultAuthority(){return createLanServerAuthority({db:runtimeEnv().DB});}
@@ -163,3 +198,6 @@ export const redeemLanClaim=(input:{serverId:string;claimToken:string})=>default
 export const authenticateLanServer=(serverToken:string)=>defaultAuthority().authenticateLanServer(serverToken);
 export const revokeLanServerGrant=(input:{serverId:string;companyId:string})=>defaultAuthority().revokeLanServerGrant(input);
 export const lanServerSnapshot=(companyId:string)=>defaultAuthority().lanServerSnapshot(companyId);
+
+export const createDeviceEnrollment=(input:{companyId:string;serverId:string;memberId:string;cloudDeviceId:string;installationId:string;deviceName:string})=>defaultAuthority().createDeviceEnrollment(input);
+export const redeemDeviceEnrollment=(input:{serverToken:string;serverId:string;enrollmentToken:string;installationId:string})=>defaultAuthority().redeemDeviceEnrollment(input);

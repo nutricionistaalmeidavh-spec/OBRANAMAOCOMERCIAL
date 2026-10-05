@@ -66,3 +66,19 @@ test('errors never echo claim or server secrets', async () => {
     }
   )
 })
+
+test('redeemEnrollment sends server bearer token and installation-bound enrollment token',async()=>{
+  let request
+  const client=new CloudAuthorityClient({
+    baseUrl:'https://example.test',
+    fetchImpl:async(url,init)=>{
+      request={url:String(url),init}
+      return jsonResponse({companyId:'company-a',serverId:'server-a',memberId:'member-a',installationId:'install-a'})
+    }
+  })
+  const result=await client.redeemEnrollment({serverToken:'server-secret',serverId:'server-a',enrollmentToken:'enroll-secret',installationId:'install-a'})
+  assert.equal(result.memberId,'member-a')
+  assert.equal(request.url,'https://example.test/api/lan/enroll/redeem')
+  assert.equal(request.init.headers.authorization,'Bearer server-secret')
+  assert.deepEqual(JSON.parse(String(request.init.body)),{serverId:'server-a',enrollmentToken:'enroll-secret',installationId:'install-a'})
+})

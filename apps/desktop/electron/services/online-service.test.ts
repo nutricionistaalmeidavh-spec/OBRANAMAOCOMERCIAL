@@ -158,4 +158,56 @@ describe('autenticação central', () => {
     await expect(service.passwordAuth({ email: 'a@example.com', password: 'password' })).rejects.toThrow(/HTTPS/)
     expect(fetchImpl).not.toHaveBeenCalled()
   })
+
+
+describe('convite Desktop vinculado à topologia da empresa',()=>{
+  it('consome o código como convite de membro e bloqueia o shell até o servidor LAN obrigatório estar pronto',async()=>{
+    const dir=fs.mkdtempSync(path.join(os.tmpdir(),'member-invite-storage-'));dirs.push(dir)
+    const calls:any[]=[]
+    const fetchImpl=vi.fn(async(url:string,init:any)=>{
+      const route=new URL(url).pathname
+      const body=init.body?JSON.parse(init.body):{}
+      calls.push({route,body,cookie:init.headers?.cookie})
+      if(route==='/api/auth/password/first-access')return{...response(200,{accessPurpose:'member-invitation'}),headers:{getSetCookie:()=>['obn_session=member-cookie; HttpOnly; Secure']}}
+      if(route==='/api/access/claim')return response(200,{ok:true})
+      if(route==='/api/desktop/bootstrap')return response(200,{needsClaim:false,company:{id:'company-a'},storageTopology:{mode:'lan-server',serverId:'server-company-01'},desktopStorage:{mode:'lan-server',serverId:'server-company-01',autoEnroll:true}})
+      if(route==='/api/desktop/start')return response(200,{ok:true,expiresAt:'2099-01-01T00:00:00.000Z'})
+      if(route==='/api/desktop/approve')return response(200,{ok:true})
+      if(route==='/api/desktop/status')return response(200,{status:'approved',deviceToken:'cloud-device-token',deviceId:'cloud-device-a'})
+      if(route==='/api/desktop/session')return response(200,{authorized:true,company:{id:'company-a'},project:{id:'project-a'},storageTopology:{mode:'lan-server',serverId:'server-company-01'},desktopStorage:{mode:'lan-server',serverId:'server-company-01',autoEnroll:true}})
+      if(route==='/api/desktop/lan/enroll/start')return response(200,{serverId:'server-company-01',enrollmentToken:'enroll-secret',expiresAt:'2099-01-01T00:00:00.000Z'})
+      return response(404,{error:'unexpected '+route})
+    })
+    const service=new OnlineService({dataDir:dir,baseUrl:'https://example.test',fetchImpl,shell:{openExternal:vi.fn()}})
+    const result=await service.passwordAuth({email:'member@example.com',password:'member-password',code:'JOIN1234',firstAccess:true})
+    expect(calls.find(x=>x.route==='/api/access/claim')).toMatchObject({body:{code:'JOIN1234'},cookie:'obn_session=member-cookie'})
+    expect(result).toMatchObject({linked:false,storageRequired:{mode:'lan-server',serverId:'server-company-01'}})
+    expect(service.state()).toMatchObject({linked:false,storageRequired:{mode:'lan-server',serverId:'server-company-01'}})
+    const enrollment=await service.startLanDeviceEnrollment('server-company-01')
+    expect(enrollment.enrollmentToken).toBe('enroll-secret')
+    service.clearRequiredStorage('server-company-01')
+    expect(service.state().linked).toBe(true)
+  })
+})
+
+
+describe('gestão canônica de equipe no Desktop',()=>{
+  it('lista e salva colaboradores usando o mesmo membro da Cloud e o token do Desktop',async()=>{
+    const dir=fs.mkdtempSync(path.join(os.tmpdir(),'desktop-team-'));dirs.push(dir)
+    const calls:any[]=[]
+    const fetchImpl=vi.fn(async(url:string,init:any)=>{
+      const route=new URL(url).pathname,body=init.body?JSON.parse(init.body):{}
+      calls.push({route,body})
+      if(route==='/api/desktop/members/list')return response(200,{members:[{id:'m1',email:'joao@example.com',role:'foreman',joinCode:'JOIN1234',channels:['mobile']}],companyAccess:{modules:['obra360'],channels:['desktop','mobile']},storageTopology:{mode:'lan-server',serverId:'server-company-01'}})
+      if(route==='/api/desktop/members/save')return response(200,{member:{id:'m1',email:'joao@example.com',role:'foreman',joinCode:'JOIN1234',channels:['desktop','mobile'],desktopStorage:{mode:'lan-server',serverId:'server-company-01',autoEnroll:true}},storageTopology:{mode:'lan-server',serverId:'server-company-01'}})
+      return response(404,{error:'unexpected '+route})
+    })
+    const service=new OnlineService({dataDir:dir,baseUrl:'https://example.test',fetchImpl,shell:{openExternal:vi.fn()}})
+    service.storeToken('cloud-device-token')
+    await expect(service.membersList()).resolves.toMatchObject({storageTopology:{mode:'lan-server',serverId:'server-company-01'}})
+    await expect(service.memberSave({email:'joao@example.com',role:'foreman',channels:['desktop','mobile']})).resolves.toMatchObject({member:{joinCode:'JOIN1234',desktopStorage:{serverId:'server-company-01'}}})
+    expect(calls[0]).toMatchObject({route:'/api/desktop/members/list',body:{deviceToken:'cloud-device-token'}})
+    expect(calls[1].body).toMatchObject({deviceToken:'cloud-device-token',email:'joao@example.com',role:'foreman',channels:['desktop','mobile']})
+  })
+})
 })

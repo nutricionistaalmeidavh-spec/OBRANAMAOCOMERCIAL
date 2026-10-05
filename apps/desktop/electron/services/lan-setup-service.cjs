@@ -140,6 +140,31 @@ class LanSetupService {
     }
   }
 
+  async enroll({ enrollmentToken } = {}) {
+    const secret = String(enrollmentToken || '').trim()
+    if (!secret) throw new Error('Matrícula do computador não informada.')
+    const initialConnection = this.connection()
+    const setup = await this.request('/api/v1/setup/status')
+    if (!setup?.claimed) throw new Error('O servidor ainda não foi configurado para aceitar computadores.')
+    const connection = this.reconcileIdentity(setup, initialConnection)
+    const result = await this.request('/api/v1/pair/enroll', {
+      method: 'POST',
+      body: {
+        enrollmentToken: secret,
+        installationId: this.online.installationId(),
+        deviceName: this.deviceName
+      }
+    })
+    if (!result?.deviceToken || !result?.device?.id) throw new Error('Matrícula LAN não retornou uma credencial válida.')
+    const credential = this.credentials.store({
+      serverKey: connection.serverId,
+      deviceId: result.device.id,
+      member: result.member || null,
+      token: result.deviceToken
+    })
+    return { serverKey: connection.serverId, baseUrl: connection.baseUrl, serverId: connection.serverId, paired: true, credential }
+  }
+
   async pair({ code } = {}) {
     const initialConnection = this.connection()
     const setup = await this.request('/api/v1/setup/status')

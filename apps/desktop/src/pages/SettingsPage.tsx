@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { useAsync } from '../hooks/useAsync'
 import SyncSettings from '../components/SyncSettings'
 import StorageServerSettings from '../components/StorageServerSettings'
+import TeamAccessSettings from '../components/TeamAccessSettings'
 import UpdaterSettingsCard from '../components/UpdaterSettingsCard'
 import { Button, Card, PageHeader } from '../components/ui'
 
@@ -53,6 +54,10 @@ export default function SettingsPage(){
         <small className="path-text">{online.data?.baseUrl||'Carregando endpoint...'}</small>
       </Card>
       <StorageServerSettings onMessage={setMessage}/>
+    </SettingsGroup>
+
+    <SettingsGroup title="Equipe e acessos" description="Gerencie colaboradores, perfis, canais, permissões e computadores da mesma empresa usada no Web/PWA.">
+      <TeamAccessSettings onMessage={setMessage}/>
     </SettingsGroup>
 
     <SettingsGroup title="Arquivos e proteção" description="Pasta documental, backup e proteções locais do Desktop.">

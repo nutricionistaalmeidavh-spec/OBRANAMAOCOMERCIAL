@@ -112,3 +112,19 @@ test('admin can list, revoke and reactivate paired devices immediately',()=>{
   assert.equal(service.setDeviceStatus({actor:adminActor,deviceId:paired.device.id,status:'active'}).status,'active')
   expectPairingError(()=>service.listDevices(foremanActor),403)
 })
+
+test('cloud-authorized enrollment creates the first LAN credential without a manual pairing code',()=>{
+  const {service,devices}=fixture()
+  const result=service.enrollAuthorized({memberId:'member-a',installationId:'install-auto',deviceName:'PC João'})
+  assert.equal(result.deviceToken,'lan-device-secret-token')
+  assert.equal(result.member.memberId,'member-a')
+  const stored=[...devices.values()][0]
+  assert.equal(stored.installationId,'install-auto')
+  assert.equal(stored.tokenHash,digest('lan-device-secret-token'))
+})
+
+test('cloud-authorized enrollment still refuses revoked or mobile-only members',()=>{
+  const {service}=fixture()
+  expectPairingError(()=>service.enrollAuthorized({memberId:'mobile-only',installationId:'install-a',deviceName:'PC'}),403)
+  expectPairingError(()=>service.enrollAuthorized({memberId:'revoked',installationId:'install-b',deviceName:'PC'}),403)
+})

@@ -18,7 +18,7 @@
     if(authCard){
       const title=lower(authCard.querySelector('h2')?.textContent);
       if(title.includes('gestão da obra em equipe'))return 'login';
-      if(title.includes('ativar fluxodre'))return 'claim';
+      if(title.includes('ativar fluxodre')||title.includes('como você deseja começar'))return 'claim';
       if(title.includes('ativar dados compartilhados'))return 'migration';
       if(title.includes('não foi possível carregar a obra'))return 'error';
     }

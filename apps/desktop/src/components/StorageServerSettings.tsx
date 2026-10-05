@@ -218,8 +218,13 @@ export default function StorageServerSettings({onMessage}:Props){
     setBusy(true)
     setProgress({stage:'saving',completed:0,total:MODULE_ORDER.length,message:isServerMode?'Preparando a fonte de dados...':'Salvando configuração local...'})
     try{
+      const onlineState=await window.fluxoDre.online.state()
+      if(form.operationalMode==='local'&&onlineState?.linked){
+        await window.fluxoDre.online.setStorageTopology({mode:'local-single',validateOnly:true})
+      }
       const saved=await configureEndpoint()
       if(saved.operationalMode==='local'){
+        if(onlineState?.linked)await window.fluxoDre.online.setStorageTopology({mode:'local-single'})
         await refreshModuleState()
         setProgress({stage:'idle',completed:0,total:MODULE_ORDER.length,message:''})
         onMessage('Dados configurados para permanecer somente neste computador.')
@@ -273,7 +278,13 @@ export default function StorageServerSettings({onMessage}:Props){
       const ops=await window.fluxoDre.lan.operationsStatus()
       setOperations(ops)
       if(!ops?.readiness?.ready)throw new Error('O servidor concluiu a migração, mas não passou na validação final de readiness.')
-      await readLanState(saved.operationalMode as Mode)
+      const finalStatus=await readLanState(saved.operationalMode as Mode)
+      if(onlineState?.linked&&finalStatus?.serverId){
+        await window.fluxoDre.online.setStorageTopology({
+          mode:saved.operationalMode==='remote'?'remote':'lan-server',
+          serverId:finalStatus.serverId
+        })
+      }
       setProgress({stage:'ready',completed:MODULE_ORDER.length,total:MODULE_ORDER.length,message:'Servidor configurado, backup verificado e dados centralizados.'})
       onMessage('Servidor configurado e dados centralizados com sucesso.')
     }catch(error:any){

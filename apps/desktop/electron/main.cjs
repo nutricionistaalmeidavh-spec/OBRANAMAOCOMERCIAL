@@ -42,6 +42,7 @@ const { ProductService } = require('./services/product-service.cjs')
 const { DemoDataService } = require('./services/demo-data-service.cjs')
 const { UiPreferencesService } = require('./services/ui-preferences-service.cjs')
 const { OnlineService } = require('./services/online-service.cjs')
+const { CanonicalStorageOnboardingService } = require('./services/canonical-storage-onboarding-service.cjs')
 const { SyncCoordinator } = require('./services/sync-coordinator.cjs')
 const { OperationalSyncDataProvider } = require('./services/lan-sync-data-provider.cjs')
 
@@ -138,11 +139,12 @@ function createServices() {
     serverEntry: resolveLanServerEntry()
   })
   const lanSetup = new LanSetupService({ storage, credentials: lanCredentials, online, setupCodeProvider: () => lanHost.setupCode() })
+  const canonicalStorage = new CanonicalStorageOnboardingService({ online, storage, serverDiscovery, lanSetup, refreshCapabilities: () => moduleStorage.refreshCapabilities() })
   const backup = new BackupService({ db, ...paths })
   const migration = new ModuleMigrationService({ database: db, storage, moduleStorage, lanClient: dataAccess.remote, backup, appVersion: app.getVersion() })
   return {
     paths, db, dataAccess, storage, serverDiscovery, serverReconnect, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
-    backup,
+    backup, canonicalStorage,
     importer: new ImportService({ db }),
     documents: new DocumentService({ db, fileService: files, dialog, dataAccess, moduleStorage }),
     payroll: rh,
@@ -240,6 +242,13 @@ async function configureStorage(payload) {
   }
   await refreshModuleCapabilitiesSafe()
   return state
+}
+
+async function completeCanonicalStorage(result = {}, options = {}) {
+  const required = services.online.state().storageRequired
+  if (!required) return result
+  const storage = await services.canonicalStorage.complete(options)
+  return { ...result, ...storage, storageRequired: storage.storageRequired || null }
 }
 
 async function connectStorageAddress(address, operationalMode = 'lan-client') {
@@ -398,12 +407,19 @@ function registerIpc() {
   ipcMain.handle('catalog:save-link', envelope((data) => services.catalog.saveLink(data)))
   ipcMain.handle('catalog:deactivate', envelope((data) => services.catalog.deactivate(data.type, data.id)))
   ipcMain.handle('online:state', envelope(() => services.online.state()))
-  ipcMain.handle('online:password-auth', envelope((payload) => withSyncStopped(() => services.online.passwordAuth(payload))))
-  ipcMain.handle('online:password-setup', envelope((payload) => withSyncStopped(() => services.online.completePasswordLink(payload))))
+  ipcMain.handle('online:password-auth', envelope((payload) => withSyncStopped(async () => completeCanonicalStorage(await services.online.passwordAuth(payload)))))
+  ipcMain.handle('online:password-setup', envelope((payload) => withSyncStopped(async () => completeCanonicalStorage(await services.online.completePasswordLink(payload)))))
   ipcMain.handle('online:set-base-url', envelope(({ baseUrl }) => withSyncStopped(() => services.online.setBaseUrl(baseUrl))))
   ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
-  ipcMain.handle('online:status', envelope(() => services.online.status()))
+  ipcMain.handle('online:status', envelope(() => withSyncStopped(async () => completeCanonicalStorage(await services.online.status()))))
+  ipcMain.handle('online:complete-storage', envelope((payload) => withSyncStopped(() => completeCanonicalStorage({ linked: false }, payload))))
   ipcMain.handle('online:session', envelope(() => services.online.session()))
+  ipcMain.handle('online:set-storage-topology', envelope((payload) => services.online.setStorageTopology(payload)))
+  ipcMain.handle('online:members-list', envelope(() => services.online.membersList()))
+  ipcMain.handle('online:member-save', envelope((payload) => services.online.memberSave(payload)))
+  ipcMain.handle('online:member-status', envelope(({ memberId, status }) => services.online.memberStatus(memberId, status)))
+  ipcMain.handle('online:company-devices', envelope(() => services.online.companyDevices()))
+  ipcMain.handle('online:revoke-company-device', envelope(({ deviceId }) => services.online.revokeCompanyDevice(deviceId)))
   ipcMain.handle('online:disconnect', envelope(() => withSyncStopped(() => services.online.disconnect())))
   ipcMain.handle('online:sync-state', envelope(() => services.sync.state()))
   ipcMain.handle('online:sync-configure', envelope((scope) => withSyncStopped(() => services.sync.configure(scope))))
@@ -450,6 +466,9 @@ app.whenReady().then(async () => {
       ensureTray()
     } else if (['lan-client','remote'].includes(services.storage.state().operationalMode)) {
       try { await services.serverReconnect.reconnect() } catch (error) { console.warn('Falha ao reconectar servidor salvo:', error?.message || error) }
+    }
+    if (services.online.state().storageRequired) {
+      try { await services.canonicalStorage.complete() } catch (error) { console.warn('Fonte operacional da empresa ainda indisponível:', error?.message || error) }
     }
     await refreshModuleCapabilitiesSafe()
     await createWindow()
