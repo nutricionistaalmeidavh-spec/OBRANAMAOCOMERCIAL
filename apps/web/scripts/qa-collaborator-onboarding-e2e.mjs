@@ -183,7 +183,7 @@ try{
   const memberRow=adminPage.locator(`div.governance-member[data-member-id="${member.id}"]`);
   await memberRow.waitFor({state:'visible'});
   await memberRow.getByRole('button',{name:'Revogar acesso'}).click();
-  await adminPage.getByText('Revogado').waitFor({state:'visible'});
+  await memberRow.locator('.meta').filter({hasText:'Revogado'}).waitFor({state:'visible'});
   if(!memberRevoked)throw new Error('Admin revocation did not update the canonical member.');
   await memberPage.reload({waitUntil:'domcontentloaded'});
   await memberPage.getByRole('heading',{name:'Como você deseja começar?'}).waitFor({state:'visible'});
