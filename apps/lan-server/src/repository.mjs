@@ -27,7 +27,7 @@ const TABLE_FIELDS = {
   fornecedores: new Set(['empresa_id', 'nome', 'documento', 'telefone', 'email', 'observacoes']),
   categorias_financeiras: new Set(['nome', 'natureza', 'grupo_dre', 'ativa']),
   contas: new Set(['tipo', 'empresa_id', 'obra_id', 'frente_id', 'etapa_id', 'fornecedor_id', 'cliente_id', 'categoria_id', 'medicao_id', 'solicitacao_compra_id', 'pedido_compra_id', 'contrato_id', 'descricao', 'competencia', 'emissao', 'vencimento', 'valor_bruto_centavos', 'retencoes_centavos', 'descontos_centavos', 'valor_centavos', 'forma_pagamento', 'status', 'data_efetiva', 'recorrencia', 'parcela_atual', 'total_parcelas', 'origem_tipo', 'origem_id', 'observacoes']),
-  solicitacoes_compra: new Set(['obra_id', 'frente_id', 'etapa_id', 'cotacao_escolhida_id', 'solicitante', 'descricao', 'prazo', 'prioridade', 'status', 'observacoes']),
+  solicitacoes_compra: new Set(['obra_id', 'frente_id', 'etapa_id', 'cotacao_escolhida_id', 'solicitante', 'descricao', 'prazo', 'prioridade', 'status', 'observacoes', 'request_id']),
   cotacoes_compra: new Set(['solicitacao_id', 'fornecedor_id', 'fornecedor_nome', 'valor_centavos', 'prazo_entrega', 'condicoes', 'escolhida', 'justificativa', 'status']),
   pedidos_compra: new Set(['obra_id', 'frente_id', 'etapa_id', 'solicitacao_id', 'cotacao_id', 'fornecedor_id', 'numero', 'descricao', 'valor_centavos', 'entrega_prevista', 'status', 'conta_id', 'request_id', 'observacoes']),
   pedido_compra_itens: new Set(['pedido_compra_id', 'descricao', 'unidade', 'quantidade_pedida', 'quantidade_recebida', 'valor_centavos']),
