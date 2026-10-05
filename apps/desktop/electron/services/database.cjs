@@ -9,7 +9,7 @@ const TABLES = new Set([
   'folha_lancamentos','pagamentos_funcionario','epis','funcionario_epis','documentos','arquivos',
   'pastas_vinculadas','fontes_documentais','importacoes','importacao_linhas','configuracoes','pontos_mensais','ponto_marcacoes','medicao_mapa_itens',
   'cronograma_etapas','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','perfis_importacao',
-  'solicitacoes_compra','cotacoes_compra','pedidos_compra','recebimentos_materiais','pedido_compra_itens','movimentacoes_estoque','contratos_obra','contrato_aditivos','contrato_anexos','pedido_compra_anexos','rdo_anexos','medicao_anexos','documentos_editaveis','modelos_documento_rh','frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra'
+  'solicitacoes_compra','cotacoes_compra','pedidos_compra','recebimentos_materiais','pedido_compra_itens','movimentacoes_estoque','contratos_obra','contrato_aditivos','contrato_anexos','pedido_compra_anexos','rdo_anexos','medicao_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais','cargo_epi_kits','frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra'
 ])
 
 class DatabaseService {

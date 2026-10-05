@@ -19,10 +19,69 @@ function sha256(filePath) {
 }
 
 class FileService {
-  constructor({ documentsDir, db }) {
+  constructor({ documentsDir, db, dataAccess = null, lanClient = null, moduleStorage = null, storage = null }) {
     this.documentsDir = documentsDir
     this.db = db
+    this.dataAccess = dataAccess
+    this.lanClient = lanClient
+    this.moduleStorage = moduleStorage
+    this.storage = storage
     fs.mkdirSync(documentsDir, { recursive: true })
+  }
+
+  documentRoute() {
+    const state=this.storage?.state?.()
+    if(!state||state.mode!=='server')return 'local'
+    if(this.moduleStorage?.state?.('documents')?.state==='central-active')return 'remote'
+    throw new Error('Documentos centrais ainda não estão ativos; nenhum arquivo será salvo localmente como fallback.')
+  }
+
+  centralFileId(value) {
+    const match=String(value||'').match(/^server:\/\/file\/(\d+)$/)
+    return match ? Number(match[1]) : null
+  }
+
+  async chooseSource(title) {
+    const result=await dialog.showOpenDialog({ properties:['openFile'], title })
+    if(result.canceled||!result.filePaths[0])return null
+    return result.filePaths[0]
+  }
+
+  centralFilePayload(source) {
+    const stat=fs.statSync(source)
+    if(!stat.isFile())throw new Error('Arquivo selecionado é inválido.')
+    if(stat.size>25*1024*1024)throw new Error('O arquivo excede 25 MB, limite do servidor local.')
+    return { name:path.basename(source), mimeType:null, contentBase64:fs.readFileSync(source).toString('base64') }
+  }
+
+  async registerCentralFile(source, document) {
+    if (this.documentRoute() !== 'remote') throw new Error('Registro central de arquivo exige o módulo Documentos ativo.')
+    if (!this.lanClient) throw new Error('Storage documental central indisponível.')
+    const result = await this.lanClient.uploadDocument({ file:this.centralFilePayload(source), document })
+    const file = result?.file || null
+    const savedDocument = result?.document || result
+    return {
+      ...savedDocument,
+      file,
+      path:file?.id ? `server://file/${Number(file.id)}` : null,
+      localPath:source,
+      storage:'central',
+      registeredInCentralDatabase:true
+    }
+  }
+
+  async materializeCentral(fileId) {
+    if(!this.dataAccess||!this.lanClient)throw new Error('Cliente documental central indisponível.')
+    const meta=await this.dataAccess.get('arquivos',Number(fileId))
+    if(!meta)throw new Error('Arquivo central não encontrado.')
+    const bytes=await this.lanClient.downloadFile(Number(fileId))
+    const cacheDir=path.join(this.documentsDir,'.server-cache')
+    fs.mkdirSync(cacheDir,{recursive:true})
+    const extension=path.extname(String(meta.nome_original||''))||String(meta.extensao||'')
+    const base=sanitizeName(path.basename(String(meta.nome_original||`arquivo-${fileId}`),extension),`arquivo-${fileId}`)
+    const destination=path.join(cacheDir,`${fileId}-${base}${extension}`)
+    fs.writeFileSync(destination,bytes)
+    return destination
   }
 
   employeeFolders(employee, companyName = 'Empresa') {
@@ -38,6 +97,18 @@ class FileService {
   }
 
   async importForEmployee({ funcionario_id, categoria, status_assinatura = 'geral', documento_origem_id, title }) {
+    if(this.documentRoute()==='remote'){
+      if(!this.dataAccess||!this.lanClient)throw new Error('Storage documental central indisponível.')
+      const employee=await this.dataAccess.get('funcionarios',funcionario_id)
+      if(!employee)throw new Error('Funcionário não encontrado.')
+      const source=await this.chooseSource('Selecionar documento')
+      if(!source)return null
+      const result=await this.lanClient.uploadDocument({
+        file:this.centralFilePayload(source),
+        document:{empresa_id:employee.empresa_id,obra_id:employee.obra_atual_id||null,funcionario_id:employee.id,categoria,titulo:title||path.basename(source),status_assinatura,documento_origem_id:documento_origem_id||null,versao:1}
+      })
+      return result?.document||result
+    }
     const employee = this.db.get('funcionarios', funcionario_id)
     if (!employee) throw new Error('Funcionário não encontrado.')
     const company = employee.empresa_id ? this.db.get('empresas', employee.empresa_id) : null
@@ -64,6 +135,20 @@ class FileService {
   }
 
   async importForMeasurement({ medicao_id, tipo = 'comprovante', title }) {
+    if(this.documentRoute()==='remote'){
+      if(!this.dataAccess||!this.lanClient)throw new Error('Storage documental central indisponível.')
+      const measurement=await this.dataAccess.get('medicoes',medicao_id)
+      if(!measurement)throw new Error('Medição não encontrada.')
+      const work=await this.dataAccess.get('obras',measurement.obra_id)
+      if(!work)throw new Error('Obra não encontrada.')
+      const source=await this.chooseSource('Selecionar anexo da medição')
+      if(!source)return null
+      const result=await this.lanClient.uploadDocument({
+        file:this.centralFilePayload(source),
+        document:{empresa_id:work.empresa_id,obra_id:measurement.obra_id,frente_id:measurement.frente_id||null,medicao_id:measurement.id,categoria:'medicao',titulo:title||`Medição ${measurement.numero}: ${path.basename(source)}`,status_assinatura:'geral',versao:1,tipo}
+      })
+      return result?.document||result
+    }
     const measurement = this.db.get('medicoes', medicao_id)
     if (!measurement) throw new Error('Medição não encontrada.')
     const work = this.db.get('obras', measurement.obra_id)
@@ -84,6 +169,18 @@ class FileService {
   }
 
   async importForWorkDocument({ obra_id, frente_id = null, categoria = 'documento_obra', title, rdo_id = null, contrato_id = null, contrato_aditivo_id = null, pedido_compra_id = null, recebimento_material_id = null, tipo = 'anexo' }) {
+    if(this.documentRoute()==='remote'){
+      if(!this.dataAccess||!this.lanClient)throw new Error('Storage documental central indisponível.')
+      const work=await this.dataAccess.get('obras',obra_id)
+      if(!work)throw new Error('Obra nao encontrada.')
+      const source=await this.chooseSource('Selecionar documento da obra')
+      if(!source)return null
+      const result=await this.lanClient.uploadDocument({
+        file:this.centralFilePayload(source),
+        document:{empresa_id:work.empresa_id,obra_id:work.id,frente_id:frente_id||null,rdo_id:rdo_id||null,contrato_id:contrato_id||null,contrato_aditivo_id:contrato_aditivo_id||null,pedido_compra_id:pedido_compra_id||null,recebimento_material_id:recebimento_material_id||null,categoria,titulo:title||path.basename(source),status_assinatura:'geral',versao:1,tipo}
+      })
+      return result?.document||result
+    }
     const work = this.db.get('obras', obra_id)
     if (!work) throw new Error('Obra nao encontrada.')
     const result = await dialog.showOpenDialog({ properties: ['openFile'], title: 'Selecionar documento da obra' })
@@ -128,9 +225,21 @@ class FileService {
     return document
   }
 
-  open(filePath) { this.assertManagedPath(filePath); return shell.openPath(filePath) }
-  reveal(filePath) { this.assertManagedPath(filePath); shell.showItemInFolder(filePath); return true }
-  copyPath(filePath) { this.assertManagedPath(filePath); clipboard.writeText(filePath); return true }
+  async open(filePath) {
+    const fileId=this.centralFileId(filePath)
+    if(fileId){const local=await this.materializeCentral(fileId);return shell.openPath(local)}
+    this.assertManagedPath(filePath); return shell.openPath(filePath)
+  }
+  async reveal(filePath) {
+    const fileId=this.centralFileId(filePath)
+    if(fileId){const local=await this.materializeCentral(fileId);shell.showItemInFolder(local);return true}
+    this.assertManagedPath(filePath); shell.showItemInFolder(filePath); return true
+  }
+  copyPath(filePath) {
+    const fileId=this.centralFileId(filePath)
+    if(fileId){clipboard.writeText(`server://file/${fileId}`);return true}
+    this.assertManagedPath(filePath); clipboard.writeText(filePath); return true
+  }
   openDocumentsFolder() { return shell.openPath(this.documentsDir) }
   assertManagedPath(filePath) {
     if (!filePath || typeof filePath !== 'string') throw new Error('Arquivo ou pasta indisponível.')
@@ -142,7 +251,12 @@ class FileService {
     }
   }
 
-  deleteDocument({ id, deletePhysical = false }) {
+  async deleteDocument({ id, deletePhysical = false }) {
+    if(this.documentRoute()==='remote'){
+      if(!this.lanClient)throw new Error('Storage documental central indisponível.')
+      await this.lanClient.deleteDocument(Number(id),{deletePhysical})
+      return true
+    }
     const document = this.db.get('documentos', id)
     if (!document) return true
     const file = document.arquivo_id ? this.db.get('arquivos', document.arquivo_id) : null

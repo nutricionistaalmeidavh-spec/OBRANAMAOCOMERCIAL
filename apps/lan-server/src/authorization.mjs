@@ -58,6 +58,7 @@ function legacyDomainAllowed(member, domain, action) {
   if (domain === 'planning') return modules.includes('obra360')
   if (domain === 'finance') return modules.includes('finance') || (action === 'view' && modules.includes('dre'))
   if (domain === 'rh') return modules.includes('rh')
+  if (domain === 'documents') return modules.includes('documents') || modules.includes('obra360') || modules.includes('rh')
   return false
 }
 

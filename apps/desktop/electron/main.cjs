@@ -96,7 +96,7 @@ function createServices() {
   const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const measurements = new MeasurementSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
-  const files = new FileService({ documentsDir: paths.documentsDir, db })
+  const files = new FileService({ documentsDir: paths.documentsDir, db, dataAccess, lanClient:dataAccess.remote, moduleStorage, storage })
   const localPayroll = new PayrollService({ db })
   const localTime = new TimeService({ db, fileService: files })
   const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })
@@ -144,7 +144,7 @@ function createServices() {
     paths, db, dataAccess, storage, serverDiscovery, serverReconnect, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
     backup,
     importer: new ImportService({ db }),
-    documents: new DocumentService({ db, fileService: files, dialog }),
+    documents: new DocumentService({ db, fileService: files, dialog, dataAccess, moduleStorage }),
     payroll: rh,
     catalog,
     time,
@@ -220,7 +220,8 @@ async function refreshModuleCapabilitiesSafe() {
       operation: services.moduleStorage.state('operation'),
       planning: services.moduleStorage.state('planning'),
       finance: services.moduleStorage.state('finance'),
-      rh: services.moduleStorage.state('rh')
+      rh: services.moduleStorage.state('rh'),
+      documents: services.moduleStorage.state('documents')
     }
   }
 }

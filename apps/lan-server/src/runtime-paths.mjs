@@ -11,11 +11,11 @@ export function resolveRuntimePaths(config, { migrationsDir } = {}) {
   const backupDir = normalizeDirectory(config?.backupDir, 'backupDir')
   const logDir = normalizeDirectory(config?.logDir, 'logDir')
   const resolvedMigrationsDir = normalizeDirectory(migrationsDir, 'migrationsDir')
-  return Object.freeze({ dataDir, backupDir, logDir, databasePath: path.join(dataDir, 'obra-na-mao-lan.sqlite'), migrationsDir: resolvedMigrationsDir })
+  return Object.freeze({ dataDir, backupDir, logDir, filesDir:path.join(dataDir,'files'), databasePath: path.join(dataDir, 'obra-na-mao-lan.sqlite'), migrationsDir: resolvedMigrationsDir })
 }
 
 export function ensureRuntimePaths(paths) {
-  for (const directory of [paths.dataDir, paths.backupDir, paths.logDir]) {
+  for (const directory of [paths.dataDir, paths.backupDir, paths.logDir, paths.filesDir]) {
     try {
       fs.mkdirSync(directory, { recursive: true })
       if (!fs.statSync(directory).isDirectory()) throw new Error('path is not a directory')

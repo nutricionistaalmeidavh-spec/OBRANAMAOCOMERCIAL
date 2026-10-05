@@ -5,10 +5,10 @@ import { describe, expect, it } from 'vitest'
 describe('StorageServerSettings migration contract',()=>{
   const source=fs.readFileSync(path.resolve(process.cwd(),'src/components/StorageServerSettings.tsx'),'utf8')
 
-  it('mantém a ordem segura dos cinco módulos como detalhe interno',()=>{
-    for(const module of ['core','operation','planning','finance','rh']) expect(source).toMatch(new RegExp(`(?:${module}:'|['\\"]${module}['\\"])`))
-    for(const label of ['Cadastros-base','RDO / operação','Planejamento','Financeiro','RH']) expect(source).toContain(label)
-    expect(source).toContain("const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh']")
+  it('mantém a ordem segura dos seis módulos como detalhe interno',()=>{
+    for(const module of ['core','operation','planning','finance','rh','documents']) expect(source).toMatch(new RegExp(`(?:${module}:'|['\\"]${module}['\\"])`))
+    for(const label of ['Cadastros-base','RDO / operação','Planejamento','Financeiro','RH','Documentos']) expect(source).toContain(label)
+    expect(source).toContain("const MODULE_ORDER:ModuleKey[]=['core','operation','planning','finance','rh','documents']")
     for(const state of ['local','migration-required','central-ready','central-active']) expect(source).toContain(state)
   })
 
@@ -22,7 +22,7 @@ describe('StorageServerSettings migration contract',()=>{
     expect(source).not.toContain('Migrar para servidor')
   })
 
-  it('não expõe cinco ações permanentes no happy path',()=>{
+  it('não expõe ações permanentes por módulo no happy path',()=>{
     expect(source).not.toContain('const renderModule')
     expect(source).toContain('Avançado e diagnóstico')
     expect(source).toContain('<progress')

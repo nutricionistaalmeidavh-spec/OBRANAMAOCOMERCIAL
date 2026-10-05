@@ -32,7 +32,11 @@ function centralFixture(state='central-active'){
     printHtml:vi.fn(async()=>undefined),
     printEntries:vi.fn(async(entries:any[])=>({results:entries,employees:entries.length,documents:entries.length,printed:true,canceled:false}))
   }
-  const fileService={employeeFolders:vi.fn(()=>({base:dir,general:dir,signed:dir}))}
+  let fileId=40
+  const fileService={
+    employeeFolders:vi.fn(()=>({base:dir,general:dir,signed:dir})),
+    registerCentralFile:vi.fn(async(_source:string,document:any)=>({id:++fileId,...document,storage:'central',registeredInCentralDatabase:true}))
+  }
   const dataAccess={list:vi.fn(async()=>[context.employee])}
   return {service:new RhDocumentService({rh,localTime,fileService,dataAccess}),rh,localTime,fileService,dataAccess,context,dir}
 }
@@ -56,9 +60,10 @@ describe('RH document generation source',()=>{
     expect(f.localTime.generateDocuments).not.toHaveBeenCalled()
     expect(f.localTime.printHtml).toHaveBeenCalledTimes(2)
     expect(f.localTime.receiptHtml.mock.calls[0][3]).toEqual([{descricao:'Café',valor_centavos:18000}])
-    expect(result).toMatchObject({source:'central-rh',storage:'local-derived',registeredInLocalDatabase:false})
-    expect(result.point).toMatchObject({storage:'local-derived',registeredInLocalDatabase:false})
-    expect(result.receipt).toMatchObject({storage:'local-derived',registeredInLocalDatabase:false})
+    expect(result).toMatchObject({source:'central-rh',storage:'central',registeredInLocalDatabase:false,registeredInCentralDatabase:true})
+    expect(result.point).toMatchObject({storage:'central',registeredInCentralDatabase:true})
+    expect(result.receipt).toMatchObject({storage:'central',registeredInCentralDatabase:true})
+    expect(f.fileService.registerCentralFile).toHaveBeenCalledTimes(2)
   })
 
   it('central-ready recusa gerar com dados locais como fallback', async()=>{
@@ -73,6 +78,6 @@ describe('RH document generation source',()=>{
     const result=await f.service.generateForAll({competencia:'2026-10',point:true,receipts:false})
     expect(f.dataAccess.list).toHaveBeenCalledWith('funcionarios',{status:'ativo'})
     expect(result).toHaveLength(1)
-    expect(result[0]).toMatchObject({funcionario_id:77,ok:true,documents:{source:'central-rh',storage:'local-derived'}})
+    expect(result[0]).toMatchObject({funcionario_id:77,ok:true,documents:{source:'central-rh',storage:'central',registeredInCentralDatabase:true}})
   })
 })

@@ -1,3 +1,4 @@
+const fs = require('node:fs')
 const { createHash, randomUUID } = require('node:crypto')
 
 const MODULE_TABLES = Object.freeze({
@@ -5,10 +6,11 @@ const MODULE_TABLES = Object.freeze({
   operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
   planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
   finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'],
-  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis']
+  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'],
+  documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais']
 })
 
-const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:1, operation:2, planning:2, finance:2, rh:1 })
+const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:2, operation:2, planning:2, finance:2, rh:2, documents:1 })
 
 const SOURCE_KEY = 'migration_source_fingerprint'
 const ATTEMPT_PREFIX = 'module_migration_attempt_'
@@ -21,6 +23,12 @@ function canonical(value) {
 
 function digest(value) {
   return createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')
+}
+function hashableMigrationRecords(records){
+  return Object.fromEntries(Object.entries(records||{}).map(([table,rows])=>[
+    table,
+    (rows||[]).map(row=>table==='arquivos'?{...row,__content_base64:undefined}:row)
+  ]))
 }
 
 class ModuleMigrationService {
@@ -194,8 +202,16 @@ class ModuleMigrationService {
   }
 
   normalizeExportRow(module, table, row) {
-    if (module !== 'rh') return { ...row }
-    return { ...row, empresa_id: this.resolveLegacyRhCompanyId(table, row) }
+    if (module === 'rh') return { ...row, empresa_id: this.resolveLegacyRhCompanyId(table, row) }
+    if (module === 'documents' && table === 'arquivos') {
+      const filePath=String(row?.caminho||'')
+      if(!filePath||!fs.existsSync(filePath))throw new Error(`Arquivo local #${row?.id ?? '?'} não foi encontrado para migração documental.`)
+      const stat=fs.statSync(filePath)
+      if(!stat.isFile())throw new Error(`Caminho do arquivo #${row?.id ?? '?'} não aponta para um arquivo válido.`)
+      if(stat.size>25*1024*1024)throw new Error(`Arquivo ${row?.nome_original||row?.id} excede 25 MB e precisa ser tratado antes da migração.`)
+      return { ...row, __content_base64:fs.readFileSync(filePath).toString('base64') }
+    }
+    return { ...row }
   }
 
   exportModule(moduleName) {
@@ -291,7 +307,7 @@ class ModuleMigrationService {
 
     const exported = this.exportModule(module)
     const sourceFingerprint = this.sourceFingerprint()
-    const sourceDataHash = digest({ module, records: exported.records })
+    const sourceDataHash = digest({ module, records: hashableMigrationRecords(exported.records) })
     let attempt = this.readAttempt(module)
 
     if (attempt) {

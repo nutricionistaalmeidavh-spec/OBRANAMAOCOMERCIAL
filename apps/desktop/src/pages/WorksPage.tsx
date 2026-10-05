@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button, Card, Confirm, Empty, Field, FormActions, Kpi, Loading, Modal, PageHeader, Status } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
 import { brDate, brl, toCents, today } from '../utils/format'
+import { isWorkAreaAvailable } from '../utils/workAvailability'
 
 const initial = { empresa_id: '', nome: '', codigo: '', cliente_id: '', endereco: '', responsavel: '', valor: '', data_inicio: today(), previsao_termino: '', status: 'planejada', observacoes: '' }
 type QuickRegistryKind = 'empresa' | 'cliente'
@@ -121,6 +122,8 @@ export default function WorksPage() {
   const pendingCount = selectedOverview?.pendências?.length || 0
   const totalContratado = selectedOverview?.frentes?.reduce((sum: number, item: any) => sum + Number(item.contratado_centavos || 0), 0) || 0
   const totalPago = selectedOverview?.frentes?.reduce((sum: number, item: any) => sum + Number(item.pago_centavos || 0), 0) || 0
+  const overviewPartial = selectedOverview?.serverPartial === true
+  const overviewAvailable = (area: 'operation'|'planning'|'finance'|'medicoes'|'contratos') => isWorkAreaAvailable(overviewPartial, selectedOverview?.availability, area)
 
   return <>
     <PageHeader title="Obras" description="Escolha a obra atual e acesse execução, planejamento e resultado em um único lugar." actions={<div className="row-actions"><Button variant="secondary" icon={<Upload size={16}/>} onClick={importSpreadsheets} disabled={importing||serverMode}>Importar planilhas</Button><Button icon={<Plus size={16}/>} onClick={() => open()}>Nova obra</Button></div>}/>
@@ -162,10 +165,10 @@ export default function WorksPage() {
           {!selectedId ? <Empty title="Selecione uma obra" description="Depois disso os cards mostram os resumos operacionais."/> : !moduleActive('core') ? <Empty title="Esta obra ainda está sendo preparada" description="Conclua a configuração do servidor para liberar o resumo desta obra."/> : overview.loading ? <Loading/> : <div className="card-body">
             <p style={{ fontSize: 12, color: '#647084', display: 'flex', gap: 7, alignItems: 'center', marginTop: 0 }}><MapPin size={15}/>{selectedWork?.endereco || 'Endereço não informado'}</p>
             <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(130px, 1fr))', marginBottom: 14 }}>
-              <Kpi label="Orçado" value={brl(selectedOverview?.orcado_centavos || 0)}/>
-              <Kpi label="Contratado" value={brl(totalContratado)}/>
-              <Kpi label="Pago" value={brl(totalPago)}/>
-              <Kpi label="Pendências" value={String(pendingCount)}/>
+              <Kpi label="Orçado" value={overviewAvailable('planning')?brl(selectedOverview?.orcado_centavos || 0):'—'}/>
+              <Kpi label="Contratado" value={overviewAvailable('contratos')?brl(totalContratado):'—'}/>
+              <Kpi label="Pago" value={overviewAvailable('finance')?brl(totalPago):'—'}/>
+              <Kpi label="Pendências" value={overviewAvailable('operation')?String(pendingCount):'—'}/>
             </div>
             <p style={{ fontSize: 11, color: '#7c8798', marginBottom: 0 }}>{selectedWork?.observacoes || 'Sem observações cadastradas.'}</p>
           </div>}
@@ -175,7 +178,7 @@ export default function WorksPage() {
         <OperationCard icon={<BriefcaseBusiness size={22}/>} title="Frentes de serviço" text="Especialidades, subfrentes e checklist por pavimento ou geral." metric={`${frontCount} frentes`} detail={`${selectedOverview?.frentes?.filter((front: any) => front.status === 'ativa').length || 0} ativas`} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Esta área ainda está sendo preparada no servidor.':undefined} onClick={() => navigate(`/frentes?obra=${selectedId}`)}/>
         <OperationCard icon={<CalendarClock size={22}/>} title="Planejamento" text="Etapas, Curva S, previsto x realizado e caixa por obra." metric={`${stageCount} etapas`} detail={selectedOverview?.cronograma?.[0] ? `Próxima: ${selectedOverview.cronograma[0].nome}` : 'Sem etapas'} disabled={!selectedId||!moduleActive('planning')} disabledReason={serverMode&&!moduleActive('planning')?'Esta área ainda está sendo preparada no servidor.':undefined} onClick={() => navigate(`/planejamento?obra=${selectedId}`)}/>
         <OperationCard icon={<NotebookPen size={22}/>} title="Diário de obra" text="RDOs, equipe, equipamentos, ocorrências, anexos e pendências." metric={`${rdoCount} RDOs`} detail={pendingCount ? `${pendingCount} pendências abertas` : 'Sem pendências'} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Esta área ainda está sendo preparada no servidor.':undefined} onClick={() => navigate(`/rdo?obra=${selectedId}`)}/>
-        <OperationCard icon={<HardHat size={22}/>} title="Obra 360" text="Resumo financeiro e operacional da obra." metric={selectedOverview?.availability?.medicoes===false?'—':brl(selectedOverview?.medido_centavos || 0)} detail={selectedOverview?.serverPartial?'Resumo disponível':'Medições da obra'} disabled={!selectedId||!moduleActive('core')} disabledReason={serverMode&&!moduleActive('core')?'Esta área ainda está sendo preparada no servidor.':undefined} onClick={() => navigate(`/obras/${selectedId}`)}/>
+        <OperationCard icon={<HardHat size={22}/>} title="Obra 360" text="Resumo financeiro e operacional da obra." metric={overviewAvailable('medicoes')?brl(selectedOverview?.medido_centavos || 0):'—'} detail={selectedOverview?.serverPartial?'Resumo disponível':'Medições da obra'} disabled={!selectedId||!moduleActive('core')} disabledReason={serverMode&&!moduleActive('core')?'Esta área ainda está sendo preparada no servidor.':undefined} onClick={() => navigate(`/obras/${selectedId}`)}/>
       </div>
     </> : <Card><Empty title="Nenhuma obra cadastrada" description="Cadastre a primeira obra para organizar orçamento, medições e resultado." action={<Button onClick={() => open()}>Cadastrar obra</Button>}/></Card>}
     {notice && <div className="success-box" style={{ marginTop: 14 }}>{notice}</div>}

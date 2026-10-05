@@ -4,11 +4,28 @@ import { createHash, randomBytes } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 
 const REQUIRED_TABLES = [
-  'empresas','clientes','obras','frentes_obra','cronograma_etapas','contas','funcionarios',
+  'empresas','clientes','obras','frentes_obra','cronograma_etapas','contas','funcionarios','arquivos','documentos','empresa_documentos_admissionais','cargo_epi_kits',
   'lan_server_identity','lan_members_cache','lan_devices','lan_pairing_codes','lan_audit','module_migrations','module_migration_records'
 ]
 
 const sha256 = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex')
+function fileTreeSnapshot(root){
+  if(!root||!fs.existsSync(root))return{count:0,sizeBytes:0,fingerprint:createHash('sha256').update('[]').digest('hex'),files:[]}
+  const files=[]
+  const walk=(dir)=>{
+    for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
+      const absolute=path.join(dir,entry.name)
+      if(entry.isDirectory())walk(absolute)
+      else if(entry.isFile()){
+        const relative=path.relative(root,absolute).split(path.sep).join('/')
+        const stat=fs.statSync(absolute)
+        files.push({path:relative,sizeBytes:stat.size,sha256:sha256(absolute)})
+      }
+    }
+  }
+  walk(root);files.sort((a,b)=>a.path.localeCompare(b.path))
+  return{count:files.length,sizeBytes:files.reduce((sum,item)=>sum+item.sizeBytes,0),fingerprint:createHash('sha256').update(JSON.stringify(files)).digest('hex'),files}
+}
 const sqlLiteral = value => `'${String(value).replaceAll("'", "''")}'`
 const safeBackupId = value => /^[A-Za-z0-9._-]+$/.test(String(value || ''))
 
@@ -32,12 +49,15 @@ function publicManifest(manifest) {
     companyId:manifest.companyId,
     serverVersion:manifest.serverVersion,
     sizeBytes:manifest.sizeBytes,
+    filesCount:manifest.filesCount,
+    filesSizeBytes:manifest.filesSizeBytes,
+    filesFingerprint:manifest.filesFingerprint,
     reason:manifest.reason
   }
 }
 
 export class CentralBackupService {
-  constructor({ repository, security, dataDir, migrationsDir, databasePath = null, serverVersion = '', expectedSchemaVersion = null, now = () => new Date() }) {
+  constructor({ repository, security, dataDir, filesDir = null, migrationsDir, databasePath = null, serverVersion = '', expectedSchemaVersion = null, now = () => new Date() }) {
     if (!repository?.connection || !repository?.close) throw new Error('Repositório LAN inválido para backup central.')
     if (!security?.serverState) throw new Error('Repositório de segurança LAN inválido para backup central.')
     if (!dataDir) throw new Error('Diretório de dados LAN não informado.')
@@ -45,6 +65,7 @@ export class CentralBackupService {
     this.security=security
     this.dataDir=dataDir
     this.migrationsDir=migrationsDir
+    this.filesDir=filesDir ? path.resolve(filesDir) : path.join(dataDir,'files')
     this.databasePath=databasePath || path.join(dataDir,'obra-na-mao-lan.sqlite')
     this.serverVersion=String(serverVersion || '')
     this.expectedSchemaVersion=expectedSchemaVersion === null ? null : Number(expectedSchemaVersion)
@@ -143,16 +164,20 @@ export class CentralBackupService {
     fs.mkdirSync(folder,{recursive:true})
     const database=path.join(folder,'obra-na-mao-lan.sqlite')
     const manifestPath=path.join(folder,'manifest.json')
+    const filesBackup=path.join(folder,'files')
     try{
       this.repository.connection().exec(`VACUUM INTO ${sqlLiteral(database)};`)
       this.sanitizeBackup(database)
       const inspected=this.inspectFile(database)
       const identity=this.identity()
       const stat=fs.statSync(database)
+      if(fs.existsSync(this.filesDir))fs.cpSync(this.filesDir,filesBackup,{recursive:true,force:true})
+      else fs.mkdirSync(filesBackup,{recursive:true})
+      const filesSnapshot=fileTreeSnapshot(filesBackup)
       const manifest={
         product:'Obra na Mão LAN Server',backupId,createdAt:this.now().toISOString(),fingerprint:sha256(database),
         schemaVersion:inspected.schemaVersion,serverId:identity.serverId,companyId:identity.companyId,
-        serverVersion:this.serverVersion || null,sizeBytes:stat.size,reason:String(reason || 'manual')
+        serverVersion:this.serverVersion || null,sizeBytes:stat.size,filesCount:filesSnapshot.count,filesSizeBytes:filesSnapshot.sizeBytes,filesFingerprint:filesSnapshot.fingerprint,reason:String(reason || 'manual')
       }
       fs.writeFileSync(manifestPath,`${JSON.stringify(manifest,null,2)}\n`,'utf8')
       this.audit('central_backup_validated',{actor,targetId:backupId,details:{schemaVersion:manifest.schemaVersion,sizeBytes:manifest.sizeBytes,reason:manifest.reason}})
@@ -171,7 +196,7 @@ export class CentralBackupService {
     if(!fs.existsSync(manifestPath)) throw new Error('Manifest do backup central não encontrado.')
     const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'))
     if(String(manifest.backupId)!==String(backupId)) throw new Error('Manifest pertence a outro backup.')
-    return {folder,manifestPath,database:path.join(folder,'obra-na-mao-lan.sqlite'),manifest}
+    return {folder,manifestPath,database:path.join(folder,'obra-na-mao-lan.sqlite'),files:path.join(folder,'files'),manifest}
   }
 
   verifyManagedBackup(backupId,{ enforceCurrentIdentity=false, actor=null }={}){
@@ -181,12 +206,16 @@ export class CentralBackupService {
       const sizeBytes=fs.statSync(item.database).size
       if(fingerprint!==String(item.manifest.fingerprint || '')) throw new Error('Fingerprint SHA-256 do backup central não confere.')
       if(Number(item.manifest.sizeBytes)!==sizeBytes) throw new Error('Tamanho do backup central diverge do manifest.')
+      const filesSnapshot=fileTreeSnapshot(item.files)
+      if(Number(item.manifest.filesCount||0)!==filesSnapshot.count)throw new Error('Quantidade de arquivos documentais diverge do manifest.')
+      if(Number(item.manifest.filesSizeBytes||0)!==filesSnapshot.sizeBytes)throw new Error('Tamanho dos arquivos documentais diverge do manifest.')
+      if(String(item.manifest.filesFingerprint||'')!==filesSnapshot.fingerprint)throw new Error('Fingerprint dos arquivos documentais não confere.')
       const inspected=this.inspectFile(item.database,{enforceCurrentIdentity,requireSanitized:true})
       if(Number(item.manifest.schemaVersion)!==inspected.schemaVersion) throw new Error('Versão de schema diverge do manifest.')
       if(String(item.manifest.serverId || '')!==String(inspected.identity.serverId || '')) throw new Error('Identidade do servidor diverge do manifest.')
       if(String(item.manifest.companyId || '')!==String(inspected.identity.companyId || '')) throw new Error('Tenant do banco diverge do manifest.')
       this.audit('central_backup_validated',{actor,targetId:String(backupId),details:{schemaVersion:inspected.schemaVersion,sizeBytes}})
-      return {...inspected,fingerprint,sizeBytes,manifest:publicManifest(item.manifest),database:item.database,folder:item.folder}
+      return {...inspected,fingerprint,sizeBytes,manifest:publicManifest(item.manifest),database:item.database,files:item.files,folder:item.folder}
     }catch(error){
       this.audit('central_backup_validation_failed',{actor,targetId:String(backupId || ''),details:{message:error instanceof Error?error.message:String(error)}})
       throw error
@@ -199,6 +228,15 @@ export class CentralBackupService {
     this.repository.db=fresh.connection()
     this.security.db=this.repository.connection()
     return this.repository.connection()
+  }
+
+  replaceFilesFrom(source){
+    const temp=`${this.filesDir}.restore-${randomBytes(4).toString('hex')}.tmp`
+    fs.rmSync(temp,{recursive:true,force:true})
+    if(source&&fs.existsSync(source))fs.cpSync(source,temp,{recursive:true,force:true})
+    else fs.mkdirSync(temp,{recursive:true})
+    fs.rmSync(this.filesDir,{recursive:true,force:true})
+    fs.renameSync(temp,this.filesDir)
   }
 
   replaceDatabaseFrom(source){
@@ -223,6 +261,7 @@ export class CentralBackupService {
     try{
       this.repository.close()
       this.replaceDatabaseFrom(candidate.database)
+      this.replaceFilesFrom(candidate.files)
       replaced=true
       this.reopenRepository()
       this.restoreLiveSecrets(secrets)
@@ -235,6 +274,7 @@ export class CentralBackupService {
         try{
           try{this.repository.close()}catch{}
           this.replaceDatabaseFrom(safety.database)
+          this.replaceFilesFrom(safety.files)
           this.reopenRepository()
           this.restoreLiveSecrets(secrets)
           this.inspectFile(this.databasePath,{enforceCurrentIdentity:true,requireSanitized:false})

@@ -46,16 +46,16 @@ describe('DataAccessService', () => {
     expect(db.list).not.toHaveBeenCalled()
   })
 
-  it('core migration-required mantém empresas clientes e obras no SQLite local', async () => {
+  it('core migration-required bloqueia CRUD e não faz fallback para SQLite', async () => {
     const { DataAccessService } = require('./data-access-service.cjs')
-    const db = { list: vi.fn(() => [{ id: 40, razao_social: 'Legada' }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const db = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
     const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-client', baseUrl: 'http://server:4732' })) }
     const remote = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
     const moduleStorage = { state: vi.fn((module:string) => ({ module, state: module === 'core' ? 'migration-required' : 'central-ready' })) }
     const service = new DataAccessService({ db, storage, remote, moduleStorage })
 
-    await expect(service.list('empresas', {})).resolves.toEqual([{ id: 40, razao_social: 'Legada' }])
-    expect(db.list).toHaveBeenCalledWith('empresas', {})
+    await expect(service.list('empresas', {})).rejects.toThrow(/cadastros-base|central|ativo/i)
+    expect(db.list).not.toHaveBeenCalled()
     expect(remote.list).not.toHaveBeenCalled()
   })
 
@@ -85,16 +85,16 @@ describe('DataAccessService', () => {
     expect(db.list).not.toHaveBeenCalled()
   })
 
-  it('migration-required mantém entidades operacionais no SQLite local', async () => {
+  it('migration-required bloqueia entidades operacionais sem fallback SQLite', async () => {
     const { DataAccessService } = require('./data-access-service.cjs')
-    const db = { list: vi.fn(() => [{ id: 3, nome: 'legado local' }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const db = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
     const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-host', baseUrl: 'http://127.0.0.1:4732' })) }
     const remote = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
     const moduleStorage = { state: vi.fn((module:string) => ({ module, state: module === 'operation' ? 'migration-required' : 'central-active', localRecords: 3 })) }
     const service = new DataAccessService({ db, storage, remote, moduleStorage })
 
-    await expect(service.list('rdos', { obra_id: 7 })).resolves.toEqual([{ id: 3, nome: 'legado local' }])
-    expect(db.list).toHaveBeenCalledWith('rdos', { obra_id: 7 })
+    await expect(service.list('rdos', { obra_id: 7 })).rejects.toThrow(/RDO|operação|central|ativo/i)
+    expect(db.list).not.toHaveBeenCalled()
     expect(remote.list).not.toHaveBeenCalled()
   })
 
@@ -151,16 +151,32 @@ describe('DataAccessService', () => {
     expect(remote.list).not.toHaveBeenCalled()
   })
 
-  it('mantém entidades migration-required no SQLite em modo servidor', async () => {
+  it('bloqueia finance migration-required em modo servidor sem fallback', async () => {
     const { DataAccessService } = require('./data-access-service.cjs')
-    const db = { list: vi.fn(() => [{ id: 21 }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const db = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
     const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-host', baseUrl: 'http://127.0.0.1:4732' })) }
     const remote = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
     const moduleStorage = { state: vi.fn((module:string) => ({ module, state: module === 'finance' ? 'migration-required' : 'central-active' })) }
     const service = new DataAccessService({ db, storage, remote, moduleStorage })
 
-    expect(await service.list('fornecedores', {})).toEqual([{ id: 21 }])
-    expect(db.list).toHaveBeenCalledWith('fornecedores', {})
+    await expect(service.list('fornecedores', {})).rejects.toThrow(/financeiro|central|ativo/i)
+    expect(db.list).not.toHaveBeenCalled()
     expect(remote.list).not.toHaveBeenCalled()
+  })
+
+  it('Documentos central-active usa somente o Server e migration-required nunca cai no SQLite', async () => {
+    const { DataAccessService } = require('./data-access-service.cjs')
+    const db = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'lan-client', baseUrl: 'http://server:4732' })) }
+    const remote = { list: vi.fn(async()=>[{id:81,titulo:'Central'}]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    let state='central-active'
+    const moduleStorage = { state: vi.fn((module:string) => ({ module, state: module === 'documents' ? state : 'central-active' })) }
+    const service = new DataAccessService({ db, storage, remote, moduleStorage })
+
+    await expect(service.list('documentos', { obra_id:7 })).resolves.toEqual([{id:81,titulo:'Central'}])
+    expect(db.list).not.toHaveBeenCalled()
+    state='migration-required'
+    await expect(service.list('documentos', { obra_id:7 })).rejects.toThrow(/documentos|central|ativo/i)
+    expect(db.list).not.toHaveBeenCalled()
   })
 })

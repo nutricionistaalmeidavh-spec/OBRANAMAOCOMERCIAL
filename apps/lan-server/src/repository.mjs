@@ -5,7 +5,7 @@ import { applyLanMigrations } from './migrations.mjs'
 import { validateCoreOperationOwnership } from './domain-integrity.mjs'
 
 const TABLE_FIELDS = {
-  empresas: new Set(['razao_social', 'nome_fantasia', 'cnpj', 'telefone', 'email', 'endereco', 'observacoes', 'status']),
+  empresas: new Set(['razao_social', 'nome_fantasia', 'cnpj', 'telefone', 'email', 'endereco', 'observacoes', 'status', 'politica_recibos']),
   clientes: new Set(['empresa_id', 'nome', 'documento', 'telefone', 'email', 'observacoes']),
   obras: new Set(['empresa_id', 'cliente_id', 'nome', 'codigo', 'endereco', 'responsavel', 'valor_contratado_centavos', 'data_inicio', 'previsao_termino', 'status', 'percentual_fisico', 'observacoes']),
   locais_obra: new Set(['obra_id', 'nome', 'tipo']),
@@ -20,10 +20,20 @@ const TABLE_FIELDS = {
   rdo_anexos: new Set(['rdo_id', 'frente_id', 'documento_id', 'legenda']),
   etapas_obra: new Set(['obra_id', 'frente_id', 'nome', 'ordem', 'status']),
   cronograma_etapas: new Set(['obra_id', 'etapa_id', 'frente_id', 'nome', 'responsavel', 'previsto_inicio', 'previsto_fim', 'percentual_previsto', 'percentual_realizado', 'custo_planejado_centavos', 'custo_realizado_centavos', 'status', 'observacoes']),
-  itens_orcamentarios: new Set(['obra_id', 'etapa_id', 'frente_id', 'codigo', 'descricao', 'unidade', 'quantidade', 'valor_unitario_centavos', 'tipo', 'observacoes', 'atualizado_em']),
+  itens_orcamentarios: new Set(['obra_id', 'etapa_id', 'frente_id', 'fonte_documental_id', 'codigo', 'descricao', 'unidade', 'quantidade', 'valor_unitario_centavos', 'tipo', 'observacoes', 'atualizado_em']),
   medicoes: new Set(['obra_id', 'frente_id', 'contrato_id', 'numero', 'competencia', 'data', 'periodo_inicio', 'periodo_fim', 'status', 'descricao', 'retencoes_centavos', 'descontos_centavos', 'valor_bruto_centavos', 'valor_liquido_centavos', 'request_id', 'observacoes']),
   medicao_itens: new Set(['medicao_id', 'item_orcamentario_id', 'etapa_id', 'descricao', 'unidade', 'quantidade_total', 'quantidade_periodo', 'quantidade_acumulada', 'valor_periodo_centavos', 'justificativa_excesso']),
   medicao_mapa_itens: new Set(['obra_id', 'medicao_id', 'competencia', 'local_nome', 'servico_nome', 'valor_periodo_centavos', 'percentual_contrato', 'origem_arquivo', 'origem_aba', 'origem_celula']),
+  fontes_documentais: new Set(['tipo', 'titulo', 'referencia', 'observacoes']),
+  arquivos: new Set(['nome_original', 'nome_armazenado', 'caminho', 'tamanho', 'extensao', 'mime_type', 'hash', 'origem']),
+  documentos: new Set(['arquivo_id','empresa_id','obra_id','frente_id','funcionario_id','conta_id','medicao_id','item_orcamentario_id','fornecedor_id','rdo_id','contrato_id','contrato_aditivo_id','pedido_compra_id','recebimento_material_id','categoria','titulo','status_assinatura','documento_origem_id','versao','vencimento','observacoes']),
+  medicao_anexos: new Set(['medicao_id','documento_id','tipo']),
+  contrato_anexos: new Set(['contrato_id','documento_id','tipo']),
+  pedido_compra_anexos: new Set(['pedido_compra_id','documento_id','tipo']),
+  documentos_editaveis: new Set(['documento_id','conteudo_html','revisao']),
+  modelos_documento_rh: new Set(['chave','nome','conteudo_html','ativo','arquivo_origem']),
+  empresa_documentos_admissionais: new Set(['empresa_id','documento_key','ativo','obrigatorio','modelo_id','titulo_customizado','configuracao_json']),
+  cargo_epi_kits: new Set(['empresa_id','cargo_id','epi_id','quantidade_texto','ativo']),
   fornecedores: new Set(['empresa_id', 'nome', 'documento', 'telefone', 'email', 'observacoes']),
   categorias_financeiras: new Set(['nome', 'natureza', 'grupo_dre', 'ativa']),
   contas: new Set(['tipo', 'empresa_id', 'obra_id', 'frente_id', 'etapa_id', 'fornecedor_id', 'cliente_id', 'categoria_id', 'medicao_id', 'solicitacao_compra_id', 'pedido_compra_id', 'contrato_id', 'descricao', 'competencia', 'emissao', 'vencimento', 'valor_bruto_centavos', 'retencoes_centavos', 'descontos_centavos', 'valor_centavos', 'forma_pagamento', 'status', 'data_efetiva', 'recorrencia', 'parcela_atual', 'total_parcelas', 'origem_tipo', 'origem_id', 'observacoes']),
@@ -45,7 +55,7 @@ const TABLE_FIELDS = {
     'telefone', 'email', 'endereco', 'cep', 'departamento', 'admissao', 'salario_centavos', 'status',
     'banco', 'agencia', 'conta_bancaria', 'pix', 'matricula', 'jornada_inicio', 'jornada_fim',
     'intervalo_inicio', 'intervalo_fim', 'experiencia_dias', 'experiencia_fim', 'vale_transporte_opcao',
-    'vale_transporte_detalhes', 'observacoes'
+    'vale_transporte_detalhes', 'cor', 'deficiencia', 'ctps_uf', 'ctps_expedicao', 'cnh_categoria', 'titulo_eleitor_zona', 'titulo_eleitor_secao', 'reservista_categoria', 'endereco_logradouro', 'endereco_numero', 'endereco_complemento', 'endereco_bairro', 'endereco_cidade', 'endereco_uf', 'matricula_esocial', 'fgts_optante', 'fgts_opcao_em', 'beneficiarios', 'observacoes'
   ]),
   funcionario_obras: new Set(['empresa_id', 'funcionario_id', 'obra_id', 'inicio', 'fim', 'observacoes']),
   cargo_beneficios: new Set(['empresa_id', 'cargo_id', 'beneficio_id', 'valor_centavos', 'quinzena', 'natureza', 'ativo']),
@@ -79,6 +89,16 @@ const TABLE_META = {
   medicoes: { softDelete: true, updatedAt: true, order: 'data DESC, id DESC' },
   medicao_itens: { softDelete: false, updatedAt: false, order: 'id' },
   medicao_mapa_itens: { softDelete: true, updatedAt: true, order: 'competencia DESC, id DESC' },
+  fontes_documentais: { softDelete: false, updatedAt: true, order: 'titulo COLLATE NOCASE, id' },
+  arquivos: { softDelete: false, updatedAt: false, order: 'id DESC' },
+  documentos: { softDelete: true, updatedAt: false, order: 'created_at DESC, id DESC' },
+  medicao_anexos: { softDelete: false, updatedAt: false, order: 'id DESC' },
+  contrato_anexos: { softDelete: false, updatedAt: false, order: 'id DESC' },
+  pedido_compra_anexos: { softDelete: false, updatedAt: false, order: 'id DESC' },
+  documentos_editaveis: { softDelete: false, updatedAt: true, order: 'id DESC' },
+  modelos_documento_rh: { softDelete: false, updatedAt: true, order: 'nome COLLATE NOCASE, id' },
+  empresa_documentos_admissionais: { softDelete: false, updatedAt: true, order: 'documento_key COLLATE NOCASE, id' },
+  cargo_epi_kits: { softDelete: false, updatedAt: true, order: 'cargo_id, epi_id, id' },
   fornecedores: { softDelete: true, updatedAt: true, order: 'nome COLLATE NOCASE, id' },
   categorias_financeiras: { softDelete: false, updatedAt: false, order: 'nome COLLATE NOCASE, id' },
   contas: { softDelete: true, updatedAt: true, order: 'vencimento DESC, id DESC' },
@@ -262,7 +282,7 @@ export class LanRepository {
 
   validateRhOwnership(table, data, clean) {
     const rhTables = new Set([
-      'cargos', 'beneficios', 'funcionarios', 'funcionario_obras', 'cargo_beneficios',
+      'cargos', 'beneficios', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'cargo_epi_kits',
       'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario',
       'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis'
     ])
@@ -283,6 +303,9 @@ export class LanRepository {
     } else if (table === 'cargo_beneficios') {
       this.rhCompanyReference('cargos', value('cargo_id'), companyId, 'Cargo')
       this.rhCompanyReference('beneficios', value('beneficio_id'), companyId, 'Benefício')
+    } else if (table === 'cargo_epi_kits') {
+      this.rhCompanyReference('cargos', value('cargo_id'), companyId, 'Cargo')
+      this.rhCompanyReference('epis', value('epi_id'), companyId, 'EPI')
     } else if (table === 'funcionario_beneficios') {
       this.rhCompanyReference('funcionarios', value('funcionario_id'), companyId, 'Funcionário')
       this.rhCompanyReference('beneficios', value('beneficio_id'), companyId, 'Benefício')

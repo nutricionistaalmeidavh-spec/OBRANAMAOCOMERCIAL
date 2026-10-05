@@ -4,12 +4,13 @@ const CORE_REMOTE_TABLES = new Set(['empresas', 'clientes', 'obras'])
 const OPERATION_REMOTE_TABLES = new Set(['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
 const PLANNING_REMOTE_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'])
 const FINANCE_REMOTE_TABLES = new Set(['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'])
+const DOCUMENT_REMOTE_TABLES = new Set(['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais'])
 const RH_REMOTE_TABLES = new Set([
   'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
   'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes',
-  'epis', 'funcionario_epis'
+  'epis', 'funcionario_epis', 'cargo_epi_kits'
 ])
-const REMOTE_TABLES = new Set([...CORE_REMOTE_TABLES, ...OPERATION_REMOTE_TABLES, ...PLANNING_REMOTE_TABLES, ...FINANCE_REMOTE_TABLES, ...RH_REMOTE_TABLES])
+const REMOTE_TABLES = new Set([...CORE_REMOTE_TABLES, ...OPERATION_REMOTE_TABLES, ...PLANNING_REMOTE_TABLES, ...FINANCE_REMOTE_TABLES, ...RH_REMOTE_TABLES, ...DOCUMENT_REMOTE_TABLES])
 const TERMINAL_AUTH_ERRORS = new Set(['invalid_device_token','device_revoked','member_not_authorized','desktop_channel_required'])
 
 class LanDataClient {
@@ -78,6 +79,42 @@ class LanDataClient {
     } finally {
       clearTimeout(timer)
     }
+  }
+
+  async requestBytes(method, path) {
+    const state = this.connection()
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    try {
+      const response = await this.fetchImpl(`${state.baseUrl}${path}`, {
+        method,
+        headers: { Accept: 'application/octet-stream', Authorization: `Bearer ${state.token}` },
+        signal: controller.signal
+      })
+      if (!response?.ok) {
+        let payload = null
+        try { payload = await response.json() } catch {}
+        const rawMessage = payload?.message || `Servidor da empresa respondeu HTTP ${response?.status ?? 'inválido'}.`
+        throw new Error(this.sanitizeMessage(rawMessage, state.token))
+      }
+      return Buffer.from(await response.arrayBuffer())
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error('Tempo esgotado ao acessar o servidor da empresa.')
+      if (error instanceof Error) throw new Error(this.sanitizeMessage(error.message, state.token))
+      throw new Error('Não foi possível acessar o arquivo no servidor da empresa.')
+    } finally { clearTimeout(timer) }
+  }
+
+  async uploadDocument(payload) {
+    return this.request('POST', '/api/v1/documents/upload', { body: payload })
+  }
+
+  async downloadFile(id) {
+    return this.requestBytes('GET', `/api/v1/files/${Number(id)}/content`)
+  }
+
+  async deleteDocument(id, { deletePhysical = false } = {}) {
+    return this.request('DELETE', `/api/v1/documents/${Number(id)}`, { query:{ delete_physical:deletePhysical ? 1 : 0 } })
   }
 
   async syncSourceCapabilities() {
@@ -227,4 +264,4 @@ class LanDataClient {
   }
 }
 
-module.exports = { LanDataClient, LanRevisionConflictError: RevisionConflictError, RevisionConflictError, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES }
+module.exports = { LanDataClient, LanRevisionConflictError: RevisionConflictError, RevisionConflictError, REMOTE_TABLES, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES, DOCUMENT_REMOTE_TABLES }
