@@ -39,9 +39,10 @@ describe('P2 maintenance boundaries', () => {
     }
   });
 
-  it('keeps the LAN schema fallback additive and aligned with migration 0010', () => {
+  it('keeps the LAN schema fallback additive and aligned with migrations 0010 and 0011', () => {
     const sdk = readFileSync(resolve(process.cwd(), 'cloudflare/sdk.ts'), 'utf8');
     const migration = readFileSync(resolve(process.cwd(), 'cloudflare/migrations/0010_lan_server_security.sql'), 'utf8');
+    const enrollmentMigration = readFileSync(resolve(process.cwd(), 'cloudflare/migrations/0011_lan_device_enrollments.sql'), 'utf8');
     const lanFallback = sdk.slice(
       sdk.indexOf('// Additive runtime safety net for LAN authorization.'),
       sdk.indexOf('schemaContractReady=true;', sdk.indexOf('// Additive runtime safety net for LAN authorization.')),
@@ -49,12 +50,15 @@ describe('P2 maintenance boundaries', () => {
 
     expect(REQUIRED_SCHEMA_TABLES).toContain('lan_server_claims');
     expect(REQUIRED_SCHEMA_TABLES).toContain('lan_server_grants');
+    expect(REQUIRED_SCHEMA_TABLES).toContain('lan_device_enrollments');
 
     for (const table of ['lan_server_claims', 'lan_server_grants']) {
       expect(migration).toContain(`CREATE TABLE IF NOT EXISTS ${table}`);
       expect(lanFallback).toContain(`CREATE TABLE IF NOT EXISTS ${table}`);
     }
 
+    expect(enrollmentMigration).toContain('CREATE TABLE IF NOT EXISTS lan_device_enrollments');
+    expect(lanFallback).toContain('CREATE TABLE IF NOT EXISTS lan_device_enrollments');
     expect(lanFallback).not.toMatch(/\\b(?:ALTER|DROP|DELETE|UPDATE|REPLACE|TRUNCATE)\\b/i);
   });
 
