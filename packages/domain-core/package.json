@@ -2,6 +2,7 @@
   "name": "@obranamao/domain-core",
   "version": "1.0.0",
   "private": true,
+  "scripts": { "test": "node --test *.test.cjs" },
   "scripts": { "test": "node --test index.test.cjs" },
   "main": "index.cjs",
   "exports": {
