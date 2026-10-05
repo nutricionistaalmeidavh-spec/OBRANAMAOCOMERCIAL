@@ -680,6 +680,26 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 201, migration.start(await readJson(request), actor))
       }
 
+      const migrationFileMatch = url.pathname.match(MIGRATION_FILE_ROUTE)
+      if (migrationFileMatch) {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!migration?.importFileRecord || !fileStore?.saveBuffer) return sendJson(response, 503, { error:'migration_file_unavailable', message:'Migração de arquivos compartilhados indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        requireAdminContext(actor)
+        const migrationId = decodeURIComponent(migrationFileMatch[1])
+        const sourceId = url.searchParams.get('source_id')
+        const bytes = await readBytes(request)
+        const originalName = decodeURIComponent(String(request.headers['x-file-name'] || 'arquivo'))
+        const mimeType = String(request.headers['x-file-mime'] || '') || null
+        const origin = String(request.headers['x-file-origin'] || '') || 'migrado'
+        return sendJson(response, 201, migration.importFileRecord(migrationId, {
+          sourceId,
+          data:{ nome_original:originalName, mime_type:mimeType, origem:origin },
+          bytes,
+          fileStore
+        }, actor))
+      }
+
       const migrationMatch = url.pathname.match(MIGRATION_ROUTE)
       if (migrationMatch) {
         if (!migration) return sendJson(response, 503, { error: 'migration_unavailable', message: 'Migração central indisponível.' })
