@@ -3,12 +3,12 @@ import { FileDown, Printer, RotateCcw, Save, Sparkles, UsersRound } from 'lucide
 import { useEffect, useState } from 'react'
 import { Button, Card, Empty, Field, Loading, PageHeader, Status } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
-import { competenceLabel, currentCompetence, today } from '../utils/format'
+import { competenceLabel, today } from '../utils/format'
 
 const typeLabels:Record<string,string>={trabalho:'Trabalho',falta:'Falta',ferias:'Férias',feriado:'Feriado',folga:'Folga',afastado:'Afastado',sabado:'Sábado',domingo:'Domingo'}
 
 export default function TimeSheetPage(){
-  const { competencia, setCompetencia, empresaId, obraId } = useWorkContext()
+  const { competencia } = useWorkContext()
   const [employee,setEmployee]=useState('')
   const [version,setVersion]=useState(0)
   const [marks,setMarks]=useState<any[]>([])
