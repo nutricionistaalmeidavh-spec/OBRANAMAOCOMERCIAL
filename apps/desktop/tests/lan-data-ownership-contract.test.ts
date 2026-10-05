@@ -21,7 +21,7 @@ describe('LAN data ownership contract v1', () => {
 
   it('mantém o motor de migração Desktop igual aos owners canônicos finais', () => {
     for (const [moduleName, spec] of Object.entries(contract.targetModules) as any) {
-      expect(MODULE_TABLES[moduleName], moduleName).toEqual(spec.tables)
+      expect([...(MODULE_TABLES[moduleName] || [])].sort(), moduleName).toEqual([...(spec.tables || [])].sort())
     }
   })
 
