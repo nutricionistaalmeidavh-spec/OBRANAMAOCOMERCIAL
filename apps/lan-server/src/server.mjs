@@ -723,6 +723,32 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return await handleSetupClaim(request, response, { security, identity, cloudAuthority, cloudBaseUrl })
       }
 
+      if (url.pathname === '/api/v1/pair/enroll') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!pairingService?.enrollAuthorized || !cloudAuthority?.redeemEnrollment) return sendJson(response, 503, { error: 'enrollment_unavailable' })
+        const body = await readJson(request)
+        const state = security?.serverState?.() || identity?.state?.()
+        if (!state?.claimed || !state?.serverId || !state?.serverToken || !state?.companyId) {
+          return sendJson(response, 409, { error: 'server_not_claimed', message: 'O servidor local ainda não foi vinculado à empresa.' })
+        }
+        const redeemed = await cloudAuthority.redeemEnrollment({
+          serverToken: state.serverToken,
+          serverId: state.serverId,
+          enrollmentToken: body.enrollmentToken,
+          installationId: body.installationId
+        })
+        if (String(redeemed?.serverId || '') !== String(state.serverId) || String(redeemed?.companyId || '') !== String(state.companyId)) {
+          return sendJson(response, 403, { error: 'enrollment_tenant_mismatch', message: 'A matrícula não pertence a este servidor da empresa.' })
+        }
+        if (redeemed?.snapshot) security?.replaceSnapshot?.(redeemed.snapshot)
+        const result = pairingService.enrollAuthorized({
+          memberId: redeemed.memberId,
+          installationId: body.installationId,
+          deviceName: body.deviceName || redeemed.deviceName
+        })
+        return sendJson(response, 201, result)
+      }
+
       if (url.pathname === '/api/v1/pair/claim') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!pairingService?.claim) return sendJson(response, 503, { error: 'pairing_unavailable' })
