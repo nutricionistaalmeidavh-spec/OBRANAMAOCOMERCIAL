@@ -128,6 +128,28 @@ async function readBytes(request, limit = MAX_FILE_BYTES) {
   return Buffer.concat(chunks)
 }
 
+function sendBytes(response, status, buffer, file = {}) {
+  const filename = encodeURIComponent(String(file.nome_original || file.nome_armazenado || 'arquivo'))
+  response.writeHead(status, {
+    'content-type': file.mime_type || 'application/octet-stream',
+    'content-length': buffer.length,
+    'content-disposition': `attachment; filename*=UTF-8''${filename}`,
+    'cache-control':'no-store'
+  })
+  response.end(buffer)
+}
+
+function authorizeDocumentAction(context, action) {
+  try {
+    authorizeAction(context, { domain:'operation', action })
+    return
+  } catch (operationError) {
+    const modules = Array.isArray(context?.member?.modules) ? context.member.modules.map(String) : []
+    if (!modules.includes('rh')) throw operationError
+    authorizeAction(context, { domain:'rh', action })
+  }
+}
+
 async function readJson(request) {
   const chunks = []
   let total = 0
