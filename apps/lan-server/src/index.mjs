@@ -5,6 +5,7 @@ import { ServerIdentity } from './server-identity.mjs'
 import { CloudAuthorityClient } from './cloud-authority-client.mjs'
 import { PairingService } from './pairing-service.mjs'
 import { MigrationService } from './migration-service.mjs'
+import { CentralFileService } from './central-file-service.mjs'
 import { RuntimeBackupService } from './runtime-backup-service.mjs'
 import { BackupOperationsService } from './backup-operations-service.mjs'
 import { createHealthService } from './health-service.mjs'
@@ -34,6 +35,7 @@ function bootstrapServer() {
     const cloudAuthority = new CloudAuthorityClient({ baseUrl: cloudBaseUrl })
     const pairingService = new PairingService({ security })
     const migrationService = new MigrationService({ repository, security })
+    const centralFileService = new CentralFileService({ repository, rootDir:path.join(dataDir, 'shared-files') })
     const centralBackupService = new RuntimeBackupService({
       repository,
       security,
@@ -60,6 +62,7 @@ function bootstrapServer() {
       cloudBaseUrl,
       pairingService,
       migrationService,
+      centralFileService,
       centralBackupService,
       backupOperationsService: backupOperations,
       runtimeInfo: { mode: runtimeConfig.mode, transport: runtimeConfig.transport }
