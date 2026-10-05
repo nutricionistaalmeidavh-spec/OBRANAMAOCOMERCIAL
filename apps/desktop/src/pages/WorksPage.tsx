@@ -17,7 +17,18 @@ export default function WorksPage() {
   const companies = useAsync(() => window.fluxoDre.empresas.list(), [])
   const clients = useAsync(() => window.fluxoDre.clientes.list(), [])
   const storage = useAsync(() => window.fluxoDre.storage.state(), [])
+  const moduleStates = useAsync(async () => {
+    const [core, operation, planning, finance, rh] = await Promise.all([
+      window.fluxoDre.storage.moduleState('core'),
+      window.fluxoDre.storage.moduleState('operation'),
+      window.fluxoDre.storage.moduleState('planning'),
+      window.fluxoDre.storage.moduleState('finance'),
+      window.fluxoDre.storage.moduleState('rh')
+    ])
+    return { core, operation, planning, finance, rh }
+  }, [])
   const serverMode = storage.data?.mode === 'server'
+  const moduleActive = (module: 'core'|'operation'|'planning'|'finance'|'rh') => !serverMode || moduleStates.data?.[module]?.state === 'central-active'
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState<any>(initial)
   const [selectedId, setSelectedId] = useState('')
@@ -28,7 +39,7 @@ export default function WorksPage() {
   const [quickForm, setQuickForm] = useState<any>(null)
   const [quickSaving, setQuickSaving] = useState(false)
   const [quickError, setQuickError] = useState('')
-  const overview = useAsync(() => selectedId && !serverMode ? window.fluxoDre.obras.overview(Number(selectedId)) : Promise.resolve(null), [selectedId, serverMode])
+  const overview = useAsync(() => selectedId ? window.fluxoDre.obras.overview(Number(selectedId)) : Promise.resolve(null), [selectedId])
   const selectedWork = useMemo(() => works.data?.find((work: any) => String(work.id) === selectedId), [works.data, selectedId])
 
   useEffect(() => {
@@ -113,10 +124,10 @@ export default function WorksPage() {
 
   return <>
     <PageHeader title="Obras" description="Escolha uma obra e acompanhe as areas operacionais em um unico hub." actions={<div className="row-actions"><Button variant="secondary" icon={<Upload size={16}/>} onClick={importSpreadsheets} disabled={importing||serverMode}>Importar planilhas</Button><Button icon={<Plus size={16}/>} onClick={() => open()}>Nova obra</Button></div>}/>
-    {serverMode && <div className="success-box" style={{ marginBottom: 14 }}><strong>Empresas, clientes e obras estão usando o servidor da empresa.</strong> Obra 360 e módulos operacionais continuam locais nesta etapa.</div>}
+    {serverMode && <div className="success-box" style={{ marginBottom: 14 }}><strong>Servidor da empresa ativo.</strong> Cada área operacional é liberada pelo estado canônico do próprio módulo; nenhum card é bloqueado apenas por estar em modo servidor.</div>}
     {works.loading ? <Card><Loading/></Card> : works.data?.length ? <>
       <div className="filters">
-        <Field label="Obra em foco"><select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Selecione uma obra</option>{works.data.map((work: any) => <option key={work.id} value={work.id}>{work.nome}</option>)}</select><small>{serverMode ? 'A seleção controla apenas o cadastro remoto nesta etapa.' : 'Os cards abaixo usam esta obra e abrem as telas completas ja filtradas.'}</small></Field>
+        <Field label="Obra em foco"><select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Selecione uma obra</option>{works.data.map((work: any) => <option key={work.id} value={work.id}>{work.nome}</option>)}</select><small>{serverMode ? 'A seleção usa o cadastro central e abre apenas os módulos já ativos no servidor.' : 'Os cards abaixo usam esta obra e abrem as telas completas ja filtradas.'}</small></Field>
       </div>
       <div className="dashboard-grid">
         <Card>
@@ -147,8 +158,8 @@ export default function WorksPage() {
           </div>
         </Card>
         <Card>
-          <div className="card-header"><div><h2>Unidade gerencial</h2><span>{selectedWork?.nome || 'Selecione uma obra'}</span></div>{selectedId && !serverMode && <Button variant="secondary" icon={<ArrowRight size={15}/>} onClick={() => navigate(`/obras/${selectedId}`)}>Abrir 360</Button>}</div>
-          {serverMode ? <Empty title="Cadastro remoto ativo" description="Obra 360 e módulos operacionais continuam locais nesta etapa."/> : !selectedId ? <Empty title="Selecione uma obra" description="Depois disso os cards mostram os resumos operacionais."/> : overview.loading ? <Loading/> : <div className="card-body">
+          <div className="card-header"><div><h2>Unidade gerencial</h2><span>{selectedWork?.nome || 'Selecione uma obra'}</span></div>{selectedId && moduleActive('core') && <Button variant="secondary" icon={<ArrowRight size={15}/>} onClick={() => navigate(`/obras/${selectedId}`)}>Abrir 360</Button>}</div>
+          {!selectedId ? <Empty title="Selecione uma obra" description="Depois disso os cards mostram os resumos operacionais."/> : !moduleActive('core') ? <Empty title="Cadastros-base ainda não ativos" description="Conclua a etapa de Cadastros-base na configuração do servidor."/> : overview.loading ? <Loading/> : <div className="card-body">
             <p style={{ fontSize: 12, color: '#647084', display: 'flex', gap: 7, alignItems: 'center', marginTop: 0 }}><MapPin size={15}/>{selectedWork?.endereco || 'Endereco nao informado'}</p>
             <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(130px, 1fr))', marginBottom: 14 }}>
               <Kpi label="Orcado" value={brl(selectedOverview?.orcado_centavos || 0)}/>
@@ -161,10 +172,10 @@ export default function WorksPage() {
         </Card>
       </div>
       <div className="work-cards" style={{ marginTop: 16 }}>
-        <OperationCard icon={<BriefcaseBusiness size={22}/>} title="Frentes de servico" text="Especialidades, subfrentes e checklist por pavimento ou geral." metric={`${frontCount} frentes`} detail={`${selectedOverview?.frentes?.filter((front: any) => front.status === 'ativa').length || 0} ativas`} disabled={!selectedId||serverMode} onClick={() => navigate(`/frentes?obra=${selectedId}`)}/>
-        <OperationCard icon={<CalendarClock size={22}/>} title="Planejamento" text="Etapas, Curva S, previsto x realizado e caixa por obra." metric={`${stageCount} etapas`} detail={selectedOverview?.cronograma?.[0] ? `Proxima: ${selectedOverview.cronograma[0].nome}` : 'Sem etapas'} disabled={!selectedId||serverMode} onClick={() => navigate(`/planejamento?obra=${selectedId}`)}/>
-        <OperationCard icon={<NotebookPen size={22}/>} title="Diario de obra" text="RDOs, equipe, equipamentos, ocorrencias, anexos e pendencias." metric={`${rdoCount} RDOs`} detail={pendingCount ? `${pendingCount} pendencias abertas` : 'Sem pendencias'} disabled={!selectedId||serverMode} onClick={() => navigate(`/rdo?obra=${selectedId}`)}/>
-        <OperationCard icon={<HardHat size={22}/>} title="Obra 360" text="Resumo completo financeiro, operacional, compras, contratos e documentos." metric={brl(selectedOverview?.medido_centavos || 0)} detail="Medido na obra" disabled={!selectedId||serverMode} onClick={() => navigate(`/obras/${selectedId}`)}/>
+        <OperationCard icon={<BriefcaseBusiness size={22}/>} title="Frentes de servico" text="Especialidades, subfrentes e checklist por pavimento ou geral." metric={`${frontCount} frentes`} detail={`${selectedOverview?.frentes?.filter((front: any) => front.status === 'ativa').length || 0} ativas`} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Conclua a migração de RDO / operação.':undefined} onClick={() => navigate(`/frentes?obra=${selectedId}`)}/>
+        <OperationCard icon={<CalendarClock size={22}/>} title="Planejamento" text="Etapas, Curva S, previsto x realizado e caixa por obra." metric={`${stageCount} etapas`} detail={selectedOverview?.cronograma?.[0] ? `Proxima: ${selectedOverview.cronograma[0].nome}` : 'Sem etapas'} disabled={!selectedId||!moduleActive('planning')} disabledReason={serverMode&&!moduleActive('planning')?'Conclua a migração de Planejamento.':undefined} onClick={() => navigate(`/planejamento?obra=${selectedId}`)}/>
+        <OperationCard icon={<NotebookPen size={22}/>} title="Diario de obra" text="RDOs, equipe, equipamentos, ocorrencias, anexos e pendencias." metric={`${rdoCount} RDOs`} detail={pendingCount ? `${pendingCount} pendencias abertas` : 'Sem pendencias'} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Conclua a migração de RDO / operação.':undefined} onClick={() => navigate(`/rdo?obra=${selectedId}`)}/>
+        <OperationCard icon={<HardHat size={22}/>} title="Obra 360" text="Resumo financeiro e operacional canônico da obra." metric={selectedOverview?.availability?.medicoes===false?'—':brl(selectedOverview?.medido_centavos || 0)} detail={selectedOverview?.serverPartial?'Resumo central parcial':'Medido na obra'} disabled={!selectedId||!moduleActive('core')} disabledReason={serverMode&&!moduleActive('core')?'Conclua a migração de Cadastros-base.':undefined} onClick={() => navigate(`/obras/${selectedId}`)}/>
       </div>
     </> : <Card><Empty title="Nenhuma obra cadastrada" description="Cadastre a primeira obra para organizar orcamento, medicao e resultado." action={<Button onClick={() => open()}>Cadastrar obra</Button>}/></Card>}
     {notice && <div className="success-box" style={{ marginTop: 14 }}>{notice}</div>}
@@ -219,12 +230,12 @@ export default function WorksPage() {
         <FormActions onCancel={closeQuickRegistry} submitLabel="Cadastrar" loading={quickSaving}/>
       </form>
     </Modal>
-    <Confirm open={!!remove} title="Excluir obra" description="A obra sera removida logicamente. Os arquivos fisicos nao serao apagados." danger onCancel={() => setRemove(null)} onConfirm={async () => { await window.fluxoDre.obras.remove(remove.id); setRemove(null); works.reload(); if (!serverMode) overview.reload() }}/>
+    <Confirm open={!!remove} title="Excluir obra" description="A obra sera removida logicamente. Os arquivos fisicos nao serao apagados." danger onCancel={() => setRemove(null)} onConfirm={async () => { await window.fluxoDre.obras.remove(remove.id); setRemove(null); works.reload(); overview.reload() }}/>
   </>
 }
 
-function OperationCard({ icon, title, text, metric, detail, disabled, onClick }: { icon: ReactNode; title: string; text: string; metric: string; detail: string; disabled: boolean; onClick: () => void }) {
-  return <Card className="work-card" style={{ opacity: disabled ? .55 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }} onClick={() => { if (!disabled) onClick() }}>
+function OperationCard({ icon, title, text, metric, detail, disabled, disabledReason, onClick }: { icon: ReactNode; title: string; text: string; metric: string; detail: string; disabled: boolean; disabledReason?: string; onClick: () => void }) {
+  return <Card className="work-card" title={disabledReason} style={{ opacity: disabled ? .55 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }} onClick={() => { if (!disabled) onClick() }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
       <div className="kpi-icon">{icon}</div>
       <ArrowRight size={18} color="#7d8798"/>
@@ -233,7 +244,7 @@ function OperationCard({ icon, title, text, metric, detail, disabled, onClick }:
     <p>{text}</p>
     <div className="work-metrics" style={{ gridTemplateColumns: '1fr 1fr' }}>
       <div><span>Resumo</span><strong>{metric}</strong></div>
-      <div><span>Status</span><strong>{detail}</strong></div>
+      <div><span>Status</span><strong>{disabledReason || detail}</strong></div>
     </div>
   </Card>
 }

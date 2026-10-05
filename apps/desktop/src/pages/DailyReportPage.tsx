@@ -13,9 +13,15 @@ export default function DailyReportPage() {
   const [form, setForm] = useState<any>(blank)
   const [notice, setNotice] = useState('')
   const works = useAsync(() => window.fluxoDre.obras.list(), [])
-  const fronts = useAsync(() => work ? window.fluxoDre.frentes.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
-  const rdos = useAsync(() => work ? window.fluxoDre.rdos.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
-  const employees = useAsync(() => window.fluxoDre.funcionarios.list(), [])
+  const storage = useAsync(() => window.fluxoDre.storage.state(), [])
+  const operationStorage = useAsync(() => window.fluxoDre.storage.moduleState('operation'), [])
+  const rhStorage = useAsync(() => window.fluxoDre.storage.moduleState('rh'), [])
+  const serverMode = storage.data?.mode === 'server'
+  const operationActive = !serverMode || operationStorage.data?.state === 'central-active'
+  const rhActive = !serverMode || rhStorage.data?.state === 'central-active'
+  const fronts = useAsync(() => operationActive && work ? window.fluxoDre.frentes.list({ obra_id: Number(work) }) : Promise.resolve([]), [work, operationActive])
+  const rdos = useAsync(() => operationActive && work ? window.fluxoDre.rdos.list({ obra_id: Number(work) }) : Promise.resolve([]), [work, operationActive])
+  const employees = useAsync(() => rhActive ? window.fluxoDre.funcionarios.list() : Promise.resolve([]), [rhActive])
   const rows = (rdos.data || []).filter((rdo: any) => !front || String(rdo.frente_id || '') === front)
   const add = (key: string, row: any) => setForm({ ...form, [key]: [...form[key], row] })
   const change = (key: string, index: number, field: string, value: string) => setForm({ ...form, [key]: form[key].map((row: any, i: number) => i === index ? { ...row, [field]: value } : row) })
@@ -55,17 +61,23 @@ export default function DailyReportPage() {
     rdos.reload()
   }
   async function attach(rdo: any) {
+    if (serverMode) {
+      setNotice('Anexos ainda usam a fonte local e ficam bloqueados para RDOs centrais até a documentação ter fonte canônica no servidor.')
+      return
+    }
     const result = await window.fluxoDre.documentos.importForWork({ obra_id: rdo.obra_id, frente_id: rdo.frente_id || null, rdo_id: rdo.id, categoria: 'rdo', title: `RDO ${brDate(rdo.data)}` })
     if (result) setNotice(`Anexo vinculado ao RDO de ${brDate(rdo.data)}.`)
   }
   return <>
-    <PageHeader title="Diario de obra" description="Registre diariamente frente, equipe, equipamentos, custos, ocorrencias e anexos." actions={<Button icon={<ClipboardPlus size={16}/>} disabled={!work} onClick={() => open()}>Novo RDO</Button>}/>
+    <PageHeader title="Diario de obra" description="Registre diariamente frente, equipe, equipamentos, custos, ocorrencias e anexos." actions={<Button icon={<ClipboardPlus size={16}/>} disabled={!work||!operationActive} onClick={() => open()}>Novo RDO</Button>}/>
+    {serverMode&&!operationActive&&<div className="success-box" style={{ marginBottom: 14 }}><strong>RDO / operação ainda não está ativo no servidor.</strong> Conclua essa etapa em Configurações antes de trabalhar no diário.</div>}
+    {serverMode&&operationActive&&!rhActive&&<div className="success-box" style={{ marginBottom: 14 }}><strong>Diário central ativo.</strong> O RH ainda não terminou a migração; equipe cadastrada fica indisponível até o módulo RH ficar central-active, mas lançamentos avulsos continuam possíveis.</div>}
     <div className="filters">
       <Field label="Obra"><select value={work} onChange={(event) => { setWork(event.target.value); setFront('') }}><option value="">Selecione</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
       <Field label="Frente"><select value={front} onChange={(event) => setFront(event.target.value)} disabled={!work}><option value="">Todas</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
     </div>
     {notice && <div className="success-box">{notice}</div>}
-    <Card>{rdos.loading ? <Loading/> : rows.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Data</th><th>Frente</th><th>Clima</th><th>Atividades</th><th>Status</th><th/></tr></thead><tbody>{rows.map((rdo: any) => <tr key={rdo.id}><td><strong>{brDate(rdo.data)}</strong></td><td>{fronts.data?.find((item: any) => item.id === rdo.frente_id)?.nome || 'Obra geral'}</td><td>{rdo.clima || '-'}</td><td>{rdo.atividades || '-'}</td><td><Status value={rdo.status}/></td><td><div className="row-actions"><button className="icon-button" onClick={() => open(rdo)} title="Editar"><Edit3 size={15}/></button><button className="icon-button" onClick={() => attach(rdo)} title="Anexar arquivo"><Paperclip size={15}/></button></div></td></tr>)}</tbody></table></div> : <Empty title={work ? 'Nenhum RDO registrado' : 'Selecione uma obra'} description="O RDO substitui anotacoes dispersas em planilhas e mensagens."/>}</Card>
+    <Card>{rdos.loading ? <Loading/> : rows.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Data</th><th>Frente</th><th>Clima</th><th>Atividades</th><th>Status</th><th/></tr></thead><tbody>{rows.map((rdo: any) => <tr key={rdo.id}><td><strong>{brDate(rdo.data)}</strong></td><td>{fronts.data?.find((item: any) => item.id === rdo.frente_id)?.nome || 'Obra geral'}</td><td>{rdo.clima || '-'}</td><td>{rdo.atividades || '-'}</td><td><Status value={rdo.status}/></td><td><div className="row-actions"><button className="icon-button" onClick={() => open(rdo)} title="Editar"><Edit3 size={15}/></button><button className="icon-button" disabled={serverMode} onClick={() => attach(rdo)} title={serverMode?'Anexos aguardam fonte documental central':'Anexar arquivo'}><Paperclip size={15}/></button></div></td></tr>)}</tbody></table></div> : <Empty title={work ? 'Nenhum RDO registrado' : 'Selecione uma obra'} description="O RDO substitui anotacoes dispersas em planilhas e mensagens."/>}</Card>
     <Modal open={modal} title={form.id ? 'Editar RDO' : 'Novo RDO'} onClose={() => setModal(false)} size="xl"><form onSubmit={submit}><div className="modal-body">
       <div className="form-grid form-grid-3">
         <Field label="Obra" required><select required value={form.obra_id} onChange={(event) => { setForm({ ...form, obra_id: event.target.value, frente_id: '' }); setWork(event.target.value) }}><option value="">Selecione</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
