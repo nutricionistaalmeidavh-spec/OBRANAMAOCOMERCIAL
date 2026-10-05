@@ -118,6 +118,65 @@ export class MigrationService {
       .get(String(sourceFingerprint), String(sourceTable), asText(sourceId), String(currentMigrationId), String(currentMigrationId)) || null
   }
 
+  companyIdFrom(table, id) {
+    if (id === null || id === undefined || id === '') return null
+    try {
+      const row = this.db.prepare(`SELECT empresa_id FROM ${table} WHERE id=?`).get(Number(id))
+      const value = Number(row?.empresa_id)
+      return Number.isSafeInteger(value) && value > 0 ? value : null
+    } catch {
+      return null
+    }
+  }
+
+  uniqueCompanyId() {
+    const rows = this.db.prepare("SELECT id FROM empresas WHERE COALESCE(deleted_at,'')='' ORDER BY id LIMIT 2").all()
+    if (rows.length !== 1) return null
+    return Number(rows[0].id)
+  }
+
+  inferRhCompanyId(table, clean) {
+    const explicit = Number(clean.empresa_id)
+    if (Number.isSafeInteger(explicit) && explicit > 0) return explicit
+
+    const candidates = []
+    const add = value => {
+      const id = Number(value)
+      if (Number.isSafeInteger(id) && id > 0 && !candidates.includes(id)) candidates.push(id)
+    }
+    if (table === 'funcionarios') {
+      add(this.companyIdFrom('obras', clean.obra_atual_id))
+      add(this.companyIdFrom('cargos', clean.cargo_id))
+    } else if (table === 'funcionario_obras') {
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+      add(this.companyIdFrom('obras', clean.obra_id))
+    } else if (table === 'cargo_beneficios') {
+      add(this.companyIdFrom('cargos', clean.cargo_id))
+      add(this.companyIdFrom('beneficios', clean.beneficio_id))
+    } else if (table === 'funcionario_beneficios') {
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+      add(this.companyIdFrom('beneficios', clean.beneficio_id))
+    } else if (table === 'folhas_pagamento') {
+      add(this.companyIdFrom('contas', clean.conta_id))
+    } else if (table === 'folha_lancamentos') {
+      add(this.companyIdFrom('folhas_pagamento', clean.folha_id))
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+    } else if (table === 'pagamentos_funcionario') {
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+      add(this.companyIdFrom('folhas_pagamento', clean.folha_id))
+    } else if (table === 'pontos_mensais') {
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+    } else if (table === 'ponto_marcacoes') {
+      add(this.companyIdFrom('pontos_mensais', clean.ponto_mensal_id))
+    } else if (table === 'funcionario_epis') {
+      add(this.companyIdFrom('funcionarios', clean.funcionario_id))
+      add(this.companyIdFrom('epis', clean.epi_id))
+    }
+
+    if (candidates.length > 1) throw new Error(`Empresa do registro RH ambígua em ${table}.`)
+    return candidates[0] || this.uniqueCompanyId()
+  }
+
   remapData(migration, sourceTable, data) {
     const clean = { ...(data || {}) }
     delete clean.id
@@ -131,6 +190,11 @@ export class MigrationService {
         throw new Error(`Referência ${field} (${config.table}:${value}) ainda não foi migrada.`)
       }
       clean[field] = Number(mapping.target_id)
+    }
+
+    if (MODULE_TABLES.rh.includes(sourceTable)) {
+      const companyId = this.inferRhCompanyId(sourceTable, clean)
+      if (companyId) clean.empresa_id = companyId
     }
     return clean
   }
