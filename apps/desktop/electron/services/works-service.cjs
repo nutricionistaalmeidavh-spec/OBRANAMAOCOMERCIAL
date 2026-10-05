@@ -22,15 +22,20 @@ class WorksService {
     const planningReady = this.moduleState('planning') === 'central-active'
     const financeReady = this.moduleState('finance') === 'central-active'
     const rhReady = this.moduleState('rh') === 'central-active'
+    const documentsReady = this.moduleState('documents') === 'central-active'
 
-    const [frentesRaw, rdosRaw, tarefasRaw, cronograma, itens, contas, funcionarioObras] = await Promise.all([
+    const [frentesRaw, rdosRaw, tarefasRaw, cronograma, itens, contas, funcionarioObras, medicoesRaw, contratosRaw, comprasRaw, documentosRaw] = await Promise.all([
       operationReady ? this.dataAccess.list('frentes_obra', { obra_id: obraId }) : [],
       operationReady ? this.dataAccess.list('rdos', { obra_id: obraId }) : [],
       operationReady ? this.dataAccess.list('tarefas_obra', { obra_id: obraId }) : [],
       planningReady ? this.dataAccess.list('cronograma_etapas', { obra_id: obraId }) : [],
       planningReady ? this.dataAccess.list('itens_orcamentarios', { obra_id: obraId }) : [],
       financeReady ? this.dataAccess.list('contas', { obra_id: obraId }) : [],
-      rhReady ? this.dataAccess.list('funcionario_obras', { obra_id: obraId }) : []
+      rhReady ? this.dataAccess.list('funcionario_obras', { obra_id: obraId }) : [],
+      planningReady ? this.dataAccess.list('medicoes', { obra_id: obraId }) : [],
+      financeReady ? this.dataAccess.list('contratos_obra', { obra_id: obraId }) : [],
+      financeReady ? this.dataAccess.list('pedidos_compra', { obra_id: obraId }) : [],
+      documentsReady ? this.dataAccess.list('documentos', { obra_id: obraId }) : []
     ])
 
     const activeAccounts = (contas || []).filter(item => item.status !== 'cancelado')
@@ -61,6 +66,24 @@ class WorksService {
       if (frontId) budgetByFront.set(frontId, Number(budgetByFront.get(frontId) || 0) + value)
     }
 
+    const activeContracts = (contratosRaw || []).filter(item => !['cancelado', 'cancelada'].includes(String(item.status || '').toLowerCase()))
+    const contractsByFront = new Map()
+    for (const contract of activeContracts) {
+      const frontId = Number(contract.frente_id || 0)
+      if (frontId) contractsByFront.set(frontId, Number(contractsByFront.get(frontId) || 0) + Number(contract.valor_centavos || 0))
+    }
+
+    const validMeasurements = (medicoesRaw || []).filter(item => !['cancelado', 'cancelada'].includes(String(item.status || '').toLowerCase()))
+    const measurementValue = item => Number(item.valor_liquido_centavos ?? item.valor_bruto_centavos ?? 0)
+    const measuredByFront = new Map()
+    let medido = 0
+    for (const measurement of validMeasurements) {
+      const value = measurementValue(measurement)
+      medido += value
+      const frontId = Number(measurement.frente_id || 0)
+      if (frontId) measuredByFront.set(frontId, Number(measuredByFront.get(frontId) || 0) + value)
+    }
+
     const accountsByFront = new Map()
     for (const account of activeAccounts) {
       const frontId = Number(account.frente_id || 0)
@@ -80,9 +103,9 @@ class WorksService {
         ...front,
         orcado_centavos: Number(budgetByFront.get(frontId) || 0),
         comprometido_centavos: account.comprometido,
-        contratado_centavos: 0,
+        contratado_centavos: Number(contractsByFront.get(frontId) || 0),
         pago_centavos: account.pago,
-        medido_centavos: 0,
+        medido_centavos: Number(measuredByFront.get(frontId) || 0),
         recebido_centavos: 0,
         pendencias_abertas: pending.filter(item => Number(item.frente_id || 0) === frontId).length
       }
@@ -94,30 +117,36 @@ class WorksService {
       .map(item => Number(item.funcionario_id))
       .filter(Boolean))
 
+    const recent = (rows, dateFields) => (rows || []).slice().sort((a, b) => {
+      const left = dateFields.map(field => a?.[field]).find(Boolean) || ''
+      const right = dateFields.map(field => b?.[field]).find(Boolean) || ''
+      return String(right).localeCompare(String(left))
+    }).slice(0, 5)
+
     return {
       obra,
       financeiro,
       orcado_centavos: Math.round(orcado),
-      medido_centavos: 0,
+      medido_centavos: Math.round(medido),
       cronograma: (cronograma || []).slice().sort((a, b) => String(a.previsto_inicio || '').localeCompare(String(b.previsto_inicio || ''))),
-      rdos: (rdosRaw || []).slice().sort((a, b) => String(b.data || '').localeCompare(String(a.data || ''))).slice(0, 5),
+      rdos: recent(rdosRaw, ['data', 'updated_at', 'created_at']),
       pendencias,
       frentes,
       equipe_total: activeEmployees.size,
-      documentos: [],
-      contratos: [],
-      compras: [],
-      serverPartial: true,
+      documentos: recent(documentosRaw, ['created_at']),
+      contratos: recent(activeContracts, ['updated_at', 'created_at', 'data_inicio']),
+      compras: recent(comprasRaw, ['updated_at', 'created_at', 'entrega_prevista']),
+      serverPartial: !(operationReady && planningReady && financeReady && rhReady && documentsReady),
       availability: {
         core: true,
         operation: operationReady,
         planning: planningReady,
         finance: financeReady,
         rh: rhReady,
-        medicoes: false,
-        documentos: false,
-        contratos: false,
-        compras: false
+        medicoes: planningReady,
+        documentos: documentsReady,
+        contratos: financeReady,
+        compras: financeReady
       }
     }
   }
