@@ -1,15 +1,18 @@
 const MODULE_TABLES = Object.freeze({
   core: ['empresas', 'clientes', 'obras'],
-  operation: ['frentes_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
-  planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios'],
-  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta'],
+  operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
+  planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
+  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'],
   rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis']
 })
 
 const REF_MAP = Object.freeze({
   clientes: { empresa_id: 'empresas' },
   obras: { empresa_id: 'empresas', cliente_id: 'clientes' },
+  locais_obra: { obra_id: 'obras' },
   frentes_obra: { obra_id: 'obras' },
+  subfrentes_obra: { obra_id: 'obras', frente_id: 'frentes_obra' },
+  checklist_frente_itens: { obra_id: 'obras', frente_id: 'frentes_obra', subfrente_id: 'subfrentes_obra' },
   rdos: { obra_id: 'obras', frente_id: 'frentes_obra' },
   rdo_equipe: { rdo_id: 'rdos', frente_id: 'frentes_obra', funcionario_id: { table: 'funcionarios', deferred: true } },
   rdo_equipamentos: { rdo_id: 'rdos', frente_id: 'frentes_obra' },
@@ -19,9 +22,20 @@ const REF_MAP = Object.freeze({
   etapas_obra: { obra_id: 'obras', frente_id: 'frentes_obra' },
   cronograma_etapas: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra' },
   itens_orcamentarios: { obra_id: 'obras', etapa_id: 'etapas_obra', frente_id: 'frentes_obra' },
+  medicoes: { obra_id: 'obras', frente_id: 'frentes_obra', contrato_id: { table: 'contratos_obra', deferred: true } },
+  medicao_itens: { medicao_id: 'medicoes', item_orcamentario_id: 'itens_orcamentarios', etapa_id: 'etapas_obra' },
+  medicao_mapa_itens: { obra_id: 'obras', medicao_id: 'medicoes' },
   fornecedores: { empresa_id: 'empresas' },
-  contas: { empresa_id: 'empresas', obra_id: 'obras', frente_id: 'frentes_obra', fornecedor_id: 'fornecedores', cliente_id: 'clientes', categoria_id: 'categorias_financeiras' },
+  contas: { empresa_id: 'empresas', obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', fornecedor_id: 'fornecedores', cliente_id: 'clientes', categoria_id: 'categorias_financeiras', medicao_id: 'medicoes', solicitacao_compra_id: { table: 'solicitacoes_compra', deferred: true }, pedido_compra_id: { table: 'pedidos_compra', deferred: true }, contrato_id: { table: 'contratos_obra', deferred: true } },
   pagamentos_conta: { conta_id: 'contas' },
+  solicitacoes_compra: { obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', cotacao_escolhida_id: { table: 'cotacoes_compra', deferred: true } },
+  cotacoes_compra: { solicitacao_id: 'solicitacoes_compra', fornecedor_id: 'fornecedores' },
+  pedidos_compra: { obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', solicitacao_id: 'solicitacoes_compra', cotacao_id: 'cotacoes_compra', fornecedor_id: 'fornecedores', conta_id: 'contas' },
+  pedido_compra_itens: { pedido_compra_id: 'pedidos_compra' },
+  recebimentos_materiais: { pedido_compra_id: 'pedidos_compra', pedido_item_id: 'pedido_compra_itens', obra_id: 'obras', frente_id: 'frentes_obra', documento_id: { table: 'documentos', deferred: true } },
+  movimentacoes_estoque: { obra_id: 'obras', frente_id: 'frentes_obra', pedido_item_id: 'pedido_compra_itens', documento_id: { table: 'documentos', deferred: true } },
+  contratos_obra: { obra_id: 'obras', frente_id: 'frentes_obra', cliente_id: 'clientes', fornecedor_id: 'fornecedores', documento_principal_id: { table: 'documentos', deferred: true }, conta_id: 'contas' },
+  contrato_aditivos: { contrato_id: 'contratos_obra', documento_id: { table: 'documentos', deferred: true } },
   cargos: { empresa_id: 'empresas' },
   beneficios: { empresa_id: 'empresas' },
   epis: { empresa_id: 'empresas' },
@@ -135,16 +149,27 @@ export class MigrationService {
     return clean
   }
 
-  backfillDeferredEmployee(sourceFingerprint, sourceEmployeeId, targetEmployeeId) {
-    const rows = this.db.prepare(`SELECT r.target_id,r.source_data_json FROM module_migration_records r JOIN module_migrations m ON m.migration_id=r.migration_id
-      WHERE m.source_fingerprint=? AND m.status='committed' AND r.source_table='rdo_equipe'`).all(String(sourceFingerprint))
-    for (const row of rows) {
-      let source
-      try { source = JSON.parse(row.source_data_json || '{}') } catch { source = {} }
-      if (String(source.funcionario_id ?? '') === String(sourceEmployeeId)) {
-        this.db.prepare('UPDATE rdo_equipe SET funcionario_id=? WHERE id=?').run(Number(targetEmployeeId), Number(row.target_id))
+  backfillDeferredReferences(sourceFingerprint, targetSourceTable, targetSourceId, targetId) {
+    for (const [sourceTable, fields] of Object.entries(REF_MAP)) {
+      for (const [field, rawTarget] of Object.entries(fields || {})) {
+        const config = typeof rawTarget === 'string' ? { table: rawTarget, deferred: false } : rawTarget
+        if (!config?.deferred || config.table !== targetSourceTable) continue
+        if (!MODULE_TABLES[this.rowForSourceTable(sourceTable)?.module]?.includes(sourceTable) && !Object.values(MODULE_TABLES).some(tables => tables.includes(sourceTable))) continue
+        const rows = this.db.prepare(`SELECT r.target_id,r.source_data_json FROM module_migration_records r JOIN module_migrations m ON m.migration_id=r.migration_id
+          WHERE m.source_fingerprint=? AND m.status='committed' AND r.source_table=?`).all(String(sourceFingerprint), String(sourceTable))
+        for (const row of rows) {
+          let source
+          try { source = JSON.parse(row.source_data_json || '{}') } catch { source = {} }
+          if (String(source?.[field] ?? '') !== String(targetSourceId)) continue
+          try { this.db.prepare(`UPDATE ${sourceTable} SET ${field}=? WHERE id=?`).run(Number(targetId), Number(row.target_id)) } catch {}
+        }
       }
     }
+  }
+
+  rowForSourceTable(sourceTable) {
+    const module = Object.entries(MODULE_TABLES).find(([, tables]) => tables.includes(sourceTable))?.[0] || null
+    return module ? { module } : null
   }
 
   importRecord(migrationId, { sourceTable, sourceId, data }, _actor = null) {
@@ -170,7 +195,12 @@ export class MigrationService {
       }
 
       let targetId, createdTarget = 1
-      if (table === 'categorias_financeiras' && remapped.nome) {
+      const previous = this.mappingFor(migrationRow.source_fingerprint, table, sourceId, migrationId)
+      if (previous) {
+        const existingTarget = this.db.prepare(`SELECT id FROM ${table} WHERE id=?`).get(Number(previous.target_id))
+        if (existingTarget) { targetId = Number(previous.target_id); createdTarget = 0 }
+      }
+      if (table === 'categorias_financeiras' && remapped.nome && !targetId) {
         const seeded = this.db.prepare('SELECT id FROM categorias_financeiras WHERE nome=?').get(String(remapped.nome))
         if (seeded) { targetId = Number(seeded.id); createdTarget = 0 }
       }
@@ -181,7 +211,7 @@ export class MigrationService {
       }
       this.db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_target,source_data_json,created_at) VALUES(?,?,?,?,?,?,?,?)')
         .run(String(migrationId), table, asText(sourceId), table, targetId, createdTarget, JSON.stringify(data || {}), this.now())
-      if (table === 'funcionarios') this.backfillDeferredEmployee(migrationRow.source_fingerprint, sourceId, targetId)
+      this.backfillDeferredReferences(migrationRow.source_fingerprint, table, sourceId, targetId)
       this.db.exec('COMMIT')
       return { sourceTable: table, sourceId, targetId, reused: false }
     } catch (error) {
