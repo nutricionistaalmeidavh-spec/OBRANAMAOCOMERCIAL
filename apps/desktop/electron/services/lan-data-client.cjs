@@ -113,8 +113,8 @@ class LanDataClient {
     return this.requestBytes('GET', `/api/v1/files/${Number(id)}/content`)
   }
 
-  async deleteDocument(id) {
-    return this.request('DELETE', `/api/v1/documents/${Number(id)}`)
+  async deleteDocument(id, { deletePhysical = false } = {}) {
+    return this.request('DELETE', `/api/v1/documents/${Number(id)}`, { query:{ delete_physical:deletePhysical ? 1 : 0 } })
   }
 
   async syncSourceCapabilities() {
