@@ -34,3 +34,20 @@ it('routes all field enhancers through one canonical render lifecycle without ob
 
   expect((window as any).fieldLifecycle.counts()).toEqual(expect.objectContaining({screen:1,sheet:1}));
 });
+
+
+it('keeps field render events owned only by the lifecycle orchestrator',()=>{
+  const lifecycle=readFileSync('public/field-lifecycle.js','utf8');
+  const access=readFileSync('public/field-premium-access.js','utf8');
+  const main=readFileSync('src/main.ts','utf8');
+  const governance=readFileSync('src/admin-governance.ts','utf8');
+  expect(lifecycle.split("document.addEventListener('field:rendered'").length-1).toBe(1);
+  expect(lifecycle.split("document.addEventListener('field:sheet-rendered'").length-1).toBe(1);
+  for(const source of [access,main,governance]){
+    expect(source).not.toContain("document.addEventListener('field:rendered'");
+    expect(source).not.toContain("document.addEventListener('field:sheet-rendered'");
+  }
+  expect(access).toContain('fieldLifecycle?.register');
+  expect(main).toContain('fieldLifecycle?.register');
+  expect(governance).toContain('fieldLifecycle?.register');
+});
