@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const integration=()=>readFile(new URL('./owner-loja-online.ts',import.meta.url),'utf8');
 const shell=()=>readFile(new URL('../sistema.html',import.meta.url),'utf8');
+const owner=()=>readFile(new URL('./owner.ts',import.meta.url),'utf8');
 
 describe('Central Artisys Loja Online contract',()=>{
   it('carrega Loja Online como terceiro produto gerenciado no owner existente',async()=>{
@@ -28,6 +29,14 @@ describe('Central Artisys Loja Online contract',()=>{
     expect(text).toContain("option.value='loja-online'");
     expect(text).toContain('data-product="loja-online"');
     expect(text).toContain('/api/owner/loja-online/license-audit');
+  });
+
+  it('usa lifecycle explícito do owner sem observar mutações do DOM',async()=>{
+    const [integrationText,ownerText]=await Promise.all([integration(),owner()]);
+    expect(integrationText).not.toContain('MutationObserver');
+    expect(integrationText).toContain("document.addEventListener('owner:rendered'");
+    expect(ownerText).toContain("new CustomEvent('owner:rendered')");
+    expect(ownerText).toContain('notifyOwnerRendered()');
   });
 
   it('abre o painel SEO compartilhado já filtrado para Loja Online sem alterar o fluxo do Obra na Mão',async()=>{
