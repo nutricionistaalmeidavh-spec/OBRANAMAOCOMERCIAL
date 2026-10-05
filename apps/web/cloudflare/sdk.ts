@@ -400,7 +400,8 @@ export const REQUIRED_SCHEMA_TABLES=[
   'schema_metadata',
   'api_error_log',
   'lan_server_claims',
-  'lan_server_grants'
+  'lan_server_grants',
+  'lan_device_enrollments'
 ] as const;
 export const REQUIRED_SCHEMA_MIGRATIONS=[
   '0002_versioning_observability.sql',
@@ -496,6 +497,23 @@ async function ensureSchemaContract(env:RuntimeEnv){
   )`).run();
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_lan_server_grants_token_hash ON lan_server_grants(token_hash)').run();
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_lan_server_grants_server_company ON lan_server_grants(server_id, company_id, created_at DESC)').run();
+
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS lan_device_enrollments (
+    id TEXT PRIMARY KEY,
+    token_hash TEXT NOT NULL UNIQUE,
+    server_id TEXT NOT NULL,
+    company_id TEXT NOT NULL,
+    member_id TEXT NOT NULL,
+    cloud_device_id TEXT NOT NULL,
+    installation_id TEXT NOT NULL,
+    device_name TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    consumed_at TEXT,
+    created_at TEXT NOT NULL
+  )`).run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_lan_device_enrollments_token_hash ON lan_device_enrollments(token_hash)').run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_lan_device_enrollments_server_company ON lan_device_enrollments(server_id, company_id, created_at DESC)').run();
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_lan_device_enrollments_device ON lan_device_enrollments(cloud_device_id, created_at DESC)').run();
 
   schemaContractReady=true;
 }
