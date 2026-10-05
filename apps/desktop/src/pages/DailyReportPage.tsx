@@ -16,9 +16,11 @@ export default function DailyReportPage() {
   const storage = useAsync(() => window.fluxoDre.storage.state(), [])
   const operationStorage = useAsync(() => window.fluxoDre.storage.moduleState('operation'), [])
   const rhStorage = useAsync(() => window.fluxoDre.storage.moduleState('rh'), [])
+  const documentsStorage = useAsync(() => window.fluxoDre.storage.moduleState('documents'), [])
   const serverMode = storage.data?.mode === 'server'
   const operationActive = !serverMode || operationStorage.data?.state === 'central-active'
   const rhActive = !serverMode || rhStorage.data?.state === 'central-active'
+  const documentsActive = !serverMode || documentsStorage.data?.state === 'central-active'
   const fronts = useAsync(() => operationActive && work ? window.fluxoDre.frentes.list({ obra_id: Number(work) }) : Promise.resolve([]), [work, operationActive])
   const rdos = useAsync(() => operationActive && work ? window.fluxoDre.rdos.list({ obra_id: Number(work) }) : Promise.resolve([]), [work, operationActive])
   const employees = useAsync(() => rhActive ? window.fluxoDre.funcionarios.list() : Promise.resolve([]), [rhActive])
@@ -61,8 +63,8 @@ export default function DailyReportPage() {
     rdos.reload()
   }
   async function attach(rdo: any) {
-    if (serverMode) {
-      setNotice('Anexos ainda usam a fonte local e ficam bloqueados para RDOs centrais até a documentação ter fonte canônica no servidor.')
+    if (!documentsActive) {
+      setNotice('Documentos ainda não estão ativos no servidor. Conclua a etapa Documentos em Configurações para anexar arquivos.')
       return
     }
     const result = await window.fluxoDre.documentos.importForWork({ obra_id: rdo.obra_id, frente_id: rdo.frente_id || null, rdo_id: rdo.id, categoria: 'rdo', title: `RDO ${brDate(rdo.data)}` })
@@ -77,7 +79,7 @@ export default function DailyReportPage() {
       <Field label="Frente"><select value={front} onChange={(event) => setFront(event.target.value)} disabled={!work}><option value="">Todas</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
     </div>
     {notice && <div className="success-box">{notice}</div>}
-    <Card>{rdos.loading ? <Loading/> : rows.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Data</th><th>Frente</th><th>Clima</th><th>Atividades</th><th>Status</th><th/></tr></thead><tbody>{rows.map((rdo: any) => <tr key={rdo.id}><td><strong>{brDate(rdo.data)}</strong></td><td>{fronts.data?.find((item: any) => item.id === rdo.frente_id)?.nome || 'Obra geral'}</td><td>{rdo.clima || '-'}</td><td>{rdo.atividades || '-'}</td><td><Status value={rdo.status}/></td><td><div className="row-actions"><button className="icon-button" onClick={() => open(rdo)} title="Editar"><Edit3 size={15}/></button><button className="icon-button" disabled={serverMode} onClick={() => attach(rdo)} title={serverMode?'Anexos aguardam fonte documental central':'Anexar arquivo'}><Paperclip size={15}/></button></div></td></tr>)}</tbody></table></div> : <Empty title={work ? 'Ainda não há Diário de obra' : 'Selecione uma obra'} description={work ? 'Registre o primeiro dia de campo para reunir atividades, equipe, equipamentos e ocorrências.' : 'Escolha uma obra para consultar e registrar o Diário de obra.'} action={work ? <Button onClick={() => open()}>Registrar primeiro RDO</Button> : undefined}/>}</Card>
+    <Card>{rdos.loading ? <Loading/> : rows.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Data</th><th>Frente</th><th>Clima</th><th>Atividades</th><th>Status</th><th/></tr></thead><tbody>{rows.map((rdo: any) => <tr key={rdo.id}><td><strong>{brDate(rdo.data)}</strong></td><td>{fronts.data?.find((item: any) => item.id === rdo.frente_id)?.nome || 'Obra geral'}</td><td>{rdo.clima || '-'}</td><td>{rdo.atividades || '-'}</td><td><Status value={rdo.status}/></td><td><div className="row-actions"><button className="icon-button" onClick={() => open(rdo)} title="Editar"><Edit3 size={15}/></button><button className="icon-button" disabled={!documentsActive} onClick={() => attach(rdo)} title={documentsActive?'Anexar arquivo':'Documentos ainda não estão ativos no servidor'}><Paperclip size={15}/></button></div></td></tr>)}</tbody></table></div> : <Empty title={work ? 'Ainda não há Diário de obra' : 'Selecione uma obra'} description={work ? 'Registre o primeiro dia de campo para reunir atividades, equipe, equipamentos e ocorrências.' : 'Escolha uma obra para consultar e registrar o Diário de obra.'} action={work ? <Button onClick={() => open()}>Registrar primeiro RDO</Button> : undefined}/>}</Card>
     <Modal open={modal} title={form.id ? 'Editar RDO' : 'Novo RDO'} onClose={() => setModal(false)} size="xl"><form onSubmit={submit}><div className="modal-body">
       <div className="form-grid form-grid-3">
         <Field label="Obra" required><select required value={form.obra_id} onChange={(event) => { setForm({ ...form, obra_id: event.target.value, frente_id: '' }); setWork(event.target.value) }}><option value="">Selecione</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
