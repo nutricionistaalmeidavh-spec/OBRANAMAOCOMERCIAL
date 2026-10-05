@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu, Tray, safeStorage } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, Menu, Tray, safeStorage } = require('electron')
 const path = require('node:path')
 const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
@@ -11,6 +11,7 @@ const { LanCredentialService } = require('./services/lan-credential-service.cjs'
 const { LanHostService } = require('./services/lan-host-service.cjs')
 const { LanSetupService } = require('./services/lan-setup-service.cjs')
 const { FileService } = require('./services/file-service.cjs')
+const { FileSourceService } = require('./services/file-source-service.cjs')
 const { ManagedDirectoryService } = require('./services/managed-directory-service.cjs')
 const { DocumentExplorerContextService } = require('./services/document-explorer-context-service.cjs')
 const { syncRegisteredPaths, removeRegisteredPaths } = require('./services/file-registry-paths.cjs')
@@ -96,9 +97,19 @@ function createServices() {
   const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const measurements = new MeasurementSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
-  const files = new FileService({ documentsDir: paths.documentsDir, db })
+  const localFiles = new FileService({ documentsDir: paths.documentsDir, db })
+  const files = new FileSourceService({
+    local:localFiles,
+    dataAccess,
+    lanClient:dataAccess.remote,
+    moduleStorage,
+    dialog,
+    shell,
+    clipboard,
+    cacheDir:path.join(paths.dataDir, 'shared-cache')
+  })
   const localPayroll = new PayrollService({ db })
-  const localTime = new TimeService({ db, fileService: files })
+  const localTime = new TimeService({ db, fileService: localFiles })
   const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })
   const catalog = new RhCatalogSourceService({ local: new CatalogService({ db }), dataAccess, moduleStorage })
   const rhDocuments = new RhDocumentService({ rh, localTime, fileService: files, dataAccess })
@@ -109,7 +120,7 @@ function createServices() {
     generateDocuments: payload => rhDocuments.generateDocuments(payload),
     generateForAll: payload => rhDocuments.generateForAll(payload)
   }
-  const documentRoot = new DocumentRootService({ db, files, defaultDir: paths.documentsDir })
+  const documentRoot = new DocumentRootService({ db, files:localFiles, defaultDir: paths.documentsDir })
   const explorer = new ManagedDirectoryService({
     roots: { documents: () => documentRoot.getRoot() }, shell, dialog,
     onPathChanged: (previous, next) => syncRegisteredPaths(db, previous, next),
@@ -144,11 +155,11 @@ function createServices() {
     paths, db, dataAccess, storage, serverDiscovery, serverReconnect, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
     backup,
     importer: new ImportService({ db }),
-    documents: new DocumentService({ db, fileService: files, dialog }),
+    documents: new DocumentService({ db, fileService: localFiles, dialog }),
     payroll: rh,
     catalog,
     time,
-    scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
+    scanner: new ScannerService({ db, fileService: localFiles, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
     works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, measurements,
