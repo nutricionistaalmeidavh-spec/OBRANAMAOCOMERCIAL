@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS solicitacoes_compra (
   prioridade TEXT NOT NULL DEFAULT 'normal',
   status TEXT NOT NULL DEFAULT 'solicitada',
   observacoes TEXT,
+  request_id TEXT UNIQUE,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT
