@@ -107,6 +107,19 @@ describe('ModuleMigrationService',()=>{
     expect(f.calls.find(x=>x[0]==='record')[2].sourceId).toBe(1)
   })
 
+  it('reconcilia tentativa antiga falha antes de iniciar a migração no formato atual',async()=>{
+    const f=fixture()
+    f.config.set('module_migration_attempt_core',JSON.stringify({
+      migrationId:'legacy-1',module:'core',sourceFingerprint:'source-1',sourceDataHash:'hash-antigo',
+      expectedCounts:{empresas:1,clientes:0,obras:0},status:'failed'
+    }))
+    f.lanClient.migrationStatus.mockResolvedValueOnce({migrationId:'legacy-1',status:'started'})
+    await expect(f.service.migrate('core')).resolves.toMatchObject({status:'committed'})
+    expect(f.lanClient.migrationRollback).toHaveBeenCalledWith('legacy-1')
+    expect(f.lanClient.migrationStart).toHaveBeenCalledWith(expect.objectContaining({migrationId:'mig-1'}))
+    expect(f.config.has('module_migration_attempt_core')).toBe(false)
+  })
+
   it('recusa retry quando os dados do módulo mudaram desde a tentativa',async()=>{
     const f=fixture()
     f.lanClient.migrationRecord.mockRejectedValueOnce(new Error('timeout'))
