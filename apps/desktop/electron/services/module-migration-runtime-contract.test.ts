@@ -27,7 +27,7 @@ describe('F17 migration runtime wiring',()=>{
   })
 
   it('tipa os cinco módulos e rollback explícito',()=>{
-    for(const module of ['core','operation','planning','finance','rh']) expect(typings).toContain(`'${module}'`)
+    for(const module of ['core','operation','planning','finance','rh','documents']) expect(typings).toContain(`'${module}'`)
     expect(typings).toContain('migrationPreflight(module:ModuleStorageKey)')
     expect(typings).toContain('migrationStatus(module:ModuleStorageKey)')
     expect(typings).toContain('migrateModule(module:ModuleStorageKey)')
