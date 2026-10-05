@@ -23,7 +23,7 @@ function fixture({mode='lan-host', module='core', moduleState='migration-require
   const calls:any[]=[]
   const expectedCounts=()=>Object.fromEntries(Object.entries(data).map(([table,items]:any)=>[table,items.length]))
   const lanClient:any={
-    syncSourceCapabilities:vi.fn(async()=>({modules:capabilities})),
+    syncSourceCapabilities:vi.fn(async()=>({modules:capabilities,moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:2,documents:1}})),
     migrationStart:vi.fn(async(input:any)=>{calls.push(['start',input]);return {status:'started',...input}}),
     migrationRecord:vi.fn(async(id:string,record:any)=>{calls.push(['record',id,record]);return {targetId:record.sourceId,reused:false}}),
     migrationValidate:vi.fn(async(id:string)=>{calls.push(['validate',id]);return {status:'validated',sanityOk:true}}),
