@@ -62,6 +62,32 @@ describe('legacy RH company inference',()=>{
     expect(db.list('cargos')[0].empresa_id).toBeUndefined()
   })
 
+  it('normaliza empresa_id em todas as tabelas RH da fase 1 numa base single-company real',()=>{
+    const db=database()
+    const company=db.save('empresas',{razao_social:'MH Hidráulica',status:'ativa'})
+    const work=db.save('obras',{empresa_id:company.id,nome:'Obra',status:'ativa'})
+    const cargo=db.list('cargos')[0]
+    const benefit=db.list('beneficios')[0]
+    const epi=db.list('epis')[0]
+    const employee=db.save('funcionarios',{empresa_id:company.id,obra_atual_id:work.id,cargo_id:cargo.id,nome:'Funcionário',status:'ativo'})
+    db.save('funcionario_obras',{funcionario_id:employee.id,obra_id:work.id,inicio:'2026-10-01'})
+    db.save('funcionario_beneficios',{funcionario_id:employee.id,beneficio_id:benefit.id,valor_centavos:1000,inicio:'2026-10-01'})
+    const sheet=db.save('folhas_pagamento',{empresa_id:company.id,competencia:'2026-10',status:'aberta'})
+    db.save('folha_lancamentos',{folha_id:sheet.id,funcionario_id:employee.id,tipo:'salario',descricao:'Salário',natureza:'credito',valor_centavos:1000,status:'pendente',origem:'manual',editavel:1})
+    db.save('pagamentos_funcionario',{funcionario_id:employee.id,folha_id:sheet.id,competencia:'2026-10',quinzena:1,valor_centavos:500,data:'2026-10-15',status:'pendente'})
+    const point=db.save('pontos_mensais',{funcionario_id:employee.id,competencia:'2026-10',status:'rascunho'})
+    db.save('ponto_marcacoes',{ponto_mensal_id:point.id,data:'2026-10-01',tipo:'trabalho'})
+    db.save('funcionario_epis',{funcionario_id:employee.id,epi_id:epi.id,data_entrega:'2026-10-01',quantidade:1})
+
+    const migration=service(db)
+    const exported=migration.exportModule('rh')
+    const expected=['cargos','beneficios','epis','funcionarios','funcionario_obras','cargo_beneficios','funcionario_beneficios','folhas_pagamento','folha_lancamentos','pagamentos_funcionario','pontos_mensais','ponto_marcacoes','funcionario_epis']
+    for(const table of expected){
+      expect(exported.records[table].length, table).toBeGreaterThan(0)
+      for(const row of exported.records[table]) expect(row.empresa_id, `${table} #${row.id}`).toBe(company.id)
+    }
+  })
+
   it('em base multiempresa infere cargo, benefício, EPI e vínculos pelo funcionário quando inequívoco',()=>{
     const db=database()
     const a=db.save('empresas',{razao_social:'Empresa A',status:'ativa'})
