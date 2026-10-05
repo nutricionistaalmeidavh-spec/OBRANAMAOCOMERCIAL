@@ -72,7 +72,7 @@ export default function FrontsPage() {
   }
   return <>
     <PageHeader title="Frentes de servico" description="Organize a execucao por especialidade, subfrente e checklist por pavimento ou geral." actions={<Button icon={<Plus size={16}/>} disabled={!work||!operationActive} onClick={() => setFrontForm({ ...frontInitial, obra_id: work })}>Adicionar frente</Button>}/>
-    {serverMode&&!operationActive&&<div className="success-box" style={{ marginBottom: 14 }}><strong>Preparando o uso compartilhado da operação.</strong> As frentes ficam temporariamente indisponíveis para evitar dados divergentes. Conclua a configuração em Configurações para liberar frentes, subfrentes e checklists.</div>}
+    {serverMode&&!operationActive&&<div className="success-box" style={{ marginBottom: 14 }}><strong>Preparando o uso compartilhado da operação.</strong> As frentes ficam temporariamente indisponíveis para evitar dados divergentes. Finalize a configuração do uso compartilhado em Configurações para liberar frentes, subfrentes e checklists.</div>}
     {serverMode&&operationActive&&<div className="success-box" style={{ marginBottom: 14 }}><strong>Operação compartilhada pronta.</strong> Frentes, subfrentes e checklists estão disponíveis para os computadores autorizados.</div>}
     <div className="filters"><Field label="Obra"><select value={work} onChange={(event) => { setWork(event.target.value); setSelectedFront(''); setSelectedSub('') }}><option value="">Selecione uma obra</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field></div>
     <div className="dashboard-grid">
