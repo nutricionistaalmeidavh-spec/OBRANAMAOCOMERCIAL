@@ -95,6 +95,36 @@ CREATE TABLE IF NOT EXISTS modelos_documento_rh (
   UNIQUE(chave, nome)
 );
 
+
+CREATE TABLE IF NOT EXISTS empresa_documentos_admissionais (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  empresa_id INTEGER NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
+  documento_key TEXT NOT NULL,
+  ativo INTEGER NOT NULL DEFAULT 1,
+  obrigatorio INTEGER NOT NULL DEFAULT 0,
+  modelo_id TEXT,
+  titulo_customizado TEXT,
+  configuracao_json TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(empresa_id, documento_key)
+);
+
+CREATE TABLE IF NOT EXISTS cargo_epi_kits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  empresa_id INTEGER NOT NULL REFERENCES empresas(id) ON DELETE CASCADE,
+  cargo_id INTEGER NOT NULL REFERENCES cargos(id) ON DELETE CASCADE,
+  epi_id INTEGER NOT NULL REFERENCES epis(id) ON DELETE CASCADE,
+  quantidade_texto TEXT NOT NULL DEFAULT '01',
+  ativo INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(empresa_id, cargo_id, epi_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_empresa_docs_admissao ON empresa_documentos_admissionais(empresa_id, ativo);
+CREATE INDEX IF NOT EXISTS idx_cargo_epi_kits_empresa_cargo ON cargo_epi_kits(empresa_id, cargo_id, ativo);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rdo_anexos_documento ON rdo_anexos(rdo_id, documento_id) WHERE documento_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_documentos_obra_frente_categoria ON documentos(obra_id, frente_id, categoria) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_documentos_funcionario ON documentos(funcionario_id, categoria) WHERE deleted_at IS NULL;
