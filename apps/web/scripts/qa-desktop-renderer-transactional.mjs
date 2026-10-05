@@ -75,7 +75,7 @@ try{
   await page.getByRole('button',{name:'Configurar uso compartilhado'}).waitFor({state:'visible'});
   await page.getByText('Avançado e diagnóstico').waitFor({state:'visible'});
   await page.getByRole('heading',{name:'Conexão Obra na Mão'}).waitFor({state:'visible'});await page.getByText('Online vinculado').waitFor({state:'visible'});
-  await page.getByRole('heading',{name:'Equipe e acessos',exact:true}).waitFor({state:'visible'});await page.getByRole('button',{name:'Adicionar colaborador'}).waitFor({state:'visible'});await page.getByText('JOINQA01').waitFor({state:'visible'});
+  await page.getByRole('heading',{name:'Equipe e acessos',level:2,exact:true}).waitFor({state:'visible'});await page.getByRole('button',{name:'Adicionar colaborador'}).waitFor({state:'visible'});await page.getByText('JOINQA01').waitFor({state:'visible'});
   await page.getByRole('button',{name:'Adicionar colaborador'}).click();
   const teamDialog=page.getByRole('dialog',{name:'Adicionar colaborador'});await teamDialog.waitFor({state:'visible'});
   await teamDialog.getByLabel('E-mail').fill('novo.qa@example.test');await teamDialog.getByLabel('Perfil').selectOption('foreman');
