@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 const require = createRequire(import.meta.url)
 const { ModuleMigrationService } = require('./module-migration-service.cjs')
 
-function fixture({mode='lan-host', module='core', moduleState='migration-required', coreState='central-active', capabilities=['core','operation','planning','finance','rh'], rows=null as any}={}) {
+function fixture({mode='lan-host', module='core', moduleState='migration-required', coreState='central-active', capabilities=['core','operation','planning','finance','rh','documents'], rows=null as any}={}) {
   const config = new Map<string,string>()
   const data:any = rows || { empresas:[{id:1,razao_social:'A'}], clientes:[], obras:[] }
   const database:any = {
