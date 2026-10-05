@@ -5,6 +5,7 @@ import { ServerIdentity } from './server-identity.mjs'
 import { CloudAuthorityClient } from './cloud-authority-client.mjs'
 import { PairingService } from './pairing-service.mjs'
 import { MigrationService } from './migration-service.mjs'
+import { DocumentStorageService } from './document-storage-service.mjs'
 import { RuntimeBackupService } from './runtime-backup-service.mjs'
 import { BackupOperationsService } from './backup-operations-service.mjs'
 import { createHealthService } from './health-service.mjs'
@@ -22,7 +23,7 @@ const logger = createRuntimeLogger()
 const runtimePaths = ensureRuntimePaths(resolveRuntimePaths(runtimeConfig, {
   migrationsDir: path.resolve(import.meta.dirname, '../migrations')
 }))
-const { dataDir, backupDir, databasePath, migrationsDir } = runtimePaths
+const { dataDir, backupDir, filesDir, databasePath, migrationsDir } = runtimePaths
 const IDENTITY_REFRESH_MS = 5 * 60 * 1000
 
 function bootstrapServer() {
@@ -33,12 +34,14 @@ function bootstrapServer() {
     const identity = new ServerIdentity({ security })
     const cloudAuthority = new CloudAuthorityClient({ baseUrl: cloudBaseUrl })
     const pairingService = new PairingService({ security })
-    const migrationService = new MigrationService({ repository, security })
+    const documentStorageService = new DocumentStorageService({ repository, filesDir })
+    const migrationService = new MigrationService({ repository, security, fileStorage: documentStorageService })
     const centralBackupService = new RuntimeBackupService({
       repository,
       security,
       dataDir,
       backupDir,
+      filesDir,
       migrationsDir,
       databasePath,
       serverVersion: LAN_SERVER_VERSION,
@@ -60,6 +63,7 @@ function bootstrapServer() {
       cloudBaseUrl,
       pairingService,
       migrationService,
+      documentStorageService,
       centralBackupService,
       backupOperationsService: backupOperations,
       runtimeInfo: { mode: runtimeConfig.mode, transport: runtimeConfig.transport }
