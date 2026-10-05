@@ -88,12 +88,13 @@ interface Window { fluxoDre: {
   planejamento: { overview(obra_id:number):Promise<any> }; campo:{saveRdo(data:any):Promise<any>}; tarefas:EntityApi; compras: EntityApi & { cotacoes: EntityApi; pedidos: EntityApi; itens:EntityApi; recebimentos: EntityApi; estoque:EntityApi; summary(obra_id:number):Promise<any>; createOrder(data:any):Promise<any>;receiveMaterial(data:any):Promise<any>; moveStock(data:any):Promise<any> }; contratos: EntityApi & { aditivos:EntityApi; create(data:any):Promise<any>; addendum(data:any):Promise<any> }; frentes:EntityApi; subfrentes:EntityApi; checklistFrente:EntityApi
   folha: { employee(data:any):Promise<any>; saveVariable(data:any):Promise<any>; removeVariable(id:number):Promise<any>; confirm(data:any):Promise<any>; pending(competencia:string):Promise<any[]> }
   ponto: { get(data:any):Promise<any>; autoFill(data:any):Promise<any>; save(data:any):Promise<any>; generate(data:any):Promise<any>; generateAll(data:any):Promise<any[]> }
-  catalogo: { list():Promise<any>; saveCargo(data:any):Promise<any>; saveBenefit(data:any):Promise<any>; saveLink(data:any):Promise<any>; deactivate(type:string,id:number):Promise<any> }
+  catalogo: { list():Promise<any>; saveCargo(data:any):Promise<any>; saveCompensationPolicy(data:any):Promise<any>; saveBenefit(data:any):Promise<any>; saveLink(data:any):Promise<any>; deactivate(type:string,id:number):Promise<any> }
   importacoes: EntityApi & { preview():Promise<any>; commit(token:string):Promise<any> }; importadorUniversal:{choose():Promise<any>;preview(token:string,options:any):Promise<any>;commit(token:string,options:any):Promise<any>}; relatorios:{dashboard(filters?:any):Promise<any>;dre(filters?:any):Promise<any[]>};
   online:{
     passwordAuth(input:{email:string;password:string;code?:string;firstAccess:boolean}):Promise<{linked:boolean;needsSetup:boolean;company?:{id:string;name:string};project?:{id:string;name:string}}>;
     passwordSetup(input:{companyName:string;projectName:string}):Promise<{linked:boolean;needsSetup:boolean;company?:{id:string;name:string};project?:{id:string;name:string}}>;
     syncState():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
+    onSyncStateChanged(listener:(state:import('../../../packages/contracts/src/desktop-sync').DesktopSyncState)=>void):()=>void;
     configureSync(scope:{companyId:number;workId:number}):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     syncNow():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     resolveLocalConflict(id:number,resolution:import('../../../packages/contracts/src/desktop-sync').LocalConflictResolution):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;

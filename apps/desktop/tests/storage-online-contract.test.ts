@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const preload = fs.readFileSync(path.resolve(process.cwd(), 'electron/preload.cjs'), 'utf8')
 const main = fs.readFileSync(path.resolve(process.cwd(), 'electron/main.cjs'), 'utf8')
+const syncSettings = fs.readFileSync(path.resolve(process.cwd(), 'src/components/SyncSettings.tsx'), 'utf8')
 
 describe('storage and Web/PWA public contract separation', () => {
   it('keeps storage lifecycle and migration API separate from online/session/sync', () => {
@@ -39,10 +40,19 @@ describe('storage and Web/PWA public contract separation', () => {
     expect(preload).toContain("state: () => call('online:state')")
     expect(preload).toContain("session: () => call('online:session')")
     expect(preload).toContain("syncState: () => call('online:sync-state')")
+    expect(preload).toContain('onSyncStateChanged: (listener) =>')
+    expect(preload).toContain("ipcRenderer.on('online:sync-state-changed'")
     expect(preload).toContain("configureSync: (scope) => call('online:sync-configure', scope)")
     expect(preload).toContain("syncNow: () => call('online:sync-now')")
     expect(preload).toContain("syncPull: (sinceRevision) => call('online:sync-pull', { sinceRevision })")
     expect(preload).toContain("syncPush: (changes) => call('online:sync-push', { changes })")
+  })
+
+  it('uses push-based sync state updates instead of five-second renderer polling', () => {
+    expect(main).toContain("mainWindow.webContents.send('online:sync-state-changed', state)")
+    expect(syncSettings).toContain('onSyncStateChanged(apply)')
+    expect(syncSettings).toContain("document.addEventListener('visibilitychange', onVisibility)")
+    expect(syncSettings).not.toContain('setInterval(update, 5000)')
   })
 
   it('routes storage lifecycle without coupling it to the existing online/sync services', () => {

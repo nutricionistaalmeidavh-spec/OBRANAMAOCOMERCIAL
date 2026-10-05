@@ -1,11 +1,12 @@
 import { FileArchive, FileSpreadsheet, Settings } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, PageHeader } from '../components/ui'
+import { ROUTES } from '../routes/registry'
 
 const cards = [
-  {to:'/documentos',title:'Documentos',description:'Acesse arquivos, modelos e documentos gerados pelo sistema.',icon:FileArchive},
-  {to:'/importacao',title:'Importar planilha',description:'Importe dados financeiros, operacionais e cadastrais com os fluxos existentes.',icon:FileSpreadsheet},
-  {to:'/configuracoes/sistema',title:'Configurações do sistema',description:'Gerencie integrações, backup, pastas, produto, layout, cargos e benefícios.',icon:Settings},
+  {to:ROUTES.documents,title:'Documentos',description:'Acesse arquivos, modelos e documentos gerados pelo sistema.',icon:FileArchive},
+  {to:ROUTES.import,title:'Importar planilha',description:'Importe dados financeiros, operacionais e cadastrais com os fluxos existentes.',icon:FileSpreadsheet},
+  {to:ROUTES.systemSettings,title:'Configurações do sistema',description:'Gerencie conectividade, backup, pastas, produto, layout e manutenção do aplicativo.',icon:Settings},
 ]
 
 export default function SettingsHubPage(){

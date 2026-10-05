@@ -5,7 +5,7 @@ const require=createRequire(import.meta.url)
 const { RhCatalogSourceService }=require('./rh-catalog-source-service.cjs')
 
 function fixture(state='central-active'){
-  const local={list:vi.fn(()=>({cargos:[{source:'local'}],beneficios:[],links:[]})),saveCargo:vi.fn((data:any)=>({source:'local',...data})),saveBenefit:vi.fn((data:any)=>({source:'local',...data})),saveLink:vi.fn(()=>true),deactivate:vi.fn(()=>true)}
+  const local={list:vi.fn(()=>({cargos:[{source:'local'}],beneficios:[],links:[]})),saveCargo:vi.fn((data:any)=>({source:'local',...data})),saveCompensationPolicy:vi.fn((data:any)=>({source:'local-policy',...data})),saveBenefit:vi.fn((data:any)=>({source:'local',...data})),saveLink:vi.fn(()=>true),deactivate:vi.fn(()=>true)}
   const rows:any={
     empresas:[{id:9,razao_social:'Empresa Central',status:'ativa'}],
     cargos:[{id:2,empresa_id:9,nome:'Encanador',ativo:1}],
@@ -15,7 +15,10 @@ function fixture(state='central-active'){
   const dataAccess={
     list:vi.fn(async(table:string,filters:any={})=>(rows[table]||[]).filter((item:any)=>Object.entries(filters).every(([key,value])=>value===''||value==null||String(item[key])===String(value)))),
     get:vi.fn(async(table:string,id:number)=>(rows[table]||[]).find((item:any)=>Number(item.id)===Number(id))||null),
-    save:vi.fn(async(table:string,data:any)=>({source:'central',table,...data,id:data.id||99}))
+    save:vi.fn(async(table:string,data:any)=>({source:'central',table,...data,id:data.id||99})),
+    remote:{saveCompensationPolicy:vi.fn(async(payload:any)=>({cargo:{...payload.cargo,id:payload.cargo.id||99,revision:2},links:payload.links.map((link:any,index:number)=>({...link,id:link.id||100+index,revision:2}))}))},
+    rememberRevision:vi.fn(),
+    rememberMany:vi.fn()
   }
   const moduleStorage={state:vi.fn(()=>({state}))}
   return {service:new RhCatalogSourceService({local,dataAccess,moduleStorage}),local,dataAccess,rows}
@@ -47,6 +50,21 @@ describe('RhCatalogSourceService',()=>{
     f.rows.cargo_beneficios=[]
     await expect(f.service.saveLink({cargo_id:2,beneficio_id:3,valor_centavos:18000,quinzena:1,natureza:'credito'})).resolves.toBe(true)
     expect(f.dataAccess.save).toHaveBeenLastCalledWith('cargo_beneficios',expect.objectContaining({empresa_id:9,cargo_id:2,beneficio_id:3,valor_centavos:18000}))
+  })
+
+  it('salva cargo e vínculos pela operação canônica única no RH central',async()=>{
+    const f=fixture()
+    f.rows.cargos[0].revision=1
+    f.rows.cargo_beneficios.push({id:8,revision:1,empresa_id:9,cargo_id:2,beneficio_id:3,valor_centavos:18000,ativo:1})
+    const result=await f.service.saveCompensationPolicy({
+      cargo:{...f.rows.cargos[0],salario_base_centavos:360000},
+      links:[{id:8,revision:1,beneficio_id:3,valor_centavos:22000,quinzena:1,natureza:'credito',ativo:1}]
+    })
+    expect(result.cargo).toMatchObject({id:2,empresa_id:9,salario_base_centavos:360000})
+    expect(f.dataAccess.remote.saveCompensationPolicy).toHaveBeenCalledTimes(1)
+    expect(f.dataAccess.save).not.toHaveBeenCalled()
+    expect(f.dataAccess.rememberRevision).toHaveBeenCalledWith('cargos',expect.objectContaining({revision:2}))
+    expect(f.dataAccess.rememberMany).toHaveBeenCalledWith('cargo_beneficios',expect.any(Array))
   })
 
   it('central-ready bloqueia alteração sem fallback e múltiplas empresas exigem contexto explícito',async()=>{

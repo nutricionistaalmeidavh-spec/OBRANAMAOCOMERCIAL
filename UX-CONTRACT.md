@@ -18,6 +18,31 @@
 | Migração local → central | `docs/superpowers/specs/2026-10-01-pr60-security-migration-hardening-design.md` | Arquitetura/Dados | 2026-10-01 |
 | Permissões LAN/Cloud | `docs/superpowers/specs/2026-10-01-f14-f16-concurrency-permissions-admin-design.md` | Segurança/Permissões | 2026-10-01 |
 
+## Canonical domain ownership
+
+- Domain owner matrix: `docs/CANONICAL_DOMAIN_OWNERS.md`.
+- Cargos, salário-base e benefícios pertencem a Pessoas & RH → Cargos e remuneração.
+- Folha e pagamentos consome esses valores; Configurações do sistema não é owner de política de RH.
+- Cargo + vínculos de benefícios são salvos pela operação única `catalogo.saveCompensationPolicy`, com rollback integral em falha.
+- Paths, aliases, sidebar e breadcrumb são derivados de `apps/desktop/src/routes/registry.ts`.
+
+## P1 — Configurações e lifecycle responsivo
+
+- Configurações do sistema são agrupadas por intenção: **Dados e conectividade**, **Arquivos e proteção**, **Preferências** e **Aplicativo**.
+- Cards simples têm altura orientada pelo conteúdo; não existe altura mínima global para igualar cards vizinhos.
+- O setup de servidor usa **container queries** porque a largura útil depende da sidebar e do grid pai, não apenas do viewport.
+- Dados de demonstração ficam atrás de **Ferramentas de suporte** recolhidas por padrão e não competem com tarefas normais.
+- O owner Web usa o evento explícito `owner:rendered`; `owner-loja-online.ts` não observa mutações globais do DOM.
+- Nenhuma dependência paga é necessária para esses fluxos; o core permanece local/self-hosted/open source.
+
+## P2 — Lifecycle e estado canônicos
+
+- `public/field-lifecycle.js` é o único owner dos eventos `field:rendered` e `field:sheet-rendered`; enhancers registram callbacks pela API `window.fieldLifecycle.register`.
+- A Central Loja Online continua no lifecycle explícito `owner:rendered`; nenhuma UI de produto depende de `MutationObserver` global.
+- `SyncSettings` recebe mudanças pelo canal `online:sync-state-changed`; não existe polling de 5 segundos. A leitura direta permanece apenas para bootstrap e retorno de visibilidade.
+- `StorageServerSettings` centraliza o estado transitório da configuração (busy, discovery, progresso e confirmações) em `setupUiReducer`; estados de domínio/servidor continuam vindo das APIs autoritativas.
+- O PWA inclui o lifecycle canônico no cache offline e o carrega antes dos enhancers em `sistema.html`, `obra.html` e `gestao.html`.
+
 ## Visual contract
 
 - Project `DESIGN.md`: `DESIGN.md`.

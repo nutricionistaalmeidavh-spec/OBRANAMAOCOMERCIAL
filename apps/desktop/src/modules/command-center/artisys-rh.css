@@ -27,3 +27,26 @@
 .benefit-config-list{gap:9px}.benefit-config{border-radius:12px;padding:11px 12px}.benefit-config.enabled{background:linear-gradient(145deg,#f9fbff,#f0f5ff);box-shadow:inset 3px 0 0 #0b59f5}.fixed-benefit-notice{border-radius:12px}.setting-card-feature{box-shadow:0 13px 29px rgba(29,52,103,.055)}
 
 @media(max-width:1180px){.artisys-rh-hub{grid-template-columns:1fr}.time-filter{grid-template-columns:1fr 190px}}
+
+
+/* Canonical compensation owner */
+.route-rh-remuneracao .compensation-owner-note{padding:14px 16px;border-color:#cbdaf7;background:linear-gradient(145deg,#fff,#f5f8ff)}
+.route-rh-remuneracao .compensation-owner-note strong{color:#101936;font-size:12px}
+.route-rh-remuneracao .compensation-owner-note p{margin:5px 0 0;color:#69758f;font-size:10px;line-height:1.5}
+.route-rh-remuneracao .compensation-section{margin-top:20px}
+.route-rh-remuneracao .section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:0 0 9px;padding:0 2px}
+.route-rh-remuneracao .section-heading>div{display:flex;align-items:center;gap:9px}
+.route-rh-remuneracao .section-heading>div>svg{width:30px;height:30px;padding:7px;border-radius:9px;background:#edf3ff;color:#1557e8}
+.route-rh-remuneracao .section-heading h2{margin:0;color:#101936;font-size:13px}
+.route-rh-remuneracao .section-heading p{margin:3px 0 0;color:#7a879d;font-size:9px}
+.route-rh-remuneracao .benefit-chip{display:inline-flex;margin:2px 4px 2px 0;padding:4px 7px;border-radius:999px;background:#eef4ff;color:#275bc2;border:1px solid #dae6fb;font-size:8px;font-weight:700}
+.route-rh-remuneracao .benefit-config-list{display:grid;gap:8px}
+.route-rh-remuneracao .benefit-config{display:grid;grid-template-columns:minmax(180px,1fr) 130px 130px;gap:8px;align-items:center;padding:9px;border:1px solid #e4e9f2;border-radius:10px;background:#fafbfe}
+.route-rh-remuneracao .benefit-config.enabled{border-color:#cbdafa;background:#f7faff}
+.route-rh-remuneracao .benefit-toggle{display:flex;align-items:center;gap:8px;color:#17213b;font-size:9px}
+.route-rh-remuneracao .compensation-cell-note{display:block;margin-top:3px;color:#8390a3;font-size:8.5px;font-weight:400}
+
+@media(max-width:980px){
+  .route-rh-remuneracao .benefit-config{grid-template-columns:1fr}
+  .route-rh-remuneracao .section-heading{align-items:flex-start;flex-direction:column}
+}

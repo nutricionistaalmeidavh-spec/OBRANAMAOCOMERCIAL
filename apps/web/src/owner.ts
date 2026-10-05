@@ -19,6 +19,7 @@ const productLabels={'obra-na-mao':'Obra na Mão','debora-lactacao':'Débora Lac
 const emptyDeboraOverview=():DeboraOverview=>({clients:0,pro:0,freemium:0,expiring:0,revoked:0});
 const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]!));
 const root=()=>document.getElementById('content')!;
+const notifyOwnerRendered=()=>document.dispatchEvent(new CustomEvent('owner:rendered'));
 const message=(e:unknown)=>(e as {message?:string}).message||'Não foi possível concluir.';
 const state=(c:Company)=>c.status==='expired'?'Vencida':c.status==='suspended'||c.status==='revoked'?'Suspensa':c.status==='active'?'Ativa':'Aguardando ativação';
 const companyStatus=(c:Company)=>c.status==='expired'?'expired':c.status==='suspended'||c.status==='revoked'?'revoked':c.status==='active'?'active':'pending';
@@ -141,7 +142,7 @@ function bindCurrentView(){logout();bindNavigation();bindDeboraLicense();bindCom
 
 function renderCurrentView(){
   const content=ownerView==='overview'?overviewView(ownerCompanies):ownerView==='obra'?obraView(ownerCompanies):ownerView==='debora'?deboraView():ownerView==='clients'?clientsView(ownerCompanies):licensesView(ownerCompanies);
-  root().innerHTML=shell(content);bindCurrentView();
+  root().innerHTML=shell(content);bindCurrentView();notifyOwnerRendered();
 }
 async function refreshCompanies(){const {data}=await api.get<{companies:Company[]}>('/api/owner/companies');ownerCompanies=data.companies||[]}
 async function refreshDeboraOverview(){const {data}=await api.get<{overview:DeboraOverview;clients?:DeboraClient[]}>('/api/owner/debora-overview');deboraOverview=data.overview||emptyDeboraOverview();deboraClients=data.clients||[]}
@@ -154,6 +155,7 @@ async function detail(id:string){
   document.getElementById('backCompanies')!.onclick=()=>{ownerView='clients';renderCurrentView()};
   document.querySelectorAll<HTMLButtonElement>('[data-device-id]').forEach(button=>button.onclick=async()=>{const current=button.dataset.deviceStatus||'active',next=current==='revoked'?'active':'revoked';if(next==='revoked'&&!window.confirm('Revogar somente este computador? A licença da empresa permanecerá inalterada.'))return;button.disabled=true;try{await api.put(`/api/owner/devices/${encodeURIComponent(button.dataset.deviceId||'')}`,{status:next});await detail(id)}catch(error){alert(message(error));button.disabled=false}});
   document.getElementById('licenseForm')!.onsubmit=async e=>{e.preventDefault();const form=e.currentTarget as HTMLFormElement,button=form.querySelector<HTMLButtonElement>('button')!,values=new FormData(form),nextStatus=String(values.get('status')||'active');if(nextStatus==='suspended'&&companyStatus(c)!=='revoked'&&!window.confirm(`Suspender a licença de ${c.name}?`))return;button.disabled=true;try{await api.put(`/api/owner/companies/${encodeURIComponent(id)}`,{modules:selected(form,'modules'),channels:selected(form,'channels'),status:nextStatus,plan:values.get('plan'),expiresAt:values.get('expiresAt')||null,maxUsers:Number(values.get('maxUsers')),maxProjects:Number(values.get('maxProjects')),maxDevices:Number(values.get('maxDevices'))});document.getElementById('licenseResult')!.textContent='Licença atualizada.';await Promise.all([refreshCompanies(),refreshLicenseHistory().catch(()=>{})])}catch(error){document.getElementById('licenseResult')!.textContent=message(error)}finally{button.disabled=false}};
+  notifyOwnerRendered();
 }
 
 async function render(){

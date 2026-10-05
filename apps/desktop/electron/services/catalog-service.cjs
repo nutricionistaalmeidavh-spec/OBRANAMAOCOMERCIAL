@@ -36,6 +36,21 @@ class CatalogService {
     return true
   }
 
+  saveCompensationPolicy(payload = {}) {
+    const cargoData = payload.cargo || {}
+    const links = Array.isArray(payload.links) ? payload.links : []
+    this.db.db.exec('BEGIN IMMEDIATE')
+    try {
+      const cargo = this.saveCargo(cargoData)
+      for (const link of links) this.saveLink({ ...link, cargo_id: cargo.id })
+      this.db.db.exec('COMMIT')
+      return { cargo, links: this.db.db.prepare('SELECT * FROM cargo_beneficios WHERE cargo_id=? ORDER BY beneficio_id,id').all(cargo.id) }
+    } catch (error) {
+      this.db.db.exec('ROLLBACK')
+      throw error
+    }
+  }
+
   deactivate(type, id) {
     if (type === 'cargo') this.db.db.prepare('UPDATE cargos SET ativo=0 WHERE id=?').run(Number(id))
     else if (type === 'beneficio') this.db.db.prepare('UPDATE beneficios SET ativo=0 WHERE id=?').run(Number(id))

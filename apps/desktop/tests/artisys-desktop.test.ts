@@ -24,12 +24,14 @@ describe('ArtiSys commercial desktop redesign contract',()=>{
 
   it('brands the desktop shell as ArtiSys with the compact hub navigation',()=>{
     const shell=read('../src/modules/command-center/CommandCenterShell.tsx')
+    const registry=read('../src/routes/registry.ts')
     expect(shell).toContain('ArtiSys')
     expect(shell).toContain('artisys-brand')
     expect(shell).toContain('artisys-topbar')
     expect(shell).toContain('artisysIcon')
-    for(const route of ['/', '/assistente-ia', '/dre', '/financeiro', '/orcamento', '/medicoes', '/compras-contratos', '/obras', '/frentes', '/planejamento', '/rdo', '/tarefas', '/rh', '/folha', '/configuracoes'])expect(shell).toContain(`'${route}'`)
-    for(const group of ['Financeiro','Obras','Pessoas & RH','Configuracoes'])expect(shell).toContain(group)
+    expect(shell).toContain('COMMAND_NAVIGATION_GROUPS')
+    for(const route of ['/', '/assistente-ia', '/dre', '/financeiro', '/orcamento', '/medicoes', '/compras-contratos', '/obras', '/frentes', '/planejamento', '/rdo', '/tarefas', '/rh', '/rh/folha', '/configuracoes'])expect(registry).toContain(route)
+    for(const group of ['Financeiro','Obras','Pessoas & RH','Configuracoes'])expect(registry).toContain(group)
   })
 
   it('gives RH a dedicated visual layer without changing its direct routes',()=>{
@@ -37,10 +39,7 @@ describe('ArtiSys commercial desktop redesign contract',()=>{
     const hub=read('../src/pages/RhHubPage.tsx')
     for(const selector of ['.artisys-rh-hub','.artisys-rh-card','.time-filter','.print-batch-card','.wizard','.employee-name'])expect(rh).toContain(selector)
     expect(hub).toContain('artisys-rh-hub')
-    expect(hub).toContain("to:'/funcionarios'")
-    expect(hub).toContain("to:'/registro-funcionario'")
-    expect(hub).toContain("to:'/ponto'")
-    expect(hub).toContain("to:'/rh/modelos'")
+    for(const route of ['ROUTES.rhEmployees','ROUTES.rhAdmissions','ROUTES.rhCompensation','ROUTES.rhPayroll','ROUTES.rhTime','ROUTES.rhTemplates'])expect(hub).toContain(route)
   })
 
   it('keeps the classic layout available as a compatibility fallback',()=>{

@@ -9,8 +9,10 @@ describe('Block 2 access and employee premium UI contract',()=>{
   it('loads the Block 2 access enhancer on every field entry',async()=>{
     const [sistema,obra,gestao]=await Promise.all([read('sistema.html'),read('obra.html'),read('gestao.html')]);
     for(const [name,html] of [['sistema.html',sistema],['obra.html',obra],['gestao.html',gestao]] as const){
+      expect(html,`${name} must load canonical lifecycle`).toContain('/field-lifecycle.js');
       expect(html,`${name} must load Block 2 styles`).toContain('/field-premium-access.css');
       expect(html,`${name} must load Block 2 enhancer`).toContain('/field-premium-access.js');
+      expect(html.indexOf('/field-lifecycle.js')).toBeLessThan(html.indexOf('/field-premium-access.js'));
     }
   });
 
@@ -21,6 +23,8 @@ describe('Block 2 access and employee premium UI contract',()=>{
     }
     expect(enhancer).toContain('detectAccessSurface');
     expect(enhancer).toContain('enhanceAccountSheet');
+    expect(enhancer).toContain('fieldLifecycle?.register({screen:enhance,sheet:enhanceAccountSheet})');
+    expect(enhancer).not.toContain("document.addEventListener('field:rendered'");
   });
 
   it('provides differentiated premium styling instead of one generic card treatment',async()=>{

@@ -95,6 +95,42 @@ class RhCatalogSourceService {
     return true
   }
 
+  async saveCompensationPolicy(payload = {}) {
+    const state = this.state()
+    if (state === 'local' || state === 'migration-required') return this.local.saveCompensationPolicy(payload)
+    if (state === 'central-ready') return this.blocked()
+    if (!this.dataAccess.remote?.saveCompensationPolicy) throw new Error('Servidor central não oferece a operação canônica de remuneração.')
+
+    const input = payload.cargo || {}
+    const current = input.id ? await this.dataAccess.get('cargos', Number(input.id)) : null
+    const empresaId = await this.resolveCompanyId(input.empresa_id || current?.empresa_id)
+    const nome = String(input.nome || current?.nome || '').trim()
+    if (!nome) throw new Error('Informe o nome do cargo.')
+
+    const result = await this.dataAccess.remote.saveCompensationPolicy({
+      cargo: {
+        ...input,
+        empresa_id: empresaId,
+        nome,
+        cbo: input.cbo ?? current?.cbo ?? null,
+        salario_base_centavos: Math.max(0, Number(input.salario_base_centavos ?? current?.salario_base_centavos) || 0),
+        ativo: input.ativo === 0 ? 0 : 1
+      },
+      links: (Array.isArray(payload.links) ? payload.links : []).map(link => ({
+        id: link.id,
+        revision: link.revision,
+        beneficio_id: Number(link.beneficio_id),
+        valor_centavos: Math.max(0, Number(link.valor_centavos) || 0),
+        quinzena: Number(link.quinzena) === 2 ? 2 : 1,
+        natureza: link.natureza === 'desconto' ? 'desconto' : 'credito',
+        ativo: link.ativo === 0 ? 0 : 1
+      }))
+    })
+    this.dataAccess.rememberRevision?.('cargos', result?.cargo)
+    this.dataAccess.rememberMany?.('cargo_beneficios', result?.links || [])
+    return result
+  }
+
   async deactivate(type, id) {
     const state = this.state()
     if (state === 'local' || state === 'migration-required') return this.local.deactivate(type, id)

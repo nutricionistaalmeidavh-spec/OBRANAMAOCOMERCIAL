@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button, Card, Confirm, Field } from './ui'
 import { useAsync } from '../hooks/useAsync'
-import UpdaterSettingsCard from './UpdaterSettingsCard'
 import type { DesktopSyncState, LocalConflictResolution } from '../../../../packages/contracts/src/desktop-sync'
 
 export default function SyncSettings() {
@@ -19,10 +18,17 @@ export default function SyncSettings() {
   const refresh = async () => setState(await window.fluxoDre.online.syncState())
   useEffect(() => {
     let active = true
-    const update = () => window.fluxoDre.online.syncState().then(value => { if (active) setState(value) }).catch(reason => { if (active) setError(reason.message) })
+    const apply = (value:DesktopSyncState) => { if (active) setState(value) }
+    const update = () => window.fluxoDre.online.syncState().then(apply).catch(reason => { if (active) setError(reason.message) })
+    const unsubscribe = window.fluxoDre.online.onSyncStateChanged(apply)
+    const onVisibility = () => { if (document.visibilityState === 'visible') void update() }
     void update()
-    const timer = setInterval(update, 5000)
-    return () => { active = false; clearInterval(timer) }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      active = false
+      unsubscribe()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [])
   useEffect(() => {
     if (state?.scope) { setCompanyId(String(state.scope.companyId)); setWorkId(String(state.scope.workId)) }
@@ -71,6 +77,5 @@ export default function SyncSettings() {
       <Confirm open={confirmation} title="Confirmar publicação desta obra" description={`${company?.razao_social || ''} / ${work?.nome || ''} → ${remote?.company || ''} / ${remote?.project || ''}. A sincronização enviará dados operacionais e indicadores dos módulos autorizados, além de obrigações financeiras quando houver permissão. Não vincule obras diferentes.`} onCancel={() => setConfirmation(false)} onConfirm={() => { setConfirmation(false); void perform(() => window.fluxoDre.online.configureSync({ companyId: Number(companyId), workId: Number(workId) }), 'Vínculo de sincronização configurado.') }}/>
       <Confirm open={!!resolution} title="Resolver divergência" description={resolution?.choice === 'accept_remote' ? 'Os campos operacionais locais deste registro serão substituídos pelos dados online. Esta decisão será registrada.' : 'Os dados locais deste registro serão priorizados e preparados para envio ao online. Esta decisão será registrada.'} onCancel={() => setResolution(null)} onConfirm={() => { const selected = resolution!; setResolution(null); void perform(() => window.fluxoDre.online.resolveLocalConflict(selected.id, selected.choice), 'Conflito revisado. Acompanhe a próxima sincronização.') }}/>
     </Card>
-    <UpdaterSettingsCard/>
   </>
 }

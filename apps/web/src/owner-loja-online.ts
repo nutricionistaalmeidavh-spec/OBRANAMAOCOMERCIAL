@@ -10,7 +10,6 @@ const SEO_PANEL_URL='https://deboralactacao.com/admin/seo/?context=loja-online';
 const overview:LojaOnlineOverview={totalClients:0,active:0,expired:0,blocked:0,expiringSoon:0};
 const state={overview,clients:[] as LojaOnlineClient[],events:[] as LojaOnlineLicenseEvent[],loaded:false,loading:false,error:''};
 let temporary:CreateResponse|null=null;
-let observer:MutationObserver|null=null;
 let scheduled=false;
 
 const esc=(value:unknown)=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]!));
@@ -21,15 +20,10 @@ const currentView=()=>view()?.dataset.ownerCurrent||'';
 const statusKey=(client:LojaOnlineClient)=>client.accessStatus==='ACTIVE'?'active':client.accessStatus==='EXPIRED'?'expired':client.accessStatus==='BLOCKED'?'blocked':'pending';
 const statusText=(client:LojaOnlineClient)=>client.accessStatus==='ACTIVE'?'Ativa':client.accessStatus==='EXPIRED'?'Vencida':client.accessStatus==='BLOCKED'?'Bloqueada':'Pendente';
 
-function observe(){if(observer)observer.observe(document.body,{childList:true,subtree:true})}
 function schedule(force=false){
   if(scheduled)return;
   scheduled=true;
-  queueMicrotask(()=>{
-    scheduled=false;
-    observer?.disconnect();
-    try{enhance(force)}finally{observe()}
-  });
+  queueMicrotask(()=>{scheduled=false;enhance(force)});
 }
 
 async function refresh(){
@@ -109,5 +103,10 @@ function bindLoja(){
 }
 
 function enhance(force=false){if(location.hash!=='#owner'||!document.querySelector('[data-owner-shell]'))return;ensureNav();if(!state.loaded&&!state.loading)void refresh();const current=currentView();if(force&&current==='loja'){openLoja();return}if(current==='overview')ensureOverview();if(current==='clients')ensureClients();if(current==='licenses')ensureLicenses();if(current==='loja'&&!document.querySelector('[data-loja-view]'))openLoja()}
-function install(){if(location.hash!=='#owner'||observer)return;observer=new MutationObserver(()=>schedule());observe();schedule()}
+function install(){
+  if(location.hash!=='#owner')return;
+  document.addEventListener('owner:rendered',()=>schedule());
+  window.addEventListener('hashchange',()=>schedule());
+  schedule();
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();

@@ -39,11 +39,14 @@ describe('commercial desktop auto-updater contract', () => {
     expect(workflow).toContain('latest.yml')
   })
 
-  it('surfaces updater status and actions in Settings', () => {
+  it('surfaces updater status and actions in the Aplicativo settings group', () => {
+    const settings = read('../src/pages/SettingsPage.tsx')
     const syncSettings = read('../src/components/SyncSettings.tsx')
     const updaterCard = read('../src/components/UpdaterSettingsCard.tsx')
     const types = read('../src/vite-env.d.ts')
-    expect(syncSettings).toContain('<UpdaterSettingsCard/>')
+    expect(settings).toContain('title="Aplicativo"')
+    expect(settings).toContain('<UpdaterSettingsCard/>')
+    expect(syncSettings).not.toContain('UpdaterSettingsCard')
     expect(updaterCard).toContain('Atualizações do aplicativo')
     expect(updaterCard).toContain('window.fluxoDre.updater.check()')
     expect(updaterCard).toContain('window.fluxoDre.updater.download()')

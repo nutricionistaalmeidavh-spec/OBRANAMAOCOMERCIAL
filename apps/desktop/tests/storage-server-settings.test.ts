@@ -6,6 +6,7 @@ const page=fs.readFileSync(path.resolve(process.cwd(),'src/pages/SettingsPage.ts
 const storage=fs.readFileSync(path.resolve(process.cwd(),'src/components/StorageServerSettings.tsx'),'utf8')
 const preload=fs.readFileSync(path.resolve(process.cwd(),'electron/preload.cjs'),'utf8')
 const main=fs.readFileSync(path.resolve(process.cwd(),'electron/main.cjs'),'utf8')
+const css=fs.readFileSync(path.resolve(process.cwd(),'src/modules/command-center/artisys-utilities.css'),'utf8')
 const source=`${page}\n${storage}`
 
 describe('configuração de dados e servidor',()=>{
@@ -44,6 +45,15 @@ describe('configuração de dados e servidor',()=>{
     expect(storage).not.toContain('Migrar para servidor')
   })
 
+  it('centraliza o estado transitório do setup em reducer em vez de hooks independentes',()=>{
+    expect(storage).toContain('useReducer(setupUiReducer,initialSetupUiState)')
+    expect(storage).toContain("type SetupStage='idle'|'saving'|'checking'|'authorizing'|'backup'|'migrating'|'validating'|'waiting'|'ready'|'error'")
+    expect(storage).toContain("dispatchSetupUi({type:'progress',value})")
+    expect(storage).not.toContain('const [busy,setBusy]=useState')
+    expect(storage).not.toContain('const [progress,setProgress]=useState')
+    expect(storage).not.toContain('const [discovering,setDiscovering]=useState')
+  })
+
   it('mantém a máquina de estados e recovery nos detalhes técnicos',()=>{
     expect(storage).toContain('Detalhes técnicos')
     expect(storage).toContain('storage-module-list')
@@ -67,6 +77,18 @@ describe('configuração de dados e servidor',()=>{
     expect(preload).toContain('listBackups')
     expect(source).toContain('Estar fisicamente no PC-servidor não concede acesso administrativo')
     expect(source).toContain('Atualizar permissões Cloud')
+  })
+
+  it('responde à largura real do card e não ao viewport global',()=>{
+    expect(css).toContain('container-type:inline-size')
+    expect(css).toContain('@container (max-width:760px)')
+    expect(css).toContain('@container (max-width:620px)')
+    expect(css).not.toContain('@media(max-width:1180px){\n  .storage-setup-body')
+  })
+
+  it('mantém os cards de configurações com altura baseada no conteúdo',()=>{
+    expect(css).not.toContain('.route-configuracoes .setting-card{position:relative;min-height:190px')
+    expect(css).toContain('.route-configuracoes .setting-card{position:relative;grid-column:span 4;min-width:0;min-height:0')
   })
 
   it('mantém Web/PWA independente da fonte operacional',()=>{

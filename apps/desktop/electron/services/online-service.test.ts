@@ -63,6 +63,17 @@ describe('OnlineService', () => {
     expect(service.state().linked).toBe(true)
   })
 
+  it('libera somente o shell no modo QA isolado sem persistir token real', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fluxo-online-qa-'))
+    dirs.push(dir)
+    const service = new OnlineService({ dataDir: dir, fetchImpl: vi.fn(), baseUrl: 'https://example.test', qaLinked: true })
+    expect(service.state()).toMatchObject({ linked: true, linkedAt: 'qa-isolated-session' })
+    expect(service.deviceToken()).toBe('')
+    await expect(service.financeRead('dashboard')).rejects.toThrow(/vinculado/i)
+    const saved = fs.readFileSync(path.join(dir, 'online-connection.json'), 'utf8')
+    expect(saved).not.toContain('tokenValue')
+  })
+
   it('não envia chamadas protegidas antes do vínculo', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fluxo-online-'))
     dirs.push(dir)

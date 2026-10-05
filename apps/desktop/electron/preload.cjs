@@ -111,7 +111,7 @@ contextBridge.exposeInMainWorld('fluxoDre', {
   planejamento: { overview: (obra_id) => call('planning:overview', { obra_id }) }, campo: { saveRdo: (data) => call('field:save-rdo', data) }, tarefas: entity('tarefas_obra'), compras: { ...entity('solicitacoes_compra'), cotacoes: entity('cotacoes_compra'), pedidos: entity('pedidos_compra'), itens: entity('pedido_compra_itens'), recebimentos: entity('recebimentos_materiais'), estoque: entity('movimentacoes_estoque'), summary: (obra_id) => call('procurement:summary', { obra_id }), createOrder: (data) => call('procurement:create-order', data), receiveMaterial: (data) => call('procurement:receive-material', data), moveStock: (data) => call('procurement:move-stock', data) }, contratos: { ...entity('contratos_obra'), aditivos: entity('contrato_aditivos'), create: (data) => call('contracts:create', data), addendum: (data) => call('contracts:addendum', data) }, frentes: entity('frentes_obra'), subfrentes: entity('subfrentes_obra'), checklistFrente: entity('checklist_frente_itens'),
   folha: { employee: (data) => call('payroll:employee', data), saveVariable: (data) => call('payroll:save-variable', data), removeVariable: (id) => call('payroll:remove-variable', { id }), confirm: (data) => call('payroll:confirm', data), pending: (competencia) => call('payroll:pending', { competencia }) },
   ponto: { get: (data) => call('time:get', data), autoFill: (data) => call('time:auto-fill', data), save: (data) => call('time:save', data), generate: (data) => call('time:generate', data), generateAll: (data) => call('time:generate-all', data) },
-  catalogo: { list: () => call('catalog:list'), saveCargo: (data) => call('catalog:save-cargo', data), saveBenefit: (data) => call('catalog:save-benefit', data), saveLink: (data) => call('catalog:save-link', data), deactivate: (type,id) => call('catalog:deactivate', { type,id }) },
+  catalogo: { list: () => call('catalog:list'), saveCargo: (data) => call('catalog:save-cargo', data), saveCompensationPolicy: (data) => call('catalog:save-compensation-policy', data), saveBenefit: (data) => call('catalog:save-benefit', data), saveLink: (data) => call('catalog:save-link', data), deactivate: (type,id) => call('catalog:deactivate', { type,id }) },
   importacoes: { ...entity('importacoes'), preview: () => call('imports:preview'), commit: (token) => call('imports:commit', { token }) },
   importadorUniversal: { choose: () => call('universal-import:choose'), preview: (token, options) => call('universal-import:preview', { token, options }), commit: (token, options) => call('universal-import:commit', { token, options }) },
   relatorios: { dashboard: (filters) => call('dashboard:get', filters), dre: (filters) => call('dre:get', filters) },
@@ -119,6 +119,11 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     passwordAuth: (input) => call('online:password-auth', input),
     passwordSetup: (input) => call('online:password-setup', input),
     syncState: () => call('online:sync-state'),
+    onSyncStateChanged: (listener) => {
+      const handler = (_event, state) => listener(state)
+      ipcRenderer.on('online:sync-state-changed', handler)
+      return () => ipcRenderer.removeListener('online:sync-state-changed', handler)
+    },
     configureSync: (scope) => call('online:sync-configure', scope),
     syncNow: () => call('online:sync-now'),
     resolveLocalConflict: (id, resolution) => call('online:sync-resolve-local', { id, resolution }),

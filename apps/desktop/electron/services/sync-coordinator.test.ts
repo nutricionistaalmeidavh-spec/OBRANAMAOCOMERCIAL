@@ -25,8 +25,9 @@ function fixture() {
     publishFinanceReference: vi.fn(async (_obligations: any[]) => ({ accepted: 1 })),
     resolveConflict: vi.fn(async () => ({ ok: true }))
   }
-  const sync = new SyncCoordinator({ database, online, now: () => Date.parse('2026-09-05T12:00:00Z') })
-  const f = { dataDir, database, company, work, task, online, session, sync }
+  const stateChanged = vi.fn()
+  const sync = new SyncCoordinator({ database, online, now: () => Date.parse('2026-09-05T12:00:00Z'), onStateChanged: stateChanged })
+  const f = { dataDir, database, company, work, task, online, session, sync, stateChanged }
   fixtures.push(f)
   return f
 }
@@ -49,6 +50,17 @@ it('persists changes while offline and retries the same id after restart', async
   await expect(f.sync.run()).rejects.toThrow('offline')
   expect(f.sync.state().pending).toBeGreaterThan(0)
 })
+it('publishes state transitions without renderer polling', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  expect(f.stateChanged).toHaveBeenCalledWith(expect.objectContaining({ configured: true }))
+  f.stateChanged.mockClear()
+  await f.sync.run()
+  const states = f.stateChanged.mock.calls.map((call:any[]) => call[0])
+  expect(states.some((state:any) => state.running === true)).toBe(true)
+  expect(states.at(-1)).toMatchObject({ running: false, pending: 0 })
+})
+
 it('does not send old jobs to another remote device or project', async () => {
   const f = fixture()
   await f.sync.configure({ companyId: f.company.id, workId: f.work.id })

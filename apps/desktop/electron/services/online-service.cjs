@@ -7,12 +7,13 @@ const DEFAULT_BASE_URL = process.env.OBRA_NA_MAO_PLATFORM_URL || process.env.FLU
 const CONFIG_FILE = 'online-connection.json'
 
 class OnlineService {
-  constructor({ dataDir, shell, safeStorage, fetchImpl = global.fetch, baseUrl = DEFAULT_BASE_URL }) {
+  constructor({ dataDir, shell, safeStorage, fetchImpl = global.fetch, baseUrl = DEFAULT_BASE_URL, qaLinked = process.env.NODE_ENV === 'test' && process.env.ARTISYS_QA === '1' }) {
     this.dataDir = dataDir
     this.shell = shell
     this.safeStorage = safeStorage
     this.fetchImpl = fetchImpl
     this.configPath = path.join(dataDir, CONFIG_FILE)
+    this.qaLinked = qaLinked === true
     fs.mkdirSync(dataDir, { recursive: true })
     const saved = this.readConfig().baseUrl
     this.baseUrl = String(saved || baseUrl || DEFAULT_BASE_URL).trim().replace(/\/$/, '')
@@ -72,8 +73,8 @@ class OnlineService {
     return {
       baseUrl: this.baseUrl,
       installationId: this.installationId(),
-      linked: !!this.deviceToken(),
-      linkedAt: cfg.linkedAt || null,
+      linked: this.qaLinked || !!this.deviceToken(),
+      linkedAt: this.qaLinked ? 'qa-isolated-session' : (cfg.linkedAt || null),
       pending: cfg.pending ? { expiresAt: cfg.pending.expiresAt || null } : null
     }
   }

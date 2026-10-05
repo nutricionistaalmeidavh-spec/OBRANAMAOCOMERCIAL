@@ -160,8 +160,7 @@
     if(content.childElementCount>0)document.body.classList.remove('field-booting');
   }
 
-  document.addEventListener('field:rendered',enhance);
-  document.addEventListener('field:sheet-rendered',enhanceSheet);
+  window.fieldLifecycle?.register({screen:enhance,sheet:enhanceSheet});
   enhance();
 })();
 

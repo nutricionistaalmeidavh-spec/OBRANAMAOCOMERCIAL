@@ -5,6 +5,7 @@
     {"name": "shell-ready", "action": "waitFor", "selector": ".artisys-desktop-shell", "timeoutMs": 20000},
     {"name": "abrir-configuracoes", "action": "click", "selector": "a[href='#/configuracoes']"},
     {"name": "abrir-configuracoes-sistema", "action": "click", "selector": "a[href='#/configuracoes/sistema']"},
+    {"name": "abrir-ferramentas-suporte", "action": "click", "text": "Ferramentas de suporte"},
     {"name": "carregar-dados-demo", "action": "click", "text": "Carregar demo", "holdMs": 1200},
     {"name": "painel", "action": "click", "selector": "a[href='#/']", "holdMs": 3300},
     {"name": "obras", "action": "click", "selector": "a[href='#/obras']", "holdMs": 3300},

@@ -115,7 +115,14 @@ function createServices() {
   const product = new ProductService({ db })
   const uiPreferences = new UiPreferencesService({ db })
   const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
-  const sync = new SyncCoordinator({ database: db, online, dataProvider: syncDataProvider })
+  const sync = new SyncCoordinator({
+    database: db,
+    online,
+    dataProvider: syncDataProvider,
+    onStateChanged: state => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('online:sync-state-changed', state)
+    }
+  })
   const lanHost = new LanHostService({
     storage,
     dataDir: paths.dataDir,
@@ -377,6 +384,7 @@ function registerIpc() {
   ipcMain.handle('scanner:save-signed', envelope((payload) => services.scanner.saveSigned(payload)))
   ipcMain.handle('catalog:list', envelope(() => services.catalog.list()))
   ipcMain.handle('catalog:save-cargo', envelope((data) => services.catalog.saveCargo(data)))
+  ipcMain.handle('catalog:save-compensation-policy', envelope((data) => services.catalog.saveCompensationPolicy(data)))
   ipcMain.handle('catalog:save-benefit', envelope((data) => services.catalog.saveBenefit(data)))
   ipcMain.handle('catalog:save-link', envelope((data) => services.catalog.saveLink(data)))
   ipcMain.handle('catalog:deactivate', envelope((data) => services.catalog.deactivate(data.type, data.id)))
