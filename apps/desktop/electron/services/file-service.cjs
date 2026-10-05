@@ -54,6 +54,22 @@ class FileService {
     return { name:path.basename(source), mimeType:null, contentBase64:fs.readFileSync(source).toString('base64') }
   }
 
+  async registerCentralFile(source, document) {
+    if (this.documentRoute() !== 'remote') throw new Error('Registro central de arquivo exige o módulo Documentos ativo.')
+    if (!this.lanClient) throw new Error('Storage documental central indisponível.')
+    const result = await this.lanClient.uploadDocument({ file:this.centralFilePayload(source), document })
+    const file = result?.file || null
+    const savedDocument = result?.document || result
+    return {
+      ...savedDocument,
+      file,
+      path:file?.id ? `server://file/${Number(file.id)}` : null,
+      localPath:source,
+      storage:'central',
+      registeredInCentralDatabase:true
+    }
+  }
+
   async materializeCentral(fileId) {
     if(!this.dataAccess||!this.lanClient)throw new Error('Cliente documental central indisponível.')
     const meta=await this.dataAccess.get('arquivos',Number(fileId))
