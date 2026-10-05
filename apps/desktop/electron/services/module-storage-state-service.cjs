@@ -2,7 +2,7 @@ const MODULES = new Set(['core', 'operation', 'planning', 'finance', 'rh', 'docu
 const STATES = new Set(['local', 'central-ready', 'central-active', 'migration-required'])
 const KEY_PREFIX = 'module_storage_state_'
 const VERSION_KEY_PREFIX = 'module_storage_contract_version_'
-const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:1, operation:2, planning:2, finance:2, rh:1, documents:1 })
+const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:1, operation:2, planning:2, finance:2, rh:2, documents:1 })
 const MODULE_DEPENDENCIES = Object.freeze({
   core: [],
   operation: ['core'],
@@ -152,7 +152,7 @@ class ModuleStorageStateService {
   rhLocalRecordCount() {
     const operationalTables = [
       'funcionarios', 'funcionario_obras', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos',
-      'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis'
+      'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'
     ]
     const operational = operationalTables.reduce((total, table) => total + this.countActive(table), 0)
     return operational + this.customRhCargoCount() + this.customRhBenefitCount() + this.customRhCargoBenefitCount() + this.customRhEpiCount()
@@ -164,7 +164,7 @@ class ModuleStorageStateService {
     if (module === 'finance') return this.financeLocalRecordCount()
     if (module === 'rh') return this.rhLocalRecordCount()
     if (module === 'documents') {
-      const tables=['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh']
+      const tables=['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais']
       return tables.reduce((total,table)=>total+this.countActive(table),0)
     }
     const tables = module === 'operation'
