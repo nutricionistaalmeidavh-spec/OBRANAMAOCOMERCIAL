@@ -3,7 +3,7 @@ import path from 'node:path'
 import { CentralBackupService } from './central-backup-service.mjs'
 
 function publicManifest(manifest = {}) {
-  const allowed = ['backupId','createdAt','fingerprint','schemaVersion','serverId','companyId','serverVersion','sizeBytes','reason']
+  const allowed = ['backupId','createdAt','fingerprint','schemaVersion','serverId','companyId','serverVersion','sizeBytes','filesCount','filesSizeBytes','filesFingerprint','reason']
   return Object.fromEntries(allowed.filter(key => manifest?.[key] !== undefined).map(key => [key,manifest[key]]))
 }
 
