@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button, Card, Confirm, Field } from './ui'
 import { useAsync } from '../hooks/useAsync'
-import UpdaterSettingsCard from './UpdaterSettingsCard'
 import type { DesktopSyncState, LocalConflictResolution } from '../../../../packages/contracts/src/desktop-sync'
 
 export default function SyncSettings() {
@@ -71,6 +70,5 @@ export default function SyncSettings() {
       <Confirm open={confirmation} title="Confirmar publicação desta obra" description={`${company?.razao_social || ''} / ${work?.nome || ''} → ${remote?.company || ''} / ${remote?.project || ''}. A sincronização enviará dados operacionais e indicadores dos módulos autorizados, além de obrigações financeiras quando houver permissão. Não vincule obras diferentes.`} onCancel={() => setConfirmation(false)} onConfirm={() => { setConfirmation(false); void perform(() => window.fluxoDre.online.configureSync({ companyId: Number(companyId), workId: Number(workId) }), 'Vínculo de sincronização configurado.') }}/>
       <Confirm open={!!resolution} title="Resolver divergência" description={resolution?.choice === 'accept_remote' ? 'Os campos operacionais locais deste registro serão substituídos pelos dados online. Esta decisão será registrada.' : 'Os dados locais deste registro serão priorizados e preparados para envio ao online. Esta decisão será registrada.'} onCancel={() => setResolution(null)} onConfirm={() => { const selected = resolution!; setResolution(null); void perform(() => window.fluxoDre.online.resolveLocalConflict(selected.id, selected.choice), 'Conflito revisado. Acompanhe a próxima sincronização.') }}/>
     </Card>
-    <UpdaterSettingsCard/>
   </>
 }
