@@ -1,4 +1,4 @@
-import domainCore from '@obranamao/domain-core'
+import domainCore from './domain-core.cjs'
 const { rdoChildRows, rdoOccurrenceTask } = domainCore
 import { ConcurrencyService } from './concurrency-service.mjs'
 
