@@ -13,6 +13,9 @@ const migratedTables = [
   'fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta',
   'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
   'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis',
+  'locais_obra','subfrentes_obra','checklist_frente_itens','fontes_documentais','medicoes','medicao_itens','medicao_mapa_itens','medicao_anexos',
+  'solicitacoes_compra','cotacoes_compra','pedidos_compra','pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque',
+  'contratos_obra','contrato_aditivos','contrato_anexos','pedido_compra_anexos','arquivos','documentos','documentos_editaveis','modelos_documento_rh',
   'module_migrations', 'module_migration_records', 'record_revisions'
 ]
 
@@ -25,11 +28,11 @@ test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', 
   const first = applyLanMigrations(repository.connection(), migrationsDir)
   const second = applyLanMigrations(repository.connection(), migrationsDir)
 
-  assert.equal(first.version, 20)
+  assert.equal(first.version, 21)
   assert.equal(second.version, first.version)
-  assert.deepEqual(first.applied, [2, 3, 4, 5, 6, 20])
+  assert.deepEqual(first.applied, [2, 3, 4, 5, 6, 20, 21])
   assert.deepEqual(second.applied, [])
-  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 20)
+  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 21)
   for (const table of migratedTables) {
     assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name=?").get(table).n, 1)
   }
