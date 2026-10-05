@@ -356,4 +356,23 @@ CREATE INDEX IF NOT EXISTS idx_pedidos_obra_status ON pedidos_compra(obra_id, st
 CREATE INDEX IF NOT EXISTS idx_estoque_obra_frente ON movimentacoes_estoque(obra_id, frente_id);
 CREATE INDEX IF NOT EXISTS idx_contratos_obra_status ON contratos_obra(obra_id, status);
 CREATE INDEX IF NOT EXISTS idx_documentos_obra_frente_categoria ON documentos(obra_id, frente_id, categoria);
+ALTER TABLE funcionarios ADD COLUMN cor TEXT;
+ALTER TABLE funcionarios ADD COLUMN deficiencia TEXT;
+ALTER TABLE funcionarios ADD COLUMN ctps_uf TEXT;
+ALTER TABLE funcionarios ADD COLUMN ctps_expedicao TEXT;
+ALTER TABLE funcionarios ADD COLUMN cnh_categoria TEXT;
+ALTER TABLE funcionarios ADD COLUMN titulo_eleitor_zona TEXT;
+ALTER TABLE funcionarios ADD COLUMN titulo_eleitor_secao TEXT;
+ALTER TABLE funcionarios ADD COLUMN reservista_categoria TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_logradouro TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_numero TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_complemento TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_bairro TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_cidade TEXT;
+ALTER TABLE funcionarios ADD COLUMN endereco_uf TEXT;
+ALTER TABLE funcionarios ADD COLUMN matricula_esocial TEXT;
+ALTER TABLE funcionarios ADD COLUMN fgts_optante INTEGER;
+ALTER TABLE funcionarios ADD COLUMN fgts_opcao_em TEXT;
+ALTER TABLE funcionarios ADD COLUMN beneficiarios TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_modelos_rh_chave_ativo ON modelos_documento_rh(chave, ativo);
