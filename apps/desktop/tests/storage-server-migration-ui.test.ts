@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest'
 describe('StorageServerSettings migration UI contract',()=>{
   it('apresenta uma única jornada de configuração com progresso',()=>{
     const source=fs.readFileSync(path.resolve(process.cwd(),'src/components/StorageServerSettings.tsx'),'utf8')
-    expect(source).toContain('Dados e servidor')
-    expect(source).toContain('Configurar servidor e migrar dados')
+    expect(source).toContain('Como sua empresa usa o Obra na Mão?')
+    expect(source).toContain('Configurar uso compartilhado')
     expect(source).toContain('storage-progress-panel')
     expect(source).toContain('<progress')
     expect(source).toContain('5 de 5 etapas concluídas')
@@ -15,7 +15,7 @@ describe('StorageServerSettings migration UI contract',()=>{
 
   it('mantém estados por módulo apenas em detalhes técnicos',()=>{
     const source=fs.readFileSync(path.resolve(process.cwd(),'src/components/StorageServerSettings.tsx'),'utf8')
-    expect(source).toContain('Detalhes técnicos')
+    expect(source).toContain('Avançado e diagnóstico')
     for(const label of ['Cadastros-base','RDO / operação','Planejamento','Financeiro','RH']) expect(source).toContain(label)
     expect(source).toContain('storage-module-list')
     expect(source).not.toContain('Migrar para servidor')

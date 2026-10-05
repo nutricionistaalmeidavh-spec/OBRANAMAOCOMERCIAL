@@ -5,7 +5,7 @@ import { Button, Card, Field, Loading, PageHeader } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
 import { brl, toCents, today } from '../utils/format'
 
-const steps=['Dados pessoais','Documentos e endereço','Contrato','Benefícios e EPI','Gerar documentos']
+const steps=['Cadastro','Documentos e endereço','Contrato','Benefícios e EPI','Documentos']
 const docs=[['contrato_experiencia','Contrato de experiência'],['ficha_registro','Ficha de registro'],['ordem_servico','Ordem de serviço'],['vale_transporte','Vale-transporte'],['ficha_epi','Ficha de EPI'],['carta_sindical','Carta de oposição sindical']]
 const initial:any={
   nome:'',cpf:'',rg:'',rg_emissao:'',rg_orgao:'',data_nascimento:'',naturalidade:'',nacionalidade:'Brasileira',estado_civil:'',sexo:'',cor:'',escolaridade:'',deficiencia:'',pai:'',mae:'',
@@ -45,10 +45,10 @@ export default function EmployeeRegistrationPage(){
 
   const content=useMemo(()=>{
     if(step===0)return <><h3 className="section-title">Identificação do colaborador</h3><div className="form-grid form-grid-3">
-      <Field label="Nome completo" required wide><input value={form.nome} onChange={e=>set('nome',e.target.value)}/></Field><Field label="CPF" required><input value={form.cpf} onChange={e=>set('cpf',e.target.value)}/></Field><Field label="Nascimento"><input type="date" value={form.data_nascimento} onChange={e=>set('data_nascimento',e.target.value)}/></Field>
-      <Field label="Estado civil"><input value={form.estado_civil} onChange={e=>set('estado_civil',e.target.value)}/></Field><Field label="Naturalidade"><input value={form.naturalidade} onChange={e=>set('naturalidade',e.target.value)}/></Field><Field label="Nacionalidade"><input value={form.nacionalidade} onChange={e=>set('nacionalidade',e.target.value)}/></Field>
+      <div className="form-section-label field-wide"><strong>Identificação</strong><span>Dados básicos do colaborador.</span></div><Field label="Nome completo" required wide><input value={form.nome} onChange={e=>set('nome',e.target.value)}/></Field><Field label="CPF" required><input value={form.cpf} onChange={e=>set('cpf',e.target.value)}/></Field><Field label="Nascimento"><input type="date" value={form.data_nascimento} onChange={e=>set('data_nascimento',e.target.value)}/></Field>
+      <div className="form-section-label field-wide"><strong>Dados pessoais</strong><span>Informações complementares para o cadastro trabalhista.</span></div><Field label="Estado civil"><input value={form.estado_civil} onChange={e=>set('estado_civil',e.target.value)}/></Field><Field label="Naturalidade"><input value={form.naturalidade} onChange={e=>set('naturalidade',e.target.value)}/></Field><Field label="Nacionalidade"><input value={form.nacionalidade} onChange={e=>set('nacionalidade',e.target.value)}/></Field>
       <Field label="Sexo"><input value={form.sexo} onChange={e=>set('sexo',e.target.value)}/></Field><Field label="Cor"><input value={form.cor} onChange={e=>set('cor',e.target.value)}/></Field><Field label="Escolaridade"><input value={form.escolaridade} onChange={e=>set('escolaridade',e.target.value)}/></Field>
-      <Field label="Deficiência"><input value={form.deficiencia} onChange={e=>set('deficiencia',e.target.value)}/></Field><Field label="Telefone"><input value={form.telefone} onChange={e=>set('telefone',e.target.value)}/></Field><Field label="E-mail"><input type="email" value={form.email} onChange={e=>set('email',e.target.value)}/></Field>
+      <div className="form-section-label field-wide"><strong>Contato e informações complementares</strong><span>Dados para comunicação e documentação.</span></div><Field label="Deficiência"><input value={form.deficiencia} onChange={e=>set('deficiencia',e.target.value)}/></Field><Field label="Telefone"><input value={form.telefone} onChange={e=>set('telefone',e.target.value)}/></Field><Field label="E-mail"><input type="email" value={form.email} onChange={e=>set('email',e.target.value)}/></Field>
       <Field label="Nome do pai"><input value={form.pai} onChange={e=>set('pai',e.target.value)}/></Field><Field label="Nome da mãe"><input value={form.mae} onChange={e=>set('mae',e.target.value)}/></Field><Field label="Beneficiários" wide><input value={form.beneficiarios} onChange={e=>set('beneficiarios',e.target.value)}/></Field>
     </div></>
     if(step===1)return <><h3 className="section-title">Documentos e endereço residencial</h3><div className="form-grid form-grid-3">

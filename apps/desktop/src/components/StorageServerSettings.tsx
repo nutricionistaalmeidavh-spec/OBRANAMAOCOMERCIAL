@@ -381,18 +381,18 @@ export default function StorageServerSettings({onMessage}:Props){
   return <>
     <Card className="setting-card setting-card-feature storage-setup-card">
       <div className="storage-setup-head">
-        <div className="storage-setup-title"><span className="storage-setup-icon"><Server size={20}/></span><div><h3>Dados e servidor</h3><p>Escolha a fonte dos dados. O assistente conduz identificação, claim, storage, rede, backup, segurança e validação.</p></div></div>
+        <div className="storage-setup-title"><span className="storage-setup-icon"><Server size={20}/></span><div><h3>Como sua empresa usa o Obra na Mão?</h3><p>Escolha o cenário de uso. O sistema cuida da configuração e mantém as opções técnicas separadas.</p></div></div>
         <span className={`storage-overall-status ${setupReady?'is-ready':progress.stage==='error'?'is-error':''}`}>{statusIcon}{statusTitle}</span>
       </div>
 
       <div className="storage-setup-body">
         <div className="storage-setup-controls">
-          <Field label="Onde os dados operacionais ficarão?">
+          <Field label="Cenário de uso">
             <select value={form.operationalMode} disabled={storage.loading||busy} onChange={event=>changeMode(event.target.value as Mode)}>
-              <option value="local">Somente neste computador</option>
-              <option value="lan-host">Este computador é o principal / servidor local</option>
-              <option value="lan-client">Conectar a um servidor da empresa</option>
-              <option value="remote">Servidor remoto próprio / VPS</option>
+              <option value="local">Somente neste computador — uso individual</option>
+              <option value="lan-host">Vários computadores — este é o computador principal</option>
+              <option value="lan-client">Vários computadores — conectar a esta empresa</option>
+              <option value="remote">Acesso remoto avançado — servidor próprio</option>
             </select>
           </Field>
 
@@ -401,36 +401,36 @@ export default function StorageServerSettings({onMessage}:Props){
           {['lan-client','remote'].includes(form.operationalMode)&&<div className="storage-network-picker">
             {form.operationalMode==='lan-client'&&<>
               <div className="setting-actions" style={{justifyContent:'space-between'}}>
-                <div><strong>Encontrar servidor automaticamente</strong><br/><small>Procura somente servidores Obra na Mão nesta rede local.</small></div>
-                <Button variant="secondary" icon={<Search size={15}/>} disabled={busy||discovering} onClick={discoverServers}>{discovering?'Procurando...':'Procurar na rede'}</Button>
+                <div><strong>Encontrar a empresa nesta rede</strong><br/><small>Procura automaticamente o computador principal do Obra na Mão.</small></div>
+                <Button variant="secondary" icon={<Search size={15}/>} disabled={busy||discovering} onClick={discoverServers}>{discovering?'Procurando...':'Encontrar computador principal'}</Button>
               </div>
               {!!discoveredServers.length&&<div style={{display:'grid',gap:8,marginTop:8}}>{discoveredServers.map(server=><div key={server.serverId} className="success-box" style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}><div><strong><Wifi size={14}/> {server.name}</strong><br/><small>{server.host}:{server.port} · {server.latencyMs} ms</small></div><Button disabled={busy} onClick={()=>applyServerConnection(server.baseUrl,'lan-client')}>Usar servidor</Button></div>)}</div>}
             </>}
 
             {form.operationalMode==='remote'&&<div className="success-box"><strong>Conexão remota segura.</strong><br/><small>Use HTTPS para endereço público ou endereço privado da VPN/WireGuard. HTTP público é bloqueado.</small></div>}
 
-            <strong>Conectar manualmente</strong>
-            <Field label="Endereço do servidor"><input value={manualAddress} onChange={event=>{setManualAddress(event.target.value);setManualProbe(null)}} placeholder={form.operationalMode==='remote'?'https://servidor.seudominio.com':'192.168.1.50 ou obra-server.local'}/></Field>
+            <strong>Não encontrou automaticamente?</strong>
+            <Field label="Endereço do computador principal"><input value={manualAddress} onChange={event=>{setManualAddress(event.target.value);setManualProbe(null)}} placeholder={form.operationalMode==='remote'?'https://servidor.seudominio.com':'192.168.1.50 ou obra-server.local'}/></Field>
             <small>{form.operationalMode==='remote'?<>Também pode usar um IP privado da VPN, como <strong>10.66.0.1:4732</strong>.</>:<>Pode ser IP, hostname ou HTTPS autorizado.</>} Se a conexão falhar, a configuração atual é preservada e não existe fallback local silencioso.</small>
             {manualProbe&&<div className="success-box">Servidor pronto: <strong>{manualProbe.baseUrl}</strong>{manualProbe.serverId?<> · ID {manualProbe.serverId}</>:null}.</div>}
-            <div className="setting-actions"><Button variant="secondary" disabled={busy||!manualAddress.trim()} onClick={testManualAddress}>Testar conexão</Button><Button variant="secondary" disabled={busy||!manualAddress.trim()} onClick={()=>applyServerConnection(manualAddress)}>Conectar sem migrar</Button></div>
+            <div className="setting-actions"><Button variant="secondary" disabled={busy||!manualAddress.trim()} onClick={testManualAddress}>Verificar endereço</Button><Button variant="secondary" disabled={busy||!manualAddress.trim()} onClick={()=>applyServerConnection(manualAddress)}>Usar este computador</Button></div>
           </div>}
 
           {isServerMode&&!dirty&&lanStatus&&!lanStatus.claimed&&['lan-client','remote'].includes(form.operationalMode)&&<Field label="Código de configuração do servidor"><input value={setupCode} onChange={event=>setSetupCode(event.target.value.toUpperCase())} placeholder="XXXXX-XXXXX"/></Field>}
           {isServerMode&&!dirty&&lanStatus?.claimed&&!paired&&<Field label="Código de pareamento"><input value={pairCode} onChange={event=>setPairCode(event.target.value.toUpperCase())} placeholder="Código fornecido pelo Administrador"/></Field>}
 
           <div className="storage-primary-actions">
-            <Button disabled={busy||storage.loading} onClick={configureAndFinish}>{form.operationalMode==='local'?'Salvar configuração':setupReady&&!dirty?'Verificar configuração':progress.stage==='error'?'Tentar novamente':'Configurar servidor e migrar dados'}</Button>
-            {isServerMode&&!dirty&&<Button variant="secondary" icon={<RefreshCw size={15}/>} disabled={busy} onClick={test}>Testar servidor</Button>}
-            {['lan-client','remote'].includes(form.operationalMode)&&!dirty&&<Button variant="secondary" icon={<Wifi size={14}/>} disabled={busy} onClick={reconnect}>Reconectar servidor</Button>}
+            <Button disabled={busy||storage.loading} onClick={configureAndFinish}>{form.operationalMode==='local'?'Salvar configuração':setupReady&&!dirty?'Verificar configuração':progress.stage==='error'?'Tentar novamente':'Configurar uso compartilhado'}</Button>
+            {isServerMode&&!dirty&&<Button variant="secondary" icon={<RefreshCw size={15}/>} disabled={busy} onClick={test}>Verificar conexão</Button>}
+            {['lan-client','remote'].includes(form.operationalMode)&&!dirty&&<Button variant="secondary" icon={<Wifi size={14}/>} disabled={busy} onClick={reconnect}>Reconectar</Button>}
           </div>
 
-          <p className="storage-cloud-note"><strong>Web/PWA continua incluído.</strong> A fonte operacional muda, mas login, PWA e sincronização online continuam independentes desta configuração.</p>
-          {isServerMode&&<p className="storage-cloud-note"><strong>Sem fallback silencioso.</strong> Se o servidor falhar, a configuração anterior é preservada e o Desktop não troca para SQLite local automaticamente.</p>}
+          <p className="storage-cloud-note"><strong>Acesso Web/PWA continua disponível.</strong> Esta escolha define apenas onde ficam os dados operacionais do Desktop.</p>
+          {isServerMode&&<p className="storage-cloud-note"><strong>Se a conexão falhar, seus dados ficam protegidos.</strong> O Desktop preserva a configuração atual e não troca de fonte de dados sozinho.</p>}
         </div>
 
         <div className={`storage-progress-panel ${setupReady?'is-ready':''} ${progress.stage==='error'?'is-error':''}`} aria-live="polite">
-          <div className="storage-progress-copy"><span>{statusIcon}</span><div><strong>{statusTitle}</strong><p>{progress.message||(form.operationalMode==='local'?'O aplicativo usa o SQLite deste computador.':'Salve a configuração para preparar o servidor e centralizar os dados.')}</p></div></div>
+          <div className="storage-progress-copy"><span>{statusIcon}</span><div><strong>{statusTitle}</strong><p>{progress.message||(form.operationalMode==='local'?'Os dados ficam somente neste computador.':'Conclua a configuração para compartilhar os dados entre os computadores autorizados.')}</p></div></div>
           {isServerMode&&<>
             <progress className="storage-progress-bar" value={progressValue} max="100" aria-label="Progresso da configuração do servidor">{progressValue}%</progress>
             <div className="storage-progress-meta"><span>{setupReady?'5 de 5 etapas concluídas':progress.stage==='migrating'?`${progress.completed} de ${progress.total} etapas concluídas`:'Aguardando conclusão'}</span><span>{progressValue}%</span></div>
@@ -443,7 +443,7 @@ export default function StorageServerSettings({onMessage}:Props){
       </div>
 
       <details className="storage-tech-details">
-        <summary><span>Detalhes técnicos</span><ChevronDown size={16}/></summary>
+        <summary><span>Avançado e diagnóstico</span><ChevronDown size={16}/></summary>
         <div className="storage-tech-content">
           <div className="storage-module-list">{MODULE_ORDER.map(module=>{
             const state=modules[module];const attempt=attempts[module]
