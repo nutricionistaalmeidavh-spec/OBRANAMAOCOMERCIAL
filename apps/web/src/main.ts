@@ -39,6 +39,7 @@ declare global {
     mobileSyncConflicts?: any[];
     mobileManagementHtml?: (summary:any,access:any)=>string;
     obraDesktopBridge?: (route:string,payload?:Record<string,unknown>)=>Promise<{ok:boolean;data?:any;error?:string}>;
+    fieldLifecycle?: {register(handlers:{screen?:()=>void;sheet?:()=>void}):()=>void;refresh():void;refreshSheet():void;counts():{screen:number;sheet:number}};
   }
 }
 
