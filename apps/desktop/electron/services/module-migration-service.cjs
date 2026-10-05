@@ -6,11 +6,11 @@ const MODULE_TABLES = Object.freeze({
   operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
   planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
   finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'],
-  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis'],
-  documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh']
+  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'],
+  documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais']
 })
 
-const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:1, operation:2, planning:2, finance:2, rh:1, documents:1 })
+const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:1, operation:2, planning:2, finance:2, rh:2, documents:1 })
 
 const SOURCE_KEY = 'migration_source_fingerprint'
 const ATTEMPT_PREFIX = 'module_migration_attempt_'
