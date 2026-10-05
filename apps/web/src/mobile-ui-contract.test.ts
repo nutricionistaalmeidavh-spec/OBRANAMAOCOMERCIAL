@@ -19,7 +19,9 @@ describe('mobile premium UI contract',()=>{
     const [css,enhancer,sistema,obra,gestao]=await Promise.all([read('public/field-premium-v2.css'),read('public/field-premium-v2.js'),read('sistema.html'),read('obra.html'),read('gestao.html')]);
     for(const [name,html] of [['sistema.html',sistema],['obra.html',obra],['gestao.html',gestao]] as const){
       expect(html,`${name} must start in boot state`).toMatch(/<body[^>]*class=["'][^"']*field-booting/);
+      expect(html,`${name} must load canonical lifecycle`).toContain('/field-lifecycle.js');
       expect(html,`${name} must load the premium enhancer`).toContain('/field-premium-v2.js');
+      expect(html.indexOf('/field-lifecycle.js')).toBeLessThan(html.indexOf('/field-premium-v2.js'));
     }
     expect(css).toContain('body.field-booting .top');
     expect(css).toContain('body.field-booting main');
