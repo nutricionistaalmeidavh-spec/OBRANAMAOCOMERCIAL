@@ -281,7 +281,12 @@ class ModuleMigrationService {
       for (const table of MODULE_TABLES[module]) {
         for (const row of exported.records[table]) {
           if (row?.id === null || row?.id === undefined) throw new Error(`Registro local sem ID em ${table}.`)
-          await this.lanClient.migrationRecord(migrationId, { sourceTable: table, sourceId: row.id, data: row })
+          if (table === 'arquivos') {
+            if (!this.lanClient.migrationFile) throw new Error('Servidor/cliente não suporta migração de arquivos compartilhados.')
+            await this.lanClient.migrationFile(migrationId, row.id, row)
+          } else {
+            await this.lanClient.migrationRecord(migrationId, { sourceTable: table, sourceId: row.id, data: row })
+          }
         }
       }
 
