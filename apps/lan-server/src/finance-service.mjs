@@ -1,4 +1,4 @@
-import domainCore from '@obranamao/domain-core'
+import domainCore from './domain-core.cjs'
 const { paymentStatus } = domainCore
 const CLOSED_ACCOUNT_STATUSES = new Set(['pago', 'recebido', 'quitado', 'cancelado'])
 
