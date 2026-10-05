@@ -35,6 +35,7 @@ on:
         type: choice
         options:
           - smoke
+          - product-audit
   pull_request:
     branches: [main]
     paths:
@@ -100,10 +101,10 @@ jobs:
             PRESET="${{ inputs.preset }}"
             FLOW="${{ inputs.flow }}"
           else
-            MODE="demo"
+            MODE="qa"
             DEMO="quick-30s"
             PRESET="reels-9x16"
-            FLOW="smoke"
+            FLOW="product-audit"
           fi
 
           if [ "$MODE" = "demo" ]; then
@@ -123,7 +124,7 @@ jobs:
           fi
 
       - name: Verify Reels artifact
-        if: ${{ github.event_name != 'workflow_dispatch' || (inputs.mode == 'demo' && inputs.preset == 'reels-9x16') }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'demo' && inputs.preset == 'reels-9x16' }}
         shell: bash
         run: |
           VIDEO="$(find qa-artifacts -name demo-video.mp4 -print -quit)"
