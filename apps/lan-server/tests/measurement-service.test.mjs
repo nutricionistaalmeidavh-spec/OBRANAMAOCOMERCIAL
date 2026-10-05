@@ -18,7 +18,7 @@ function fixture() {
 
 function payload(f, overrides={}) {
   return {
-    obra_id:f.work.id, frente_id:f.front.id, numero:'M-01', competencia:'2026-10', data:'2026-10-01',
+    requestId:'measurement-request', obra_id:f.work.id, frente_id:f.front.id, numero:'M-01', competencia:'2026-10', data:'2026-10-01',
     status:'faturada', valor_bruto_centavos:5000, valor_liquido_centavos:5000,
     itens:[{ item_orcamentario_id:f.budget.id, quantidade_periodo:5, valor_periodo_centavos:5000 }],
     conta:{ empresa_id:f.company.id, competencia:'2026-10', vencimento:'2026-10-15' },
@@ -38,10 +38,22 @@ test('medição salva cabeçalho, itens e conta em uma transação versionada', 
   } finally { f.repository.close() }
 })
 
+test('criação de medição é idempotente em replay do mesmo requestId', () => {
+  const f=fixture()
+  try {
+    const first=f.service.save(payload(f))
+    const replay=f.service.save(payload(f))
+    assert.equal(replay.id, first.id)
+    assert.equal(replay.replayed, true)
+    assert.equal(f.repository.connection().prepare('SELECT COUNT(*) n FROM medicoes').get().n,1)
+    assert.equal(f.repository.connection().prepare('SELECT COUNT(*) n FROM medicao_itens').get().n,1)
+  } finally { f.repository.close() }
+})
+
 test('excesso sem justificativa não deixa medição parcial', () => {
   const f=fixture()
   try {
-    assert.throws(()=>f.service.save(payload(f,{numero:'M-X',itens:[{item_orcamentario_id:f.budget.id,quantidade_periodo:11,valor_periodo_centavos:11000}]})),/excede o orçamento/i)
+    assert.throws(()=>f.service.save(payload(f,{requestId:'measurement-over',numero:'M-X',itens:[{item_orcamentario_id:f.budget.id,quantidade_periodo:11,valor_periodo_centavos:11000}]})),/excede o orçamento/i)
     assert.equal(f.repository.connection().prepare('SELECT COUNT(*) n FROM medicoes').get().n,0)
     assert.equal(f.repository.connection().prepare('SELECT COUNT(*) n FROM medicao_itens').get().n,0)
   } finally { f.repository.close() }
