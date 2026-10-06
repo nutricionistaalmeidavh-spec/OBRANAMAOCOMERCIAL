@@ -620,6 +620,35 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, compensationPolicy.save(await readJson(request)))
       }
 
+      if (url.pathname === '/api/v1/rh/payroll/import/preview') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!payroll?.importPreview) return sendJson(response, 503, { error:'rh_unavailable', message:'Importação da folha indisponível.' })
+        await authorizeRh(request, security, 'view')
+        return sendJson(response, 200, payroll.importPreview(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/rh/payroll/import/commit') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!payroll?.importCommit) return sendJson(response, 503, { error:'rh_unavailable', message:'Importação da folha indisponível.' })
+        await authorizeRh(request, security, 'edit')
+        return sendJson(response, 200, payroll.importCommit(await readJson(request)))
+      }
+
+      if (url.pathname === '/api/v1/rh/payroll/import/history') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!payroll?.importHistory) return sendJson(response, 503, { error:'rh_unavailable', message:'Histórico de importação indisponível.' })
+        await authorizeRh(request, security, 'view')
+        return sendJson(response, 200, payroll.importHistory(Number(url.searchParams.get('limit')) || 12))
+      }
+
+      if (url.pathname === '/api/v1/rh/payroll/import/undo') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!payroll?.importUndo) return sendJson(response, 503, { error:'rh_unavailable', message:'Desfazer importação indisponível.' })
+        await authorizeRh(request, security, 'edit')
+        const body = await readJson(request)
+        return sendJson(response, 200, payroll.importUndo(body.importacao_id))
+      }
+
       if (url.pathname === '/api/v1/rh/payroll/overview') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!payroll?.overview) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Visão geral da folha central indisponível.' })
