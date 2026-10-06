@@ -7,6 +7,7 @@ type BasisInput={
 }
 
 type DivergenceInput={
+  today?:string
   transactions:Array<Record<string,unknown>>
   obligations:Array<Record<string,unknown>>
   suggestions:Array<Record<string,unknown>>
@@ -72,7 +73,7 @@ function item(type:string,severity:'info'|'warning'|'critical',title:string,desc
 }
 
 export function detectFinanceDivergences(input:DivergenceInput){
-  const result:Array<Record<string,unknown>>=[]
+  const result:Array<Record<string,unknown>>=[],today=text(input.today)||new Date().toISOString().slice(0,10)
   const suggestions=array(input.suggestions)
   const suggestedTx=new Set(suggestions.map(raw=>text((raw.transaction as Record<string,unknown>|undefined)?.id)).filter(Boolean))
   const suggestedObligations=new Set<string>()
@@ -82,7 +83,7 @@ export function detectFinanceDivergences(input:DivergenceInput){
   }
 
   for(const tx of array(input.transactions)){
-    if(text(tx.direction)!=='debit'||tx.internalTransfer===true||tx.relatedWithdrawal===true)continue
+    if(text(tx.direction)!=='debit'||text(tx.accountOwnership)==='personal'||tx.internalTransfer===true||tx.relatedWithdrawal===true)continue
     const amount=number(tx.amountCents),matched=number(tx.matchedCents),id=text(tx.id)
     if(matched>amount)result.push(item('transaction_overallocated','critical','Conciliação excede o lançamento','O valor conciliado é maior que a saída bancária.',{transactionId:id,amountCents:amount,differenceCents:matched-amount}))
     else if(matched>0&&matched<amount)result.push(item('partial_reconciliation','warning','Pagamento parcialmente explicado','Parte da saída bancária ainda não está vinculada a obrigações.',{transactionId:id,amountCents:amount,differenceCents:amount-matched}))
@@ -93,7 +94,7 @@ export function detectFinanceDivergences(input:DivergenceInput){
     const amount=number(obligation.amountCents),matched=number(obligation.matchedCents),remaining=Math.max(0,number(obligation.remainingCents)||amount-matched),id=text(obligation.id)
     if(matched>amount)result.push(item('obligation_overallocated','critical','Obrigação conciliada acima do previsto','O total conciliado excede o valor canônico da obrigação.',{obligationId:id,amountCents:amount,differenceCents:matched-amount}))
     else if(matched>0&&remaining>0)result.push(item('partial_reconciliation','warning','Obrigação parcialmente comprovada','A obrigação ainda possui saldo sem comprovação bancária.',{obligationId:id,amountCents:amount,differenceCents:remaining}))
-    else if(remaining>0&&!suggestedObligations.has(id))result.push(item('obligation_without_payment','warning','Obrigação sem pagamento encontrado','A obrigação está em aberto e não possui pagamento confirmado nem sugestão bancária.',{obligationId:id,amountCents:amount,differenceCents:remaining,beneficiaryName:obligation.beneficiaryName,dueDate:obligation.dueDate}))
+    else if(remaining>0&&!suggestedObligations.has(id)&&(!text(obligation.dueDate)||text(obligation.dueDate)<=today))result.push(item('obligation_without_payment','warning','Obrigação sem pagamento encontrado','A obrigação está em aberto e não possui pagamento confirmado nem sugestão bancária.',{obligationId:id,amountCents:amount,differenceCents:remaining,beneficiaryName:obligation.beneficiaryName,dueDate:obligation.dueDate}))
   }
 
   for(const raw of suggestions){
