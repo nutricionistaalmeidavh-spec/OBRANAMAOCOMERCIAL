@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useWorkContext } from '../hooks/useWorkContext'
-import { CheckCircle2, Clock3, Edit3, Info, Plus, Trash2, UserRound } from 'lucide-react'
+import { CheckCircle2, Clock3, Edit3, Info, Plus, Trash2, UploadCloud, UserRound } from 'lucide-react'
 import { FormEvent, useState } from 'react'
 import { brl, competenceLabel, toCents, today } from '../utils/format'
 import { useAsync } from '../hooks/useAsync'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal, PageHeader, Segmented, Status } from '../components/ui'
+import PayrollImportModal from '../components/PayrollImportModal'
 
 const variables=[
   {tipo:'diaria',descricao:'Diária',natureza:'credito'},
@@ -49,6 +50,7 @@ export default function PayrollPage(){
   const [employee,setEmployee]=useState('')
   const [version,setVersion]=useState(0)
   const [modal,setModal]=useState(false)
+  const [importModal,setImportModal]=useState(false)
   const [cellDetail,setCellDetail]=useState<any>(null)
   const [message,setMessage]=useState('')
   const [form,setForm]=useState<any>({tipo:'diaria',descricao:'Diária',natureza:'credito',quinzena:1,valor:''})
@@ -123,7 +125,7 @@ export default function PayrollPage(){
   }
 
   return <>
-    <PageHeader title="Controle de pagamento" description="Folha, benefícios, descontos, encargos e despesas da empresa por competência." actions={tab==='funcionarios'&&employee&&<Button icon={<Plus size={16}/>} onClick={()=>{openVariable();setModal(true)}}>Novo variável</Button>}/>
+    <PageHeader title="Controle de pagamento" description="Folha, benefícios, descontos, encargos e despesas da empresa por competência." actions={tab==='overview'?<Button icon={<UploadCloud size={16}/>} onClick={()=>setImportModal(true)}>Importar planilha</Button>:tab==='funcionarios'&&employee?<Button icon={<Plus size={16}/>} onClick={()=>{openVariable();setModal(true)}}>Novo variável</Button>:null}/>
     <div className="toolbar payroll-tabs"><Segmented value={tab} onChange={setTab} options={[{value:'overview',label:'Visão geral'},{value:'funcionarios',label:'Funcionários'},{value:'empresa',label:'Encargos da empresa'},{value:'pendentes',label:'Pendentes'}]}/></div>
     {tab==='overview'?<Card className="payroll-overview-filter"><Field label="Competência"><input type="month" value={competencia} onChange={event=>setCompetencia(event.target.value)}/></Field><Field label="Empresa"><select value={empresaId} onChange={event=>update({empresaId:event.target.value})}><option value="">Todas</option>{companies.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome_fantasia||item.razao_social}</option>)}</select></Field><Field label="Obra"><select value={obraId} onChange={event=>update({obraId:event.target.value})}><option value="">Todas as obras</option>{works.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field></Card>:<Card className="payroll-filter"><Field label="Funcionário" wide><select value={employee} onChange={event=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((cargo:any)=>cargo.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><div className="readonly-person">{competenceLabel(competencia)}</div></Field></Card>}
 
@@ -145,6 +147,7 @@ export default function PayrollPage(){
       </Card>
     </>}
     {message&&<div className="success-box" style={{marginTop:14}}>{message}</div>}
+    <PayrollImportModal open={importModal} onClose={()=>setImportModal(false)} competencia={competencia} empresaId={empresaId} obraId={obraId} onImported={()=>setVersion(value=>value+1)}/>
     <Modal open={!!cellDetail} title="Origem do valor" onClose={()=>setCellDetail(null)} size="sm">{cellDetail&&<div className="modal-body payroll-source-detail"><div className="payroll-source-heading"><span className="payroll-source-icon"><Info size={18}/></span><div><strong>{cellDetail.title}</strong><small>{cellDetail.subtitle}</small></div><b>{brl(cellDetail.group==='descontos'?-Math.abs(cellDetail.value):cellDetail.value)}</b></div><div className="payroll-source-list">{cellDetail.sources?.length?cellDetail.sources.map((source:any,index:number)=><div className="payroll-source-row" key={(source.kind||'source')+'-'+(source.id||index)}><div><strong>{source.kind==='conta'?'Conta a pagar':'Lançamento da folha'} #{source.id||'—'}</strong><small>{source.origem?('Origem: '+source.origem):'Origem registrada no dado canônico'}{source.importacao_linha_id?(' · linha importada #'+source.importacao_linha_id):''}</small></div></div>):<div className="notice">Nenhuma referência de origem foi encontrada para este valor.</div>}</div><div className="payroll-source-actions">{cellDetail.kind==='employee'?<Button variant="secondary" onClick={()=>{setEmployee(String(cellDetail.employeeId));setTab('funcionarios');setCellDetail(null)}}>Abrir funcionário</Button>:<Link className="button button-secondary" to="/financeiro?tipo=pagar" onClick={()=>setCellDetail(null)}>Abrir contas a pagar</Link>}</div></div>}</Modal>
     <Modal open={modal} title={form.id?'Editar lançamento variável':'Novo lançamento variável'} onClose={()=>setModal(false)}><form onSubmit={submit}><div className="modal-body form-grid"><Field label="Funcionário" wide><div className="readonly-person"><UserRound size={17}/>{selectedEmployee?.nome} · CPF {selectedEmployee?.cpf||'não informado'}</div></Field><Field label="Rubrica" required><select value={form.tipo} onChange={selectType}>{variables.map(item=><option value={item.tipo} key={item.tipo}>{item.descricao}</option>)}</select></Field><Field label="Natureza"><select value={form.natureza} onChange={event=>setForm({...form,natureza:event.target.value})}><option value="credito">Crédito</option><option value="desconto">Desconto</option></select></Field><Field label="Quinzena"><select value={form.quinzena} onChange={event=>setForm({...form,quinzena:Number(event.target.value)})}><option value="1">1ª quinzena</option><option value="2">2ª quinzena</option></select></Field><Field label="Valor" required><input required value={form.valor} onChange={event=>setForm({...form,valor:event.target.value})} placeholder="0,00"/></Field><Field label="Data"><input type="date" value={form.data||today()} onChange={event=>setForm({...form,data:event.target.value})}/></Field></div><FormActions onCancel={()=>setModal(false)} submitLabel="Salvar lançamento"/></form></Modal>
   </>
