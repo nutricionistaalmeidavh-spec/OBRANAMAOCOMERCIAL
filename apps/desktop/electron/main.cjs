@@ -17,6 +17,7 @@ const { syncRegisteredPaths, removeRegisteredPaths } = require('./services/file-
 const { BackupService } = require('./services/backup-service.cjs')
 const { ImportService } = require('./services/import-service.cjs')
 const { PayrollImportFileService } = require('./services/payroll-import-file-service.cjs')
+const { PayrollExportService } = require('./services/payroll-export-service.cjs')
 const { DocumentService } = require('./services/document-service.cjs')
 const { PayrollService } = require('./services/payroll-service.cjs')
 const { DocumentRootService } = require('./services/document-root-service.cjs')
@@ -148,6 +149,7 @@ function createServices() {
     backup, canonicalStorage,
     importer: new ImportService({ db }),
     payrollImportFiles: new PayrollImportFileService(),
+    payrollExports: new PayrollExportService({ payroll: rh, dialog }),
     documents: new DocumentService({ db, fileService: files, dialog, dataAccess, moduleStorage }),
     payroll: rh,
     catalog,
@@ -386,6 +388,7 @@ function registerIpc() {
   ipcMain.handle('payroll-import:commit', envelope((payload) => services.payroll.importCommit(payload)))
   ipcMain.handle('payroll-import:history', envelope(({ limit }) => services.payroll.importHistory(limit)))
   ipcMain.handle('payroll-import:undo', envelope(({ id }) => services.payroll.importUndo(id)))
+  ipcMain.handle('payroll:export-overview', envelope((payload) => services.payrollExports.export(payload)))
   ipcMain.handle('payroll:overview', envelope((payload) => services.payroll.overview(payload)))
   ipcMain.handle('payroll:employee', envelope((payload) => services.payroll.getEmployee(payload)))
   ipcMain.handle('payroll:save-variable', envelope((payload) => services.payroll.saveVariable(payload)))
