@@ -413,12 +413,50 @@ function createPayrollImportEngine(adapter) {
   }
   const conflictId = (rowId, field) => `${rowId}:${field}`
   const definitionFor = field => PAYROLL_IMPORT_DEFINITIONS.find(item => item.field === field)
+  const configuredValue = (employee, competencia, definition) => {
+    if (definition.field === 'salario_centavos') {
+      const cargo = employee.cargo_id ? db.prepare('SELECT * FROM cargos WHERE id=?').get(employee.cargo_id) : null
+      return money(employee.salario_centavos || cargo?.salario_base_centavos || 0)
+    }
+    if (!definition.key.startsWith('beneficios.')) return 0
+    const byBenefit = new Map()
+    if (employee.cargo_id) {
+      const rows = db.prepare(`
+        SELECT cb.*,b.nome,b.tipo
+        FROM cargo_beneficios cb JOIN beneficios b ON b.id=cb.beneficio_id
+        WHERE cb.cargo_id=? AND cb.ativo=1 AND b.ativo=1
+      `).all(employee.cargo_id)
+      for (const row of rows) byBenefit.set(Number(row.beneficio_id), row)
+    }
+    const overrides = db.prepare(`
+      SELECT fb.*,b.nome,b.tipo
+      FROM funcionario_beneficios fb JOIN beneficios b ON b.id=fb.beneficio_id
+      WHERE fb.funcionario_id=? AND b.ativo=1
+        AND (fb.inicio IS NULL OR substr(fb.inicio,1,7)<=?)
+        AND (fb.fim IS NULL OR substr(fb.fim,1,7)>=?)
+      ORDER BY fb.beneficio_id,fb.inicio DESC
+    `).all(employee.id,competencia,competencia)
+    const seen = new Set()
+    for (const row of overrides) {
+      if (seen.has(Number(row.beneficio_id))) continue
+      seen.add(Number(row.beneficio_id))
+      byBenefit.set(Number(row.beneficio_id), row)
+    }
+    const benefitCatalog = catalog()
+    return [...byBenefit.values()].reduce((sum,row)=>{
+      const key = classifyPayrollOverviewLaunch({
+        tipo:`beneficio_${row.beneficio_id}`,descricao:row.nome,natureza:row.natureza || 'credito',valor_centavos:row.valor_centavos
+      },benefitCatalog)
+      return key === definition.key ? sum + money(row.valor_centavos) : sum
+    },0)
+  }
   const currentValue = (employee, competencia, definition) => {
     const rows = rowsForKey(launchRows(employee, competencia), definition.key)
     const total = rows.reduce((sum,row)=>sum+money(row.valor_centavos),0)
     if (total) return { value:total, rows, paid:rows.some(row=>row.status==='pago') }
-    if (definition.field === 'salario_centavos' && !sheetFor(employee, competencia) && money(employee.salario_centavos)) {
-      return { value:money(employee.salario_centavos), rows:[], paid:false, configured:true }
+    if (!sheetFor(employee, competencia)) {
+      const configured = configuredValue(employee,competencia,definition)
+      if (configured) return { value:configured, rows:[], paid:false, configured:true }
     }
     return { value:0, rows:[], paid:false }
   }
@@ -450,7 +488,7 @@ function createPayrollImportEngine(adapter) {
         } else if (resolution.kind === 'not_found') {
           conflicts.push({ id:conflictId(row.id,'employee'), row_id:row.id, field:'employee', type:'employee_not_found', label:`${row.funcionario || 'Funcionário'} não encontrado`, options:[{value:'create',label:'Criar funcionário'},{value:'skip',label:'Ignorar linha'}] })
         } else if (resolution.kind === 'ambiguous') {
-          conflicts.push({ id:conflictId(row.id,'employee'), row_id:row.id, field:'employee', type:'employee_ambiguous', label:`${row.funcionario}: há mais de um cadastro possível`, options:[...(resolution.candidates||[]).map(item=>({value:`employee:${item.id}`,label:`${item.nome}${item.cpf?` · CPF ${item.cpf}`:''}`})),{value:'skip',label:'Ignorar linha'}] })
+          conflicts.push({ id:conflictId(row.id,'employee'), row_id:row.id, field:'employee', type:'employee_ambiguous', label:`${row.funcionario}: há mais de um cadastro possível. Informe CPF ou ajuste o nome na planilha.`, options:[{value:'skip',label:'Ignorar linha'}] })
         }
 
         const employee = resolution.employee || null
@@ -502,10 +540,11 @@ function createPayrollImportEngine(adapter) {
     return Number(result.lastInsertRowid)
   }
 
-  function categoryFor(name) {
+  function categoryFor(name, description = '') {
     const explicit = String(name || '').trim()
-    const fallback = /simples|\bdas\b|darf|impost|tribut/i.test(explicit) ? 'Impostos'
-      : /contab/i.test(explicit) ? 'Serviços terceiros' : 'Outras despesas'
+    const reference = `${explicit} ${description}`
+    const fallback = /simples|\bdas\b|darf|impost|tribut/i.test(reference) ? 'Impostos'
+      : /contab/i.test(reference) ? 'Serviços terceiros' : 'Outras despesas'
     const categoryName = explicit || fallback
     let category = db.prepare("SELECT * FROM categorias_financeiras WHERE lower(nome)=lower(?)").get(categoryName)
     if (!category) category = save('categorias_financeiras',{ nome:categoryName,natureza:'despesa',grupo_dre:/impost|tribut|simples|das|darf/i.test(categoryName)?'tributos':'operacional',ativa:1 })
@@ -522,7 +561,7 @@ function createPayrollImportEngine(adapter) {
       if (checked.file?.hash && db.prepare("SELECT id FROM importacoes WHERE hash=? AND aba=? AND status='concluida'").get(checked.file.hash,aba)) {
         throw new Error('Esta planilha já foi importada para esta competência.')
       }
-      const imported = save('importacoes',{ arquivo:checked.file?.path || checked.file?.name || 'planilha',hash:checked.file?.hash || '',aba,status:'processando',resumo:'{}' })
+      const imported = save('importacoes',{ arquivo:checked.file?.name || checked.file?.path || 'planilha',hash:checked.file?.hash || '',aba,status:'processando',resumo:'{}' })
       const lineInsert = db.prepare('INSERT INTO importacao_linhas(importacao_id,competencia,celula,tipo,nome_origem,valor_centavos,dados_brutos,entidade_tipo,entidade_id,status) VALUES (?,?,?,?,?,?,?,?,?,?)')
       const lineUpdate = db.prepare("UPDATE importacao_linhas SET entidade_tipo=?,entidade_id=?,status=? WHERE id=?")
       const touchedEmployees = new Set()
@@ -534,8 +573,9 @@ function createPayrollImportEngine(adapter) {
         if (employeeDecision === 'skip') { skipped++; continue }
 
         if (row.kind === 'employee') {
+          const rowSkip = checked.conflicts.some(item => item.row_id===row.id && resolutions[item.id]==='skip_row')
+          if (rowSkip) { skipped++; continue }
           let employee = row.employee_id ? get('funcionarios',row.employee_id) : null
-          if (employeeConflict?.type === 'employee_ambiguous' && String(employeeDecision||'').startsWith('employee:')) employee = get('funcionarios',Number(String(employeeDecision).split(':')[1]))
           if (!employee && employeeDecision === 'create') {
             employee = save('funcionarios',{
               empresa_id:checked.empresa_id,obra_atual_id:checked.obra_id || null,nome:String(row.funcionario||'').trim(),
@@ -553,7 +593,6 @@ function createPayrollImportEngine(adapter) {
             if (amount <= 0) continue
             const fieldConflict = checked.conflicts.find(item => item.row_id===row.id && item.field===definition.field)
             const decision = fieldConflict ? resolutions[fieldConflict.id] : null
-            if (decision === 'skip_row') { skipped++; break }
             if (decision === 'keep_current') {
               importLine(lineInsert,{importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:definition.field,nome_origem:employee.nome,valor_centavos:amount,dados_brutos:{decision:'keep_current',row:row.raw||{}},status:'ignorado'})
               continue
@@ -588,7 +627,7 @@ function createPayrollImportEngine(adapter) {
             importLine(lineInsert,{importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:'despesa',nome_origem:row.descricao,valor_centavos:row.valor_centavos,dados_brutos:{decision:decision||'keep_current',row:row.raw||{}},status:'ignorado'})
             skipped++; continue
           }
-          const category = categoryFor(row.categoria || row.descricao)
+          const category = categoryFor(row.categoria,row.descricao)
           const lineId = importLine(lineInsert,{
             importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:'despesa',nome_origem:row.descricao,valor_centavos:row.valor_centavos,
             dados_brutos:{descricao:row.descricao,valor_centavos:row.valor_centavos,vencimento:row.vencimento||null,categoria:category.nome,row:row.raw||{}},status:'processando'
