@@ -381,9 +381,10 @@ function createPayrollImportEngine(adapter) {
       if (!company) throw new Error('Empresa selecionada não foi encontrada.')
       return requested
     }
-    const company = db.prepare("SELECT * FROM empresas WHERE deleted_at IS NULL ORDER BY id LIMIT 1").get()
-    if (!company) throw new Error('Cadastre uma empresa antes de importar a folha.')
-    return Number(company.id)
+    const companies = db.prepare("SELECT * FROM empresas WHERE deleted_at IS NULL ORDER BY id").all()
+    if (!companies.length) throw new Error('Cadastre uma empresa antes de importar a folha.')
+    if (companies.length !== 1) throw new Error('Selecione uma empresa específica antes de importar a planilha.')
+    return Number(companies[0].id)
   }
   const employeePool = empresaId => db.prepare("SELECT * FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' AND empresa_id=? ORDER BY nome COLLATE NOCASE,id").all(empresaId)
   const resolveEmployee = (row, empresaId) => {
@@ -471,64 +472,147 @@ function createPayrollImportEngine(adapter) {
     const competencia = String(payload.competencia || '')
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)) throw new Error('Competência inválida para importação.')
     const empresaId = companyId(payload)
-    const conflicts = []
+    const obraId = Number(payload.obra_id) || null
+    if (obraId) {
+      const work = db.prepare("SELECT * FROM obras WHERE id=? AND deleted_at IS NULL").get(obraId)
+      if (!work || Number(work.empresa_id) !== Number(empresaId)) throw new Error('A obra selecionada não pertence à empresa.')
+    }
+
+    const resolutions = payload.resolutions || {}
+    const flatConflicts = []
+    const unresolved = []
+    const blockers = []
     const resultRows = []
     let employeeRows = 0, expenseRows = 0, values = 0, alreadyEqual = 0
 
+    const scope = `payroll:${payload.file?.sheet || 'planilha'}:${competencia}`
+    if (payload.file?.hash) {
+      const duplicate = db.prepare("SELECT id FROM importacoes WHERE hash=? AND aba=? AND status='concluida'").get(payload.file.hash,scope)
+      if (duplicate) blockers.push({ key:'duplicate_import', id:'duplicate_import', kind:'duplicate_import', type:'duplicate_import', message:'Este arquivo e esta aba já foram importados para esta competência.', importacao_id:duplicate.id })
+    }
+
     for (const source of Array.isArray(payload.rows) ? payload.rows : []) {
-      const row = { ...source }
+      const row = { ...source, conflicts:[], status:'ready' }
       if (row.kind === 'employee') {
         employeeRows++
-        const resolution = resolveEmployee(row, empresaId)
+        const employeeResolution = resolutions[row.id] || {}
+        let resolution = resolveEmployee(row, empresaId)
+        if (employeeResolution?.employee_id) {
+          const selected = employeePool(empresaId).find(item => Number(item.id) === Number(employeeResolution.employee_id))
+          if (selected) resolution = { kind:'match', employee:selected, candidates:[selected], resolved:true }
+        } else if (employeeResolution?.employee_action === 'create' && String(row.funcionario || '').trim()) {
+          resolution = { kind:'create', employee:null, candidates:[], resolved:true }
+        } else if (employeeResolution?.employee_action === 'skip') {
+          resolution = { kind:'skip', employee:null, candidates:[], resolved:true }
+        }
+
         row.employee_match = resolution.kind
         row.employee_id = resolution.employee?.id || null
         row.candidates = (resolution.candidates || []).map(item => ({ id:item.id, nome:item.nome, cpf:item.cpf || null }))
-        if (resolution.kind === 'missing') {
-          conflicts.push({ id:conflictId(row.id,'employee'), row_id:row.id, field:'employee', type:'employee_missing_name', label:`Linha ${row.row_number}: funcionário não informado`, options:[{value:'skip',label:'Ignorar linha'}] })
-        } else if (resolution.kind === 'not_found') {
-          conflicts.push({ id:conflictId(row.id,'employee'), row_id:row.id, field:'employee', type:'employee_not_found', label:`${row.funcionario || 'Funcionário'} não encontrado`, options:[{value:'create',label:'Criar funcionário'},{value:'skip',label:'Ignorar linha'}] })
-        } else if (resolution.kind === 'ambiguous') {
-          conflicts.push({ id:conflictId(row.id,'employee'), row_id:row.id, field:'employee', type:'employee_ambiguous', label:`${row.funcionario}: há mais de um cadastro possível. Informe CPF ou ajuste o nome na planilha.`, options:[{value:'skip',label:'Ignorar linha'}] })
+        row.match = { kind:resolution.kind, employee:resolution.employee ? { id:resolution.employee.id, nome:resolution.employee.nome, cpf:resolution.employee.cpf || null } : null, candidates:row.candidates }
+
+        if (resolution.kind === 'skip') { row.status='skip'; resultRows.push(row); continue }
+        if (resolution.kind === 'missing' || resolution.kind === 'not_found' || resolution.kind === 'ambiguous') {
+          const kind = resolution.kind === 'ambiguous' ? 'employee_ambiguous' : 'employee_not_found'
+          const issue = {
+            key:row.id, id:row.id, kind, type:kind, row_id:row.id, field:'employee',
+            label:resolution.kind === 'ambiguous' ? `${row.funcionario}: há mais de um cadastro possível` : `${row.funcionario || 'Funcionário'} não encontrado`,
+            message:resolution.kind === 'ambiguous' ? 'Escolha o cadastro correto ou ajuste CPF/nome na planilha.' : 'Escolha criar o funcionário ou ignorar esta linha.',
+            options:resolution.kind === 'ambiguous'
+              ? row.candidates.map(item=>({value:`employee:${item.id}`,label:`${item.nome}${item.cpf?` · CPF ${item.cpf}`:''}`}))
+              : [{value:'create',label:'Criar funcionário'},{value:'skip',label:'Ignorar linha'}]
+          }
+          row.conflicts.push(issue); flatConflicts.push(issue); unresolved.push(issue); row.status='conflict'; resultRows.push(row); continue
         }
 
-        const employee = resolution.employee || null
+        if (resolution.kind === 'create') {
+          const cpf = String(row.cpf || '').replace(/\D/g,'')
+          if (cpf && db.prepare("SELECT id FROM funcionarios WHERE empresa_id=? AND deleted_at IS NULL").all(empresaId).some(item=>{
+            const current=db.prepare("SELECT cpf FROM funcionarios WHERE id=?").get(item.id)
+            return String(current?.cpf||'').replace(/\D/g,'')===cpf
+          })) {
+            const issue={key:row.id,id:row.id,kind:'cpf_conflict',type:'cpf_conflict',row_id:row.id,field:'employee',message:'O CPF da linha já pertence a outro funcionário.'}
+            row.conflicts.push(issue);flatConflicts.push(issue);blockers.push(issue);row.status='blocked'
+          }
+          for (const definition of PAYROLL_IMPORT_DEFINITIONS) if (money(row.values?.[definition.field])>0) values++
+          resultRows.push(row);continue
+        }
+
+        const employee = resolution.employee
+        const sheet = sheetFor(employee,competencia)
+        if (sheet && sheet.status !== 'aberta') {
+          const issue={key:row.id,id:row.id,kind:'closed_sheet',type:'closed_sheet',row_id:row.id,message:'A folha desta competência não está aberta.'}
+          row.conflicts.push(issue);flatConflicts.push(issue);blockers.push(issue);row.status='blocked'
+        }
+        const paidCount = Number(db.prepare("SELECT COUNT(*) total FROM pagamentos_funcionario WHERE funcionario_id=? AND competencia=? AND status='pago'").get(employee.id,competencia)?.total || 0)
+        if (paidCount) {
+          const issue={key:row.id,id:row.id,kind:'paid_employee',type:'paid_employee',row_id:row.id,message:'Este funcionário já possui pagamento confirmado na competência.'}
+          row.conflicts.push(issue);flatConflicts.push(issue);blockers.push(issue);row.status='blocked'
+        }
+
         for (const definition of PAYROLL_IMPORT_DEFINITIONS) {
           const imported = money(row.values?.[definition.field])
           if (imported <= 0) continue
           values++
-          if (!employee) continue
           const current = currentValue(employee, competencia, definition)
           row.existing = { ...(row.existing || {}), [definition.field]:current.value }
           if (current.value === imported) { alreadyEqual++; continue }
           if (current.value > 0) {
-            const options = current.paid
-              ? [{value:'keep_current',label:'Manter valor atual'},{value:'skip_row',label:'Ignorar funcionário'}]
-              : [{value:'use_import',label:'Usar valor da planilha'},{value:'keep_current',label:'Manter valor atual'},{value:'skip_row',label:'Ignorar funcionário'}]
-            conflicts.push({
-              id:conflictId(row.id,definition.field), row_id:row.id, field:definition.field, type:current.paid?'paid_value_conflict':'value_conflict',
-              label:`${employee.nome} · ${definition.descricao}`, current_centavos:current.value, imported_centavos:imported, options
-            })
+            const key = conflictId(row.id,definition.field)
+            const decision = resolutions[key]
+            const issue = {
+              key,id:key,kind:current.paid?'paid_value_conflict':'value_conflict',type:current.paid?'paid_value_conflict':'value_conflict',
+              row_id:row.id,field:definition.field,label:`${employee.nome} · ${definition.descricao}`,
+              current_centavos:current.value,imported_centavos:imported,resolution:decision || null,
+              message:`${definition.descricao}: o valor atual difere da planilha.`
+            }
+            row.conflicts.push(issue);flatConflicts.push(issue)
+            if (current.paid) blockers.push(issue)
+            else if (!['use_import','keep_current','skip_row'].includes(decision)) unresolved.push(issue)
           }
         }
+        if (row.status!=='blocked' && row.conflicts.length) row.status='conflict'
       } else if (row.kind === 'expense') {
-        expenseRows++
-        values++
-        const duplicate = duplicateExpense(empresaId,competencia,row)
-        row.duplicate_account_id = duplicate?.id || null
-        if (duplicate) conflicts.push({
-          id:conflictId(row.id,'expense'), row_id:row.id, field:'expense', type:'duplicate_expense',
-          label:`${row.descricao}: já existe uma conta igual`, current_centavos:money(duplicate.valor_centavos), imported_centavos:money(row.valor_centavos),
-          options:[{value:'keep_current',label:'Manter conta existente'},{value:'import_anyway',label:'Importar mesmo assim'},{value:'skip_row',label:'Ignorar linha'}]
-        })
+        expenseRows++; values++
+        const existing = db.prepare(`
+          SELECT * FROM contas
+          WHERE empresa_id=? AND tipo='pagar' AND competencia=? AND deleted_at IS NULL
+            AND lower(trim(descricao))=lower(trim(?))
+          ORDER BY id
+        `).all(empresaId,competencia,row.descricao)
+        row.existing = existing.map(item=>({id:item.id,descricao:item.descricao,valor_centavos:item.valor_centavos,status:item.status}))
+        const same = existing.find(item=>money(item.valor_centavos)===money(row.valor_centavos))
+        if (same) {
+          row.status='same';row.duplicate_account_id=same.id;alreadyEqual++
+        } else if (existing.length) {
+          const key=conflictId(row.id,'valor_despesa')
+          const decision=resolutions[key]
+          const issue={
+            key,id:key,kind:'expense_conflict',type:'expense_conflict',row_id:row.id,field:'valor_despesa',
+            label:`${row.descricao}: já existe uma conta com outro valor`,current_centavos:money(existing[0].valor_centavos),
+            imported_centavos:money(row.valor_centavos),resolution:decision||null,message:'Escolha manter o valor atual ou usar o valor da planilha.'
+          }
+          row.conflicts.push(issue);flatConflicts.push(issue);row.status='conflict'
+          if (!['use_import','keep_current','skip_row'].includes(decision)) unresolved.push(issue)
+          if (['pago','recebido','cancelado'].includes(String(existing[0].status||'')) && decision==='use_import') {
+            const locked={...issue,key:key+':locked',id:key+':locked',kind:'locked_expense',type:'locked_expense',message:'A conta existente não pode ser sobrescrita no status atual.'}
+            row.conflicts.push(locked);flatConflicts.push(locked);blockers.push(locked);row.status='blocked'
+          }
+        }
       }
       resultRows.push(row)
     }
 
+    const summary={
+      employees:employeeRows,expenses:expenseRows,conflicts:flatConflicts.length,
+      unresolved:unresolved.length,blockers:blockers.length,values,already_equal:alreadyEqual
+    }
     return {
-      contract_version:1, competencia, empresa_id:empresaId, obra_id:Number(payload.obra_id)||null,
-      file:payload.file || null, mode:payload.mode || 'universal', mapping:payload.mapping || {},
-      rows:resultRows, conflicts,
-      stats:{employee_rows:employeeRows,expense_rows:expenseRows,values,already_equal:alreadyEqual,conflicts:conflicts.length}
+      contract_version:1,competencia,empresa_id:empresaId,obra_id:obraId,
+      empresa:{id:empresaId},file:payload.file||null,mode:payload.mode||'universal',mapping:payload.mapping||{},
+      rows:resultRows,conflicts:flatConflicts,unresolved,blockers,summary,
+      stats:{employee_rows:employeeRows,expense_rows:expenseRows,values,already_equal:alreadyEqual,conflicts:flatConflicts.length},
+      canCommit:blockers.length===0 && unresolved.length===0 && resultRows.length>0
     }
   }
 
@@ -554,108 +638,126 @@ function createPayrollImportEngine(adapter) {
   function commit(payload = {}) {
     const checked = preview(payload)
     const resolutions = payload.resolutions || {}
-    const unresolved = checked.conflicts.filter(item => !resolutions[item.id])
-    if (unresolved.length) throw new Error(`Resolva ${unresolved.length} conflito(s) antes de confirmar a importação.`)
+    if (!checked.canCommit) throw new Error('Resolva os conflitos da prévia antes de confirmar a importação.')
     const aba = `payroll:${checked.file?.sheet || 'planilha'}:${checked.competencia}`
+
     return transact(() => {
       if (checked.file?.hash && db.prepare("SELECT id FROM importacoes WHERE hash=? AND aba=? AND status='concluida'").get(checked.file.hash,aba)) {
         throw new Error('Esta planilha já foi importada para esta competência.')
       }
-      const imported = save('importacoes',{ arquivo:checked.file?.name || checked.file?.path || 'planilha',hash:checked.file?.hash || '',aba,status:'processando',resumo:'{}' })
+      const imported = save('importacoes',{arquivo:checked.file?.name || checked.file?.path || 'planilha',hash:checked.file?.hash || '',aba,status:'processando',resumo:'{}'})
       const lineInsert = db.prepare('INSERT INTO importacao_linhas(importacao_id,competencia,celula,tipo,nome_origem,valor_centavos,dados_brutos,entidade_tipo,entidade_id,status) VALUES (?,?,?,?,?,?,?,?,?,?)')
       const lineUpdate = db.prepare("UPDATE importacao_linhas SET entidade_tipo=?,entidade_id=?,status=? WHERE id=?")
-      const touchedEmployees = new Set()
-      let importedValues=0, importedExpenses=0, createdEmployees=0, skipped=0
+      let created=0,updated=0,ignored=0,employeesCreated=0,expensesCreated=0
 
       for (const row of checked.rows) {
-        const employeeConflict = checked.conflicts.find(item => item.row_id===row.id && item.field==='employee')
-        const employeeDecision = employeeConflict ? resolutions[employeeConflict.id] : null
-        if (employeeDecision === 'skip') { skipped++; continue }
+        if (row.status==='skip') { ignored++; continue }
 
-        if (row.kind === 'employee') {
-          const rowSkip = checked.conflicts.some(item => item.row_id===row.id && resolutions[item.id]==='skip_row')
-          if (rowSkip) { skipped++; continue }
-          let employee = row.employee_id ? get('funcionarios',row.employee_id) : null
-          if (!employee && employeeDecision === 'create') {
-            employee = save('funcionarios',{
+        if (row.kind==='employee') {
+          const employeeResolution=resolutions[row.id] || {}
+          const rowSkip=row.conflicts?.some(item=>resolutions[item.key]==='skip_row')
+          if (rowSkip) { ignored++; continue }
+
+          let employee=row.employee_id ? get('funcionarios',row.employee_id) : null
+          if (!employee && employeeResolution.employee_id) employee=get('funcionarios',Number(employeeResolution.employee_id))
+          if (!employee && employeeResolution.employee_action==='create') {
+            employee=save('funcionarios',{
               empresa_id:checked.empresa_id,obra_atual_id:checked.obra_id || null,nome:String(row.funcionario||'').trim(),
               cpf:String(row.cpf||'').replace(/\D/g,'') || null,status:'ativo',salario_centavos:0
             })
-            createdEmployees++
+            employeesCreated++
             importLine(lineInsert,{importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:'funcionario',nome_origem:row.funcionario,valor_centavos:0,dados_brutos:{created:true,row:row.raw||{}},entidade_tipo:'funcionarios',entidade_id:employee.id,status:'importado'})
           }
-          if (!employee) { skipped++; continue }
+          if (!employee) { ignored++; continue }
 
-          const data = adapter.ensureSheet(employee.id,checked.competencia)
-          touchedEmployees.add(employee.id)
+          const data=adapter.ensureSheet(employee.id,checked.competencia)
           for (const definition of PAYROLL_IMPORT_DEFINITIONS) {
-            const amount = money(row.values?.[definition.field])
-            if (amount <= 0) continue
-            const fieldConflict = checked.conflicts.find(item => item.row_id===row.id && item.field===definition.field)
-            const decision = fieldConflict ? resolutions[fieldConflict.id] : null
-            if (decision === 'keep_current') {
-              importLine(lineInsert,{importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:definition.field,nome_origem:employee.nome,valor_centavos:amount,dados_brutos:{decision:'keep_current',row:row.raw||{}},status:'ignorado'})
-              continue
+            const amount=money(row.values?.[definition.field])
+            if (amount<=0) continue
+            const conflict=row.conflicts?.find(item=>item.field===definition.field && ['value_conflict','paid_value_conflict'].includes(item.kind))
+            const decision=conflict ? resolutions[conflict.key] : null
+            if (decision==='keep_current') {
+              importLine(lineInsert,{importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:definition.field,nome_origem:employee.nome,valor_centavos:amount,dados_brutos:{operation:'none',decision:'keep_current',row:row.raw||{}},status:'ignorado'})
+              ignored++;continue
             }
 
-            const current = currentValue(employee,checked.competencia,definition)
-            if (current.value === amount) {
-              importLine(lineInsert,{importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:definition.field,nome_origem:employee.nome,valor_centavos:amount,dados_brutos:{decision:'already_equal',row:row.raw||{}},status:'mantido'})
-              continue
+            const current=currentValue(employee,checked.competencia,definition)
+            if (current.value===amount) {
+              importLine(lineInsert,{importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:definition.field,nome_origem:employee.nome,valor_centavos:amount,dados_brutos:{operation:'none',decision:'already_equal',row:row.raw||{}},status:'sem_alteracao'})
+              ignored++;continue
             }
             if (current.paid) throw new Error(`${employee.nome}: ${definition.descricao} já possui lançamento pago e não pode ser substituído.`)
-            const replaced = current.rows.map(item=>({
+            const replaced=current.rows.map(item=>({
               empresa_id:item.empresa_id,folha_id:item.folha_id,funcionario_id:item.funcionario_id,tipo:item.tipo,descricao:item.descricao,natureza:item.natureza,
-              quinzena:item.quinzena,valor_centavos:item.valor_centavos,quantidade:item.quantidade,data:item.data,origem:item.origem,editavel:item.editavel,status:item.status
+              quinzena:item.quinzena,valor_centavos:item.valor_centavos,quantidade:item.quantidade,data:item.data,origem:item.origem,editavel:item.editavel,status:item.status,
+              importacao_linha_id:item.importacao_linha_id || null
             }))
-            const lineId = importLine(lineInsert,{
+            const lineId=importLine(lineInsert,{
               importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:definition.field,nome_origem:employee.nome,valor_centavos:amount,
-              dados_brutos:{field:definition.field,replaced,row:row.raw||{}},status:'processando'
+              dados_brutos:{operation:replaced.length?'update':'create',field:definition.field,replaced,row:row.raw||{},valor_centavos:amount},status:'processando'
             })
-            for (const old of current.rows) if (old.status !== 'pago') db.prepare("DELETE FROM folha_lancamentos WHERE id=?").run(old.id)
-            const launch = save('folha_lancamentos',{
+            for (const old of current.rows) if (old.status!=='pago') db.prepare("DELETE FROM folha_lancamentos WHERE id=?").run(old.id)
+            const launch=save('folha_lancamentos',{
               empresa_id:employee.empresa_id,folha_id:data.sheet.id,funcionario_id:employee.id,tipo:definition.tipo,descricao:definition.descricao,
               natureza:definition.natureza,quinzena:definition.quinzena,valor_centavos:amount,origem:'importacao',editavel:1,status:'pendente',importacao_linha_id:lineId
             })
             lineUpdate.run('folha_lancamentos',launch.id,'importado',lineId)
-            importedValues++
+            if (replaced.length) updated++; else created++
           }
-        } else if (row.kind === 'expense') {
-          const conflict = checked.conflicts.find(item => item.row_id===row.id && item.field==='expense')
-          const decision = conflict ? resolutions[conflict.id] : null
-          if (decision === 'skip_row' || decision === 'keep_current') {
-            importLine(lineInsert,{importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:'despesa',nome_origem:row.descricao,valor_centavos:row.valor_centavos,dados_brutos:{decision:decision||'keep_current',row:row.raw||{}},status:'ignorado'})
-            skipped++; continue
+        } else if (row.kind==='expense') {
+          const existing=db.prepare(`
+            SELECT * FROM contas WHERE empresa_id=? AND tipo='pagar' AND competencia=? AND deleted_at IS NULL
+              AND lower(trim(descricao))=lower(trim(?)) ORDER BY id LIMIT 1
+          `).get(checked.empresa_id,checked.competencia,row.descricao)
+          if (existing && money(existing.valor_centavos)===money(row.valor_centavos)) {
+            importLine(lineInsert,{importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:'despesa',nome_origem:row.descricao,valor_centavos:row.valor_centavos,dados_brutos:{operation:'none',before:existing},entidade_tipo:'contas',entidade_id:existing.id,status:'sem_alteracao'})
+            ignored++;continue
           }
-          const category = categoryFor(row.categoria,row.descricao)
-          const lineId = importLine(lineInsert,{
+          const conflict=row.conflicts?.find(item=>item.field==='valor_despesa'&&item.kind==='expense_conflict')
+          const decision=conflict ? resolutions[conflict.key] : null
+          if (existing && (decision==='keep_current'||decision==='skip_row')) {
+            importLine(lineInsert,{importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:'despesa',nome_origem:row.descricao,valor_centavos:row.valor_centavos,dados_brutos:{operation:'none',decision,before:existing},entidade_tipo:'contas',entidade_id:existing.id,status:'ignorado'})
+            ignored++;continue
+          }
+
+          const category=categoryFor(row.categoria,row.descricao)
+          const operation=existing?'update':'create'
+          const lineId=importLine(lineInsert,{
             importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:'despesa',nome_origem:row.descricao,valor_centavos:row.valor_centavos,
-            dados_brutos:{descricao:row.descricao,valor_centavos:row.valor_centavos,vencimento:row.vencimento||null,categoria:category.nome,row:row.raw||{}},status:'processando'
+            dados_brutos:{operation,before:existing||null,descricao:row.descricao,valor_centavos:money(row.valor_centavos),vencimento:row.vencimento||null,categoria:category.nome,row:row.raw||{}},status:'processando'
           })
-          const account = save('contas',{
-            tipo:'pagar',empresa_id:checked.empresa_id,obra_id:checked.obra_id || null,categoria_id:category.id,descricao:row.descricao,
-            competencia:checked.competencia,vencimento:row.vencimento || `${checked.competencia}-20`,
-            valor_bruto_centavos:money(row.valor_centavos),valor_centavos:money(row.valor_centavos),status:'pendente',
-            origem_tipo:'payroll_import_line',origem_id:lineId
-          })
+          let account
+          if (existing) {
+            account=save('contas',{...existing,id:existing.id,categoria_id:category.id,obra_id:checked.obra_id || existing.obra_id || null,
+              vencimento:row.vencimento || existing.vencimento,valor_bruto_centavos:money(row.valor_centavos),valor_centavos:money(row.valor_centavos),
+              origem_tipo:'payroll_import_line',origem_id:lineId})
+            updated++
+          } else {
+            account=save('contas',{tipo:'pagar',empresa_id:checked.empresa_id,obra_id:checked.obra_id || null,categoria_id:category.id,descricao:row.descricao,
+              competencia:checked.competencia,vencimento:row.vencimento || `${checked.competencia}-20`,valor_bruto_centavos:money(row.valor_centavos),
+              valor_centavos:money(row.valor_centavos),status:'pendente',origem_tipo:'payroll_import_line',origem_id:lineId})
+            created++;expensesCreated++
+          }
           lineUpdate.run('contas',account.id,'importado',lineId)
-          importedExpenses++
         }
       }
 
-      const summary = {
-        contract_version:1,competencia:checked.competencia,empresa_id:checked.empresa_id,obra_id:checked.obra_id,
-        mode:checked.mode,file:checked.file?.name || null,imported_values:importedValues,imported_expenses:importedExpenses,
-        created_employees:createdEmployees,skipped,conflict_decisions:Object.fromEntries(checked.conflicts.map(item=>[item.id,resolutions[item.id]])),can_undo:true
+      const summary={
+        contract_version:1,competencia:checked.competencia,empresa_id:checked.empresa_id,obra_id:checked.obra_id,mode:checked.mode,
+        file:checked.file?.name || null,sheet:checked.file?.sheet || null,created,updated,ignored,employees_created:employeesCreated,
+        expenses_created:expensesCreated,can_undo:true
       }
       db.prepare("UPDATE importacoes SET status='concluida',resumo=?,concluida_em=CURRENT_TIMESTAMP WHERE id=?").run(JSON.stringify(summary),imported.id)
-      return { importacao_id:imported.id,...summary }
+      return {importacao_id:imported.id,...summary}
     })
   }
 
   function history(limit = 12) {
     return db.prepare("SELECT * FROM importacoes WHERE aba LIKE 'payroll:%' ORDER BY id DESC LIMIT ?").all(Math.max(1,Math.min(50,Number(limit)||12))).map(item=>({
-      ...item, summary:payrollImportJson(item.resumo,{}), can_undo:item.status==='concluida'
+      ...item,
+      summary:payrollImportJson(item.resumo,{}),
+      resumo_obj:payrollImportJson(item.resumo,{}),
+      can_undo:item.status==='concluida'
     }))
   }
 
