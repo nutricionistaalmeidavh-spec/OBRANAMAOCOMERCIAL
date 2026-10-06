@@ -347,9 +347,9 @@ const PAYROLL_IMPORT_DEFINITIONS = Object.freeze([
   { field:'outros_beneficios_centavos', key:'beneficios.outros', tipo:'beneficio_importado_outros', descricao:'Outros benefícios', natureza:'credito', quinzena:1 },
   { field:'faltas_centavos', key:'descontos.faltas', tipo:'falta', descricao:'Faltas', natureza:'desconto', quinzena:1 },
   { field:'outros_descontos_centavos', key:'descontos.outros', tipo:'outro_desconto', descricao:'Outros descontos', natureza:'desconto', quinzena:1 },
-  { field:'inss_centavos', key:'encargos.inss', tipo:'inss', descricao:'INSS', natureza:'credito', quinzena:1 },
-  { field:'fgts_centavos', key:'encargos.fgts', tipo:'fgts', descricao:'FGTS', natureza:'credito', quinzena:1 },
-  { field:'outros_encargos_centavos', key:'encargos.outros', tipo:'encargo_importado', descricao:'Outros encargos', natureza:'credito', quinzena:1 }
+  { field:'inss_centavos', key:'encargos.inss', tipo:'inss', descricao:'INSS', natureza:'credito', quinzena:null },
+  { field:'fgts_centavos', key:'encargos.fgts', tipo:'fgts', descricao:'FGTS', natureza:'credito', quinzena:null },
+  { field:'outros_encargos_centavos', key:'encargos.outros', tipo:'encargo_importado', descricao:'Outros encargos', natureza:'credito', quinzena:null }
 ])
 
 function payrollImportName(value) {
@@ -735,7 +735,7 @@ function createPayrollImportEngine(adapter) {
           const operation=existing?'update':'create'
           const lineId=importLine(lineInsert,{
             importacao_id:imported.id,competencia:checked.competencia,celula:row.cell,tipo:'despesa',nome_origem:row.descricao,valor_centavos:row.valor_centavos,
-            dados_brutos:{operation,before:existing||null,descricao:row.descricao,valor_centavos:money(row.valor_centavos),vencimento:row.vencimento||null,categoria:category.nome,row:row.raw||{}},status:'processando'
+            dados_brutos:{operation,before:existing||null,descricao:row.descricao,valor_centavos:money(row.valor_centavos),vencimento:row.vencimento || (existing?.vencimento||`${checked.competencia}-20`),categoria:category.nome,categoria_id:category.id,obra_id:checked.obra_id || existing?.obra_id || null,row:row.raw||{}},status:'processando'
           })
           let account
           if (existing) {
@@ -788,7 +788,15 @@ function createPayrollImportEngine(adapter) {
         const raw = payrollImportJson(line.dados_brutos,{})
         const payments = account ? Number(db.prepare("SELECT COUNT(*) total FROM pagamentos_conta WHERE conta_id=?").get(account.id)?.total||0) : 0
         const expectedStatus = raw.operation === 'update' ? raw.before?.status : 'pendente'
-        if (account && (payments>0 || account.origem_tipo!=='payroll_import_line' || Number(account.origem_id)!==Number(line.id) || money(account.valor_centavos)!==money(raw.valor_centavos) || String(account.descricao)!==String(raw.descricao) || (expectedStatus && String(account.status)!==String(expectedStatus)))) unsafe.push(`Conta #${line.entidade_id} foi alterada ou recebeu pagamento.`)
+        const changed = account && (
+          money(account.valor_centavos)!==money(raw.valor_centavos) ||
+          String(account.descricao)!==String(raw.descricao) ||
+          String(account.vencimento||'')!==String(raw.vencimento||'') ||
+          Number(account.categoria_id||0)!==Number(raw.categoria_id||0) ||
+          Number(account.obra_id||0)!==Number(raw.obra_id||0) ||
+          (expectedStatus && String(account.status)!==String(expectedStatus))
+        )
+        if (account && (payments>0 || account.origem_tipo!=='payroll_import_line' || Number(account.origem_id)!==Number(line.id) || changed)) unsafe.push(`Conta #${line.entidade_id} foi alterada ou recebeu pagamento.`)
       }
     }
     if (unsafe.length) throw new Error(`Não é seguro desfazer esta importação: ${unsafe.slice(0,3).join(' ')}`)
