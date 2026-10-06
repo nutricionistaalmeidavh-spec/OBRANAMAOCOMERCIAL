@@ -180,11 +180,11 @@ export class FinanceService {
     `).all(Number(companyId), Number(workId))
   }
 
-  accountProvenance(account) {
+  accountProvenance(account, scope) {
     const sheet = this.db.prepare('SELECT id,competencia FROM folhas_pagamento WHERE conta_id=? AND empresa_id=? LIMIT 1').get(account.id, account.empresa_id)
     if (sheet) return {
       canonicalEntity: 'conta',
-      canonicalId: String(account.id),
+      canonicalId: `lan:${scope.companyId}:${account.id}`,
       originModule: 'rh',
       originEntity: 'folhas_pagamento',
       originId: String(sheet.id),
@@ -201,7 +201,7 @@ export class FinanceService {
     const mapped = mappings[String(account.origem_tipo || '')]
     if (mapped && account.origem_id != null) return {
       canonicalEntity: 'conta',
-      canonicalId: String(account.id),
+      canonicalId: `lan:${scope.companyId}:${account.id}`,
       originModule: mapped[0],
       originEntity: mapped[1],
       originId: String(account.origem_id),
@@ -210,7 +210,7 @@ export class FinanceService {
     }
     return {
       canonicalEntity: 'conta',
-      canonicalId: String(account.id),
+      canonicalId: `lan:${scope.companyId}:${account.id}`,
       originModule: 'finance',
       originEntity: 'contas',
       originId: String(account.id),
@@ -276,7 +276,7 @@ export class FinanceService {
       projectId: scope.remoteProjectId || String(scope.workId),
       status: account.status,
       sourceUpdatedAt: account.updated_at || account.created_at,
-      ...this.accountProvenance(account)
+      ...this.accountProvenance(account, scope)
     }))
   }
 }
