@@ -92,6 +92,11 @@ export default function PayrollPage(){
   }
 
 
+  const openEmployeePayroll=(row:any)=>{
+    setEmployee(String(row.funcionario_id))
+    setTab('funcionarios')
+  }
+
   const openCellDetail=(row:any,column:any,value:number)=>{
     setCellDetail({
       kind:'employee',
@@ -149,7 +154,7 @@ export default function PayrollPage(){
           <tr>{overviewGroups.flatMap(group=>group.columns.map(column=><th key={column.key} className={'overview-subhead '+group.key}>{column.label}</th>))}</tr>
         </thead>
         <tbody>
-          {data.employees.map((row:any)=><tr key={row.funcionario_id}><th className="payroll-overview-sticky payroll-overview-person"><strong>{row.funcionario_nome}</strong><small>{row.cargo_nome||'Sem cargo'}</small></th>{overviewColumns.map(column=><SmartCell key={column.key} row={row} column={column}/>)}<td className="payroll-overview-total-cell">{brl(row.total_funcionario_centavos)}</td><td className="payroll-overview-cost-cell">{brl(row.custo_empresa_centavos)}</td></tr>)}
+          {data.employees.map((row:any)=><tr key={row.funcionario_id}><th className="payroll-overview-sticky payroll-overview-person"><button type="button" className="payroll-overview-person-link" title="Abrir folha do funcionário" onClick={()=>openEmployeePayroll(row)}><strong>{row.funcionario_nome}</strong><small>{row.cargo_nome||'Sem cargo'}</small></button></th>{overviewColumns.map(column=><SmartCell key={column.key} row={row} column={column}/>)}<td className="payroll-overview-total-cell">{brl(row.total_funcionario_centavos)}</td><td className="payroll-overview-cost-cell">{brl(row.custo_empresa_centavos)}</td></tr>)}
           <tr className="payroll-overview-section-row"><th colSpan={overviewColumns.length+3}>Despesas da empresa</th></tr>
           {data.company_expenses.map((row:any)=><tr key={'expense-'+row.id}><th className="payroll-overview-sticky payroll-overview-person"><strong>{row.descricao}</strong><small>{row.categoria_nome||'Outras despesas'}</small></th><td colSpan={overviewColumns.length} className="payroll-overview-company-space">Conta a pagar da competência</td><td className="payroll-overview-empty">—</td><td><button className="payroll-overview-cell payroll-overview-company-cell" onClick={()=>openCompanyExpenseDetail(row)} title="Ver origem do valor">{brl(row.valor_centavos)}</button></td></tr>)}
           <tr className="payroll-overview-total"><th className="payroll-overview-sticky">TOTAL DA COMPETÊNCIA</th>{overviewColumns.map(column=><td key={column.key}>{overviewMoney(Number(data.totals?.by_column_centavos?.[column.key]||0),column.group)}</td>)}<td>{brl(data.totals?.total_funcionarios_centavos||0)}</td><td>{brl(data.totals?.custo_competencia_centavos||0)}</td></tr>

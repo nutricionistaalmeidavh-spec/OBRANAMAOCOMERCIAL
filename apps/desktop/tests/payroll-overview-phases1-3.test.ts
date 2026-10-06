@@ -29,6 +29,16 @@ describe('payroll overview phases 1-3',()=>{
     expect(page).toContain('TOTAL DA COMPETÊNCIA')
   })
 
+
+  it('opens the selected employee payroll from the overview name without changing competence',()=>{
+    const page=read('../src/pages/PayrollPage.tsx')
+    expect(page).toContain('openEmployeePayroll')
+    expect(page).toContain('setEmployee(String(row.funcionario_id))')
+    expect(page).toContain("setTab('funcionarios')")
+    expect(page).toContain('title="Abrir folha do funcionário"')
+    expect(page).toContain('payroll-overview-person-link')
+  })
+
   it('supports smart cells with drill-down source details',()=>{
     const page=read('../src/pages/PayrollPage.tsx')
     expect(page).toContain('openCellDetail')
