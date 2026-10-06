@@ -112,7 +112,7 @@ function transactionRows(tx:Tx[],acc:Account[],obs:Obligation[],ms:Match[],sg:Re
   const r=accountReconcile(tx,acc),map=new Map(acc.map(x=>[x.id,x])),tot=allocationTotals(ms),suggested=suggestedIds(sg).transactions
   return[...tx].sort((x,y)=>y.date.localeCompare(x.date)).map(x=>{
     const matchedCents=tot.byTx.get(x.id)||0,internalTransfer=r.internal.has(x.id),relatedWithdrawal=r.withdrawals.has(x.id)
-    return{...x,accountLabel:map.get(x.accountId)?.label||'Conta',internalTransfer,relatedWithdrawal,matchedCents,reconciliationStatus:transactionReconciliationState({amountCents:x.amountCents,matchedCents,hasSuggestion:suggested.has(x.id),internalTransfer,relatedWithdrawal,divergence:matchedCents>x.amountCents})}
+    return{...x,accountLabel:map.get(x.accountId)?.label||'Conta',accountOwnership:map.get(x.accountId)?.ownership||'business',internalTransfer,relatedWithdrawal,matchedCents,reconciliationStatus:transactionReconciliationState({amountCents:x.amountCents,matchedCents,hasSuggestion:suggested.has(x.id),internalTransfer,relatedWithdrawal,divergence:matchedCents>x.amountCents})}
   })
 }
 function latestTimestamp(values:Array<string|undefined>){return values.filter((x):x is string=>!!x).sort().at(-1)||null}
