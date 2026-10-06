@@ -69,6 +69,41 @@ class RhSourceService {
     )
   }
 
+  async overview(payload) {
+    return this.localOrCentral(
+      () => this.localPayroll.overview(payload),
+      () => this.lanClient.payrollOverview(payload)
+    )
+  }
+
+  async importPreview(payload) {
+    return this.localOrCentral(
+      () => this.localPayroll.importPreview(payload),
+      () => this.lanClient.payrollImportPreview(payload)
+    )
+  }
+
+  async importCommit(payload) {
+    return this.localOrCentral(
+      () => this.localPayroll.importCommit(payload),
+      () => this.lanClient.payrollImportCommit(payload)
+    )
+  }
+
+  async importHistory(limit) {
+    return this.localOrCentral(
+      () => this.localPayroll.importHistory(limit),
+      () => this.lanClient.payrollImportHistory(limit)
+    )
+  }
+
+  async importUndo(importacaoId) {
+    return this.localOrCentral(
+      () => this.localPayroll.importUndo(importacaoId),
+      () => this.lanClient.payrollImportUndo(importacaoId)
+    )
+  }
+
   async pending(competencia) {
     return this.localOrCentral(
       () => this.localPayroll.pending(competencia),
