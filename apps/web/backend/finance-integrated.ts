@@ -58,9 +58,44 @@ function normalizedObligation(companyId:string,projectId:string|undefined,input:
   const r=input as Record<string,unknown>,amountCents=amountFrom(r),beneficiaryName=txt(r.beneficiaryName)||txt(r.employeeName)||txt(r.supplierName)||txt(r.name),description=txt(r.description)||txt(r.label)||txt(r.title)||beneficiaryName,sourceType=txt(r.sourceType)||'payable',sourceId=txt(r.sourceId)||txt(r.id)||txt(r.uuid)||txt(r.localId)||stableHash(source+'|'+projectId+'|'+beneficiaryName+'|'+description+'|'+amountCents+'|'+index),dueDate=txt(r.dueDate)||txt(r.paymentDate)||txt(r.date)||undefined,competence=txt(r.competence)||txt(r.referenceMonth)||txt(r.month)||undefined,employeeId=txt(r.employeeId)||undefined,document=txt(r.document)||txt(r.cpf)||txt(r.cnpj)||undefined,category=obligationCategory(sourceType,txt(r.category)),provenance=normalizeFinanceProvenance(r),hasComponents=Array.isArray(r.components),components=list<Record<string,unknown>>(r.components).slice(0,250).map(x=>({id:txt(x.id)||stableHash(JSON.stringify(x)),type:txt(x.type)||'item',label:txt(x.label)||txt(x.description)||txt(x.type)||'Item',amountCents:Math.max(0,Math.round(Number(x.amountCents||0))),nature:txt(x.nature)||undefined,installment:Number(x.installment||0)||undefined,employeeId:txt(x.employeeId)||undefined,employeeName:txt(x.employeeName)||undefined,status:txt(x.status)||undefined})).filter(x=>x.amountCents>0)
   if(!amountCents||!beneficiaryName)return null
   const stamp=now()
-  return{sourceKey:source+'|'+sourceType+'|'+sourceId,sourceId,sourceType,employeeId,beneficiaryName,document,description,amountCents,dueDate,competence,category,projectId:txt(r.projectId)||projectId,source,sourceUpdatedAt:txt(r.sourceUpdatedAt)||stamp,createdAt:stamp,updatedAt:stamp,...provenance,...(hasComponents?{components}:{})}
+  return applyLegacyObligationCompatibility({sourceKey:source+'|'+sourceType+'|'+sourceId,sourceId,sourceType,employeeId,beneficiaryName,document,description,amountCents,dueDate,competence,category,projectId:txt(r.projectId)||projectId,source,sourceUpdatedAt:txt(r.sourceUpdatedAt)||stamp,createdAt:stamp,updatedAt:stamp,...provenance,...(hasComponents?{components}:{})}) as Omit<Obligation,'id'>
 }
-export async function ingestFinanceReference(companyId:string,projectId:string|undefined,raw:unknown,source='fluxodre'){const items=list<ObligationInput>(raw),current=await obligations(companyId),accepted:Obligation[]=[];for(let i=0;i<Math.min(items.length,500);i++){const n=normalizedObligation(companyId,projectId,items[i],source,i);if(!n)continue;const old=matchFinanceObligation(current,n);if(old){const identity=mergeFinanceObligationIdentity(old,n),updated={...old,...n,...identity,createdAt:old.createdAt,updatedAt:now()};await db.update(table(companyId,'obligations'),[{id:old.id,record:updated as unknown as Record<string,unknown>}]);const record={...updated,id:old.id};accepted.push(record);const at=current.findIndex(x=>x.id===old.id);if(at>=0)current[at]=record}else{const[id]=await db.add(table(companyId,'obligations'),[n as unknown as Record<string,unknown>]);if(id){const record={...n,id};accepted.push(record);current.push(record)}}}if(accepted.length)await emitIntegrationEvent({type:'finance.obligations.ingested',companyId,projectId,source,payload:{received:items.length,accepted:accepted.length}});return{received:items.length,accepted:accepted.length}}
+function obligationAuditState(value:Record<string,unknown>){
+  return{
+    amountCents:Number(value.amountCents||0),
+    dueDate:txt(value.dueDate)||undefined,
+    competence:txt(value.competence)||undefined,
+    category:txt(value.category)||undefined,
+    sourceType:txt(value.sourceType)||'payable',
+    beneficiaryName:txt(value.beneficiaryName)||undefined,
+    description:txt(value.description)||undefined,
+    canonicalEntity:txt(value.canonicalEntity)||'conta',
+    canonicalId:txt(value.canonicalId)||undefined,
+    originModule:txt(value.originModule)||'unknown',
+    originEntity:txt(value.originEntity)||undefined,
+    originId:txt(value.originId)||undefined,
+    originLabel:txt(value.originLabel)||undefined
+  }
+}
+export async function ingestFinanceReference(companyId:string,projectId:string|undefined,raw:unknown,source='fluxodre'){
+  const items=list<ObligationInput>(raw),current=await obligations(companyId),accepted:Obligation[]=[]
+  for(let i=0;i<Math.min(items.length,500);i++){
+    const n=normalizedObligation(companyId,projectId,items[i],source,i)
+    if(!n)continue
+    const old=matchFinanceObligation(current,n)
+    if(old){
+      const identity=mergeFinanceObligationIdentity(old,n),updated={...old,...n,...identity,createdAt:old.createdAt,updatedAt:now()},before=obligationAuditState(old as unknown as Record<string,unknown>),after=obligationAuditState(updated as unknown as Record<string,unknown>)
+      await db.update(table(companyId,'obligations'),[{id:old.id,record:updated as unknown as Record<string,unknown>}])
+      if(JSON.stringify(before)!==JSON.stringify(after))await writePlatformAudit({action:'FINANCE_OBLIGATION_UPDATED',actorUserId:'system:'+source,companyId,projectId,entity:'finance_obligation',entityId:old.id,source:'finance',metadata:buildFinanceChangeAudit('obligation',before,after)})
+      const record={...updated,id:old.id};accepted.push(record);const at=current.findIndex(x=>x.id===old.id);if(at>=0)current[at]=record
+    }else{
+      const[id]=await db.add(table(companyId,'obligations'),[n as unknown as Record<string,unknown>])
+      if(id){const record={...n,id};accepted.push(record);current.push(record)}
+    }
+  }
+  if(accepted.length)await emitIntegrationEvent({type:'finance.obligations.ingested',companyId,projectId,source,payload:{received:items.length,accepted:accepted.length}})
+  return{received:items.length,accepted:accepted.length}
+}
 export async function ingestSummaryFinanceReference(companyId:string,projectId:string|undefined,summary:unknown){const s=obj(summary),mods=obj(s.modules),finance=obj(mods.finance),rh=obj(mods.rh),dre=obj(mods.dre),candidates:[unknown,string][]=[[finance.obligations,'summary.finance.obligations'],[finance.payables,'summary.finance.payables'],[finance.entries,'summary.finance.entries'],[rh.payrollItems,'summary.rh.payrollItems'],[rh.payments,'summary.rh.payments'],[rh.payroll,'summary.rh.payroll'],[dre.obligations,'summary.dre.obligations']];let accepted=0;for(const [raw,source] of candidates)if(Array.isArray(raw))accepted+=(await ingestFinanceReference(companyId,projectId,raw,source)).accepted;return{accepted}}
 function allocationTotals(ms:Match[]){const byOb=new Map<string,number>(),byTx=new Map<string,number>();for(const m of ms)for(const a of m.allocations){byOb.set(a.obligationId,(byOb.get(a.obligationId)||0)+a.amountCents);byTx.set(m.transactionId,(byTx.get(m.transactionId)||0)+a.amountCents)}return{byOb,byTx}}
 function nameScore(txDesc:string,name:string){const stop=new Set(['PIX','PAGAMENTO','PAGTO','TRANSFERENCIA','TRANSF','LTDA','ME','EPP','SA']);const a=normalize(name).split(' ').filter(x=>x.length>=3&&!stop.has(x)),d=normalize(txDesc);if(!a.length)return 0;return a.filter(x=>d.includes(x)).length/a.length}
