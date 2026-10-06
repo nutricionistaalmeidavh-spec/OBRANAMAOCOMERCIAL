@@ -63,3 +63,37 @@ describe('Local × LAN canonical domain equivalence', () => {
       .toEqual(lan.payroll.pending(competencia).map((x:any) => [x.quinzena, x.valor_centavos]))
   })
 })
+
+
+describe('Local × LAN payroll overview equivalence', () => {
+  it('projeta a mesma matriz gerencial para dados equivalentes', () => {
+    const local = localFixture()
+    const lan = lanFixture()
+    const competencia = '2026-11'
+
+    local.payroll.getEmployee({ funcionario_id: local.employee.id, competencia })
+    lan.payroll.getEmployee({ funcionario_id: lan.employee.id, competencia })
+    local.payroll.saveVariable({ funcionario_id: local.employee.id, competencia, tipo: 'diaria', descricao: 'Diária', natureza: 'credito', quinzena: 1, valor_centavos: 12000 })
+    lan.payroll.saveVariable({ funcionario_id: lan.employee.id, competencia, tipo: 'diaria', descricao: 'Diária', natureza: 'credito', quinzena: 1, valor_centavos: 12000 })
+
+    const localOverview = local.payroll.overview({ competencia })
+    const lanOverview = lan.payroll.overview({ competencia })
+    expect(localOverview.employees.map((row:any)=>({
+      nome:row.funcionario_nome,
+      remuneracao:row.remuneracao,
+      beneficios:row.beneficios,
+      descontos:row.descontos,
+      encargos:row.encargos,
+      total:row.total_funcionario_centavos,
+      custo:row.custo_empresa_centavos
+    }))).toEqual(lanOverview.employees.map((row:any)=>({
+      nome:row.funcionario_nome,
+      remuneracao:row.remuneracao,
+      beneficios:row.beneficios,
+      descontos:row.descontos,
+      encargos:row.encargos,
+      total:row.total_funcionario_centavos,
+      custo:row.custo_empresa_centavos
+    })))
+  })
+})
