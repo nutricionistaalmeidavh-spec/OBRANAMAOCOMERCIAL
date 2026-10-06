@@ -171,13 +171,25 @@ export class FinanceService {
   syncAccounts({ companyId, workId }) {
     this.assertSyncScope({ companyId, workId })
     return this.db.prepare(`
-      SELECT c.*,f.nome AS beneficiary,
+      SELECT c.*,f.nome AS beneficiary,cf.nome AS category_name,
         COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0) AS paid_cents
       FROM contas c
       LEFT JOIN fornecedores f ON f.id=c.fornecedor_id
+      LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
       WHERE c.empresa_id=? AND c.obra_id=? AND c.deleted_at IS NULL
       ORDER BY c.id
     `).all(Number(companyId), Number(workId))
+  }
+
+  accountSourceType(account) {
+    const category = String(account.category_name || '')
+    if (/folha de pagamento/i.test(category)) return 'payroll'
+    if (/benef[ií]cios?|vale[- ]/i.test(category)) return 'benefit'
+    if (/encargos?|impostos?|tributos?|fgts|inss|darf|das/i.test(category)) return 'tax'
+    if (account.origem_tipo === 'pedido_compra') return 'purchase'
+    if (account.origem_tipo === 'contrato') return 'contract'
+    if (account.origem_tipo === 'medicao') return 'measurement'
+    return 'payable'
   }
 
   accountProvenance(account, scope) {
@@ -267,9 +279,10 @@ export class FinanceService {
     const accounts = this.syncAccounts(scope).filter(account => account.tipo === 'pagar')
     return accounts.map(account => ({
       sourceId: `${scope.deviceId}:conta:${account.id}`,
-      sourceType: 'payable',
+      sourceType: this.accountSourceType(account),
       beneficiaryName: account.beneficiary || account.descricao,
       description: account.descricao,
+      category: account.category_name || undefined,
       amountCents: account.valor_centavos,
       dueDate: account.vencimento,
       competence: account.competencia,
