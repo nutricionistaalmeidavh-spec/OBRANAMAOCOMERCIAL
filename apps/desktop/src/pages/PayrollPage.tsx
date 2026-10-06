@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useWorkContext } from '../hooks/useWorkContext'
-import { CheckCircle2, Clock3, Edit3, Info, Plus, Trash2, UploadCloud, UserRound } from 'lucide-react'
+import { CheckCircle2, Clock3, Download, Edit3, FileText, Info, Plus, Trash2, UploadCloud, UserRound } from 'lucide-react'
 import { FormEvent, useState } from 'react'
 import { brl, competenceLabel, toCents, today } from '../utils/format'
 import { useAsync } from '../hooks/useAsync'
@@ -53,6 +53,7 @@ export default function PayrollPage(){
   const [importModal,setImportModal]=useState(false)
   const [cellDetail,setCellDetail]=useState<any>(null)
   const [message,setMessage]=useState('')
+  const [exporting,setExporting]=useState<''|'xlsx'|'pdf'>('')
   const [form,setForm]=useState<any>({tipo:'diaria',descricao:'Diária',natureza:'credito',quinzena:1,valor:''})
   const employees=useAsync(()=>window.fluxoDre.funcionarios.list({status:'ativo'}),[])
   const cargos=useAsync(()=>window.fluxoDre.cargos.list(),[])
@@ -71,6 +72,25 @@ export default function PayrollPage(){
   const selectedEmployee=employees.data?.find((item:any)=>item.id===Number(employee))
   const selectedCargo=cargos.data?.find((item:any)=>item.id===selectedEmployee?.cargo_id)
   const importCompanyId=empresaId||(companies.data?.length===1?String(companies.data[0].id):'')
+  const selectedCompany=companies.data?.find((item:any)=>item.id===Number(importCompanyId))
+  const selectedWork=works.data?.find((item:any)=>item.id===Number(obraId))
+  const exportOverview=async(format:'xlsx'|'pdf')=>{
+    setMessage('')
+    setExporting(format)
+    try{
+      const result=await window.fluxoDre.folha.exportOverview({
+        format,
+        competencia,
+        empresa_id:importCompanyId?Number(importCompanyId):null,
+        obra_id:obraId?Number(obraId):null,
+        empresa_nome:selectedCompany?.nome_fantasia||selectedCompany?.razao_social||'',
+        obra_nome:selectedWork?.nome||''
+      })
+      if(!result?.canceled)setMessage('Exportação '+(format==='xlsx'?'Excel':'PDF')+' salva em '+result.path+'.')
+    }catch(error:any){setMessage(error?.message||String(error))}
+    finally{setExporting('')}
+  }
+
 
   const openCellDetail=(row:any,column:any,value:number)=>{
     setCellDetail({
@@ -126,7 +146,7 @@ export default function PayrollPage(){
   }
 
   return <>
-    <PageHeader title="Controle de pagamento" description="Folha, benefícios, descontos, encargos e despesas da empresa por competência." actions={tab==='overview'?<Button icon={<UploadCloud size={16}/>} onClick={()=>setImportModal(true)}>Importar planilha</Button>:tab==='funcionarios'&&employee?<Button icon={<Plus size={16}/>} onClick={()=>{openVariable();setModal(true)}}>Novo variável</Button>:null}/>
+    <PageHeader title="Controle de pagamento" description="Folha, benefícios, descontos, encargos e despesas da empresa por competência." actions={tab==='overview'?<div className="header-actions payroll-overview-actions"><Button variant="secondary" icon={<Download size={15}/>} disabled={!!exporting} onClick={()=>exportOverview('xlsx')}>{exporting==='xlsx'?'Exportando...':'Excel'}</Button><Button variant="secondary" icon={<FileText size={15}/>} disabled={!!exporting} onClick={()=>exportOverview('pdf')}>{exporting==='pdf'?'Exportando...':'PDF'}</Button><Button icon={<UploadCloud size={16}/>} onClick={()=>setImportModal(true)}>Importar planilha</Button></div>:tab==='funcionarios'&&employee?<Button icon={<Plus size={16}/>} onClick={()=>{openVariable();setModal(true)}}>Novo variável</Button>:null}/>
     <div className="toolbar payroll-tabs"><Segmented value={tab} onChange={setTab} options={[{value:'overview',label:'Visão geral'},{value:'funcionarios',label:'Funcionários'},{value:'empresa',label:'Encargos da empresa'},{value:'pendentes',label:'Pendentes'}]}/></div>
     {tab==='overview'?<Card className="payroll-overview-filter"><Field label="Competência"><input type="month" value={competencia} onChange={event=>setCompetencia(event.target.value)}/></Field><Field label="Empresa"><select value={empresaId} onChange={event=>update({empresaId:event.target.value})}><option value="">Todas</option>{companies.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome_fantasia||item.razao_social}</option>)}</select></Field><Field label="Obra"><select value={obraId} onChange={event=>update({obraId:event.target.value})}><option value="">Todas as obras</option>{works.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field></Card>:<Card className="payroll-filter"><Field label="Funcionário" wide><select value={employee} onChange={event=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((cargo:any)=>cargo.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><div className="readonly-person">{competenceLabel(competencia)}</div></Field></Card>}
 
