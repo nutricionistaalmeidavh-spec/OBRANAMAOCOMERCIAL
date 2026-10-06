@@ -50,3 +50,59 @@
   .route-rh-remuneracao .benefit-config{grid-template-columns:1fr}
   .route-rh-remuneracao .section-heading{align-items:flex-start;flex-direction:column}
 }
+
+
+/* Payroll overview — spreadsheet direction */
+.route-rh-folha .payroll-overview-filter{display:grid;grid-template-columns:170px minmax(220px,1fr) minmax(220px,1fr);gap:12px;align-items:end;padding:14px 16px;background:linear-gradient(145deg,#fff,#f8faff)}
+.route-rh-folha .payroll-overview-card{overflow:hidden;padding:0}
+.route-rh-folha .payroll-overview-intro{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 17px;border-bottom:1px solid #e4e9f2;background:#fff}
+.route-rh-folha .payroll-overview-intro h2{margin:0;color:#111a33;font-size:13px;letter-spacing:-.015em}
+.route-rh-folha .payroll-overview-intro p{margin:4px 0 0;color:#748097;font-size:9px;line-height:1.45}
+.route-rh-folha .payroll-overview-intro>span{flex:none;padding:6px 9px;border:1px solid #dde5f2;border-radius:8px;background:#f8faff;color:#3f4c66;font-size:9px;font-weight:750}
+.route-rh-folha .payroll-overview-wrap{max-height:calc(100vh - 330px);min-height:270px;overflow:auto;background:#fff}
+.route-rh-folha .payroll-overview-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;color:#27324a;font-variant-numeric:tabular-nums}
+.route-rh-folha .payroll-overview-table th,.route-rh-folha .payroll-overview-table td{height:34px;padding:0 9px;border-right:1px solid #e6ebf3;border-bottom:1px solid #e6ebf3;background:#fff;white-space:nowrap;text-align:right;font-size:8.5px}
+.route-rh-folha .payroll-overview-table thead th{position:sticky;top:0;z-index:6;height:30px;background:#f6f8fb;color:#42506a;font-size:8px;font-weight:760;text-align:center}
+.route-rh-folha .payroll-overview-table thead tr:nth-child(2) th{top:30px;z-index:6}
+.route-rh-folha .payroll-overview-table .payroll-overview-sticky{position:sticky;left:0;z-index:4;width:190px;min-width:190px;max-width:190px;text-align:left;box-shadow:1px 0 0 #dde4ee}
+.route-rh-folha .payroll-overview-table thead .payroll-overview-sticky{z-index:9;background:#f3f6fa}
+.route-rh-folha .payroll-overview-person{padding:6px 10px!important}
+.route-rh-folha .payroll-overview-person strong{display:block;max-width:168px;overflow:hidden;text-overflow:ellipsis;color:#17213b;font-size:9px}
+.route-rh-folha .payroll-overview-person small{display:block;margin-top:2px;max-width:168px;overflow:hidden;text-overflow:ellipsis;color:#8a95a8;font-size:7.5px;font-weight:500}
+.route-rh-folha .overview-group{height:28px!important;font-weight:800!important}
+.route-rh-folha .overview-group.remuneracao,.route-rh-folha .overview-subhead.remuneracao{background:#eef4ff}
+.route-rh-folha .overview-group.beneficios,.route-rh-folha .overview-subhead.beneficios{background:#f0f8f3}
+.route-rh-folha .overview-group.descontos,.route-rh-folha .overview-subhead.descontos{background:#fff1f2}
+.route-rh-folha .overview-group.encargos,.route-rh-folha .overview-subhead.encargos{background:#f4f1ff}
+.route-rh-folha .overview-total-head,.route-rh-folha .overview-cost-head{min-width:104px;background:#eef3fb!important;color:#18315c!important}
+.route-rh-folha .overview-cost-head{background:#eaf1fb!important}
+.route-rh-folha .payroll-overview-cell{display:block;width:100%;min-width:72px;margin:0;padding:8px 7px;border:0;border-radius:5px;background:transparent;color:#253451;font:inherit;font-weight:650;text-align:right;cursor:pointer;transition:background 120ms,color 120ms,box-shadow 120ms}
+.route-rh-folha .payroll-overview-cell:hover,.route-rh-folha .payroll-overview-cell:focus-visible{outline:0;background:#eef4ff;color:#0b59f5;box-shadow:inset 0 0 0 1px #d2e0fb}
+.route-rh-folha .payroll-overview-cell.is-discount{color:#bf3040}
+.route-rh-folha .payroll-overview-cell.is-discount:hover{background:#fff0f1;color:#a5192b;box-shadow:inset 0 0 0 1px #f5cfd4}
+.route-rh-folha .payroll-overview-empty{color:#a5afbf;text-align:center!important}
+.route-rh-folha .payroll-overview-total-cell,.route-rh-folha .payroll-overview-cost-cell{min-width:104px;color:#14213d;font-weight:820;background:#fbfcfe!important}
+.route-rh-folha .payroll-overview-cost-cell{background:#f7faff!important}
+.route-rh-folha .payroll-overview-section-row th{position:sticky;left:0;z-index:3;height:30px;padding:0 11px;background:#f2f4f8!important;color:#38445c;text-align:left;font-size:8.5px;text-transform:uppercase;letter-spacing:.045em}
+.route-rh-folha .payroll-overview-company-space{color:#8a95a8!important;background:#fbfcfe!important;text-align:left!important;font-size:8px!important}
+.route-rh-folha .payroll-overview-company-cell{min-width:104px;color:#17213b;font-weight:800}
+.route-rh-folha .payroll-overview-total th,.route-rh-folha .payroll-overview-total td{position:sticky;bottom:0;z-index:5;height:36px;background:#f4f7fc!important;border-top:1px solid #ced8e8;color:#17305f;font-weight:850}
+.route-rh-folha .payroll-overview-total .payroll-overview-sticky{z-index:8;background:#eef3fb!important}
+.route-rh-folha .payroll-overview-table tbody tr:not(.payroll-overview-section-row):not(.payroll-overview-total):hover>td,.route-rh-folha .payroll-overview-table tbody tr:not(.payroll-overview-section-row):not(.payroll-overview-total):hover>th{background:#fcfdff}
+
+.payroll-source-detail{display:grid;gap:14px}
+.payroll-source-heading{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px;border:1px solid #e0e7f1;border-radius:12px;background:#f8faff}
+.payroll-source-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:#eaf1ff;color:#1557e8}
+.payroll-source-heading strong{display:block;color:#17213b;font-size:10px}
+.payroll-source-heading small{display:block;margin-top:3px;color:#7b879a;font-size:8px}
+.payroll-source-heading b{color:#17213b;font-size:12px;font-variant-numeric:tabular-nums}
+.payroll-source-list{display:grid;gap:7px}
+.payroll-source-row{padding:10px 11px;border:1px solid #e4e9f1;border-radius:10px;background:#fff}
+.payroll-source-row strong{display:block;color:#26324a;font-size:9px}
+.payroll-source-row small{display:block;margin-top:3px;color:#7f8a9d;font-size:8px;line-height:1.4}
+.payroll-source-actions{display:flex;justify-content:flex-end;gap:8px;padding-top:2px}
+
+@media(max-width:980px){
+  .route-rh-folha .payroll-overview-filter{grid-template-columns:1fr}
+  .route-rh-folha .payroll-overview-wrap{max-height:calc(100vh - 390px)}
+}
