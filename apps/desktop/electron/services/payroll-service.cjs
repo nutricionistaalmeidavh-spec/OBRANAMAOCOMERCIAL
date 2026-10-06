@@ -1,4 +1,4 @@
-const { payrollAmount, payrollPendingRows } = require('./domain-core.cjs')
+const { payrollAmount, payrollPendingRows, buildPayrollOverview } = require('./domain-core.cjs')
 
 class PayrollService {
   constructor({ db }) { this.db = db }
@@ -87,6 +87,45 @@ class PayrollService {
       this.db.db.prepare("UPDATE folha_lancamentos SET status='pago',updated_at=CURRENT_TIMESTAMP WHERE folha_id=? AND funcionario_id=? AND quinzena=? AND status='pendente'").run(sheet.id, employee.id, quinzena)
       return payment
     })()
+  }
+
+  overview(payload = {}) {
+    const competencia = String(payload.competencia || '')
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)) throw new Error('Competência inválida para a visão geral da folha.')
+    const empresaId = Number(payload.empresa_id) || null
+    const obraId = Number(payload.obra_id) || null
+
+    const employeeWhere = ["deleted_at IS NULL", "status='ativo'"]
+    const employeeParams = []
+    if (empresaId) { employeeWhere.push('empresa_id=?'); employeeParams.push(empresaId) }
+    if (obraId) { employeeWhere.push('obra_atual_id=?'); employeeParams.push(obraId) }
+    const employees = this.db.db.prepare(`SELECT * FROM funcionarios WHERE ${employeeWhere.join(' AND ')} ORDER BY nome COLLATE NOCASE`).all(...employeeParams)
+    const benefits = this.db.db.prepare('SELECT * FROM beneficios WHERE ativo=1 ORDER BY nome COLLATE NOCASE').all()
+    const employeeEntries = employees.map(employee => {
+      const data = this.getEmployee({ funcionario_id: employee.id, competencia })
+      return { employee: data.employee, cargo: data.cargo, launches: data.launches }
+    })
+
+    const accountWhere = ["c.deleted_at IS NULL", "c.tipo='pagar'", 'c.competencia=?']
+    const accountParams = [competencia]
+    if (empresaId) { accountWhere.push('c.empresa_id=?'); accountParams.push(empresaId) }
+    if (obraId) { accountWhere.push('c.obra_id=?'); accountParams.push(obraId) }
+    const accounts = this.db.db.prepare(`
+      SELECT c.*, cf.nome AS categoria_nome
+      FROM contas c
+      LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
+      WHERE ${accountWhere.join(' AND ')}
+      ORDER BY c.vencimento, c.descricao COLLATE NOCASE, c.id
+    `).all(...accountParams)
+
+    return buildPayrollOverview({
+      competencia,
+      empresa_id: empresaId,
+      obra_id: obraId,
+      employeeEntries,
+      accounts,
+      benefits
+    })
   }
 
   pending(competencia) {
