@@ -228,7 +228,7 @@ class PayrollExportService {
         const size=header?7:7.5
         let display=text
         while(display.length>2 && font.widthOfTextAtSize(display,size)>width-8) display=display.slice(0,-1)
-        if(display!==text) display=display.slice(0,-1)+'…'
+        if(display!==text) display=display.slice(0,-3)+'...'
         page.drawText(display,{x:x+4,y:ctx.y-10,size,font,color:dark})
         x+=width
       }
