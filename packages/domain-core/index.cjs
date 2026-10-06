@@ -65,6 +65,11 @@ function classifyPayrollOverviewLaunch(launch, catalog) {
   const benefit = launchBenefit(launch, catalog)
   const benefitType = normalizeLabel(benefit?.tipo)
   const benefitName = normalizeLabel(benefit?.nome || launch?.descricao)
+  if (tipo.startsWith('beneficio_importado_')) {
+    if (tipo.endsWith('_alimentacao')) return 'beneficios.alimentacao'
+    if (tipo.endsWith('_transporte')) return 'beneficios.transporte'
+    return 'beneficios.outros'
+  }
   if (benefit || (natureza !== 'desconto' && /(aliment|refeic|cafe|transp)/.test(benefitName))) {
     if (/(aliment|refeic|cafe)/.test(benefitType) || /(aliment|refeic|cafe)/.test(benefitName)) return 'beneficios.alimentacao'
     if (/transp/.test(benefitType) || /transp/.test(benefitName)) return 'beneficios.transporte'
@@ -212,8 +217,9 @@ function buildPayrollOverview({
 }
 
 function payrollAmount(rows = []) {
-  const credits = rows.filter(row => row.natureza === 'credito').reduce((sum, row) => sum + money(row.valor_centavos), 0)
-  const discounts = rows.filter(row => row.natureza === 'desconto').reduce((sum, row) => sum + money(row.valor_centavos), 0)
+  const payableRows = rows.filter(row => !classifyPayrollOverviewLaunch(row, new Map()).startsWith('encargos.'))
+  const credits = payableRows.filter(row => row.natureza === 'credito').reduce((sum, row) => sum + money(row.valor_centavos), 0)
+  const discounts = payableRows.filter(row => row.natureza === 'desconto').reduce((sum, row) => sum + money(row.valor_centavos), 0)
   return Math.max(0, credits - discounts)
 }
 
@@ -305,6 +311,7 @@ function paymentStatus(account, paid) {
 
 module.exports = {
   PAYROLL_OVERVIEW_COLUMNS,
+  classifyPayrollOverviewLaunch,
   payrollOverviewEmployeeRow,
   payrollOverviewCompanyExpenseRows,
   buildPayrollOverview,
