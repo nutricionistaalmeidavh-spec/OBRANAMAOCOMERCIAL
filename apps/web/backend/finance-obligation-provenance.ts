@@ -65,3 +65,10 @@ export function mergeFinanceProvenance(existing:FinanceProvenance,incoming:Finan
   const origin=preferExistingOrigin?a:b
   return normalizeFinanceProvenance({...canonical,...origin} as Record<string,unknown>)
 }
+
+
+export function mergeFinanceObligationIdentity(existing:ObligationIdentity,incoming:ObligationIdentity):FinanceProvenance&{sourceKey?:string}{
+  const provenance=mergeFinanceProvenance(existing,incoming)
+  const sourceKey=clean(existing.sourceKey)||clean(incoming.sourceKey)
+  return sourceKey?{...provenance,sourceKey}:provenance
+}
