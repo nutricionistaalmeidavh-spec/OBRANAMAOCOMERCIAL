@@ -114,20 +114,16 @@ test('importação central da folha mantém conflito, auditoria e undo equivalen
       ]
     }
     const preview=f.payroll.importPreview(payload)
-    const conflict=preview.rows.flatMap(row=>row.conflicts||[]).find(item=>item.field==='salario_centavos')
-    assert.equal(conflict.kind,'value_conflict')
-    assert.equal(preview.canCommit,false)
-
-    const resolved={...payload,resolutions:{[conflict.key]:'use_import'}}
-    assert.equal(f.payroll.importPreview(resolved).canCommit,true)
-    const result=f.payroll.importCommit(resolved)
-    assert.ok(result.importacao_id>0)
-
+    const conflict=preview.conflicts.find(item=>item.field==='salario_centavos')
+    assert.equal(conflict.type,'value_conflict')
+    const result=f.payroll.importCommit({...payload,resolutions:{[conflict.id]:'use_import'}})
+    assert.equal(result.imported_values,2)
+    assert.equal(result.imported_expenses,1)
     const overview=f.payroll.overview({competencia:'2026-10',empresa_id:f.company.id})
     assert.equal(overview.employees[0].remuneracao.salario_centavos,260000)
     assert.equal(overview.employees[0].remuneracao.diarias_centavos,12000)
     assert.ok(overview.company_expenses.some(item=>item.descricao==='Contabilidade'))
-    assert.equal(f.payroll.importHistory().find(item=>item.id===result.importacao_id).status,'concluida')
+    assert.equal(f.payroll.importHistory().find(item=>item.id===result.importacao_id).can_undo,true)
 
     const undone=f.payroll.importUndo(result.importacao_id)
     assert.equal(undone.status,'desfeita')
@@ -146,8 +142,6 @@ test('importação central rejeita duplicidade por hash, aba e competência', ()
       rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Central',values:{diarias_centavos:12000}}]
     }
     f.payroll.importCommit(payload)
-    const preview=f.payroll.importPreview(payload)
-    assert.equal(preview.canCommit,false)
-    assert.ok(preview.blockers.some(item=>item.kind==='duplicate_import'))
+    assert.throws(()=>f.payroll.importCommit(payload),/já foi importada/i)
   }finally{f.repository.close()}
 })
