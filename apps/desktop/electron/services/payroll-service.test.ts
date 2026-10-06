@@ -127,6 +127,8 @@ describe('importação da visão geral da folha',()=>{
       rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Teste',values:{diarias_centavos:12000}}]
     }
     payroll.importCommit(payload)
-    expect(()=>payroll.importCommit(payload)).toThrow(/já foi importada/i)
+    const duplicate=payroll.importPreview(payload)
+    expect(duplicate.blockers.some((item:any)=>item.kind==='duplicate_import')).toBe(true)
+    expect(duplicate.canCommit).toBe(false)
   })
 })
