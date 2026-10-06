@@ -7,6 +7,7 @@ import {
 } from './finance-robustness'
 
 describe('finance robustness P4', () => {
+  // RED contract: F13/F14 must not pass before the robustness helpers exist.
   it('F13 snapshots confirmer, bank transaction, allocations, confidence and obligation origins', () => {
     const snapshot=buildMatchAuditSnapshot({
       actorUserId:'user-7',
