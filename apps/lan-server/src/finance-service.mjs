@@ -88,7 +88,8 @@ export class FinanceService {
       params.obra_id = Number(obra_id)
     }
     return this.db.prepare(`
-      SELECT c.competencia,c.tipo,COALESCE(cf.grupo_dre,'operacional') grupo,COALESCE(cf.nome,'Sem categoria') categoria,SUM(c.valor_centavos) valor
+      SELECT c.competencia,c.tipo,COALESCE(cf.grupo_dre,'operacional') grupo,COALESCE(cf.nome,'Sem categoria') categoria,SUM(c.valor_centavos) valor,
+        SUM(COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0)) valor_realizado
       FROM contas c LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
       WHERE ${clauses.join(' AND ')}
       GROUP BY c.competencia,c.tipo,grupo,categoria
