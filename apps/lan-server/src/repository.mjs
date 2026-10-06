@@ -61,12 +61,14 @@ const TABLE_FIELDS = {
   cargo_beneficios: new Set(['empresa_id', 'cargo_id', 'beneficio_id', 'valor_centavos', 'quinzena', 'natureza', 'ativo']),
   funcionario_beneficios: new Set(['empresa_id', 'funcionario_id', 'beneficio_id', 'valor_centavos', 'inicio', 'fim']),
   folhas_pagamento: new Set(['empresa_id', 'competencia', 'status', 'fechada_em', 'conta_id']),
-  folha_lancamentos: new Set(['empresa_id', 'folha_id', 'funcionario_id', 'tipo', 'descricao', 'natureza', 'quinzena', 'valor_centavos', 'quantidade', 'data', 'origem', 'editavel', 'status']),
+  folha_lancamentos: new Set(['empresa_id', 'folha_id', 'funcionario_id', 'tipo', 'descricao', 'natureza', 'quinzena', 'valor_centavos', 'quantidade', 'data', 'origem', 'editavel', 'status', 'importacao_linha_id']),
   pagamentos_funcionario: new Set(['empresa_id', 'funcionario_id', 'folha_id', 'competencia', 'quinzena', 'valor_centavos', 'data', 'status', 'observacoes', 'forma_pagamento', 'confirmado_em']),
   pontos_mensais: new Set(['empresa_id', 'funcionario_id', 'competencia', 'status', 'preenchimento_automatico', 'jornada_inicio', 'intervalo_inicio', 'intervalo_fim', 'jornada_fim']),
   ponto_marcacoes: new Set(['empresa_id', 'ponto_mensal_id', 'data', 'tipo', 'entrada', 'intervalo_saida', 'intervalo_entrada', 'saida', 'observacoes']),
   epis: new Set(['empresa_id', 'nome', 'ca', 'unidade', 'ativo']),
-  funcionario_epis: new Set(['empresa_id', 'funcionario_id', 'epi_id', 'data_entrega', 'quantidade', 'data_devolucao', 'quantidade_devolvida', 'observacoes'])
+  funcionario_epis: new Set(['empresa_id', 'funcionario_id', 'epi_id', 'data_entrega', 'quantidade', 'data_devolucao', 'quantidade_devolvida', 'observacoes']),
+  importacoes: new Set(['arquivo','hash','aba','status','resumo','concluida_em']),
+  importacao_linhas: new Set(['importacao_id','competencia','celula','tipo','nome_origem','valor_centavos','dados_brutos','entidade_tipo','entidade_id','status'])
 }
 
 const TABLE_META = {
@@ -123,7 +125,9 @@ const TABLE_META = {
   pontos_mensais: { softDelete: false, updatedAt: true, order: 'competencia DESC, id DESC' },
   ponto_marcacoes: { softDelete: false, updatedAt: true, order: 'data, id' },
   epis: { softDelete: false, updatedAt: false, order: 'nome COLLATE NOCASE, id' },
-  funcionario_epis: { softDelete: false, updatedAt: false, order: 'data_entrega DESC, id DESC' }
+  funcionario_epis: { softDelete: false, updatedAt: false, order: 'data_entrega DESC, id DESC' },
+  importacoes: { softDelete: false, updatedAt: false, order: 'id DESC' },
+  importacao_linhas: { softDelete: false, updatedAt: false, order: 'id DESC' }
 }
 
 const SCHEMA = `

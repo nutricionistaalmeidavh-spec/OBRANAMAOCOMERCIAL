@@ -1,7 +1,16 @@
-const { payrollAmount, payrollPendingRows } = require('./domain-core.cjs')
+const { payrollAmount, payrollPendingRows, buildPayrollOverview, createPayrollImportEngine, classifyPayrollOverviewLaunch } = require('./domain-core.cjs')
+
 
 class PayrollService {
-  constructor({ db }) { this.db = db }
+  constructor({ db }) {
+    this.db = db
+    this.importEngine = createPayrollImportEngine({
+      db: db.db,
+      save: (table,data) => db.save(table,data),
+      get: (table,id) => db.get(table,id),
+      ensureSheet: (employeeId,competencia) => this.ensureSheet(employeeId,competencia)
+    })
+  }
 
   ensureSheet(employeeId, competencia) {
     const employee = this.db.get('funcionarios', Number(employeeId))
@@ -29,10 +38,14 @@ class PayrollService {
       benefitMap.delete(benefit.beneficio_id)
     }
     for (const benefit of benefitMap.values()) fixed.push(benefit)
+    const benefitCatalog = new Map(this.db.db.prepare("SELECT id,nome,tipo FROM beneficios WHERE ativo=1").all().map(item=>[Number(item.id),item]))
+    const importedKeys = new Set(this.db.db.prepare("SELECT * FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND origem='importacao'").all(sheet.id,employee.id).map(item=>classifyPayrollOverviewLaunch(item,benefitCatalog)))
     const find = this.db.db.prepare("SELECT id FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND tipo=? AND origem='cargo'")
     const insert = this.db.db.prepare("INSERT INTO folha_lancamentos(folha_id,funcionario_id,tipo,descricao,natureza,quinzena,valor_centavos,origem,editavel,status,updated_at) VALUES (?,?,?,?,?,?,?,?,0,'pendente',CURRENT_TIMESTAMP)")
-    const update = this.db.db.prepare("UPDATE folha_lancamentos SET descricao=?,natureza=?,quinzena=?,valor_centavos=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pendente'")
+    const update = this.db.db.prepare("UPDATE folha_lancamentos SET descricao=?,natureza=?,quinzena=?,valor_centavos=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pendente' AND importacao_linha_id IS NULL")
     for (const item of fixed) {
+      const key = classifyPayrollOverviewLaunch(item,benefitCatalog)
+      if (importedKeys.has(key)) continue
       const current = find.get(sheet.id, employee.id, item.tipo)
       if (current) update.run(item.descricao, item.natureza, item.quinzena, item.valor, current.id)
       else insert.run(sheet.id, employee.id, item.tipo, item.descricao, item.natureza, item.quinzena, item.valor, 'cargo')
@@ -88,6 +101,50 @@ class PayrollService {
       return payment
     })()
   }
+
+  overview(payload = {}) {
+    const competencia = String(payload.competencia || '')
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)) throw new Error('Competência inválida para a visão geral da folha.')
+    const empresaId = Number(payload.empresa_id) || null
+    const obraId = Number(payload.obra_id) || null
+
+    const employeeWhere = ["deleted_at IS NULL", "status='ativo'"]
+    const employeeParams = []
+    if (empresaId) { employeeWhere.push('empresa_id=?'); employeeParams.push(empresaId) }
+    if (obraId) { employeeWhere.push('obra_atual_id=?'); employeeParams.push(obraId) }
+    const employees = this.db.db.prepare(`SELECT * FROM funcionarios WHERE ${employeeWhere.join(' AND ')} ORDER BY nome COLLATE NOCASE`).all(...employeeParams)
+    const benefits = this.db.db.prepare('SELECT * FROM beneficios WHERE ativo=1 ORDER BY nome COLLATE NOCASE').all()
+    const employeeEntries = employees.map(employee => {
+      const data = this.getEmployee({ funcionario_id: employee.id, competencia })
+      return { employee: data.employee, cargo: data.cargo, launches: data.launches }
+    })
+
+    const accountWhere = ["c.deleted_at IS NULL", "c.tipo='pagar'", 'c.competencia=?']
+    const accountParams = [competencia]
+    if (empresaId) { accountWhere.push('c.empresa_id=?'); accountParams.push(empresaId) }
+    if (obraId) { accountWhere.push('c.obra_id=?'); accountParams.push(obraId) }
+    const accounts = this.db.db.prepare(`
+      SELECT c.*, cf.nome AS categoria_nome
+      FROM contas c
+      LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
+      WHERE ${accountWhere.join(' AND ')}
+      ORDER BY c.vencimento, c.descricao COLLATE NOCASE, c.id
+    `).all(...accountParams)
+
+    return buildPayrollOverview({
+      competencia,
+      empresa_id: empresaId,
+      obra_id: obraId,
+      employeeEntries,
+      accounts,
+      benefits
+    })
+  }
+
+  importPreview(payload) { return this.importEngine.preview(payload) }
+  importCommit(payload) { return this.importEngine.commit(payload) }
+  importHistory(limit) { return this.importEngine.history(limit) }
+  importUndo(importacaoId) { return this.importEngine.undo(importacaoId) }
 
   pending(competencia) {
     const employees = this.db.db.prepare("SELECT * FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome COLLATE NOCASE").all()

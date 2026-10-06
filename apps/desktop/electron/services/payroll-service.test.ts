@@ -45,3 +45,138 @@ describe('folha automática por cargo',()=>{
     expect(()=>payroll.confirm({funcionario_id:employee.id,competencia:'2026-08',quinzena:1,data:'2026-08-15'})).toThrow(/confirmada/i)
   })
 })
+
+
+describe('visão geral da folha',()=>{
+  it('consolida lançamentos e despesas da empresa por competência sem duplicar a própria folha',()=>{
+    const {db,payroll,employee}=setup()
+    payroll.getEmployee({funcionario_id:employee.id,competencia:'2026-10'})
+    payroll.saveVariable({funcionario_id:employee.id,competencia:'2026-10',tipo:'vale_salario',descricao:'Vale / adiantamento',natureza:'credito',quinzena:2,valor_centavos:50000})
+    const category=db.save('categorias_financeiras',{nome:'Impostos teste',natureza:'despesa',grupo_dre:'operacional',ativa:1})
+    const companyId=db.get('funcionarios',employee.id).empresa_id
+    db.save('contas',{tipo:'pagar',empresa_id:companyId,categoria_id:category.id,descricao:'DAS Simples Nacional',competencia:'2026-10',vencimento:'2026-10-20',valor_bruto_centavos:435000,valor_centavos:435000,status:'pendente'})
+    db.save('contas',{tipo:'pagar',empresa_id:companyId,categoria_id:category.id,descricao:'Folha Funcionário Teste',competencia:'2026-10',vencimento:'2026-10-05',valor_bruto_centavos:318000,valor_centavos:318000,status:'pendente',origem_tipo:'folha_pagamento'})
+
+    const overview=payroll.overview({competencia:'2026-10',empresa_id:companyId})
+    expect(overview.contract_version).toBe(1)
+    expect(overview.employees).toHaveLength(1)
+    expect(overview.employees[0].remuneracao.salario_centavos).toBe(250000)
+    expect(overview.employees[0].remuneracao.vale_adiantamento_centavos).toBe(50000)
+    expect(overview.employees[0].beneficios.alimentacao_centavos).toBe(18000)
+    expect(overview.company_expenses.map((item:any)=>item.descricao)).toEqual(['DAS Simples Nacional'])
+    expect(overview.totals.custo_competencia_centavos).toBe(753000)
+  })
+})
+
+
+describe('importação da visão geral da folha',()=>{
+  it('faz prévia com conflito, grava nas fontes canônicas e desfaz com segurança',()=>{
+    const {db,payroll,employee}=setup()
+    const companyId=db.get('funcionarios',employee.id).empresa_id
+    const payload={
+      competencia:'2026-10',empresa_id:companyId,obra_id:null,
+      file:{name:'folha-outubro.xlsx',hash:'hash-payroll-local',sheet:'Folha'},
+      mode:'template',
+      rows:[
+        {id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Teste',cpf:'',values:{salario_centavos:260000,vale_adiantamento_centavos:50000}},
+        {id:'row-3',row_number:3,cell:'Folha!3',kind:'expense',descricao:'Simples Nacional',categoria:'Impostos',valor_centavos:435000,vencimento:'2026-10-20'}
+      ]
+    }
+    const preview=payroll.importPreview(payload)
+    const salaryConflict=preview.conflicts.find((item:any)=>item.field==='salario_centavos')
+    expect(salaryConflict?.type).toBe('value_conflict')
+    expect(preview.stats.expense_rows).toBe(1)
+
+    const result=payroll.importCommit({...payload,resolutions:{[salaryConflict.id]:'use_import'}})
+    expect(result.imported_values).toBe(2)
+    expect(result.imported_expenses).toBe(1)
+
+    const overview=payroll.overview({competencia:'2026-10',empresa_id:companyId})
+    expect(overview.employees[0].remuneracao.salario_centavos).toBe(260000)
+    expect(overview.employees[0].remuneracao.vale_adiantamento_centavos).toBe(50000)
+    expect(overview.company_expenses.some((item:any)=>item.descricao==='Simples Nacional')).toBe(true)
+    expect(payroll.importHistory().find((item:any)=>item.id===result.importacao_id)?.can_undo).toBe(true)
+
+    const undone=payroll.importUndo(result.importacao_id)
+    expect(undone.status).toBe('desfeita')
+    const restored=payroll.overview({competencia:'2026-10',empresa_id:companyId})
+    expect(restored.employees[0].remuneracao.salario_centavos).toBe(250000)
+    expect(restored.employees[0].remuneracao.vale_adiantamento_centavos).toBe(0)
+    expect(restored.company_expenses.some((item:any)=>item.descricao==='Simples Nacional')).toBe(false)
+  })
+
+  it('não oferece sobrescrita para valor já pago',()=>{
+    const {db,payroll,employee}=setup()
+    const companyId=db.get('funcionarios',employee.id).empresa_id
+    payroll.getEmployee({funcionario_id:employee.id,competencia:'2026-11'})
+    payroll.confirm({funcionario_id:employee.id,competencia:'2026-11',quinzena:1,data:'2026-11-15'})
+    const preview=payroll.importPreview({
+      competencia:'2026-11',empresa_id:companyId,file:{name:'x.xlsx',hash:'h-paid',sheet:'Folha'},
+      rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Teste',values:{salario_centavos:270000}}]
+    })
+    const conflict=preview.conflicts.find((item:any)=>item.field==='salario_centavos')
+    expect(conflict.type).toBe('paid_value_conflict')
+    expect(conflict.options.map((item:any)=>item.value)).not.toContain('use_import')
+  })
+
+  it('não permite importar o mesmo arquivo e aba duas vezes na mesma competência',()=>{
+    const {db,payroll,employee}=setup()
+    const companyId=db.get('funcionarios',employee.id).empresa_id
+    const payload={
+      competencia:'2026-12',empresa_id:companyId,file:{name:'x.xlsx',hash:'same-hash',sheet:'Folha'},
+      rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Teste',values:{diarias_centavos:12000}}]
+    }
+    payroll.importCommit(payload)
+    const duplicate=payroll.importPreview(payload)
+    expect(duplicate.blockers.some((item:any)=>item.kind==='duplicate_import')).toBe(true)
+    expect(duplicate.canCommit).toBe(false)
+  })
+})
+
+
+describe('importação guardada — criação e restauração',()=>{
+  it('cria funcionário somente após resolução explícita e o remove no undo quando continua sem outros vínculos',()=>{
+    const {db,payroll,employee}=setup()
+    const companyId=db.get('funcionarios',employee.id).empresa_id
+    const payload={
+      competencia:'2027-01',empresa_id:companyId,file:{name:'novos.xlsx',hash:'new-employee-hash',sheet:'Folha'},
+      rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Novo Colaborador',cpf:'12345678901',values:{salario_centavos:210000}}]
+    }
+    const preview=payroll.importPreview(payload)
+    const conflict=preview.conflicts.find((item:any)=>item.kind==='employee_not_found')
+    expect(conflict).toBeTruthy()
+    expect(preview.canCommit).toBe(false)
+
+    const resolved={...payload,resolutions:{[conflict.id]:'create'}}
+    expect(payroll.importPreview(resolved).canCommit).toBe(true)
+    const result=payroll.importCommit(resolved)
+    const created=db.db.prepare("SELECT * FROM funcionarios WHERE nome='Novo Colaborador' AND deleted_at IS NULL").get()
+    expect(created).toBeTruthy()
+    expect(payroll.overview({competencia:'2027-01',empresa_id:companyId}).employees.find((row:any)=>row.funcionario_id===created.id)?.remuneracao.salario_centavos).toBe(210000)
+
+    payroll.importUndo(result.importacao_id)
+    expect(db.db.prepare("SELECT * FROM funcionarios WHERE id=? AND deleted_at IS NULL").get(created.id)).toBeUndefined()
+  })
+
+  it('atualiza conta existente somente após escolha explícita e restaura exatamente no undo',()=>{
+    const {db,payroll,employee}=setup()
+    const companyId=db.get('funcionarios',employee.id).empresa_id
+    const category=db.db.prepare("SELECT * FROM categorias_financeiras WHERE nome='Serviços terceiros'").get()
+    const account=db.save('contas',{tipo:'pagar',empresa_id:companyId,categoria_id:category.id,descricao:'Contabilidade',competencia:'2027-02',vencimento:'2027-02-20',valor_bruto_centavos:80000,valor_centavos:80000,status:'pendente'})
+    const payload={
+      competencia:'2027-02',empresa_id:companyId,file:{name:'despesas.xlsx',hash:'expense-update-hash',sheet:'Folha'},
+      rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'expense',descricao:'Contabilidade',categoria:'Serviços terceiros',valor_centavos:85000,vencimento:'2027-02-20'}]
+    }
+    const preview=payroll.importPreview(payload)
+    const conflict=preview.conflicts.find((item:any)=>item.kind==='expense_conflict')
+    expect(conflict).toBeTruthy()
+    const result=payroll.importCommit({...payload,resolutions:{[conflict.id]:'use_import'}})
+    expect(db.get('contas',account.id).valor_centavos).toBe(85000)
+
+    payroll.importUndo(result.importacao_id)
+    const restored=db.get('contas',account.id)
+    expect(restored.valor_centavos).toBe(80000)
+    expect(restored.origem_tipo||null).toBeNull()
+    expect(restored.origem_id||null).toBeNull()
+  })
+})
