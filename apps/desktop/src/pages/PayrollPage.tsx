@@ -99,6 +99,28 @@ export default function PayrollPage(){
   const confirm=async(quinzena:number)=>{setMessage('');try{const result:any=await window.fluxoDre.folha.confirm({funcionario_id:Number(employee),competencia,quinzena,data:today(),forma_pagamento:'PIX'});setVersion(v=>v+1);if(quinzena===1)setMessage(result?.documentError?'Pagamento confirmado, mas os documentos mensais não foram gerados: '+result.documentError:'Pagamento confirmado. A ficha de ponto e os recibos mensais foram gerados juntos na pasta do mês.');else setMessage(`${quinzena}ª quinzena confirmada e registrada.`)}catch(error:any){setMessage(error?.message||String(error))}}
   const VariableRows=({items}:{items:any[]})=><div className="variable-list">{items.filter(row=>row.editavel).map((row:any)=><div className="variable-row" key={row.id}><div><strong>{row.descricao}</strong><small>{row.natureza==='desconto'?'Desconto variável':'Crédito variável'}</small></div><span className={row.natureza==='desconto'?'amount-negative':'amount-positive'}>{brl(row.valor_centavos)}</span>{row.status!=='pago'&&<div className="row-actions"><button className="icon-button" onClick={()=>{openVariable(row);setModal(true)}}><Edit3 size={14}/></button><button className="icon-button danger-icon" onClick={async()=>{await window.fluxoDre.folha.removeVariable(row.id);setVersion(v=>v+1)}}><Trash2 size={14}/></button></div>}</div>)}</div>
 
+  const OverviewMatrix=()=>{
+    if(overview.loading)return <Card><Loading label="Consolidando folha e despesas da competência..."/></Card>
+    const data=overview.data
+    if(!data)return <Card><Empty title="Não foi possível carregar a visão geral" description="Revise a competência e tente novamente."/></Card>
+    if(!data.employees?.length&&!data.company_expenses?.length)return <Card><Empty title="Sem dados nesta competência" description="A visão geral será preenchida a partir da folha e das contas a pagar."/></Card>
+    return <Card className="payroll-overview-card">
+      <div className="payroll-overview-intro"><div><h2>Visão geral da competência</h2><p>Valores consolidados da folha e das despesas da empresa. Clique em uma célula com valor para ver sua origem.</p></div><span>{competenceLabel(competencia)}</span></div>
+      <div className="payroll-overview-wrap"><table className="payroll-overview-table">
+        <thead>
+          <tr><th rowSpan={2} className="payroll-overview-sticky">Funcionário / despesa</th>{overviewGroups.map(group=><th key={group.key} colSpan={group.columns.length} className={'overview-group '+group.key}>{group.label}</th>)}<th rowSpan={2} className="overview-total-head">Total funcionário</th><th rowSpan={2} className="overview-cost-head">Custo empresa</th></tr>
+          <tr>{overviewGroups.flatMap(group=>group.columns.map(column=><th key={column.key} className={'overview-subhead '+group.key}>{column.label}</th>))}</tr>
+        </thead>
+        <tbody>
+          {data.employees.map((row:any)=><tr key={row.funcionario_id}><th className="payroll-overview-sticky payroll-overview-person"><strong>{row.funcionario_nome}</strong><small>{row.cargo_nome||'Sem cargo'}</small></th>{overviewColumns.map(column=><SmartCell key={column.key} row={row} column={column}/>)}<td className="payroll-overview-total-cell">{brl(row.total_funcionario_centavos)}</td><td className="payroll-overview-cost-cell">{brl(row.custo_empresa_centavos)}</td></tr>)}
+          <tr className="payroll-overview-section-row"><th colSpan={overviewColumns.length+3}>Despesas da empresa</th></tr>
+          {data.company_expenses.map((row:any)=><tr key={'expense-'+row.id}><th className="payroll-overview-sticky payroll-overview-person"><strong>{row.descricao}</strong><small>{row.categoria_nome||'Outras despesas'}</small></th><td colSpan={overviewColumns.length} className="payroll-overview-company-space">Conta a pagar da competência</td><td className="payroll-overview-empty">—</td><td><button className="payroll-overview-cell payroll-overview-company-cell" onClick={()=>openCompanyExpenseDetail(row)} title="Ver origem do valor">{brl(row.valor_centavos)}</button></td></tr>)}
+          <tr className="payroll-overview-total"><th className="payroll-overview-sticky">TOTAL DA COMPETÊNCIA</th>{overviewColumns.map(column=><td key={column.key}>{overviewMoney(Number(data.totals?.by_column_centavos?.[column.key]||0),column.group)}</td>)}<td>{brl(data.totals?.total_funcionarios_centavos||0)}</td><td>{brl(data.totals?.custo_competencia_centavos||0)}</td></tr>
+        </tbody>
+      </table></div>
+    </Card>
+  }
+
   return <>
     <PageHeader title="Controle de pagamento" description="Folha, benefícios, descontos, encargos e despesas da empresa por competência." actions={tab==='funcionarios'&&employee&&<Button icon={<Plus size={16}/>} onClick={()=>{openVariable();setModal(true)}}>Novo variável</Button>}/>
     <div className="toolbar payroll-tabs"><Segmented value={tab} onChange={setTab} options={[{value:'overview',label:'Visão geral'},{value:'funcionarios',label:'Funcionários'},{value:'empresa',label:'Encargos da empresa'},{value:'pendentes',label:'Pendentes'}]}/></div>
