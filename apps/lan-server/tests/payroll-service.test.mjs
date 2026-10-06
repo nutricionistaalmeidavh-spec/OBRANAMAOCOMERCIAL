@@ -78,3 +78,25 @@ test('pending central preserva a regra local: segunda quinzena só existe quando
     assert.equal(pending2.some(item => item.funcionario_id === inactive.id), false)
   } finally { f.repository.close() }
 })
+
+
+test('visão geral central consolida folha e contas da competência com o mesmo contrato', () => {
+  const f = fixture()
+  try {
+    f.payroll.getEmployee({ funcionario_id: f.employee.id, competencia: '2026-10' })
+    f.payroll.saveVariable({ funcionario_id: f.employee.id, competencia: '2026-10', tipo: 'vale_salario', descricao: 'Vale / adiantamento', natureza: 'credito', quinzena: 2, valor_centavos: 50000 })
+    const category = f.repository.save('categorias_financeiras', { empresa_id:f.company.id, nome:'Impostos overview', natureza:'despesa', grupo_dre:'operacional', ativa:1 })
+    const folhaCategory = f.repository.save('categorias_financeiras', { empresa_id:f.company.id, nome:'Folha de pagamento', natureza:'despesa', grupo_dre:'operacional', ativa:1 })
+    f.repository.save('contas', { empresa_id:f.company.id, tipo:'pagar', categoria_id:category.id, descricao:'DAS Simples Nacional', competencia:'2026-10', vencimento:'2026-10-20', valor_bruto_centavos:435000, valor_centavos:435000, status:'pendente' })
+    f.repository.save('contas', { empresa_id:f.company.id, tipo:'pagar', categoria_id:folhaCategory.id, descricao:'Folha Funcionário Central', competencia:'2026-10', vencimento:'2026-10-05', valor_bruto_centavos:318000, valor_centavos:318000, status:'pendente' })
+
+    const overview = f.payroll.overview({ competencia:'2026-10', empresa_id:f.company.id })
+    assert.equal(overview.contract_version, 1)
+    assert.equal(overview.employees.length, 1)
+    assert.equal(overview.employees[0].remuneracao.salario_centavos, 250000)
+    assert.equal(overview.employees[0].remuneracao.vale_adiantamento_centavos, 50000)
+    assert.equal(overview.employees[0].beneficios.alimentacao_centavos, 18000)
+    assert.deepEqual(overview.company_expenses.map(item => item.descricao), ['DAS Simples Nacional'])
+    assert.equal(overview.totals.custo_competencia_centavos, 753000)
+  } finally { f.repository.close() }
+})
