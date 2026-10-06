@@ -197,6 +197,10 @@ class LanDataClient {
     return this.request('POST', '/api/v1/rh/catalog/compensation-policy', { body: payload })
   }
 
+  async payrollOverview(payload) {
+    return this.request('POST', '/api/v1/rh/payroll/overview', { body: payload })
+  }
+
   async payrollEmployee(payload) {
     return this.request('POST', '/api/v1/rh/payroll/employee', { body: payload })
   }
