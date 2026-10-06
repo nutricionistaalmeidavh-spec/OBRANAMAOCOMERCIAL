@@ -22,11 +22,11 @@ class LocalSyncDataProvider {
 
   get db() { return this.database.db }
 
-  accountProvenance(account) {
+  accountProvenance(account, scope) {
     const sheet = this.db.prepare('SELECT id,competencia FROM folhas_pagamento WHERE conta_id=? AND empresa_id=? LIMIT 1').get(account.id, account.empresa_id)
     if (sheet) return {
       canonicalEntity: 'conta',
-      canonicalId: String(account.id),
+      canonicalId: `local:${scope.deviceId}:${account.id}`,
       originModule: 'rh',
       originEntity: 'folhas_pagamento',
       originId: String(sheet.id),
@@ -43,7 +43,7 @@ class LocalSyncDataProvider {
     const mapped = mappings[String(account.origem_tipo || '')]
     if (mapped && account.origem_id != null) return {
       canonicalEntity: 'conta',
-      canonicalId: String(account.id),
+      canonicalId: `local:${scope.deviceId}:${account.id}`,
       originModule: mapped[0],
       originEntity: mapped[1],
       originId: String(account.origem_id),
@@ -52,7 +52,7 @@ class LocalSyncDataProvider {
     }
     return {
       canonicalEntity: 'conta',
-      canonicalId: String(account.id),
+      canonicalId: `local:${scope.deviceId}:${account.id}`,
       originModule: 'finance',
       originEntity: 'contas',
       originId: String(account.id),
@@ -146,7 +146,7 @@ class LocalSyncDataProvider {
         projectId: scope.remoteProjectId,
         status: account.deleted_at ? 'cancelled' : account.status,
         sourceUpdatedAt: account.updated_at || account.created_at,
-        ...this.accountProvenance(account)
+        ...this.accountProvenance(account, scope)
       }))
   }
 
