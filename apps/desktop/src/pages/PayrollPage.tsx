@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useWorkContext } from '../hooks/useWorkContext'
-import { CalendarDays, CheckCircle2, Clock3, Edit3, Plus, Trash2, UserRound, WalletCards } from 'lucide-react'
-import { FormEvent, useMemo, useState } from 'react'
+import { CheckCircle2, Clock3, Edit3, Info, Plus, Trash2, UserRound } from 'lucide-react'
+import { FormEvent, useState } from 'react'
 import { brl, competenceLabel, toCents, today } from '../utils/format'
 import { useAsync } from '../hooks/useAsync'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal, PageHeader, Segmented, Status } from '../components/ui'
@@ -15,6 +15,33 @@ const variables=[
   {tipo:'falta',descricao:'Falta',natureza:'desconto'},
   {tipo:'outro_desconto',descricao:'Outro desconto',natureza:'desconto'}
 ]
+
+const overviewGroups=[
+  {key:'remuneracao',label:'Remuneração',columns:[
+    {key:'remuneracao.salario',label:'Salário',field:'salario_centavos'},
+    {key:'remuneracao.vale_adiantamento',label:'Vale / adiant.',field:'vale_adiantamento_centavos'},
+    {key:'remuneracao.diarias',label:'Diárias',field:'diarias_centavos'},
+    {key:'remuneracao.empreitas',label:'Empreitas',field:'empreitas_centavos'},
+    {key:'remuneracao.outros',label:'Outros',field:'outros_centavos'}
+  ]},
+  {key:'beneficios',label:'Benefícios',columns:[
+    {key:'beneficios.alimentacao',label:'Alimentação',field:'alimentacao_centavos'},
+    {key:'beneficios.transporte',label:'Transporte',field:'transporte_centavos'},
+    {key:'beneficios.outros',label:'Outros',field:'outros_centavos'}
+  ]},
+  {key:'descontos',label:'Descontos',columns:[
+    {key:'descontos.faltas',label:'Faltas',field:'faltas_centavos'},
+    {key:'descontos.outros',label:'Outros',field:'outros_centavos'}
+  ]},
+  {key:'encargos',label:'Encargos',columns:[
+    {key:'encargos.inss',label:'INSS',field:'inss_centavos'},
+    {key:'encargos.fgts',label:'FGTS',field:'fgts_centavos'},
+    {key:'encargos.outros',label:'Outros',field:'outros_centavos'}
+  ]}
+]
+const overviewColumns=overviewGroups.flatMap(group=>group.columns.map(column=>({...column,group:group.key})))
+const overviewValue=(row:any,column:any)=>Number(row?.[column.group]?.[column.field]||0)
+const overviewMoney=(value:number,group?:string)=>value===0?'—':brl(group==='descontos'?-Math.abs(value):value)
 
 export default function PayrollPage(){
   const [tab,setTab]=useState('funcionarios')
