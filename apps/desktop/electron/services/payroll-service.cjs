@@ -1,7 +1,15 @@
-const { payrollAmount, payrollPendingRows, buildPayrollOverview } = require('./domain-core.cjs')
+const { payrollAmount, payrollPendingRows, buildPayrollOverview, createPayrollImportEngine, classifyPayrollOverviewLaunch } = require('./domain-core.cjs')
 
 class PayrollService {
-  constructor({ db }) { this.db = db }
+  constructor({ db }) {
+    this.db = db
+    this.importEngine = createPayrollImportEngine({
+      db: db.db,
+      save: (table,data) => db.save(table,data),
+      get: (table,id) => db.get(table,id),
+      ensureSheet: (employeeId,competencia) => this.ensureSheet(employeeId,competencia)
+    })
+  }
 
   ensureSheet(employeeId, competencia) {
     const employee = this.db.get('funcionarios', Number(employeeId))
@@ -29,10 +37,14 @@ class PayrollService {
       benefitMap.delete(benefit.beneficio_id)
     }
     for (const benefit of benefitMap.values()) fixed.push(benefit)
+    const benefitCatalog = new Map(this.db.db.prepare("SELECT id,nome,tipo FROM beneficios WHERE ativo=1").all().map(item=>[Number(item.id),item]))
+    const importedKeys = new Set(this.db.db.prepare("SELECT * FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND origem='importacao'").all(sheet.id,employee.id).map(item=>classifyPayrollOverviewLaunch(item,benefitCatalog)))
     const find = this.db.db.prepare("SELECT id FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND tipo=? AND origem='cargo'")
     const insert = this.db.db.prepare("INSERT INTO folha_lancamentos(folha_id,funcionario_id,tipo,descricao,natureza,quinzena,valor_centavos,origem,editavel,status,updated_at) VALUES (?,?,?,?,?,?,?,?,0,'pendente',CURRENT_TIMESTAMP)")
     const update = this.db.db.prepare("UPDATE folha_lancamentos SET descricao=?,natureza=?,quinzena=?,valor_centavos=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pendente'")
     for (const item of fixed) {
+      const key = classifyPayrollOverviewLaunch(item,benefitCatalog)
+      if (importedKeys.has(key)) continue
       const current = find.get(sheet.id, employee.id, item.tipo)
       if (current) update.run(item.descricao, item.natureza, item.quinzena, item.valor, current.id)
       else insert.run(sheet.id, employee.id, item.tipo, item.descricao, item.natureza, item.quinzena, item.valor, 'cargo')
@@ -127,6 +139,11 @@ class PayrollService {
       benefits
     })
   }
+
+  importPreview(payload) { return this.importEngine.preview(payload) }
+  importCommit(payload) { return this.importEngine.commit(payload) }
+  importHistory(limit) { return this.importEngine.history(limit) }
+  importUndo(importacaoId) { return this.importEngine.undo(importacaoId) }
 
   pending(competencia) {
     const employees = this.db.db.prepare("SELECT * FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome COLLATE NOCASE").all()
