@@ -17,6 +17,8 @@ describe('RH → Financeiro → DRE parity UX',()=>{
     expect(financeSource).toContain('Total previsto na competência')
     expect(financeSource).toContain('Pago')
     expect(financeSource).toContain('Em aberto')
+    expect(financeSource).toContain('conta(s) com baixa')
+    expect(financeSource).not.toContain('liquidada(s)')
   })
 
   it('DRE exposes competência and realizado side by side',()=>{
