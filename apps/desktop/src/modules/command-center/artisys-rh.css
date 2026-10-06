@@ -173,3 +173,11 @@
   .payroll-import-setup,.payroll-import-stats{grid-template-columns:1fr 1fr}
   .payroll-import-conflict{grid-template-columns:1fr}
 }
+
+
+/* Payroll overview export — phases 9-10 */
+.route-rh-folha .payroll-overview-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:760px){
+  .route-rh-folha .payroll-overview-actions{width:100%;justify-content:flex-start}
+  .route-rh-folha .payroll-overview-actions .button{flex:1 1 auto}
+}
