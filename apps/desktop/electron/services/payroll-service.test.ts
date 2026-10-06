@@ -45,3 +45,26 @@ describe('folha automática por cargo',()=>{
     expect(()=>payroll.confirm({funcionario_id:employee.id,competencia:'2026-08',quinzena:1,data:'2026-08-15'})).toThrow(/confirmada/i)
   })
 })
+
+
+describe('visão geral da folha',()=>{
+  it('consolida lançamentos e despesas da empresa por competência sem duplicar a própria folha',()=>{
+    const {db,payroll,employee}=setup()
+    payroll.getEmployee({funcionario_id:employee.id,competencia:'2026-10'})
+    payroll.saveVariable({funcionario_id:employee.id,competencia:'2026-10',tipo:'vale_salario',descricao:'Vale / adiantamento',natureza:'credito',quinzena:2,valor_centavos:50000})
+    const category=db.save('categorias_financeiras',{nome:'Impostos teste',natureza:'despesa',grupo_dre:'operacional',ativa:1})
+    const folhaCategory=db.save('categorias_financeiras',{nome:'Folha de pagamento',natureza:'despesa',grupo_dre:'operacional',ativa:1})
+    const companyId=db.get('funcionarios',employee.id).empresa_id
+    db.save('contas',{tipo:'pagar',empresa_id:companyId,categoria_id:category.id,descricao:'DAS Simples Nacional',competencia:'2026-10',vencimento:'2026-10-20',valor_bruto_centavos:435000,valor_centavos:435000,status:'pendente'})
+    db.save('contas',{tipo:'pagar',empresa_id:companyId,categoria_id:folhaCategory.id,descricao:'Folha Funcionário Teste',competencia:'2026-10',vencimento:'2026-10-05',valor_bruto_centavos:318000,valor_centavos:318000,status:'pendente'})
+
+    const overview=payroll.overview({competencia:'2026-10',empresa_id:companyId})
+    expect(overview.contract_version).toBe(1)
+    expect(overview.employees).toHaveLength(1)
+    expect(overview.employees[0].remuneracao.salario_centavos).toBe(250000)
+    expect(overview.employees[0].remuneracao.vale_adiantamento_centavos).toBe(50000)
+    expect(overview.employees[0].beneficios.alimentacao_centavos).toBe(18000)
+    expect(overview.company_expenses.map((item:any)=>item.descricao)).toEqual(['DAS Simples Nacional'])
+    expect(overview.totals.custo_competencia_centavos).toBe(753000)
+  })
+})
