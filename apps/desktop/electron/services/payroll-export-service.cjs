@@ -46,7 +46,7 @@ function applyExcelHeader(cell) {
 }
 
 function applyExcelMoney(cell, discount = false) {
-  cell.numFmt = discount ? '-"R$" #,##0.00' : '"R$" #,##0.00'
+  cell.numFmt = '"R$" #,##0.00;-"R$" #,##0.00'
   cell.alignment = { horizontal:'right' }
 }
 
@@ -184,7 +184,6 @@ class PayrollExportService {
 
     sheet.getColumn(1).width=34
     for(let index=2;index<=totalColumns;index++) sheet.getColumn(index).width=index>=totalColumns-1?18:15
-    sheet.eachRow(row=>{row.alignment={vertical:'middle'}})
     await workbook.xlsx.writeFile(filePath)
 
     return {
@@ -254,7 +253,9 @@ class PayrollExportService {
     for(const group of GROUPS){
       const columns=PAYROLL_OVERVIEW_COLUMNS.filter(item=>columnGroup(item.key)===group.key)
       ctx=newPage(group.label,filterLine(payload,overview))
-      const widths=[190,...columns.map(()=>95),105,105]
+      const usable=pageSize[0]-(margin*2)
+      const moneyWidth=Math.max(68,Math.floor((usable-170-190)/Math.max(1,columns.length)))
+      const widths=[170,...columns.map(()=>moneyWidth),95,95]
       drawRow(ctx,['Funcionário',...columns.map(item=>item.label),'Total funcionário','Custo empresa'],widths,{header:true})
       for(const employee of overview.employees||[]){
         ctx=ensure(ctx,lineHeight+12,group.label,filterLine(payload,overview))
