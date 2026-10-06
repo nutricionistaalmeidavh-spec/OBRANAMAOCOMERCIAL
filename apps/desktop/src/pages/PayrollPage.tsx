@@ -44,15 +44,19 @@ const overviewValue=(row:any,column:any)=>Number(row?.[column.group]?.[column.fi
 const overviewMoney=(value:number,group?:string)=>value===0?'—':brl(group==='descontos'?-Math.abs(value):value)
 
 export default function PayrollPage(){
-  const [tab,setTab]=useState('funcionarios')
-  const { competencia } = useWorkContext()
+  const [tab,setTab]=useState('overview')
+  const { competencia, empresaId, obraId, update, setCompetencia } = useWorkContext()
   const [employee,setEmployee]=useState('')
   const [version,setVersion]=useState(0)
   const [modal,setModal]=useState(false)
+  const [cellDetail,setCellDetail]=useState<any>(null)
   const [message,setMessage]=useState('')
   const [form,setForm]=useState<any>({tipo:'diaria',descricao:'Diária',natureza:'credito',quinzena:1,valor:''})
   const employees=useAsync(()=>window.fluxoDre.funcionarios.list({status:'ativo'}),[])
   const cargos=useAsync(()=>window.fluxoDre.cargos.list(),[])
+  const companies=useAsync(()=>window.fluxoDre.empresas.list({status:'ativa'}),[])
+  const works=useAsync(()=>window.fluxoDre.obras.list(empresaId?{empresa_id:Number(empresaId)}:{}),[empresaId])
+  const overview=useAsync(()=>window.fluxoDre.folha.overview({competencia,empresa_id:empresaId?Number(empresaId):null,obra_id:obraId?Number(obraId):null}),[competencia,empresaId,obraId,version])
   const pending=useAsync(()=>window.fluxoDre.folha.pending(competencia),[competencia,version])
   const payroll=useAsync(()=>employee?window.fluxoDre.folha.employee({funcionario_id:Number(employee),competencia}):Promise.resolve(null),[employee,competencia,version])
   const rows=payroll.data?.launches||[]
@@ -64,6 +68,30 @@ export default function PayrollPage(){
   const totalAll={credito:firstTotals.credito+secondTotals.credito,desconto:firstTotals.desconto+secondTotals.desconto}
   const selectedEmployee=employees.data?.find((item:any)=>item.id===Number(employee))
   const selectedCargo=cargos.data?.find((item:any)=>item.id===selectedEmployee?.cargo_id)
+
+  const openCellDetail=(row:any,column:any,value:number)=>{
+    setCellDetail({
+      kind:'employee',
+      title:`${row.funcionario_nome} · ${column.label}`,
+      subtitle:row.cargo_nome,
+      value,
+      employeeId:row.funcionario_id,
+      sources:row.sources?.[column.key]||[]
+    })
+  }
+  const openCompanyExpenseDetail=(row:any)=>setCellDetail({
+    kind:'company',
+    title:row.descricao,
+    subtitle:row.categoria_nome||'Despesa da empresa',
+    value:row.valor_centavos,
+    accountId:row.id,
+    sources:row.sources||[]
+  })
+  const SmartCell=({row,column}:{row:any,column:any})=>{
+    const value=overviewValue(row,column)
+    if(!value)return <td className="payroll-overview-empty">—</td>
+    return <td><button className={`payroll-overview-cell ${column.group==='descontos'?'is-discount':''}`} onClick={()=>openCellDetail(row,column,value)} title="Ver origem do valor">{overviewMoney(value,column.group)}</button></td>
+  }
 
   const openVariable=(row?:any,quinzena=1)=>{setForm(row?{...row,valor:(row.valor_centavos/100).toFixed(2).replace('.',',')}:{tipo:quinzena===2?'vale_salario':'diaria',descricao:quinzena===2?'Vale / adiantamento':'Diária',natureza:'credito',quinzena,valor:''});setModal(true)}
   const submit=async(event:FormEvent)=>{event.preventDefault();await window.fluxoDre.folha.saveVariable({...form,funcionario_id:Number(employee),competencia,valor_centavos:toCents(form.valor)});setModal(false);setVersion(v=>v+1);setMessage('Lançamento salvo.')}
