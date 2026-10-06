@@ -1,5 +1,5 @@
 import domainCore from './domain-core.cjs'
-const { payrollAmount, payrollPendingRows, buildPayrollOverview, createPayrollImportEngine, classifyPayrollOverviewLaunch } = domainCore
+const { payrollAmount, payrollPendingRows, buildPayrollOverview, createPayrollImportEngine, classifyPayrollOverviewLaunch, paymentStatus } = domainCore
 import { ConcurrencyService } from './concurrency-service.mjs'
 
 
@@ -26,10 +26,69 @@ export class PayrollService {
     let sheet = this.db.prepare('SELECT * FROM folhas_pagamento WHERE empresa_id=? AND competencia=?').get(employee.empresa_id, competencia)
     const created = !sheet
     if (!sheet) sheet = this.repository.save('folhas_pagamento', { empresa_id: employee.empresa_id, competencia, status: 'aberta' })
-    const paid = Number(this.db.prepare("SELECT COUNT(*) total FROM pagamentos_funcionario WHERE funcionario_id=? AND competencia=? AND status='pago'").get(employee.id, competencia)?.total || 0)
-    if (!paid) this.syncFixed(sheet, employee, cargo)
+    const companyEmployees = this.db.prepare("SELECT * FROM funcionarios WHERE empresa_id=? AND deleted_at IS NULL AND status='ativo' ORDER BY id").all(employee.empresa_id)
+    for (const person of companyEmployees) {
+      const paid = Number(this.db.prepare("SELECT COUNT(*) total FROM pagamentos_funcionario WHERE funcionario_id=? AND competencia=? AND status='pago'").get(person.id, competencia)?.total || 0)
+      if (!paid) this.syncFixed(sheet, person, person.cargo_id ? this.repository.get('cargos', person.cargo_id) : null)
+    }
+    sheet = this.syncPayrollAccount(sheet)
     const revision = this.concurrency.current('folhas_pagamento', sheet.id) || this.concurrency.initialize('folhas_pagamento', sheet.id)
     return { employee, cargo, sheet: { ...sheet, revision }, created }
+  }
+
+  payrollAccountAmount(sheetId) {
+    const rows = this.db.prepare("SELECT natureza,valor_centavos FROM folha_lancamentos WHERE folha_id=? AND quinzena IN (1,2)").all(sheetId)
+    return payrollAmount(rows)
+  }
+
+  syncPayrollAccount(sheet) {
+    const companyId = Number(sheet?.empresa_id || 0)
+    if (!companyId) return sheet
+    const amount = this.payrollAccountAmount(sheet.id)
+    if (amount <= 0) return sheet
+    let category = this.db.prepare("SELECT * FROM categorias_financeiras WHERE lower(nome)=lower('Folha de pagamento') LIMIT 1").get()
+    if (!category) category = this.repository.save('categorias_financeiras', { nome:'Folha de pagamento', natureza:'despesa', grupo_dre:'pessoal', ativa:1 })
+    let account = sheet.conta_id ? this.repository.get('contas', sheet.conta_id) : null
+    if (!account) account = this.db.prepare("SELECT * FROM contas WHERE empresa_id=? AND origem_tipo='folha_pagamento' AND origem_id=? AND deleted_at IS NULL LIMIT 1").get(companyId, sheet.id)
+    const paid = account ? Number(this.db.prepare('SELECT COALESCE(SUM(valor_centavos),0) total FROM pagamentos_conta WHERE conta_id=?').get(account.id)?.total || 0) : 0
+    const data = {
+      tipo:'pagar',
+      empresa_id:companyId,
+      categoria_id:category.id,
+      descricao:`Folha ${sheet.competencia}`,
+      competencia:sheet.competencia,
+      vencimento:`${sheet.competencia}-05`,
+      valor_bruto_centavos:amount,
+      valor_centavos:amount,
+      status:paid>0?paymentStatus({tipo:'pagar',valor_centavos:amount},paid):'pendente',
+      data_efetiva:paid>0?(account?.data_efetiva||null):null,
+      origem_tipo:'folha_pagamento',
+      origem_id:sheet.id
+    }
+    account = this.repository.save('contas', account ? { ...data, id:account.id } : data)
+    if (Number(sheet.conta_id || 0) !== Number(account.id)) {
+      this.db.prepare('UPDATE folhas_pagamento SET conta_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(account.id, sheet.id)
+    }
+    return this.repository.get('folhas_pagamento', sheet.id)
+  }
+
+  recordPayrollAccountPayment(sheet, payment) {
+    if (!sheet?.conta_id || Number(payment?.valor_centavos || 0) <= 0) return
+    const account = this.repository.get('contas', sheet.conta_id)
+    if (!account) return
+    const requestId = `rh-payroll-payment:${payment.id}`
+    const existing = this.db.prepare('SELECT id FROM pagamentos_conta WHERE request_id=?').get(requestId)
+    if (!existing) this.repository.save('pagamentos_conta', {
+      conta_id:account.id,
+      valor_centavos:payment.valor_centavos,
+      data:payment.data,
+      forma_pagamento:payment.forma_pagamento || 'PIX',
+      observacoes:`RH pagamento funcionário #${payment.id}`,
+      request_id:requestId
+    })
+    const paid = Number(this.db.prepare('SELECT COALESCE(SUM(valor_centavos),0) total FROM pagamentos_conta WHERE conta_id=?').get(account.id)?.total || 0)
+    const status = paymentStatus(account, paid)
+    this.db.prepare('UPDATE contas SET status=?,data_efetiva=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(status, payment.data, account.id)
   }
 
   syncFixed(sheet, employee, cargo) {
@@ -128,13 +187,17 @@ export class PayrollService {
         throw new Error('Este lançamento não pode ser alterado.')
       }
     }
-    return this.repository.save('folha_lancamentos', data)
+    const saved = this.repository.save('folha_lancamentos', data)
+    this.syncPayrollAccount(sheet)
+    return saved
   }
 
   removeVariable(id) {
     const current = this.repository.get('folha_lancamentos', Number(id))
     if (!current?.editavel || current.status === 'pago') throw new Error('Este lançamento não pode ser excluído.')
+    const sheet = this.repository.get('folhas_pagamento', current.folha_id)
     this.db.prepare('DELETE FROM folha_lancamentos WHERE id=?').run(current.id)
+    if (sheet) this.syncPayrollAccount(sheet)
     return true
   }
 
@@ -167,6 +230,7 @@ export class PayrollService {
         confirmado_em: this.now()
       })
       this.db.prepare("UPDATE folha_lancamentos SET status='pago',updated_at=CURRENT_TIMESTAMP WHERE folha_id=? AND funcionario_id=? AND quinzena=? AND status='pendente'").run(sheet.id, employee.id, quinzena)
+      this.recordPayrollAccountPayment(sheet, payment)
       const sheetRevision = created ? sheet.revision : this.concurrency.bump('folhas_pagamento', sheet.id)
       this.db.exec('COMMIT;')
       return { ...payment, sheetRevision }
@@ -220,9 +284,9 @@ export class PayrollService {
   }
 
   importPreview(payload) { return this.importEngine.preview(payload) }
-  importCommit(payload) { return this.importEngine.commit(payload) }
+  importCommit(payload) { const result=this.importEngine.commit(payload);const sheet=this.db.prepare('SELECT * FROM folhas_pagamento WHERE empresa_id=? AND competencia=?').get(payload.empresa_id,payload.competencia);if(sheet)this.syncPayrollAccount(sheet);return result }
   importHistory(limit) { return this.importEngine.history(limit) }
-  importUndo(importacaoId) { return this.importEngine.undo(importacaoId) }
+  importUndo(importacaoId) { const result=this.importEngine.undo(importacaoId);const sheets=this.db.prepare('SELECT * FROM folhas_pagamento').all();for(const sheet of sheets)this.syncPayrollAccount(sheet);return result }
 
   pending(competencia) {
     const employees = this.db.prepare("SELECT * FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome COLLATE NOCASE").all()

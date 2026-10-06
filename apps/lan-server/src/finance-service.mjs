@@ -88,7 +88,8 @@ export class FinanceService {
       params.obra_id = Number(obra_id)
     }
     return this.db.prepare(`
-      SELECT c.competencia,c.tipo,COALESCE(cf.grupo_dre,'operacional') grupo,COALESCE(cf.nome,'Sem categoria') categoria,SUM(c.valor_centavos) valor
+      SELECT c.competencia,c.tipo,COALESCE(cf.grupo_dre,'operacional') grupo,COALESCE(cf.nome,'Sem categoria') categoria,SUM(c.valor_centavos) valor,
+        SUM(COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0)) valor_realizado
       FROM contas c LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
       WHERE ${clauses.join(' AND ')}
       GROUP BY c.competencia,c.tipo,grupo,categoria
@@ -286,6 +287,7 @@ export class FinanceService {
     const stages = this.db.prepare('SELECT * FROM cronograma_etapas WHERE obra_id=? AND deleted_at IS NULL').all(Number(scope.workId))
     const rdos = this.db.prepare('SELECT * FROM rdos WHERE obra_id=? AND deleted_at IS NULL').all(Number(scope.workId))
     const paid = type => accounts.filter(row => row.tipo === type).reduce((sum, row) => sum + Number(row.paid_cents || 0), 0)
+    const competence = type => accounts.filter(row => row.tipo === type && row.status !== 'cancelado').reduce((sum,row)=>sum+Number(row.valor_centavos||0),0)
     const open = type => accounts.filter(row => row.tipo === type && !CLOSED_ACCOUNT_STATUSES.has(row.status))
     const remaining = rows => rows.reduce((sum, row) => sum + Math.max(0, Number(row.valor_centavos || 0) - Number(row.paid_cents || 0)), 0)
     const modules = {
@@ -300,6 +302,9 @@ export class FinanceService {
         finalized: rdos.filter(row => ['fechado', 'finalizado'].includes(row.status)).length
       },
       dre: {
+        competenceRevenue: competence('receber'),
+        competenceExpense: competence('pagar'),
+        competenceResult: competence('receber') - competence('pagar'),
         revenue: paid('receber'),
         expense: paid('pagar'),
         result: paid('receber') - paid('pagar')

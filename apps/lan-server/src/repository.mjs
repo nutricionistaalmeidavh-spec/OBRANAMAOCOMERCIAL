@@ -220,7 +220,8 @@ export class LanRepository {
       where.push(`${key} = ?`)
       values.push(value)
     }
-    return this.db.prepare(`SELECT * FROM ${table} WHERE ${where.join(' AND ')} ORDER BY ${meta.order}`).all(...values)
+    const select = table === 'contas' ? "contas.*,COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=contas.id),0) AS pago_centavos" : '*'
+    return this.db.prepare(`SELECT ${select} FROM ${table} WHERE ${where.join(' AND ')} ORDER BY ${meta.order}`).all(...values)
   }
 
   get(table, id) {

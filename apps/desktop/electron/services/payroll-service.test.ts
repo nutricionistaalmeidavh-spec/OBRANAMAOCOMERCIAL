@@ -180,3 +180,35 @@ describe('importação guardada — criação e restauração',()=>{
     expect(restored.origem_id||null).toBeNull()
   })
 })
+
+
+describe('integração canônica folha → financeiro',()=>{
+  it('cria uma única conta canônica da folha e registra a baixa financeira ao confirmar pagamento',()=>{
+    const {db,payroll,employee}=setup()
+    const state=payroll.getEmployee({funcionario_id:employee.id,competencia:'2026-08'})
+    const sheet=db.get('folhas_pagamento',state.sheet.id)
+    expect(sheet.conta_id).toBeTruthy()
+    const account=db.get('contas',sheet.conta_id)
+    expect(account).toMatchObject({
+      tipo:'pagar',
+      competencia:'2026-08',
+      origem_tipo:'folha_pagamento',
+      origem_id:sheet.id,
+      valor_centavos:268000
+    })
+
+    payroll.confirm({funcionario_id:employee.id,competencia:'2026-08',quinzena:1,data:'2026-08-15',forma_pagamento:'PIX'})
+    const payments=db.db.prepare('SELECT * FROM pagamentos_conta WHERE conta_id=?').all(sheet.conta_id)
+    expect(payments).toHaveLength(1)
+    expect(payments[0].valor_centavos).toBe(268000)
+    expect(db.get('contas',sheet.conta_id).status).toBe('pago')
+  })
+
+  it('recalcula a mesma conta quando um variável da competência muda antes do pagamento',()=>{
+    const {db,payroll,employee}=setup()
+    const state=payroll.getEmployee({funcionario_id:employee.id,competencia:'2026-09'})
+    const accountId=db.get('folhas_pagamento',state.sheet.id).conta_id
+    payroll.saveVariable({funcionario_id:employee.id,competencia:'2026-09',tipo:'diaria',descricao:'Diária',natureza:'credito',quinzena:1,valor_centavos:10000})
+    expect(db.get('contas',accountId).valor_centavos).toBe(278000)
+  })
+})

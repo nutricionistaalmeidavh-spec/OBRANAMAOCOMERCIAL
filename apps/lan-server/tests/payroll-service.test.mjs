@@ -147,3 +147,34 @@ test('importação central rejeita duplicidade por hash, aba e competência', ()
     assert.ok(duplicate.blockers.some(item=>item.kind==='duplicate_import'))
   }finally{f.repository.close()}
 })
+
+
+test('folha central cria conta canônica e baixa financeira com o pagamento confirmado', () => {
+  const f=fixture()
+  try{
+    const state=f.payroll.getEmployee({funcionario_id:f.employee.id,competencia:'2026-10'})
+    const sheet=f.repository.get('folhas_pagamento',state.sheet.id)
+    assert.ok(sheet.conta_id)
+    const account=f.repository.get('contas',sheet.conta_id)
+    assert.equal(account.origem_tipo,'folha_pagamento')
+    assert.equal(account.origem_id,sheet.id)
+    assert.equal(account.valor_centavos,268000)
+
+    f.payroll.confirm({funcionario_id:f.employee.id,competencia:'2026-10',quinzena:1,data:'2026-10-15',forma_pagamento:'PIX',expectedRevision:state.sheet.revision})
+    const payments=f.repository.connection().prepare('SELECT * FROM pagamentos_conta WHERE conta_id=?').all(sheet.conta_id)
+    assert.equal(payments.length,1)
+    assert.equal(payments[0].valor_centavos,268000)
+    assert.equal(f.repository.get('contas',sheet.conta_id).status,'pago')
+  }finally{f.repository.close()}
+})
+
+test('folha central mantém uma única conta e atualiza o valor quando variável muda antes do pagamento', () => {
+  const f=fixture()
+  try{
+    const state=f.payroll.getEmployee({funcionario_id:f.employee.id,competencia:'2026-11'})
+    const accountId=f.repository.get('folhas_pagamento',state.sheet.id).conta_id
+    f.payroll.saveVariable({funcionario_id:f.employee.id,competencia:'2026-11',tipo:'diaria',descricao:'Diária',natureza:'credito',quinzena:1,valor_centavos:10000,expectedRevision:state.sheet.revision})
+    assert.equal(f.repository.get('contas',accountId).valor_centavos,278000)
+    assert.equal(f.repository.connection().prepare("SELECT COUNT(*) n FROM contas WHERE origem_tipo='folha_pagamento' AND origem_id=?").get(state.sheet.id).n,1)
+  }finally{f.repository.close()}
+})

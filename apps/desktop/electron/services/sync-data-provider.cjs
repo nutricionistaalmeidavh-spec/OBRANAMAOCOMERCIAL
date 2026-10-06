@@ -158,6 +158,7 @@ class LocalSyncDataProvider {
     const stages = rows('cronograma_etapas')
     const rdos = rows('rdos')
     const paid = type => accounts.filter(row => row.tipo === type).reduce((sum, row) => sum + row.paid_cents, 0)
+    const competence = type => accounts.filter(row => row.tipo === type && row.status !== 'cancelado').reduce((sum,row)=>sum+Number(row.valor_centavos||0),0)
     const open = type => accounts.filter(row => row.tipo === type && !['pago', 'recebido', 'quitado', 'cancelado'].includes(row.status))
     const sum = items => items.reduce((total, row) => total + Math.max(0, row.valor_centavos - row.paid_cents), 0)
     const work = this.db.prepare('SELECT * FROM obras WHERE id=? AND empresa_id=?').get(scope.workId, scope.companyId)
@@ -173,7 +174,7 @@ class LocalSyncDataProvider {
         pending: rdos.filter(row => !['fechado', 'finalizado'].includes(row.status)).length,
         finalized: rdos.filter(row => ['fechado', 'finalizado'].includes(row.status)).length
       },
-      dre: { revenue: paid('receber'), expense: paid('pagar'), result: paid('receber') - paid('pagar') },
+      dre: { competenceRevenue: competence('receber'), competenceExpense: competence('pagar'), competenceResult: competence('receber') - competence('pagar'), revenue: paid('receber'), expense: paid('pagar'), result: paid('receber') - paid('pagar') },
       finance: {
         payableCents: sum(open('pagar')),
         receivableCents: sum(open('receber')),
