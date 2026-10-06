@@ -180,6 +180,45 @@ export class FinanceService {
     `).all(Number(companyId), Number(workId))
   }
 
+  accountProvenance(account) {
+    const sheet = this.db.prepare('SELECT id,competencia FROM folhas_pagamento WHERE conta_id=? AND empresa_id=? LIMIT 1').get(account.id, account.empresa_id)
+    if (sheet) return {
+      canonicalEntity: 'conta',
+      canonicalId: String(account.id),
+      originModule: 'rh',
+      originEntity: 'folhas_pagamento',
+      originId: String(sheet.id),
+      originLabel: `Folha ${sheet.competencia || ''}`.trim(),
+      originReason: 'Conta vinculada à folha de pagamento'
+    }
+    const mappings = {
+      pedido_compra: ['procurement', 'pedidos_compra', 'Pedido de compra'],
+      contrato: ['contracts', 'contratos_obra', 'Contrato'],
+      medicao: ['measurements', 'medicoes', 'Medição'],
+      importacao_2026: ['finance', 'importacoes', 'Importação financeira'],
+      importacao_universal: ['finance', 'importacoes', 'Importação universal']
+    }
+    const mapped = mappings[String(account.origem_tipo || '')]
+    if (mapped && account.origem_id != null) return {
+      canonicalEntity: 'conta',
+      canonicalId: String(account.id),
+      originModule: mapped[0],
+      originEntity: mapped[1],
+      originId: String(account.origem_id),
+      originLabel: `${mapped[2]} #${account.origem_id}`,
+      originReason: 'Conta gerada por um registro de origem do Obra na Mão'
+    }
+    return {
+      canonicalEntity: 'conta',
+      canonicalId: String(account.id),
+      originModule: 'finance',
+      originEntity: 'contas',
+      originId: String(account.id),
+      originLabel: account.descricao,
+      originReason: 'Conta a pagar registrada no Financeiro'
+    }
+  }
+
   syncSummary(scope, allowed = []) {
     const work = this.assertSyncScope(scope)
     const accounts = this.syncAccounts(scope)
@@ -235,7 +274,9 @@ export class FinanceService {
       dueDate: account.vencimento,
       competence: account.competencia,
       projectId: scope.remoteProjectId || String(scope.workId),
-      status: account.status
+      status: account.status,
+      sourceUpdatedAt: account.updated_at || account.created_at,
+      ...this.accountProvenance(account)
     }))
   }
 }
