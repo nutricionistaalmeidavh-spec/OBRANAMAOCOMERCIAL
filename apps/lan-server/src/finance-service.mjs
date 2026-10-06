@@ -287,6 +287,7 @@ export class FinanceService {
     const stages = this.db.prepare('SELECT * FROM cronograma_etapas WHERE obra_id=? AND deleted_at IS NULL').all(Number(scope.workId))
     const rdos = this.db.prepare('SELECT * FROM rdos WHERE obra_id=? AND deleted_at IS NULL').all(Number(scope.workId))
     const paid = type => accounts.filter(row => row.tipo === type).reduce((sum, row) => sum + Number(row.paid_cents || 0), 0)
+    const competence = type => accounts.filter(row => row.tipo === type && row.status !== 'cancelado').reduce((sum,row)=>sum+Number(row.valor_centavos||0),0)
     const open = type => accounts.filter(row => row.tipo === type && !CLOSED_ACCOUNT_STATUSES.has(row.status))
     const remaining = rows => rows.reduce((sum, row) => sum + Math.max(0, Number(row.valor_centavos || 0) - Number(row.paid_cents || 0)), 0)
     const modules = {
@@ -301,6 +302,9 @@ export class FinanceService {
         finalized: rdos.filter(row => ['fechado', 'finalizado'].includes(row.status)).length
       },
       dre: {
+        competenceRevenue: competence('receber'),
+        competenceExpense: competence('pagar'),
+        competenceResult: competence('receber') - competence('pagar'),
         revenue: paid('receber'),
         expense: paid('pagar'),
         result: paid('receber') - paid('pagar')
