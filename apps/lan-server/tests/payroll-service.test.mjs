@@ -142,6 +142,8 @@ test('importação central rejeita duplicidade por hash, aba e competência', ()
       rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Central',values:{diarias_centavos:12000}}]
     }
     f.payroll.importCommit(payload)
-    assert.throws(()=>f.payroll.importCommit(payload),/já foi importada/i)
+    const duplicate=f.payroll.importPreview(payload)
+    assert.equal(duplicate.canCommit,false)
+    assert.ok(duplicate.blockers.some(item=>item.kind==='duplicate_import'))
   }finally{f.repository.close()}
 })
