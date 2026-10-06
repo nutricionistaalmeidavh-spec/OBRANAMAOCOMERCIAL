@@ -86,7 +86,7 @@ test('visão geral central consolida folha e contas da competência com o mesmo 
     f.payroll.getEmployee({ funcionario_id: f.employee.id, competencia: '2026-10' })
     f.payroll.saveVariable({ funcionario_id: f.employee.id, competencia: '2026-10', tipo: 'vale_salario', descricao: 'Vale / adiantamento', natureza: 'credito', quinzena: 2, valor_centavos: 50000 })
     const category = f.repository.save('categorias_financeiras', { empresa_id:f.company.id, nome:'Impostos overview', natureza:'despesa', grupo_dre:'operacional', ativa:1 })
-    const folhaCategory = f.repository.connection().prepare("SELECT * FROM categorias_financeiras WHERE empresa_id=? AND nome='Folha de pagamento'").get(f.company.id) || f.repository.save('categorias_financeiras', { empresa_id:f.company.id, nome:'Folha de pagamento', natureza:'despesa', grupo_dre:'operacional', ativa:1 })
+    const folhaCategory = f.repository.connection().prepare("SELECT * FROM categorias_financeiras WHERE nome='Folha de pagamento'").get() || f.repository.save('categorias_financeiras', { nome:'Folha de pagamento', natureza:'despesa', grupo_dre:'operacional', ativa:1 })
     f.repository.save('contas', { empresa_id:f.company.id, tipo:'pagar', categoria_id:category.id, descricao:'DAS Simples Nacional', competencia:'2026-10', vencimento:'2026-10-20', valor_bruto_centavos:435000, valor_centavos:435000, status:'pendente' })
     f.repository.save('contas', { empresa_id:f.company.id, tipo:'pagar', categoria_id:folhaCategory.id, descricao:'Folha Funcionário Central', competencia:'2026-10', vencimento:'2026-10-05', valor_bruto_centavos:318000, valor_centavos:318000, status:'pendente' })
 
