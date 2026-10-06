@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { financialMargin, matchesAccountStatus, matchesNavigation, statusTone } from './ux'
+import { humanizeHrDocumentKey } from './hr'
 import { normalizeWorkContext } from '../hooks/useWorkContext'
 
 describe('financial indicators and account drill-down', () => {
@@ -33,5 +34,13 @@ describe('navigation and context', () => {
     expect(invalid.competencia).toMatch(/^\d{4}-(0[1-9]|1[0-2])$/)
     expect(invalid.empresaId).toBe('')
     expect(invalid.obraId).toBe('')
+  })
+})
+
+describe('RH presentation', () => {
+  it('humanizes internal document identifiers for users', () => {
+    expect(humanizeHrDocumentKey('contrato_experiencia')).toBe('Contrato de experiência')
+    expect(humanizeHrDocumentKey('ficha_registro')).toBe('Ficha de registro')
+    expect(humanizeHrDocumentKey('ordem_servico')).toBe('Ordem de serviço')
   })
 })

@@ -79,10 +79,10 @@ export default function CompensationPage(){
   }
 
   return <>
-    <PageHeader title="Cargos e remuneração" description="Defina funções, salário-base e benefícios. A Folha e pagamentos consome estes valores; ela não é o cadastro mestre."/>
+    <PageHeader title="Cargos e remuneração" description="Defina funções, salário-base e benefícios. Os valores definidos aqui são utilizados automaticamente na Folha e pagamentos."/>
 
     <Card className="compensation-owner-note">
-      <strong>Owner canônico do RH</strong>
+      <strong>Como os valores são utilizados</strong>
       <p>O catálogo de benefícios define o tipo. O valor efetivo é definido no vínculo com cada cargo e pode ter exceção individual no cadastro do funcionário.</p>
     </Card>
 

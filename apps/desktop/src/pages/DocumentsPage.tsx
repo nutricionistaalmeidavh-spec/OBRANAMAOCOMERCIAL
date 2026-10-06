@@ -6,8 +6,10 @@ import { canScanDocument, DocumentScannerModal, FileExplorer } from '../modules/
 import { brDate } from '../utils/format'
 
 export default function DocumentsPage() {
-  const [view, setView] = useState<'pastas' | 'registros'>('pastas')
+  const rhContext = new URLSearchParams(location.search).get('context') === 'rh'
+  const [view, setView] = useState<'pastas' | 'registros'>(rhContext ? 'registros' : 'pastas')
   const [tab, setTab] = useState('todos')
+  const [employee, setEmployee] = useState('')
   const [search, setSearch] = useState('')
   const [work, setWork] = useState(new URLSearchParams(location.search).get('obra') || '')
   const [front, setFront] = useState('')
@@ -33,8 +35,9 @@ export default function DocumentsPage() {
     const searchOk = doc.titulo.toLowerCase().includes(search.toLowerCase()) || doc.categoria.toLowerCase().includes(search.toLowerCase())
     const workOk = !work || String(doc.obra_id || '') === work
     const frontOk = !front || String(doc.frente_id || '') === front
-    return tabOk && searchOk && workOk && frontOk
-  }) || [], [docs.data, tab, search, work, front])
+    const employeeOk = !rhContext || (!employee ? Boolean(doc.funcionario_id) : String(doc.funcionario_id || '') === employee)
+    return tabOk && searchOk && workOk && frontOk && employeeOk
+  }) || [], [docs.data, tab, search, work, front, employee, rhContext])
   const getPath = (document: any) => files.data?.find((file: any) => file.id === document.arquivo_id)?.caminho
   const importDoc = async () => {
     const result = mode === 'funcionario'
@@ -44,12 +47,12 @@ export default function DocumentsPage() {
   }
 
   return <>
-    <PageHeader title="Central de documentos" description="Explore, organize, visualize e digitalize documentos de obra, contratos, compras e RH em um único lugar." actions={<>{!serverMode&&<Button variant="secondary" icon={<FolderOpen size={16}/>} onClick={() => window.fluxoDre.documentos.openFolder()}>Abrir pasta no Windows</Button>}{effectiveView === 'registros' && <Button icon={<FilePlus size={16}/>} disabled={!documentsActive} onClick={() => { setForm({ ...form, obra_id: work, frente_id: front }); setUpload(true) }}>Importar documento</Button>}</>}/>
+    <PageHeader title={rhContext?"Conferência de documentos de RH":"Central de documentos"} description={rhContext?"Revise, imprima e acompanhe os documentos dos colaboradores em um único lugar.":"Explore, organize, visualize e digitalize documentos de obra, contratos, compras e RH em um único lugar."} actions={<>{!serverMode&&<Button variant="secondary" icon={<FolderOpen size={16}/>} onClick={() => window.fluxoDre.documentos.openFolder()}>Abrir pasta no Windows</Button>}{effectiveView === 'registros' && <Button icon={<FilePlus size={16}/>} disabled={!documentsActive} onClick={() => { setForm({ ...form, obra_id: work, frente_id: front }); setUpload(true) }}>Importar documento</Button>}</>}/>
     {serverMode&&!documentsActive&&<div className="success-box" style={{ marginBottom: 14 }}><strong>Documentos ainda não estão ativos no servidor.</strong> Conclua a etapa Documentos em Configurações. Nenhum registro local será exibido como fallback.</div>}
     {!serverMode&&<div className="toolbar"><div className="toolbar-left"><Segmented value={view} onChange={(value) => setView(value as 'pastas' | 'registros')} options={[{ value: 'pastas', label: 'Pastas' }, { value: 'registros', label: 'Registros' }]}/></div></div>}
     {effectiveView === 'pastas' ? <FileExplorer rootId="documents" rootLabel="Documentos" documentFeatures title="Pastas de documentos" description="Navegue, visualize, organize e digitalize arquivos dentro da área documental protegida do sistema."/> : <>
       <div className="toolbar"><div className="toolbar-left"><Segmented value={tab} onChange={setTab} options={[{ value: 'todos', label: 'Todos' }, { value: 'rdo', label: 'RDO' }, { value: 'medicao', label: 'Medições' }, { value: 'contrato', label: 'Contratos' }, { value: 'compra', label: 'Compras' }, { value: 'assinado', label: 'Assinados' }]}/><SearchInput value={search} onChange={setSearch} placeholder="Buscar documentos..."/></div></div>
-      <div className="filters"><Field label="Obra"><select value={work} onChange={(event) => { setWork(event.target.value); setFront('') }}><option value="">Todas</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field><Field label="Frente"><select value={front} onChange={(event) => setFront(event.target.value)} disabled={!work}><option value="">Todas</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field></div>
+      <div className="filters">{rhContext&&<Field label="Funcionário"><select value={employee} onChange={(event)=>setEmployee(event.target.value)}><option value="">Todos os funcionários</option>{employees.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>}<Field label="Obra"><select value={work} onChange={(event) => { setWork(event.target.value); setFront('') }}><option value="">Todas</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field><Field label="Frente"><select value={front} onChange={(event) => setFront(event.target.value)} disabled={!work}><option value="">Todas</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field></div>
       {scannerSuccess && <div className="scanner-central-success" role="status"><span>{scannerSuccess}</span><button type="button" onClick={() => setScannerSuccess('')}>Fechar</button></div>}
       <Card>{docs.loading ? <Loading/> : rows.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Documento</th><th>Obra/Frente</th><th>Colaborador</th><th>Categoria</th><th>Versão</th><th>Status</th><th>Data</th><th></th></tr></thead><tbody>{rows.map((document: any) => { const filePath = getPath(document); return <tr key={document.id}><td><strong>{document.titulo}</strong></td><td>{works.data?.find((item: any) => item.id === document.obra_id)?.nome || '-'}<small>{fronts.data?.find((item: any) => item.id === document.frente_id)?.nome || ''}</small></td><td>{employees.data?.find((employee: any) => employee.id === document.funcionario_id)?.nome || '-'}</td><td>{document.categoria.replaceAll('_', ' ')}</td><td>v{document.versao}</td><td><Status value={document.status_assinatura}/></td><td>{brDate(document.created_at)}</td><td><div className="row-actions">{filePath && <><button className="icon-button" onClick={() => window.fluxoDre.documentos.open(filePath)} title="Abrir"><ExternalLink size={15}/></button><button className="icon-button" onClick={() => window.fluxoDre.documentos.reveal(filePath)} title="Localizar"><LocateFixed size={15}/></button><button className="icon-button" onClick={() => window.fluxoDre.documentos.copyPath(filePath)} title="Copiar caminho"><Copy size={15}/></button>{!serverMode && canScanDocument(document, scannerCapabilities.data) && <button className="icon-button" onClick={() => { setScannerSuccess(''); setScannerTarget({ documentId: Number(document.id), name: document.titulo }) }} title="Digitalizar versão assinada" aria-label={`Digitalizar versão assinada de ${document.titulo}`}><ScanLine size={15}/></button>}</>}<button className="icon-button" onClick={() => setRemove(document)} aria-label="Remover"><Trash2 size={15}/></button></div></td></tr> })}</tbody></table></div> : <Empty title="Nenhum documento encontrado" description="Importe documento de obra ou gere/importe documentos de RH."/>}</Card>
     </>}

@@ -3,12 +3,12 @@ import { FileDown, Printer, RotateCcw, Save, Sparkles, UsersRound } from 'lucide
 import { useEffect, useState } from 'react'
 import { Button, Card, Empty, Field, Loading, PageHeader, Status } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
-import { competenceLabel, currentCompetence, today } from '../utils/format'
+import { competenceLabel, today } from '../utils/format'
 
 const typeLabels:Record<string,string>={trabalho:'Trabalho',falta:'Falta',ferias:'Férias',feriado:'Feriado',folga:'Folga',afastado:'Afastado',sabado:'Sábado',domingo:'Domingo'}
 
 export default function TimeSheetPage(){
-  const { competencia, setCompetencia, empresaId, obraId } = useWorkContext()
+  const { competencia } = useWorkContext()
   const [employee,setEmployee]=useState('')
   const [version,setVersion]=useState(0)
   const [marks,setMarks]=useState<any[]>([])
@@ -35,14 +35,14 @@ export default function TimeSheetPage(){
   const reprintAll=async()=>{if(!selectionOk())return;setBusy(true);setMessage('');try{const result:any=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today(),reprint:true,point:printPoint,receipts:printReceipts});const failed=(result.results||[]).filter((item:any)=>!item.ok);const suffix=failed.length?' '+failed.length+' funcionário(s) não entraram no lote: '+failed.map((item:any)=>item.nome).join(', ')+'.':'';setMessage(result.canceled?'Reimpressão cancelada. Nenhum PDF duplicado foi criado.'+suffix:(result.printed?'Reimpressão enviada para a caixa de impressão com '+result.employees+' funcionário(s). Nenhum PDF duplicado foi criado.':'Nenhum lote foi reimpresso.')+suffix);setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
   return <>
     <PageHeader title="Folhas de ponto" description="Controle mensal das marcações e central de geração, impressão e reimpressão dos documentos do período."/>
-    <Card className="time-filter"><Field label="Funcionário" wide><select value={employee} onChange={(event)=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option value={item.id} key={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((role:any)=>role.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><input type="month" value={competencia} onChange={(event)=>setCompetencia(event.target.value)}/></Field></Card>
+    <Card className="time-filter"><Field label="Funcionário" wide><select value={employee} onChange={(event)=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option value={item.id} key={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((role:any)=>role.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><div className="readonly-person">{competenceLabel(competencia)}</div></Field></Card>
 
     <Card style={{margin:'14px 0',padding:16}}>
       <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:18,flexWrap:'wrap'}}>
         <div><h2 style={{margin:'0 0 5px',fontSize:15}}>Documentos da competência</h2><p style={{margin:0,maxWidth:700}}>Gere os documentos do colaborador selecionado ou abra o lote mensal para gerar, imprimir ou reimprimir todos.</p></div>
         <div className="row-actions" style={{gap:8,flexWrap:'wrap'}}>
           <Button variant="secondary" icon={<UsersRound size={16}/>} onClick={()=>setBatchOpen((value)=>!value)} disabled={busy}>Gerar e imprimir todos</Button>
-          <Button icon={<FileDown size={15}/>} onClick={generate} disabled={busy||!employee||!marks.length}>Gerar documentos</Button>
+          <Button icon={<FileDown size={15}/>} onClick={generate} disabled={busy||!employee||!marks.length}>Gerar deste funcionário</Button>
         </div>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10,marginTop:14}}>

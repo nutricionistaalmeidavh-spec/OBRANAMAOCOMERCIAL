@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useWorkContext } from '../hooks/useWorkContext'
 import { CalendarDays, CheckCircle2, Clock3, Edit3, Plus, Trash2, UserRound, WalletCards } from 'lucide-react'
 import { FormEvent, useMemo, useState } from 'react'
-import { brl, competenceLabel, currentCompetence, toCents, today } from '../utils/format'
+import { brl, competenceLabel, toCents, today } from '../utils/format'
 import { useAsync } from '../hooks/useAsync'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal, PageHeader, Segmented, Status } from '../components/ui'
 
@@ -18,7 +18,7 @@ const variables=[
 
 export default function PayrollPage(){
   const [tab,setTab]=useState('funcionarios')
-  const { competencia, setCompetencia, empresaId, obraId } = useWorkContext()
+  const { competencia } = useWorkContext()
   const [employee,setEmployee]=useState('')
   const [version,setVersion]=useState(0)
   const [modal,setModal]=useState(false)
@@ -47,7 +47,7 @@ export default function PayrollPage(){
   return <>
     <PageHeader title="Controle de pagamento" description="Valores fixos por função, lançamentos variáveis e confirmação por quinzena." actions={employee&&<Button icon={<Plus size={16}/>} onClick={()=>{openVariable();setModal(true)}}>Novo variável</Button>}/>
     <div className="toolbar payroll-tabs"><Segmented value={tab} onChange={setTab} options={[{value:'funcionarios',label:'Funcionários'},{value:'empresa',label:'Encargos da empresa'},{value:'pendentes',label:'Pendentes'}]}/></div>
-    <Card className="payroll-filter"><Field label="Funcionário" wide><select value={employee} onChange={event=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((cargo:any)=>cargo.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><input type="month" value={competencia} onChange={event=>setCompetencia(event.target.value)}/></Field></Card>
+    <Card className="payroll-filter"><Field label="Funcionário" wide><select value={employee} onChange={event=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((cargo:any)=>cargo.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><div className="readonly-person">{competenceLabel(competencia)}</div></Field></Card>
 
     {tab==='empresa'?<Card><Empty title="Encargos da empresa" description="Consulte as despesas lançadas e o resultado da competência. Revise as contas antes de confirmar os pagamentos." action={<div className="header-actions"><Link className="button button-secondary" to="/financeiro?tipo=pagar">Consultar contas a pagar</Link><Link className="button button-secondary" to="/dre">Abrir DRE</Link></div>}/></Card>:tab==='pendentes'?<Card className="pending-card"><div className="section-heading"><div><h2>Pagamentos pendentes</h2><p>Quinzenas aguardando confirmação em {competenceLabel(competencia)}.</p></div><Status value="pendente"/></div>{pending.loading?<Loading label="Preparando pagamentos fixos..."/>:pending.data?.length?<div className="table-wrap"><table><thead><tr><th>Funcionário</th><th>Cargo</th><th>Quinzena</th><th>Valor previsto</th><th>Status</th><th></th></tr></thead><tbody>{pending.data.map((item:any)=><tr key={`${item.funcionario_id}-${item.quinzena}`}><td><strong>{item.funcionario_nome}</strong></td><td>{item.cargo_nome||'Sem cargo'}</td><td>{item.quinzena}ª quinzena</td><td className="money-cell">{brl(item.valor_centavos)}</td><td><Status value="pendente"/></td><td><Button variant="secondary" onClick={()=>{setEmployee(String(item.funcionario_id));setTab('funcionarios')}}>Revisar</Button></td></tr>)}</tbody></table></div>:<Empty title="Tudo confirmado" description="Não há pagamentos pendentes nesta competência."/>}</Card>:!employee?<Card><Empty title="Selecione um funcionário" description="Os valores fixos do cargo serão preparados automaticamente para a competência escolhida."/></Card>:payroll.loading?<Card><Loading label="Preparando valores fixos e pagamentos..."/></Card>:payroll.data&&<>
       <div className="employee-payroll-banner"><span className="employee-banner-avatar">{selectedEmployee?.nome?.slice(0,1).toUpperCase()}</span><div><strong>{selectedEmployee?.nome}</strong><span>{selectedCargo?.nome||'Sem cargo'} · {competenceLabel(competencia)}</span></div><div className="banner-total"><small>Total previsto</small><b>{brl(totalAll.credito-totalAll.desconto)}</b></div></div>
