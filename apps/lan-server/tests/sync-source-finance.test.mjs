@@ -113,3 +113,49 @@ test('F11 preserves tax category semantics in the canonical obligation', async (
     assert.equal(obligation.originEntity, 'contas')
   } finally { await close(f) }
 })
+
+
+test('F11 publishes direct purchase and contract lineage from canonical accounts', async () => {
+  const f = await fixture()
+  try {
+    const supplier = f.repository.save('fornecedores', { empresa_id: f.company.id, nome: 'Fornecedor Cadeia' })
+    const purchase = f.repository.save('pedidos_compra', { obra_id: f.work.id, fornecedor_id: supplier.id, numero: 'PC-77', descricao: 'Conexões', valor_centavos: 42000, status: 'emitido' })
+    const purchaseAccount = f.repository.save('contas', { tipo: 'pagar', empresa_id: f.company.id, obra_id: f.work.id, fornecedor_id: supplier.id, descricao: 'Compra conexões', competencia: '2026-10', vencimento: '2026-10-18', valor_centavos: 42000, pedido_compra_id: purchase.id })
+    const contract = f.repository.save('contratos_obra', { obra_id: f.work.id, fornecedor_id: supplier.id, numero: 'CT-5', descricao: 'Instalação terceirizada', valor_centavos: 88000, status: 'ativo' })
+    const contractAccount = f.repository.save('contas', { tipo: 'pagar', empresa_id: f.company.id, obra_id: f.work.id, fornecedor_id: supplier.id, descricao: 'Parcela contrato', competencia: '2026-10', vencimento: '2026-10-25', valor_centavos: 88000, contrato_id: contract.id })
+
+    const obligations = f.finance.syncObligations({ companyId: f.company.id, workId: f.work.id, remoteProjectId: 'remote-project-9', deviceId: 'desktop-device-7' })
+    const purchaseObligation = obligations.find(x => x.canonicalId === `lan:${f.company.id}:${purchaseAccount.id}`)
+    const contractObligation = obligations.find(x => x.canonicalId === `lan:${f.company.id}:${contractAccount.id}`)
+    assert.equal(purchaseObligation.sourceType, 'purchase')
+    assert.equal(purchaseObligation.originModule, 'procurement')
+    assert.equal(purchaseObligation.originEntity, 'pedidos_compra')
+    assert.equal(purchaseObligation.originId, String(purchase.id))
+    assert.equal(purchaseObligation.originLabel, 'Pedido PC-77 · Conexões')
+    assert.equal(contractObligation.sourceType, 'contract')
+    assert.equal(contractObligation.originModule, 'contracts')
+    assert.equal(contractObligation.originEntity, 'contratos_obra')
+    assert.equal(contractObligation.originId, String(contract.id))
+    assert.equal(contractObligation.originLabel, 'Contrato CT-5 · Instalação terceirizada')
+  } finally { await close(f) }
+})
+
+test('F12 publishes payroll components inside the canonical account only once', async () => {
+  const f = await fixture()
+  try {
+    const category = f.finance.db.prepare("SELECT * FROM categorias_financeiras WHERE nome='Folha de pagamento'").get()
+    const employee = f.repository.save('funcionarios', { empresa_id: f.company.id, obra_atual_id: f.work.id, nome: 'João Silva', salario_centavos: 230000, status: 'ativo' })
+    const payrollAccount = f.repository.save('contas', { tipo: 'pagar', empresa_id: f.company.id, obra_id: f.work.id, categoria_id: category.id, descricao: 'Folha outubro', competencia: '2026-10', vencimento: '2026-10-05', valor_centavos: 280000 })
+    const sheet = f.repository.save('folhas_pagamento', { empresa_id: f.company.id, competencia: '2026-10', status: 'fechada', conta_id: payrollAccount.id })
+    f.repository.save('folha_lancamentos', { empresa_id: f.company.id, folha_id: sheet.id, funcionario_id: employee.id, tipo: 'salario', descricao: 'Salário', natureza: 'credito', valor_centavos: 230000, quinzena: 2, origem: 'manual', editavel: 1 })
+    f.repository.save('folha_lancamentos', { empresa_id: f.company.id, folha_id: sheet.id, funcionario_id: employee.id, tipo: 'vale', descricao: 'Vale', natureza: 'credito', valor_centavos: 50000, quinzena: 1, origem: 'manual', editavel: 1 })
+
+    const obligations = f.finance.syncObligations({ companyId: f.company.id, workId: f.work.id, remoteProjectId: 'remote-project-9', deviceId: 'desktop-device-7' })
+    const payroll = obligations.filter(x => x.canonicalId === `lan:${f.company.id}:${payrollAccount.id}`)
+    assert.equal(payroll.length, 1)
+    assert.deepEqual(payroll[0].components.map(x => ({ type:x.type, label:x.label, amountCents:x.amountCents, employeeName:x.employeeName })), [
+      { type:'salario', label:'Salário', amountCents:230000, employeeName:'João Silva' },
+      { type:'vale', label:'Vale', amountCents:50000, employeeName:'João Silva' }
+    ])
+  } finally { await close(f) }
+})
