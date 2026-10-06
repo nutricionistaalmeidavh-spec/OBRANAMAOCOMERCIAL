@@ -89,7 +89,7 @@ test('F11 anuncia finance e expõe summary/obligations usando somente a fonte ce
 test('F11 preserves tax category semantics in the canonical obligation', async () => {
   const f = await fixture()
   try {
-    const category = f.repository.save('categorias_financeiras', { nome: 'Encargos trabalhistas', natureza: 'despesa', grupo_dre: 'pessoal' })
+    const category = f.finance.db.prepare("SELECT * FROM categorias_financeiras WHERE nome='Encargos trabalhistas'").get()
     const tax = f.repository.save('contas', {
       tipo: 'pagar',
       empresa_id: f.company.id,
