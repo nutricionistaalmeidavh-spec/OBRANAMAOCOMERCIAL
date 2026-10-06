@@ -46,9 +46,11 @@ export default function PayrollImportModal({open,onClose,competencia,empresaId,o
   const [templateResult,setTemplateResult]=useState<any>(null)
 
   const selectedSheet=useMemo(()=>file?.sheets?.find((item:any)=>item.name===sheet)||file?.sheets?.[0],[file,sheet])
-  const conflicts=useMemo(()=>preview?.conflicts||[],[preview])
-  const unresolvedCount=useMemo(()=>conflicts.filter((item:any)=>!resolutions[item.id]).length,[conflicts,resolutions])
-  const canCommit=!!preview&&Number(preview.stats?.values||0)>0&&unresolvedCount===0
+  const blockers=useMemo(()=>preview?.blockers||[],[preview])
+  const conflicts=useMemo(()=>preview?.conflicts?.filter((item:any)=>!['paid_employee','closed_sheet','locked_expense','cpf_conflict'].includes(item.kind))||[],[preview])
+  const unresolvedCount=Number(preview?.summary?.unresolved||0)
+  const blockerCount=Number(preview?.summary?.blockers||0)
+  const canCommit=!!preview?.canCommit
 
   const loadHistory=async()=>{try{setHistory(await window.fluxoDre.importacaoFolha.history(12))}catch{}}
   useEffect(()=>{if(open)void loadHistory()},[open])
@@ -165,9 +167,11 @@ export default function PayrollImportModal({open,onClose,competencia,empresaId,o
 
         <div className="payroll-import-preview-table"><table><thead><tr><th>Linha</th><th>Destino</th><th>Identificação</th><th>Resumo</th></tr></thead><tbody>{preview.rows.slice(0,10).map((row:any)=><tr key={row.id}><td>{row.row_number}</td><td>{row.kind==='employee'?'Funcionário':'Despesa empresa'}</td><td><strong>{row.kind==='employee'?(row.funcionario||'Sem nome'):row.descricao}</strong>{row.cpf&&<small>CPF {row.cpf}</small>}</td><td>{row.kind==='employee'?<span>{Object.values(row.values||{}).filter((value:any)=>Number(value)>0).length} valores</span>:<span>{brl(row.valor_centavos)}</span>}</td></tr>)}</tbody></table>{preview.rows.length>10&&<small className="payroll-import-more">+ {preview.rows.length-10} linhas na importação</small>}</div>
 
-        {conflicts.length>0&&<div className="payroll-import-conflicts"><div className="section-heading"><div><h3>Resolver antes de importar</h3><p>Nenhuma divergência será sobrescrita silenciosamente.</p></div><span className="status status-warning">{unresolvedCount} pendente(s)</span></div>{conflicts.map((conflict:any,index:number)=><div className="payroll-import-conflict" key={conflict.id||index}><div><strong>{conflict.label}</strong>{conflict.current_centavos!=null&&<small>Atual: {brl(conflict.current_centavos)} · Planilha: {brl(conflict.imported_centavos)}</small>}</div>{resolutionControl(conflict)}</div>)}</div>}
+        {conflicts.length>0&&<div className="payroll-import-conflicts"><div className="section-heading"><div><h3>Resolver antes de importar</h3><p>Nenhuma divergência será sobrescrita silenciosamente.</p></div><span className="status status-warning">{unresolvedCount} pendente(s)</span></div>{conflicts.map((conflict:any,index:number)=><div className="payroll-import-conflict" key={conflict.id||index}><div><strong>{conflict.label||conflict.message}</strong>{conflict.current_centavos!=null&&<small>Atual: {brl(conflict.current_centavos)} · Planilha: {brl(conflict.imported_centavos)}</small>}{conflict.message&&conflict.label&&<small>{conflict.message}</small>}</div>{resolutionControl(conflict)}</div>)}</div>}
 
-        <div className="payroll-import-confirm"><div><ShieldText/><span><strong>{canCommit?'Prévia validada':'Prévia aguardando revisão'}</strong><small>{canCommit?'A confirmação grava os valores nas fontes canônicas da folha e do Financeiro.':unresolvedCount?('Resolva '+unresolvedCount+' conflito(s) antes de continuar.'):'A planilha precisa conter ao menos um valor válido.'}</small></span></div><Button disabled={!canCommit} onClick={commit}>Confirmar importação</Button></div>
+        {blockerCount>0&&<div className="notice payroll-import-error"><AlertTriangle size={15}/> {blockers[0]?.message||`Existem ${blockerCount} bloqueio(s) que precisam ser corrigidos antes da importação.`}</div>}
+
+        <div className="payroll-import-confirm"><div><ShieldText/><span><strong>{canCommit?'Prévia validada':'Prévia aguardando revisão'}</strong><small>{canCommit?'A confirmação grava os valores nas fontes canônicas da folha e do Financeiro.':blockerCount?('Corrija '+blockerCount+' bloqueio(s) antes de continuar.'):unresolvedCount?('Resolva '+unresolvedCount+' conflito(s) antes de continuar.'):'A planilha precisa conter ao menos um valor válido.'}</small></span></div><Button disabled={!canCommit} onClick={commit}>Confirmar importação</Button></div>
       </>}
 
       {result&&<div className="payroll-import-result"><CheckCircle2 size={24}/><div><strong>Importação concluída</strong><p>{result.imported_values||0} valor(es) da folha e {result.imported_expenses||0} despesa(s) foram gravados. {result.created_employees?result.created_employees+' funcionário(s) criado(s). ':''}{result.skipped?result.skipped+' linha(s) ignorada(s).':''}</p></div></div>}
