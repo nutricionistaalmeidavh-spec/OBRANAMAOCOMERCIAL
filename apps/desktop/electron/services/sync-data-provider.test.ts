@@ -77,10 +77,22 @@ it('produces the same bridge rows, summary and obligations as the current coordi
   expect(f.provider.obligations(f.scope)).toEqual(f.coordinator.obligations(f.scope))
   expect(f.provider.obligations(f.scope)[0]).toMatchObject({
     canonicalEntity: 'conta',
-    canonicalId: String(f.database.db.prepare("SELECT id FROM contas WHERE descricao='Tubos'").get().id),
+    canonicalId: `local:${f.scope.deviceId}:${f.database.db.prepare("SELECT id FROM contas WHERE descricao='Tubos'").get().id}`,
     originModule: 'finance',
     originEntity: 'contas'
   })
+})
+
+it('namespaces local canonical account identity by publishing device', () => {
+  const first = fixture()
+  const second = fixture()
+  second.scope.deviceId = 'device-b'
+  const firstObligation = first.provider.obligations(first.scope)[0]
+  const secondObligation = second.provider.obligations(second.scope)[0]
+
+  expect(firstObligation.canonicalId).not.toBe(secondObligation.canonicalId)
+  expect(firstObligation.canonicalId).toBe(`local:device-a:${firstObligation.sourceId.split(':').at(-1)}`)
+  expect(secondObligation.canonicalId).toBe(`local:device-b:${secondObligation.sourceId.split(':').at(-1)}`)
 })
 
 it('applies the same editable remote patch semantics without changing row ownership', () => {
