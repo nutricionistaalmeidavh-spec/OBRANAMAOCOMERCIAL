@@ -75,6 +75,12 @@ it('produces the same bridge rows, summary and obligations as the current coordi
 
   expect(f.provider.summary(f.scope, modules)).toEqual(f.coordinator.summary(f.scope, modules))
   expect(f.provider.obligations(f.scope)).toEqual(f.coordinator.obligations(f.scope))
+  expect(f.provider.obligations(f.scope)[0]).toMatchObject({
+    canonicalEntity: 'conta',
+    canonicalId: String(f.database.db.prepare("SELECT id FROM contas WHERE descricao='Tubos'").get().id),
+    originModule: 'finance',
+    originEntity: 'contas'
+  })
 })
 
 it('applies the same editable remote patch semantics without changing row ownership', () => {
