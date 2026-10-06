@@ -22,17 +22,6 @@ class LocalSyncDataProvider {
 
   get db() { return this.database.db }
 
-  accountSourceType(account) {
-    const category = String(account.category_name || '')
-    if (/folha de pagamento/i.test(category)) return 'payroll'
-    if (/benef[ií]cios?|vale[- ]/i.test(category)) return 'benefit'
-    if (/encargos?|impostos?|tributos?|fgts|inss|darf|das/i.test(category)) return 'tax'
-    if (account.origem_tipo === 'pedido_compra') return 'purchase'
-    if (account.origem_tipo === 'contrato') return 'contract'
-    if (account.origem_tipo === 'medicao') return 'measurement'
-    return 'payable'
-  }
-
   accountProvenance(account, scope) {
     const sheet = this.db.prepare('SELECT id,competencia FROM folhas_pagamento WHERE conta_id=? AND empresa_id=? LIMIT 1').get(account.id, account.empresa_id)
     if (sheet) return {
@@ -144,14 +133,13 @@ class LocalSyncDataProvider {
   }
 
   obligations(scope) {
-    return this.db.prepare("SELECT c.*,f.nome AS beneficiary,cf.nome AS category_name FROM contas c LEFT JOIN fornecedores f ON f.id=c.fornecedor_id LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id WHERE c.empresa_id=? AND c.obra_id=? AND c.tipo='pagar' ORDER BY c.id")
+    return this.db.prepare("SELECT c.*,f.nome AS beneficiary FROM contas c LEFT JOIN fornecedores f ON f.id=c.fornecedor_id WHERE c.empresa_id=? AND c.obra_id=? AND c.tipo='pagar' ORDER BY c.id")
       .all(scope.companyId, scope.workId)
       .map(account => ({
         sourceId: `${scope.deviceId}:conta:${account.id}`,
-        sourceType: this.accountSourceType(account),
+        sourceType: 'payable',
         beneficiaryName: account.beneficiary || account.descricao,
         description: account.descricao,
-        category: account.category_name || undefined,
         amountCents: account.valor_centavos,
         dueDate: account.vencimento,
         competence: account.competencia,
