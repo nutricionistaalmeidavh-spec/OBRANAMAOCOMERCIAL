@@ -69,6 +69,13 @@ class RhSourceService {
     )
   }
 
+  async overview(payload) {
+    return this.localOrCentral(
+      () => this.localPayroll.overview(payload),
+      () => this.lanClient.payrollOverview(payload)
+    )
+  }
+
   async pending(competencia) {
     return this.localOrCentral(
       () => this.localPayroll.pending(competencia),
