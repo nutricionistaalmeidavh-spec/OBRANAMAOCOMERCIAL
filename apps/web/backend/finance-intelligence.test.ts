@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildFinanceAnalysisBasis, detectFinanceDivergences } from './finance-intelligence'
 
 describe('finance intelligence P2', () => {
+  // RED contract for phases 9 and 10.
   it('returns deterministic internal evidence grouped by bank, system and reconciliation', () => {
     const basis=buildFinanceAnalysisBasis({
       accounts:[{name:'Itaú Empresa',ownership:'business'}],
