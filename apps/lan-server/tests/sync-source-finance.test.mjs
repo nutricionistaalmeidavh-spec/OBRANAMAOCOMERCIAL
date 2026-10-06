@@ -79,7 +79,7 @@ test('F11 anuncia finance e expõe summary/obligations usando somente a fonte ce
     assert.equal(obligations[0].projectId, 'remote-project-9')
     assert.equal(obligations[0].beneficiaryName, 'Fornecedor Sync')
     assert.equal(obligations[0].canonicalEntity, 'conta')
-    assert.equal(obligations[0].canonicalId, String(f.payable.id))
+    assert.equal(obligations[0].canonicalId, `lan:${f.company.id}:${f.payable.id}`)
     assert.equal(obligations[0].originModule, 'finance')
     assert.equal(obligations[0].originEntity, 'contas')
   } finally { await close(f) }
