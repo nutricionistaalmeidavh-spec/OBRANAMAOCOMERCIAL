@@ -46,9 +46,9 @@ export default function PayrollImportModal({open,onClose,competencia,empresaId,o
   const [templateResult,setTemplateResult]=useState<any>(null)
 
   const selectedSheet=useMemo(()=>file?.sheets?.find((item:any)=>item.name===sheet)||file?.sheets?.[0],[file,sheet])
-  const conflicts=useMemo(()=>preview?.rows?.flatMap((row:any)=>row.conflicts||[])||[],[preview])
-  const unresolvedCount=Number(preview?.summary?.unresolved||0)
-  const blockerCount=Number(preview?.summary?.blockers||0)
+  const conflicts=useMemo(()=>preview?.conflicts||[],[preview])
+  const unresolvedCount=useMemo(()=>conflicts.filter((item:any)=>!resolutions[item.id]).length,[conflicts,resolutions])
+  const canCommit=!!preview&&Number(preview.stats?.values||0)>0&&unresolvedCount===0
 
   const loadHistory=async()=>{try{setHistory(await window.fluxoDre.importacaoFolha.history(12))}catch{}}
   useEffect(()=>{if(open)void loadHistory()},[open])
@@ -81,36 +81,30 @@ export default function PayrollImportModal({open,onClose,competencia,empresaId,o
     finally{setLoading(false)}
   }
 
-  const validateNormalized=async(parsed:any,nextResolutions:Record<string,any>)=>{
-    const data=await window.fluxoDre.importacaoFolha.preview(importPayload(parsed,competencia,empresaId,obraId,nextResolutions))
-    setPreview(data)
-    return data
-  }
-
   const generatePreview=async()=>{
     if(!file||!sheet)return
     if(!empresaId){setError('Selecione uma empresa na Visão geral antes de importar.');return}
     setLoading(true);setError('')
     try{
       const parsed=await window.fluxoDre.importacaoFolha.filePreview(file.token,{sheet,mode,mapping})
+      const data=await window.fluxoDre.importacaoFolha.preview(importPayload(parsed,competencia,empresaId,obraId,{}))
       setNormalized(parsed)
+      setPreview(data)
       setResolutions({})
-      await validateNormalized(parsed,{})
       setResult(null)
     }catch(e:any){setError(e?.message||String(e))}
     finally{setLoading(false)}
   }
 
-  const applyResolution=async(key:string,value:any)=>{
-    if(!normalized)return
-    const next={...resolutions,[key]:value}
-    setResolutions(next);setLoading(true);setError('')
-    try{await validateNormalized(normalized,next)}catch(e:any){setError(e?.message||String(e))}
-    finally{setLoading(false)}
-  }
+  const applyResolution=(key:string,value:string)=>setResolutions((previous:Record<string,string>)=>{
+    const next={...previous}
+    if(value)next[key]=value
+    else delete next[key]
+    return next
+  })
 
   const commit=async()=>{
-    if(!normalized||!preview?.canCommit)return
+    if(!normalized||!canCommit)return
     setLoading(true);setError('')
     try{
       const data=await window.fluxoDre.importacaoFolha.commit(importPayload(normalized,competencia,empresaId,obraId,resolutions))
@@ -129,15 +123,7 @@ export default function PayrollImportModal({open,onClose,competencia,empresaId,o
     finally{setLoading(false)}
   }
 
-  const resolutionControl=(conflict:any)=>{
-    if(conflict.kind==='employee_not_found')return <select value={resolutions[conflict.row_id]?.employee_action||''} onChange={event=>applyResolution(conflict.row_id,event.target.value?{employee_action:event.target.value}:{})}><option value="">Escolha o que fazer…</option><option value="create">Criar funcionário com os dados da linha</option><option value="skip">Ignorar esta linha</option></select>
-    if(conflict.kind==='employee_ambiguous'){
-      const row=preview.rows.find((item:any)=>item.id===conflict.row_id)
-      return <select value={resolutions[conflict.row_id]?.employee_id||''} onChange={event=>applyResolution(conflict.row_id,event.target.value?{employee_id:Number(event.target.value)}:{})}><option value="">Escolha o cadastro correto…</option>{row?.match?.candidates?.map((employee:any)=><option key={employee.id} value={employee.id}>{employee.nome} · CPF {employee.cpf||'não informado'}</option>)}<option value="">Ignorar não está disponível aqui</option></select>
-    }
-    if(['value_conflict','expense_conflict'].includes(conflict.kind))return <select value={resolutions[conflict.key]||''} onChange={event=>applyResolution(conflict.key,event.target.value)}><option value="">Escolha o que fazer…</option><option value="keep_current">Manter valor atual</option><option value="use_import">Usar valor da planilha</option></select>
-    return <div className="locked-value">Correção necessária no dado atual</div>
-  }
+  const resolutionControl=(conflict:any)=><select value={resolutions[conflict.id]||''} onChange={event=>applyResolution(conflict.id,event.target.value)}><option value="">Escolha o que fazer…</option>{conflict.options?.map((option:any)=><option key={option.value} value={option.value}>{option.label}</option>)}</select>
 
   return <Modal open={open} title="Importar planilha para a folha" onClose={close}>
     <div className="modal-body payroll-import-modal">
@@ -171,24 +157,22 @@ export default function PayrollImportModal({open,onClose,competencia,empresaId,o
 
       {preview&&!loading&&<>
         <div className="payroll-import-stats">
-          <div><span>Funcionários</span><strong>{preview.summary?.employees||0}</strong></div>
-          <div><span>Despesas da empresa</span><strong>{preview.summary?.expenses||0}</strong></div>
-          <div><span>Valores encontrados</span><strong>{countValues(preview.rows)}</strong></div>
-          <div className={preview.summary?.conflicts?'has-conflicts':''}><span>Conflitos</span><strong>{preview.summary?.conflicts||0}</strong></div>
+          <div><span>Funcionários</span><strong>{preview.stats?.employee_rows||0}</strong></div>
+          <div><span>Despesas da empresa</span><strong>{preview.stats?.expense_rows||0}</strong></div>
+          <div><span>Valores encontrados</span><strong>{preview.stats?.values||0}</strong></div>
+          <div className={preview.summary?.conflicts?'has-conflicts':''}><span>Conflitos</span><strong>{conflicts.length}</strong></div>
         </div>
 
         <div className="payroll-import-preview-table"><table><thead><tr><th>Linha</th><th>Destino</th><th>Identificação</th><th>Resumo</th></tr></thead><tbody>{preview.rows.slice(0,10).map((row:any)=><tr key={row.id}><td>{row.row_number}</td><td>{row.kind==='employee'?'Funcionário':'Despesa empresa'}</td><td><strong>{row.kind==='employee'?(row.funcionario||'Sem nome'):row.descricao}</strong>{row.cpf&&<small>CPF {row.cpf}</small>}</td><td>{row.kind==='employee'?<span>{Object.values(row.values||{}).filter((value:any)=>Number(value)>0).length} valores</span>:<span>{brl(row.valor_centavos)}</span>}</td></tr>)}</tbody></table>{preview.rows.length>10&&<small className="payroll-import-more">+ {preview.rows.length-10} linhas na importação</small>}</div>
 
-        {conflicts.length>0&&<div className="payroll-import-conflicts"><div className="section-heading"><div><h3>Resolver antes de importar</h3><p>Nenhuma divergência será sobrescrita silenciosamente.</p></div><span className="status status-warning">{unresolvedCount} pendente(s)</span></div>{conflicts.map((conflict:any,index:number)=><div className="payroll-import-conflict" key={conflict.key||`${conflict.kind}-${index}`}><div><strong>{conflict.label||conflict.message}</strong>{conflict.current_centavos!=null&&<small>Atual: {brl(conflict.current_centavos)} · Planilha: {brl(conflict.imported_centavos)}</small>}{conflict.label&&<small>{conflict.message}</small>}</div>{resolutionControl(conflict)}</div>)}</div>}
+        {conflicts.length>0&&<div className="payroll-import-conflicts"><div className="section-heading"><div><h3>Resolver antes de importar</h3><p>Nenhuma divergência será sobrescrita silenciosamente.</p></div><span className="status status-warning">{unresolvedCount} pendente(s)</span></div>{conflicts.map((conflict:any,index:number)=><div className="payroll-import-conflict" key={conflict.id||index}><div><strong>{conflict.label}</strong>{conflict.current_centavos!=null&&<small>Atual: {brl(conflict.current_centavos)} · Planilha: {brl(conflict.imported_centavos)}</small>}</div>{resolutionControl(conflict)}</div>)}</div>}
 
-        {blockerCount>0&&<div className="notice payroll-import-error"><AlertTriangle size={15}/> Existem {blockerCount} bloqueio(s). Folhas pagas/fechadas e contas já liquidadas não podem ser sobrescritas.</div>}
-
-        <div className="payroll-import-confirm"><div><ShieldText/><span><strong>{preview.canCommit?'Prévia validada':'Prévia aguardando revisão'}</strong><small>{preview.canCommit?'A confirmação grava os valores nas fontes canônicas da folha e do Financeiro.':`Resolva ${unresolvedCount} conflito(s) e ${blockerCount} bloqueio(s) antes de continuar.`}</small></span></div><Button disabled={!preview.canCommit} onClick={commit}>Confirmar importação</Button></div>
+        <div className="payroll-import-confirm"><div><ShieldText/><span><strong>{canCommit?'Prévia validada':'Prévia aguardando revisão'}</strong><small>{canCommit?'A confirmação grava os valores nas fontes canônicas da folha e do Financeiro.':unresolvedCount?('Resolva '+unresolvedCount+' conflito(s) antes de continuar.'):'A planilha precisa conter ao menos um valor válido.'}</small></span></div><Button disabled={!canCommit} onClick={commit}>Confirmar importação</Button></div>
       </>}
 
-      {result&&<div className="payroll-import-result"><CheckCircle2 size={24}/><div><strong>Importação concluída</strong><p>{result.created||0} registro(s) criado(s), {result.updated||0} atualizado(s) e {result.ignored||0} mantido(s) sem alteração. {result.employees_created?result.employees_created+' funcionário(s) criado(s).':''}</p></div></div>}
+      {result&&<div className="payroll-import-result"><CheckCircle2 size={24}/><div><strong>Importação concluída</strong><p>{result.imported_values||0} valor(es) da folha e {result.imported_expenses||0} despesa(s) foram gravados. {result.created_employees?result.created_employees+' funcionário(s) criado(s). ':''}{result.skipped?result.skipped+' linha(s) ignorada(s).':''}</p></div></div>}
 
-      {history.length>0&&<div className="payroll-import-history"><div className="section-heading"><div><h3>Importações recentes</h3><p>É possível desfazer enquanto os registros importados não tiverem sido pagos ou alterados.</p></div></div>{history.map((item:any)=><div className="payroll-import-history-row" key={item.id}><div><strong>{item.resumo_obj?.file||item.arquivo?.split(/[\\/]/).pop()||'Planilha'}</strong><small>{item.resumo_obj?.competencia?competenceLabel(item.resumo_obj.competencia):''} · {item.status==='desfeita'?'Desfeita':'Concluída'}</small></div>{item.status==='concluida'&&<Button variant="secondary" icon={<RotateCcw size={14}/>} onClick={()=>undo(item.id)}>Desfazer</Button>}</div>)}</div>}
+      {history.length>0&&<div className="payroll-import-history"><div className="section-heading"><div><h3>Importações recentes</h3><p>É possível desfazer enquanto os registros importados não tiverem sido pagos ou alterados.</p></div></div>{history.map((item:any)=><div className="payroll-import-history-row" key={item.id}><div><strong>{item.summary?.file||item.arquivo?.split(/[\\/]/).pop()||'Planilha'}</strong><small>{item.summary?.competencia?competenceLabel(item.summary.competencia):''} · {item.status==='desfeita'?'Desfeita':'Concluída'}</small></div>{item.can_undo&&<Button variant="secondary" icon={<RotateCcw size={14}/>} onClick={()=>undo(item.id)}>Desfazer</Button>}</div>)}</div>}
 
       {error&&<div className="notice payroll-import-error">{error}</div>}
     </div>
