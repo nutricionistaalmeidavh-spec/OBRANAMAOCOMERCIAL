@@ -495,14 +495,18 @@ function createPayrollImportEngine(adapter) {
       const row = { ...source, conflicts:[], status:'ready' }
       if (row.kind === 'employee') {
         employeeRows++
-        const employeeResolution = resolutions[row.id] || {}
+        const employeeResolution = resolutions[row.id]
         let resolution = resolveEmployee(row, empresaId)
-        if (employeeResolution?.employee_id) {
-          const selected = employeePool(empresaId).find(item => Number(item.id) === Number(employeeResolution.employee_id))
+        const selectedEmployeeId = typeof employeeResolution === 'string' && employeeResolution.startsWith('employee:')
+          ? Number(employeeResolution.split(':')[1])
+          : Number(employeeResolution?.employee_id) || null
+        const employeeAction = typeof employeeResolution === 'string' ? employeeResolution : employeeResolution?.employee_action
+        if (selectedEmployeeId) {
+          const selected = employeePool(empresaId).find(item => Number(item.id) === Number(selectedEmployeeId))
           if (selected) resolution = { kind:'match', employee:selected, candidates:[selected], resolved:true }
-        } else if (employeeResolution?.employee_action === 'create' && String(row.funcionario || '').trim()) {
+        } else if (employeeAction === 'create' && String(row.funcionario || '').trim()) {
           resolution = { kind:'create', employee:null, candidates:[], resolved:true }
-        } else if (employeeResolution?.employee_action === 'skip') {
+        } else if (employeeAction === 'skip') {
           resolution = { kind:'skip', employee:null, candidates:[], resolved:true }
         }
 
@@ -564,7 +568,10 @@ function createPayrollImportEngine(adapter) {
               key,id:key,kind:current.paid?'paid_value_conflict':'value_conflict',type:current.paid?'paid_value_conflict':'value_conflict',
               row_id:row.id,field:definition.field,label:`${employee.nome} · ${definition.descricao}`,
               current_centavos:current.value,imported_centavos:imported,resolution:decision || null,
-              message:`${definition.descricao}: o valor atual difere da planilha.`
+              message:`${definition.descricao}: o valor atual difere da planilha.`,
+              options:current.paid
+                ? [{value:'keep_current',label:'Manter valor atual'},{value:'skip_row',label:'Ignorar funcionário'}]
+                : [{value:'use_import',label:'Usar valor da planilha'},{value:'keep_current',label:'Manter valor atual'},{value:'skip_row',label:'Ignorar funcionário'}]
             }
             row.conflicts.push(issue);flatConflicts.push(issue)
             if (current.paid) blockers.push(issue)
@@ -590,7 +597,8 @@ function createPayrollImportEngine(adapter) {
           const issue={
             key,id:key,kind:'expense_conflict',type:'expense_conflict',row_id:row.id,field:'valor_despesa',
             label:`${row.descricao}: já existe uma conta com outro valor`,current_centavos:money(existing[0].valor_centavos),
-            imported_centavos:money(row.valor_centavos),resolution:decision||null,message:'Escolha manter o valor atual ou usar o valor da planilha.'
+            imported_centavos:money(row.valor_centavos),resolution:decision||null,message:'Escolha manter o valor atual ou usar o valor da planilha.',
+            options:[{value:'keep_current',label:'Manter valor atual'},{value:'use_import',label:'Usar valor da planilha'},{value:'skip_row',label:'Ignorar linha'}]
           }
           row.conflicts.push(issue);flatConflicts.push(issue);row.status='conflict'
           if (!['use_import','keep_current','skip_row'].includes(decision)) unresolved.push(issue)
@@ -648,19 +656,21 @@ function createPayrollImportEngine(adapter) {
       const imported = save('importacoes',{arquivo:checked.file?.name || checked.file?.path || 'planilha',hash:checked.file?.hash || '',aba,status:'processando',resumo:'{}'})
       const lineInsert = db.prepare('INSERT INTO importacao_linhas(importacao_id,competencia,celula,tipo,nome_origem,valor_centavos,dados_brutos,entidade_tipo,entidade_id,status) VALUES (?,?,?,?,?,?,?,?,?,?)')
       const lineUpdate = db.prepare("UPDATE importacao_linhas SET entidade_tipo=?,entidade_id=?,status=? WHERE id=?")
-      let created=0,updated=0,ignored=0,employeesCreated=0,expensesCreated=0
+      let created=0,updated=0,ignored=0,employeesCreated=0,expensesCreated=0,importedValues=0,importedExpenses=0
 
       for (const row of checked.rows) {
         if (row.status==='skip') { ignored++; continue }
 
         if (row.kind==='employee') {
-          const employeeResolution=resolutions[row.id] || {}
+          const employeeResolution=resolutions[row.id]
           const rowSkip=row.conflicts?.some(item=>resolutions[item.key]==='skip_row')
-          if (rowSkip) { ignored++; continue }
+          if (rowSkip || employeeResolution==='skip' || employeeResolution?.employee_action==='skip') { ignored++; continue }
 
           let employee=row.employee_id ? get('funcionarios',row.employee_id) : null
-          if (!employee && employeeResolution.employee_id) employee=get('funcionarios',Number(employeeResolution.employee_id))
-          if (!employee && employeeResolution.employee_action==='create') {
+          const selectedEmployeeId=typeof employeeResolution==='string'&&employeeResolution.startsWith('employee:')?Number(employeeResolution.split(':')[1]):Number(employeeResolution?.employee_id)||null
+          const employeeAction=typeof employeeResolution==='string'?employeeResolution:employeeResolution?.employee_action
+          if (!employee && selectedEmployeeId) employee=get('funcionarios',selectedEmployeeId)
+          if (!employee && employeeAction==='create') {
             employee=save('funcionarios',{
               empresa_id:checked.empresa_id,obra_atual_id:checked.obra_id || null,nome:String(row.funcionario||'').trim(),
               cpf:String(row.cpf||'').replace(/\D/g,'') || null,status:'ativo',salario_centavos:0
@@ -703,6 +713,7 @@ function createPayrollImportEngine(adapter) {
             })
             lineUpdate.run('folha_lancamentos',launch.id,'importado',lineId)
             if (replaced.length) updated++; else created++
+            importedValues++
           }
         } else if (row.kind==='expense') {
           const existing=db.prepare(`
@@ -731,12 +742,12 @@ function createPayrollImportEngine(adapter) {
             account=save('contas',{...existing,id:existing.id,categoria_id:category.id,obra_id:checked.obra_id || existing.obra_id || null,
               vencimento:row.vencimento || existing.vencimento,valor_bruto_centavos:money(row.valor_centavos),valor_centavos:money(row.valor_centavos),
               origem_tipo:'payroll_import_line',origem_id:lineId})
-            updated++
+            updated++;importedExpenses++
           } else {
             account=save('contas',{tipo:'pagar',empresa_id:checked.empresa_id,obra_id:checked.obra_id || null,categoria_id:category.id,descricao:row.descricao,
               competencia:checked.competencia,vencimento:row.vencimento || `${checked.competencia}-20`,valor_bruto_centavos:money(row.valor_centavos),
               valor_centavos:money(row.valor_centavos),status:'pendente',origem_tipo:'payroll_import_line',origem_id:lineId})
-            created++;expensesCreated++
+            created++;expensesCreated++;importedExpenses++
           }
           lineUpdate.run('contas',account.id,'importado',lineId)
         }
@@ -745,7 +756,7 @@ function createPayrollImportEngine(adapter) {
       const summary={
         contract_version:1,competencia:checked.competencia,empresa_id:checked.empresa_id,obra_id:checked.obra_id,mode:checked.mode,
         file:checked.file?.name || null,sheet:checked.file?.sheet || null,created,updated,ignored,employees_created:employeesCreated,
-        expenses_created:expensesCreated,can_undo:true
+        expenses_created:expensesCreated,imported_values:importedValues,imported_expenses:importedExpenses,created_employees:employeesCreated,skipped:ignored,can_undo:true
       }
       db.prepare("UPDATE importacoes SET status='concluida',resumo=?,concluida_em=CURRENT_TIMESTAMP WHERE id=?").run(JSON.stringify(summary),imported.id)
       return {importacao_id:imported.id,...summary}
