@@ -34,6 +34,16 @@ describe('finance experience helpers', () => {
     ])
   })
 
+
+  it('includes supplier in purchase lineage when the canonical obligation has one', () => {
+    expect(provenanceTrail({
+      originModule: 'procurement',
+      originEntity: 'pedidos_compra',
+      originLabel: 'Pedido PC-42 · Tubos PPR',
+      beneficiaryName: 'Fornecedor A'
+    })).toEqual(['Compras','Pedido PC-42 · Tubos PPR','Fornecedor A','Conta a pagar','Financeiro'])
+  })
+
   it('uses a safe generic trail when the source is only the canonical account', () => {
     expect(provenanceTrail({
       originModule: 'finance',
