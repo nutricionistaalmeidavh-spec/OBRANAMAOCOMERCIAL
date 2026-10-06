@@ -98,12 +98,19 @@ export default function PayrollImportModal({open,onClose,competencia,empresaId,o
     finally{setLoading(false)}
   }
 
-  const applyResolution=(key:string,value:string)=>setResolutions((previous:Record<string,string>)=>{
-    const next={...previous}
+  const applyResolution=async(key:string,value:string)=>{
+    if(!normalized)return
+    const next={...resolutions}
     if(value)next[key]=value
     else delete next[key]
-    return next
-  })
+    setResolutions(next)
+    setLoading(true);setError('')
+    try{
+      const data=await window.fluxoDre.importacaoFolha.preview(importPayload(normalized,competencia,empresaId,obraId,next))
+      setPreview(data)
+    }catch(e:any){setError(e?.message||String(e))}
+    finally{setLoading(false)}
+  }
 
   const commit=async()=>{
     if(!normalized||!canCommit)return
