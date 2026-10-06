@@ -76,7 +76,23 @@ export function detectFinanceDivergences(input:DivergenceInput){
   const result:Array<Record<string,unknown>>=[],today=text(input.today)||new Date().toISOString().slice(0,10)
   const suggestions=array(input.suggestions)
   const suggestedTx=new Set(suggestions.map(raw=>text((raw.transaction as Record<string,unknown>|undefined)?.id)).filter(Boolean))
-  const suggestedObligations=new Set<string>()
+  const suggestedObligations=new Set<string>(),duplicateTxIds=new Set<string>()
+  const duplicateGroups=new Map<string,Array<Record<string,unknown>>>()
+  for(const tx of array(input.transactions)){
+    if(text(tx.direction)!=='debit'||text(tx.accountOwnership)==='personal'||tx.internalTransfer===true||tx.relatedWithdrawal===true)continue
+    const accountId=text(tx.accountId),date=text(tx.date),amount=number(tx.amountCents),direction=text(tx.direction),description=text(tx.normalized)||text(tx.description)
+    if(!accountId||!date||!amount||!description)continue
+    const key=[accountId,date,amount,direction,description].join('|')
+    const group=duplicateGroups.get(key)||[]
+    group.push(tx)
+    duplicateGroups.set(key,group)
+  }
+  for(const group of duplicateGroups.values()){
+    if(group.length<2)continue
+    const transactionIds=group.map(x=>text(x.id)).filter(Boolean)
+    transactionIds.forEach(id=>duplicateTxIds.add(id))
+    result.push(item('potential_duplicate_bank','warning','Possível lançamento bancário duplicado','Dois ou mais lançamentos têm a mesma conta, data, valor, direção e descrição.',{transactionIds,amountCents:number(group[0].amountCents),date:group[0].date}))
+  }
   for(const raw of suggestions){
     const {suggestion}=suggestionMeta(raw)
     for(const allocation of array(suggestion.allocations)){const id=text(allocation.obligationId);if(id)suggestedObligations.add(id)}
@@ -87,7 +103,7 @@ export function detectFinanceDivergences(input:DivergenceInput){
     const amount=number(tx.amountCents),matched=number(tx.matchedCents),id=text(tx.id)
     if(matched>amount)result.push(item('transaction_overallocated','critical','Conciliação excede o lançamento','O valor conciliado é maior que a saída bancária.',{transactionId:id,amountCents:amount,differenceCents:matched-amount}))
     else if(matched>0&&matched<amount)result.push(item('partial_reconciliation','warning','Pagamento parcialmente explicado','Parte da saída bancária ainda não está vinculada a obrigações.',{transactionId:id,amountCents:amount,differenceCents:amount-matched}))
-    else if(matched===0&&!suggestedTx.has(id))result.push(item('bank_without_obligation','warning','Saída bancária sem obrigação encontrada','Existe uma saída bancária sem vínculo confirmado e sem sugestão de obrigação.',{transactionId:id,amountCents:amount,date:tx.date,description:tx.description}))
+    else if(matched===0&&!suggestedTx.has(id)&&!duplicateTxIds.has(id))result.push(item('bank_without_obligation','warning','Saída bancária sem obrigação encontrada','Existe uma saída bancária sem vínculo confirmado e sem sugestão de obrigação.',{transactionId:id,amountCents:amount,date:tx.date,description:tx.description}))
   }
 
   for(const obligation of array(input.obligations)){
