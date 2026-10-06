@@ -776,7 +776,8 @@ function createPayrollImportEngine(adapter) {
         const account = db.prepare("SELECT * FROM contas WHERE id=?").get(line.entidade_id)
         const raw = payrollImportJson(line.dados_brutos,{})
         const payments = account ? Number(db.prepare("SELECT COUNT(*) total FROM pagamentos_conta WHERE conta_id=?").get(account.id)?.total||0) : 0
-        if (account && (payments>0 || account.origem_tipo!=='payroll_import_line' || Number(account.origem_id)!==Number(line.id) || money(account.valor_centavos)!==money(raw.valor_centavos) || String(account.descricao)!==String(raw.descricao))) unsafe.push(`Conta #${line.entidade_id} foi alterada ou recebeu pagamento.`)
+        const expectedStatus = raw.operation === 'update' ? raw.before?.status : 'pendente'
+        if (account && (payments>0 || account.origem_tipo!=='payroll_import_line' || Number(account.origem_id)!==Number(line.id) || money(account.valor_centavos)!==money(raw.valor_centavos) || String(account.descricao)!==String(raw.descricao) || (expectedStatus && String(account.status)!==String(expectedStatus)))) unsafe.push(`Conta #${line.entidade_id} foi alterada ou recebeu pagamento.`)
       }
     }
     if (unsafe.length) throw new Error(`Não é seguro desfazer esta importação: ${unsafe.slice(0,3).join(' ')}`)
@@ -794,10 +795,16 @@ function createPayrollImportEngine(adapter) {
             removedValues++
           }
           for (const old of Array.isArray(raw.replaced)?raw.replaced:[]) {
-            save('folha_lancamentos',{...old,id:undefined,importacao_linha_id:null})
+            const restored={...old}
+            delete restored.id
+            save('folha_lancamentos',restored)
           }
         } else if (line.entidade_tipo === 'contas' && line.entidade_id) {
-          db.prepare("UPDATE contas SET deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(line.entidade_id)
+          if (raw.operation === 'update' && raw.before) {
+            save('contas',{...raw.before,id:line.entidade_id})
+          } else {
+            db.prepare("UPDATE contas SET deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(line.entidade_id)
+          }
           removedExpenses++
         }
         db.prepare("UPDATE importacao_linhas SET status='desfeito' WHERE id=?").run(line.id)
