@@ -1,9 +1,10 @@
 import { db, storage, ai, json, error, requireAuth, withScopes, runtimeEnv, type AuthUser, type RouterContext, type RouterResponse, type RouterRoutes } from '../cloudflare/sdk';
 import { emitIntegrationEvent } from './integration-events';
-import { writePlatformAudit } from './platform-audit';
+import { listPlatformAudit, writePlatformAudit } from './platform-audit';
 import { matchFinanceObligation, mergeFinanceObligationIdentity, normalizeFinanceProvenance, type FinanceProvenance } from './finance-obligation-provenance';
 import { buildReconciliationAudit, obligationReconciliationState, transactionReconciliationState } from './finance-auditability';
 import { buildFinanceAnalysisBasis, detectFinanceDivergences } from './finance-intelligence';
+import { applyLegacyObligationCompatibility, buildFinanceChangeAudit, buildMatchAuditSnapshot, dedupeFinanceTransactions } from './finance-robustness';
 
 export type FinanceAccessContext={companyId:string;projectId?:string;companyName?:string;role:string;isSuperadmin:boolean;canWrite:boolean};
 type Resolver=(user:AuthUser)=>Promise<FinanceAccessContext|null>;
@@ -45,9 +46,9 @@ async function accounts(companyId:string){return all<Account>(companyId,'account
 async function transactions(companyId:string){return all<Tx>(companyId,'tx',500) as Promise<Tx[]>}
 async function imports(companyId:string){return all<ImportRec>(companyId,'imports',150) as Promise<ImportRec[]>}
 async function rules(companyId:string){return all<Rule>(companyId,'rules',200) as Promise<Rule[]>}
-async function obligations(companyId:string){return all<Obligation>(companyId,'obligations',500) as Promise<Obligation[]>}
+async function obligations(companyId:string){const rows=await all<Obligation>(companyId,'obligations',500);return rows.map(row=>applyLegacyObligationCompatibility(row) as Obligation)}
 async function matches(companyId:string){return all<Match>(companyId,'matches',500) as Promise<Match[]>}
-async function saveTx(companyId:string,records:Array<Omit<Tx,'id'>>){const existing=await transactions(companyId),hashes=new Set(existing.map(x=>x.hash)),fresh=records.filter(x=>!hashes.has(x.hash));if(!fresh.length)return 0;return(await db.add(table(companyId,'tx'),fresh)).filter(Boolean).length}
+async function saveTx(companyId:string,records:Array<Omit<Tx,'id'>>){const existing=await transactions(companyId),fresh=dedupeFinanceTransactions(existing,records);if(!fresh.length)return 0;return(await db.add(table(companyId,'tx'),fresh)).filter(Boolean).length}
 function days(a?:string,b?:string){if(!a||!b)return 999;return Math.abs((Date.parse(a+'T00:00:00Z')-Date.parse(b+'T00:00:00Z'))/86400000)}
 function accountReconcile(tx:Tx[],acc:Account[]){const byId=new Map(acc.map(a=>[a.id,a])),used=new Set<string>(),internal=new Set<string>(),withdrawals=new Set<string>(),returns=new Set<string>();for(let i=0;i<tx.length;i++){const a=tx[i];if(used.has(a.id))continue;for(let j=i+1;j<tx.length;j++){const b=tx[j];if(used.has(b.id)||a.accountId===b.accountId||a.amountCents!==b.amountCents||a.direction===b.direction||days(a.date,b.date)>1)continue;const debit=a.direction==='debit'?a:b,credit=a.direction==='credit'?a:b,da=byId.get(debit.accountId),ca=byId.get(credit.accountId);if(da?.ownership==='business'&&ca?.ownership==='business'){internal.add(a.id);internal.add(b.id);used.add(a.id);used.add(b.id);break}if(da?.ownership==='business'&&ca?.ownership==='personal'){withdrawals.add(debit.id);used.add(a.id);used.add(b.id);break}if(da?.ownership==='personal'&&ca?.ownership==='business'){returns.add(credit.id);used.add(a.id);used.add(b.id);break}}}return{internal,withdrawals,returns}}
 function bankDashboard(tx:Tx[],acc:Account[]){const business=new Set(acc.filter(a=>a.ownership==='business').map(a=>a.id)),r=accountReconcile(tx,acc),categories:Record<string,number>={};let inflow=0,outflow=0,withdrawalGross=0,returnToBusiness=0;for(const t of tx){if(!business.has(t.accountId)||r.internal.has(t.id))continue;if(t.direction==='credit'){inflow+=t.amountCents;if(r.returns.has(t.id))returnToBusiness+=t.amountCents;continue}outflow+=t.amountCents;const cat=r.withdrawals.has(t.id)?'Retiradas':t.category;categories[cat]=(categories[cat]||0)+t.amountCents;if(r.withdrawals.has(t.id))withdrawalGross+=t.amountCents}return{inflowCents:inflow,outflowCents:outflow,netCents:inflow-outflow,withdrawalNetCents:Math.max(0,withdrawalGross-returnToBusiness),categories:Object.entries(categories).map(([name,valueCents])=>({name,valueCents})).sort((a,b)=>b.valueCents-a.valueCents),reconcile:r}}
