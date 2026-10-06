@@ -139,7 +139,7 @@ function payrollOverviewEmployeeRow({ employee, cargo = null, launches = [], ben
 
 function payrollOverviewCompanyExpenseRows(accounts = []) {
   return accounts
-    .filter(account => account && account.tipo === 'pagar' && !account.deleted_at)
+    .filter(account => account && account.tipo === 'pagar' && !account.deleted_at && normalizeLabel(account.status) !== 'cancelado')
     .filter(account => {
       const category = normalizeLabel(account.categoria_nome || account.categoria?.nome)
       const origin = normalizeLabel(account.origem_tipo)
