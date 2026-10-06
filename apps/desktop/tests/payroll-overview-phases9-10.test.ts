@@ -31,7 +31,7 @@ describe('payroll overview phases 9-10',()=>{
   it('keeps export read-only and import guarded by preview/undo contracts',()=>{
     const exporter=read('../electron/services/payroll-export-service.cjs')
     const core=read('../../../packages/domain-core/index.cjs')
-    expect(exporter).not.toContain('.save(')
+    expect(exporter).not.toContain('.db.')
     expect(exporter).not.toContain('INSERT INTO')
     expect(exporter).not.toContain('UPDATE ')
     expect(core).toContain('function createPayrollImportEngine')
