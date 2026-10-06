@@ -156,7 +156,6 @@ function createServices() {
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
-    payrollImportFiles: new PayrollImportFileService(),
     works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, measurements,
     product, uiPreferences, procurement, contracts, demo: new DemoDataService({ db, product }), online, sync
   }
@@ -381,19 +380,13 @@ function registerIpc() {
   })))
   ipcMain.handle('backup:open-data-folder', envelope(() => services.backup.openDataFolder()))
   ipcMain.handle('payroll-import:choose', envelope(() => services.payrollImportFiles.choose()))
+  ipcMain.handle('payroll-import:file-preview', envelope(({ token, options }) => services.payrollImportFiles.preview(token, options)))
   ipcMain.handle('payroll-import:template', envelope(() => services.payrollImportFiles.saveTemplate()))
-  ipcMain.handle('payroll-import:preview', envelope(async (payload) => {
-    const parsed = await services.payrollImportFiles.preview(payload.token, payload)
-    return services.payroll.importPreview({ ...parsed, competencia:payload.competencia, empresa_id:payload.empresa_id, obra_id:payload.obra_id })
-  }))
-  ipcMain.handle('payroll-import:commit', envelope(async (payload) => {
-    const parsed = services.payrollImportFiles.payload(payload.token, payload)
-    const result = await services.payroll.importCommit({ ...parsed, competencia:payload.competencia, empresa_id:payload.empresa_id, obra_id:payload.obra_id, resolutions:payload.resolutions || {} })
-    services.payrollImportFiles.release(payload.token)
-    return result
-  }))
+  ipcMain.handle('payroll-import:release', envelope(({ token }) => services.payrollImportFiles.release(token)))
+  ipcMain.handle('payroll-import:preview', envelope((payload) => services.payroll.importPreview(payload)))
+  ipcMain.handle('payroll-import:commit', envelope((payload) => services.payroll.importCommit(payload)))
   ipcMain.handle('payroll-import:history', envelope(({ limit }) => services.payroll.importHistory(limit)))
-  ipcMain.handle('payroll-import:undo', envelope(({ importacao_id }) => services.payroll.importUndo(importacao_id)))
+  ipcMain.handle('payroll-import:undo', envelope(({ id }) => services.payroll.importUndo(id)))
   ipcMain.handle('payroll:overview', envelope((payload) => services.payroll.overview(payload)))
   ipcMain.handle('payroll:employee', envelope((payload) => services.payroll.getEmployee(payload)))
   ipcMain.handle('payroll:save-variable', envelope((payload) => services.payroll.saveVariable(payload)))
