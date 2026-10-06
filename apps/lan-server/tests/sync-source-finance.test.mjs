@@ -35,7 +35,7 @@ async function fixture() {
   await once(server, 'listening')
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('Servidor sem porta TCP.')
-  return { repository, company, work, payable, server, baseUrl: `http://127.0.0.1:${address.port}` }
+  return { repository, company, work, payable, finance, server, baseUrl: `http://127.0.0.1:${address.port}` }
 }
 
 async function close(f) {
@@ -78,5 +78,38 @@ test('F11 anuncia finance e expõe summary/obligations usando somente a fonte ce
     assert.equal(obligations[0].amountCents, 10000)
     assert.equal(obligations[0].projectId, 'remote-project-9')
     assert.equal(obligations[0].beneficiaryName, 'Fornecedor Sync')
+    assert.equal(obligations[0].canonicalEntity, 'conta')
+    assert.equal(obligations[0].canonicalId, `lan:${f.company.id}:${f.payable.id}`)
+    assert.equal(obligations[0].originModule, 'finance')
+    assert.equal(obligations[0].originEntity, 'contas')
+  } finally { await close(f) }
+})
+
+
+test('F11 preserves tax category semantics in the canonical obligation', async () => {
+  const f = await fixture()
+  try {
+    const category = f.finance.db.prepare("SELECT * FROM categorias_financeiras WHERE nome='Encargos trabalhistas'").get()
+    const tax = f.repository.save('contas', {
+      tipo: 'pagar',
+      empresa_id: f.company.id,
+      obra_id: f.work.id,
+      categoria_id: category.id,
+      descricao: 'INSS outubro',
+      competencia: '2026-10',
+      vencimento: '2026-10-20',
+      valor_centavos: 125000
+    })
+    const obligations = f.finance.syncObligations({
+      companyId: f.company.id,
+      workId: f.work.id,
+      remoteProjectId: 'remote-project-9',
+      deviceId: 'desktop-device-7'
+    })
+    const obligation = obligations.find(item => item.canonicalId === `lan:${f.company.id}:${tax.id}`)
+    assert.equal(obligation.sourceType, 'tax')
+    assert.equal(obligation.category, 'Encargos trabalhistas')
+    assert.equal(obligation.originModule, 'finance')
+    assert.equal(obligation.originEntity, 'contas')
   } finally { await close(f) }
 })

@@ -171,13 +171,64 @@ export class FinanceService {
   syncAccounts({ companyId, workId }) {
     this.assertSyncScope({ companyId, workId })
     return this.db.prepare(`
-      SELECT c.*,f.nome AS beneficiary,
+      SELECT c.*,f.nome AS beneficiary,cf.nome AS category_name,
         COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0) AS paid_cents
       FROM contas c
       LEFT JOIN fornecedores f ON f.id=c.fornecedor_id
+      LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
       WHERE c.empresa_id=? AND c.obra_id=? AND c.deleted_at IS NULL
       ORDER BY c.id
     `).all(Number(companyId), Number(workId))
+  }
+
+  accountSourceType(account) {
+    const category = String(account.category_name || '')
+    if (/folha de pagamento/i.test(category)) return 'payroll'
+    if (/benef[ií]cios?|vale[- ]/i.test(category)) return 'benefit'
+    if (/encargos?|impostos?|tributos?|fgts|inss|darf|das/i.test(category)) return 'tax'
+    if (account.origem_tipo === 'pedido_compra') return 'purchase'
+    if (account.origem_tipo === 'contrato') return 'contract'
+    if (account.origem_tipo === 'medicao') return 'measurement'
+    return 'payable'
+  }
+
+  accountProvenance(account, scope) {
+    const sheet = this.db.prepare('SELECT id,competencia FROM folhas_pagamento WHERE conta_id=? AND empresa_id=? LIMIT 1').get(account.id, account.empresa_id)
+    if (sheet) return {
+      canonicalEntity: 'conta',
+      canonicalId: `lan:${scope.companyId}:${account.id}`,
+      originModule: 'rh',
+      originEntity: 'folhas_pagamento',
+      originId: String(sheet.id),
+      originLabel: `Folha ${sheet.competencia || ''}`.trim(),
+      originReason: 'Conta vinculada à folha de pagamento'
+    }
+    const mappings = {
+      pedido_compra: ['procurement', 'pedidos_compra', 'Pedido de compra'],
+      contrato: ['contracts', 'contratos_obra', 'Contrato'],
+      medicao: ['measurements', 'medicoes', 'Medição'],
+      importacao_2026: ['finance', 'importacoes', 'Importação financeira'],
+      importacao_universal: ['finance', 'importacoes', 'Importação universal']
+    }
+    const mapped = mappings[String(account.origem_tipo || '')]
+    if (mapped && account.origem_id != null) return {
+      canonicalEntity: 'conta',
+      canonicalId: `lan:${scope.companyId}:${account.id}`,
+      originModule: mapped[0],
+      originEntity: mapped[1],
+      originId: String(account.origem_id),
+      originLabel: `${mapped[2]} #${account.origem_id}`,
+      originReason: 'Conta gerada por um registro de origem do Obra na Mão'
+    }
+    return {
+      canonicalEntity: 'conta',
+      canonicalId: `lan:${scope.companyId}:${account.id}`,
+      originModule: 'finance',
+      originEntity: 'contas',
+      originId: String(account.id),
+      originLabel: account.descricao,
+      originReason: 'Conta a pagar registrada no Financeiro'
+    }
   }
 
   syncSummary(scope, allowed = []) {
@@ -228,14 +279,17 @@ export class FinanceService {
     const accounts = this.syncAccounts(scope).filter(account => account.tipo === 'pagar')
     return accounts.map(account => ({
       sourceId: `${scope.deviceId}:conta:${account.id}`,
-      sourceType: 'payable',
+      sourceType: this.accountSourceType(account),
       beneficiaryName: account.beneficiary || account.descricao,
       description: account.descricao,
+      category: account.category_name || undefined,
       amountCents: account.valor_centavos,
       dueDate: account.vencimento,
       competence: account.competencia,
       projectId: scope.remoteProjectId || String(scope.workId),
-      status: account.status
+      status: account.status,
+      sourceUpdatedAt: account.updated_at || account.created_at,
+      ...this.accountProvenance(account, scope)
     }))
   }
 }

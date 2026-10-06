@@ -75,6 +75,56 @@ it('produces the same bridge rows, summary and obligations as the current coordi
 
   expect(f.provider.summary(f.scope, modules)).toEqual(f.coordinator.summary(f.scope, modules))
   expect(f.provider.obligations(f.scope)).toEqual(f.coordinator.obligations(f.scope))
+  expect(f.provider.obligations(f.scope)[0]).toMatchObject({
+    canonicalEntity: 'conta',
+    canonicalId: `local:${f.scope.deviceId}:${f.database.db.prepare("SELECT id FROM contas WHERE descricao='Tubos'").get().id}`,
+    originModule: 'finance',
+    originEntity: 'contas'
+  })
+})
+
+it('namespaces local canonical account identity by publishing device', () => {
+  const first = fixture()
+  const second = fixture()
+  second.scope.deviceId = 'device-b'
+  const firstObligation = first.provider.obligations(first.scope)[0]
+  const secondObligation = second.provider.obligations(second.scope)[0]
+
+  expect(firstObligation.canonicalId).not.toBe(secondObligation.canonicalId)
+  expect(firstObligation.canonicalId).toBe(`local:device-a:${firstObligation.sourceId.split(':').at(-1)}`)
+  expect(secondObligation.canonicalId).toBe(`local:device-b:${secondObligation.sourceId.split(':').at(-1)}`)
+})
+
+
+it('publishes explicit payroll lineage and finance category without duplicating the economic obligation', () => {
+  const f = fixture()
+  const category = f.database.db.prepare("SELECT * FROM categorias_financeiras WHERE nome='Folha de pagamento'").get()
+  const payrollAccount = f.database.save('contas', {
+    empresa_id: f.company.id,
+    obra_id: f.work.id,
+    categoria_id: category.id,
+    tipo: 'pagar',
+    descricao: 'Folha João',
+    valor_centavos: 280000,
+    competencia: '2026-10',
+    vencimento: '2026-10-05'
+  })
+  const sheet = f.database.save('folhas_pagamento', {
+    empresa_id: f.company.id,
+    competencia: '2026-10',
+    status: 'fechada',
+    conta_id: payrollAccount.id
+  })
+
+  const obligation = f.provider.obligations(f.scope).find(item => item.canonicalId === `local:${f.scope.deviceId}:${payrollAccount.id}`)
+  expect(obligation).toMatchObject({
+    sourceType: 'payroll',
+    category: 'Folha de pagamento',
+    canonicalEntity: 'conta',
+    originModule: 'rh',
+    originEntity: 'folhas_pagamento',
+    originId: String(sheet.id)
+  })
 })
 
 it('applies the same editable remote patch semantics without changing row ownership', () => {

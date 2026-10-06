@@ -22,6 +22,56 @@ class LocalSyncDataProvider {
 
   get db() { return this.database.db }
 
+  accountSourceType(account) {
+    const category = String(account.category_name || '')
+    if (/folha de pagamento/i.test(category)) return 'payroll'
+    if (/benef[ií]cios?|vale[- ]/i.test(category)) return 'benefit'
+    if (/encargos?|impostos?|tributos?|fgts|inss|darf|das/i.test(category)) return 'tax'
+    if (account.origem_tipo === 'pedido_compra') return 'purchase'
+    if (account.origem_tipo === 'contrato') return 'contract'
+    if (account.origem_tipo === 'medicao') return 'measurement'
+    return 'payable'
+  }
+
+  accountProvenance(account, scope) {
+    const sheet = this.db.prepare('SELECT id,competencia FROM folhas_pagamento WHERE conta_id=? AND empresa_id=? LIMIT 1').get(account.id, account.empresa_id)
+    if (sheet) return {
+      canonicalEntity: 'conta',
+      canonicalId: `local:${scope.deviceId}:${account.id}`,
+      originModule: 'rh',
+      originEntity: 'folhas_pagamento',
+      originId: String(sheet.id),
+      originLabel: `Folha ${sheet.competencia || ''}`.trim(),
+      originReason: 'Conta vinculada à folha de pagamento'
+    }
+    const mappings = {
+      pedido_compra: ['procurement', 'pedidos_compra', 'Pedido de compra'],
+      contrato: ['contracts', 'contratos_obra', 'Contrato'],
+      medicao: ['measurements', 'medicoes', 'Medição'],
+      importacao_2026: ['finance', 'importacoes', 'Importação financeira'],
+      importacao_universal: ['finance', 'importacoes', 'Importação universal']
+    }
+    const mapped = mappings[String(account.origem_tipo || '')]
+    if (mapped && account.origem_id != null) return {
+      canonicalEntity: 'conta',
+      canonicalId: `local:${scope.deviceId}:${account.id}`,
+      originModule: mapped[0],
+      originEntity: mapped[1],
+      originId: String(account.origem_id),
+      originLabel: `${mapped[2]} #${account.origem_id}`,
+      originReason: 'Conta gerada por um registro de origem do Obra na Mão'
+    }
+    return {
+      canonicalEntity: 'conta',
+      canonicalId: `local:${scope.deviceId}:${account.id}`,
+      originModule: 'finance',
+      originEntity: 'contas',
+      originId: String(account.id),
+      originLabel: account.descricao,
+      originReason: 'Conta a pagar registrada no Financeiro'
+    }
+  }
+
   async resolveScope({ companyId, workId }) {
     const company = this.db.prepare('SELECT * FROM empresas WHERE id=? AND deleted_at IS NULL').get(Number(companyId))
     const work = this.db.prepare('SELECT * FROM obras WHERE id=? AND empresa_id=? AND deleted_at IS NULL').get(Number(workId), Number(companyId))
@@ -94,18 +144,21 @@ class LocalSyncDataProvider {
   }
 
   obligations(scope) {
-    return this.db.prepare("SELECT c.*,f.nome AS beneficiary FROM contas c LEFT JOIN fornecedores f ON f.id=c.fornecedor_id WHERE c.empresa_id=? AND c.obra_id=? AND c.tipo='pagar' ORDER BY c.id")
+    return this.db.prepare("SELECT c.*,f.nome AS beneficiary,cf.nome AS category_name FROM contas c LEFT JOIN fornecedores f ON f.id=c.fornecedor_id LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id WHERE c.empresa_id=? AND c.obra_id=? AND c.tipo='pagar' ORDER BY c.id")
       .all(scope.companyId, scope.workId)
       .map(account => ({
         sourceId: `${scope.deviceId}:conta:${account.id}`,
-        sourceType: 'payable',
+        sourceType: this.accountSourceType(account),
         beneficiaryName: account.beneficiary || account.descricao,
         description: account.descricao,
+        category: account.category_name || undefined,
         amountCents: account.valor_centavos,
         dueDate: account.vencimento,
         competence: account.competencia,
         projectId: scope.remoteProjectId,
-        status: account.deleted_at ? 'cancelled' : account.status
+        status: account.deleted_at ? 'cancelled' : account.status,
+        sourceUpdatedAt: account.updated_at || account.created_at,
+        ...this.accountProvenance(account, scope)
       }))
   }
 
