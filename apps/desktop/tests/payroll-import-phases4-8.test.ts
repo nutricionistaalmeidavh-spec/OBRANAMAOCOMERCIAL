@@ -21,13 +21,15 @@ describe('payroll overview phases 4-8',()=>{
 
   it('offers template and universal mapping with an explicit preview gate',()=>{
     const modal=read('../src/components/PayrollImportModal.tsx')
+    const core=read('../../../packages/domain-core/index.cjs')
     expect(modal).toContain("value:'template',label:'Modelo Obra na Mão'")
     expect(modal).toContain("value:'universal',label:'Minha planilha'")
     expect(modal).toContain('Gerar prévia')
     expect(modal).toContain('Nenhuma divergência será sobrescrita silenciosamente')
-    expect(modal).toContain('Manter valor atual')
-    expect(modal).toContain('Usar valor da planilha')
-    expect(modal).toContain('Criar funcionário com os dados da linha')
+    expect(modal).toContain('conflict.options?.map')
+    expect(core).toContain("label:'Manter valor atual'")
+    expect(core).toContain("label:'Usar valor da planilha'")
+    expect(core).toContain("label:'Criar funcionário'")
   })
 
   it('exposes audit history and guarded undo',()=>{
