@@ -32,6 +32,7 @@ type ProvenanceLike={
   originModule?:string
   originEntity?:string
   originLabel?:string
+  beneficiaryName?:string
 }
 
 export function provenanceTrail(input:ProvenanceLike){
@@ -39,8 +40,8 @@ export function provenanceTrail(input:ProvenanceLike){
   const entity=String(input.originEntity||'').trim()
   const label=String(input.originLabel||'').trim()
   if(module==='rh'&&entity==='folhas_pagamento')return['RH',label||'Folha de pagamento','Conta a pagar','Financeiro']
-  if(module==='procurement'&&entity==='pedidos_compra')return['Compras',label||'Pedido de compra','Conta a pagar','Financeiro']
-  if(module==='contracts'&&entity==='contratos_obra')return['Contratos',label||'Contrato','Conta a pagar','Financeiro']
+  if(module==='procurement'&&entity==='pedidos_compra')return['Compras',label||'Pedido de compra',String(input.beneficiaryName||'Fornecedor'),'Conta a pagar','Financeiro']
+  if(module==='contracts'&&entity==='contratos_obra')return['Contratos',label||'Contrato',String(input.beneficiaryName||'Contratado'),'Conta a pagar','Financeiro']
   if(module==='measurements'&&entity==='medicoes')return['Medições',label||'Medição','Conta financeira','Financeiro']
   if(module==='finance'&&entity==='contas')return['Financeiro',label||'Conta financeira']
   if(module==='finance'&&entity==='importacoes')return['Financeiro',label||'Importação','Conta financeira']
