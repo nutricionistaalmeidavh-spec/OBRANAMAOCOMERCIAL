@@ -1,36 +1,33 @@
-import fs from 'node:fs'
-import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-
-const read=(file:string)=>fs.readFileSync(path.resolve(import.meta.dirname,file),'utf8')
+import employeesSource from './pages/EmployeesPage.tsx?raw'
+import payrollValuesSource from './utils/payroll-values.ts?raw'
+import financeSource from './modules/command-center/FinancePage.tsx?raw'
+import dreSource from './modules/command-center/DrePage.tsx?raw'
+import payrollSource from './pages/PayrollPage.tsx?raw'
 
 describe('RH → Financeiro → DRE parity UX',()=>{
   it('RH distinguishes effective base salary from monthly payroll',()=>{
-    const source=read('pages/EmployeesPage.tsx')
-    expect(source).toContain('Salário-base efetivo')
-    expect(source).toContain('Salários-base efetivos')
-    expect(source).toContain('Definido pelo cargo')
-    expect(source).not.toContain('Folha-base')
+    expect(employeesSource).toContain('Salário-base efetivo')
+    expect(employeesSource).toContain('Salários-base efetivos')
+    expect(payrollValuesSource).toContain('Definido pelo cargo')
+    expect(employeesSource).not.toContain('Folha-base')
   })
 
   it('Financeiro distinguishes obligation from cash realization',()=>{
-    const source=read('modules/command-center/FinancePage.tsx')
-    expect(source).toContain('Total previsto na competência')
-    expect(source).toContain('Pago')
-    expect(source).toContain('Em aberto')
+    expect(financeSource).toContain('Total previsto na competência')
+    expect(financeSource).toContain('Pago')
+    expect(financeSource).toContain('Em aberto')
   })
 
   it('DRE exposes competência and realizado side by side',()=>{
-    const source=read('modules/command-center/DrePage.tsx')
-    expect(source).toContain('Competência')
-    expect(source).toContain('Realizado')
-    expect(source).toContain('valor_realizado')
+    expect(dreSource).toContain('Competência')
+    expect(dreSource).toContain('Realizado')
+    expect(dreSource).toContain('valor_realizado')
   })
 
   it('RH company expenses tab shows actual competence expenses before navigation',()=>{
-    const source=read('pages/PayrollPage.tsx')
-    expect(source).toContain('Despesas e encargos da competência')
-    expect(source).toContain('Abrir contas a pagar')
-    expect(source).toContain('Abrir DRE')
+    expect(payrollSource).toContain('Despesas e encargos da competência')
+    expect(payrollSource).toContain('Abrir contas a pagar')
+    expect(payrollSource).toContain('Abrir DRE')
   })
 })
