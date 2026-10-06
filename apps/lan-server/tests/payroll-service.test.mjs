@@ -78,3 +78,72 @@ test('pending central preserva a regra local: segunda quinzena só existe quando
     assert.equal(pending2.some(item => item.funcionario_id === inactive.id), false)
   } finally { f.repository.close() }
 })
+
+
+test('visão geral central consolida folha e contas da competência com o mesmo contrato', () => {
+  const f = fixture()
+  try {
+    f.payroll.getEmployee({ funcionario_id: f.employee.id, competencia: '2026-10' })
+    f.payroll.saveVariable({ funcionario_id: f.employee.id, competencia: '2026-10', tipo: 'vale_salario', descricao: 'Vale / adiantamento', natureza: 'credito', quinzena: 2, valor_centavos: 50000 })
+    const category = f.repository.save('categorias_financeiras', { empresa_id:f.company.id, nome:'Impostos overview', natureza:'despesa', grupo_dre:'operacional', ativa:1 })
+    f.repository.save('contas', { empresa_id:f.company.id, tipo:'pagar', categoria_id:category.id, descricao:'DAS Simples Nacional', competencia:'2026-10', vencimento:'2026-10-20', valor_bruto_centavos:435000, valor_centavos:435000, status:'pendente' })
+    f.repository.save('contas', { empresa_id:f.company.id, tipo:'pagar', categoria_id:category.id, descricao:'Folha Funcionário Central', competencia:'2026-10', vencimento:'2026-10-05', valor_bruto_centavos:318000, valor_centavos:318000, status:'pendente', origem_tipo:'folha_pagamento' })
+
+    const overview = f.payroll.overview({ competencia:'2026-10', empresa_id:f.company.id })
+    assert.equal(overview.contract_version, 1)
+    assert.equal(overview.employees.length, 1)
+    assert.equal(overview.employees[0].remuneracao.salario_centavos, 250000)
+    assert.equal(overview.employees[0].remuneracao.vale_adiantamento_centavos, 50000)
+    assert.equal(overview.employees[0].beneficios.alimentacao_centavos, 18000)
+    assert.deepEqual(overview.company_expenses.map(item => item.descricao), ['DAS Simples Nacional'])
+    assert.equal(overview.totals.custo_competencia_centavos, 753000)
+  } finally { f.repository.close() }
+})
+
+
+test('importação central da folha mantém conflito, auditoria e undo equivalentes', () => {
+  const f = fixture()
+  try {
+    const payload={
+      competencia:'2026-10',empresa_id:f.company.id,
+      file:{name:'folha-central.xlsx',hash:'hash-payroll-central',sheet:'Folha'},
+      mode:'template',
+      rows:[
+        {id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Central',values:{salario_centavos:260000,diarias_centavos:12000}},
+        {id:'row-3',row_number:3,cell:'Folha!3',kind:'expense',descricao:'Contabilidade',categoria:'Serviços terceiros',valor_centavos:85000,vencimento:'2026-10-20'}
+      ]
+    }
+    const preview=f.payroll.importPreview(payload)
+    const conflict=preview.conflicts.find(item=>item.field==='salario_centavos')
+    assert.equal(conflict.type,'value_conflict')
+    const result=f.payroll.importCommit({...payload,resolutions:{[conflict.id]:'use_import'}})
+    assert.equal(result.imported_values,2)
+    assert.equal(result.imported_expenses,1)
+    const overview=f.payroll.overview({competencia:'2026-10',empresa_id:f.company.id})
+    assert.equal(overview.employees[0].remuneracao.salario_centavos,260000)
+    assert.equal(overview.employees[0].remuneracao.diarias_centavos,12000)
+    assert.ok(overview.company_expenses.some(item=>item.descricao==='Contabilidade'))
+    assert.equal(f.payroll.importHistory().find(item=>item.id===result.importacao_id).can_undo,true)
+
+    const undone=f.payroll.importUndo(result.importacao_id)
+    assert.equal(undone.status,'desfeita')
+    const restored=f.payroll.overview({competencia:'2026-10',empresa_id:f.company.id})
+    assert.equal(restored.employees[0].remuneracao.salario_centavos,250000)
+    assert.equal(restored.employees[0].remuneracao.diarias_centavos,0)
+    assert.equal(restored.company_expenses.some(item=>item.descricao==='Contabilidade'),false)
+  } finally { f.repository.close() }
+})
+
+test('importação central rejeita duplicidade por hash, aba e competência', () => {
+  const f=fixture()
+  try{
+    const payload={
+      competencia:'2026-12',empresa_id:f.company.id,file:{name:'x.xlsx',hash:'same-central',sheet:'Folha'},
+      rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Central',values:{diarias_centavos:12000}}]
+    }
+    f.payroll.importCommit(payload)
+    const duplicate=f.payroll.importPreview(payload)
+    assert.equal(duplicate.canCommit,false)
+    assert.ok(duplicate.blockers.some(item=>item.kind==='duplicate_import'))
+  }finally{f.repository.close()}
+})

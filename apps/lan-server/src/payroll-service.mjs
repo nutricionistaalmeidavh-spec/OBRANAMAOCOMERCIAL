@@ -1,6 +1,7 @@
 import domainCore from './domain-core.cjs'
-const { payrollAmount, payrollPendingRows } = domainCore
+const { payrollAmount, payrollPendingRows, buildPayrollOverview, createPayrollImportEngine, classifyPayrollOverviewLaunch } = domainCore
 import { ConcurrencyService } from './concurrency-service.mjs'
+
 
 export class PayrollService {
   constructor({ repository, now = () => new Date().toISOString() }) {
@@ -8,6 +9,12 @@ export class PayrollService {
     this.repository = repository
     this.now = now
     this.concurrency = new ConcurrencyService({ db: repository.connection() })
+    this.importEngine = createPayrollImportEngine({
+      db: repository.connection(),
+      save: (table,data) => repository.save(table,data),
+      get: (table,id) => repository.get(table,id),
+      ensureSheet: (employeeId,competencia) => this.ensureSheet(employeeId,competencia)
+    })
   }
 
   get db() { return this.repository.connection() }
@@ -72,14 +79,18 @@ export class PayrollService {
 
     for (const benefit of benefitMap.values()) fixed.push(benefit)
 
+    const benefitCatalog = new Map(this.db.prepare("SELECT id,nome,tipo FROM beneficios WHERE ativo=1 AND empresa_id=?").all(employee.empresa_id).map(item=>[Number(item.id),item]))
+    const importedKeys = new Set(this.db.prepare("SELECT * FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND origem='importacao'").all(sheet.id,employee.id).map(item=>classifyPayrollOverviewLaunch(item,benefitCatalog)))
     const find = this.db.prepare("SELECT id FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND tipo=? AND origem='cargo'")
     const insert = this.db.prepare(`
       INSERT INTO folha_lancamentos(
         empresa_id,folha_id,funcionario_id,tipo,descricao,natureza,quinzena,valor_centavos,origem,editavel,status,updated_at
       ) VALUES (?,?,?,?,?,?,?,?,?,0,'pendente',CURRENT_TIMESTAMP)
     `)
-    const update = this.db.prepare("UPDATE folha_lancamentos SET descricao=?,natureza=?,quinzena=?,valor_centavos=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pendente'")
+    const update = this.db.prepare("UPDATE folha_lancamentos SET descricao=?,natureza=?,quinzena=?,valor_centavos=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pendente' AND importacao_linha_id IS NULL")
     for (const item of fixed) {
+      const key = classifyPayrollOverviewLaunch(item,benefitCatalog)
+      if (importedKeys.has(key)) continue
       const current = find.get(sheet.id, employee.id, item.tipo)
       if (current) update.run(item.descricao, item.natureza, item.quinzena, item.valor, current.id)
       else insert.run(employee.empresa_id, sheet.id, employee.id, item.tipo, item.descricao, item.natureza, item.quinzena, item.valor, 'cargo')
@@ -164,6 +175,54 @@ export class PayrollService {
       throw error
     }
   }
+
+  overview(payload = {}) {
+    const competencia = String(payload.competencia || '')
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(competencia)) throw new Error('Competência inválida para a visão geral da folha.')
+    const empresaId = Number(payload.empresa_id) || null
+    const obraId = Number(payload.obra_id) || null
+
+    const employeeWhere = ["deleted_at IS NULL", "status='ativo'"]
+    const employeeParams = []
+    if (empresaId) { employeeWhere.push('empresa_id=?'); employeeParams.push(empresaId) }
+    if (obraId) { employeeWhere.push('obra_atual_id=?'); employeeParams.push(obraId) }
+    const employees = this.db.prepare(`SELECT * FROM funcionarios WHERE ${employeeWhere.join(' AND ')} ORDER BY nome COLLATE NOCASE`).all(...employeeParams)
+
+    const benefitWhere = ['ativo=1']
+    const benefitParams = []
+    if (empresaId) { benefitWhere.push('empresa_id=?'); benefitParams.push(empresaId) }
+    const benefits = this.db.prepare(`SELECT * FROM beneficios WHERE ${benefitWhere.join(' AND ')} ORDER BY nome COLLATE NOCASE`).all(...benefitParams)
+    const employeeEntries = employees.map(employee => {
+      const data = this.getEmployee({ funcionario_id: employee.id, competencia })
+      return { employee: data.employee, cargo: data.cargo, launches: data.launches }
+    })
+
+    const accountWhere = ["c.deleted_at IS NULL", "c.tipo='pagar'", 'c.competencia=?']
+    const accountParams = [competencia]
+    if (empresaId) { accountWhere.push('c.empresa_id=?'); accountParams.push(empresaId) }
+    if (obraId) { accountWhere.push('c.obra_id=?'); accountParams.push(obraId) }
+    const accounts = this.db.prepare(`
+      SELECT c.*, cf.nome AS categoria_nome
+      FROM contas c
+      LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
+      WHERE ${accountWhere.join(' AND ')}
+      ORDER BY c.vencimento, c.descricao COLLATE NOCASE, c.id
+    `).all(...accountParams)
+
+    return buildPayrollOverview({
+      competencia,
+      empresa_id: empresaId,
+      obra_id: obraId,
+      employeeEntries,
+      accounts,
+      benefits
+    })
+  }
+
+  importPreview(payload) { return this.importEngine.preview(payload) }
+  importCommit(payload) { return this.importEngine.commit(payload) }
+  importHistory(limit) { return this.importEngine.history(limit) }
+  importUndo(importacaoId) { return this.importEngine.undo(importacaoId) }
 
   pending(competencia) {
     const employees = this.db.prepare("SELECT * FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome COLLATE NOCASE").all()

@@ -16,6 +16,8 @@ const { DocumentExplorerContextService } = require('./services/document-explorer
 const { syncRegisteredPaths, removeRegisteredPaths } = require('./services/file-registry-paths.cjs')
 const { BackupService } = require('./services/backup-service.cjs')
 const { ImportService } = require('./services/import-service.cjs')
+const { PayrollImportFileService } = require('./services/payroll-import-file-service.cjs')
+const { PayrollExportService } = require('./services/payroll-export-service.cjs')
 const { DocumentService } = require('./services/document-service.cjs')
 const { PayrollService } = require('./services/payroll-service.cjs')
 const { DocumentRootService } = require('./services/document-root-service.cjs')
@@ -146,6 +148,8 @@ function createServices() {
     paths, db, dataAccess, storage, serverDiscovery, serverReconnect, moduleStorage, migration, lanCredentials, lanHost, lanSetup, files, documentRoot, explorer, explorerContext,
     backup, canonicalStorage,
     importer: new ImportService({ db }),
+    payrollImportFiles: new PayrollImportFileService(),
+    payrollExports: new PayrollExportService({ payroll: rh, dialog }),
     documents: new DocumentService({ db, fileService: files, dialog, dataAccess, moduleStorage }),
     payroll: rh,
     catalog,
@@ -376,6 +380,16 @@ function registerIpc() {
     return result
   })))
   ipcMain.handle('backup:open-data-folder', envelope(() => services.backup.openDataFolder()))
+  ipcMain.handle('payroll-import:choose', envelope(() => services.payrollImportFiles.choose()))
+  ipcMain.handle('payroll-import:file-preview', envelope(({ token, options }) => services.payrollImportFiles.preview(token, options)))
+  ipcMain.handle('payroll-import:template', envelope(() => services.payrollImportFiles.saveTemplate()))
+  ipcMain.handle('payroll-import:release', envelope(({ token }) => services.payrollImportFiles.release(token)))
+  ipcMain.handle('payroll-import:preview', envelope((payload) => services.payroll.importPreview(payload)))
+  ipcMain.handle('payroll-import:commit', envelope((payload) => services.payroll.importCommit(payload)))
+  ipcMain.handle('payroll-import:history', envelope(({ limit }) => services.payroll.importHistory(limit)))
+  ipcMain.handle('payroll-import:undo', envelope(({ id }) => services.payroll.importUndo(id)))
+  ipcMain.handle('payroll:export-overview', envelope((payload) => services.payrollExports.export(payload)))
+  ipcMain.handle('payroll:overview', envelope((payload) => services.payroll.overview(payload)))
   ipcMain.handle('payroll:employee', envelope((payload) => services.payroll.getEmployee(payload)))
   ipcMain.handle('payroll:save-variable', envelope((payload) => services.payroll.saveVariable(payload)))
   ipcMain.handle('payroll:remove-variable', envelope(({ id }) => services.payroll.removeVariable(id)))
