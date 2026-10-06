@@ -49,6 +49,23 @@ describe('finance intelligence P2', () => {
     expect(result).toEqual([])
   })
 
+
+  it('detects a potential duplicate only inside the same bank account', () => {
+    const result=detectFinanceDivergences({
+      today:'2026-10-05',
+      transactions:[
+        {id:'tx-a',direction:'debit',amountCents:10000,matchedCents:0,description:'PIX FORNECEDOR',normalized:'PIX FORNECEDOR',date:'2026-10-05',accountId:'bank-1',accountOwnership:'business'},
+        {id:'tx-b',direction:'debit',amountCents:10000,matchedCents:0,description:'PIX FORNECEDOR',normalized:'PIX FORNECEDOR',date:'2026-10-05',accountId:'bank-1',accountOwnership:'business'},
+        {id:'tx-c',direction:'debit',amountCents:10000,matchedCents:0,description:'PIX FORNECEDOR',normalized:'PIX FORNECEDOR',date:'2026-10-05',accountId:'bank-2',accountOwnership:'business'}
+      ],
+      obligations:[],
+      suggestions:[]
+    })
+    const duplicates=result.filter(x=>x.type==='potential_duplicate_bank')
+    expect(duplicates).toHaveLength(1)
+    expect(duplicates[0].transactionIds).toEqual(['tx-a','tx-b'])
+  })
+
   it('surfaces partial, bundled and evidence-review cases without changing data', () => {
     const result=detectFinanceDivergences({
       transactions:[{id:'tx-1',direction:'debit',amountCents:100000,matchedCents:40000,description:'PIX JOAO',date:'2026-10-05',accountId:'bank-1'}],
