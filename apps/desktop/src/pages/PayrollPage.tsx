@@ -56,9 +56,9 @@ export default function PayrollPage(){
   const cargos=useAsync(()=>window.fluxoDre.cargos.list(),[])
   const companies=useAsync(()=>window.fluxoDre.empresas.list({status:'ativa'}),[])
   const works=useAsync(()=>window.fluxoDre.obras.list(empresaId?{empresa_id:Number(empresaId)}:{}),[empresaId])
-  const overview=useAsync(()=>window.fluxoDre.folha.overview({competencia,empresa_id:empresaId?Number(empresaId):null,obra_id:obraId?Number(obraId):null}),[competencia,empresaId,obraId,version])
-  const pending=useAsync(()=>window.fluxoDre.folha.pending(competencia),[competencia,version])
-  const payroll=useAsync(()=>employee?window.fluxoDre.folha.employee({funcionario_id:Number(employee),competencia}):Promise.resolve(null),[employee,competencia,version])
+  const overview=useAsync(()=>tab==='overview'?window.fluxoDre.folha.overview({competencia,empresa_id:empresaId?Number(empresaId):null,obra_id:obraId?Number(obraId):null}):Promise.resolve(null),[tab,competencia,empresaId,obraId,version])
+  const pending=useAsync(()=>tab==='pendentes'?window.fluxoDre.folha.pending(competencia):Promise.resolve([]),[tab,competencia,version])
+  const payroll=useAsync(()=>tab==='funcionarios'&&employee?window.fluxoDre.folha.employee({funcionario_id:Number(employee),competencia}):Promise.resolve(null),[tab,employee,competencia,version])
   const rows=payroll.data?.launches||[]
   const first=rows.filter((row:any)=>row.quinzena===1)
   const second=rows.filter((row:any)=>row.quinzena===2)
