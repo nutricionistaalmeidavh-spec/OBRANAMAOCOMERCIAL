@@ -6,6 +6,7 @@ import {
 } from './finance-auditability'
 
 describe('finance auditability', () => {
+  // P1 contract: auditability must exist before UI confirmation.
   it('prioritizes semantic bank states before generic matching states', () => {
     expect(transactionReconciliationState({ amountCents:10000, matchedCents:0, internalTransfer:true })).toBe('transfer')
     expect(transactionReconciliationState({ amountCents:10000, matchedCents:0, relatedWithdrawal:true })).toBe('withdrawal')
