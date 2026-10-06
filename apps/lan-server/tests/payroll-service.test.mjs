@@ -99,3 +99,37 @@ test('visão geral central consolida folha e contas da competência com o mesmo 
     assert.equal(overview.totals.custo_competencia_centavos, 753000)
   } finally { f.repository.close() }
 })
+
+
+test('importação central da folha mantém conflito, auditoria e undo equivalentes', () => {
+  const f = fixture()
+  try {
+    const payload={
+      competencia:'2026-10',empresa_id:f.company.id,
+      file:{name:'folha-central.xlsx',path:'folha-central.xlsx',hash:'hash-payroll-central',sheet:'Folha'},
+      mode:'template',
+      rows:[
+        {id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Central',values:{salario_centavos:260000,diarias_centavos:12000}},
+        {id:'row-3',row_number:3,cell:'Folha!3',kind:'expense',descricao:'Contabilidade',categoria:'Serviços terceiros',valor_centavos:85000,vencimento:'2026-10-20'}
+      ]
+    }
+    const preview=f.payroll.importPreview(payload)
+    const conflict=preview.conflicts.find(item=>item.field==='salario_centavos')
+    assert.equal(conflict.type,'value_conflict')
+    const result=f.payroll.importCommit({...payload,resolutions:{[conflict.id]:'use_import'}})
+    assert.equal(result.imported_values,2)
+    assert.equal(result.imported_expenses,1)
+    const overview=f.payroll.overview({competencia:'2026-10',empresa_id:f.company.id})
+    assert.equal(overview.employees[0].remuneracao.salario_centavos,260000)
+    assert.equal(overview.employees[0].remuneracao.diarias_centavos,12000)
+    assert.ok(overview.company_expenses.some(item=>item.descricao==='Contabilidade'))
+    assert.equal(f.payroll.importHistory().find(item=>item.id===result.importacao_id).can_undo,true)
+
+    const undone=f.payroll.importUndo(result.importacao_id)
+    assert.equal(undone.status,'desfeita')
+    const restored=f.payroll.overview({competencia:'2026-10',empresa_id:f.company.id})
+    assert.equal(restored.employees[0].remuneracao.salario_centavos,250000)
+    assert.equal(restored.employees[0].remuneracao.diarias_centavos,0)
+    assert.equal(restored.company_expenses.some(item=>item.descricao==='Contabilidade'),false)
+  } finally { f.repository.close() }
+})
