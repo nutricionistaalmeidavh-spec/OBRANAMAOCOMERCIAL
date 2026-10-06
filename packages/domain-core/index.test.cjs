@@ -179,3 +179,27 @@ test('financeiro deriva status de pagamento por valor acumulado', () => {
   assert.equal(paymentStatus({ tipo: 'pagar', valor_centavos: 10000 }, 10000), 'pago')
   assert.equal(paymentStatus({ tipo: 'receber', valor_centavos: 10000 }, 10000), 'recebido')
 })
+
+
+test('folha não inclui encargos patronais no valor a pagar ao funcionário', () => {
+  assert.equal(payrollAmount([
+    { tipo:'salario', descricao:'Salário', natureza:'credito', valor_centavos:280000 },
+    { tipo:'fgts', descricao:'FGTS', natureza:'credito', valor_centavos:22400 },
+    { tipo:'inss', descricao:'INSS', natureza:'credito', valor_centavos:22400 },
+    { tipo:'falta', descricao:'Falta', natureza:'desconto', valor_centavos:9000 }
+  ]), 271000)
+})
+
+test('benefícios importados permanecem nas colunas de benefício', () => {
+  const row=payrollOverviewEmployeeRow({
+    employee:{id:1,nome:'Ana'},
+    launches:[
+      {id:1,tipo:'beneficio_importado_alimentacao',descricao:'Alimentação',natureza:'credito',valor_centavos:35000,origem:'importacao'},
+      {id:2,tipo:'beneficio_importado_transporte',descricao:'Transporte',natureza:'credito',valor_centavos:12000,origem:'importacao'},
+      {id:3,tipo:'beneficio_importado_outros',descricao:'Outros benefícios',natureza:'credito',valor_centavos:8000,origem:'importacao'}
+    ]
+  })
+  assert.equal(row.beneficios.alimentacao_centavos,35000)
+  assert.equal(row.beneficios.transporte_centavos,12000)
+  assert.equal(row.beneficios.outros_centavos,8000)
+})
