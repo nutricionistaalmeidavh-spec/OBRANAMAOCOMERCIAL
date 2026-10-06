@@ -1,5 +1,5 @@
 import domainCore from './domain-core.cjs'
-const { payrollAmount, payrollPendingRows, buildPayrollOverview } = domainCore
+const { payrollAmount, payrollPendingRows, buildPayrollOverview, createPayrollImportEngine, classifyPayrollOverviewLaunch } = domainCore
 import { ConcurrencyService } from './concurrency-service.mjs'
 
 export class PayrollService {
@@ -8,6 +8,12 @@ export class PayrollService {
     this.repository = repository
     this.now = now
     this.concurrency = new ConcurrencyService({ db: repository.connection() })
+    this.importEngine = createPayrollImportEngine({
+      db: repository.connection(),
+      save: (table,data) => repository.save(table,data),
+      get: (table,id) => repository.get(table,id),
+      ensureSheet: (employeeId,competencia) => this.ensureSheet(employeeId,competencia)
+    })
   }
 
   get db() { return this.repository.connection() }
@@ -72,6 +78,8 @@ export class PayrollService {
 
     for (const benefit of benefitMap.values()) fixed.push(benefit)
 
+    const benefitCatalog = new Map(this.db.prepare("SELECT id,nome,tipo FROM beneficios WHERE ativo=1 AND empresa_id=?").all(employee.empresa_id).map(item=>[Number(item.id),item]))
+    const importedKeys = new Set(this.db.prepare("SELECT * FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND origem='importacao'").all(sheet.id,employee.id).map(item=>classifyPayrollOverviewLaunch(item,benefitCatalog)))
     const find = this.db.prepare("SELECT id FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND tipo=? AND origem='cargo'")
     const insert = this.db.prepare(`
       INSERT INTO folha_lancamentos(
@@ -80,6 +88,8 @@ export class PayrollService {
     `)
     const update = this.db.prepare("UPDATE folha_lancamentos SET descricao=?,natureza=?,quinzena=?,valor_centavos=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pendente'")
     for (const item of fixed) {
+      const key = classifyPayrollOverviewLaunch(item,benefitCatalog)
+      if (importedKeys.has(key)) continue
       const current = find.get(sheet.id, employee.id, item.tipo)
       if (current) update.run(item.descricao, item.natureza, item.quinzena, item.valor, current.id)
       else insert.run(employee.empresa_id, sheet.id, employee.id, item.tipo, item.descricao, item.natureza, item.quinzena, item.valor, 'cargo')
@@ -207,6 +217,11 @@ export class PayrollService {
       benefits
     })
   }
+
+  importPreview(payload) { return this.importEngine.preview(payload) }
+  importCommit(payload) { return this.importEngine.commit(payload) }
+  importHistory(limit) { return this.importEngine.history(limit) }
+  importUndo(importacaoId) { return this.importEngine.undo(importacaoId) }
 
   pending(competencia) {
     const employees = this.db.prepare("SELECT * FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome COLLATE NOCASE").all()
