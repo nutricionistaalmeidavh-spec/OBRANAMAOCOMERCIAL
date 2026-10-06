@@ -620,6 +620,13 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, compensationPolicy.save(await readJson(request)))
       }
 
+      if (url.pathname === '/api/v1/rh/payroll/overview') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!payroll?.overview) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Visão geral da folha central indisponível.' })
+        await authorizeRh(request, security, 'view')
+        return sendJson(response, 200, payroll.overview(await readJson(request)))
+      }
+
       if (url.pathname === '/api/v1/rh/payroll/employee') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!payroll?.getEmployee) return sendJson(response, 503, { error: 'rh_unavailable', message: 'Folha central indisponível.' })
