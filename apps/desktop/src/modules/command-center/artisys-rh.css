@@ -106,3 +106,70 @@
   .route-rh-folha .payroll-overview-filter{grid-template-columns:1fr}
   .route-rh-folha .payroll-overview-wrap{max-height:calc(100vh - 390px)}
 }
+
+
+/* Payroll spreadsheet import — phases 4-8 */
+.payroll-import-modal{display:grid;gap:14px;max-height:min(76vh,760px);overflow:auto}
+.payroll-import-context{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid #dfe6f2;border-radius:12px;background:#f8faff;color:#1d2a44}
+.payroll-import-context strong{display:block;font-size:11px}
+.payroll-import-context span{display:block;margin-top:3px;color:#738097;font-size:8.5px}
+.payroll-import-context>svg{color:#2563eb}
+.payroll-import-template{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 14px;border:1px solid #e3e8f1;border-radius:12px;background:#fff}
+.payroll-import-template strong{font-size:10px;color:#17213b}
+.payroll-import-template p{max-width:590px;margin:4px 0 0;color:#778399;font-size:8.5px;line-height:1.5}
+.payroll-import-picker{display:grid;justify-items:center;gap:7px;padding:28px 18px;border:1px dashed #c9d4e6;border-radius:14px;background:#fbfcff;text-align:center}
+.payroll-import-picker svg{color:#3975e8}
+.payroll-import-picker strong{color:#17213b;font-size:11px}
+.payroll-import-picker span{color:#8490a4;font-size:8.5px}
+.payroll-import-filebar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #e2e7f0;border-radius:10px;background:#fff}
+.payroll-import-filebar>div{display:flex;align-items:center;gap:9px;min-width:0}
+.payroll-import-filebar svg{flex:none;color:#2563eb}
+.payroll-import-filebar span{min-width:0}
+.payroll-import-filebar strong,.payroll-import-filebar small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.payroll-import-filebar strong{color:#17213b;font-size:9.5px}
+.payroll-import-filebar small{margin-top:2px;color:#8a95a8;font-size:8px}
+.payroll-import-setup{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.payroll-import-mapping{padding:13px;border:1px solid #e4e9f2;border-radius:12px;background:#fbfcfe}
+.payroll-import-mapping .section-heading{margin-bottom:12px}
+.payroll-import-actions{display:flex;justify-content:flex-end;gap:8px}
+.payroll-import-loading{padding:18px;border:1px solid #e5eaf2;border-radius:12px;background:#fbfcff}
+.payroll-import-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.payroll-import-stats>div{padding:10px 11px;border:1px solid #e3e8f1;border-radius:10px;background:#fff}
+.payroll-import-stats span{display:block;color:#7c889d;font-size:7.5px;text-transform:uppercase;letter-spacing:.04em}
+.payroll-import-stats strong{display:block;margin-top:4px;color:#17213b;font-size:15px}
+.payroll-import-stats .has-conflicts{border-color:#f1d7a8;background:#fffaf1}
+.payroll-import-stats .has-conflicts strong{color:#a76508}
+.payroll-import-preview-table{overflow:auto;border:1px solid #e3e8f0;border-radius:11px}
+.payroll-import-preview-table table{width:100%;border-collapse:collapse}
+.payroll-import-preview-table th,.payroll-import-preview-table td{padding:8px 10px;border-bottom:1px solid #edf0f5;text-align:left;font-size:8.5px}
+.payroll-import-preview-table th{background:#f6f8fb;color:#5d6980;font-weight:750}
+.payroll-import-preview-table td{color:#33405a}
+.payroll-import-preview-table td strong{display:block;color:#1d2942}
+.payroll-import-preview-table td small{display:block;margin-top:2px;color:#8a95a7;font-size:7.5px}
+.payroll-import-more{display:block;padding:8px 10px;color:#7a879b;font-size:8px}
+.payroll-import-conflicts{display:grid;gap:8px;padding:12px;border:1px solid #efd6aa;border-radius:12px;background:#fffbf4}
+.payroll-import-conflict{display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,280px);gap:12px;align-items:center;padding:9px 10px;border:1px solid #f0dfc3;border-radius:9px;background:#fff}
+.payroll-import-conflict strong{display:block;color:#513a17;font-size:9px}
+.payroll-import-conflict small{display:block;margin-top:3px;color:#8a7454;font-size:8px}
+.payroll-import-confirm{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px;border:1px solid #d9e5da;border-radius:12px;background:#f6fbf7}
+.payroll-import-confirm>div{display:flex;align-items:center;gap:9px}
+.payroll-import-confirm strong,.payroll-import-confirm small{display:block}
+.payroll-import-confirm strong{color:#23472d;font-size:9.5px}
+.payroll-import-confirm small{margin-top:2px;color:#6f8775;font-size:8px}
+.payroll-import-shield{width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#e3f3e7;color:#2a7b42}
+.payroll-import-result{display:flex;align-items:flex-start;gap:10px;padding:13px;border:1px solid #cae7d1;border-radius:12px;background:#f3fbf5}
+.payroll-import-result>svg{flex:none;color:#238545}
+.payroll-import-result strong{display:block;color:#1f6034;font-size:10px}
+.payroll-import-result p{margin:4px 0 0;color:#63816b;font-size:8.5px;line-height:1.45}
+.payroll-import-history{display:grid;gap:7px;padding-top:4px;border-top:1px solid #edf0f5}
+.payroll-import-history-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 10px;border:1px solid #e5e9f1;border-radius:9px;background:#fff}
+.payroll-import-history-row strong,.payroll-import-history-row small{display:block}
+.payroll-import-history-row strong{color:#29364f;font-size:9px}
+.payroll-import-history-row small{margin-top:2px;color:#8994a7;font-size:7.5px}
+.payroll-import-error{border-color:#f2c8cf!important;background:#fff5f6!important;color:#9c2435!important}
+
+@media(max-width:780px){
+  .payroll-import-template,.payroll-import-confirm{align-items:stretch;flex-direction:column}
+  .payroll-import-setup,.payroll-import-stats{grid-template-columns:1fr 1fr}
+  .payroll-import-conflict{grid-template-columns:1fr}
+}
