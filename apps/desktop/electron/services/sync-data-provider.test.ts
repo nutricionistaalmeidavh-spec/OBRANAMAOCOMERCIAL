@@ -127,6 +127,90 @@ it('publishes explicit payroll lineage and finance category without duplicating 
   })
 })
 
+
+it('publishes purchase and contract lineage from direct canonical account links', () => {
+  const f = fixture()
+  const purchase = f.database.save('pedidos_compra', {
+    obra_id: f.work.id,
+    fornecedor_id: f.database.db.prepare("SELECT id FROM fornecedores WHERE nome='Fornecedor A'").get().id,
+    numero: 'PC-42',
+    descricao: 'Tubos PPR',
+    valor_centavos: 45000,
+    status: 'emitido'
+  })
+  const purchaseAccount = f.database.save('contas', {
+    empresa_id: f.company.id,
+    obra_id: f.work.id,
+    tipo: 'pagar',
+    descricao: 'Compra tubos',
+    valor_centavos: 45000,
+    competencia: '2026-10',
+    vencimento: '2026-10-10',
+    pedido_compra_id: purchase.id
+  })
+  const contract = f.database.save('contratos_obra', {
+    obra_id: f.work.id,
+    fornecedor_id: f.database.db.prepare("SELECT id FROM fornecedores WHERE nome='Fornecedor A'").get().id,
+    numero: 'CT-9',
+    descricao: 'Serviço terceirizado',
+    valor_centavos: 90000,
+    status: 'ativo'
+  })
+  const contractAccount = f.database.save('contas', {
+    empresa_id: f.company.id,
+    obra_id: f.work.id,
+    tipo: 'pagar',
+    descricao: 'Parcela contrato',
+    valor_centavos: 90000,
+    competencia: '2026-10',
+    vencimento: '2026-10-15',
+    contrato_id: contract.id
+  })
+
+  const obligations = f.provider.obligations(f.scope)
+  expect(obligations.find(x => x.canonicalId === `local:${f.scope.deviceId}:${purchaseAccount.id}`)).toMatchObject({
+    sourceType: 'purchase',
+    originModule: 'procurement',
+    originEntity: 'pedidos_compra',
+    originId: String(purchase.id),
+    originLabel: 'Pedido PC-42 · Tubos PPR'
+  })
+  expect(obligations.find(x => x.canonicalId === `local:${f.scope.deviceId}:${contractAccount.id}`)).toMatchObject({
+    sourceType: 'contract',
+    originModule: 'contracts',
+    originEntity: 'contratos_obra',
+    originId: String(contract.id),
+    originLabel: 'Contrato CT-9 · Serviço terceirizado'
+  })
+})
+
+it('publishes payroll components inside one canonical obligation instead of duplicating expenses', () => {
+  const f = fixture()
+  const category = f.database.db.prepare("SELECT * FROM categorias_financeiras WHERE nome='Folha de pagamento'").get()
+  const employee = f.database.save('funcionarios', { empresa_id: f.company.id, obra_atual_id: f.work.id, nome: 'João Silva', salario_centavos: 230000, status: 'ativo' })
+  const payrollAccount = f.database.save('contas', {
+    empresa_id: f.company.id,
+    obra_id: f.work.id,
+    categoria_id: category.id,
+    tipo: 'pagar',
+    descricao: 'Folha outubro',
+    valor_centavos: 280000,
+    competencia: '2026-10',
+    vencimento: '2026-10-05'
+  })
+  const sheet = f.database.save('folhas_pagamento', { empresa_id: f.company.id, competencia: '2026-10', status: 'fechada', conta_id: payrollAccount.id })
+  f.database.save('folha_lancamentos', { folha_id: sheet.id, funcionario_id: employee.id, tipo: 'salario', descricao: 'Salário', natureza: 'credito', valor_centavos: 230000, quinzena: 2 })
+  f.database.save('folha_lancamentos', { folha_id: sheet.id, funcionario_id: employee.id, tipo: 'vale', descricao: 'Vale', natureza: 'credito', valor_centavos: 50000, quinzena: 1 })
+
+  const obligations = f.provider.obligations(f.scope)
+  const payroll = obligations.filter(x => x.canonicalId === `local:${f.scope.deviceId}:${payrollAccount.id}`)
+  expect(payroll).toHaveLength(1)
+  expect(payroll[0].components).toEqual([
+    expect.objectContaining({ type:'salario', label:'Salário', amountCents:230000, employeeName:'João Silva' }),
+    expect.objectContaining({ type:'vale', label:'Vale', amountCents:50000, employeeName:'João Silva' })
+  ])
+})
+
 it('applies the same editable remote patch semantics without changing row ownership', () => {
   const f = fixture()
   const original = f.database.get('tarefas_obra', f.task.id)

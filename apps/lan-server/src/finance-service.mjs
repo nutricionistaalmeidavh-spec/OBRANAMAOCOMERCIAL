@@ -186,10 +186,32 @@ export class FinanceService {
     if (/folha de pagamento/i.test(category)) return 'payroll'
     if (/benef[ií]cios?|vale[- ]/i.test(category)) return 'benefit'
     if (/encargos?|impostos?|tributos?|fgts|inss|darf|das/i.test(category)) return 'tax'
-    if (account.origem_tipo === 'pedido_compra') return 'purchase'
-    if (account.origem_tipo === 'contrato') return 'contract'
+    if (account.pedido_compra_id != null || account.origem_tipo === 'pedido_compra') return 'purchase'
+    if (account.contrato_id != null || account.origem_tipo === 'contrato') return 'contract'
     if (account.origem_tipo === 'medicao') return 'measurement'
     return 'payable'
+  }
+
+  accountComponents(account) {
+    const sheet = this.db.prepare('SELECT id FROM folhas_pagamento WHERE conta_id=? AND empresa_id=? LIMIT 1').get(account.id, account.empresa_id)
+    if (!sheet) return []
+    return this.db.prepare(`
+      SELECT fl.*,f.nome AS employee_name
+      FROM folha_lancamentos fl
+      JOIN funcionarios f ON f.id=fl.funcionario_id
+      WHERE fl.folha_id=?
+      ORDER BY fl.id
+    `).all(sheet.id).map(row => ({
+      id: `folha_lancamento:${row.id}`,
+      type: row.tipo,
+      label: row.descricao || row.tipo,
+      amountCents: Number(row.valor_centavos || 0),
+      nature: row.natureza,
+      installment: row.quinzena || undefined,
+      employeeId: String(row.funcionario_id),
+      employeeName: row.employee_name,
+      status: row.status || undefined
+    }))
   }
 
   accountProvenance(account, scope) {
@@ -202,6 +224,32 @@ export class FinanceService {
       originId: String(sheet.id),
       originLabel: `Folha ${sheet.competencia || ''}`.trim(),
       originReason: 'Conta vinculada à folha de pagamento'
+    }
+    const purchaseId = account.pedido_compra_id || this.db.prepare('SELECT id FROM pedidos_compra WHERE conta_id=? AND obra_id=? AND deleted_at IS NULL ORDER BY id DESC LIMIT 1').get(account.id, account.obra_id)?.id
+    if (purchaseId) {
+      const purchase = this.db.prepare('SELECT id,numero,descricao FROM pedidos_compra WHERE id=? AND obra_id=? AND deleted_at IS NULL').get(Number(purchaseId), account.obra_id)
+      if (purchase) return {
+        canonicalEntity: 'conta',
+        canonicalId: `lan:${scope.companyId}:${account.id}`,
+        originModule: 'procurement',
+        originEntity: 'pedidos_compra',
+        originId: String(purchase.id),
+        originLabel: `Pedido ${purchase.numero || '#'+purchase.id} · ${purchase.descricao}`,
+        originReason: 'Conta vinculada a pedido de compra'
+      }
+    }
+    const contractId = account.contrato_id || this.db.prepare('SELECT id FROM contratos_obra WHERE conta_id=? AND obra_id=? AND deleted_at IS NULL ORDER BY id DESC LIMIT 1').get(account.id, account.obra_id)?.id
+    if (contractId) {
+      const contract = this.db.prepare('SELECT id,numero,descricao FROM contratos_obra WHERE id=? AND obra_id=? AND deleted_at IS NULL').get(Number(contractId), account.obra_id)
+      if (contract) return {
+        canonicalEntity: 'conta',
+        canonicalId: `lan:${scope.companyId}:${account.id}`,
+        originModule: 'contracts',
+        originEntity: 'contratos_obra',
+        originId: String(contract.id),
+        originLabel: `Contrato ${contract.numero || '#'+contract.id} · ${contract.descricao}`,
+        originReason: 'Conta vinculada a contrato da obra'
+      }
     }
     const mappings = {
       pedido_compra: ['procurement', 'pedidos_compra', 'Pedido de compra'],
@@ -289,6 +337,7 @@ export class FinanceService {
       projectId: scope.remoteProjectId || String(scope.workId),
       status: account.status,
       sourceUpdatedAt: account.updated_at || account.created_at,
+      components: this.accountComponents(account),
       ...this.accountProvenance(account, scope)
     }))
   }
