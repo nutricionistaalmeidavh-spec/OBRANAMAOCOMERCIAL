@@ -106,7 +106,7 @@ test('importação central da folha mantém conflito, auditoria e undo equivalen
   try {
     const payload={
       competencia:'2026-10',empresa_id:f.company.id,
-      file:{name:'folha-central.xlsx',path:'folha-central.xlsx',hash:'hash-payroll-central',sheet:'Folha'},
+      file:{name:'folha-central.xlsx',hash:'hash-payroll-central',sheet:'Folha'},
       mode:'template',
       rows:[
         {id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Central',values:{salario_centavos:260000,diarias_centavos:12000}},
@@ -114,16 +114,20 @@ test('importação central da folha mantém conflito, auditoria e undo equivalen
       ]
     }
     const preview=f.payroll.importPreview(payload)
-    const conflict=preview.conflicts.find(item=>item.field==='salario_centavos')
-    assert.equal(conflict.type,'value_conflict')
-    const result=f.payroll.importCommit({...payload,resolutions:{[conflict.id]:'use_import'}})
-    assert.equal(result.imported_values,2)
-    assert.equal(result.imported_expenses,1)
+    const conflict=preview.rows.flatMap(row=>row.conflicts||[]).find(item=>item.field==='salario_centavos')
+    assert.equal(conflict.kind,'value_conflict')
+    assert.equal(preview.canCommit,false)
+
+    const resolved={...payload,resolutions:{[conflict.key]:'use_import'}}
+    assert.equal(f.payroll.importPreview(resolved).canCommit,true)
+    const result=f.payroll.importCommit(resolved)
+    assert.ok(result.importacao_id>0)
+
     const overview=f.payroll.overview({competencia:'2026-10',empresa_id:f.company.id})
     assert.equal(overview.employees[0].remuneracao.salario_centavos,260000)
     assert.equal(overview.employees[0].remuneracao.diarias_centavos,12000)
     assert.ok(overview.company_expenses.some(item=>item.descricao==='Contabilidade'))
-    assert.equal(f.payroll.importHistory().find(item=>item.id===result.importacao_id).can_undo,true)
+    assert.equal(f.payroll.importHistory().find(item=>item.id===result.importacao_id).status,'concluida')
 
     const undone=f.payroll.importUndo(result.importacao_id)
     assert.equal(undone.status,'desfeita')
@@ -132,4 +136,18 @@ test('importação central da folha mantém conflito, auditoria e undo equivalen
     assert.equal(restored.employees[0].remuneracao.diarias_centavos,0)
     assert.equal(restored.company_expenses.some(item=>item.descricao==='Contabilidade'),false)
   } finally { f.repository.close() }
+})
+
+test('importação central rejeita duplicidade por hash, aba e competência', () => {
+  const f=fixture()
+  try{
+    const payload={
+      competencia:'2026-12',empresa_id:f.company.id,file:{name:'x.xlsx',hash:'same-central',sheet:'Folha'},
+      rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Central',values:{diarias_centavos:12000}}]
+    }
+    f.payroll.importCommit(payload)
+    const preview=f.payroll.importPreview(payload)
+    assert.equal(preview.canCommit,false)
+    assert.ok(preview.blockers.some(item=>item.kind==='duplicate_import'))
+  }finally{f.repository.close()}
 })
