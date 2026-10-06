@@ -67,3 +67,55 @@ describe('visão geral da folha',()=>{
     expect(overview.totals.custo_competencia_centavos).toBe(753000)
   })
 })
+
+
+describe('importação da visão geral da folha',()=>{
+  it('faz prévia com conflito, grava nas fontes canônicas e desfaz com segurança',()=>{
+    const {db,payroll,employee}=setup()
+    const companyId=db.get('funcionarios',employee.id).empresa_id
+    const payload={
+      competencia:'2026-10',empresa_id:companyId,obra_id:null,
+      file:{name:'folha-outubro.xlsx',path:'C:/tmp/folha-outubro.xlsx',hash:'hash-payroll-local',sheet:'Folha'},
+      mode:'template',
+      rows:[
+        {id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Teste',cpf:'',values:{salario_centavos:260000,vale_adiantamento_centavos:50000}},
+        {id:'row-3',row_number:3,cell:'Folha!3',kind:'expense',descricao:'Simples Nacional',categoria:'Impostos',valor_centavos:435000,vencimento:'2026-10-20'}
+      ]
+    }
+    const preview=payroll.importPreview(payload)
+    const salaryConflict=preview.conflicts.find((item:any)=>item.field==='salario_centavos')
+    expect(salaryConflict?.type).toBe('value_conflict')
+    expect(preview.stats.expense_rows).toBe(1)
+
+    const result=payroll.importCommit({...payload,resolutions:{[salaryConflict.id]:'use_import'}})
+    expect(result.imported_values).toBe(2)
+    expect(result.imported_expenses).toBe(1)
+
+    const overview=payroll.overview({competencia:'2026-10',empresa_id:companyId})
+    expect(overview.employees[0].remuneracao.salario_centavos).toBe(260000)
+    expect(overview.employees[0].remuneracao.vale_adiantamento_centavos).toBe(50000)
+    expect(overview.company_expenses.some((item:any)=>item.descricao==='Simples Nacional')).toBe(true)
+    expect(payroll.importHistory().find((item:any)=>item.id===result.importacao_id)?.can_undo).toBe(true)
+
+    const undone=payroll.importUndo(result.importacao_id)
+    expect(undone.status).toBe('desfeita')
+    const restored=payroll.overview({competencia:'2026-10',empresa_id:companyId})
+    expect(restored.employees[0].remuneracao.salario_centavos).toBe(250000)
+    expect(restored.employees[0].remuneracao.vale_adiantamento_centavos).toBe(0)
+    expect(restored.company_expenses.some((item:any)=>item.descricao==='Simples Nacional')).toBe(false)
+  })
+
+  it('não oferece sobrescrita para valor já pago',()=>{
+    const {db,payroll,employee}=setup()
+    const companyId=db.get('funcionarios',employee.id).empresa_id
+    payroll.getEmployee({funcionario_id:employee.id,competencia:'2026-11'})
+    payroll.confirm({funcionario_id:employee.id,competencia:'2026-11',quinzena:1,data:'2026-11-15'})
+    const preview=payroll.importPreview({
+      competencia:'2026-11',empresa_id:companyId,file:{name:'x.xlsx',hash:'h-paid',sheet:'Folha'},
+      rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Teste',values:{salario_centavos:270000}}]
+    })
+    const conflict=preview.conflicts.find((item:any)=>item.field==='salario_centavos')
+    expect(conflict.type).toBe('paid_value_conflict')
+    expect(conflict.options.map((item:any)=>item.value)).not.toContain('use_import')
+  })
+})
