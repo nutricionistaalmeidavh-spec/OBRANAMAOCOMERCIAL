@@ -197,6 +197,22 @@ class LanDataClient {
     return this.request('POST', '/api/v1/rh/catalog/compensation-policy', { body: payload })
   }
 
+  async payrollImportPreview(payload) {
+    return this.request('POST', '/api/v1/rh/payroll/import/preview', { body: payload })
+  }
+
+  async payrollImportCommit(payload) {
+    return this.request('POST', '/api/v1/rh/payroll/import/commit', { body: payload })
+  }
+
+  async payrollImportHistory(limit = 12) {
+    return this.request('GET', '/api/v1/rh/payroll/import/history', { query: { limit } })
+  }
+
+  async payrollImportUndo(importacaoId) {
+    return this.request('POST', '/api/v1/rh/payroll/import/undo', { body: { importacao_id: Number(importacaoId) } })
+  }
+
   async payrollOverview(payload) {
     return this.request('POST', '/api/v1/rh/payroll/overview', { body: payload })
   }
