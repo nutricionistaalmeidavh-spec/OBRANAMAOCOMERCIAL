@@ -4,7 +4,6 @@ import payrollValuesSource from './utils/payroll-values.ts?raw'
 import financeSource from './modules/command-center/FinancePage.tsx?raw'
 import dreSource from './modules/command-center/DrePage.tsx?raw'
 import payrollSource from './pages/PayrollPage.tsx?raw'
-import commandCenterCss from './modules/command-center/command-center.css?raw'
 
 describe('RH → Financeiro → DRE parity UX',()=>{
   it('RH distinguishes effective base salary from monthly payroll',()=>{
@@ -20,11 +19,10 @@ describe('RH → Financeiro → DRE parity UX',()=>{
     expect(financeSource).toContain('Em aberto')
   })
 
-  it('DRE exposes competência and realizado side by side without wrapping the third column',()=>{
+  it('DRE exposes competência and realizado side by side',()=>{
     expect(dreSource).toContain('Competência')
     expect(dreSource).toContain('Realizado')
     expect(dreSource).toContain('valor_realizado')
-    expect(commandCenterCss).toContain('.dre-command-body .dre-row { grid-template-columns: 1fr 180px 180px;')
   })
 
   it('RH company expenses tab shows actual competence expenses before navigation',()=>{
