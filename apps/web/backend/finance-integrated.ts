@@ -129,19 +129,6 @@ function dashboardPayload(a:Account[],t:Tx[],o:Obligation[],m:Match[]){
     ]
   }}
 }
-  const bank=bankDashboard(t,a),sg=suggestions(t,a,o,m),os=obligationStats(o,m,sg),txRows=transactionRows(t,a,o,m,sg),coveragePercent=os.expectedCents?Math.min(100,Math.round(os.matchedCents/os.expectedCents*100)):0
-  const divergenceCount=os.rows.filter(x=>x.reconciliationStatus==='divergence').length+txRows.filter(x=>x.reconciliationStatus==='divergence').length
-  return{...bank,expected:os,suggestionsCount:sg.length,overview:{
-    bank:{inflowCents:bank.inflowCents,outflowCents:bank.outflowCents,netCents:bank.netCents,withdrawalNetCents:bank.withdrawalNetCents},
-    system:{expectedCents:os.expectedCents,openCents:os.openCents,overdueCents:os.overdueCents,count:o.length},
-    reconciliation:{provenCents:os.matchedCents,pendingProofCents:os.openCents,coveragePercent,divergenceCount,suggestionsCount:sg.length},
-    sources:[
-      {key:'bank',label:'Extratos bancários',lastUpdatedAt:latestTimestamp(t.map(x=>x.createdAt))},
-      {key:'system',label:'Obrigações do sistema',lastUpdatedAt:latestTimestamp(o.map(x=>x.sourceUpdatedAt||x.updatedAt||x.createdAt))},
-      {key:'reconciliation',label:'Conciliações confirmadas',lastUpdatedAt:latestTimestamp(m.map(x=>x.createdAt))}
-    ]
-  }}
-}
 function brlValue(cents:number){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(cents/100)}
 function analysisWords(question:string){const stop=new Set(['QUAL','QUAIS','COMO','PARA','PORQUE','ESTAO','ESTÁ','ESSE','ESSA','ESTES','ESSAS','DINHEIRO','FINANCEIRO','ANALISE','ANÁLISE']);return normalize(question).split(' ').filter(x=>x.length>=4&&!stop.has(x))}
 async function analysisContext(companyId:string,question:string){
