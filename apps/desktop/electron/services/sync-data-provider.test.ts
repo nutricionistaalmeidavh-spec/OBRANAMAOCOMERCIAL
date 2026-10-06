@@ -98,7 +98,7 @@ it('namespaces local canonical account identity by publishing device', () => {
 
 it('publishes explicit payroll lineage and finance category without duplicating the economic obligation', () => {
   const f = fixture()
-  const category = f.database.save('categorias_financeiras', { nome: 'Folha de pagamento', natureza: 'despesa', grupo_dre: 'pessoal' })
+  const category = f.database.db.prepare("SELECT * FROM categorias_financeiras WHERE nome='Folha de pagamento'").get()
   const payrollAccount = f.database.save('contas', {
     empresa_id: f.company.id,
     obra_id: f.work.id,
