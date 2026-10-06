@@ -78,3 +78,18 @@ describe('SQLite e regras transacionais', () => {
     expect(overview.frentes.find((item: any) => item.id === eletrica.id)).toMatchObject({ orcado_centavos: 1000, comprometido_centavos: 0 })
   })
 })
+
+
+describe('DRE competência × realizado',()=>{
+  it('expõe o valor da competência e o valor efetivamente pago sem conflitar conceitos',()=>{
+    const db=createDatabase()
+    const empresa=db.save('empresas',{razao_social:'Empresa DRE',status:'ativa'})
+    const categoria=db.save('categorias_financeiras',{nome:'Equipe DRE',natureza:'despesa',grupo_dre:'pessoal',ativa:1})
+    const conta=db.save('contas',{tipo:'pagar',empresa_id:empresa.id,categoria_id:categoria.id,descricao:'Folha outubro',competencia:'2026-10',vencimento:'2026-10-15',valor_centavos:100000,status:'pendente'})
+    db.accountPayment(conta.id,{valor_centavos:40000,data:'2026-10-10'})
+    const [row]=db.dre({competencia:'2026-10',empresa_id:empresa.id})
+    expect(row.valor).toBe(100000)
+    expect(row.valor_realizado).toBe(40000)
+    expect(db.list('contas',{empresa_id:empresa.id})[0].pago_centavos).toBe(40000)
+  })
+})
