@@ -127,9 +127,11 @@ export default function PayrollPage(){
     if(overview.loading)return <Card><Loading label="Consolidando despesas da competência..."/></Card>
     const data=overview.data
     if(!data)return <Card><Empty title="Não foi possível carregar as despesas" description="Revise a competência e tente novamente."/></Card>
-    const expenses=data.company_expenses||[]
-    const groups=Array.from(expenses.reduce((map:Map<string,number>,row:any)=>{const key=row.categoria_nome||'Outras despesas';map.set(key,(map.get(key)||0)+Number(row.valor_centavos||0));return map},new Map<string,number>()).entries())
-    const total=groups.reduce((sum:number,[,value])=>sum+value,0)
+    const expenses:any[]=Array.isArray(data.company_expenses)?data.company_expenses:[]
+    const grouped=new Map<string,number>()
+    for(const row of expenses){const key=String(row.categoria_nome||'Outras despesas');grouped.set(key,(grouped.get(key)||0)+Number(row.valor_centavos||0))}
+    const groups:Array<[string,number]>=Array.from(grouped.entries())
+    const total=groups.reduce((sum,[,value])=>sum+value,0)
     const financeHref='/financeiro?'+new URLSearchParams({tipo:'pagar',competencia,empresa:empresaId,obra:obraId}).toString()
     return <Card className="company-expenses-card"><div className="section-heading"><div><h2>Despesas e encargos da competência</h2><p>{competenceLabel(competencia)} · valores vindos das contas a pagar, sem duplicar a própria folha.</p></div><strong>{brl(total)}</strong></div>{groups.length?<div className="company-expense-summary">{groups.map(([label,value])=><div key={label}><span>{label}</span><strong>{brl(value)}</strong></div>)}</div>:<Empty title="Sem outras despesas nesta competência" description="As contas a pagar da empresa aparecerão aqui quando forem lançadas."/>}<div className="header-actions" style={{marginTop:12}}><Link className="button button-secondary" to={financeHref}>Abrir contas a pagar</Link><Link className="button button-secondary" to="/dre">Abrir DRE</Link></div></Card>
   }
