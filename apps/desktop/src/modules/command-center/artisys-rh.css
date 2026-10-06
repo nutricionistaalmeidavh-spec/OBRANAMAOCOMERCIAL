@@ -69,6 +69,9 @@
 .route-rh-folha .payroll-overview-person{padding:6px 10px!important}
 .route-rh-folha .payroll-overview-person strong{display:block;max-width:168px;overflow:hidden;text-overflow:ellipsis;color:#17213b;font-size:9px}
 .route-rh-folha .payroll-overview-person small{display:block;margin-top:2px;max-width:168px;overflow:hidden;text-overflow:ellipsis;color:#8a95a8;font-size:7.5px;font-weight:500}
+.route-rh-folha .payroll-overview-person-link{display:block;width:100%;margin:0;padding:0;border:0;background:transparent;text-align:left;cursor:pointer;border-radius:5px}
+.route-rh-folha .payroll-overview-person-link:hover strong,.route-rh-folha .payroll-overview-person-link:focus-visible strong{color:#0b59f5;text-decoration:underline;text-underline-offset:2px}
+.route-rh-folha .payroll-overview-person-link:focus-visible{outline:2px solid #b9cff9;outline-offset:2px}
 .route-rh-folha .overview-group{height:28px!important;font-weight:800!important}
 .route-rh-folha .overview-group.remuneracao,.route-rh-folha .overview-subhead.remuneracao{background:#eef4ff}
 .route-rh-folha .overview-group.beneficios,.route-rh-folha .overview-subhead.beneficios{background:#f0f8f3}
