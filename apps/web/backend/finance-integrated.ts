@@ -164,7 +164,10 @@ export async function desktopFinanceRead(companyId:string,view:string){
   if(view==='dashboard'){const[a,t,o,m]=await Promise.all([accounts(companyId),transactions(companyId),obligations(companyId),matches(companyId)]);return dashboardPayload(a,t,o,m)}
   if(view==='transactions'){const[a,t,o,m]=await Promise.all([accounts(companyId),transactions(companyId),obligations(companyId),matches(companyId)]),sg=suggestions(t,a,o,m);return{transactions:transactionRows(t,a,o,m,sg)}}
   if(view==='obligations'){const[a,t,o,m]=await Promise.all([accounts(companyId),transactions(companyId),obligations(companyId),matches(companyId)]),sg=suggestions(t,a,o,m);return obligationStats(o,m,sg)}
-  if(view==='reconciliation'){const[a,t,o,m]=await Promise.all([accounts(companyId),transactions(companyId),obligations(companyId),matches(companyId)]);return{suggestions:suggestions(t,a,o,m),confirmed:m}}
+  if(view==='reconciliation'||view==='divergences'){
+    const[a,t,o,m]=await Promise.all([accounts(companyId),transactions(companyId),obligations(companyId),matches(companyId)]),sg=suggestions(t,a,o,m),os=obligationStats(o,m,sg),txRows=transactionRows(t,a,o,m,sg),divergences=detectFinanceDivergences({transactions:txRows as unknown as Record<string,unknown>[],obligations:os.rows as unknown as Record<string,unknown>[],suggestions:sg})
+    return view==='divergences'?{divergences}:{suggestions:sg,confirmed:m,divergences}
+  }
   if(view==='gemini-status'){const cfg=await effectiveGeminiConfig(companyId);return{configured:!!cfg?.apiKey,model:cfg?.model||GEMINI_MODEL,managedBy:geminiManagedByServer()?'cloudflare-secret':'company-config'}}
   if(view==='categories')return{categories:CATEGORIES}
   if(view==='imports')return{imports:await imports(companyId)}
