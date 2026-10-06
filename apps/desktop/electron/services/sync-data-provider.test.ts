@@ -95,6 +95,38 @@ it('namespaces local canonical account identity by publishing device', () => {
   expect(secondObligation.canonicalId).toBe(`local:device-b:${secondObligation.sourceId.split(':').at(-1)}`)
 })
 
+
+it('publishes explicit payroll lineage and finance category without duplicating the economic obligation', () => {
+  const f = fixture()
+  const category = f.database.save('categorias_financeiras', { nome: 'Folha de pagamento', natureza: 'despesa', grupo_dre: 'pessoal' })
+  const payrollAccount = f.database.save('contas', {
+    empresa_id: f.company.id,
+    obra_id: f.work.id,
+    categoria_id: category.id,
+    tipo: 'pagar',
+    descricao: 'Folha João',
+    valor_centavos: 280000,
+    competencia: '2026-10',
+    vencimento: '2026-10-05'
+  })
+  const sheet = f.database.save('folhas_pagamento', {
+    empresa_id: f.company.id,
+    competencia: '2026-10',
+    status: 'fechada',
+    conta_id: payrollAccount.id
+  })
+
+  const obligation = f.provider.obligations(f.scope).find(item => item.canonicalId === `local:${f.scope.deviceId}:${payrollAccount.id}`)
+  expect(obligation).toMatchObject({
+    sourceType: 'payroll',
+    category: 'Folha de pagamento',
+    canonicalEntity: 'conta',
+    originModule: 'rh',
+    originEntity: 'folhas_pagamento',
+    originId: String(sheet.id)
+  })
+})
+
 it('applies the same editable remote patch semantics without changing row ownership', () => {
   const f = fixture()
   const original = f.database.get('tarefas_obra', f.task.id)
