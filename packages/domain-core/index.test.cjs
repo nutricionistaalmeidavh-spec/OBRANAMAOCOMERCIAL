@@ -119,7 +119,8 @@ test('despesas empresariais vêm de contas a pagar e excluem a própria folha pa
     { id: 2, tipo: 'pagar', descricao: 'DAS Simples Nacional', categoria_nome: 'Impostos', valor_centavos: 435000, recorrencia: 'mensal' },
     { id: 3, tipo: 'pagar', descricao: 'Contabilidade', categoria_nome: 'Serviços', valor_centavos: 85000, recorrencia: 'mensal' },
     { id: 4, tipo: 'receber', descricao: 'Medição', categoria_nome: 'Receita', valor_centavos: 900000 },
-    { id: 5, tipo: 'pagar', descricao: 'Seguro da empresa', categoria_nome: 'Seguros', valor_centavos: 120000, recorrencia: 'mensal', deleted_at: '2026-10-01' }
+    { id: 5, tipo: 'pagar', descricao: 'Seguro da empresa', categoria_nome: 'Seguros', valor_centavos: 120000, recorrencia: 'mensal', deleted_at: '2026-10-01' },
+    { id: 6, tipo: 'pagar', descricao: 'Conta cancelada', categoria_nome: 'Outras despesas', valor_centavos: 99000, status: 'cancelado' }
   ])
   assert.deepEqual(rows.map(row => [row.id,row.group,row.valor_centavos]), [
     [2,'impostos',435000],
