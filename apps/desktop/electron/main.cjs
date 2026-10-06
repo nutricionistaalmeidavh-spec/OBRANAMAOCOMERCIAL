@@ -376,6 +376,7 @@ function registerIpc() {
     return result
   })))
   ipcMain.handle('backup:open-data-folder', envelope(() => services.backup.openDataFolder()))
+  ipcMain.handle('payroll:overview', envelope((payload) => services.payroll.overview(payload)))
   ipcMain.handle('payroll:employee', envelope((payload) => services.payroll.getEmployee(payload)))
   ipcMain.handle('payroll:save-variable', envelope((payload) => services.payroll.saveVariable(payload)))
   ipcMain.handle('payroll:remove-variable', envelope(({ id }) => services.payroll.removeVariable(id)))
