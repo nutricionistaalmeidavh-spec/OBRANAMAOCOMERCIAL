@@ -1,5 +1,32 @@
 function money(value) { return Number(value || 0) }
 
+const PAYROLL_IMPORT_COMPONENTS = Object.freeze([
+  { field:'salario_centavos', key:'remuneracao.salario', tipo:'salario', descricao:'Salário base', natureza:'credito', quinzena:1, fixed:true },
+  { field:'vale_adiantamento_centavos', key:'remuneracao.vale_adiantamento', tipo:'vale_adiantamento', descricao:'Vale / adiantamento', natureza:'credito', quinzena:2 },
+  { field:'diarias_centavos', key:'remuneracao.diarias', tipo:'diaria', descricao:'Diárias', natureza:'credito', quinzena:1 },
+  { field:'empreitas_centavos', key:'remuneracao.empreitas', tipo:'empreita', descricao:'Empreitas', natureza:'credito', quinzena:1 },
+  { field:'alimentacao_centavos', key:'beneficios.alimentacao', tipo:'beneficio_importado_alimentacao', descricao:'Alimentação', natureza:'credito', quinzena:1, benefit:true },
+  { field:'transporte_centavos', key:'beneficios.transporte', tipo:'beneficio_importado_transporte', descricao:'Transporte', natureza:'credito', quinzena:1, benefit:true },
+  { field:'outros_beneficios_centavos', key:'beneficios.outros', tipo:'beneficio_importado_outros', descricao:'Outros benefícios', natureza:'credito', quinzena:1, benefit:true },
+  { field:'faltas_centavos', key:'descontos.faltas', tipo:'falta', descricao:'Faltas', natureza:'desconto', quinzena:1 },
+  { field:'outros_descontos_centavos', key:'descontos.outros', tipo:'outro_desconto', descricao:'Outros descontos', natureza:'desconto', quinzena:1 },
+  { field:'inss_centavos', key:'encargos.inss', tipo:'inss', descricao:'INSS', natureza:'credito', quinzena:null, employerCharge:true },
+  { field:'fgts_centavos', key:'encargos.fgts', tipo:'fgts', descricao:'FGTS', natureza:'credito', quinzena:null, employerCharge:true },
+  { field:'outros_encargos_centavos', key:'encargos.outros', tipo:'encargo_importado_outros', descricao:'Outros encargos', natureza:'credito', quinzena:null, employerCharge:true }
+])
+
+function payrollImportComponents(values = {}) {
+  return PAYROLL_IMPORT_COMPONENTS
+    .map(component => ({ ...component, valor_centavos: Math.max(0, money(values?.[component.field])) }))
+    .filter(component => component.valor_centavos > 0)
+}
+
+function payrollImportCurrentValues(row = {}) {
+  const result = {}
+  for (const component of PAYROLL_IMPORT_COMPONENTS) result[component.field] = payrollOverviewColumnValue(row, component.key)
+  return result
+}
+
 const PAYROLL_OVERVIEW_COLUMNS = Object.freeze([
   { key: 'remuneracao.salario', group: 'remuneracao', label: 'Salário' },
   { key: 'remuneracao.vale_adiantamento', group: 'remuneracao', label: 'Vale / adiantamento' },
