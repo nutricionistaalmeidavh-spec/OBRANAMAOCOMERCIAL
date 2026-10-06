@@ -364,6 +364,13 @@ function createPayrollImportEngine(adapter) {
   if (!adapter?.db || typeof adapter.save !== 'function' || typeof adapter.ensureSheet !== 'function') throw new Error('Adaptador de importação da folha inválido.')
   const db = adapter.db
   const save = adapter.save
+  const transact = (work) => {
+    if (typeof adapter.transaction === 'function') return adapter.transaction(work)
+    if (typeof db.transaction === 'function') return db.transaction(work)()
+    db.exec('BEGIN IMMEDIATE;')
+    try { const result = work(); db.exec('COMMIT;'); return result }
+    catch (error) { try { db.exec('ROLLBACK;') } catch {} throw error }
+  }
   const get = adapter.get || ((table,id) => db.prepare(`SELECT * FROM ${table} WHERE id=?`).get(Number(id)))
 
   const catalog = () => new Map(db.prepare("SELECT id,nome,tipo FROM beneficios WHERE ativo=1").all().map(item => [Number(item.id), item]))
@@ -511,7 +518,7 @@ function createPayrollImportEngine(adapter) {
     const unresolved = checked.conflicts.filter(item => !resolutions[item.id])
     if (unresolved.length) throw new Error(`Resolva ${unresolved.length} conflito(s) antes de confirmar a importação.`)
     const aba = `payroll:${checked.file?.sheet || 'planilha'}:${checked.competencia}`
-    return db.transaction(() => {
+    return transact(() => {
       if (checked.file?.hash && db.prepare("SELECT id FROM importacoes WHERE hash=? AND aba=? AND status='concluida'").get(checked.file.hash,aba)) {
         throw new Error('Esta planilha já foi importada para esta competência.')
       }
@@ -604,7 +611,7 @@ function createPayrollImportEngine(adapter) {
       }
       db.prepare("UPDATE importacoes SET status='concluida',resumo=?,concluida_em=CURRENT_TIMESTAMP WHERE id=?").run(JSON.stringify(summary),imported.id)
       return { importacao_id:imported.id,...summary }
-    })()
+    })
   }
 
   function history(limit = 12) {
@@ -633,7 +640,7 @@ function createPayrollImportEngine(adapter) {
     }
     if (unsafe.length) throw new Error(`Não é seguro desfazer esta importação: ${unsafe.slice(0,3).join(' ')}`)
 
-    return db.transaction(() => {
+    return transact(() => {
       const touchedEmployees = new Set()
       let removedValues=0, removedExpenses=0, preservedEmployees=0
       for (const line of lines) {
@@ -672,7 +679,7 @@ function createPayrollImportEngine(adapter) {
       const summary={...previous,can_undo:false,undo:{removed_values:removedValues,removed_expenses:removedExpenses,preserved_employees:preservedEmployees}}
       db.prepare("UPDATE importacoes SET status='desfeita',resumo=? WHERE id=?").run(JSON.stringify(summary),imported.id)
       return {importacao_id:imported.id,status:'desfeita',...summary.undo}
-    })()
+    })
   }
 
   return { preview, commit, history, undo }
