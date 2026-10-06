@@ -94,7 +94,8 @@ class DatabaseService {
       params[key] = value
     }
     const order = columns.has('updated_at') ? 'updated_at DESC' : columns.has('nome') ? 'nome COLLATE NOCASE' : 'id DESC'
-    return this.db.prepare(`SELECT * FROM ${table}${where.length ? ` WHERE ${where.join(' AND ')}` : ''} ORDER BY ${order}`).all(params)
+    const select = table === 'contas' ? "contas.*,COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=contas.id),0) AS pago_centavos" : '*'
+    return this.db.prepare(`SELECT ${select} FROM ${table}${where.length ? ` WHERE ${where.join(' AND ')}` : ''} ORDER BY ${order}`).all(params)
   }
 
   get(table, id) {
@@ -226,7 +227,8 @@ class DatabaseService {
     if (empresa_id) { clauses.push('c.empresa_id=@empresa_id'); params.empresa_id = Number(empresa_id) }
     if (obra_id) { clauses.push('c.obra_id=@obra_id'); params.obra_id = Number(obra_id) }
     const rows = this.db.prepare(`
-      SELECT c.competencia,c.tipo,COALESCE(cf.grupo_dre,'operacional') grupo,COALESCE(cf.nome,'Sem categoria') categoria,SUM(c.valor_centavos) valor
+      SELECT c.competencia,c.tipo,COALESCE(cf.grupo_dre,'operacional') grupo,COALESCE(cf.nome,'Sem categoria') categoria,SUM(c.valor_centavos) valor,
+        SUM(COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0)) valor_realizado
       FROM contas c LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
       WHERE ${clauses.join(' AND ')} GROUP BY c.competencia,c.tipo,grupo,categoria ORDER BY c.competencia,c.tipo,categoria
     `).all(params)
