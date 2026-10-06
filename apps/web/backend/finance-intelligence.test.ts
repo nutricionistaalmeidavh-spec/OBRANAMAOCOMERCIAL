@@ -34,6 +34,21 @@ describe('finance intelligence P2', () => {
     expect(result.some(x=>x.transactionId==='tx-2')).toBe(false)
   })
 
+
+  it('does not flag personal-account debits or future obligations as current divergences', () => {
+    const result=detectFinanceDivergences({
+      today:'2026-10-05',
+      transactions:[
+        {id:'personal-1',direction:'debit',amountCents:90000,matchedCents:0,description:'COMPRA PESSOAL',date:'2026-10-05',accountId:'personal',accountOwnership:'personal'}
+      ],
+      obligations:[
+        {id:'future-1',amountCents:80000,matchedCents:0,remainingCents:80000,beneficiaryName:'Fornecedor Futuro',description:'Conta novembro',dueDate:'2026-11-10'}
+      ],
+      suggestions:[]
+    })
+    expect(result).toEqual([])
+  })
+
   it('surfaces partial, bundled and evidence-review cases without changing data', () => {
     const result=detectFinanceDivergences({
       transactions:[{id:'tx-1',direction:'debit',amountCents:100000,matchedCents:40000,description:'PIX JOAO',date:'2026-10-05',accountId:'bank-1'}],
