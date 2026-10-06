@@ -83,22 +83,19 @@ describe('importação da visão geral da folha',()=>{
       ]
     }
     const preview=payroll.importPreview(payload)
-    const salaryConflict=preview.rows.flatMap((row:any)=>row.conflicts||[]).find((item:any)=>item.field==='salario_centavos')
-    expect(salaryConflict?.kind).toBe('value_conflict')
-    expect(preview.summary.expenses).toBe(1)
-    expect(preview.canCommit).toBe(false)
+    const salaryConflict=preview.conflicts.find((item:any)=>item.field==='salario_centavos')
+    expect(salaryConflict?.type).toBe('value_conflict')
+    expect(preview.stats.expense_rows).toBe(1)
 
-    const resolved={...payload,resolutions:{[salaryConflict.key]:'use_import'}}
-    expect(payroll.importPreview(resolved).canCommit).toBe(true)
-    const result=payroll.importCommit(resolved)
-    expect(result.importacao_id).toBeGreaterThan(0)
-    expect(result.created+result.updated).toBeGreaterThanOrEqual(3)
+    const result=payroll.importCommit({...payload,resolutions:{[salaryConflict.id]:'use_import'}})
+    expect(result.imported_values).toBe(2)
+    expect(result.imported_expenses).toBe(1)
 
     const overview=payroll.overview({competencia:'2026-10',empresa_id:companyId})
     expect(overview.employees[0].remuneracao.salario_centavos).toBe(260000)
     expect(overview.employees[0].remuneracao.vale_adiantamento_centavos).toBe(50000)
     expect(overview.company_expenses.some((item:any)=>item.descricao==='Simples Nacional')).toBe(true)
-    expect(payroll.importHistory().find((item:any)=>item.id===result.importacao_id)?.status).toBe('concluida')
+    expect(payroll.importHistory().find((item:any)=>item.id===result.importacao_id)?.can_undo).toBe(true)
 
     const undone=payroll.importUndo(result.importacao_id)
     expect(undone.status).toBe('desfeita')
@@ -108,7 +105,7 @@ describe('importação da visão geral da folha',()=>{
     expect(restored.company_expenses.some((item:any)=>item.descricao==='Simples Nacional')).toBe(false)
   })
 
-  it('bloqueia sobrescrita quando o funcionário já possui pagamento confirmado',()=>{
+  it('não oferece sobrescrita para valor já pago',()=>{
     const {db,payroll,employee}=setup()
     const companyId=db.get('funcionarios',employee.id).empresa_id
     payroll.getEmployee({funcionario_id:employee.id,competencia:'2026-11'})
@@ -117,8 +114,9 @@ describe('importação da visão geral da folha',()=>{
       competencia:'2026-11',empresa_id:companyId,file:{name:'x.xlsx',hash:'h-paid',sheet:'Folha'},
       rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Teste',values:{salario_centavos:270000}}]
     })
-    expect(preview.blockers.some((item:any)=>item.kind==='paid_employee')).toBe(true)
-    expect(preview.canCommit).toBe(false)
+    const conflict=preview.conflicts.find((item:any)=>item.field==='salario_centavos')
+    expect(conflict.type).toBe('paid_value_conflict')
+    expect(conflict.options.map((item:any)=>item.value)).not.toContain('use_import')
   })
 
   it('não permite importar o mesmo arquivo e aba duas vezes na mesma competência',()=>{
@@ -129,8 +127,6 @@ describe('importação da visão geral da folha',()=>{
       rows:[{id:'row-2',row_number:2,cell:'Folha!2',kind:'employee',funcionario:'Funcionário Teste',values:{diarias_centavos:12000}}]
     }
     payroll.importCommit(payload)
-    const preview=payroll.importPreview(payload)
-    expect(preview.blockers.some((item:any)=>item.kind==='duplicate_import')).toBe(true)
-    expect(preview.canCommit).toBe(false)
+    expect(()=>payroll.importCommit(payload)).toThrow(/já foi importada/i)
   })
 })
