@@ -88,11 +88,28 @@ export const artisysSeoConfig = defineSeoConfig({
   pages: [
     {
       path: '/',
-      title: 'ArtiSys | Sistemas, sites e automações para negócios',
-      description: 'A ArtiSys cria sistemas sob medida, sites profissionais e automações para empresas que querem vender, organizar e crescer.',
+      title: 'ArtiSys | Sistemas para empresas e DevKit Tool’s',
+      description: 'Sistemas ArtiSys para empresas e DevKit Tool’s para desenvolvedores: soluções reais para gestão, obras, vendas, saúde e ferramentas técnicas reutilizáveis.',
       schemaType: 'WebPage',
       changeFrequency: 'weekly',
       priority: 1
+    },
+    {
+      path: '/devkits',
+      canonical: 'https://artisys.dev/devkits/',
+      title: 'DevKit Tool’s ArtiSys | Kits técnicos para desenvolvedores',
+      description: 'Conheça os DevKit Tool’s ArtiSys: módulos técnicos reutilizáveis para PDF, OCR, backup, testes, interfaces, desktop e muito mais. Explore o catálogo técnico.',
+      schemaType: 'CollectionPage',
+      changeFrequency: 'monthly',
+      priority: 0.9,
+      jsonLd: [{
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: 'Exemplos DevKit Tool’s ArtiSys',
+        itemListElement: ['Geração e Leitura de PDFs', 'Reconhecimento de Texto (OCR)', 'Backup e Restauração', 'Testes e Controle de Qualidade'].map((name, index) => ({
+          '@type': 'ListItem', position: index + 1, name
+        }))
+      }]
     },
     {
       path: '/sistemas',
