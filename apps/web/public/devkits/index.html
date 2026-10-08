@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1727">
+<title>DevKit Tool’s ArtiSys | Kits técnicos para desenvolvedores</title>
+<meta name="description" content="Conheça os DevKit Tool’s ArtiSys: módulos técnicos reutilizáveis para PDF, OCR, backup, testes, interfaces, desktop e muito mais. Explore o catálogo técnico.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://artisys.dev/devkits/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="ArtiSys">
+<meta property="og:title" content="DevKit Tool’s ArtiSys — ferramentas para quem desenvolve">
+<meta property="og:description" content="Kits técnicos reutilizáveis para acelerar projetos: documentos, OCR, dados, interfaces, testes e mais.">
+<meta property="og:url" content="https://artisys.dev/devkits/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DevKit Tool’s ArtiSys">
+<meta name="twitter:description" content="Explore o catálogo de kits técnicos da ArtiSys para desenvolvedores.">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/artisys-favicon-32.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"DevKit Tool’s ArtiSys","description":"Catálogo técnico de kits reutilizáveis de desenvolvimento da ArtiSys","url":"https://artisys.dev/devkits/","isPartOf":{"@type":"WebSite","url":"https://artisys.dev/"},"mainEntity":{"@type":"ItemList","name":"Exemplos de DevKit Tool’s","itemListElement":[{"@type":"ListItem","position":1,"name":"Geração e Leitura de PDFs"},{"@type":"ListItem","position":2,"name":"Reconhecimento de Texto (OCR)"},{"@type":"ListItem","position":3,"name":"Backup e Restauração"},{"@type":"ListItem","position":4,"name":"Testes e Controle de Qualidade"}]}}</script>
+<style>
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:#0b1727;color:#f0f5ff;-webkit-font-smoothing:antialiased;--line:#2e425b;--muted:#b5c8df;--accent:#a8caff}
+*{box-sizing:border-box}body{margin:0;min-width:320px}a{color:inherit;text-decoration:none}a:focus-visible{outline:3px solid #8fb9ff;outline-offset:4px}img{max-width:100%;height:auto;display:block}h1,h2,h3,p{margin:0}.wrap{width:min(1180px,calc(100% - 72px));margin-inline:auto}
+.skip{position:fixed;top:-100px;left:12px;background:white;color:#111;padding:12px;z-index:50}.skip:focus{top:12px}
+header{border-bottom:1px solid var(--line);background:#0b1727;position:sticky;top:0;z-index:10}
+.nav{min-height:76px;display:flex;align-items:center;gap:28px}.brand{width:145px}.links{display:flex;align-items:center;gap:24px;margin-left:auto;color:#cad8eb;font-size:13px}.links a{min-height:44px;display:inline-flex;align-items:center}
+.portal{border:1px solid #5b85b8;background:#142d4c;border-radius:8px;padding:11px 15px;font-weight:650;white-space:nowrap}
+.portal:hover,.links a:hover{color:#fff;border-color:#92c1ff}
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:70px;align-items:center;padding-block:106px 105px}.eyeline{font-size:12px;font-weight:700;color:#a5c6ef;letter-spacing:.06em}
+h1{font-family:"Avenir Next","Trebuchet MS",Inter,system-ui,sans-serif;font-size:clamp(55px,6vw,86px);line-height:1.025;letter-spacing:-.038em;margin-top:18px;max-width:790px}
+h1 em{font-style:normal;color:#a3c9ff}
+.intro{font-size:17px;line-height:1.78;color:#bccce1;max-width:580px;margin-top:29px}
+.actions{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-top:34px}
+.button{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:13px 19px;background:#2f78f0;border-radius:8px;font-size:13px;font-weight:700}
+.button:hover{background:#4d8cf0}.link{font-size:13px;font-weight:650;color:#bdd5f4;min-height:44px;display:inline-flex;align-items:center}
+.note{font-size:12px;color:#9dafc6;line-height:1.7;margin-top:24px;max-width:570px}
+.specimen{border:1px solid #3d5672;border-radius:18px;background:#121f31;overflow:hidden;box-shadow:0 25px 70px #0004}
+.specimen header{position:static;display:flex;justify-content:space-between;padding:16px 19px;background:#182943;color:#aec5e1;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+.specimen-body{padding:27px}.specimen-body h2{font-size:21px;letter-spacing:-.02em;font-weight:600;margin-bottom:21px}
+.item{display:grid;grid-template-columns:95px 1fr;gap:10px;padding:15px 0;border-top:1px solid #2e425b;align-items:center}.item code{color:#a3bcda;font-size:10px}.item strong{font-size:13px;font-weight:550;line-height:1.5}.specimen-foot{border-top:1px solid #2e425b;padding-top:16px;margin-top:6px;font-size:12px;color:#b3c8df}
+.section{padding-block:77px 87px;border-top:1px solid #2e425b}.section-head{display:flex;justify-content:space-between;gap:40px;align-items:end}.section h2{font-family:"Avenir Next","Trebuchet MS",Inter,system-ui,sans-serif;font-size:clamp(32px,3.3vw,47px);letter-spacing:-.035em;font-weight:660;line-height:1.12;max-width:670px}.section-head p{color:#b4c6dd;font-size:14px;line-height:1.7;max-width:420px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:31px}.tile{border:1px solid #314762;border-radius:13px;padding:27px;min-height:230px;background:#122237}.tile small{color:#9ebce4;font-size:11px}.tile h3{font-size:20px;font-weight:640;line-height:1.24;letter-spacing:-.02em;margin:31px 0 12px}.tile p{font-size:13px;line-height:1.7;color:#c0d0e4}
+.source{padding:55px 0 90px;border-top:1px solid #2e425b}.source-inner{padding:36px;border:1px solid #3e5e85;border-radius:15px;background:#183457;display:grid;grid-template-columns:1fr auto;gap:35px;align-items:center}.source h2{font-size:30px;letter-spacing:-.025em}.source p{color:#c5d9f1;font-size:14px;line-height:1.7;max-width:700px;margin-top:13px}.source .button{background:#eef5ff;color:#142848}.source .button:hover{background:#d6e5ff}
+footer{border-top:1px solid #2e425b;color:#aabed8}.footer-inner{display:flex;justify-content:space-between;gap:20px;padding-block:27px;font-size:12px}
+@media(max-width:850px){.hero{grid-template-columns:1fr;gap:38px;padding-block:69px}.specimen{max-width:640px}.section-head{flex-direction:column;align-items:start;gap:14px}.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.wrap{width:calc(100% - 36px)}.nav{min-height:66px;gap:9px;flex-wrap:wrap}.brand{width:115px}.links{gap:9px;font-size:11px}.links a:not(.portal){display:none}.portal{padding:10px;min-height:42px}.hero{padding-block:54px 63px;gap:32px}h1{font-size:clamp(49px,13vw,71px)}.intro{font-size:14px;margin-top:23px}.actions{flex-direction:column;align-items:stretch;gap:9px}.link{justify-content:center}.note{margin-top:15px}.specimen-body{padding:21px}.item{grid-template-columns:85px 1fr}.section{padding-block:53px 57px}.grid{grid-template-columns:1fr}.tile{min-height:0;padding:23px}.tile h3{margin-top:21px}.source{padding-block:40px 55px}.source-inner{padding:25px;grid-template-columns:1fr;gap:19px}.source h2{font-size:25px}.source .button{width:100%}.footer-inner{flex-direction:column}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<a class="skip" href="#conteudo">Ir ao conteúdo</a>
+<header><nav class="nav wrap" aria-label="Navegação DevKit"><a class="brand" href="/" aria-label="ArtiSys, página inicial"><img src="/artisys-logo.svg" width="560" height="192" alt="ArtiSys"></a><div class="links"><a href="/sistemas/">Sistemas</a><a href="/">ArtiSys</a><a class="portal" href="/sistema.html#portal">Acessar Obra na Mão</a></div></nav></header>
+<main id="conteudo">
+<section class="hero wrap" aria-labelledby="devkit-title"><div><p class="eyeline">ArtiSys para desenvolvedores</p><h1 id="devkit-title">DevKit<br><em>Tool’s.</em></h1><p class="intro">Tem um problema técnico para resolver? Talvez você não precise começar do zero. Explore módulos e kits reutilizáveis para documentos, dados, interfaces, automações e qualidade de software.</p><div class="actions"><a class="button" href="https://github.com/nutricionistaalmeidavh-spec/DevKitTools/blob/main/catalogo/MATRIZ-KITS.md" target="_blank" rel="noopener noreferrer">Explorar catálogo técnico ↗</a><a class="link" href="/sistemas/">Conhecer sistemas ArtiSys →</a></div><p class="note">63 kits catalogados. A distribuição comercial está em preparação; a lista técnica mostra quais ferramentas estão mapeadas, sem prometer compra ou download imediato.</p></div><div class="specimen" aria-label="Alguns kits técnicos mapeados"><header><span>CATÁLOGO TÉCNICO / ARTISYS</span><span>DKT</span></header><div class="specimen-body"><h2>Peças para construir melhor.</h2><div class="item"><code>DKT-DOC-005</code><strong>Geração e Leitura de PDFs</strong></div><div class="item"><code>DKT-DOC-008</code><strong>Reconhecimento de Texto (OCR)</strong></div><div class="item"><code>DKT-PLAT-006</code><strong>Backup e Restauração</strong></div><div class="item"><code>DKT-QUAL-005</code><strong>Testes e Controle de Qualidade</strong></div><div class="specimen-foot">Código, documentação e organização por finalidade — conforme a composição de cada kit.</div></div></div></section>
+<section class="section wrap" aria-labelledby="areas-title"><div class="section-head"><h2 id="areas-title">Ferramentas para etapas reais do desenvolvimento.</h2><p>Os kits são agrupados pelo tipo de problema. Encontre a área do seu projeto antes de escolher um módulo.</p></div><div class="grid">
+<article class="tile"><small>Documentos e mídia</small><h3>PDF, OCR e processamento</h3><p>Leitura, conversão e manipulação de documentos e arquivos.</p></article>
+<article class="tile"><small>Plataforma e dados</small><h3>Backup, importação e sincronização</h3><p>Componentes para organizar dados, permissões e continuidade operacional.</p></article>
+<article class="tile"><small>Qualidade e entrega</small><h3>Testes, contratos e validações</h3><p>Recursos para verificar comportamentos e preparar uma entrega confiável.</p></article>
+<article class="tile"><small>Interface e produtividade</small><h3>Dashboards e fluxos visuais</h3><p>Módulos para construir telas, indicadores e jornadas operacionais.</p></article>
+<article class="tile"><small>Desktop e hardware</small><h3>Impressão e integrações locais</h3><p>Ferramentas voltadas a aplicações desktop e equipamentos conectados.</p></article>
+<article class="tile"><small>Web e mobile</small><h3>PWA e integração com aplicativos</h3><p>Estruturas para instalação, experiência offline e comunicação com apps.</p></article>
+</div></section>
+<section class="source"><div class="source-inner wrap"><div><h2>Veio de um vídeo?</h2><p>Veja os nomes e a finalidade dos kits no catálogo técnico. Os detalhes comerciais e a disponibilidade devem ser confirmados antes da aquisição.</p></div><a class="button" href="https://github.com/nutricionistaalmeidavh-spec/DevKitTools" target="_blank" rel="noopener noreferrer">Abrir catálogo DevKit ↗</a></div></section>
+</main>
+<footer><div class="footer-inner wrap"><span>© 2026 ArtiSys · DevKit Tool’s</span><a href="/">Voltar para a ArtiSys</a></div></footer>
+</body>
+</html>

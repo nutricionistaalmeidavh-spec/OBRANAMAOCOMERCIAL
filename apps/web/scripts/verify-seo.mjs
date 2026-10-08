@@ -36,6 +36,14 @@ for (const slug of ['sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-
   assert.ok(!sitemap.includes(`https://artisys.dev/sistemas/${slug}/`), `${slug} deve permanecer apenas na coleção Agro`);
 }
 
+assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/devkits\/<\/loc>/, 'página DevKit deve estar no sitemap');
+const devkitHtml = read('public/devkits/index.html');
+const devkitModel = buildPageSeo(artisysSeoConfig, '/devkits');
+const devkitAudit = auditSeoDocument({ html: devkitHtml, expected: { canonical: devkitModel.canonical, index: true } });
+assert.equal(devkitAudit.summary.critical, 0, 'página DevKit com falha SEO: ' + JSON.stringify(devkitAudit, null, 2));
+assert.match(devkitHtml, /DevKit Tool.s/, 'página DevKit precisa identificar a categoria');
+assert.match(transformed, /href="\/devkits\/"/i, 'landing deve levar à página DevKit');
+
 const catalogIndex = read('public/sistemas/index.html');
 const catalogModel = buildPageSeo(artisysSeoConfig, '/sistemas');
 const catalogAudit = auditSeoDocument({ html: catalogIndex, expected: { canonical: catalogModel.canonical, index: true } });
