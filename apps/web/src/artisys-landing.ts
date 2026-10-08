@@ -1,5 +1,6 @@
 import './artisys-landing.css';
 import './artisys-refinement.css';
+import './artisys-marketing-2026.css';
 
 const menu = document.getElementById('nav-links');
 const toggle = document.querySelector<HTMLButtonElement>('.menu-toggle');
