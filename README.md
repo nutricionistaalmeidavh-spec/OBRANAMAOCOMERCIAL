@@ -20,7 +20,7 @@ O Cloudflare deve apontar somente para `apps/web`.
 - Gestão, Obra e Universidade mantêm suas páginas e assets separados. A página pública não importa o CSS nem inicializa a sessão do sistema.
 - O botão **Início** do portal retorna à página ArtiSys.
 
-Os contatos WhatsApp e Instagram foram preservados da página aprovada. O WhatsApp `5516999999999` ainda é provisório e precisa de confirmação antes de campanhas.
+Os contatos comerciais da landing ArtiSys utilizam o WhatsApp confirmado `(16) 98233-8805` (`https://wa.me/5516982338805`). O acesso ao portal Obra na Mão permanece independente dos links comerciais.
 
 ### Opção recomendada para o primeiro deploy: Cloudflare Pages + Functions
 
@@ -86,3 +86,5 @@ Depois do primeiro deploy Cloudflare, informe ali a URL `pages.dev` ou `workers.
 A instalação privada da MH e este produto comercial evoluem separadamente.
 
 Melhorias comuns podem ser portadas seletivamente, mas alterações comerciais não devem ser aplicadas automaticamente ao sistema privado.
+
+> **DevKit Tool’s:** a matriz comercial de kits não deve ser vinculada a repositórios públicos. A página `/devkits/` apresenta exemplos e direciona interessados ao WhatsApp comercial; links de projetos open source de terceiros são independentes.

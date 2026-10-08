@@ -98,7 +98,7 @@ export const artisysSeoConfig = defineSeoConfig({
       path: '/devkits',
       canonical: 'https://artisys.dev/devkits/',
       title: 'DevKit Tool’s ArtiSys | Kits técnicos para desenvolvedores',
-      description: 'Conheça os DevKit Tool’s ArtiSys: módulos técnicos reutilizáveis para PDF, OCR, backup, testes, interfaces, desktop e muito mais. Explore o catálogo técnico.',
+      description: 'Conheça os DevKit Tool’s ArtiSys: módulos técnicos reutilizáveis para PDF, OCR, backup, testes, interfaces, desktop e muito mais. Consulte disponibilidade pelo WhatsApp.',
       schemaType: 'CollectionPage',
       changeFrequency: 'monthly',
       priority: 0.9,

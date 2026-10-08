@@ -12,6 +12,9 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(access).toContain('href="./sistema.html#portal"');
     expect(access).toContain('aria-label="Acessar sistema Obra na Mão"');
     expect(landing).toContain('class="nav-login-mobile">Acessar sistema');
+    expect(landing).toContain('https://wa.me/5516982338805?text=');
+    expect(landing.match(/https:\/\/wa\.me\/5516982338805\?text=/g)).toHaveLength(2);
+    expect(landing).not.toContain('5516999999999');
     expect(marketing).toMatch(/@media\(max-width:800px\)/);
     expect(marketing).toContain('.nav-login-mobile{display:inline}');
   });
@@ -34,7 +37,10 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
       expect(devkits).toContain(sku);
     }
     expect(devkits).toContain('A distribuição comercial está em preparação');
-    expect(devkits).toContain('github.com/nutricionistaalmeidavh-spec/DevKitTools');
+    expect(devkits).not.toContain('github.com/nutricionistaalmeidavh-spec/DevKitTools');
+    expect(devkits.split('https://wa.me/5516982338805?text=').length - 1).toBe(2);
+    expect(devkits).toContain('Consultar kits pelo WhatsApp');
+    expect(devkits).toContain('não têm catálogo comercial público');
     expect(devkits).toContain('rel="noopener noreferrer"');
     expect(devkits).toContain('rel="canonical" href="https://artisys.dev/devkits/"');
     expect(devkits).toContain('id="open-source-title"');
