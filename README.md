@@ -86,3 +86,5 @@ Depois do primeiro deploy Cloudflare, informe ali a URL `pages.dev` ou `workers.
 A instalação privada da MH e este produto comercial evoluem separadamente.
 
 Melhorias comuns podem ser portadas seletivamente, mas alterações comerciais não devem ser aplicadas automaticamente ao sistema privado.
+
+> **DevKit Tool’s:** a matriz comercial de kits não deve ser vinculada a repositórios públicos. A página `/devkits/` apresenta exemplos e direciona interessados ao WhatsApp comercial; links de projetos open source de terceiros são independentes.
