@@ -21,6 +21,8 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(landing).toContain('href="/devkits/"');
     expect(landing).toContain('id="devkit-title"');
     expect(landing).toContain('id="products-title"');
+    expect(landing).toContain('id="dos-videos"');
+    expect(landing).toContain('Prévia ilustrativa'.toUpperCase());
     for (const slug of ['obra-na-mao', 'pdv-artisys', 'nutridesk']) {
       expect(landing).toContain(`href="/sistemas/${slug}/"`);
     }
@@ -35,5 +37,7 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(devkits).toContain('github.com/nutricionistaalmeidavh-spec/DevKitTools');
     expect(devkits).toContain('rel="noopener noreferrer"');
     expect(devkits).toContain('rel="canonical" href="https://artisys.dev/devkits/"');
+    expect(devkits).toContain('id="open-source-title"');
+    expect(devkits).toContain('github.com/rclone/rclone');
   });
 });
