@@ -88,8 +88,8 @@ export const artisysSeoConfig = defineSeoConfig({
   pages: [
     {
       path: '/',
-      title: 'ArtiSys | Sistemas para empresas e DevKit Tool’s',
-      description: 'Sistemas ArtiSys para empresas e DevKit Tool’s para desenvolvedores: soluções reais para gestão, obras, vendas, saúde e ferramentas técnicas reutilizáveis.',
+      title: 'ArtiSys | Sistemas reais, DevKits e ferramentas para desenvolver',
+      description: 'Conheça os sistemas ArtiSys, DevKit Tool’s e projetos open source apresentados nos vídeos. Ferramentas para desenvolver e software para operações reais.',
       schemaType: 'WebPage',
       changeFrequency: 'weekly',
       priority: 1

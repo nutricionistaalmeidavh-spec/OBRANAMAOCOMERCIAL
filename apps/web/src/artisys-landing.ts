@@ -1,6 +1,7 @@
 import './artisys-landing.css';
 import './artisys-refinement.css';
 import './artisys-marketing-2026.css';
+import './artisys-editorial-violet.css';
 
 const menu = document.getElementById('nav-links');
 const toggle = document.querySelector<HTMLButtonElement>('.menu-toggle');
@@ -51,7 +52,7 @@ document.querySelector('[role="tablist"]')?.addEventListener('keydown', event =>
     : key === 'Home' ? 0 : key === 'End' ? tabs.length - 1 : undefined;
   if (index !== undefined) { event.preventDefault(); selectTab(index, true); }
 });
-selectTab(0);
+if (tabs.length) selectTab(0);
 
 function refineHeroPreview() {
   const dashboard = document.querySelector<HTMLElement>('[data-preview-mode="0"] .dashboard');
@@ -180,7 +181,8 @@ function refineProcess() {
 }
 
 refineHeroPreview();
-refineSolutions();
+// Marketing sections now use the original semantic service content, not synthetic dashboard mockups.
+// refineSolutions intentionally omitted.
 refineCaseStudy();
 refineProcess();
 
@@ -192,7 +194,7 @@ if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: re
       observer.unobserve(entry.target);
     }
   }, { threshold: 0.08 });
-  document.querySelectorAll('.section-heading, .service, .case-intro, .case-board, .process-step, .contact-inner').forEach(el => {
+  document.querySelectorAll('.section-heading, .service, .case-intro, .case-board, .process-step, .contact-inner, .viral-upstream-list, .devkit-feature, .product-feature').forEach(el => {
     if (el.getBoundingClientRect().top < innerHeight) return;
     el.classList.add('reveal-pending');
     observer.observe(el);
