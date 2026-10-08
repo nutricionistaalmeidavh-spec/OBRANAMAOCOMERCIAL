@@ -45,5 +45,6 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(devkits).toContain('rel="canonical" href="https://artisys.dev/devkits/"');
     expect(devkits).toContain('id="open-source-title"');
     expect(devkits).toContain('github.com/rclone/rclone');
+    expect(devkits).toContain('href="/devkits/catalogo/"');
   });
 });

@@ -44,6 +44,13 @@ assert.equal(devkitAudit.summary.critical, 0, 'página DevKit com falha SEO: ' +
 assert.match(devkitHtml, /DevKit Tool.s/, 'página DevKit precisa identificar a categoria');
 assert.match(transformed, /href="\/devkits\/"/i, 'landing deve levar à página DevKit');
 
+const kitCatalogIndex = read('public/devkits/catalogo/index.html');
+const kitCatalogModel = buildPageSeo(artisysSeoConfig, '/devkits/catalogo');
+const kitCatalogAudit = auditSeoDocument({ html: kitCatalogIndex, expected: { canonical: kitCatalogModel.canonical, index: true } });
+assert.equal(kitCatalogAudit.summary.critical, 0, 'catálogo DevKit com erro SEO: '+JSON.stringify(kitCatalogAudit, null, 2));
+assert.ok(sitemap.includes('<loc>https://artisys.dev/devkits/catalogo/</loc>'), 'catálogo DevKit precisa estar no sitemap');
+assert.match(devkitHtml, /href="\/devkits\/catalogo\/"/, 'landing DevKit deve apontar ao catálogo comercial');
+assert.doesNotMatch(kitCatalogIndex, /github.com\/nutricionistaalmeidavh-spec\/DevKitTools|MATRIZ-KITS|\.zip|SHA-256/i, 'código comercial não pode ficar exposto');
 const catalogIndex = read('public/sistemas/index.html');
 const catalogModel = buildPageSeo(artisysSeoConfig, '/sistemas');
 const catalogAudit = auditSeoDocument({ html: catalogIndex, expected: { canonical: catalogModel.canonical, index: true } });

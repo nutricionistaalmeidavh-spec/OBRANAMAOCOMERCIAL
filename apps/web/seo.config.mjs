@@ -112,6 +112,21 @@ export const artisysSeoConfig = defineSeoConfig({
       }]
     },
     {
+      path: '/devkits/catalogo',
+      canonical: 'https://artisys.dev/devkits/catalogo/',
+      title: 'Catálogo DevKit Tool’s | 63 kits técnicos ArtiSys',
+      description: 'Explore 63 kits técnicos ArtiSys em 10 categorias: PDF, OCR, APIs, automação, interface, desktop e gestão. Filtre por área e consulte disponibilidade pelo WhatsApp.',
+      schemaType: 'CollectionPage',
+      changeFrequency: 'monthly',
+      priority: 0.9,
+      jsonLd: [{
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: 'DevKit Tool’s ArtiSys',
+        numberOfItems: 63
+      }]
+    },
+    {
       path: '/sistemas',
       canonical: 'https://artisys.dev/sistemas/',
       title: 'ArtiSys | Sistemas para empresas',
