@@ -12,6 +12,9 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(access).toContain('href="./sistema.html#portal"');
     expect(access).toContain('aria-label="Acessar sistema Obra na Mão"');
     expect(landing).toContain('class="nav-login-mobile">Acessar sistema');
+    expect(landing).toContain('https://wa.me/5516982338805?text=');
+    expect(landing.match(/https:\/\/wa\.me\/5516982338805\?text=/g)).toHaveLength(2);
+    expect(landing).not.toContain('5516999999999');
     expect(marketing).toMatch(/@media\(max-width:800px\)/);
     expect(marketing).toContain('.nav-login-mobile{display:inline}');
   });
