@@ -37,6 +37,28 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     }
   });
 
+  it('displays systems in a compact, linked list matching the DevKit structure', () => {
+    const section = landing.split('<section class="product-highlights container"')[1]?.split('</section>')[0] ?? '';
+    expect(section).toContain('class="product-showcase"');
+    expect(section).toContain('class="product-list-panel"');
+    expect(section).toContain('class="product-list-top"');
+    expect(section).toContain('class="product-list-body"');
+    expect(section).not.toContain('product-feature-grid');
+    expect(section.match(/class="product-list-item"/g)).toHaveLength(3);
+    for (const slug of ['obra-na-mao', 'pdv-artisys', 'nutridesk']) {
+      expect(section).toContain(`class="product-list-item" href="/sistemas/${slug}/"`);
+    }
+    expect(section).toContain('href="/sistemas/"');
+    for (const category of ['agro', 'negocios', 'saude']) {
+      expect(section).toContain(`href="/sistemas/${category}/"`);
+    }
+    const css = read('./artisys-editorial-violet.css');
+    expect(css).toContain('.product-showcase{display:grid');
+    expect(css).toContain('.product-list-item{display:grid');
+    expect(css).toContain('@media(max-width:540px)');
+    expect(landing).toContain('href="./sistema.html#portal"');
+  });
+
   it('keeps developer-kit claims precise and sends visitors to a real catalog', () => {
     for (const sku of ['DKT-DOC-005', 'DKT-DOC-008', 'DKT-PLAT-006', 'DKT-QUAL-005']) {
       expect(landing).toContain(sku);
