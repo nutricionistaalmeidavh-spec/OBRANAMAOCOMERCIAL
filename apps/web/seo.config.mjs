@@ -97,27 +97,10 @@ export const artisysSeoConfig = defineSeoConfig({
     {
       path: '/devkits',
       canonical: 'https://artisys.dev/devkits/',
-      title: 'DevKit Tool’s ArtiSys | Kits técnicos para desenvolvedores',
-      description: 'Conheça os DevKit Tool’s ArtiSys: módulos técnicos reutilizáveis para PDF, OCR, backup, testes, interfaces, desktop e muito mais. Consulte disponibilidade pelo WhatsApp.',
+      title: 'DevKit Tool’s ArtiSys | 63 kits e Guia Open Source',
+      description: 'Explore 63 DevKit Tool’s com preços, filtros e Guia Open Source com 82 projetos. Compra pelo WhatsApp ArtiSys.',
       schemaType: 'CollectionPage',
-      changeFrequency: 'monthly',
-      priority: 0.9,
-      jsonLd: [{
-        '@context': 'https://schema.org',
-        '@type': 'ItemList',
-        name: 'Exemplos DevKit Tool’s ArtiSys',
-        itemListElement: ['Geração e Leitura de PDFs', 'Reconhecimento de Texto (OCR)', 'Backup e Restauração', 'Testes e Controle de Qualidade'].map((name, index) => ({
-          '@type': 'ListItem', position: index + 1, name
-        }))
-      }]
-    },
-    {
-      path: '/devkits/catalogo',
-      canonical: 'https://artisys.dev/devkits/catalogo/',
-      title: 'Catálogo DevKit Tool’s | 63 kits técnicos ArtiSys',
-      description: 'Explore 63 kits técnicos ArtiSys em 10 categorias: PDF, OCR, APIs, automação, interface, desktop e gestão. Filtre por área e consulte disponibilidade pelo WhatsApp.',
-      schemaType: 'CollectionPage',
-      changeFrequency: 'monthly',
+      changeFrequency: 'weekly',
       priority: 0.9,
       jsonLd: [{
         '@context': 'https://schema.org',

@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-const raw = JSON.parse(readFileSync(new URL('../public/devkits/catalogo/kits.json', import.meta.url),'utf8'));
-const page = readFileSync(new URL('../public/devkits/catalogo/index.html',import.meta.url),'utf8');
-const script = readFileSync(new URL('../public/devkits/catalogo/catalogo.js',import.meta.url),'utf8');
+const raw = JSON.parse(readFileSync(new URL('../public/devkits/kits.json', import.meta.url),'utf8'));
+const page = readFileSync(new URL('../public/devkits/index.html',import.meta.url),'utf8');
+const script = readFileSync(new URL('../public/devkits/catalogo.js',import.meta.url),'utf8');
 describe('DevKit commercial catalog',()=>{
  it('is sourced from a coherent 63-item public-safe projection',()=>{
    expect(raw.items).toHaveLength(63);
@@ -17,9 +17,12 @@ describe('DevKit commercial catalog',()=>{
    expect(page).toContain('href="https://github.com/tesseract-ocr/tesseract"');
    expect(page).toContain('Guia Open Source');
    expect(page).toContain('82 projetos de referência');
+   expect(page).toContain('rel="canonical" href="https://artisys.dev/devkits/"');
+   expect(page).not.toContain('https://artisys.dev/devkits/catalogo/');
    expect((page.match(/class="repo-guide-item"/g)||[])).toHaveLength(82);
    expect(page).not.toContain('Preço sugerido');
    expect(script).toContain('repo-search');
+   expect(script).toContain("'/devkits/kits.json'");
    expect(page).not.toContain('github.com/nutricionistaalmeidavh-spec/DevKitTools');
  });
 });

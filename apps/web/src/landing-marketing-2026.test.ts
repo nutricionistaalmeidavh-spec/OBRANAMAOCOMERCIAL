@@ -34,17 +34,14 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
   it('keeps developer-kit claims precise and sends visitors to a real catalog', () => {
     for (const sku of ['DKT-DOC-005', 'DKT-DOC-008', 'DKT-PLAT-006', 'DKT-QUAL-005']) {
       expect(landing).toContain(sku);
-      expect(devkits).toContain(sku);
     }
-    expect(devkits).toContain('catálogo');
     expect(devkits).not.toContain('github.com/nutricionistaalmeidavh-spec/DevKitTools');
-    expect(devkits.split('https://wa.me/5516982338805?text=').length - 1).toBe(2);
-    expect(devkits).toContain('Consultar kits pelo WhatsApp');
-    expect(devkits).toContain('preços e kits disponíveis no catálogo');
-    expect(devkits).toContain('rel="noopener noreferrer"');
+    expect(devkits).toContain('https://wa.me/5516982338805?text=');
     expect(devkits).toContain('rel="canonical" href="https://artisys.dev/devkits/"');
-    expect(devkits).toContain('id="open-source-title"');
-    expect(devkits).toContain('github.com/rclone/rclone');
-    expect(devkits).toContain('href="/devkits/catalogo/"');
+    expect(devkits).toContain('id="kit-grid"');
+    expect(devkits).toContain('Guia Open Source');
+    expect(devkits).toContain('href="https://github.com/rclone/rclone"');
+    expect(devkits).not.toContain('href="/devkits/catalogo/"');
+
   });
 });

@@ -44,13 +44,14 @@ assert.equal(devkitAudit.summary.critical, 0, 'página DevKit com falha SEO: ' +
 assert.match(devkitHtml, /DevKit Tool.s/, 'página DevKit precisa identificar a categoria');
 assert.match(transformed, /href="\/devkits\/"/i, 'landing deve levar à página DevKit');
 
-const kitCatalogIndex = read('public/devkits/catalogo/index.html');
-const kitCatalogModel = buildPageSeo(artisysSeoConfig, '/devkits/catalogo');
-const kitCatalogAudit = auditSeoDocument({ html: kitCatalogIndex, expected: { canonical: kitCatalogModel.canonical, index: true } });
-assert.equal(kitCatalogAudit.summary.critical, 0, 'catálogo DevKit com erro SEO: '+JSON.stringify(kitCatalogAudit, null, 2));
-assert.ok(sitemap.includes('<loc>https://artisys.dev/devkits/catalogo/</loc>'), 'catálogo DevKit precisa estar no sitemap');
-assert.match(devkitHtml, /href="\/devkits\/catalogo\/"/, 'landing DevKit deve apontar ao catálogo comercial');
-assert.doesNotMatch(kitCatalogIndex, /github.com\/nutricionistaalmeidavh-spec\/DevKitTools|MATRIZ-KITS|\.zip|SHA-256/i, 'código comercial não pode ficar exposto');
+const devkitCatalog = JSON.parse(read('public/devkits/kits.json'));
+assert.equal(devkitCatalog.items.length, 63, 'página DevKit precisa manter 63 kits');
+assert.equal(new Set(devkitCatalog.items.map(x => x.category)).size, 10, 'categorias DevKit');
+assert.equal(devkitCatalog.items.filter(x => Number.isFinite(x.price)).length, 63, 'preços DevKit');
+assert.match(devkitHtml, /id="kit-grid"/, 'página DevKit deve conter catálogo');
+assert.match(devkitHtml, /Guia Open Source/, 'página DevKit deve conter guia');
+assert.doesNotMatch(devkitHtml, /github.com\/nutricionistaalmeidavh-spec\/DevKitTools|MATRIZ-KITS|\.zip|SHA-256/i);
+assert.ok(!sitemap.includes('<loc>https://artisys.dev/devkits/catalogo/</loc>'), 'sitemap não pode indexar URL antiga');
 const catalogIndex = read('public/sistemas/index.html');
 const catalogModel = buildPageSeo(artisysSeoConfig, '/sistemas');
 const catalogAudit = auditSeoDocument({ html: catalogIndex, expected: { canonical: catalogModel.canonical, index: true } });

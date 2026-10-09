@@ -11,7 +11,7 @@ if(repoSearch){
  });
 }
 
-const source = '/devkits/catalogo/kits.json';
+const source = '/devkits/kits.json';
 const search = document.getElementById('kit-search');
 const sort = document.getElementById('kit-sort');
 const cats = document.getElementById('kit-categories');
