@@ -24,7 +24,13 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(landing).toContain('href="/devkits/"');
     expect(landing).toContain('id="devkit-title"');
     expect(landing).toContain('id="products-title"');
-    expect(landing).toContain('id="dos-videos"');
+    expect(landing).not.toContain('id="dos-videos"');
+    expect(landing).not.toContain('id="servicos"');
+    expect(landing).not.toContain('href="#dos-videos"');
+    expect(landing).not.toContain('href="#servicos"');
+    expect(landing).toContain('class="button secondary" href="/sistemas/"');
+    expect(landing).toContain('Conhecer sistemas prontos');
+    expect(landing).toContain('class="button primary" href="/devkits/"');
     expect(landing).toContain('Prévia ilustrativa'.toUpperCase());
     for (const slug of ['obra-na-mao', 'pdv-artisys', 'nutridesk']) {
       expect(landing).toContain(`href="/sistemas/${slug}/"`);
