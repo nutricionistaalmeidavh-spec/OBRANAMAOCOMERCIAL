@@ -1,0 +1,973 @@
+{
+  "schemaVersion": 1,
+  "notice": "Preços de venda única. Solicite o kit desejado pelo WhatsApp da ArtiSys.",
+  "items": [
+    {
+      "id": "kit-001",
+      "title": "Testes e Controle de Qualidade",
+      "category": "Qualidade e Entrega",
+      "summary": "Executa testes de interface, evidências, demonstrações e validação visual opcional.",
+      "price": 99,
+      "language": "JavaScript + PowerShell",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "Playwright",
+        "CLI"
+      ],
+      "version": "2.4.1"
+    },
+    {
+      "id": "kit-002",
+      "title": "Segurança Automatizada",
+      "category": "Qualidade e Entrega",
+      "summary": "Verifica segredos expostos, vulnerabilidades e problemas estáticos de segurança.",
+      "price": 149,
+      "language": "Python + YAML",
+      "technologies": [
+        "Python",
+        "Semgrep",
+        "Gitleaks",
+        "YAML",
+        "GitHub Actions"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-003",
+      "title": "Contratos e Compatibilidade de APIs",
+      "category": "Qualidade e Entrega",
+      "summary": "Valida contratos de API, compatibilidade entre serviços e clientes gerados.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "Ajv",
+        "Ajv Formats"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-004",
+      "title": "Empacotamento e Publicação",
+      "category": "Qualidade e Entrega",
+      "summary": "Orquestra validações, assinatura, hashes e etapas necessárias para publicar uma versão.",
+      "price": 119,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "CLI"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-005",
+      "title": "Validação de Instaladores e Releases",
+      "category": "Qualidade e Entrega",
+      "summary": "Testa instaladores, atualização, stress e integridade antes da distribuição.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "CLI"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-006",
+      "title": "Validação Completa do Produto",
+      "category": "Qualidade e Entrega",
+      "summary": "Agrupa QA, segurança e contratos de API para validar um produto de ponta a ponta.",
+      "price": 199,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-007",
+      "title": "Testes e Qualidade de IA",
+      "category": "Qualidade e Entrega",
+      "summary": "Avalia prompts, respostas e regressões de funcionalidades que usam inteligência artificial.",
+      "price": 199,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-008",
+      "title": "Privacidade e Proteção de Dados",
+      "category": "Qualidade e Entrega",
+      "summary": "Detecta, anonimiza e mascara dados pessoais e informações sensíveis.",
+      "price": 179,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-009",
+      "title": "Geração e Leitura de PDFs",
+      "category": "Documentos e Mídia",
+      "summary": "Gera, visualiza, destaca e anota documentos PDF.",
+      "price": 99,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "CLI",
+        "JSON templates"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "id": "kit-010",
+      "title": "Áudio, Vídeo e Animações",
+      "category": "Documentos e Mídia",
+      "summary": "Fornece operações reutilizáveis para mídia, áudio, vídeo e manifestos de animação.",
+      "price": 119,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "id": "kit-011",
+      "title": "Documentos e Planilhas Office",
+      "category": "Documentos e Mídia",
+      "summary": "Manipula documentos, planilhas e apresentações em formatos de escritório.",
+      "price": 119,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "id": "kit-012",
+      "title": "Anotações em Imagens e PDFs",
+      "category": "Documentos e Mídia",
+      "summary": "Adiciona marcações e anotações reutilizáveis em imagens e documentos PDF.",
+      "price": 99,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "id": "kit-013",
+      "title": "Leitura e Processamento de Documentos",
+      "category": "Documentos e Mídia",
+      "summary": "Extrai e processa conteúdo de documentos e imagens com OCR e visão computacional.",
+      "price": 129,
+      "language": "Python",
+      "technologies": [
+        "Python ≥3.10",
+        "setuptools",
+        "Pillow",
+        "opencv-python-headless",
+        "paddleocr"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-014",
+      "title": "Processamento e Edição de Vídeo",
+      "category": "Documentos e Mídia",
+      "summary": "Executa jobs e timelines locais para processamento e composição de vídeo.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-015",
+      "title": "Conversão de Documentos",
+      "category": "Documentos e Mídia",
+      "summary": "Converte documentos entre formatos sob demanda, sem serviço externo obrigatório.",
+      "price": 79,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-016",
+      "title": "Reconhecimento de Texto (OCR)",
+      "category": "Documentos e Mídia",
+      "summary": "Oferece uma interface única para reconhecer texto em imagens e documentos.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "OCR adapters"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-017",
+      "title": "Fluxos de Trabalho Visuais",
+      "category": "Interface e Produtividade",
+      "summary": "Modela fluxos, dependências e processos com editores visuais.",
+      "price": 179,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "CLI"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "id": "kit-018",
+      "title": "Painéis e Indicadores",
+      "category": "Interface e Produtividade",
+      "summary": "Monta dashboards, painéis redimensionáveis, grades e visualizações de dados.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "id": "kit-019",
+      "title": "Planejamento e Cronogramas",
+      "category": "Interface e Produtividade",
+      "summary": "Gerencia Gantt, calendário, progresso, recursos e conflitos de planejamento.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "id": "kit-020",
+      "title": "Construtor de Interfaces",
+      "category": "Interface e Produtividade",
+      "summary": "Cria páginas e blocos de interface editáveis e portáveis.",
+      "price": 199,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "id": "kit-021",
+      "title": "Captura por Câmera e Códigos",
+      "category": "Arquivos e Captura",
+      "summary": "Captura câmera ou arquivo e lê QR codes, códigos de barras e imagens.",
+      "price": 99,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "id": "kit-022",
+      "title": "Envio e Validação de Arquivos",
+      "category": "Arquivos e Captura",
+      "summary": "Controla upload, políticas, validações, filas e seleção de arquivos.",
+      "price": 79,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "id": "kit-023",
+      "title": "Organização e Exploração de Arquivos",
+      "category": "Arquivos e Captura",
+      "summary": "Cria workspaces espelhados em pastas locais com árvore, drag-and-drop, busca e acompanhamento de alterações.",
+      "price": 99,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-024",
+      "title": "Integração com Dispositivos Seriais",
+      "category": "Desktop e Hardware",
+      "summary": "Conecta balanças, gavetas e outros equipamentos por porta serial.",
+      "price": 149,
+      "language": "JavaScript (CommonJS)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "CommonJS",
+        "SerialPort"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-025",
+      "title": "Impressão, Cupons e Etiquetas",
+      "category": "Desktop e Hardware",
+      "summary": "Gera e imprime recibos, cupons, etiquetas e saídas para impressoras térmicas.",
+      "price": 149,
+      "language": "JavaScript (CommonJS)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "CommonJS",
+        "node-thermal-printer",
+        "ReceiptLine"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-026",
+      "title": "Suporte Remoto",
+      "category": "Desktop e Hardware",
+      "summary": "Abre sessões controladas de suporte remoto para aplicativos desktop.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-027",
+      "title": "Estrutura Base para Aplicativos Desktop",
+      "category": "Desktop e Hardware",
+      "summary": "Padroniza estrutura desktop, deep links, configurações, logs e hooks de atualização.",
+      "price": 249,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-028",
+      "title": "Backend Local Embutido",
+      "category": "Plataforma e Dados",
+      "summary": "Fornece backend local opcional para aplicações que precisam de API e persistência no próprio dispositivo.",
+      "price": 199,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-029",
+      "title": "Licenciamento Offline",
+      "category": "Plataforma e Dados",
+      "summary": "Gerencia licenças locais, expiração, vínculo ao dispositivo e liberação de funcionalidades.",
+      "price": 199,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-030",
+      "title": "Comunicação entre Módulos",
+      "category": "Plataforma e Dados",
+      "summary": "Permite que partes do sistema troquem eventos sem ficarem fortemente acopladas.",
+      "price": 119,
+      "language": "JavaScript (CommonJS + ESM) + SQL",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "CommonJS",
+        "event bus",
+        "SQL"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-031",
+      "title": "Alertas e Notificações",
+      "category": "Plataforma e Dados",
+      "summary": "Gerencia alertas locais, vencimentos, severidade e notificações internas com estado lido/não lido.",
+      "price": 79,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-032",
+      "title": "Backup e Restauração",
+      "category": "Plataforma e Dados",
+      "summary": "Cria cópias de segurança verificáveis, retenção e checagem de integridade.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-033",
+      "title": "Importação de Dados",
+      "category": "Plataforma e Dados",
+      "summary": "Mapeia, pré-visualiza, valida, detecta duplicidades e coordena rollback de importações.",
+      "price": 119,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-034",
+      "title": "Acesso e Permissões",
+      "category": "Plataforma e Dados",
+      "summary": "Gerencia autenticação local, usuários, papéis, permissões e proteção de ações.",
+      "price": 199,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-035",
+      "title": "Armazenamento de Dados",
+      "category": "Plataforma e Dados",
+      "summary": "Padroniza armazenamento em memória, banco local e namespaces isolados.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.2.1"
+    },
+    {
+      "id": "kit-036",
+      "title": "Histórico e Auditoria",
+      "category": "Plataforma e Dados",
+      "summary": "Registra quem realizou cada ação, em qual entidade e com quais metadados.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-037",
+      "title": "Sincronização de Dados",
+      "category": "Plataforma e Dados",
+      "summary": "Sincroniza alterações offline, aplica tentativas automáticas e resolve conflitos.",
+      "price": 199,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-038",
+      "title": "Configurações do Sistema",
+      "category": "Plataforma e Dados",
+      "summary": "Centraliza preferências, valores padrão e configurações separadas por namespace.",
+      "price": 79,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-039",
+      "title": "Multiempresa e Isolamento de Dados",
+      "category": "Plataforma e Dados",
+      "summary": "Separa empresas ou clientes e impede acesso indevido entre contextos diferentes.",
+      "price": 249,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-040",
+      "title": "Ativação Controlada de Funcionalidades",
+      "category": "Plataforma e Dados",
+      "summary": "Liga ou desliga recursos por padrão, empresa ou usuário sem duplicar código.",
+      "price": 119,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-041",
+      "title": "Busca Local",
+      "category": "Plataforma e Dados",
+      "summary": "Indexa e pesquisa entidades localmente com pesos, filtros e ranking determinístico.",
+      "price": 79,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-042",
+      "title": "Exportação de Dados",
+      "category": "Plataforma e Dados",
+      "summary": "Exporta CSV e JSON e gera modelo tabular neutro para adaptadores de planilha.",
+      "price": 79,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-043",
+      "title": "Aplicativo Web Instalável e Offline",
+      "category": "Aplicativos Web e Mobile",
+      "summary": "Fornece cache, instalação, funcionamento offline e atualização controlada para PWAs.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "PWA"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-044",
+      "title": "Integração Web ↔ Aplicativo",
+      "category": "Aplicativos Web e Mobile",
+      "summary": "Padroniza a comunicação segura entre uma interface WebView e o aplicativo nativo.",
+      "price": 179,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "WebView bridge"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-045",
+      "title": "Abertura de Conversas no WhatsApp",
+      "category": "Aplicativos Web e Mobile",
+      "summary": "Abre WhatsApp ou WhatsApp Web com número e mensagem pré-preenchidos, sem envio automático obrigatório.",
+      "price": 39,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "URLs/Deep links WhatsApp"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-046",
+      "title": "Motor Financeiro e Conciliação",
+      "category": "Gestão e Operação",
+      "summary": "Processa regras financeiras, duplicidades, transferências e conciliação de forma determinística.",
+      "price": 297,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-047",
+      "title": "Estoque e Movimentações",
+      "category": "Gestão e Operação",
+      "summary": "Controla entradas, saídas, reservas, lotes, séries e saldo disponível.",
+      "price": 249,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-048",
+      "title": "Ordens de Serviço",
+      "category": "Gestão e Operação",
+      "summary": "Gerencia abertura, estados, transições e histórico de ordens de serviço.",
+      "price": 249,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-049",
+      "title": "Catálogo de Produtos e Serviços",
+      "category": "Gestão e Operação",
+      "summary": "Cadastra e organiza produtos, serviços, variantes, busca e ativação.",
+      "price": 179,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-050",
+      "title": "Preços, Descontos e Combos",
+      "category": "Gestão e Operação",
+      "summary": "Calcula preços por quantidade, faixas, descontos, combos e valores de linha.",
+      "price": 179,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-051",
+      "title": "Checklists e Inspeções",
+      "category": "Gestão e Operação",
+      "summary": "Gerencia listas de verificação, evidências, progresso e conclusão.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-052",
+      "title": "Relatórios e Indicadores",
+      "category": "Gestão e Operação",
+      "summary": "Aplica filtros, agrupamentos e agregações e exporta resultados para CSV.",
+      "price": 199,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-053",
+      "title": "Motor de Fluxos de Trabalho",
+      "category": "Gestão e Operação",
+      "summary": "Executa máquinas de estado determinísticas com transições, guards e histórico.",
+      "price": 249,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-054",
+      "title": "Aprovações",
+      "category": "Gestão e Operação",
+      "summary": "Orquestra aprovações em múltiplas etapas, decisões, rejeições e histórico.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-055",
+      "title": "Contatos e Organizações",
+      "category": "Gestão e Operação",
+      "summary": "Normaliza pessoas, empresas, canais de contato, endereços e identificadores.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-056",
+      "title": "Cadastro de Ativos",
+      "category": "Gestão e Operação",
+      "summary": "Cadastra ativos genéricos com situação, localização, responsável, tags e metadados.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-057",
+      "title": "Ciclo de Vida de Ativos",
+      "category": "Gestão e Operação",
+      "summary": "Registra aquisição, disponibilidade, manutenção, indisponibilidade e baixa de ativos.",
+      "price": 199,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-058",
+      "title": "Custódia e Empréstimos",
+      "category": "Gestão e Operação",
+      "summary": "Controla retirada, responsável, prazo, devolução e condição de ativos.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-059",
+      "title": "Manutenção Preventiva",
+      "category": "Gestão e Operação",
+      "summary": "Planeja manutenção por tempo ou medidor e calcula próximos vencimentos.",
+      "price": 199,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-060",
+      "title": "Medidores e Leituras",
+      "category": "Gestão e Operação",
+      "summary": "Registra horímetro, odômetro, ciclos e outros medidores com deltas e validação.",
+      "price": 149,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-061",
+      "title": "Leitura e Processamento BIM/IFC",
+      "category": "Engenharia e BIM",
+      "summary": "Lê modelos IFC, propriedades, quantidades e informações reutilizáveis de projetos BIM.",
+      "price": 297,
+      "language": "JavaScript (ES Modules)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "ES Modules",
+        "IFC/BIM"
+      ],
+      "version": "0.2.0"
+    },
+    {
+      "id": "kit-062",
+      "title": "Mapas e Dados Geoespaciais Agro",
+      "category": "Engenharia e Agro",
+      "summary": "Valida, normaliza e prepara geometrias e mapas offline para produtos agrícolas e pecuários.",
+      "price": 249,
+      "language": "JavaScript (CommonJS)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "CommonJS",
+        "dados geoespaciais"
+      ],
+      "version": "0.1.0"
+    },
+    {
+      "id": "kit-063",
+      "title": "Integração e Contratos entre Sistemas Agro",
+      "category": "Engenharia e Agro",
+      "summary": "Define contrato local-first, versionado e idempotente para integração segura entre produtos ArtiSys Agro.",
+      "price": 199,
+      "language": "JavaScript (CommonJS)",
+      "technologies": [
+        "Node.js",
+        "npm",
+        "node:test",
+        "CommonJS"
+      ],
+      "version": "1.0.0"
+    }
+  ]
+}
