@@ -7,6 +7,7 @@ import { handleLicenseCenterReadonlyInternal } from '../backend/license-center-r
 import { handleLicenseCenterAdminInternal } from '../backend/license-center-admin-internal';
 import { handleAdminGovernanceRequest } from '../backend/admin-governance-http';
 import { handlePublicDownload } from './public-downloads';
+import { handleDevkitLegacyRedirect } from './devkit-canonical-redirect';
 import { router } from './sdk';
 
 const RESERVED_LICENSE_ID='11e1a89038929aa010bb22c601502da1';
@@ -51,6 +52,8 @@ export async function licenseCenterAdminWithRuntime(request:Request,env:any){
 
 export default {
   async fetch(request: Request, env: any) {
+    const devkitRedirect = handleDevkitLegacyRedirect(request);
+    if (devkitRedirect) return devkitRedirect;
     const publicDownload=await handlePublicDownload(request);
     if(publicDownload)return publicDownload;
     await ensureBillingSchema(env);
