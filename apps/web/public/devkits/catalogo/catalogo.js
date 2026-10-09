@@ -1,3 +1,16 @@
+const repoSearch=document.getElementById('repo-search');
+if(repoSearch){
+ const repoItems=[...document.querySelectorAll('.repo-guide-item')];
+ const counter=document.getElementById('repo-count');
+ const empty=document.getElementById('repo-empty');
+ repoSearch.addEventListener('input',()=>{
+   const term=norm(repoSearch.value.trim());let found=0;
+   repoItems.forEach(node=>{const ok=!term||norm(node.dataset.search).includes(term);node.hidden=!ok;if(ok)found++;});
+   counter.textContent=found+' de '+repoItems.length+' referências';
+   empty.hidden=found!==0;
+ });
+}
+
 const source = '/devkits/catalogo/kits.json';
 const search = document.getElementById('kit-search');
 const sort = document.getElementById('kit-sort');
@@ -22,7 +35,7 @@ function card(item){
  const icon=el('div','card-symbol','</>');icon.setAttribute('aria-hidden','true');
  article.append(top,icon,el('h3','',item.title),el('p','summary',item.summary));
  const meta=el('div','card-meta'),info=el('div','');
- info.append(el('small','','Preço sugerido'),el('strong','',formatter.format(item.suggestedPrice)));
+ info.append(el('small','','Preço'),el('strong','',formatter.format(item.price)));
  const link=btn('a','','Consultar ↗',consultLink(item));link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','Consultar '+item.title+' no WhatsApp');
  meta.append(info,link);article.append(meta);
  const details=el('details','technical'),sum=el('summary','','Detalhes técnicos');
@@ -35,8 +48,8 @@ function filtered(){
  const query=norm(search.value).trim();
  let r=items.filter(x=>(selected==='all'||x.category===selected)&&(!query||norm([x.title,x.category,x.summary,x.language,...x.technologies].join(' ')).includes(query)));
  if(sort.value==='name')r.sort((a,b)=>a.title.localeCompare(b.title,'pt-BR'));
- else if(sort.value==='price-asc')r.sort((a,b)=>a.suggestedPrice-b.suggestedPrice||a.id.localeCompare(b.id));
- else if(sort.value==='price-desc')r.sort((a,b)=>b.suggestedPrice-a.suggestedPrice||a.id.localeCompare(b.id));
+ else if(sort.value==='price-asc')r.sort((a,b)=>a.price-b.price||a.id.localeCompare(b.id));
+ else if(sort.value==='price-desc')r.sort((a,b)=>b.price-a.price||a.id.localeCompare(b.id));
  return r;
 }
 function render(){
@@ -61,6 +74,6 @@ reset.addEventListener('click',clear);emptyReset.addEventListener('click',clear)
 try{
  const response=await fetch(source,{cache:'default'});if(!response.ok)throw new Error('HTTP '+response.status);
  const data=await response.json();
- if(!Array.isArray(data.items)||data.items.length!==63||data.items.some(x=>!x.id||!x.title||!x.category||!Number.isFinite(x.suggestedPrice)))throw new Error('Catálogo indisponível');
+ if(!Array.isArray(data.items)||data.items.length!==63||data.items.some(x=>!x.id||!x.title||!x.category||!Number.isFinite(x.price)))throw new Error('Catálogo indisponível');
  items=data.items;categories();render();
 }catch(error){count.textContent='Não foi possível carregar os kits agora.';grid.querySelector('.loading strong').textContent='Catálogo temporariamente indisponível';console.error('DevKit catalog unavailable',error);}

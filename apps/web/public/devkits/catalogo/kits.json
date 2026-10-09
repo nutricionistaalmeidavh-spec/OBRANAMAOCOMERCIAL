@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "notice": "Valores sugeridos pela ArtiSys. Consulte disponibilidade e condições antes de contratar.",
+  "notice": "Preços de venda única. Solicite o kit desejado pelo WhatsApp da ArtiSys.",
   "items": [
     {
       "id": "kit-001",
       "title": "Testes e Controle de Qualidade",
       "category": "Qualidade e Entrega",
       "summary": "Executa testes de interface, evidências, demonstrações e validação visual opcional.",
-      "suggestedPrice": 99,
+      "price": 99,
       "language": "JavaScript + PowerShell",
       "technologies": [
         "Node.js",
@@ -24,7 +24,7 @@
       "title": "Segurança Automatizada",
       "category": "Qualidade e Entrega",
       "summary": "Verifica segredos expostos, vulnerabilidades e problemas estáticos de segurança.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "Python + YAML",
       "technologies": [
         "Python",
@@ -40,7 +40,7 @@
       "title": "Contratos e Compatibilidade de APIs",
       "category": "Qualidade e Entrega",
       "summary": "Valida contratos de API, compatibilidade entre serviços e clientes gerados.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -57,7 +57,7 @@
       "title": "Empacotamento e Publicação",
       "category": "Qualidade e Entrega",
       "summary": "Orquestra validações, assinatura, hashes e etapas necessárias para publicar uma versão.",
-      "suggestedPrice": 119,
+      "price": 119,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -73,7 +73,7 @@
       "title": "Validação de Instaladores e Releases",
       "category": "Qualidade e Entrega",
       "summary": "Testa instaladores, atualização, stress e integridade antes da distribuição.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -89,7 +89,7 @@
       "title": "Validação Completa do Produto",
       "category": "Qualidade e Entrega",
       "summary": "Agrupa QA, segurança e contratos de API para validar um produto de ponta a ponta.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -104,7 +104,7 @@
       "title": "Testes e Qualidade de IA",
       "category": "Qualidade e Entrega",
       "summary": "Avalia prompts, respostas e regressões de funcionalidades que usam inteligência artificial.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -119,7 +119,7 @@
       "title": "Privacidade e Proteção de Dados",
       "category": "Qualidade e Entrega",
       "summary": "Detecta, anonimiza e mascara dados pessoais e informações sensíveis.",
-      "suggestedPrice": 179,
+      "price": 179,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -134,7 +134,7 @@
       "title": "Geração e Leitura de PDFs",
       "category": "Documentos e Mídia",
       "summary": "Gera, visualiza, destaca e anota documentos PDF.",
-      "suggestedPrice": 99,
+      "price": 99,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -151,7 +151,7 @@
       "title": "Áudio, Vídeo e Animações",
       "category": "Documentos e Mídia",
       "summary": "Fornece operações reutilizáveis para mídia, áudio, vídeo e manifestos de animação.",
-      "suggestedPrice": 119,
+      "price": 119,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -166,7 +166,7 @@
       "title": "Documentos e Planilhas Office",
       "category": "Documentos e Mídia",
       "summary": "Manipula documentos, planilhas e apresentações em formatos de escritório.",
-      "suggestedPrice": 119,
+      "price": 119,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -181,7 +181,7 @@
       "title": "Anotações em Imagens e PDFs",
       "category": "Documentos e Mídia",
       "summary": "Adiciona marcações e anotações reutilizáveis em imagens e documentos PDF.",
-      "suggestedPrice": 99,
+      "price": 99,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -196,7 +196,7 @@
       "title": "Leitura e Processamento de Documentos",
       "category": "Documentos e Mídia",
       "summary": "Extrai e processa conteúdo de documentos e imagens com OCR e visão computacional.",
-      "suggestedPrice": 129,
+      "price": 129,
       "language": "Python",
       "technologies": [
         "Python ≥3.10",
@@ -212,7 +212,7 @@
       "title": "Processamento e Edição de Vídeo",
       "category": "Documentos e Mídia",
       "summary": "Executa jobs e timelines locais para processamento e composição de vídeo.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -227,7 +227,7 @@
       "title": "Conversão de Documentos",
       "category": "Documentos e Mídia",
       "summary": "Converte documentos entre formatos sob demanda, sem serviço externo obrigatório.",
-      "suggestedPrice": 79,
+      "price": 79,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -242,7 +242,7 @@
       "title": "Reconhecimento de Texto (OCR)",
       "category": "Documentos e Mídia",
       "summary": "Oferece uma interface única para reconhecer texto em imagens e documentos.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -258,7 +258,7 @@
       "title": "Fluxos de Trabalho Visuais",
       "category": "Interface e Produtividade",
       "summary": "Modela fluxos, dependências e processos com editores visuais.",
-      "suggestedPrice": 179,
+      "price": 179,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -274,7 +274,7 @@
       "title": "Painéis e Indicadores",
       "category": "Interface e Produtividade",
       "summary": "Monta dashboards, painéis redimensionáveis, grades e visualizações de dados.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -289,7 +289,7 @@
       "title": "Planejamento e Cronogramas",
       "category": "Interface e Produtividade",
       "summary": "Gerencia Gantt, calendário, progresso, recursos e conflitos de planejamento.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -304,7 +304,7 @@
       "title": "Construtor de Interfaces",
       "category": "Interface e Produtividade",
       "summary": "Cria páginas e blocos de interface editáveis e portáveis.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -319,7 +319,7 @@
       "title": "Captura por Câmera e Códigos",
       "category": "Arquivos e Captura",
       "summary": "Captura câmera ou arquivo e lê QR codes, códigos de barras e imagens.",
-      "suggestedPrice": 99,
+      "price": 99,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -334,7 +334,7 @@
       "title": "Envio e Validação de Arquivos",
       "category": "Arquivos e Captura",
       "summary": "Controla upload, políticas, validações, filas e seleção de arquivos.",
-      "suggestedPrice": 79,
+      "price": 79,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -349,7 +349,7 @@
       "title": "Organização e Exploração de Arquivos",
       "category": "Arquivos e Captura",
       "summary": "Cria workspaces espelhados em pastas locais com árvore, drag-and-drop, busca e acompanhamento de alterações.",
-      "suggestedPrice": 99,
+      "price": 99,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -364,7 +364,7 @@
       "title": "Integração com Dispositivos Seriais",
       "category": "Desktop e Hardware",
       "summary": "Conecta balanças, gavetas e outros equipamentos por porta serial.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (CommonJS)",
       "technologies": [
         "Node.js",
@@ -380,7 +380,7 @@
       "title": "Impressão, Cupons e Etiquetas",
       "category": "Desktop e Hardware",
       "summary": "Gera e imprime recibos, cupons, etiquetas e saídas para impressoras térmicas.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (CommonJS)",
       "technologies": [
         "Node.js",
@@ -397,7 +397,7 @@
       "title": "Suporte Remoto",
       "category": "Desktop e Hardware",
       "summary": "Abre sessões controladas de suporte remoto para aplicativos desktop.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -412,7 +412,7 @@
       "title": "Estrutura Base para Aplicativos Desktop",
       "category": "Desktop e Hardware",
       "summary": "Padroniza estrutura desktop, deep links, configurações, logs e hooks de atualização.",
-      "suggestedPrice": 249,
+      "price": 249,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -427,7 +427,7 @@
       "title": "Backend Local Embutido",
       "category": "Plataforma e Dados",
       "summary": "Fornece backend local opcional para aplicações que precisam de API e persistência no próprio dispositivo.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -442,7 +442,7 @@
       "title": "Licenciamento Offline",
       "category": "Plataforma e Dados",
       "summary": "Gerencia licenças locais, expiração, vínculo ao dispositivo e liberação de funcionalidades.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -457,7 +457,7 @@
       "title": "Comunicação entre Módulos",
       "category": "Plataforma e Dados",
       "summary": "Permite que partes do sistema troquem eventos sem ficarem fortemente acopladas.",
-      "suggestedPrice": 119,
+      "price": 119,
       "language": "JavaScript (CommonJS + ESM) + SQL",
       "technologies": [
         "Node.js",
@@ -474,7 +474,7 @@
       "title": "Alertas e Notificações",
       "category": "Plataforma e Dados",
       "summary": "Gerencia alertas locais, vencimentos, severidade e notificações internas com estado lido/não lido.",
-      "suggestedPrice": 79,
+      "price": 79,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -489,7 +489,7 @@
       "title": "Backup e Restauração",
       "category": "Plataforma e Dados",
       "summary": "Cria cópias de segurança verificáveis, retenção e checagem de integridade.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -504,7 +504,7 @@
       "title": "Importação de Dados",
       "category": "Plataforma e Dados",
       "summary": "Mapeia, pré-visualiza, valida, detecta duplicidades e coordena rollback de importações.",
-      "suggestedPrice": 119,
+      "price": 119,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -519,7 +519,7 @@
       "title": "Acesso e Permissões",
       "category": "Plataforma e Dados",
       "summary": "Gerencia autenticação local, usuários, papéis, permissões e proteção de ações.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -534,7 +534,7 @@
       "title": "Armazenamento de Dados",
       "category": "Plataforma e Dados",
       "summary": "Padroniza armazenamento em memória, banco local e namespaces isolados.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -549,7 +549,7 @@
       "title": "Histórico e Auditoria",
       "category": "Plataforma e Dados",
       "summary": "Registra quem realizou cada ação, em qual entidade e com quais metadados.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -564,7 +564,7 @@
       "title": "Sincronização de Dados",
       "category": "Plataforma e Dados",
       "summary": "Sincroniza alterações offline, aplica tentativas automáticas e resolve conflitos.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -579,7 +579,7 @@
       "title": "Configurações do Sistema",
       "category": "Plataforma e Dados",
       "summary": "Centraliza preferências, valores padrão e configurações separadas por namespace.",
-      "suggestedPrice": 79,
+      "price": 79,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -594,7 +594,7 @@
       "title": "Multiempresa e Isolamento de Dados",
       "category": "Plataforma e Dados",
       "summary": "Separa empresas ou clientes e impede acesso indevido entre contextos diferentes.",
-      "suggestedPrice": 249,
+      "price": 249,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -609,7 +609,7 @@
       "title": "Ativação Controlada de Funcionalidades",
       "category": "Plataforma e Dados",
       "summary": "Liga ou desliga recursos por padrão, empresa ou usuário sem duplicar código.",
-      "suggestedPrice": 119,
+      "price": 119,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -624,7 +624,7 @@
       "title": "Busca Local",
       "category": "Plataforma e Dados",
       "summary": "Indexa e pesquisa entidades localmente com pesos, filtros e ranking determinístico.",
-      "suggestedPrice": 79,
+      "price": 79,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -639,7 +639,7 @@
       "title": "Exportação de Dados",
       "category": "Plataforma e Dados",
       "summary": "Exporta CSV e JSON e gera modelo tabular neutro para adaptadores de planilha.",
-      "suggestedPrice": 79,
+      "price": 79,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -654,7 +654,7 @@
       "title": "Aplicativo Web Instalável e Offline",
       "category": "Aplicativos Web e Mobile",
       "summary": "Fornece cache, instalação, funcionamento offline e atualização controlada para PWAs.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -670,7 +670,7 @@
       "title": "Integração Web ↔ Aplicativo",
       "category": "Aplicativos Web e Mobile",
       "summary": "Padroniza a comunicação segura entre uma interface WebView e o aplicativo nativo.",
-      "suggestedPrice": 179,
+      "price": 179,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -686,7 +686,7 @@
       "title": "Abertura de Conversas no WhatsApp",
       "category": "Aplicativos Web e Mobile",
       "summary": "Abre WhatsApp ou WhatsApp Web com número e mensagem pré-preenchidos, sem envio automático obrigatório.",
-      "suggestedPrice": 39,
+      "price": 39,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -702,7 +702,7 @@
       "title": "Motor Financeiro e Conciliação",
       "category": "Gestão e Operação",
       "summary": "Processa regras financeiras, duplicidades, transferências e conciliação de forma determinística.",
-      "suggestedPrice": 297,
+      "price": 297,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -717,7 +717,7 @@
       "title": "Estoque e Movimentações",
       "category": "Gestão e Operação",
       "summary": "Controla entradas, saídas, reservas, lotes, séries e saldo disponível.",
-      "suggestedPrice": 249,
+      "price": 249,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -732,7 +732,7 @@
       "title": "Ordens de Serviço",
       "category": "Gestão e Operação",
       "summary": "Gerencia abertura, estados, transições e histórico de ordens de serviço.",
-      "suggestedPrice": 249,
+      "price": 249,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -747,7 +747,7 @@
       "title": "Catálogo de Produtos e Serviços",
       "category": "Gestão e Operação",
       "summary": "Cadastra e organiza produtos, serviços, variantes, busca e ativação.",
-      "suggestedPrice": 179,
+      "price": 179,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -762,7 +762,7 @@
       "title": "Preços, Descontos e Combos",
       "category": "Gestão e Operação",
       "summary": "Calcula preços por quantidade, faixas, descontos, combos e valores de linha.",
-      "suggestedPrice": 179,
+      "price": 179,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -777,7 +777,7 @@
       "title": "Checklists e Inspeções",
       "category": "Gestão e Operação",
       "summary": "Gerencia listas de verificação, evidências, progresso e conclusão.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -792,7 +792,7 @@
       "title": "Relatórios e Indicadores",
       "category": "Gestão e Operação",
       "summary": "Aplica filtros, agrupamentos e agregações e exporta resultados para CSV.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -807,7 +807,7 @@
       "title": "Motor de Fluxos de Trabalho",
       "category": "Gestão e Operação",
       "summary": "Executa máquinas de estado determinísticas com transições, guards e histórico.",
-      "suggestedPrice": 249,
+      "price": 249,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -822,7 +822,7 @@
       "title": "Aprovações",
       "category": "Gestão e Operação",
       "summary": "Orquestra aprovações em múltiplas etapas, decisões, rejeições e histórico.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -837,7 +837,7 @@
       "title": "Contatos e Organizações",
       "category": "Gestão e Operação",
       "summary": "Normaliza pessoas, empresas, canais de contato, endereços e identificadores.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -852,7 +852,7 @@
       "title": "Cadastro de Ativos",
       "category": "Gestão e Operação",
       "summary": "Cadastra ativos genéricos com situação, localização, responsável, tags e metadados.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -867,7 +867,7 @@
       "title": "Ciclo de Vida de Ativos",
       "category": "Gestão e Operação",
       "summary": "Registra aquisição, disponibilidade, manutenção, indisponibilidade e baixa de ativos.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -882,7 +882,7 @@
       "title": "Custódia e Empréstimos",
       "category": "Gestão e Operação",
       "summary": "Controla retirada, responsável, prazo, devolução e condição de ativos.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -897,7 +897,7 @@
       "title": "Manutenção Preventiva",
       "category": "Gestão e Operação",
       "summary": "Planeja manutenção por tempo ou medidor e calcula próximos vencimentos.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -912,7 +912,7 @@
       "title": "Medidores e Leituras",
       "category": "Gestão e Operação",
       "summary": "Registra horímetro, odômetro, ciclos e outros medidores com deltas e validação.",
-      "suggestedPrice": 149,
+      "price": 149,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -927,7 +927,7 @@
       "title": "Leitura e Processamento BIM/IFC",
       "category": "Engenharia e BIM",
       "summary": "Lê modelos IFC, propriedades, quantidades e informações reutilizáveis de projetos BIM.",
-      "suggestedPrice": 297,
+      "price": 297,
       "language": "JavaScript (ES Modules)",
       "technologies": [
         "Node.js",
@@ -943,7 +943,7 @@
       "title": "Mapas e Dados Geoespaciais Agro",
       "category": "Engenharia e Agro",
       "summary": "Valida, normaliza e prepara geometrias e mapas offline para produtos agrícolas e pecuários.",
-      "suggestedPrice": 249,
+      "price": 249,
       "language": "JavaScript (CommonJS)",
       "technologies": [
         "Node.js",
@@ -959,7 +959,7 @@
       "title": "Integração e Contratos entre Sistemas Agro",
       "category": "Engenharia e Agro",
       "summary": "Define contrato local-first, versionado e idempotente para integração segura entre produtos ArtiSys Agro.",
-      "suggestedPrice": 199,
+      "price": 199,
       "language": "JavaScript (CommonJS)",
       "technologies": [
         "Node.js",
