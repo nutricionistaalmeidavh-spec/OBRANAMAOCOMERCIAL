@@ -31,7 +31,9 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(landing).toContain('class="button secondary" href="/sistemas/"');
     expect(landing).toContain('Conhecer sistemas prontos');
     expect(landing).toContain('class="button primary" href="/devkits/"');
-    expect(landing).toContain('Prévia ilustrativa'.toUpperCase());
+    expect(landing).not.toContain('class="viral-preview-machine"');
+    expect(landing).not.toContain('class="viral-floating-product"');
+    expect(landing).not.toContain('class="viral-hero-visual"');
     for (const slug of ['obra-na-mao', 'pdv-artisys', 'nutridesk']) {
       expect(landing).toContain(`href="/sistemas/${slug}/"`);
     }
@@ -59,17 +61,40 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(landing).toContain('href="./sistema.html#portal"');
   });
 
-  it('reuses the local DevKit illustration in the hero preview and DevKit feature without changing authentication', () => {
+  it('keeps the local DevKit illustration in its section without the old hero cards', () => {
     const path = '/images/devkit-tools-profissional.avif';
-    expect(landing.match(new RegExp('src="' + path + '"', 'g'))).toHaveLength(2);
-    expect(landing).toContain('class="viral-devkit-illustration"');
+    expect(landing.match(new RegExp('src="' + path + '"', 'g'))).toHaveLength(1);
+    expect(landing).not.toContain('class="viral-devkit-illustration"');
     expect(landing).toContain('class="devkit-feature-illustration"');
     const image = readFileSync(new URL('../public/images/devkit-tools-profissional.avif', import.meta.url));
     expect(image.byteLength).toBeGreaterThan(1000);
     expect(image.byteLength).toBeLessThan(20_000);
     expect(landing).toContain('class="nav-login" href="./sistema.html#portal"');
-    expect(landing).toContain('class="viral-preview-console"');
+    expect(landing).not.toContain('class="viral-preview-console"');
     expect(landing).toContain('class="devkit-module"');
+  });
+
+  it('unifies the client proof and workflow into one violet mobile-first section', () => {
+    expect(landing.match(/<section class="proof-journey container"/g)).toHaveLength(1);
+    expect(landing).not.toContain('class="case-section container"');
+    expect(landing).not.toContain('class="process-section container"');
+    expect(landing).toContain('id="prova"');
+    expect(landing).toContain('id="processo"');
+    expect(landing).toContain('MH Hidráulica LTDA');
+    expect(landing).toContain('Ribeirão Preto, SP');
+    expect(landing).toContain('class="proof-journey-content"');
+    expect(landing).toContain('class="proof-case"');
+    expect(landing).toContain('class="proof-process"');
+    expect(landing.match(/class="proof-step-num"/g)).toHaveLength(3);
+    for (const label of ['Gestão de obras', 'Financeiro e documentos', 'Capacitação da equipe']) expect(landing).toContain(label);
+    for (const step of ['Primeiro, a sua realidade.', 'Depois, a ideia ganha forma.', 'Por fim, pronta para a rotina.']) expect(landing).toContain(step);
+    const styles = read('./artisys-editorial-violet.css');
+    expect(styles).toContain('.proof-journey-content{display:grid');
+    expect(styles).toContain('@media(max-width:800px)');
+    expect(styles).toContain('.proof-journey-content{grid-template-columns:1fr}');
+    expect(styles).toContain('.proof-process{');
+    expect(styles).toContain('background:#0d0a1b');
+    expect(landing).toContain('class="nav-login" href="./sistema.html#portal"');
   });
 
   it('keeps developer-kit claims precise and sends visitors to a real catalog', () => {
