@@ -59,6 +59,19 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(landing).toContain('href="./sistema.html#portal"');
   });
 
+  it('reuses the local DevKit illustration in the hero preview and DevKit feature without changing authentication', () => {
+    const path = '/images/devkit-tools-profissional.avif';
+    expect(landing.match(new RegExp('src="' + path + '"', 'g'))).toHaveLength(2);
+    expect(landing).toContain('class="viral-devkit-illustration"');
+    expect(landing).toContain('class="devkit-feature-illustration"');
+    const image = readFileSync(new URL('../public/images/devkit-tools-profissional.avif', import.meta.url));
+    expect(image.byteLength).toBeGreaterThan(1000);
+    expect(image.byteLength).toBeLessThan(20_000);
+    expect(landing).toContain('class="nav-login" href="./sistema.html#portal"');
+    expect(landing).toContain('class="viral-preview-console"');
+    expect(landing).toContain('class="devkit-module"');
+  });
+
   it('keeps developer-kit claims precise and sends visitors to a real catalog', () => {
     for (const sku of ['DKT-DOC-005', 'DKT-DOC-008', 'DKT-PLAT-006', 'DKT-QUAL-005']) {
       expect(landing).toContain(sku);

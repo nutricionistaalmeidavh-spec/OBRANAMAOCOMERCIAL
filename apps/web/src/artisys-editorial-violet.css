@@ -225,3 +225,13 @@ body{background:var(--viral-bg);color:var(--viral-white)}
   .product-showcase .product-collections a{flex:1 1 auto;min-width:0;gap:6px;font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){.product-list-item,.product-showcase .product-all-link{transition:none}.product-list-item:hover{padding-inline:0}.product-showcase .product-all-link:hover{transform:none}}
+
+/* DevKit visual identity — local illustration shared by hero and product section. */
+.viral-devkit-illustration{display:block;width:100%;max-width:470px;margin:0 auto 19px;border-radius:13px;overflow:hidden;background:#0c0919}
+.viral-devkit-illustration img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:contain}
+.devkit-feature-illustration{display:block;width:min(100%,220px);margin:0 auto 24px;border-radius:12px;overflow:hidden;background:#0c0919}
+.devkit-feature-illustration img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:contain}
+@media(max-width:540px){
+ .viral-devkit-illustration{margin-bottom:15px}
+ .devkit-feature-illustration{width:min(100%,180px);margin-bottom:23px}
+}
