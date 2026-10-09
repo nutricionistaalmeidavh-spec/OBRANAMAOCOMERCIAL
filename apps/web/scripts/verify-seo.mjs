@@ -17,7 +17,9 @@ assert.match(transformed, /<meta property="og:title"/i);
 assert.match(transformed, /<meta name="twitter:card"/i);
 assert.match(transformed, /<script type="application\/ld\+json">/i);
 assert.match(transformed, /<meta name="viewport"/i);
-assert.match(transformed, /id="sistemas-catalogo"/i, 'home deve receber seção pública de sistemas');
+assert.doesNotMatch(transformed, /id="sistemas-catalogo"/i, 'home não deve inserir cards do catálogo durante o build');
+assert.doesNotMatch(transformed, /id="dos-videos"|id="servicos"/i, 'home não deve reexibir seções removidas');
+assert.match(transformed, /class="button secondary" href="\/sistemas\/"/i, 'home deve apresentar CTA de sistemas prontos');
 assert.match(transformed, /href="\/sistemas\/"/i, 'home deve apontar para o catálogo público');
 
 const audit = auditSeoDocument({ html: transformed, expected: { canonical: model.canonical, index: true } });
