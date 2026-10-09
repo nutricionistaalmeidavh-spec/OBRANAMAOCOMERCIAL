@@ -17,7 +17,7 @@ describe('DevKit commercial catalog',()=>{
    expect(page).toContain('href="https://github.com/tesseract-ocr/tesseract"');
    expect(page).toContain('Guia Open Source');
    expect(page).toContain('82 projetos de referência');
-   expect((page.match(/class="repo-guide-item"/g)||[]).toHaveLength(82);
+   expect((page.match(/class="repo-guide-item"/g)||[])).toHaveLength(82);
    expect(page).not.toContain('Preço sugerido');
    expect(script).toContain('repo-search');
    expect(page).not.toContain('github.com/nutricionistaalmeidavh-spec/DevKitTools');
