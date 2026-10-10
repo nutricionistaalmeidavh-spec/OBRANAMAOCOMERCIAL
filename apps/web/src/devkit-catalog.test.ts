@@ -24,7 +24,18 @@ describe('DevKit commercial catalog',()=>{
    expect(script).toContain('repo-search');
    expect(script).toContain("'/devkits/kits.json'");
    expect(page).not.toContain('github.com/nutricionistaalmeidavh-spec/DevKitTools');
-  expect(page).toContain('Os kits liberados para venda são vinculados diretamente ao checkout protegido');
+  expect(page).not.toContain('Os kits liberados para venda são vinculados diretamente ao checkout protegido');
+  expect(page).not.toContain('class="strip shell"');
+  for(const label of ['Entrega pontual','Organizado pelo problema','Somente kits liberados para venda'])
+    expect(page).not.toContain(label);
+  expect(page).toContain('id="catalogo"');
+  expect(page).toContain('id="result-count" class="sr-only"');
+  expect(page).toContain('role="status" aria-live="polite"');
+  expect(page).toContain('id="reset-filters"');
+  const css=readFileSync(new URL('../public/devkits/catalogo.css',import.meta.url),'utf8');
+  expect(css).not.toContain('.strip{');
+  expect(css).toContain('.results #reset-filters:not([hidden])');
+  expect(script).toContain('count.textContent=matching.length===items.length');
  });
  it('libera Comprar somente com oferta publicada, sem IDs privados nem preço divergente',()=>{
    expect(script).toContain("CHECKOUT_BASE + '/v1/catalog'");
