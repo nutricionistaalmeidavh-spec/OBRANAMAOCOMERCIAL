@@ -31,9 +31,30 @@ assert.doesNotMatch(pdvCss, /javascript:|url\(['"]?https?:/i, 'gallery must not 
 const catalog = JSON.parse(readCatalog('products.json'));
 
 assert.equal(catalog.version, 3, 'catalog version must be 3 after presentation-mode rollout');
-assert.equal(catalog.products.length, 11, 'catalog must contain the 11 approved systems');
+assert.equal(catalog.products.length, 12, 'catalog must contain the 12 approved systems');
 assert.equal(catalog.collections.length, 1, 'only Agro collection is approved for this rollout');
 assert.equal(catalog.collections[0].slug, 'agro');
+
+
+const directCheckoutOffers = new Map([
+  ['pdv-nexus', ['pdv-nexus', 39.90]],
+  ['pdv-artisys', ['pdv-artisys-restaurantes', 89.90]],
+  ['artisys-finance', ['artisys-sistema-financeiro', 169.90]],
+  ['obra-na-mao', ['obra-na-mao', 299.90]]
+]);
+for (const [slug, [offerId, price]] of directCheckoutOffers) {
+  const product = catalog.products.find((candidate) => candidate.slug === slug);
+  assert.ok(product, 'missing canonical commercial product: ' + slug);
+  assert.equal(product.pageMode, 'individual', 'commercial product must have a dedicated page: ' + slug);
+  assert.equal(product.checkoutOfferId, offerId, 'checkout offer id mismatch: ' + slug);
+  assert.equal(product.ctaHref, 'https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=' + offerId);
+  assert.equal(product.priceAmount, price, 'spreadsheet price mismatch: ' + slug);
+  assert.equal(product.priceLabel, new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(price), 'public price mismatch: '+slug);
+  const page = readCatalog(slug+'/index.html');
+  assert.equal((page.match(/data-product-cta/g)||[]).length, 2, 'both buy buttons must target checkout');
+  assert.ok(page.includes('href="'+product.ctaHref+'"'), 'checkout must appear in generated product page: ' + slug);
+  assert.doesNotMatch(page, /produto\.mercadolivre\.com\.br/, 'Mercado Livre cannot replace the direct checkout: ' + slug);
+}
 
 const excluded = ['compatibiliza-bim', 'wpp-prospector', 'republica'];
 for (const slug of excluded) assert.ok(!catalog.products.some((product) => product.slug === slug), `${slug} must stay out of the catalog`);
@@ -106,7 +127,7 @@ for (const product of catalog.products) {
   }
 }
 
-assert.deepEqual(individual.sort(), ['artisys-finance', 'loja-online', 'nutridesk', 'obra-na-mao', 'oficina-agricola', 'pdv-artisys'].sort());
+assert.deepEqual(individual.sort(), ['artisys-finance', 'loja-online', 'nutridesk', 'obra-na-mao', 'oficina-agricola', 'pdv-artisys', 'pdv-nexus'].sort());
 
 const lactation = catalog.products.find((product) => product.slug === 'consultora-amamentacao');
 assert.ok(lactation, 'Consultora de Amamentação must exist');
@@ -132,7 +153,7 @@ for (const name of ['Oficina Agrícola', 'Sistema Lavoura', 'Pecuária', 'Máqui
 assert.doesNotMatch(agro, /cloudflare-client|\/api\/|portal\.ts|owner\.ts|field\.ts/i);
 
 assert.match(html, /<title>.*ArtiSys.*Sistemas.*<\/title>/i);
-assert.match(html, /id="product-count">11</i);
+assert.match(html, /id="product-count">12</i);
 assert.match(html, /rel="canonical" href="https:\/\/artisys\.dev\/sistemas\/"/i);
 assert.match(html, /id="catalog-grid"/i);
 assert.match(html, /src="\.\/marketplace-feed\.js"/i, 'catalog must load shared approved marketplace feed client');
@@ -149,6 +170,8 @@ const feedClient = readCatalog('marketplace-feed.js');
 assert.match(feedClient, /artisys-mercadolivre\.nutricionistaalmeidavh\.workers\.dev\/api\/site-catalog\/feed/i);
 assert.match(feedClient, /AbortController/i, 'marketplace feed must have a timeout/fallback boundary');
 assert.match(feedClient, /mergeApprovedFeed/i, 'approved marketplace data must merge without duplicating static slugs');
+assert.match(feedClient, /CANONICAL_MARKETPLACE_ITEMS/, 'legacy Mercado Livre titles must be consolidated under the four canonical site pages');
+assert.match(feedClient, /checkoutOfferId/, 'Mercado Livre prices cannot override checkout prices');
 assert.doesNotMatch(feedClient, /item\.collection\s*!==\s*['"]agro['"]/i, 'marketplace feed must accept every published canonical collection');
 assert.doesNotMatch(feedClient, /ADMIN_|password|token|authorization/i, 'public feed client must not contain credentials');
 new Function(feedClient);
