@@ -74,26 +74,24 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(landing).toContain('class="devkit-module"');
   });
 
-  it('unifies the client proof and workflow into one violet mobile-first section', () => {
+  it('keeps the MH Hidráulica case while removing the circled three-step marketing process', () => {
     expect(landing.match(/<section class="proof-journey container"/g)).toHaveLength(1);
-    expect(landing).not.toContain('class="case-section container"');
-    expect(landing).not.toContain('class="process-section container"');
     expect(landing).toContain('id="prova"');
-    expect(landing).toContain('id="processo"');
     expect(landing).toContain('MH Hidráulica LTDA');
     expect(landing).toContain('Ribeirão Preto, SP');
     expect(landing).toContain('class="proof-journey-content"');
     expect(landing).toContain('class="proof-case"');
-    expect(landing).toContain('class="proof-process"');
-    expect(landing.match(/class="proof-step-num"/g)).toHaveLength(3);
-    for (const label of ['Gestão de obras', 'Financeiro e documentos', 'Capacitação da equipe']) expect(landing).toContain(label);
-    for (const step of ['Primeiro, a sua realidade.', 'Depois, a ideia ganha forma.', 'Por fim, pronta para a rotina.']) expect(landing).toContain(step);
+    for (const label of ['Gestão de obras','Financeiro e documentos','Capacitação da equipe']) expect(landing).toContain(label);
+    expect(landing).not.toContain('id="processo"');
+    expect(landing).not.toContain('class="proof-process"');
+    expect(landing).not.toContain('Próximo de você.');
+    expect(landing).not.toContain('Primeiro, a sua realidade.');
+    expect(landing).not.toContain('Depois, a ideia ganha forma.');
+    expect(landing).not.toContain('Por fim, pronta para a rotina.');
     const styles = read('./artisys-editorial-violet.css');
-    expect(styles).toContain('.proof-journey-content{display:grid');
+    expect(styles).toContain('.proof-journey-content{display:grid;grid-template-columns:minmax(0,1fr);');
+    expect(styles).not.toContain('.proof-process{');
     expect(styles).toContain('@media(max-width:800px)');
-    expect(styles).toContain('.proof-journey-content{grid-template-columns:1fr}');
-    expect(styles).toContain('.proof-process{');
-    expect(styles).toContain('background:#0d0a1b');
     expect(landing).toContain('class="nav-login" href="./sistema.html#portal"');
   });
 
