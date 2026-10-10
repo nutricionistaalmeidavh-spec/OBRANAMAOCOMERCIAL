@@ -4,7 +4,7 @@
 .product-hero--pdv .product-facts{grid-column:1;grid-row:2;max-width:none;margin-top:0}
 .pdv-featured-picture{grid-column:2;grid-row:1/3;align-self:center;margin:0;min-width:0;padding:12px;background:#1c1330;border:1px solid #594072;border-radius:19px;box-shadow:0 12px 35px #0002}
 .pdv-featured-picture figcaption{padding:10px 6px 1px;color:#ddcbed;font-size:12px;line-height:1.5;text-align:center}
-.pdv-photo{display:block;width:100%;aspect-ratio:1/1;background-image:url('/sistemas/pdv-artisys/media/pdv-gallery-atlas.webp');background-repeat:no-repeat;background-size:200% 200%;background-color:#f9f8fb;border-radius:12px}
+.pdv-photo{display:block;width:100%;aspect-ratio:1/1;background-image:url('/sistemas/pdv-artisys/media/pdv-gallery-atlas.avif');background-repeat:no-repeat;background-size:200% 200%;background-color:#f9f8fb;border-radius:12px}
 .pdv-photo--overview{background-position:left top}
 .pdv-photo--balcao{background-position:right top}
 .pdv-photo--mesas{background-position:left bottom}
