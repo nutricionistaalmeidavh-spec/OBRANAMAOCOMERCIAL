@@ -49,7 +49,7 @@ for (const [slug, [offerId, price]] of directCheckoutOffers) {
   assert.equal(product.checkoutOfferId, offerId, 'checkout offer id mismatch: ' + slug);
   assert.equal(product.ctaHref, 'https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=' + offerId);
   assert.equal(product.priceAmount, price, 'spreadsheet price mismatch: ' + slug);
-  assert.equal(product.priceLabel, new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(price), 'public price mismatch: '+slug);
+  assert.equal(product.priceLabel, new Intl.NumberFormat('pt-BR', {style:'currency',currency:'BRL'}).format(price).replace(/\u00a0/g, ' '), 'public price mismatch: '+slug);
   const page = readCatalog(slug+'/index.html');
   assert.equal((page.match(/data-product-cta/g)||[]).length, 2, 'both buy buttons must target checkout');
   assert.ok(page.includes('href="'+product.ctaHref+'"'), 'checkout must appear in generated product page: ' + slug);
@@ -172,6 +172,7 @@ assert.match(feedClient, /AbortController/i, 'marketplace feed must have a timeo
 assert.match(feedClient, /mergeApprovedFeed/i, 'approved marketplace data must merge without duplicating static slugs');
 assert.match(feedClient, /CANONICAL_MARKETPLACE_ITEMS/, 'legacy Mercado Livre titles must be consolidated under the four canonical site pages');
 assert.match(feedClient, /checkoutOfferId/, 'Mercado Livre prices cannot override checkout prices');
+assert.match(js, /!product\.checkoutOfferId/, 'checkout systems must not show an alternate Mercado Livre purchase link');
 assert.doesNotMatch(feedClient, /item\.collection\s*!==\s*['"]agro['"]/i, 'marketplace feed must accept every published canonical collection');
 assert.doesNotMatch(feedClient, /ADMIN_|password|token|authorization/i, 'public feed client must not contain credentials');
 new Function(feedClient);
