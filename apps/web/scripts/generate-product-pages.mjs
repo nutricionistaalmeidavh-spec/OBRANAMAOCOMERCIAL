@@ -48,25 +48,31 @@ function renderProductPage(product) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#07111f">
+  <meta name="theme-color" content="#0d0a1d">
   ${renderHeadTags(seo)}
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/artisys-favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/icons/artisys-apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../product-page.css">
 </head>
 <body>
   <!-- artisys-generated:product -->
+  <a class="skip-link" href="#product-title">Ir para o produto</a>
   <header class="product-header"><a class="brand" href="/" aria-label="ArtiSys, página inicial"><img src="/artisys-logo.svg" alt="ArtiSys"></a><a class="back-link" href="/sistemas/">Todos os sistemas</a></header>
   <main>
     <section class="product-hero" aria-labelledby="product-title">
       <div class="hero-copy"><p class="eyebrow">${escapeHtml(product.category)} · ${escapeHtml(typeLabel(product.type))}</p><h1 id="product-title">${escapeHtml(product.name)}</h1><p class="hero-summary">${escapeHtml(product.summary)}</p><div class="hero-actions"><a class="button primary" data-product-cta href="${escapeHtml(product.ctaHref)}"${externalAttrs(product.ctaHref)}>${escapeHtml(product.ctaLabel)}</a>${access}</div></div>
       <aside class="product-facts" aria-label="Resumo comercial"><div><span>Status</span><strong>${escapeHtml(status)}</strong></div><div><span>Formato</span><strong>${escapeHtml(typeLabel(product.type))}</strong></div><div><span>Investimento</span><strong>${escapeHtml(product.priceLabel)}</strong></div></aside>
     </section>
+    <div class="product-details">
     <section class="content-section split-section" aria-labelledby="audience-title"><div><p class="section-kicker">Para quem é</p><h2 id="audience-title">Feito para uma rotina real.</h2></div><p class="large-copy">${escapeHtml(product.audience)}</p></section>
     <section class="content-section" aria-labelledby="benefits-title"><p class="section-kicker">O que melhora</p><h2 id="benefits-title">Menos improviso. Mais clareza na operação.</h2><div class="benefit-grid">${product.benefits.map((item, index) => `<article><span>${String(index + 1).padStart(2, '0')}</span><p>${escapeHtml(item)}</p></article>`).join('')}</div></section>
     <section class="content-section" aria-labelledby="features-title"><p class="section-kicker">Funcionalidades</p><h2 id="features-title">O essencial do produto, sem rodeios.</h2><div class="feature-grid">${product.features.map((item) => `<article><span aria-hidden="true">✓</span><h3>${escapeHtml(item)}</h3></article>`).join('')}</div></section>
     <section class="content-section" aria-labelledby="steps-title"><p class="section-kicker">Como funciona</p><h2 id="steps-title">Da configuração ao uso.</h2><ol class="steps-list">${renderSteps(product.steps)}</ol></section>
     <section class="content-section faq-section" aria-labelledby="faq-title"><p class="section-kicker">Perguntas frequentes</p><h2 id="faq-title">Antes de começar.</h2><div class="faq-list">${renderFaq(product.faq)}</div></section>
+    </div>
     <section class="product-cta" aria-labelledby="cta-title"><div><p class="section-kicker">ArtiSys</p><h2 id="cta-title">Quer colocar ${escapeHtml(product.name)} na sua operação?</h2></div><div class="hero-actions"><a class="button primary" data-product-cta href="${escapeHtml(product.ctaHref)}"${externalAttrs(product.ctaHref)}>${escapeHtml(product.ctaLabel)}</a>${access}</div></section>
   </main>
   <footer class="product-footer"><span>ArtiSys</span><a href="/sistemas/">Catálogo de sistemas</a><a href="/">Página inicial</a></footer>
