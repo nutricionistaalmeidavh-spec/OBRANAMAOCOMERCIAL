@@ -7,8 +7,6 @@
   const empty = document.getElementById('catalog-empty');
   const error = document.getElementById('catalog-error');
   const count = document.getElementById('catalog-result-count');
-  const productCount = document.getElementById('product-count');
-  const collectionCount = document.getElementById('collection-count');
   const dialog = document.getElementById('product-dialog');
   const dialogCategory = document.getElementById('dialog-category');
   const dialogTitle = document.getElementById('dialog-title');
@@ -146,24 +144,36 @@
     return card;
   }
 
-  function createCollectionCard(collection) {
-    const card = element('article', 'product-card');
-    card.dataset.collection = collection.slug;
-    const top = element('div', 'product-topline');
-    top.appendChild(element('span', 'product-category', 'Coleção'));
-    top.appendChild(element('span', 'product-status', collection.category));
-    card.appendChild(top);
-    card.appendChild(element('h3', '', collection.name));
-    card.appendChild(element('p', 'product-summary', collection.summary));
-    const actions = element('div', 'product-actions');
-    actions.appendChild(createLink('product-button', 'Explorar coleção', { href: `./${collection.slug}/`, external: false }));
-    card.appendChild(actions);
-    return card;
-  }
-
+  // Uma única superfície de navegação, com três destinos preservados.
   function renderCollections() {
-    collectionGrid?.replaceChildren(...state.collections.map(createCollectionCard));
-    if (collectionCount) collectionCount.textContent = String(state.collections.length);
+    if (!collectionGrid) return;
+    const hub = element('article', 'collections-hub');
+    hub.dataset.collectionHub = 'true';
+    const intro = element('div', 'collections-hub-intro');
+    intro.appendChild(element('span', 'collections-hub-eyebrow', 'Explore por segmento'));
+    intro.appendChild(element('h3', '', 'Uma coleção, diferentes rotinas.'));
+    intro.appendChild(element('p', '', 'Acesse as soluções ArtiSys por área de atuação, sem perder de vista os sistemas disponíveis.'));
+    hub.appendChild(intro);
+
+    const links = element('nav', 'collections-hub-links');
+    links.setAttribute('aria-label', 'Coleções por segmento');
+    const captions = {
+      agro: 'Operações rurais',
+      negocios: 'Vendas, obras e finanças',
+      saude: 'Atendimento e gestão clínica'
+    };
+    for (const collection of state.collections) {
+      const link = createLink('collections-hub-link', '', { href: `./${collection.slug}/`, external: false });
+      link.dataset.collection = collection.slug;
+      const label = element('span', 'collections-hub-link-copy');
+      label.appendChild(element('strong', '', collection.category));
+      label.appendChild(element('small', '', captions[collection.slug] || collection.summary));
+      link.appendChild(label);
+      link.appendChild(element('span', 'collections-hub-arrow', '↗'));
+      links.appendChild(link);
+    }
+    hub.appendChild(links);
+    collectionGrid.replaceChildren(hub);
   }
 
   function renderProducts() {
@@ -194,7 +204,6 @@
     try {
       const approvedItems = await window.ArtiSysMarketplace.loadApprovedFeed();
       state.products = window.ArtiSysMarketplace.mergeApprovedFeed(state.products, approvedItems);
-      productCount.textContent = String(state.products.length);
       renderFilters();
       renderProducts();
     } catch (cause) {
@@ -215,7 +224,6 @@
       if (!collectionSource || !Array.isArray(collectionSource.collections)) throw new Error('Coleções inválidas');
       state.products = data.products;
       state.collections = collectionSource.collections;
-      productCount.textContent = String(state.products.length);
       renderCollections();
       renderFilters();
       renderProducts();

@@ -65,6 +65,8 @@
     return enriched;
   }
 
+  const HIDDEN_UNLINKED_SLUGS = new Set(['loja-online', 'oficina-agricola', 'sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-manutencao']);
+
   function mergeApprovedFeed(staticProducts, feedItems) {
     const result = (staticProducts || []).map((product) => ({ ...product }));
     const bySlug = new Map(result.map((product, index) => [String(product.slug || ''), index]));
@@ -73,7 +75,7 @@
       // O anúncio MLB7387378512 é do Nexus Clássico, não do Nexus normal: nunca copiar imagens/preços dele.
       if (String(item.item_id||'') === 'MLB7387378512') continue;
       const slug = CANONICAL_MARKETPLACE_ITEMS[String(item.item_id || '')] || String(item.slug || '').trim();
-      if (!slug) continue;
+      if (!slug || HIDDEN_UNLINKED_SLUGS.has(slug)) continue;
       if (bySlug.has(slug)) {
         const index = bySlug.get(slug);
         result[index] = enrichStaticProduct(result[index], item);
