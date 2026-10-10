@@ -24,5 +24,20 @@ describe('DevKit commercial catalog',()=>{
    expect(script).toContain('repo-search');
    expect(script).toContain("'/devkits/kits.json'");
    expect(page).not.toContain('github.com/nutricionistaalmeidavh-spec/DevKitTools');
+  expect(page).toContain('Os kits liberados para venda são vinculados diretamente ao checkout protegido');
  });
+ it('libera Comprar somente com oferta publicada, sem IDs privados nem preço divergente',()=>{
+   expect(script).toContain("CHECKOUT_BASE + '/v1/catalog'");
+   expect(script).toContain("mode:'cors',credentials:'omit',cache:'no-store'");
+   expect(script).toContain("encodeURIComponent(offer.id)");
+   expect(script).toContain("formatter.format(offer.priceCents/100)");
+   expect(script).toContain("activeOffers.get(offerKey(item.title))");
+   expect(script).toContain("purchase-pending");
+   expect(page).toContain("Se não aparecerem");
+   expect(script).not.toContain("sha256");
+   expect(script).not.toContain("artifactName");
+   expect(script).not.toContain("releases/");
+   expect(page).not.toContain("Compra pelo WhatsApp");
+ });
+
 });
