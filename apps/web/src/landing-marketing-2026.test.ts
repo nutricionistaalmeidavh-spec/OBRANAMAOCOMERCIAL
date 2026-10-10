@@ -108,4 +108,36 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(devkits).not.toContain('href="/devkits/catalogo/"');
 
   });
+
+ it('separa sistemas e kits em dois caminhos claros, preservando URLs e autenticação',()=>{
+   const clarity=read('./artisys-clarity-2026.css');
+   const entry=read('./artisys-landing.ts');
+   expect(landing).toContain('Sistemas prontos.<br><em>Kits para desenvolver.</em>');
+   expect(landing).toContain('Para quem desenvolve');
+   expect(landing).toContain('Para empresas');
+   expect(landing).toContain('class="button primary" href="/devkits/"');
+   expect(landing).toContain('class="button secondary" href="/sistemas/"');
+   expect(landing).toContain('href="./sistema.html#portal"');
+   expect(landing).not.toContain('class="capabilities container"');
+   expect(clarity).toContain('.hero.viral-hero .hero-actions{');
+   expect(clarity).toContain('.hero-route-copy{');
+   expect(entry).toContain("import './artisys-clarity-2026.css';");
+   expect(entry).toContain("import './artisys-editorial-violet.css';");
+ });
+ it('alterna superfícies claras e mantém os módulos autenticados isolados',()=>{
+   const clarity=read('./artisys-clarity-2026.css');
+   for(const token of [
+     '--clarity-paper:#f4f1fa','.devkit-feature{','.product-showcase{',
+     '.product-list-panel{','.proof-journey{','.contact-section{',
+     '@media(max-width:540px)','@media(prefers-reduced-motion:reduce)',
+     ':focus-visible'])expect(clarity).toContain(token);
+   expect(landing).toContain('MH Hidráulica LTDA');
+   expect(landing).toContain('Conhecer sistemas prontos');
+   expect(landing).toContain('href="/sistemas/obra-na-mao/"');
+   expect(landing).toContain('href="/sistemas/pdv-artisys/"');
+   expect(landing).toContain('href="/sistemas/nutridesk/"');
+   expect(clarity).not.toContain('/v1/');
+   expect(clarity).not.toContain('oauth');
+ });
+
 });
