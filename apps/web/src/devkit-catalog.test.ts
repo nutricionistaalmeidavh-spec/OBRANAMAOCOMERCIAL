@@ -33,7 +33,7 @@ describe('DevKit commercial catalog',()=>{
    expect(script).toContain("formatter.format(offer.priceCents/100)");
    expect(script).toContain("activeOffers.get(offerKey(item.title))");
    expect(script).toContain("purchase-pending");
-   expect(script).toContain("Se não aparecerem");
+   expect(page).toContain("Se não aparecerem");
    expect(script).not.toContain("sha256");
    expect(script).not.toContain("artifactName");
    expect(script).not.toContain("releases/");
