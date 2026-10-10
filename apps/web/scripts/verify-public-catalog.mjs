@@ -18,6 +18,16 @@ assert.match(detailCss, /:focus-visible/, 'keyboard focus must remain visible');
 assert.match(detailCss, /prefers-reduced-motion:reduce/, 'reduced motion preference must be preserved');
 assert.doesNotMatch(detailCss, /#55d6a8|#8cf0cc|#07111f/i, 'outdated mint and blue palette removed');
 
+const atlasPath = new URL('sistemas/pdv-artisys/media/pdv-gallery-atlas.avif', publicRoot);
+assert.ok(existsSync(atlasPath), 'original PDV ArtiSys gallery atlas must be published');
+const atlas = readFileSync(atlasPath);
+assert.ok(atlas.byteLength > 5500 && atlas.byteLength < 160000, 'gallery atlas must be compact but nonempty');
+assert.equal(atlas.subarray(4, 12).toString(), 'ftypavif', 'gallery must be a real AVIF image');
+const pdvCss = readCatalog('pdv-artisys-gallery.css');
+assert.match(pdvCss, /pdv-gallery-atlas\.avif/, 'gallery references uploaded image asset');
+assert.match(pdvCss, /@media\(max-width:650px\)/, 'mobile gallery stays compact');
+assert.match(pdvCss, /\.product-hero--pdv/, 'gallery affects PDV hero only');
+assert.doesNotMatch(pdvCss, /javascript:|url\(['"]?https?:/i, 'gallery must not load scripts or remote images');
 const catalog = JSON.parse(readCatalog('products.json'));
 
 assert.equal(catalog.version, 3, 'catalog version must be 3 after presentation-mode rollout');
@@ -62,8 +72,20 @@ for (const product of catalog.products) {
     assert.match(page, /<meta property="og:title"/i);
     assert.match(page, /<meta name="twitter:card"/i);
     assert.match(page, /<script type="application\/ld\+json">/i);
-    assert.match(page, /class="product-hero"/i);
+    assert.match(page, /class="product-hero(?: product-hero--pdv)?"/i);
     assert.match(page, /data-product-cta/i);
+    if (product.slug === 'pdv-artisys') {
+      assert.match(page, /class="product-hero product-hero--pdv"/, 'PDV receives compact editorial hero only');
+      assert.match(page, /href="\.\.\/pdv-artisys-gallery\.css"/, 'PDV includes scoped gallery stylesheet');
+      assert.match(page, /id="pdv-em-acao"/, 'PDV gallery section is present');
+      assert.equal((page.match(/class="pdv-gallery-card"/g) || []).length, 3, 'gallery shows three secondary previews');
+      for (const name of ['Balcão e caixa', 'Mesas e comandas', 'Garçom e cozinha']) assert.ok(page.includes(name), 'PDV gallery missing ' + name);
+      assert.match(page, /pdv-photo--overview/, 'PDV hero references the overview quadrant');
+      assert.doesNotMatch(page, /<script[^>]*src=|fetch\(|MutationObserver|createElement\(/i, 'gallery is static with no browser mutations');
+    } else {
+      assert.doesNotMatch(page, /pdv-artisys-gallery\.css|pdv-em-acao|pdv-photo|product-hero--pdv/, 'other product pages must remain unchanged');
+    }
+
     assert.match(page, /<meta name="theme-color" content="#0d0a1d">/, 'shared theme-color');
     assert.match(page, /<link rel="stylesheet" href="\.\.\/product-page\.css">/, 'common generated stylesheet');
     assert.match(page, /family=Outfit/, 'brand typography');

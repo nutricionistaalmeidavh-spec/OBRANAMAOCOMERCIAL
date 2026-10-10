@@ -39,6 +39,27 @@ function productDestinationLabel(product) {
   return 'Ver página completa';
 }
 
+// Galeria editorial estática do PDV ArtiSys. Não usa JS, renderização no cliente nem mutations.
+function renderPdvGallery() {
+  return `<section class="pdv-gallery" id="pdv-em-acao" aria-labelledby="pdv-gallery-title">
+    <div class="pdv-gallery-heading"><div><p class="section-kicker">Veja o PDV em ação</p><h2 id="pdv-gallery-title">Conheça as telas do sistema.</h2></div><p>Do balcão aos pedidos de mesa: conheça algumas das rotinas do PDV ArtiSys.</p></div>
+    <div class="pdv-gallery-grid">
+      <figure class="pdv-gallery-card">
+        <div class="pdv-photo pdv-photo--balcao" role="img" aria-label="Tela do Balcão do PDV ArtiSys: produtos, carrinho e formas de pagamento."></div>
+        <figcaption><strong>Balcão e caixa</strong><span>Venda rápida, produtos e finalização de pedidos.</span></figcaption>
+      </figure>
+      <figure class="pdv-gallery-card">
+        <div class="pdv-photo pdv-photo--mesas" role="img" aria-label="Tela Mesas e comandas do PDV ArtiSys, com mapa de mesas e acompanhamento dos pedidos."></div>
+        <figcaption><strong>Mesas e comandas</strong><span>Atendimento e controle de pedidos por mesa.</span></figcaption>
+      </figure>
+      <figure class="pdv-gallery-card">
+        <div class="pdv-photo pdv-photo--mobile" role="img" aria-label="Duas telas mobile do PDV ArtiSys: acesso do garçom e painel de cozinha."></div>
+        <figcaption><strong>Garçom e cozinha</strong><span>Rotinas móveis de atendimento e preparo.</span></figcaption>
+      </figure>
+    </div>
+  </section>`;
+}
+
 function renderProductPage(product) {
   const seo = buildPageSeo(artisysSeoConfig, `/sistemas/${product.slug}`);
   const access = product.accessHref ? `<a class="button secondary" href="${escapeHtml(product.accessHref)}"${externalAttrs(product.accessHref)}>Já sou cliente</a>` : '';
@@ -56,16 +77,19 @@ function renderProductPage(product) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../product-page.css">
+  ${product.slug === 'pdv-artisys' ? '<link rel="stylesheet" href="../pdv-artisys-gallery.css">' : ''}
 </head>
 <body>
   <!-- artisys-generated:product -->
   <a class="skip-link" href="#product-title">Ir para o produto</a>
   <header class="product-header"><a class="brand" href="/" aria-label="ArtiSys, página inicial"><img src="/artisys-logo.svg" alt="ArtiSys"></a><a class="back-link" href="/sistemas/">Todos os sistemas</a></header>
   <main>
-    <section class="product-hero" aria-labelledby="product-title">
+    <section class="product-hero${product.slug === 'pdv-artisys' ? ' product-hero--pdv' : ''}" aria-labelledby="product-title">
       <div class="hero-copy"><p class="eyebrow">${escapeHtml(product.category)} · ${escapeHtml(typeLabel(product.type))}</p><h1 id="product-title">${escapeHtml(product.name)}</h1><p class="hero-summary">${escapeHtml(product.summary)}</p><div class="hero-actions"><a class="button primary" data-product-cta href="${escapeHtml(product.ctaHref)}"${externalAttrs(product.ctaHref)}>${escapeHtml(product.ctaLabel)}</a>${access}</div></div>
+      ${product.slug === 'pdv-artisys' ? '<figure class="pdv-featured-picture"><div class="pdv-photo pdv-photo--overview" role="img" aria-label="PDV ArtiSys em notebook com periféricos de caixa, balança, leitor de código e QR Code."></div><figcaption>PDV ArtiSys · visão geral e periféricos</figcaption></figure>' : ''}
       <aside class="product-facts" aria-label="Resumo comercial"><div><span>Status</span><strong>${escapeHtml(status)}</strong></div><div><span>Formato</span><strong>${escapeHtml(typeLabel(product.type))}</strong></div><div><span>Investimento</span><strong>${escapeHtml(product.priceLabel)}</strong></div></aside>
     </section>
+    ${product.slug === 'pdv-artisys' ? renderPdvGallery() : ''}
     <div class="product-details">
     <section class="content-section split-section" aria-labelledby="audience-title"><div><p class="section-kicker">Para quem é</p><h2 id="audience-title">Feito para uma rotina real.</h2></div><p class="large-copy">${escapeHtml(product.audience)}</p></section>
     <section class="content-section" aria-labelledby="benefits-title"><p class="section-kicker">O que melhora</p><h2 id="benefits-title">Menos improviso. Mais clareza na operação.</h2><div class="benefit-grid">${product.benefits.map((item, index) => `<article><span>${String(index + 1).padStart(2, '0')}</span><p>${escapeHtml(item)}</p></article>`).join('')}</div></section>
