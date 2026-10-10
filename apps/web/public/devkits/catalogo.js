@@ -1,3 +1,5 @@
+import { compareCanonicalPrice } from './catalog-pricing.mjs';
+
 const repoSearch=document.getElementById('repo-search');
 if(repoSearch){
  const repoItems=[...document.querySelectorAll('.repo-guide-item')];
@@ -28,8 +30,7 @@ const CHECKOUT_BASE = 'https://pagamentos-artisys-central.nutricionistaalmeidavh
 const CHECKOUT_CATALOG = CHECKOUT_BASE + '/v1/catalog';
 const offerKey = value => norm(value).replace(/[^a-z0-9]/g,'');
 let activeOffers = new Map();
-// Preço canônico: a ordenação usa exatamente o valor mostrado no checkout.
-const canonicalPriceCents = item => activeOffers.get(offerKey(item.title))?.priceCents ?? null;
+
 
 const formatter = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
 let items=[], selected='all', visible=PAGE_SIZE;
@@ -67,11 +68,7 @@ function filtered(){
  if(sort.value==='name')r.sort((a,b)=>a.title.localeCompare(b.title,'pt-BR'));
  else if(sort.value==='price-asc'||sort.value==='price-desc'){
   const direction=sort.value==='price-asc'?1:-1;
-  r.sort((a,b)=>{
-   const pa=canonicalPriceCents(a),pb=canonicalPriceCents(b);
-   if(pa===null||pb===null)return (pa===null?1:0)-(pb===null?1:0)||a.id.localeCompare(b.id);
-   return direction*(pa-pb)||a.id.localeCompare(b.id);
-  });
+  r.sort((a,b)=>compareCanonicalPrice(a,b,direction,activeOffers,offerKey));
  }
  return r;
 }
