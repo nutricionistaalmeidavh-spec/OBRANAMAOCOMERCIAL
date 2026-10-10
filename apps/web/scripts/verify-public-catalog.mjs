@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 
-const escapeRegExpForCatalogContract = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const publicRoot = new URL('../public/', import.meta.url);
 const readPublic = (relativePath) => readFileSync(new URL(relativePath, publicRoot), 'utf8');
 const readCatalog = (relativePath) => readPublic(`sistemas/${relativePath}`);
@@ -72,7 +71,7 @@ for (const product of catalog.products) {
     assert.match(page, /<aside class="product-facts" aria-label="Resumo comercial">/, 'facts remain accessible');
     assert.match(page, /<a class="back-link" href="\/sistemas\/">Todos os sistemas<\/a>/, 'catalogue back-link preserved');
     assert.match(page, /<a class="brand" href="\/" aria-label="ArtiSys, página inicial">/, 'home link preserved');
-    assert.match(page, /<strong>${escapeRegExpForCatalogContract(product.priceLabel)}<\/strong>/, 'commercial price unchanged');
+    assert.ok(page.includes(`<strong>${product.priceLabel}</strong>`), 'commercial price unchanged');
     assert.equal((page.match(/data-product-cta/g) || []).length, 2, 'both original CTA locations remain');
     assert.ok(page.includes(`href="${product.ctaHref}"`), 'the original call-to-action URL remains unchanged');
     assert.ok(page.includes(`>${product.ctaLabel}</a>`), 'CTA copy must remain unchanged');
