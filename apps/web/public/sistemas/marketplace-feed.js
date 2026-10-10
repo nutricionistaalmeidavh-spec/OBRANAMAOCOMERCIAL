@@ -109,6 +109,7 @@
     feedUrl: FEED_URL,
     loadApprovedFeed,
     mergeApprovedFeed,
-    priceLabel
+    priceLabel,
+    canonicalProductSlugForItemId: id => CANONICAL_MARKETPLACE_ITEMS[String(id || '')] || null
   });
 })();
