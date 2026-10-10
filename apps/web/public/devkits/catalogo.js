@@ -38,8 +38,7 @@ function card(item){
  const offer=activeOffers.get(offerKey(item.title));
  const article=el('article','kit-card');article.id=item.id;
  const top=el('div','card-top');top.append(el('span','category',item.category),el('span','id',item.id.replace('kit-','#')));
- const icon=el('div','card-symbol','</>');icon.setAttribute('aria-hidden','true');
- article.append(top,icon,el('h3','',item.title),el('p','summary',item.summary));
+ article.append(top,el('h3','',item.title),el('p','summary',item.summary));
  const meta=el('div','card-meta'),info=el('div','');
  info.append(el('small','',offer?'Preço':'Disponibilidade'),el('strong','',offer?formatter.format(offer.priceCents/100):'Em breve'));
  let action;

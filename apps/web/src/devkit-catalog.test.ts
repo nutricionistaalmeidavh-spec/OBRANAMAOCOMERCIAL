@@ -40,4 +40,26 @@ describe('DevKit commercial catalog',()=>{
    expect(page).not.toContain("Compra pelo WhatsApp");
  });
 
+
+ it('mantém mockup existente no card superior, reduz estatísticas e remove ícone decorativo de todos os kits',()=>{
+   const css = readFileSync(new URL('../public/devkits/catalogo.css',import.meta.url),'utf8');
+   const mockup = readFileSync(new URL('../public/images/devkit-tools-profissional.avif',import.meta.url));
+   expect(mockup.byteLength).toBeGreaterThan(1000);
+   expect(page).toContain('class="showcase-preview"');
+   expect(page).toContain('src="/images/devkit-tools-profissional.avif"');
+   expect(page.indexOf('class="showcase-preview"')).toBeLessThan(page.indexOf('class="showcase-stats"'));
+   expect(page).toContain('class="stat">63');
+   expect(page).toContain('<strong>10</strong>');
+   expect(css).toContain('.showcase-stats .stat{');
+   expect(css).toContain('font-size:clamp(56px,6.5vw,74px)');
+   expect(css).toContain('.showcase-stats .second-stat strong{');
+   expect(css).toContain('@media(max-width:650px){.showcase-main');
+   expect(script).not.toContain('card-symbol');
+   expect(css).not.toContain('.card-symbol');
+   expect(script).toContain("article.append(top,el('h3','',item.title)");
+   expect(script).toContain('meta.append(info,action);article.append(meta)');
+   expect(script).toContain("CHECKOUT_BASE+'/comprar?oferta='");
+   expect(script).toContain("el('details','technical')");
+ });
+
 });
