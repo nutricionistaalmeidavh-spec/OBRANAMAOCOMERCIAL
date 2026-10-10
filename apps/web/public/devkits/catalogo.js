@@ -41,7 +41,7 @@ function card(item){
  const icon=el('div','card-symbol','</>');icon.setAttribute('aria-hidden','true');
  article.append(top,icon,el('h3','',item.title),el('p','summary',item.summary));
  const meta=el('div','card-meta'),info=el('div','');
- info.append(el('small','','Preço'),el('strong','',offer?formatter.format(offer.priceCents/100):'Em breve'));
+ info.append(el('small','',offer?'Preço':'Disponibilidade'),el('strong','',offer?formatter.format(offer.priceCents/100):'Em breve'));
  let action;
  if(offer){
   const url=CHECKOUT_BASE+'/comprar?oferta='+encodeURIComponent(offer.id);
