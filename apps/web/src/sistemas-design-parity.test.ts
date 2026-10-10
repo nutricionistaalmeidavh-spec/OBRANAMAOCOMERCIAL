@@ -10,16 +10,21 @@ describe('ArtiSys systems catalog — editorial design parity', () => {
     expect(html).toContain('fonts.googleapis.com/css2?family=Outfit');
     expect(css).toContain('--bg:#080613');
     expect(css).toContain('--purple:#aa62ff');
-    expect(html).toContain('class="catalog-showcase"');
+    expect(html).not.toContain('class="catalog-showcase"');
+    expect(css).toContain('.collections-hub{');
     expect(html).toContain('class="breadcrumbs"');
     expect(html).toContain('href="/devkits/"');
     expect(html).toContain('href="/sistema.html#portal"');
     expect(html).toContain('class="skip-link" href="#catalogo"');
   });
   it('retains canonical product and collection loading, filters and quick details', () => {
-    for (const id of ['product-count','collection-count','collection-grid','catalog-search','catalog-filters','catalog-grid','catalog-result-count','product-dialog','dialog-actions']) {
+    for (const id of ['collection-grid','catalog-search','catalog-filters','catalog-grid','catalog-result-count','product-dialog','dialog-actions']) {
       expect(html).toContain('id="' + id + '"');
     }
+    expect(html).not.toContain('id="product-count"');
+    expect(html).not.toContain('id="collection-count"');
+    expect(script).toContain('hub.dataset.collectionHub');
+    expect(script).toContain('for (const collection of state.collections)');
     expect(script).toContain("fetch('./products.json')");
     expect(script).toContain("fetch('./collections.json')");
     expect(script).toContain('ArtiSysMarketplace.mergeApprovedFeed');
