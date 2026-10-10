@@ -12,3 +12,6 @@
 .repo-count,.repo-attribution{color:#baa8d0;font-size:12px;line-height:1.8}.repo-attribution{margin-top:22px}
 @media(max-width:950px){.repo-guide-list{grid-template-columns:1fr}}
 @media(max-width:650px){.repo-guide-item a{grid-template-columns:1fr 15px;gap:9px;min-height:0}.repo-guide-name,.repo-guide-about{grid-column:1}.repo-guide-arrow{grid-column:2;grid-row:1}}
+
+/* Oferta só fica clicável após confirmação pública de publicação no D1. */
+.card-meta .purchase-pending{font-size:11px;line-height:1.4;padding:11px 12px;border:1px solid #56476e;border-radius:999px;background:#241b32;color:#c5b5d5;text-align:center;font-weight:600;white-space:normal}
