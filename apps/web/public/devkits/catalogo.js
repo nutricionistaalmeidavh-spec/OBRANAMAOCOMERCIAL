@@ -1,3 +1,5 @@
+import { compareCanonicalPrice } from './catalog-pricing.mjs';
+
 const repoSearch=document.getElementById('repo-search');
 if(repoSearch){
  const repoItems=[...document.querySelectorAll('.repo-guide-item')];
@@ -15,6 +17,7 @@ const source = '/devkits/kits.json';
 const search = document.getElementById('kit-search');
 const sort = document.getElementById('kit-sort');
 const cats = document.getElementById('kit-categories');
+const categorySelect = document.getElementById('kit-category-select');
 const grid = document.getElementById('kit-grid');
 const count = document.getElementById('result-count');
 const more = document.getElementById('load-more');
@@ -27,6 +30,7 @@ const CHECKOUT_BASE = 'https://pagamentos-artisys-central.nutricionistaalmeidavh
 const CHECKOUT_CATALOG = CHECKOUT_BASE + '/v1/catalog';
 const offerKey = value => norm(value).replace(/[^a-z0-9]/g,'');
 let activeOffers = new Map();
+
 
 const formatter = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
 let items=[], selected='all', visible=PAGE_SIZE;
@@ -62,8 +66,10 @@ function filtered(){
  const query=norm(search.value).trim();
  let r=items.filter(x=>(selected==='all'||x.category===selected)&&(!query||norm([x.title,x.category,x.summary,x.language,...x.technologies].join(' ')).includes(query)));
  if(sort.value==='name')r.sort((a,b)=>a.title.localeCompare(b.title,'pt-BR'));
- else if(sort.value==='price-asc')r.sort((a,b)=>a.price-b.price||a.id.localeCompare(b.id));
- else if(sort.value==='price-desc')r.sort((a,b)=>b.price-a.price||a.id.localeCompare(b.id));
+ else if(sort.value==='price-asc'||sort.value==='price-desc'){
+  const direction=sort.value==='price-asc'?1:-1;
+  r.sort((a,b)=>compareCanonicalPrice(a,b,direction,activeOffers,offerKey));
+ }
  return r;
 }
 function render(){
@@ -78,11 +84,12 @@ function render(){
  reset.hidden=selected==='all'&&!search.value&&sort.value==='default';
 }
 function clear(){search.value='';selected='all';sort.value='default';visible=PAGE_SIZE;updateCategory();render();}
-function updateCategory(){cats.querySelectorAll('button[data-category]').forEach(b=>{const yes=b.dataset.category===selected;b.classList.toggle('selected',yes);b.setAttribute('aria-pressed',String(yes));});}
+function updateCategory(){cats.querySelectorAll('button[data-category]').forEach(b=>{const yes=b.dataset.category===selected;b.classList.toggle('selected',yes);b.setAttribute('aria-pressed',String(yes));});if(categorySelect)categorySelect.value=selected;}
 function categories(){
  const counts=new Map();items.forEach(x=>counts.set(x.category,(counts.get(x.category)||0)+1));
- [...counts.entries()].forEach(([category,n])=>{const b=el('button','category-pill',category+' · '+n);b.type='button';b.dataset.category=category;b.setAttribute('aria-pressed','false');cats.append(b);});
+ [...counts.entries()].forEach(([category,n])=>{const b=el('button','category-pill',category+' · '+n);b.type='button';b.dataset.category=category;b.setAttribute('aria-pressed','false');cats.append(b);if(categorySelect){const option=el('option','',category+' ('+n+')');option.value=category;categorySelect.append(option);}});
  cats.addEventListener('click',e=>{const b=e.target.closest('button[data-category]');if(!b)return;selected=b.dataset.category;visible=PAGE_SIZE;updateCategory();render();});
+ categorySelect?.addEventListener('change',()=>{selected=categorySelect.value;visible=PAGE_SIZE;updateCategory();render();});
 }
 search.addEventListener('input',()=>{visible=PAGE_SIZE;render();});
 sort.addEventListener('change',()=>{visible=PAGE_SIZE;render();});

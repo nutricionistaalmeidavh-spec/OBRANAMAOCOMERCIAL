@@ -16,7 +16,7 @@ describe('DevKit commercial catalog',()=>{
    for(const token of ['filter','input','data-category','Intl.NumberFormat','encodeURIComponent','fetch(source','PAGE_SIZE'])expect(script).toContain(token);
    expect(page).toContain('href="https://github.com/tesseract-ocr/tesseract"');
    expect(page).toContain('Guia Open Source');
-   expect(page).toContain('82 projetos de referência');
+   expect(page).toContain('82 projetos externos com links para seus autores');
    expect(page).toContain('rel="canonical" href="https://artisys.dev/devkits/"');
    expect(page).not.toContain('https://artisys.dev/devkits/catalogo/');
    expect((page.match(/class="repo-guide-item"/g)||[])).toHaveLength(82);
@@ -71,6 +71,40 @@ describe('DevKit commercial catalog',()=>{
    expect(script).toContain('meta.append(info,action);article.append(meta)');
    expect(script).toContain("CHECKOUT_BASE+'/comprar?oferta='");
    expect(script).toContain("el('details','technical')");
+ });
+
+
+ it('compacta busca e categorias no mobile sem desativar filtros ou atalhos',()=>{
+   const visual=readFileSync(new URL('../public/devkits/catalogo-clareza.css',import.meta.url),'utf8');
+   expect(page).toContain('id="kit-category-select"');
+   expect(page).toContain('class="mobile-category"');
+   expect(page).toContain('<option value="default">Ordem do catálogo</option>');
+   expect(script).toContain("categorySelect?.addEventListener('change'");
+   expect(script).toContain('categorySelect.value=selected');
+   expect(visual).toContain('@media(max-width:650px)');
+   expect(visual).toContain('.categories{display:none}');
+   expect(visual).toContain('.mobile-category{display:flex');
+   expect(visual).toContain('min-height:45px');
+   expect(visual).toContain(':focus-visible');
+   expect(visual).toContain('@media(prefers-reduced-motion:reduce)');
+   expect(page).toContain('href="/sistema.html#portal"');
+ });
+ it('mantém catálogo, links e acessibilidade ao mudar a paleta',()=>{
+   const visual=readFileSync(new URL('../public/devkits/catalogo-clareza.css',import.meta.url),'utf8');
+   expect(page).toContain('href="/devkits/catalogo-clareza.css"');
+   expect(visual).toContain('--catalog-paper:#f4f1fa');
+   expect(visual).toContain('.kit-card{');
+   expect(visual).toContain('.card-meta a{');
+   expect(visual).toContain('.technical summary{');
+   expect(visual).toContain('.repo-accordion{');
+   expect(page).toContain('<details class="repo-accordion">');
+   expect(page).toContain('82 projetos externos com links para seus autores');
+   expect(page).toContain('id="result-count" class="sr-only" role="status" aria-live="polite"');
+   expect(page).toContain('role="status"');
+   expect(script).toContain("CHECKOUT_BASE+'/comprar?oferta='");
+   expect(script).toContain("import { compareCanonicalPrice } from './catalog-pricing.mjs'");
+   expect(script).not.toContain('r.sort((a,b)=>a.price-b.price');
+   expect(script).not.toContain('r.sort((a,b)=>b.price-a.price');
  });
 
 });
