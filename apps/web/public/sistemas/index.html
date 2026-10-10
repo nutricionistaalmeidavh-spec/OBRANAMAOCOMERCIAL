@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#07111f">
+  <meta name="theme-color" content="#080613">
   <title>ArtiSys | Sistemas para empresas</title>
   <meta name="description" content="Conheça os sistemas ArtiSys para comércio, construção, agro, saúde e gestão financeira.">
   <link rel="canonical" href="https://artisys.dev/sistemas/">
@@ -14,18 +14,54 @@
   <meta property="og:type" content="website"><meta property="og:site_name" content="ArtiSys">
   <meta name="twitter:card" content="summary"><meta name="twitter:title" content="ArtiSys | Sistemas para empresas"><meta name="twitter:description" content="Conheça os sistemas ArtiSys para comércio, construção, agro, saúde e gestão financeira.">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Sistemas ArtiSys","url":"https://artisys.dev/sistemas/","description":"Conheça os sistemas ArtiSys para comércio, construção, agro, saúde e gestão financeira."}</script>
-  <link rel="icon" type="image/png" sizes="32x32" href="../icons/artisys-favicon-32.png"><link rel="apple-touch-icon" sizes="180x180" href="../icons/artisys-apple-touch-icon.png"><link rel="stylesheet" href="./catalog.css">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/artisys-favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../icons/artisys-apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./catalog.css">
 </head>
 <body>
-  <header class="catalog-header"><a class="brand" href="/" aria-label="Voltar para a página inicial da ArtiSys"><img src="../artisys-logo.svg" alt="ArtiSys"></a><a class="header-link" href="/sistema.html#portal">Já sou cliente</a></header>
+  <a class="skip-link" href="#catalogo">Pular para o catálogo</a>
+  <header class="catalog-header">
+    <nav class="catalog-nav shell" aria-label="Navegação principal">
+      <a class="brand" href="/" aria-label="ArtiSys — página inicial"><img src="/artisys-logo.svg" width="148" height="51" alt="ArtiSys"></a>
+      <div class="header-links">
+        <a class="nav-current" href="/sistemas/" aria-current="page">Sistemas</a>
+        <a class="nav-devkits" href="/devkits/">DevKit Tool’s <span aria-hidden="true">↗</span></a>
+        <a class="header-link" href="/sistema.html#portal">Acessar Obra na Mão</a>
+      </div>
+    </nav>
+  </header>
   <main>
-    <section class="catalog-hero" aria-labelledby="catalog-title"><p class="eyebrow">Sistemas ArtiSys</p><h1 id="catalog-title">Software pronto para sair do improviso.</h1><p class="hero-copy">Encontre a solução certa para sua operação. Produtos desktop, web e SaaS organizados em páginas individuais ou coleções por segmento.</p><div class="hero-stats" aria-label="Resumo do catálogo"><div><strong id="product-count">11</strong><span>sistemas no catálogo</span></div><div><strong>5</strong><span>segmentos atendidos</span></div><div><strong id="collection-count">3</strong><span>coleções especializadas</span></div></div></section>
-    <section class="catalog-section" aria-labelledby="collections-title"><div class="section-heading"><div><p class="eyebrow">Coleções</p><h2 id="collections-title">Explore por segmento</h2></div><p class="result-count">Agro, Negócios e Saúde</p></div><div id="collection-grid" class="catalog-grid" aria-live="polite"></div></section>
+    <section class="catalog-hero" aria-labelledby="catalog-title">
+      <div class="hero-intro">
+        <nav class="breadcrumbs" aria-label="Caminho da página"><a href="/">ArtiSys</a><span aria-hidden="true">/</span><span aria-current="page">Sistemas</span></nav>
+        <p class="eyebrow">Sistemas ArtiSys · Software para operações reais</p>
+        <h1 id="catalog-title">Menos improviso.<br><em>Mais operação.</em></h1>
+        <p class="hero-copy">Da gestão de obras ao ponto de venda, desenvolvemos sistemas para organizar o trabalho de quem precisa fazer acontecer todos os dias.</p>
+        <div class="hero-actions"><a class="hero-primary" href="#catalogo">Explorar sistemas <span aria-hidden="true">↗</span></a><a class="hero-secondary" href="#colecoes">Explorar por segmento <span aria-hidden="true">↓</span></a></div>
+      </div>
+      <aside class="catalog-showcase" aria-label="Números do catálogo">
+        <div class="showcase-top"><span class="showcase-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>ARTISYS / SISTEMAS</span><small>CATÁLOGO</small></div>
+        <div class="showcase-main"><p class="showcase-label">SOLUÇÕES PARA SUA ROTINA / 2026</p><div class="showcase-number"><strong id="product-count">11</strong><span>sistemas no catálogo</span></div><div class="showcase-divider"></div><div class="showcase-secondary"><strong id="collection-count">3</strong><span>coleções por segmento</span></div><p class="showcase-caption">Construção · Comércio · Agro · Saúde · Gestão</p></div>
+        <div class="showcase-footer"><span>Da operação à gestão.</span><span>DESKTOP / WEB / SAAS</span></div>
+      </aside>
+    </section>
+    <div class="catalog-strip" aria-label="Como explorar as soluções">
+      <div><span class="strip-mark" aria-hidden="true"></span><strong>Feitos para a rotina</strong><small>Sistemas para operações reais</small></div>
+      <div><span class="strip-mark" aria-hidden="true"></span><strong>Encontre por segmento</strong><small>Explore o que combina com seu negócio</small></div>
+      <div><span class="strip-mark" aria-hidden="true"></span><strong>Conheça cada solução</strong><small>Detalhes, recursos e acesso no mesmo lugar</small></div>
+    </div>
+    <section class="catalog-section collections-section" id="colecoes" aria-labelledby="collections-title"><div class="section-heading"><div><p class="eyebrow">Coleções ArtiSys</p><h2 id="collections-title">Por onde a sua operação começa.</h2></div><p class="section-description">Explore as soluções por área de atuação e encontre o que faz sentido para a sua rotina.</p></div><div id="collection-grid" class="catalog-grid" aria-live="polite"></div></section>
     <section class="catalog-controls" aria-label="Busca e filtros"><label class="search-box" for="catalog-search"><span>Buscar sistema</span><input id="catalog-search" type="search" autocomplete="off" placeholder="Ex.: PDV, construção, agro..."></label><div id="catalog-filters" class="filter-row" role="group" aria-label="Filtrar por categoria"></div></section>
-    <section class="catalog-section" aria-labelledby="results-title"><div class="section-heading"><div><p class="eyebrow">Catálogo</p><h2 id="results-title">Soluções disponíveis</h2></div><p id="catalog-result-count" class="result-count" aria-live="polite"></p></div><div id="catalog-grid" class="catalog-grid" aria-live="polite"></div><div id="catalog-empty" class="catalog-empty" hidden><strong>Nenhum sistema encontrado.</strong><span>Tente outro termo ou selecione a categoria “Todos”.</span></div><div id="catalog-error" class="catalog-error" hidden><strong>Não foi possível carregar o catálogo.</strong><span>Atualize a página para tentar novamente.</span></div></section>
-    <section class="catalog-note" aria-label="Sobre o catálogo"><div><p class="eyebrow">ArtiSys</p><h2>Páginas completas quando faz sentido. Coleções quando é melhor comparar.</h2></div><p>Produtos principais têm páginas individuais. Sistemas menores podem ficar reunidos por segmento, e soluções que já possuem landing própria são apenas vinculadas para evitar duplicidade.</p></section>
+    <section class="catalog-section products-section" id="catalogo" aria-labelledby="results-title"><div class="section-heading"><div><p class="eyebrow">Catálogo ArtiSys</p><h2 id="results-title">Escolha o sistema certo.</h2></div><p id="catalog-result-count" class="result-count" aria-live="polite"></p></div><div id="catalog-grid" class="catalog-grid" aria-live="polite"></div><div id="catalog-empty" class="catalog-empty" hidden><strong>Nenhum sistema encontrado.</strong><span>Tente outro termo ou selecione a categoria “Todos”.</span></div><div id="catalog-error" class="catalog-error" hidden><strong>Não foi possível carregar o catálogo.</strong><span>Atualize a página para tentar novamente.</span></div></section>
+    <section class="catalog-note" aria-labelledby="catalog-note-title">
+      <div><p class="eyebrow">Além do catálogo</p><h2 id="catalog-note-title">Sua operação precisa de algo específico?</h2></div>
+      <div class="catalog-note-actions"><p>Vamos entender seu cenário e encontrar a solução ArtiSys mais adequada para o seu negócio.</p><a href="/#contato">Conversar sobre meu projeto <span aria-hidden="true">↗</span></a></div>
+    </section>
   </main>
-  <footer class="catalog-footer"><span>ArtiSys</span><a href="/">Página inicial</a><a href="/sistema.html#portal">Acessar sistema</a></footer>
+  <footer class="catalog-footer shell"><a class="footer-brand" href="/" aria-label="Voltar à página inicial"><img src="/artisys-logo.svg" width="118" height="40" alt="ArtiSys"></a><span>© 2026 ArtiSys · Sistemas reais para operações reais</span><div><a href="/devkits/">DevKit Tool’s</a><a href="/">Página inicial ↑</a></div></footer>
   <dialog id="product-dialog" class="product-dialog" aria-labelledby="dialog-title"><form method="dialog" class="dialog-shell"><button class="dialog-close" value="close" aria-label="Fechar">×</button><p id="dialog-category" class="eyebrow"></p><h2 id="dialog-title"></h2><p id="dialog-summary" class="dialog-summary"></p><div class="dialog-meta"><span id="dialog-type"></span><strong id="dialog-price"></strong></div><ul id="dialog-features" class="dialog-features"></ul><div id="dialog-actions" class="dialog-actions"></div></form></dialog>
   <script src="./marketplace-feed.js" defer></script>
   <script src="./catalog.js" defer></script>
