@@ -90,7 +90,7 @@
     const destination = productDestination(product);
     dialogActions.appendChild(createLink('', destination.label, destination));
 
-    if (product.permalink && product.marketplaceItemId) {
+    if (!product.checkoutOfferId && product.permalink && product.marketplaceItemId) {
       dialogActions.appendChild(createLink('secondary', 'Ver anúncio', { href: product.permalink, external: true }));
     }
 
