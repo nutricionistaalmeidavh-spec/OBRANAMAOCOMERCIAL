@@ -171,6 +171,7 @@ assert.match(feedClient, /artisys-mercadolivre\.nutricionistaalmeidavh\.workers\
 assert.match(feedClient, /AbortController/i, 'marketplace feed must have a timeout/fallback boundary');
 assert.match(feedClient, /mergeApprovedFeed/i, 'approved marketplace data must merge without duplicating static slugs');
 assert.match(feedClient, /CANONICAL_MARKETPLACE_ITEMS/, 'legacy Mercado Livre titles must be consolidated under the four canonical site pages');
+assert.match(feedClient, /canonicalProductSlugForItemId/, 'canonical IDs must be available for collection deduplication');
 assert.match(feedClient, /checkoutOfferId/, 'Mercado Livre prices cannot override checkout prices');
 assert.match(js, /!product\.checkoutOfferId/, 'checkout systems must not show an alternate Mercado Livre purchase link');
 assert.doesNotMatch(feedClient, /item\.collection\s*!==\s*['"]agro['"]/i, 'marketplace feed must accept every published canonical collection');
@@ -183,6 +184,7 @@ assert.match(agro, /src="\.\.\/marketplace-collection\.js"/i);
 const collectionClient = readCatalog('marketplace-collection.js');
 assert.match(collectionClient, /marketplace-collection-extra/);
 assert.match(collectionClient, /collection === collectionSlug/);
+assert.match(collectionClient, /canonicalProductSlugForItemId/, 'collection must not reintroduce duplicated Mercado Livre listings for canonical systems');
 new Function(collectionClient);
 
 assert.ok(existsSync(new URL('sistemas/produto/index.html', publicRoot)), 'generic approved marketplace product page missing');
