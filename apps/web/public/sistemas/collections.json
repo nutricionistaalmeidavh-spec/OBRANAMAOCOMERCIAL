@@ -5,12 +5,14 @@
       "slug": "agro",
       "name": "Sistemas ArtiSys para o Agro",
       "category": "Agro",
-      "summary": "Uma seleção de sistemas para oficina, lavoura, pecuária, máquinas agrícolas e gestão de frota no contexto rural.",
+      "summary": "Soluções para operações rurais, conforme disponibilidade no portfólio ArtiSys.",
       "featured": true,
-      "categories": ["Agro"],
+      "categories": [
+        "Agro"
+      ],
       "seo": {
         "title": "Sistemas para o Agro | ArtiSys",
-        "description": "Conheça os sistemas ArtiSys para oficinas agrícolas, lavoura, pecuária, máquinas agrícolas, frota e manutenção."
+        "description": "Explore a coleção Agro e acompanhe a disponibilidade de soluções ArtiSys para operações rurais."
       }
     },
     {
@@ -19,7 +21,11 @@
       "category": "Negócios",
       "summary": "Soluções ArtiSys para vendas, obras, gestão financeira e operação digital de empresas.",
       "featured": true,
-      "categories": ["Comércio", "Construção", "Financeiro"],
+      "categories": [
+        "Comércio",
+        "Construção",
+        "Financeiro"
+      ],
       "seo": {
         "title": "Sistemas para Negócios | ArtiSys",
         "description": "Conheça sistemas ArtiSys para vendas, obras, gestão financeira, vitrines online e operação empresarial."
@@ -31,7 +37,9 @@
       "category": "Saúde",
       "summary": "Soluções ArtiSys para organizar atendimentos, prontuários, acompanhamento e rotina clínica de profissionais de saúde.",
       "featured": true,
-      "categories": ["Saúde"],
+      "categories": [
+        "Saúde"
+      ],
       "seo": {
         "title": "Sistemas para Saúde | ArtiSys",
         "description": "Conheça sistemas ArtiSys para nutricionistas, consultoras de amamentação e rotinas de atendimento em saúde."

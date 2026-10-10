@@ -31,7 +31,7 @@ assert.doesNotMatch(pdvCss, /javascript:|url\(['"]?https?:/i, 'gallery must not 
 const catalog = JSON.parse(readCatalog('products.json'));
 
 assert.equal(catalog.version, 3, 'catalog version must be 3 after presentation-mode rollout');
-assert.equal(catalog.products.length, 12, 'catalog must contain the 12 approved systems');
+assert.equal(catalog.products.length, 6, 'only six linked systems must remain in the public catalog');
 assert.equal(catalog.collections.length, 1, 'only Agro collection is approved for this rollout');
 assert.equal(catalog.collections[0].slug, 'agro');
 
@@ -127,7 +127,7 @@ for (const product of catalog.products) {
   }
 }
 
-assert.deepEqual(individual.sort(), ['artisys-finance', 'loja-online', 'nutridesk', 'obra-na-mao', 'oficina-agricola', 'pdv-artisys', 'pdv-nexus'].sort());
+assert.deepEqual(individual.sort(), ['artisys-finance', 'nutridesk', 'obra-na-mao', 'pdv-artisys', 'pdv-nexus'].sort());
 
 const lactation = catalog.products.find((product) => product.slug === 'consultora-amamentacao');
 assert.ok(lactation, 'Consultora de Amamentação must exist');
@@ -136,24 +136,22 @@ assert.equal(lactation.pageMode, 'external');
 assert.equal(lactation.externalHref, 'https://deboralactacao.com/comercial/');
 assert.ok(!existsSync(new URL('sistemas/consultora-amamentacao/index.html', publicRoot)), 'external product must not generate duplicate ArtiSys landing');
 
-const oficina = catalog.products.find((product) => product.slug === 'oficina-agricola');
-assert.equal(oficina.pageMode, 'individual');
-assert.ok(oficina.collections.includes('agro'), 'Oficina Agrícola must also belong to Agro collection');
-
-for (const slug of ['sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-manutencao']) {
-  const product = catalog.products.find((candidate) => candidate.slug === slug);
-  assert.ok(product, `${slug} missing`);
-  assert.equal(product.pageMode, 'collection');
-  assert.ok(product.collections.includes('agro'));
-}
-
 const agro = readCatalog('agro/index.html');
 assert.match(agro, /<link rel="canonical" href="https:\/\/artisys\.dev\/sistemas\/agro\/">/i);
-for (const name of ['Oficina Agrícola', 'Sistema Lavoura', 'Pecuária', 'Máquinas Agrícolas', 'Frota e Manutenção']) assert.ok(agro.includes(name), `${name} missing from Agro collection`);
+for (const slug of ['oficina-agricola', 'sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-manutencao']) assert.doesNotMatch(agro, new RegExp(`data-product="${slug}"`), `${slug} must not reappear in the Agro collection`);
 assert.doesNotMatch(agro, /cloudflare-client|\/api\/|portal\.ts|owner\.ts|field\.ts/i);
 
 assert.match(html, /<title>.*ArtiSys.*Sistemas.*<\/title>/i);
-assert.match(html, /id="product-count">12</i);
+assert.doesNotMatch(html, /catalog-showcase|id="product-count"|id="collection-count"/i, 'misleading numeric showcase must be removed');
+assert.match(html, /id="collection-grid"/i, 'consolidated collections anchor must remain');
+assert.match(js, /hub\.dataset\.collectionHub\s*=\s*'true'/, 'the three collections must render inside one hub card');
+assert.match(css, /\.collections-hub\{/, 'the hub must have its own responsive styling');
+for (const slug of ['loja-online', 'oficina-agricola', 'sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-manutencao']) {
+  assert.ok(!catalog.products.some(product => product.slug === slug), `${slug} must not be advertised without a real offer`);
+}
+const collections = JSON.parse(readCatalog('collections.json')).collections;
+assert.deepEqual(collections.map(item => item.slug), ['agro', 'negocios', 'saude']);
+assert.match(js, /for \(const collection of state\.collections\)/, 'keep the three destinations inside one card');
 assert.match(html, /rel="canonical" href="https:\/\/artisys\.dev\/sistemas\/"/i);
 assert.match(html, /id="catalog-grid"/i);
 assert.match(html, /src="\.\/marketplace-feed\.js"/i, 'catalog must load shared approved marketplace feed client');
@@ -171,6 +169,7 @@ assert.match(feedClient, /artisys-mercadolivre\.nutricionistaalmeidavh\.workers\
 assert.match(feedClient, /AbortController/i, 'marketplace feed must have a timeout/fallback boundary');
 assert.match(feedClient, /mergeApprovedFeed/i, 'approved marketplace data must merge without duplicating static slugs');
 assert.match(feedClient, /CANONICAL_MARKETPLACE_ITEMS/, 'legacy Mercado Livre titles must be consolidated under the four canonical site pages');
+assert.match(feedClient, /HIDDEN_UNLINKED_SLUGS/, 'unlinked products must not return through the marketplace feed');
 assert.match(feedClient, /canonicalProductSlugForItemId/, 'canonical IDs must be available for collection deduplication');
 assert.match(feedClient, /checkoutOfferId/, 'Mercado Livre prices cannot override checkout prices');
 assert.match(js, /!product\.checkoutOfferId/, 'checkout systems must not show an alternate Mercado Livre purchase link');
