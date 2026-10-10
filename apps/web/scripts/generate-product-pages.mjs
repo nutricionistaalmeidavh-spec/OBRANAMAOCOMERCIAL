@@ -7,7 +7,7 @@ import { buildPageSeo, renderHeadTags } from '../vendor/artisys-seo/technical.mj
 
 const catalogUrl = new URL('../public/sistemas/products.json', import.meta.url);
 const outputRoot = new URL('../public/sistemas/', import.meta.url);
-const LEGACY_GENERATED_SLUGS = ['debora-lactacao'];
+const LEGACY_GENERATED_SLUGS = ['debora-lactacao', 'loja-online', 'oficina-agricola', 'sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-manutencao'];
 
 function escapeHtml(value) {
   return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');

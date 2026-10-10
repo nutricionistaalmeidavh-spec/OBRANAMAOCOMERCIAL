@@ -144,7 +144,7 @@ assert.doesNotMatch(agro, /cloudflare-client|\/api\/|portal\.ts|owner\.ts|field\
 assert.match(html, /<title>.*ArtiSys.*Sistemas.*<\/title>/i);
 assert.doesNotMatch(html, /catalog-showcase|id="product-count"|id="collection-count"/i, 'misleading numeric showcase must be removed');
 assert.match(html, /id="collection-grid"/i, 'consolidated collections anchor must remain');
-assert.match(js, /data\.collectionHub\s*=\s*'true'/, 'the three collections must render inside one hub card');
+assert.match(js, /hub\.dataset\.collectionHub\s*=\s*'true'/, 'the three collections must render inside one hub card');
 assert.match(css, /\.collections-hub\{/, 'the hub must have its own responsive styling');
 for (const slug of ['loja-online', 'oficina-agricola', 'sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-manutencao']) {
   assert.ok(!catalog.products.some(product => product.slug === slug), `${slug} must not be advertised without a real offer`);
