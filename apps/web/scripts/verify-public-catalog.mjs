@@ -72,7 +72,7 @@ for (const product of catalog.products) {
     assert.match(page, /<meta property="og:title"/i);
     assert.match(page, /<meta name="twitter:card"/i);
     assert.match(page, /<script type="application\/ld\+json">/i);
-    assert.match(page, /class="product-hero"/i);
+    assert.match(page, /class="product-hero(?: product-hero--pdv)?"/i);
     assert.match(page, /data-product-cta/i);
     if (product.slug === 'pdv-artisys') {
       assert.match(page, /class="product-hero product-hero--pdv"/, 'PDV receives compact editorial hero only');
