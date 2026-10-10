@@ -16,7 +16,7 @@ describe('DevKit commercial catalog',()=>{
    for(const token of ['filter','input','data-category','Intl.NumberFormat','encodeURIComponent','fetch(source','PAGE_SIZE'])expect(script).toContain(token);
    expect(page).toContain('href="https://github.com/tesseract-ocr/tesseract"');
    expect(page).toContain('Guia Open Source');
-   expect(page).toContain('82 projetos de referência');
+   expect(page).toContain('82 projetos externos com links para seus autores');
    expect(page).toContain('rel="canonical" href="https://artisys.dev/devkits/"');
    expect(page).not.toContain('https://artisys.dev/devkits/catalogo/');
    expect((page.match(/class="repo-guide-item"/g)||[])).toHaveLength(82);
