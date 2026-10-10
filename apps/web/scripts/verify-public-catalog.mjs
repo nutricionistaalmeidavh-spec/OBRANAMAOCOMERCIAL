@@ -1,12 +1,24 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 
+const escapeRegExpForCatalogContract = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const publicRoot = new URL('../public/', import.meta.url);
 const readPublic = (relativePath) => readFileSync(new URL(relativePath, publicRoot), 'utf8');
 const readCatalog = (relativePath) => readPublic(`sistemas/${relativePath}`);
 const html = readCatalog('index.html');
 const css = readCatalog('catalog.css');
 const js = readCatalog('catalog.js');
+const detailCss = readCatalog('product-page.css');
+assert.match(detailCss, /--bg:#0d0a1d/, 'product page uses the unified ArtiSys dark shell');
+assert.match(detailCss, /--paper:#f4f1fa/, 'product page includes a light reading surface');
+assert.match(detailCss, /--accent:#7037ad/, 'primary buttons use the ArtiSys violet palette');
+assert.match(detailCss, /font-family:"Outfit"/, 'unified typography');
+assert.match(detailCss, /\.product-facts\{[\s\S]*?grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/, 'compact facts grid');
+assert.match(detailCss, /@media\(max-width:560px\)/, 'mobile layout is explicitly supported');
+assert.match(detailCss, /:focus-visible/, 'keyboard focus must remain visible');
+assert.match(detailCss, /prefers-reduced-motion:reduce/, 'reduced motion preference must be preserved');
+assert.doesNotMatch(detailCss, /#55d6a8|#8cf0cc|#07111f/i, 'outdated mint and blue palette removed');
+
 const catalog = JSON.parse(readCatalog('products.json'));
 
 assert.equal(catalog.version, 3, 'catalog version must be 3 after presentation-mode rollout');
@@ -53,6 +65,22 @@ for (const product of catalog.products) {
     assert.match(page, /<script type="application\/ld\+json">/i);
     assert.match(page, /class="product-hero"/i);
     assert.match(page, /data-product-cta/i);
+    assert.match(page, /<meta name="theme-color" content="#0d0a1d">/, 'shared theme-color');
+    assert.match(page, /<link rel="stylesheet" href="\.\.\/product-page\.css">/, 'common generated stylesheet');
+    assert.match(page, /family=Outfit/, 'brand typography');
+    assert.match(page, /<div class="product-details">/, 'readable light content wrapper');
+    assert.match(page, /<aside class="product-facts" aria-label="Resumo comercial">/, 'facts remain accessible');
+    assert.match(page, /<a class="back-link" href="\/sistemas\/">Todos os sistemas<\/a>/, 'catalogue back-link preserved');
+    assert.match(page, /<a class="brand" href="\/" aria-label="ArtiSys, página inicial">/, 'home link preserved');
+    assert.match(page, /<strong>${escapeRegExpForCatalogContract(product.priceLabel)}<\/strong>/, 'commercial price unchanged');
+    assert.equal((page.match(/data-product-cta/g) || []).length, 2, 'both original CTA locations remain');
+    assert.ok(page.includes(`href="${product.ctaHref}"`), 'the original call-to-action URL remains unchanged');
+    assert.ok(page.includes(`>${product.ctaLabel}</a>`), 'CTA copy must remain unchanged');
+    if (product.accessHref) {
+      assert.ok(page.includes(`href="${product.accessHref}"`), 'customer portal URL must remain unchanged');
+      assert.equal((page.match(/>Já sou cliente<\/a>/g) || []).length, 2);
+    }
+
     assert.doesNotMatch(page, /\/src\/|cloudflare-client|\/api\/|portal\.ts|owner\.ts|field\.ts|type="module"/i);
   }
 }
