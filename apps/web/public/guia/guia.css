@@ -157,3 +157,16 @@
 @media(max-width:970px){.lesson-cost-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.lesson-section{padding:16px 0}.lesson-lead{font-size:16px}.lesson-step{padding:14px 13px}.lesson-step-text{font-size:13.5px}.lesson-code-pre{padding:13px}.lesson-code-pre code{font-size:11.5px}.lesson-body-text{font-size:14px}}
 @media print{.lesson-step,.lesson-code,.lesson-cost,.lesson-check{background:#fff!important;color:#111!important;border-color:#bbb!important;box-shadow:none!important;break-inside:avoid}.lesson-step-text,.lesson-code code,.lesson-cost p{color:#111!important}.lesson-copy,.lesson-check input{display:none!important}}
+
+/* Mobile QA: nenhum bloco de código deve ampliar a largura da página. */
+.reader,.reader-body,.lesson-section,.lesson-code,.lesson-code-pre,.lesson-introduction,
+.lesson-step,.lesson-cost-grid,.lesson-cost{min-width:0}
+.reader-body{grid-template-columns:minmax(0,1fr);width:100%}
+.lesson-section,.lesson-code{width:100%;max-width:100%}
+.lesson-code-pre{overflow-x:auto;max-width:100%;width:100%;contain:inline-size}
+.lesson-code-pre code{display:block;width:max-content;min-width:100%}
+@media(max-width:760px){
+ .workspace,.main,.content-container,.reader{min-width:0;max-width:100%}
+ .content-container{overflow-x:clip}
+ .lesson-code-pre{max-width:100%;overscroll-behavior-inline:contain}
+}

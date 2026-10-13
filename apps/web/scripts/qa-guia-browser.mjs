@@ -52,7 +52,12 @@ try{
  await mobile.locator('.nav-page[href="#pagina-16"]').click();
  await mobile.locator('#reader-body .lesson-step').first().waitFor();
  assert.equal(await mobile.locator('#sidebar').evaluate(el=>el.classList.contains('open')),false);
- const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+2);
+ const diagnostic=await mobile.evaluate(()=>({
+   viewport:window.innerWidth,scrollWidth:document.documentElement.scrollWidth,
+   offenders:[...document.querySelectorAll('body *')].filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.right>window.innerWidth+2&&getComputedStyle(el).position!=='fixed'}).slice(0,12).map(el=>({tag:el.tagName,cls:el.className,rect:Math.round(el.getBoundingClientRect().right)}))
+ }));
+ console.log('Mobile overflow diagnostic',JSON.stringify(diagnostic));
+ const overflow=diagnostic.scrollWidth>diagnostic.viewport+2;
  assert.equal(overflow,false,'no horizontal page overflow on mobile');
  await screenshot(mobile,'06-mobile-aula16-real');
  console.log('Guia Playwright QA passed: 40-page asset, deep lesson, alternating theme, mobile navigation and screenshots');
