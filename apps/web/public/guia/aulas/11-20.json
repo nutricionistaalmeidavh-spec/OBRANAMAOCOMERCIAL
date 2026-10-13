@@ -151,7 +151,7 @@
       "5. Para modificar, abra uma branch feat/estoque-saida com um executor que tenha permissão de escrita. Solicite patch mínimo e testes; inspecione git diff --stat, git diff e o log antes de push.",
       "6. Se autorizado, envie a branch e abra PR. Não faça merge automaticamente. Confira CI, revisão, URL de preview e configuração de deploy. Sem executor: copie o patch sugerido e rode os comandos você mesmo."
     ],
-    "example": "git remote -v\ngit switch -c feat/saida-segura\n# alterar arquivos após revisão do plano\ngit diff --stat\ngit diff\ngit status\ngit push -u origin feat/saida-segura\n# criar PR pela interface do GitHub",
+    "example": "git remote -v\ngit switch -c feat/saida-segura\n# alterar arquivos após revisão do plano\ngit diff --stat\ngit diff\ngit status\ngit push -u origin feat/saida-segura\n# criar PR pela interface do GitHub\n# PR: revisar diff, checks e plano de rollback antes de aprovar",
     "prompt": "Analise exclusivamente miniestoque-lab. Leia README, src e tests e liste cada funcionalidade apontando o arquivo correspondente. Identifique a lógica de saldo. Antes de editar, proponha diff mínimo e novos testes. Não modifique main, segredos, OAuth ou CI. Se puder executar, mostre comandos e logs; se não, gere patch, sem alegar execução. Prepare PR para revisão, sem merge.",
     "checks": [
       "Repo correto e permissão mínima confirmados",
