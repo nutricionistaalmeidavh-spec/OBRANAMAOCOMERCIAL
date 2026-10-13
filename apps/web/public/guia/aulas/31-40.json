@@ -1,0 +1,262 @@
+[
+  {
+    "number": 31,
+    "title": "Estudo real: documentos de RH do Obra na Mão",
+    "lead": "Nos projetos da Artisys, a rotina de documentos de RH motivou automação por pessoa e competência. Aqui estudamos o problema e sua arquitetura sem reproduzir o código privado ou dados de clientes. O aprendizado é como o agente ajuda a transformar uma operação repetitiva em fluxo testável.",
+    "steps": [
+      "Mapeie o procedimento manual: escolher funcionário, competência, dados, gerar, revisar, salvar, imprimir e digitalizar.",
+      "Traduza em contrato: entrada estruturada, validação, template versionado, saída PDF, índice por funcionário e mês.",
+      "Solicite ao agente uma arquitetura modular; não misture regras trabalhistas com motor de geração de arquivos.",
+      "Crie dados sintéticos: Ana Exemplo, ID DEMO001 e competência fictícia; jamais usar CPFs ou documentos reais.",
+      "Defina um QA funcional: um lote com três funcionários gera três arquivos nos diretórios esperados; uma entrada inválida fica no relatório de falhas."
+    ],
+    "example": "Problema: gerar um arquivo por pessoa manualmente. Solução didática: validate → render → save → index → review. Artefato: manifesto contendo origem, competência, hash do modelo e status.",
+    "prompt": "Analise a automação fictícia de documentos mensais de RH. Proponha escopo, arquitetura com separação entre dados/templates, testes de correspondência pessoa-arquivo, critérios de revisão e estratégia de reprocessamento. Não use conteúdo de clientes.",
+    "checks": [
+      "Lote de teste completo e conferível",
+      "Nome e competência sem ambiguidades",
+      "Não houve uso de dados privados"
+    ],
+    "free": "Gerador Node/PDF local pode funcionar com bibliotecas abertas.",
+    "optional": "Serviços de assinatura ou armazenamento são opcionais.",
+    "caution": "Este é estudo de caso arquitetural, não auditoria trabalhista nem distribuição de fonte comercial.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 32,
+    "title": "Estudo real: PDV é um fluxo, não uma tela",
+    "lead": "Um PDV parece simples até lidar com cancelamento, estoque, divergências e periféricos. O material usa o caso da Artisys para explicar decisões de engenharia, sem alegar que um demo seja o produto comercial completo.",
+    "steps": [
+      "Desenhe o fluxo: localizar produto → informar quantidade → confirmar venda → registrar movimento → gerar comprovante.",
+      "Liste estados de venda: em edição, confirmada, cancelada; ajuste de estoque não pode ocorrer duas vezes.",
+      "Escreva casos de teste: barcode desconhecido, falta de estoque, venda confirmada, tentativa de pagamento repetido.",
+      "Separe integrações fiscais e de pagamento como módulos regulados/opcionais; não introduza dependências fictícias no MVP.",
+      "Peça ao agente matriz de riscos e teste primeiro regras determinísticas, depois teste visual no frontend."
+    ],
+    "example": "Se uma venda confirmada reduz estoque 2, executar novamente a mesma confirmação não deve reduzir mais 2. Para isso, registre id de operação e verifique idempotência.",
+    "prompt": "Mapeie um PDV básico sem integração fiscal/pagamentos. Liste entidades, estados, estoque, falhas, auditoria e testes. Mostre como o frontend sinaliza 'F2 iniciar venda' sem ocultar a ação do usuário.",
+    "checks": [
+      "Fluxo completo documentado",
+      "Eventos repetidos não duplicam movimentações",
+      "Integrações externas são tratadas separadamente"
+    ],
+    "free": "Código didático local + testes manuais e automatizados podem ser gratuitos.",
+    "optional": "Módulos fiscais, hardware e serviços de pagamento dependem de regras e custos externos.",
+    "caution": "Jamais usar credenciais reais de pagamentos ou simular conformidade fiscal.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 33,
+    "title": "Estudo real: desktop e portal web sem misturar bancos",
+    "lead": "Desktop e web compartilham conceitos de domínio, mas nem sempre executam o mesmo runtime. O risco é assumir que publicar um frontend garante acesso ao banco local de todos os usuários. As decisões de autorização, sincronização e auditoria precisam ser explícitas.",
+    "steps": [
+      "Identifique fonte canônica por entidade: produto, usuário, documento, movimento ou sessão.",
+      "Desenhe modos local e remoto. Quem funciona offline? Quem pode escrever? Quando surge conflito?",
+      "Avalie autenticação e autorização no backend; mostrar ou ocultar menu não substitui permissão real.",
+      "Defina teste de sincronização com dois clientes e comportamento de conflito determinístico; evite sobrescrever silenciosamente.",
+      "Registre contratos entre componentes e monitore saúde depois de cada deploy. Um roteamento estático novo não deve alterar /api, OAuth ou sessão."
+    ],
+    "example": "Exemplo de estado: desktop offline cria movimento local; ao voltar à rede, sincroniza evento identificado por id único; backend decide conflito e devolve confirmação. Nunca sincronize base inteira sem política.",
+    "prompt": "Desenhe fronteiras de um sistema desktop + portal web. Para cada dado, liste dono, armazenamento, autorização, risco offline, conflito, retry e teste de regressão. Não proponha desativar login para resolver erro.",
+    "checks": [
+      "Fonte de verdade documentada",
+      "Sincronização considera conflito",
+      "Rotas protegidas seguem protegidas"
+    ],
+    "free": "Back-end local e interface offline podem funcionar com ferramentas livres.",
+    "optional": "Hospedagem e autenticação de terceiros são escolhas sujeitas a custos.",
+    "caution": "Não confundir estudo arquitetural com auditoria de produção do produto comercial.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 34,
+    "title": "Testes visuais, regressão e carga de verdade",
+    "lead": "Um build aprovado valida compilação, não beleza nem entendimento. Playwright observa comportamentos em navegador real; k6 mede carga; testes de unidade validam regras. Cada camada responde a pergunta diferente.",
+    "steps": [
+      "Escreva teste de unidade para saída superior ao saldo; resultado esperado é erro e saldo inalterado.",
+      "No Playwright, abra a UI do laboratório, cadastre produto, registre movimento e valide o saldo mostrado.",
+      "Tire uma captura real do navegador em viewport mobile e desktop; salve como artefato do GitHub Actions. Não substitua por mockup e não inclua dados reais.",
+      "Para carga com k6, execute em ambiente de teste com dados sintéticos, limites baixos e sem atingir endpoints públicos de terceiros.",
+      "Monte release checklist: testes unitários, fluxo end-to-end, acessibilidade, observação de erros e aprovação humana."
+    ],
+    "example": "Exemplo de asserção: await expect(page.getByText('Saldo: 7')).toBeVisible(); Só é válido se a UI real tiver esse texto. Primeiro inspecione a interface; não escreva seletor inventado.",
+    "prompt": "Audite o projeto e proponha pirâmide de testes: unitários para regra, integração para API/SQLite, Playwright para fluxo e k6 somente em ambiente controlado. Inclua evidência, limites e relatório.",
+    "checks": [
+      "Capturas são screenshots de execução real",
+      "Testes verificam comportamento e conteúdo",
+      "Carga não afeta produção"
+    ],
+    "free": "Playwright e k6 podem rodar localmente sem licença paga.",
+    "optional": "Runners hospedados e armazenamento de artefatos seguem cotas.",
+    "caution": "Nunca dispare testes de carga num serviço sem autorização.",
+    "links": [
+      {
+        "label": "Documentação oficial",
+        "url": "https://playwright.dev/docs/screenshots"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 35,
+    "title": "Licenças, secrets e permissões: release seguro",
+    "lead": "Agentes amplificam tanto acertos quanto erros. Antes de compartilhar código, revise licença, segredos, controle de acesso, comandos de CI e cadeia de dependências. Segurança faz parte do material didático.",
+    "steps": [
+      "Garanta que .env, chaves, tokens, bancos reais, logs com identificadores e prints de contas privadas não estejam no repo.",
+      "Revise histórico Git, não apenas a pasta atual. Se segredo vazou, revogue/rotacione e trate histórico conforme a plataforma.",
+      "No Actions, conceda permissions: contents: read por padrão; escrita só quando realmente necessária e isolada.",
+      "Verifique licenças das bibliotecas e dos modelos usados. 'Disponível gratuitamente' não significa 'domínio público'.",
+      "Peça revisão final com lista de arquivos modificados, endpoints afetados, privacidade, testes e plano de rollback."
+    ],
+    "example": "Checklist mínimo: git status sem arquivos inesperados, nenhuma credencial em diff, PR limitado, CI verde, deploy separado e licença clara para código demonstrativo.",
+    "prompt": "Faça análise de risco do meu PR sem inventar resultados. Procure alterações em auth, pagamentos, secrets, /api e workflows. Liste hipóteses, comandos seguros para verificar e pontos que exigem pessoa revisora.",
+    "checks": [
+      "Nenhum dado privado versionado",
+      "Permissões mínimas no CI",
+      "Licenças e limites explícitos"
+    ],
+    "free": "Verificações locais e auditoria de dependência livre não exigem assinatura.",
+    "optional": "Serviços comerciais de segurança são opcionais.",
+    "caution": "O guia não certifica segurança de produção por passar testes de exemplo.",
+    "links": [
+      {
+        "label": "Documentação oficial",
+        "url": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-authentication-to-github"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 36,
+    "title": "Oficina: especifique seu miniestoque",
+    "lead": "Agora aplique o processo completo. Nosso MVP didático: cadastrar SKU único, registrar entrada ou saída positiva, listar saldo e impedir saldo negativo. Não haverá pagamento, autenticação social ou integração fiscal. O laboratório deve funcionar offline em um computador.",
+    "steps": [
+      "Crie docs/PRD.md com problema, usuário, critérios e exclusões. Peça ao agente revisão de ambiguidades, não código.",
+      "Priorize a primeira entrega: regra de saldo isolada com teste. Separe API, UI e deploy para etapas seguintes.",
+      "Especifique casos: cadastrar A123, entrada 10, saída 3, saldo 7 e saída de 8 rejeitada.",
+      "Defina interface de erro clara: operação inválida não grava nada e informa o motivo sem travar tela.",
+      "Congele critérios de aceite iniciais. Qualquer nova ideia vira issue futura."
+    ],
+    "example": "Contrato do MVP:\nProduto {sku,nome}\nMovimento {sku,tipo,quantidade}\nSaída > saldo => recusa atômica\nConsulta => saldo calculado a partir de movimentos persistidos",
+    "prompt": "Quero construir miniestoque didático Node/SQLite local. Comece lendo o PRD. Liste entidades, endpoints, critérios Given/When/Then e riscos. Não implemente até eu confirmar a arquitetura.",
+    "checks": [
+      "Escopo curto e verificável",
+      "Casos normais/inválidos escritos",
+      "Critério de pronto independente da aparência"
+    ],
+    "free": "Os requisitos e critérios de aceite ficam em Markdown e podem ser construídos com Git e Node locais, sem contratar serviços.",
+    "optional": "Frontend hospedado depois do MVP é opcional.",
+    "caution": "Não alegar que o ZIP está disponível; o pacote prático segue em preparação.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 37,
+    "title": "Oficina: arquitetura e arquivos essenciais",
+    "lead": "Escolha uma fonte de verdade. A API Node controla regras; o SQLite persiste; o navegador apenas apresenta e envia ações. A versão de demonstração estática não é substituto da API real.",
+    "steps": [
+      "Crie src/store.js e implemente funções createProduct, moveStock e getInventory sem lógica de interface.",
+      "Crie src/server.js e routes HTTP com validação de tipo, quantidade positiva e tratamento de status.",
+      "Crie public/index.html com formulário de SKU, nome e movimento; não coloque senha em cliente.",
+      "Adicione tests/store.test.js cobrindo entrada, saída, SKU duplicado, saldo negativo e transação.",
+      "Documente no README como instalar, iniciar, testar e onde o banco demo será criado."
+    ],
+    "example": "miniestoque-lab/\n  package.json\n  src/store.js\n  src/server.js\n  public/index.html\n  public/app.js\n  tests/store.test.js\n  docs/PRD.md",
+    "prompt": "Escreva implementação mínima Node/SQLite seguindo o PRD. Primeiro entregue esquema e contratos. Implemente em branch dedicada, gere testes de integridade e confirme que o frontend não é fonte canônica do saldo.",
+    "checks": [
+      "Regra de negócio isolada",
+      "API retorna erros intencionais",
+      "Banco é local e recuperável"
+    ],
+    "free": "Software base não requer API comercial.",
+    "optional": "Cloudflare é opcional e somente para frontend compatível.",
+    "caution": "Não compartilhar SQLite real com dados privados ao preparar exemplo público.",
+    "links": [
+      {
+        "label": "Documentação oficial",
+        "url": "https://www.sqlite.org/lang_transaction.html"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 38,
+    "title": "Oficina: rode o sistema, reproduza uma falha",
+    "lead": "O tutorial só é útil se o leitor consegue executar e verificar. Os comandos dependem do projeto produzido. Antes de prosseguir, confirme que package.json tem scripts check, test e start; se não tiver, adapte aos scripts reais.",
+    "steps": [
+      "Execute node --version e npm --version. Confira se as versões satisfazem as dependências.",
+      "Rode npm ci (com lockfile) ou instale conforme README do laboratório. Se falhar, copie a primeira mensagem de erro útil.",
+      "Rode npm test. Registre quais testes passaram; não invente contagem. Em seguida npm start e abra o endereço informado.",
+      "Cadastre DEMO-A, entrada 10 e saída 3. Confira saldo 7, histórico e persistência após reiniciar.",
+      "Tente saída maior que o saldo. A API deve recusar e o saldo permanecer 7. Se não ocorrer, abra issue e não marque a oficina concluída."
+    ],
+    "example": "node --version\nnpm ci\nnpm test\nnpm start\n# No navegador: cadastrar DEMO-A, entrada 10, saída 3\n# Esperado: saldo 7; saída 8 rejeitada",
+    "prompt": "Tenho este erro real do npm test: [COLE SOMENTE LOG SEM SEGREDOS]. Explique causa provável, plano mínimo de correção, como reproduzir e testes para confirmar. Não diga que executou sem ferramentas.",
+    "checks": [
+      "Testes executados pelo leitor",
+      "Saldo esperado foi observado",
+      "Falha não altera a persistência"
+    ],
+    "free": "Tudo pode ser testado localmente sem hospedagem.",
+    "optional": "Ambiente remoto é uma conveniência opcional.",
+    "caution": "Nesta edição online o código de miniestoque em ZIP ainda não acompanha o curso; os passos descrevem o laboratório a construir.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 39,
+    "title": "Oficina: CI, PR e preview independente",
+    "lead": "Há dois caminhos após implementar localmente. CI no GitHub testa código. Um deploy de frontend estático pode oferecer preview, mas não executa automaticamente a API com SQLite. Declare claramente essa diferença para o leitor.",
+    "steps": [
+      "Crie branch feat/miniestq-mvp, envie commit pequeno e abra PR com descrição das regras implementadas.",
+      "Configure .github/workflows/ci.yml para rodar testes e build; confira se os scripts existem e o run corresponde ao commit.",
+      "Abra os logs do Actions. Se um teste falhar, corrija antes do merge e descreva evidência da correção.",
+      "Se quiser preview, publique um frontend estático demonstrativo e mostre que ele usa dados de navegador; não prometa persistência da API Node local.",
+      "Aprovação: PR revisada, CI aprovado, arquivo de licença e README claros; só então escolha mesclar e publicar."
+    ],
+    "example": "name: Qualidade do miniestoque\non: [push, pull_request]\npermissions:\n  contents: read\njobs:\n  quality:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: '22'\n      - run: npm ci\n      - run: npm test\n      - run: npm run build",
+    "prompt": "Revise meu PR de miniestoque e diga se posso fazer merge. Exija testes, segurança, licença e documentação. Diferencie preview de frontend estático da API Node/SQLite local. Não aprove automaticamente.",
+    "checks": [
+      "CI do SHA passou",
+      "Preview não é confundida com backend",
+      "PR exige revisão humana"
+    ],
+    "free": "Git e testes locais são livres; repo público elegível usa Actions padrão gratuitamente.",
+    "optional": "Pages e contas GitHub são serviços externos opcionais com limites.",
+    "caution": "Não configure deploy que altera produção a cada commit de uma branch experimental.",
+    "links": [
+      {
+        "label": "Documentação oficial",
+        "url": "https://docs.github.com/en/actions/using-workflows/about-workflows"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 40,
+    "title": "Conclua com um sistema que se explica",
+    "lead": "Finalizar significa demonstrar resultado, limites e recuperação. Não basta dizer 'feito'. Termine com registro de decisões, evidências de teste e um roadmap curto para a versão seguinte.",
+    "steps": [
+      "Peça a alguém que nunca viu o laboratório para cadastrar produto, registrar entrada/saída e explicar saldo.",
+      "Revise README: objetivo, requisitos, comando de instalação, testes, limites, licenças e saída esperada.",
+      "Guarde prova de execução do CI, diff revisado, tela real do fluxo e versão publicada ou comando local.",
+      "Documente o que ficou fora (autenticação, multiusuário, sincronização, fiscal, integrações), sem apresentar esse MVP como sistema comercial pronto.",
+      "Planeje a melhoria seguinte a partir de falha observada. Exemplo: exportar relatório de movimentos e validar consistência após restauração."
+    ],
+    "example": "Checklist final:\n[ ] PRD e ADR versionados\n[ ] Node e SQLite local funcionando\n[ ] Entrada 10 / saída 3 => saldo 7\n[ ] Saldo negativo rejeitado\n[ ] npm test aprovado\n[ ] Histórico e backup reproduzíveis\n[ ] Licenças e limites documentados\n[ ] CI e publicação não confundidos",
+    "prompt": "Seja auditor de entrega. Compare PRD, arquivos, testes, logs e screenshots reais fornecidos. Separe comprovado, não comprovado e próximo passo. Não diga que está pronto para venda sem validação de segurança e operação.",
+    "checks": [
+      "Leitor consegue repetir o fluxo",
+      "Limites do projeto explicitados",
+      "Existe próxima melhoria mensurável"
+    ],
+    "free": "Todo laboratório pode operar localmente sem API paga.",
+    "optional": "Hospedagem, suporte e integrações comerciais são escolhas futuras.",
+    "caution": "O kit ZIP permanece em preparação; não prometa que ele já pode ser baixado.",
+    "links": [],
+    "status": "draft-for-review"
+  }
+]
