@@ -36,6 +36,28 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(html).not.toContain('href="/devkits/catalogo/"');
   });
 
+  it('mostra exatamente cinco cards, começando pela página completa', () => {
+    const destinations = html.split('<nav class="destinations"')[1]?.split('</nav>')[0] ?? '';
+    const cardIds = [...destinations.matchAll(/class="link-card[^"]*"[^>]+data-link-id="([^"]+)"/g)].map(match => match[1]);
+    expect(cardIds).toEqual(['site', 'sistemas', 'devkits', 'guia-open-source', 'whatsapp']);
+    expect(destinations).toContain('01 — 05');
+    expect(destinations).toContain('Explorar o site completo');
+    const secondary = html.split('<section class="secondary"')[1]?.split('</section>')[0] ?? '';
+    expect(secondary).toContain('data-link-id="obra-portal"');
+    expect(secondary).not.toContain('data-link-id="site"');
+    expect((html.match(/data-link-id="site"/g) ?? [])).toHaveLength(1);
+  });
+
+  it('usa cards compactos no mobile sem sacrificar área de toque', () => {
+    const mobile = css.split('@media (max-width: 600px)')[1]?.split('@media (max-width: 380px)')[0] ?? '';
+    expect(mobile).toMatch(/\\.link-card\\s*\\{[^}]*min-height:\\s*8[0-9]px/);
+    expect(mobile).toMatch(/\\.link-card\\s*\\{[^}]*padding:\\s*1[012]px/);
+    expect(mobile).toMatch(/\\.card-icon\\s*\\{[^}]*flex-basis:\\s*4[024]px/);
+    expect(mobile).toMatch(/\\.card-copy strong\\s*\\{[^}]*font-size:\\s*1[56]px/);
+    expect(css).toContain(':focus-visible');
+    expect(css).toContain('flex: 1');
+  });
+
   it('exibe TikTok @artisysdev e WhatsApp, sem Instagram ou GitHub na central', () => {
     const social = html.split('<nav class="social-nav"')[1]?.split('</nav>')[0] ?? '';
     expect(social).toContain('href="https://www.tiktok.com/@artisysdev"');
