@@ -39,6 +39,8 @@ for (const slug of ['sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-
 }
 
 assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/links\/<\/loc>/, 'Central ArtiSys deve estar no sitemap');
+assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/guia\/<\/loc>/, 'Guia ArtiSys deve estar no sitemap');
+assert.match(read('public/guia/index.html'), /<link rel="canonical" href="https:\/\/artisys\.dev\/guia\/">/, 'Guia precisa ter URL canonica propria');
 const linksHtml = read('public/links/index.html');
 const linksModel = buildPageSeo(artisysSeoConfig, '/links');
 const linksAudit = auditSeoDocument({ html: linksHtml, expected: { canonical: linksModel.canonical, index: true } });
