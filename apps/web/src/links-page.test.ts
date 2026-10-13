@@ -50,10 +50,10 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
 
   it('usa cards compactos no mobile sem sacrificar área de toque', () => {
     const mobile = css.split('@media (max-width: 600px)')[1]?.split('@media (max-width: 380px)')[0] ?? '';
-    expect(mobile).toMatch(/\\.link-card\\s*\\{[^}]*min-height:\\s*8[0-9]px/);
-    expect(mobile).toMatch(/\\.link-card\\s*\\{[^}]*padding:\\s*1[012]px/);
-    expect(mobile).toMatch(/\\.card-icon\\s*\\{[^}]*flex-basis:\\s*4[024]px/);
-    expect(mobile).toMatch(/\\.card-copy strong\\s*\\{[^}]*font-size:\\s*1[56]px/);
+    expect(mobile).toContain('.link-card { min-height: 84px; gap: 10px; padding: 10px 12px;');
+    expect(mobile).toContain('.card-icon { flex-basis: 42px; height: 42px;');
+    expect(mobile).toContain('.card-copy strong { font-size: 16px;');
+    expect(mobile).toContain('.card-copy small { font-size: 10.5px;');
     expect(css).toContain(':focus-visible');
     expect(css).toContain('flex: 1');
   });
