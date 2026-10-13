@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+const root=join(dirname(fileURLToPath(import.meta.url)),'../public/guia');
+const txt=n=>readFileSync(join(root,n),'utf8');
+const content=JSON.parse(txt('conteudo.json'));
+assert.equal(content.pages.length,40,'40 lessons');
+assert.deepEqual(content.pages.map(p=>p.number),Array.from({length:40},(_,i)=>i+1),'sequential numbering');
+assert.ok(content.pages.every(p=>p.title&&p.chapter&&p.blocks.length&&p.objective&&p.exercise),'all pages teach something');
+const html=txt('index.html'),js=txt('guia.js'),css=txt('guia.css');
+assert.match(html,/href="\/guia\/guia-completo\.pdf"[^>]*download=/,'real PDF link');
+assert.match(html,/resource-pending/,'ZIP clearly marked in preparation');
+assert.ok(!html.includes('href="/guia/kit.zip"'),'no placeholder ZIP download');
+assert.match(html,/id="reader-theme-toggle"/,'theme switch remains available');
+assert.match(js,/n%2===0\?'light':'dark'/,'light even pages');
+assert.match(js,/codeBlock\(raw,i\)/,'formatted code blocks');
+assert.match(css,/\.reader\[data-theme="light"\] \.code-example/,'light code contrast');
+assert.match(css,/\.reader\[data-theme="dark"\]/,'dark theme');
+for(const number of [20,39]){
+ const p=content.pages[number-1];
+ const block=p.blocks.find(s=>s.startsWith('name: '));
+ assert.ok(block&&/\n  [a-z-]+:/.test(block)&&/\n      - run:/.test(block),'indented YAML example: '+number);
+}
+assert.ok(existsSync(join(root,'guia-completo.pdf')),'PDF present in repository');
+const pdf=readFileSync(join(root,'guia-completo.pdf'),'ascii');
+assert.ok(pdf.startsWith('%PDF-1.4\n'),'PDF format');
+assert.equal((pdf.match(/\/Type \/Page\b/g)||[]).length,40,'one PDF page per lesson');
+assert.match(pdf,/xref\n0 86\n/,'PDF cross-reference table');
+assert.ok(pdf.includes('%%EOF'),'PDF trailer');
+assert.ok(pdf.length>100000,'PDF contains full guide');
+console.log('Guia QA OK: 40 lessons, web PDF, alternating themes, code and no false ZIP download');
