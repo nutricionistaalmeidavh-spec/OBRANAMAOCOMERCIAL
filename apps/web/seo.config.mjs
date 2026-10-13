@@ -110,6 +110,15 @@ export const artisysSeoConfig = defineSeoConfig({
       }]
     },
     {
+      path: '/guia',
+      canonical: 'https://artisys.dev/guia/',
+      title: 'Do Prompt ao Software | Guia gratuito Artisys',
+      description: '40 lições gratuitas: planeje, desenvolva e publique sistemas com agentes de IA, Git, GitHub Actions e deploy.',
+      schemaType: 'WebPage',
+      changeFrequency: 'monthly',
+      priority: 0.85
+    },
+    {
       path: '/sistemas',
       canonical: 'https://artisys.dev/sistemas/',
       title: 'ArtiSys | Sistemas para empresas',
