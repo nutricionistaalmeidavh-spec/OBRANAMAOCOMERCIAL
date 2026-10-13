@@ -10,6 +10,7 @@ for(let i=0;i<40;i++){
  const p=content.pages[i];
  assert.equal(p.number,i+1,'Índice contínuo da lição '+(i+1));
  assert.ok(p.title && p.blocks?.length>1,'Conteúdo suficiente na lição '+(i+1));
+ assert.ok(p.objective && p.exercise,'Objetivo e exercício obrigatórios na lição '+(i+1));
 }
 assert.equal(new Set(content.pages.map(p=>p.title)).size,40,'Títulos de lições devem ser únicos');
 for(const part of ['reader','reader-body','reader-theme-toggle','lesson-goal','lesson-task','read-button','nav-backdrop','resume-button','search-results']){

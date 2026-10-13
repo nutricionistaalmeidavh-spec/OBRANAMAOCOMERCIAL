@@ -1,6 +1,6 @@
 {
   "title": "Artisys — Do Prompt ao Software",
-  "version": "1.0",
+  "version": "1.1",
   "generated_from": "Guia de 40 páginas",
   "groups": [
     {
@@ -55,7 +55,9 @@
         "BUILD APROVADO",
         "DEPLOY OPCIONAL",
         "IDEIA → ESCOPO → AGENTE → GIT → CI → PRODUÇÃO"
-      ]
+      ],
+      "objective": "Entender a proposta do guia",
+      "exercise": "Escreva um problema real que você gostaria de resolver."
     },
     {
       "number": 2,
@@ -77,7 +79,9 @@
         "Criar testes, entender o CI\ne publicar com controle de\nversões.",
         "NOSSO COMPROMISSO",
         "Ferramentas gratuitas no núcleo. Serviços de terceiros e assinaturas aparecem apenas como\nalternativas explícitas, com limites e custos."
-      ]
+      ],
+      "objective": "Reconhecer o papel da IA e da validação humana",
+      "exercise": "Separe duas decisões em que a IA ajuda e a validação humana é indispensável."
     },
     {
       "number": 3,
@@ -97,7 +101,9 @@
         "11-20\nAgentes + Git",
         "21-30\nCI + stack",
         "31-40\nCasos + oficina"
-      ]
+      ],
+      "objective": "Visualizar as etapas até a publicação",
+      "exercise": "Desenhe as seis etapas do fluxo de desenvolvimento."
     },
     {
       "number": 4,
@@ -113,7 +119,9 @@
         "ChatGPT/Codex, Claude ou modelos em API para acelerar pesquisa,\nimplementação e revisão.\nNunca indispensável. Exige conferir preço, permissões, limites e cobrança.",
         "REGRA DO GUIA",
         "Sempre separar: software open source de R$ 0, serviço com plano gratuito e ferramenta comercial.\nNenhum custo pago entra escondido no tutorial."
-      ]
+      ],
+      "objective": "Distinguir rotas de R$ 0 e alternativas opcionais",
+      "exercise": "Identifique qual caminho sem assinaturas é viável no seu computador."
     },
     {
       "number": 5,
@@ -138,7 +146,9 @@
         "R$ 0: conversa local com modelo compatível ou\nformulário Markdown; nenhuma API é necessária.",
         "ANTES DE CONFIAR",
         "Confirme o problema com uma pessoa que executa a\ntarefa antes de aprovar o escopo."
-      ]
+      ],
+      "objective": "Investigar o problema antes de programar",
+      "exercise": "Descreva o problema de um usuário sem falar em telas ou código."
     },
     {
       "number": 6,
@@ -157,7 +167,9 @@
         "R$ 0: sites públicos, documentação e planilha local;\nagente local ajuda a sintetizar textos fornecidos.",
         "ANTES DE CONFIAR",
         "Não invente preços, avaliações nem acesso a recursos\ninternos. Valide informações nas fontes originais."
-      ]
+      ],
+      "objective": "Pesquisar concorrentes com evidências",
+      "exercise": "Compare dois concorrentes com fonte e data verificáveis."
     },
     {
       "number": 7,
@@ -182,7 +194,9 @@
         "R$ 0: Markdown no repositório Git; modelos e editores\nlivres, sem plataforma proprietária obrigatória.",
         "ANTES DE CONFIAR",
         "Peça a outra pessoa que encontre ambiguidades;\nnenhuma regra crítica deve depender apenas de\ninterpretação da IA."
-      ]
+      ],
+      "objective": "Documentar escopo para humanos e agentes",
+      "exercise": "Rascunhe um PRD de uma página para sua ideia."
     },
     {
       "number": 8,
@@ -207,7 +221,9 @@
         "R$ 0: issues Markdown, teste local e acompanhamento\nno próprio repositório.",
         "ANTES DE CONFIAR",
         "Critério de aceite deve ser verificável por um teste ou\npor execução manual reproduzível."
-      ]
+      ],
+      "objective": "Definir um MVP que possa ser testado",
+      "exercise": "Escreva critérios de aceite para uma regra válida e uma inválida."
     },
     {
       "number": 9,
@@ -226,7 +242,9 @@
         "R$ 0: Node, SQLite, PWA estática e hospedagem na\nprópria máquina atendem muitos cenários.",
         "ANTES DE CONFIAR",
         "Não confunda PWA com acesso irrestrito a drivers,\nscanner e dispositivos do sistema."
-      ]
+      ],
+      "objective": "Selecionar a plataforma mais adequada",
+      "exercise": "Explique se seu caso pede script, desktop ou web."
     },
     {
       "number": 10,
@@ -251,7 +269,9 @@
         "R$ 0: diagrama Mermaid no README, ADR Markdown\ne runtime local de código aberto.",
         "ANTES DE CONFIAR",
         "Revise sincronização, backup, autenticação e fronteiras\nentre frontend e backend."
-      ]
+      ],
+      "objective": "Escolher arquitetura por consequências",
+      "exercise": "Peça três arquiteturas e justifique a escolhida."
     },
     {
       "number": 11,
@@ -278,7 +298,9 @@
         "Use branch própria e revise diffs. Nunca conceda\nsegredos ou operações administrativas por\nconveniência.",
         "FONTE OFICIAL: TOQUE PARA ABRIR",
         "https://github.com/Aider-AI/aider"
-      ]
+      ],
+      "objective": "Entender o que torna um assistente um agente",
+      "exercise": "Liste as ferramentas que seu agente pode realmente acionar."
     },
     {
       "number": 12,
@@ -299,7 +321,9 @@
         "Não apresente conectores de leitura como agentes com\npermissão de escrita. Confira a autorização real.",
         "FONTE OFICIAL: TOQUE PARA ABRIR",
         "https://github.com/Aider-AI/aider/blob/main/aider/website/docs/llms/ollama.md"
-      ]
+      ],
+      "objective": "Avaliar agentes e modelos conforme a necessidade",
+      "exercise": "Compare IA local e agente online em termos de limites e custos."
     },
     {
       "number": 13,
@@ -324,7 +348,9 @@
         "R$ 0: salve prompts em docs/prompts/ como arquivos\nde texto; podem ser reutilizados em agentes locais.",
         "ANTES DE CONFIAR",
         "Evite colocar chaves, banco real ou dados de clientes no\ncontexto do modelo."
-      ]
+      ],
+      "objective": "Produzir contexto que reduza retrabalho",
+      "exercise": "Escreva um prompt com contexto, restrições e evidências de pronto."
     },
     {
       "number": 14,
@@ -349,7 +375,9 @@
         "R$ 0: ferramentas locais via CLI e servidores MCP open\nsource podem evitar serviços pagos.",
         "ANTES DE CONFIAR",
         "Plugins de terceiros podem cobrar. Considere dados\nconfidenciais, token de acesso e privilégio mínimo."
-      ]
+      ],
+      "objective": "Entender integrações, apps e MCP",
+      "exercise": "Liste permissões mínimas para uma integração."
     },
     {
       "number": 15,
@@ -367,7 +395,9 @@
         "R$ 0: git init, branch, commit, diff e log funcionam\ninteiramente no computador.",
         "ANTES DE CONFIAR",
         "Git não substitui backup de bancos, anexos e arquivos\nque não estão versionados."
-      ]
+      ],
+      "objective": "Diferenciar Git de GitHub",
+      "exercise": "Faça um commit local e explique a diferença de um push."
     },
     {
       "number": 16,
@@ -394,7 +424,9 @@
         "Confira o nome do repositório, permissões de app,\nbranch e segredos antes de conectar qualquer agente.",
         "FONTE OFICIAL: TOQUE PARA ABRIR",
         "https://help.openai.com/pt-br/articles/11145903-connecting-github-to-chatgpt"
-      ]
+      ],
+      "objective": "Entender acessos e limites de integração",
+      "exercise": "Separe as permissões de ler, editar e publicar no GitHub."
     },
     {
       "number": 17,
@@ -412,7 +444,9 @@
         "R$ 0: repositório Git local; licença explícita define o que\nterceiros podem reutilizar.",
         "ANTES DE CONFIAR",
         "Não publique .env, bancos reais, binários internos ou\nmaterial de cliente. Veja git status antes do primeiro\npush."
-      ]
+      ],
+      "objective": "Organizar um repositório sustentável",
+      "exercise": "Desenhe a estrutura src, tests e docs do projeto."
     },
     {
       "number": 18,
@@ -432,7 +466,9 @@
         "ANTES DE CONFIAR",
         "Se publicar, remova histórico sensível antes de divulgar.\nConsidere que forks e clones permanecem com\nterceiros.\nFONTE OFICIAL: TOQUE PARA ABRIR",
         "https://docs.github.com/en/actions/concepts/billing-and-usage"
-      ]
+      ],
+      "objective": "Comparar repositórios públicos e privados",
+      "exercise": "Escolha público ou privado e aponte os riscos de exposição."
     },
     {
       "number": 19,
@@ -459,7 +495,9 @@
         "Runners self-hosted exigem isolamento e cuidado\nextremo com PRs externos e código não confiável.",
         "FONTE OFICIAL: TOQUE PARA ABRIR",
         "https://docs.github.com/en/actions/concepts/billing-and-usage"
-      ]
+      ],
+      "objective": "Entender o funcionamento do GitHub Actions",
+      "exercise": "Identifique evento, runner, job e passos de um workflow."
     },
     {
       "number": 20,
@@ -477,7 +515,9 @@
         "R$ 0: node:test e execução local. O serviço Actions\nsegue as regras do repo público/privado.",
         "ANTES DE CONFIAR",
         "Teste em branch antes de exigir o check. Nunca execute\ncomandos arbitrários provenientes de issue ou PR."
-      ]
+      ],
+      "objective": "Ler um workflow YAML mínimo",
+      "exercise": "Rascunhe um YAML mínimo que testa o projeto."
     },
     {
       "number": 21,
@@ -496,7 +536,9 @@
         "R$ 0: logs do runner, comandos locais e patch revisado;\nagente local pode analisar logs colados.",
         "ANTES DE CONFIAR",
         "Um pipeline verde não garante segurança nem ausência\nde bugs. Faça revisão funcional e teste manual."
-      ]
+      ],
+      "objective": "Investigar um pipeline com método",
+      "exercise": "Registre um erro real e a evidência de correção."
     },
     {
       "number": 22,
@@ -516,7 +558,9 @@
         "Mudanças em PR não devem acessar credenciais de\nprodução. Pages não hospeda automaticamente API\nNode persistente.",
         "FONTE OFICIAL: TOQUE PARA ABRIR",
         "https://developers.cloudflare.com/pages/configuration/git-integration/"
-      ]
+      ],
+      "objective": "Compreender deploy automático no Pages",
+      "exercise": "Desenhe como GitHub e Cloudflare participam do deploy."
     },
     {
       "number": 23,
@@ -543,7 +587,9 @@
         "Pages Functions consomem cotas Workers. Valide\npersistência, limites, privacidade e custos antes de\nmigrar.",
         "FONTE OFICIAL: TOQUE PARA ABRIR",
         "https://developers.cloudflare.com/pages/functions/pricing/"
-      ]
+      ],
+      "objective": "Separar interface estática de backend",
+      "exercise": "Marque o que roda no navegador e o que precisa de backend."
     },
     {
       "number": 24,
@@ -562,7 +608,9 @@
         "R$ 0 em licenças: Git, Node, SQLite e Caddy; hardware,\ndomínio, rede e energia podem custar.",
         "ANTES DE CONFIAR",
         "Não abra portas indiscriminadamente. Configure TLS,\nfirewall, backups e permissão de acesso."
-      ]
+      ],
+      "objective": "Planejar recuperação e reversão",
+      "exercise": "Escreva como voltaria à última versão funcional."
     },
     {
       "number": 25,
@@ -589,7 +637,9 @@
         "Preços em USD e cotas mudam. Exemplo hipotético\nsem armazenamento extra, impostos ou conversão\ncambial.",
         "FONTE OFICIAL: TOQUE PARA ABRIR",
         "https://docs.github.com/en/billing/reference/actions-runner-pricing"
-      ]
+      ],
+      "objective": "Avaliar custos por componente",
+      "exercise": "Separe custo obrigatório de serviço pago opcional."
     },
     {
       "number": 26,
@@ -614,7 +664,9 @@
         "R$ 0: Vite, TypeScript, Node.js e SQLite; sem banco\ngerenciado ou API comercial obrigatória.",
         "ANTES DE CONFIAR",
         "Escolha armazenamento conforme usuários\nconcorrentes, backups e necessidade de sincronização."
-      ]
+      ],
+      "objective": "Montar uma stack gratuita",
+      "exercise": "Desenhe frontend, API e banco para um MVP local."
     },
     {
       "number": 27,
@@ -633,7 +685,9 @@
         "R$ 0: SQLite, SQL e backup local; armazenamento\ngerenciado é opcional.",
         "ANTES DE CONFIAR",
         "Não copie o arquivo do SQLite em uso sem método\nadequado. Teste restaurar, não só gerar backups."
-      ]
+      ],
+      "objective": "Proteger dados por modelagem e backup",
+      "exercise": "Planeje uma restauração testada do banco."
     },
     {
       "number": 28,
@@ -655,7 +709,9 @@
         "Modelo local menor pode errar mais e esquecer\ncontexto; nunca aceite código apenas porque compilou.",
         "FONTE OFICIAL: TOQUE PARA ABRIR",
         "https://github.com/Aider-AI/aider/blob/main/aider/website/docs/llms/ollama.md"
-      ]
+      ],
+      "objective": "Entender as peças da IA local",
+      "exercise": "Explique por que um modelo local sozinho não edita o Git."
     },
     {
       "number": 29,
@@ -680,7 +736,9 @@
         "R$ 0: ferramentas OCR abertas executadas localmente;\nnão exige envio da imagem para API externa.",
         "ANTES DE CONFIAR",
         "Não use OCR sozinho para aprovar movimentação\nfiscal, temperatura ou conformidade regulatória."
-      ]
+      ],
+      "objective": "Revisar dados obtidos por OCR",
+      "exercise": "Liste os campos que um OCR precisa validar."
     },
     {
       "number": 30,
@@ -699,7 +757,9 @@
         "R$ 0: Node-RED/Node.js, templates próprios, PDF e\ndiretórios locais sem serviço de automação pago.",
         "ANTES DE CONFIAR",
         "Não permita sobrescrever documentos assinados; inclua\nversão, backup e revisão humana."
-      ]
+      ],
+      "objective": "Desenhar uma automação rastreável",
+      "exercise": "Trace entrada, validação, geração e conferência de um documento."
     },
     {
       "number": 31,
@@ -724,7 +784,9 @@
         "R$ 0: projeto demonstrativo com dados sintéticos,\nNode.js, PDF e armazenamento local.",
         "ANTES DE CONFIAR",
         "Registros assinados não são equivalentes a documentos\nrecém-gerados. Preserve histórico e identidades\ndistintas."
-      ]
+      ],
+      "objective": "Aprender com a geração de documentos de RH",
+      "exercise": "Escreva como evitar troca de documentos entre funcionários."
     },
     {
       "number": 32,
@@ -749,7 +811,9 @@
         "R$ 0: simulação com dados fictícios, Node.js e testes\nlocais; nenhuma operação fiscal real.",
         "ANTES DE CONFIAR",
         "Screenshots e casos são estudo de arquitetura, não\nlicença para redistribuir o PDV comercial."
-      ]
+      ],
+      "objective": "Compreender o fluxo operacional de um PDV",
+      "exercise": "Trace o efeito de uma venda em caixa e estoque."
     },
     {
       "number": 33,
@@ -768,7 +832,9 @@
         "R$ 0: arquitetura local ilustrativa; publicar portal é\nopcional e exige avaliar segurança da rede.",
         "ANTES DE CONFIAR",
         "Nunca trate simples cópia manual de SQLite como\nsincronização de dados entre dispositivos."
-      ]
+      ],
+      "objective": "Entender os limites de um app desktop-web",
+      "exercise": "Separe as funções do desktop e do portal online."
     },
     {
       "number": 34,
@@ -793,7 +859,9 @@
         "R$ 0: node:test, Playwright e k6 executados localmente;\nCI hospedada é opcional.",
         "ANTES DE CONFIAR",
         "Não dispare carga contra terceiros sem autorização. QA\nnão substitui revisão de acessibilidade."
-      ]
+      ],
+      "objective": "Relacionar testes e risco de release",
+      "exercise": "Escolha um teste funcional e um de carga."
     },
     {
       "number": 35,
@@ -821,7 +889,9 @@
         "FONTE OFICIAL: TOQUE PARA ABRIR",
         "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners",
         "UM MVP PEQUENO.\nUM RESULTADO REAL.\nVamos sair da teoria: um miniestoque funcional com cadastro, entradas, saídas, testes e histórico. Tudo roda\nlocalmente, sem API paga."
-      ]
+      ],
+      "objective": "Tratar segredos e permissões com cuidado",
+      "exercise": "Aponte quais dados nunca devem aparecer no repositório."
     },
     {
       "number": 36,
@@ -846,7 +916,9 @@
         "ROTA R$ 0",
         "Markdown, Git local e agente opcional com modelo\nlocal.",
         "ARQUITETURA:\n3 PEÇAS, 0 APIs.\nA opção principal é local: interface no navegador, servidor Node.js e banco SQLite. Separar responsabilidades\nfacilita testar e evoluir."
-      ]
+      ],
+      "objective": "Definir critérios do miniestoque",
+      "exercise": "Defina as regras mínimas de um miniestoque."
     },
     {
       "number": 37,
@@ -870,7 +942,9 @@
         "PROMPT 02 / ESCOLHA A ARQUITETURA",
         "“Compare app local Node+SQLite, navegador offline e serviço remoto. Explique operação, riscos e custo.\nRegistre uma ADR e não conecte serviços sem autorização.”",
         "RODE, TESTE\nE CONFIRA.\nAgora abra a pasta do kit. O código implementa cadastro, movimentações com transação e uma API local. Os\ntestes verificam o resultado."
-      ]
+      ],
+      "objective": "Compreender a arquitetura do exemplo",
+      "exercise": "Desenhe browser → API Node → SQLite."
     },
     {
       "number": 38,
@@ -894,7 +968,9 @@
         "ATENÇÃO AO RUNTIME",
         "O exemplo usa node:sqlite nativo. Consulte a\nestabilidade da API para sua versão do Node.",
         "UM PUSH. DOIS\nFLUXOS DISTINTOS.\nGitHub Actions roda verificações. O Cloudflare Pages pode publicar a demonstração estática após um push.\nSão etapas separadas."
-      ]
+      ],
+      "objective": "Executar e conferir o projeto",
+      "exercise": "Faça entrada 10, saída 3 e verifique saldo 7."
     },
     {
       "number": 39,
@@ -915,7 +991,9 @@
         "NÃO CONFUNDA DEPLOY COM APROVAÇÃO",
         "A integração Git do Pages não espera automaticamente os testes do Actions. A preview publica somente arquivos\nestáticos, não a API SQLite.",
         "SEU PROJETO\nTEM UM CAMINHO.\nA primeira entrega não precisa ser complexa: precisa ser reproduzível, segura nos limites do MVP e fácil de\nrevisar com um agente de IA."
-      ]
+      ],
+      "objective": "Separar verificações de publicação",
+      "exercise": "Diferencie Actions de deploy e informe qual preview publica."
     },
     {
       "number": 40,
@@ -936,7 +1014,9 @@
         "Inclui código, testes, prompts de agente, PRD, arquitetura, workflow e preview. Download separado junto ao\nPDF.",
         "PRÓXIMA EVOLUÇÃO",
         "Peça ao agente um plano para autenticação, permissões, backup restaurável e acesso multiusuário. Só depois\nconsidere uma operação pública."
-      ]
+      ],
+      "objective": "Consolidar o aprendizado",
+      "exercise": "Use o checklist final para planejar a próxima versão."
     }
   ]
 }

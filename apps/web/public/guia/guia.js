@@ -6,8 +6,6 @@ const source = '/guia/conteudo.json';
 const completedKey = 'artisys-guide-read-v1';
 const currentKey = 'artisys-guide-current-v1';
 const readState=()=>{try{return new Set(JSON.parse(localStorage.getItem(completedKey)||'[]').map(Number).filter(n=>n>=1&&n<=40))}catch{return new Set()}};
-const learningGoals=["Entender a proposta do guia","Reconhecer o papel da IA e da validação humana","Visualizar as etapas até a publicação","Distinguir rotas de R$ 0 e alternativas opcionais","Investigar o problema antes de programar","Pesquisar concorrentes com evidências","Documentar escopo para humanos e agentes","Definir um MVP que possa ser testado","Selecionar a plataforma mais adequada","Escolher arquitetura por consequências","Entender o que torna um assistente um agente","Avaliar agentes e modelos conforme a necessidade","Produzir contexto que reduza retrabalho","Entender integrações, apps e MCP","Diferenciar Git de GitHub","Entender acessos e limites de integração","Organizar um repositório sustentável","Comparar repositórios públicos e privados","Entender o funcionamento do GitHub Actions","Ler um workflow YAML mínimo","Investigar um pipeline com método","Compreender deploy automático no Pages","Separar interface estática de backend","Planejar recuperação e reversão","Avaliar custos por componente","Montar uma stack gratuita","Proteger dados por modelagem e backup","Entender as peças da IA local","Revisar dados obtidos por OCR","Desenhar uma automação rastreável","Aprender com a geração de documentos de RH","Compreender o fluxo operacional de um PDV","Entender os limites de um app desktop-web","Relacionar testes e risco de release","Tratar segredos e permissões com cuidado","Definir critérios do miniestoque","Compreender a arquitetura do exemplo","Executar e conferir o projeto","Separar verificações de publicação","Consolidar o aprendizado"];
-const learningTasks=["Escreva um problema real que você gostaria de resolver.","Separe duas decisões em que a IA ajuda e a validação humana é indispensável.","Desenhe as seis etapas do fluxo de desenvolvimento.","Identifique qual caminho sem assinaturas é viável no seu computador.","Descreva o problema de um usuário sem falar em telas ou código.","Compare dois concorrentes com fonte e data verificáveis.","Rascunhe um PRD de uma página para sua ideia.","Escreva critérios de aceite para uma regra válida e uma inválida.","Explique se seu caso pede script, desktop ou web.","Peça três arquiteturas e justifique a escolhida.","Liste as ferramentas que seu agente pode realmente acionar.","Compare IA local e agente online em termos de limites e custos.","Escreva um prompt com contexto, restrições e evidências de pronto.","Liste permissões mínimas para uma integração.","Faça um commit local e explique a diferença de um push.","Separe as permissões de ler, editar e publicar no GitHub.","Desenhe a estrutura src, tests e docs do projeto.","Escolha público ou privado e aponte os riscos de exposição.","Identifique evento, runner, job e passos de um workflow.","Rascunhe um YAML mínimo que testa o projeto.","Registre um erro real e a evidência de correção.","Desenhe como GitHub e Cloudflare participam do deploy.","Marque o que roda no navegador e o que precisa de backend.","Escreva como voltaria à última versão funcional.","Separe custo obrigatório de serviço pago opcional.","Desenhe frontend, API e banco para um MVP local.","Planeje uma restauração testada do banco.","Explique por que um modelo local sozinho não edita o Git.","Liste os campos que um OCR precisa validar.","Trace entrada, validação, geração e conferência de um documento.","Escreva como evitar troca de documentos entre funcionários.","Trace o efeito de uma venda em caixa e estoque.","Separe as funções do desktop e do portal online.","Escolha um teste funcional e um de carga.","Aponte quais dados nunca devem aparecer no repositório.","Defina as regras mínimas de um miniestoque.","Desenhe browser → API Node → SQLite.","Faça entrada 10, saída 3 e verifique saldo 7.","Diferencie Actions de deploy e informe qual preview publica.","Use o checklist final para planejar a próxima versão."];
 const state={book:null,read:readState(),current:0};
 let initialRoute=true;
 function save(){try{localStorage.setItem(completedKey,JSON.stringify([...state.read]));if(state.current)localStorage.setItem(currentKey,String(state.current))}catch{}}
@@ -66,8 +64,8 @@ function showPage(n){
  reader.dataset.theme=n%2===0?'light':'dark';
  byId('reader-theme-toggle').textContent=reader.dataset.theme==='light'?'Usar fundo roxo':'Usar fundo claro';
  reader.dataset.density=page.blocks.join(' ').length>900||page.blocks.length>=18?'dense':'regular';
- byId('lesson-goal').textContent=learningGoals[n-1];
- byId('lesson-task').textContent=learningTasks[n-1];
+ byId('lesson-goal').textContent=page.objective;
+ byId('lesson-task').textContent=page.exercise;
  byId('lesson-status').textContent='';
  byId('breadcrumb-current').textContent=page.chapter.toUpperCase();
  byId('reader-category').textContent=page.chapter.toUpperCase();
@@ -97,8 +95,9 @@ function route(){
 }
 function search(query){
  const box=byId('search-results');let q=query.toLocaleLowerCase('pt-BR').trim();if(!q){box.hidden=true;box.innerHTML='';return}
- const list=state.book.pages.filter(p=>(p.title+' '+p.chapter+' '+p.blocks.join(' ')).toLocaleLowerCase('pt-BR').includes(q)).slice(0,12);
- box.innerHTML=list.length?'<p class="search-count">'+list.length+' resultado(s)</p>'+list.map(p=>`<a class="search-result" href="#pagina-${String(p.number).padStart(2,'0')}"><small>PÁGINA ${p.number}</small>${esc(p.title)}</a>`).join(''):'<p class="search-result">Nenhum resultado encontrado.</p>';
+ const results=state.book.pages.filter(p=>(p.title+' '+p.chapter+' '+p.objective+' '+p.exercise+' '+p.blocks.join(' ')).toLocaleLowerCase('pt-BR').includes(q));
+ const list=results.slice(0,12);
+ box.innerHTML=list.length?'<p class="search-count">'+(results.length>12?'Exibindo 12 de '+results.length+' resultados. Refine a busca.':results.length+' resultado(s)')+'</p>'+list.map(p=>`<a class="search-result" href="#pagina-${String(p.number).padStart(2,'0')}"><small>PÁGINA ${p.number}</small>${esc(p.title)}</a>`).join(''):'<p class="search-result">Nenhum resultado encontrado.</p>';
  box.hidden=false;
 }
 async function init(){

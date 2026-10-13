@@ -21,3 +21,5 @@ O núcleo é HTML + CSS + JavaScript, sem dependências pagas ou backend.
 - Cada página traz objetivo e exercício específico; inicia na lição 1, e retomar só aparece após leitura anterior.
 - Conclusão reversível, busca com contagem, menu móvel com backdrop/Escape e progresso salvo exclusivamente neste navegador.
 - Verificar renderização e ações no navegador antes de publicar; a análise estática não substitui testes reais com leitores.
+
+O objetivo e o exercício de cada lição pertencem canonicamente a `conteudo.json`, evitando duplicidade no JavaScript. Pesquisa inclui o contexto educativo da lição.
