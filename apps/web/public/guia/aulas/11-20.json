@@ -1,0 +1,289 @@
+[
+  {
+    "number": 11,
+    "title": "O que transforma um chat em agente",
+    "lead": "Um chat responde; um agente equipado com ferramentas pode inspecionar arquivos, executar comandos e propor alterações. O grau de autonomia depende do ambiente e das permissões concedidas. Nesta lição, aprenderemos a verificar capacidades antes de confiar em afirmações.",
+    "steps": [
+      "Peça ao assistente que diga se pode apenas responder, ler arquivos, executar comandos, alterar repositório e abrir PR; registre cada resposta.",
+      "Dê uma tarefa de leitura limitada: analisar README.md e informar arquivos que seriam necessários para implementar uma regra.",
+      "Exija plano antes de edição: arquivos afetados, risco, teste e critério de pronto. Não permita alterações amplas sem escopo.",
+      "Se possuir executor autorizado, use branch isolada e confira git status antes e depois. Se não possuir, peça somente patch ou instruções.",
+      "Registre o resultado em docs/agente-capacidades.md. Revalide quando trocar ferramenta, computador ou conexão."
+    ],
+    "example": "Sem ferramenta: 'eu mudaria store.js' é recomendação. Com workspace autorizado: um git diff mostrando a alteração é evidência. O nome do modelo não concede permissões por si só.",
+    "prompt": "Responda em uma matriz: o que você pode de fato LER, EDITAR, EXECUTAR, VERSIONAR e PUBLICAR neste ambiente? Não deduza acesso pelo nome do produto. Faça um plano de mudança mínima para impedir saldo negativo, sem executar.",
+    "checks": [
+      "Permissões explicitadas",
+      "Plano separa leitura e execução",
+      "Existe evidência da mudança"
+    ],
+    "free": "CLI local, Git e modelos locais compatíveis podem formar um fluxo sem API paga.",
+    "optional": "Agentes em nuvem podem ter assinaturas ou cobranças variáveis; confira cada produto.",
+    "caution": "Não forneça tokens administrativos apenas para acelerar uma demonstração.",
+    "links": [
+      {
+        "label": "Documentação/Referência oficial",
+        "url": "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/about-authentication-to-github"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 12,
+    "title": "ChatGPT, Claude, CLI e modelos locais",
+    "lead": "Compare experiências de uso em vez de torcer por uma marca. A capacidade de editar depende de um agente ou integração com ferramenta de escrita, não somente do modelo que responde. Ollama hospeda modelos locais; um executor precisa conectá-los aos arquivos.",
+    "steps": [
+      "Faça a mesma pergunta de arquitetura a duas ferramentas e compare clareza, verificação e custo; não avalie só estilo do texto.",
+      "No caminho local, instale Ollama conforme a documentação do sistema, obtenha um modelo compatível com seu hardware e confirme que responde localmente.",
+      "Se usar Aider ou ferramenta similar, confirme suporte à versão do modelo local e às permissões no projeto; alguns modelos pequenos falham em tarefas longas.",
+      "No caminho hospedado, leia o que a integração conectada permite: leitura de repo, edição, execução e publicação são capacidades diferentes.",
+      "Escolha uma rota que aceite exportar prompt, plano, diffs e testes para que o projeto não dependa de um único fornecedor."
+    ],
+    "example": "Teste local de modelo: ollama list; ollama run NOME_DE_UM_MODELO_JA_INSTALADO. O nome é propositalmente substituível; não é necessário criar uma chave paga.",
+    "prompt": "Monte uma comparação entre chat sem ferramentas, agente no workspace, CLI local e agente remoto. Para cada um indique permissões, evidências que produz, limites de contexto e eventual cobrança. Sugira a rota mínima viável.",
+    "checks": [
+      "Sei onde o código será realmente editado",
+      "Modelo e agente não são confundidos",
+      "Custos e limites são explícitos"
+    ],
+    "free": "Ollama e editores open source são opções sem licença paga; download de modelos exige espaço e energia.",
+    "optional": "ChatGPT/Codex, Claude e agentes hospedados podem ter condições de acesso e preço distintos.",
+    "caution": "Não envie repositórios privados a serviços não autorizados.",
+    "links": [
+      {
+        "label": "Documentação/Referência oficial",
+        "url": "https://docs.ollama.com/"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 13,
+    "title": "O prompt que evita refazer tudo",
+    "lead": "O agente funciona melhor com contexto, restrições e teste verificável. Um pedido vago como 'melhore o estoque' pode afetar cadastro, banco ou autenticação, sem saber se era necessário. Prompts são insumos versionáveis.",
+    "steps": [
+      "Apresente o problema e o comportamento desejado; indique quais arquivos o agente pode consultar.",
+      "Especifique o escopo: alterar apenas regra de saída no módulo de domínio, testes e documentação correlata.",
+      "Liste proibições: não alterar autenticação, banco de produção, pagamentos, CI e segredos sem necessidade demonstrada.",
+      "Peça primeiro plano e possíveis perguntas; autorize depois uma mudança pequena em branch separada.",
+      "Exija teste de regressão e diff. Guarde docs/prompts/saida-negativa.md com o pedido final."
+    ],
+    "example": "Contexto: 'saldo atual 2'. Entrada: 'solicitar saída 3'. Esperado: erro 409 ou outro contrato explícito, nenhuma gravação e teste cobrindo ambas as condições.",
+    "prompt": "Contexto: miniestoque Node/SQLite. Objetivo: recusar saída acima do saldo. Escopo permitido: domínio + testes + README. Não alterar login, pagamentos, API pública ou scripts de deploy. Antes de mudar, analise arquivos, proponha plano e riscos. Depois entregue diff, testes executados, resultados e limitações.",
+    "checks": [
+      "Mudança desejada mensurável",
+      "Arquivos e proibições definidos",
+      "Agente deve apresentar evidências"
+    ],
+    "free": "Prompt Markdown em Git custa R$ 0.",
+    "optional": "Gerenciadores pagos de prompt não são necessários.",
+    "caution": "Evite colar credenciais ou dados de clientes para dar 'mais contexto'.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 14,
+    "title": "Plugins, apps, conectores e MCP",
+    "lead": "Um plugin ou app é uma integração que expõe ações de um serviço, como procurar repositórios ou ler arquivos. MCP é um protocolo para disponibilizar ferramentas e recursos a clientes compatíveis. O acesso concedido precisa ser menor que a tarefa.",
+    "steps": [
+      "Liste o objetivo: ler um repositório, pesquisar documentação ou publicar uma mudança. Essas ações exigem permissões diferentes.",
+      "No catálogo da ferramenta, leia o escopo solicitado e as capacidades: consultar, baixar, escrever, disparar Actions ou administrar projetos.",
+      "Faça uma primeira consulta somente de leitura. Verifique se o resultado realmente veio do repositório esperado.",
+      "Para alterar arquivos, exija confirmação de conta, branch, escopo e método de rollback. Não conceda acesso à organização inteira por conveniência.",
+      "Registre integrações autorizadas, quem as administra e como revogar permissões; reavalie periodicamente."
+    ],
+    "example": "Fluxo seguro: conectar GitHub em modo de consulta → ler PRD → pedir plano → usar executor com permissão de escrita apenas para uma branch → revisar PR. 'Conectado' não significa 'tem permissão total'.",
+    "prompt": "Quero usar um conector para analisar meu repositório. Diga quais operações reais estão habilitadas aqui. Se só houver leitura, produza relatório e patch proposto, não afirme que editou. Liste o mínimo de permissões necessárias para fazer mais.",
+    "checks": [
+      "Permissões verificadas antes de usar",
+      "Leitura e escrita não são confundidas",
+      "Há caminho de revogação"
+    ],
+    "free": "Git CLI e MCP self-hosted podem evitar integrações comerciais.",
+    "optional": "Plugins terceiros e serviços integrados podem ter custos próprios.",
+    "caution": "Nunca cole tokens no chat; use os fluxos autorizados do serviço.",
+    "links": [
+      {
+        "label": "Documentação/Referência oficial",
+        "url": "https://modelcontextprotocol.io/introduction"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 15,
+    "title": "Seu primeiro Git: histórico que protege",
+    "lead": "Git guarda versões; GitHub é um serviço que hospeda um repositório remoto. Um commit não altera automaticamente a produção, e um push não prova que a build está correta.",
+    "steps": [
+      "Instale Git pelo site oficial e confira git --version no terminal.",
+      "Em uma pasta didática, execute git init e crie README.md contendo o problema do miniestoque.",
+      "Use git status para verificar arquivos novos e git diff antes de adicionar mudanças.",
+      "Execute git add README.md e git commit -m \"docs: define miniestoque\"; configure identidade Git local se for solicitada.",
+      "Veja git log --oneline. Crie uma branch: git switch -c feat/saida-estoque; o histórico da branch principal fica separado."
+    ],
+    "example": "git init\ngit status\ngit add README.md\ngit commit -m \"docs: inicia miniestoque\"\ngit switch -c feat/saida-estoque\ngit log --oneline",
+    "prompt": "Explique em linguagem simples a diferença entre working tree, stage, commit, branch, remote, push e PR. Depois examine os comandos acima e indique o que ainda NÃO foi enviado ao GitHub.",
+    "checks": [
+      "Primeiro commit criado localmente",
+      "Consigo voltar ao histórico e ver diff",
+      "Branch nova não altera main"
+    ],
+    "free": "Git local é software livre, sem conta em serviço remoto.",
+    "optional": "Hospedar a cópia no GitHub Free é opcional.",
+    "caution": "Não adicione .env, banco com dados reais ou chaves ao Git.",
+    "links": [
+      {
+        "label": "Documentação/Referência oficial",
+        "url": "https://git-scm.com/docs/gittutorial"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 16,
+    "title": "Crie, conecte e deixe a IA ler seu repositório",
+    "lead": "Esta é uma das aulas centrais: criar um repo, conectá-lo a uma ferramenta e provar o que o agente pode fazer. O fluxo evita afirmar que uma integração de consulta realizou escrita ou deploy. Faça cada etapa em um projeto didático, nunca em produção.",
+    "steps": [
+      "1. Na interface do GitHub, crie repositório miniestoque-lab, escolhendo público somente para código inteiramente didático. Salve endereço HTTPS. Se for privado, confira quem terá acesso.",
+      "2. No terminal, dentro do projeto com commit: git remote add origin URL_DO_REPO; git branch -M main; git push -u origin main. Use autenticação oficial, nunca token embutido na URL.",
+      "3. Na ferramenta de IA, conecte o GitHub por meio do fluxo oficial disponível. Autorize apenas o repo de teste e confirme se a integração tem capacidade de leitura, escrita ou ambas.",
+      "4. Peça um inventário fundamentado: estrutura de pastas, arquivos-chave, riscos, testes e comandos esperados. Compare três citações de arquivos com o conteúdo real.",
+      "5. Para modificar, abra uma branch feat/estoque-saida com um executor que tenha permissão de escrita. Solicite patch mínimo e testes; inspecione git diff --stat, git diff e o log antes de push.",
+      "6. Se autorizado, envie a branch e abra PR. Não faça merge automaticamente. Confira CI, revisão, URL de preview e configuração de deploy. Sem executor: copie o patch sugerido e rode os comandos você mesmo."
+    ],
+    "example": "git remote -v\ngit switch -c feat/saida-segura\n# alterar arquivos após revisão do plano\ngit diff --stat\ngit diff\ngit status\ngit push -u origin feat/saida-segura\n# criar PR pela interface do GitHub",
+    "prompt": "Analise exclusivamente miniestoque-lab. Leia README, src e tests e liste cada funcionalidade apontando o arquivo correspondente. Identifique a lógica de saldo. Antes de editar, proponha diff mínimo e novos testes. Não modifique main, segredos, OAuth ou CI. Se puder executar, mostre comandos e logs; se não, gere patch, sem alegar execução. Prepare PR para revisão, sem merge.",
+    "checks": [
+      "Repo correto e permissão mínima confirmados",
+      "Análise aponta arquivos existentes, não imaginados",
+      "Diff e testes foram revisados",
+      "Nenhum merge/deploy feito por suposição"
+    ],
+    "free": "Git CLI + GitHub Free e agente local compatível podem executar essa trilha sem API paga; no acesso remoto há termos.",
+    "optional": "Serviços de agentes hospedados têm planos próprios e não são exigidos.",
+    "caution": "Capturas para esta lição precisam ser screenshots reais de conta de teste, com nomes e tokens ocultos; não utilizar mockups como provas.",
+    "links": [
+      {
+        "label": "Documentação/Referência oficial",
+        "url": "https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 17,
+    "title": "A organização que o agente consegue manter",
+    "lead": "Um repo legível facilita compreensão e evita alterações fora do escopo. A estrutura é um contrato para pessoas e agentes: onde estão o domínio, testes, documentação e configurações de automação.",
+    "steps": [
+      "Crie README.md com propósito e comandos para iniciar; inclua requisitos exatos de Node.",
+      "Separe src/ (domínio e API), public/ (interface), tests/ (regras) e docs/ (decisões e prompts).",
+      ".gitignore deve proteger node_modules/, .env e bancos locais. Rode git status para confirmar.",
+      "Adicione LICENSE somente com texto que você tem direito de licenciar. Dependências permanecem com licenças próprias.",
+      "Documente em CONTRIBUTING.md como executar testes, abrir uma branch e descrever uma mudança."
+    ],
+    "example": "miniestoque-lab/\n  README.md\n  .gitignore\n  src/\n  public/\n  tests/\n  docs/PRD.md\n  docs/adr/0001-arquitetura.md\n  .github/workflows/ci.yml",
+    "prompt": "Inspecione a estrutura proposta e indique onde implementar regras de saldo, interface, backup, integração e CI. Recomende organização mínima sem criar pastas vazias desnecessárias.",
+    "checks": [
+      "Arquivo de entrada ensina como rodar",
+      "Código e testes não são misturados",
+      "Segredos não estão versionados"
+    ],
+    "free": "Pasta local e Git: R$ 0.",
+    "optional": "Ferramentas de documentação pagas são opcionais.",
+    "caution": "Não publique código proprietário em repositório aberto.",
+    "links": [
+      {
+        "label": "Documentação/Referência oficial",
+        "url": "https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 18,
+    "title": "GitHub público ou privado: custo e risco",
+    "lead": "Um repositório público permite inspeção e colaboração; privado protege a leitura por padrão, mas não elimina riscos de vazamento por logs, segredos ou permissões. Actions tem políticas de cobrança distintas por modalidade.",
+    "steps": [
+      "Liste se o repositório contém apenas conteúdo didático, código comercial, dados de clientes ou credenciais. Se os últimos aparecem, pare: não devem entrar em Git.",
+      "Em público, entenda que pessoas podem clonar, baixar e manter cópias; mudar depois para privado não recolhe clones existentes.",
+      "Em privado, configure equipes, permissões e proteção de branch. Não confunda privacidade com criptografia ou segurança automática.",
+      "Entenda a cobrança do Actions: runners padrão hospedados pelo GitHub são gratuitos em repositórios públicos elegíveis; privados consomem cotas e podem gerar custo adicional.",
+      "Antes de ligar CI, estime minutos por execução × execuções mensais × tipo de runner. Revise preços e limites oficiais no dia."
+    ],
+    "example": "Exemplo hipotético: pipeline de 4 min executado 120 vezes consome cerca de 480 runner-minutos computados em repositório privado, sujeito à regra de faturamento do serviço. É consumo, não preço garantido.",
+    "prompt": "Compare repo público e privado para laboratório open source e produto comercial. Mostre exposição, colaboração, licenças, Actions, custos e riscos de segredos. Não invente cota atual; aponte documentação oficial para verificação.",
+    "checks": [
+      "Decisão público/privado justificada",
+      "Entendo custo por evento e runner",
+      "Não há informação sensível no histórico"
+    ],
+    "free": "Git local é gratuito; repositórios públicos elegíveis têm runners padrão gratuitos.",
+    "optional": "Runners maiores, quotas privadas e armazenamento adicional podem cobrar conforme conta.",
+    "caution": "Nunca publique segredo e tente 'corrigir' só removendo do último commit; rotacione e reescreva histórico se necessário.",
+    "links": [
+      {
+        "label": "Documentação/Referência oficial",
+        "url": "https://docs.github.com/en/billing/concepts/product-billing/github-actions"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 19,
+    "title": "Actions: o que acontece quando você faz push",
+    "lead": "GitHub Actions lê workflows YAML do repositório e executa jobs em runners. É seu controle automático antes do merge; não é o agente, nem o próprio deploy da Cloudflare.",
+    "steps": [
+      "No repositório, abra a aba Actions e observe o nome dos workflows presentes; identifique o evento que os dispara.",
+      "Abra um workflow simples e localize on, permissions, jobs, runs-on e steps. Sem segredo: permissions: contents: read.",
+      "Provoque uma alteração pequena numa branch, envie o push e observe qual run iniciou.",
+      "Abra o job, verifique logs de instalação e teste. Compare o commit SHA executado com o commit da branch.",
+      "Diferencie: check verde = critérios automatizados passaram; aprovação humana = revisão; deploy = publicação configurada em outro passo."
+    ],
+    "example": "Eventos: push na branch e pull_request para main. Job: checkout → setup-node → npm ci → npm test → npm run build. Resultado esperado: status success, não 'deploy confirmado'.",
+    "prompt": "Leia meu arquivo .github/workflows/ci.yml. Explique evento, permissão, runner e cada step. Aponte riscos de usar secrets em PR externo e proponha configuração de privilégios mínimos.",
+    "checks": [
+      "Consigo encontrar logs de um run",
+      "Identifico commit exato que rodou",
+      "Separo CI, aprovação e deploy"
+    ],
+    "free": "node:test pode ser executado localmente sem custo de serviço.",
+    "optional": "Actions segue cotas por público/privado; revisar regras atuais.",
+    "caution": "Nunca exponha secrets em logs e não rode código de PR externo com credenciais de produção.",
+    "links": [
+      {
+        "label": "Documentação/Referência oficial",
+        "url": "https://docs.github.com/en/actions/get-started/understand-github-actions"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 20,
+    "title": "Escreva um CI que realmente testa",
+    "lead": "Um workflow útil reproduz um ambiente limpo e falha quando o teste falha. Comece com um projeto Node que tenha package-lock.json e scripts test/build. Se um comando não existe, crie-o ou remova-o com justificativa.",
+    "steps": [
+      "No projeto local execute npm ci, npm test e npm run build. Corrija scripts inexistentes antes de configurar CI.",
+      "Crie .github/workflows/ci.yml com leitura mínima e gatilhos de push e pull_request.",
+      "Fixe versão principal de Node compatível com seu package.json e dependências. Se houver cache, confirme que existe lockfile no local correto.",
+      "Abra uma PR pequena. Confira que o workflow usa o SHA da branch e aguarde resultado antes de discutir merge.",
+      "Force uma falha num teste didático temporário em branch, observe status vermelho e restaure o teste. Isso prova que o gate funciona."
+    ],
+    "example": "name: CI\non: [push, pull_request]\npermissions:\n  contents: read\njobs:\n  tests:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: '22'\n          cache: npm\n      - run: npm ci\n      - run: npm test\n      - run: npm run build",
+    "prompt": "Produza um workflow GitHub Actions mínimo para Node 22 que rode testes e build, com permissions: contents: read. Explique o que precisa existir no package.json e como demonstrar falha de CI sem acessar segredos.",
+    "checks": [
+      "Scripts locais reproduzíveis",
+      "Workflow falha para teste quebrado",
+      "Check associado ao SHA correto"
+    ],
+    "free": "Pode rodar o mesmo pipeline na máquina local, sem GitHub.",
+    "optional": "Minutes Actions dependem da modalidade e do plano da conta.",
+    "caution": "Não deixe CI 'verde' usando || true ou pulando o teste que falha.",
+    "links": [
+      {
+        "label": "Documentação/Referência oficial",
+        "url": "https://docs.github.com/en/actions/writing-workflows/quickstart"
+      }
+    ],
+    "status": "draft-for-review"
+  }
+]

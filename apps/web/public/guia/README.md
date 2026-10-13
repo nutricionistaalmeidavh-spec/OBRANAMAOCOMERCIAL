@@ -1,45 +1,40 @@
-# Guia Artisys — Do Prompt ao Software
+# Guia ArtiSys — Edição didática v2 (branch de revisão)
 
-Área pública experimental dentro de `apps/web/public/guia/`, baseada nas 40 páginas do PDF editorial da Artisys.
+As 40 aulas online agora são conteúdos estruturados por um cenário contínuo: miniestoque local com agente de IA, Git, Actions e deploy opcional.
 
-- Acesse `/guia/` sem autenticação.
-- Conteúdo em `conteudo.json`, extraído e adaptado do guia de 40 páginas.
-- Índice e busca inteiramente estáticos, sem API ou armazenamento remoto.
-- Progresso é salvo somente no `localStorage` do navegador.
-- Prompts copiáveis e impressão de páginas individuais em PDF via navegador.
-- Menu da landing inclui link "Guia gratuito".
-- O site comercial e os fluxos de pagamento, autenticação, D1 e Workers não foram alterados.
-- O PDF original será disponibilizado para download separado em etapa posterior, após validação de licença e versionamento do arquivo no repositório.
-- **Não publicar sem revisão editorial**, QA e confirmação de que a implantação não interfere nas rotas comerciais.
+## Fonte editorial
 
-Para verificar localmente, na raiz `apps/web`, execute `npm ci && npm run build`. O diretório `public/guia` será copiado para `dist/guia`.
+`aulas/01-10.json`, `11-20.json`, `21-30.json`, `31-40.json` contêm o texto canônico das aulas.
 
-O núcleo é HTML + CSS + JavaScript, sem dependências pagas ou backend.
+Cada entrada traz:
+- explicação contextual e resultado concreto;
+- cinco ou mais passos reproduzíveis;
+- artefato/comando ou exemplo realista;
+- prompt reutilizável;
+- checklist de autoavaliação;
+- caminho sem API paga, alternativa opcional e advertência;
+- links para documentação quando adequados.
 
-## Alternância editorial e melhoria da aprendizagem
-- A leitura intercala fundo escuro nas páginas ímpares e fundo claro nas pares, mantendo a página 4 clara e a 5 roxa, como no PDF. Densidade alta ajusta espaçamento e largura das linhas.
-- Cada página traz objetivo e exercício específico; inicia na lição 1, e retomar só aparece após leitura anterior.
-- Conclusão reversível, busca com contagem, menu móvel com backdrop/Escape e progresso salvo exclusivamente neste navegador.
-- Verificar renderização e ações no navegador antes de publicar; a análise estática não substitui testes reais com leitores.
+Os arquivos são conteúdo didático preparado para revisão; **não** se afirma que screenshots, ferramentas, integrações ou resultados de tutorial foram pessoalmente executados pelo leitor. Um QA de navegador do próprio portal gera capturas reais em Actions para revisão visual. Capturas de telas de conexão GitHub de contas reais só devem ser adicionadas depois de geradas e ocultados tokens, identificadores e dados pessoais.
 
-O objetivo e o exercício de cada lição pertencem canonicamente a `conteudo.json`, evitando duplicidade no JavaScript. Pesquisa inclui o contexto educativo da lição.
+## Navegação
+`guia.js` busca os 4 JSONs e usa o índice de capítulos em `conteudo.json`. A estrutura original do portal (menu, leitura, busca, versão claro/roxo, progresso no navegador) foi preservada.
 
-## Download disponível na branch
+`conteudo.json` continua atendendo o **PDF da edição anterior**, cuja cópia é `guia-completo.pdf`. O PDF não representa ainda o conteúdo aprofundado v2; o portal informa claramente isso. Não confundir 'guia de 40 páginas' com 40 aulas longas.
 
-- `/guia/guia-completo.pdf`: PDF estático de **40 páginas**, produzido a partir de `conteudo.json` com a alternância editorial entre páginas claras e roxas.
-- Arquivo gerado de forma reproduzível: `node public/guia/build-pdf.mjs` a partir de `apps/web`.
-- Este PDF é uma **edição web**, não uma cópia pixel-a-pixel do PDF editorial original distribuído anteriormente no chat. Evitar anunciá-lo como arquivo idêntico.
-- Download público, gratuito, sem login, cookies de rastreio ou API paga.
-- O botão 'Imprimir esta lição' permanece para imprimir apenas a página atual.
-- Exemplos de código e YAML usam fonte monoespaçada, indentação preservada, rolagem horizontal no celular e botão próprio para copiar.
-- Os YAML das lições 20 e 39 tiveram a indentação reestruturada a partir dos exemplos editoriais e requerem teste no projeto de destino antes da adoção.
-- **ZIP:** NÃO existe um download no portal. Só há um aviso 'Em preparação'. A definição do pacote depende de especificação e testes dos exemplos; jamais apontar para caminho inexistente.
+## Testar
 
-### O que o eventual ZIP poderia conter e por quê
-- `README.md`: instalação, requisitos, licenças e limitações.
-- `docs/`: PRD, decisões de arquitetura e prompts testados.
-- `exemplos/`: miniestoque local, gerador de documentos e leitor de documentos com dados fictícios, se aprovados para distribuição.
-- `tests/`: testes e comandos para a pessoa verificar os resultados.
-- `LICENSE` e `NOTICE`: direitos do código didático e dependências externas.
+Na pasta `apps/web`: `npm ci && node scripts/verify-guia.mjs && npm run build`.
 
-O ZIP é **opcional**: serve para o leitor executar o que aprendeu sem transcrever o livro inteiro; não deve incluir arquivos dos sistemas comerciais, chaves, bancos reais, credenciais nem código proprietário.
+Para QA visual real, usar o workflow de PR `guia-ui-review.yml`, que abre a URL local via Playwright e gera imagens de mobile/desktop como artefatos do Actions. Não altera a produção e não usa secrets.
+
+## Pendências de publicação
+
+1. Revisão humana do conteúdo, referências e custos.
+2. QA Playwright por captura de navegador e acessibilidade inicial.
+3. Teste com leitor novato (conseguir achar aula 16, seguir roteiro sem ajuda, distinguir CI de deploy).
+4. Nova edição PDF aprofundada quando a versão web for aprovada.
+5. Capturas do GitHub/conectores reais com dados sensíveis ocultos, só após autorização.
+6. ZIP de exemplo NÃO incluído; o download continua marcado em preparação.
+
+**NÃO alterar** OAuth, endpoints `/api/*`, login, D1/R2, pagamentos ou regras de deploy do site comercial durante este trabalho editorial.
