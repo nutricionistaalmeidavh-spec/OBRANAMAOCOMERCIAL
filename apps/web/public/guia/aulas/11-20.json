@@ -75,7 +75,7 @@
       "Arquivos e proibições definidos",
       "Agente deve apresentar evidências"
     ],
-    "free": "Prompt Markdown em Git custa R$ 0.",
+    "free": "Guarde seus prompts em arquivos Markdown dentro de docs/prompts/, versionados com Git local, sem assinatura ou chamada a API paga.",
     "optional": "Gerenciadores pagos de prompt não são necessários.",
     "caution": "Evite colar credenciais ou dados de clientes para dar 'mais contexto'.",
     "links": [],
@@ -188,7 +188,7 @@
       "Código e testes não são misturados",
       "Segredos não estão versionados"
     ],
-    "free": "Pasta local e Git: R$ 0.",
+    "free": "Use pastas no computador, Git para versionamento e um editor livre; nenhum serviço remoto ou assinatura é obrigatório.",
     "optional": "Ferramentas de documentação pagas são opcionais.",
     "caution": "Não publique código proprietário em repositório aberto.",
     "links": [

@@ -147,7 +147,7 @@
       "Casos normais/inválidos escritos",
       "Critério de pronto independente da aparência"
     ],
-    "free": "Node/SQLite/Git locais sem API paga.",
+    "free": "Os requisitos e critérios de aceite ficam em Markdown e podem ser construídos com Git e Node locais, sem contratar serviços.",
     "optional": "Frontend hospedado depois do MVP é opcional.",
     "caution": "Não alegar que o ZIP está disponível; o pacote prático segue em preparação.",
     "links": [],
