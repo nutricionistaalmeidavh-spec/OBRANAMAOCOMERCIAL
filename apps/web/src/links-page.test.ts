@@ -26,7 +26,7 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
       'href="/devkits/"',
       'href="/devkits/#repos-tiktok"',
       'href="/sistema.html#portal"',
-      'href="https://instagram.com/artisys"',
+      'href="https://www.tiktok.com/@artisysdev"',
       'https://wa.me/5516982338805?text='
     ]) {
       expect(html).toContain(target);
@@ -34,6 +34,19 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(html).not.toContain('href="/guia/"'); // Ainda está em outra branch.
     expect(html).not.toContain('pagamentos-artisys');
     expect(html).not.toContain('href="/devkits/catalogo/"');
+  });
+
+  it('exibe TikTok @artisysdev e WhatsApp, sem Instagram ou GitHub na central', () => {
+    const social = html.split('<nav class="social-nav"')[1]?.split('</nav>')[0] ?? '';
+    expect(social).toContain('href="https://www.tiktok.com/@artisysdev"');
+    expect(social).toContain('aria-label="TikTok da ArtiSys"');
+    expect(social).toContain('data-link-id="tiktok"');
+    expect(social).toContain('data-link-id="whatsapp-social"');
+    expect(social).not.toContain('instagram.com');
+    expect(social).not.toContain('github.com');
+    expect(social).not.toContain('data-link-id="instagram"');
+    expect(social).not.toContain('data-link-id="github"');
+    expect((social.match(/<a /g) || [])).toHaveLength(2);
   });
 
   it('é mobile-first, navegável pelo teclado e respeita movimento reduzido', () => {
