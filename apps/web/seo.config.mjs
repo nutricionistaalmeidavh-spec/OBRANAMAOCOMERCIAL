@@ -87,6 +87,15 @@ export const artisysSeoConfig = defineSeoConfig({
   },
   pages: [
     {
+      path: '/links',
+      canonical: 'https://artisys.dev/links/',
+      title: 'Central ArtiSys | Sistemas, DevKits e contato em um só lugar',
+      description: 'Sua entrada para o ecossistema ArtiSys: conheça sistemas, DevKit Tool’s, materiais gratuitos e nossos canais de contato.',
+      schemaType: 'WebPage',
+      changeFrequency: 'monthly',
+      priority: 0.65
+    },
+    {
       path: '/',
       title: 'ArtiSys | Sistemas reais, DevKits e ferramentas para desenvolver',
       description: 'Conheça os sistemas prontos da ArtiSys e os DevKit Tool’s para criar soluções. Software para operações reais e ferramentas para desenvolvedores.',
