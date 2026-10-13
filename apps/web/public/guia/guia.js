@@ -9,11 +9,21 @@ const readState=()=>{try{return new Set(JSON.parse(localStorage.getItem(complete
 const state={book:null,read:readState(),current:0};
 let initialRoute=true;
 function save(){try{localStorage.setItem(completedKey,JSON.stringify([...state.read]));if(state.current)localStorage.setItem(currentKey,String(state.current))}catch{}}
+function codeBlock(raw,index) {
+ const kind=/^name:\s/i.test(raw)?'YAML / GITHUB ACTIONS':/^>\s/.test(raw)?'COMANDOS / TERMINAL':'CÓDIGO / EXEMPLO';
+ const source=String(raw);
+ return `<figure class="code-example" aria-label="Exemplo de código"><figcaption class="code-toolbar"><span>${kind}</span><button class="copy-code" type="button" data-code="${esc(source)}" aria-label="Copiar exemplo de código">Copiar código</button></figcaption><pre tabindex="0"><code>${esc(source)}</code></pre><p class="code-hint">Exemplo didático: confira as dependências e teste numa branch ou ambiente local antes de aplicar ao seu projeto.</p></figure>`;
+}
+function codeLike(raw) {
+ const val=String(raw).trim();
+ return (/^(name:\s|>\s*(?:git|npm|node|npx)\b|(?:git|npm|node|npx)\s|\.github\/workflows\/)/i.test(val) || /\n\s*(?:runs-on:|steps:|- uses:|- run:)/.test(val));
+}
 function htmlContent(blocks){
  let out='',lead=true;
  for(let i=0;i<blocks.length;i++){
   const raw=String(blocks[i]||'').trim();if(!raw)continue;
   const normalized=raw.replace(/\s+/g,' ').trim();
+  if(codeLike(raw)){out+=codeBlock(raw,i);lead=false;continue}
   if(/^PROMPT (PARA USAR|REUTILIZÁVEL|DO AGENTE|PARA O AGENTE)/i.test(normalized)||normalized==='PROMPT PARA USAR COM SEU AGENTE'){
     const prompt=String(blocks[++i]||'').trim().replace(/^[“"]|[”"]$/g,'');
     out+=`<div class="prompt-box"><div class="prompt-bar">PROMPT PARA COPIAR <button class="copy-prompt" type="button" data-prompt="${esc(prompt)}">Copiar prompt</button></div><div class="prompt-text">${esc(prompt)}</div></div>`;continue;
@@ -128,11 +138,11 @@ async function init(){
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&byId('sidebar').classList.contains('open')){closeMenu();byId('menu-button').focus()}});
 
  document.addEventListener('click',event=>{
-  const btn=event.target.closest?.('[data-prompt]');
+  const btn=event.target.closest?.('[data-prompt], [data-code]');
   if(btn){
-    const t=btn.getAttribute('data-prompt')||'';
-    if(!navigator.clipboard?.writeText){btn.textContent='Selecione e copie o texto acima';return}
-    navigator.clipboard.writeText(t).then(()=>{btn.textContent='Copiado ✓'}).catch(()=>{btn.textContent='Selecione e copie o texto acima'});
+    const t=btn.getAttribute(btn.hasAttribute('data-code')?'data-code':'data-prompt')||'';
+    if(!navigator.clipboard?.writeText){btn.textContent='Selecione e copie manualmente';return}
+    navigator.clipboard.writeText(t).then(()=>{btn.textContent='Copiado ✓';btn.setAttribute('aria-label','Texto copiado')}).catch(()=>{btn.textContent='Selecione e copie manualmente'});
     return
   }
   if(event.target.closest?.('.nav-page,.search-result,.group-card'))closeMenu()

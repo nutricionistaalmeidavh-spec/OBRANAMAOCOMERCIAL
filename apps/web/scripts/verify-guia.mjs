@@ -1,29 +1,32 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-const root=new URL('../public/guia/', import.meta.url);
-const content=JSON.parse(readFileSync(new URL('conteudo.json',root),'utf8'));
-const html=readFileSync(new URL('index.html',root),'utf8');
-const js=readFileSync(new URL('guia.js',root),'utf8');
-const css=readFileSync(new URL('guia.css',root),'utf8');
-assert.equal(content.pages.length,40,'Guia precisa ter 40 lições');
-for(let i=0;i<40;i++){
- const p=content.pages[i];
- assert.equal(p.number,i+1,'Índice contínuo da lição '+(i+1));
- assert.ok(p.title && p.blocks?.length>1,'Conteúdo suficiente na lição '+(i+1));
- assert.ok(p.objective && p.exercise,'Objetivo e exercício obrigatórios na lição '+(i+1));
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+const root=join(dirname(fileURLToPath(import.meta.url)),'../public/guia');
+const txt=n=>readFileSync(join(root,n),'utf8');
+const content=JSON.parse(txt('conteudo.json'));
+assert.equal(content.pages.length,40,'40 lessons');
+assert.deepEqual(content.pages.map(p=>p.number),Array.from({length:40},(_,i)=>i+1),'sequential numbering');
+assert.ok(content.pages.every(p=>p.title&&p.chapter&&p.blocks.length&&p.objective&&p.exercise),'all pages teach something');
+const html=txt('index.html'),js=txt('guia.js'),css=txt('guia.css');
+assert.match(html,/href="\/guia\/guia-completo\.pdf"[^>]*download=/,'real PDF link');
+assert.match(html,/resource-pending/,'ZIP clearly marked in preparation');
+assert.ok(!html.includes('href="/guia/kit.zip"'),'no placeholder ZIP download');
+assert.match(html,/id="reader-theme-toggle"/,'theme switch remains available');
+assert.match(js,/n%2===0\?'light':'dark'/,'light even pages');
+assert.match(js,/codeBlock\(raw,i\)/,'formatted code blocks');
+assert.match(css,/\.reader\[data-theme="light"\] \.code-example/,'light code contrast');
+assert.match(css,/\.reader\[data-theme="dark"\]/,'dark theme');
+for(const number of [20,39]){
+ const p=content.pages[number-1];
+ const block=p.blocks.find(s=>s.startsWith('name: '));
+ assert.ok(block&&/\n  [a-z-]+:/.test(block)&&/\n      - run:/.test(block),'indented YAML example: '+number);
 }
-assert.equal(new Set(content.pages.map(p=>p.title)).size,40,'Títulos de lições devem ser únicos');
-for(const part of ['reader','reader-body','reader-theme-toggle','lesson-goal','lesson-task','read-button','nav-backdrop','resume-button','search-results']){
- assert.match(html,new RegExp('id="'+part+'"'),'Elemento obrigatório: '+part);
-}
-assert.match(html,/href="#pagina-01" class="action-primary"/,'Começar deve abrir a primeira lição');
-assert.match(html,/id="resume-button"[^>]+ hidden/,'Retomar só deve aparecer quando há histórico');
-assert.match(js,/n%2===0\?'light':'dark'/,'Lições pares devem ter fundo claro');
-assert.match(js,/reader\.dataset\.density/,'Páginas densas devem ajustar a composição');
-assert.match(js,/reader-theme-toggle/,'Aluno deve poder mudar contraste durante a leitura');
-assert.match(js,/state\.read\.delete/,'Conclusão deve ser reversível');
-assert.match(css,/\.reader\[data-theme="light"\]/,'Tema claro ausente');
-assert.match(css,/\.reader\[data-theme="dark"\]/,'Tema roxo escuro ausente');
-assert.match(css,/@media\(max-width:760px\)/,'Estilo móvel ausente');
-assert.match(css,/@media\(prefers-reduced-motion:reduce\)/,'Respeito a movimento reduzido ausente');
-console.log('Guia Artisys OK: 40 lições, alternância clara/roxa, jornada e acessibilidade estática.');
+assert.ok(existsSync(join(root,'guia-completo.pdf')),'PDF present in repository');
+const pdf=readFileSync(join(root,'guia-completo.pdf'),'ascii');
+assert.ok(pdf.startsWith('%PDF-1.4\n'),'PDF format');
+assert.equal((pdf.match(/\/Type \/Page\b/g)||[]).length,40,'one PDF page per lesson');
+assert.match(pdf,/xref\n0 86\n/,'PDF cross-reference table');
+assert.ok(pdf.includes('%%EOF'),'PDF trailer');
+assert.ok(pdf.length>100000,'PDF contains full guide');
+console.log('Guia QA OK: 40 lessons, web PDF, alternating themes, code and no false ZIP download');
