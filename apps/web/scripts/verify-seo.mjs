@@ -38,6 +38,12 @@ for (const slug of ['sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-
   assert.ok(!sitemap.includes(`https://artisys.dev/sistemas/${slug}/`), `${slug} deve permanecer apenas na coleção Agro`);
 }
 
+assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/links\/<\/loc>/, 'Central ArtiSys deve estar no sitemap');
+const linksHtml = read('public/links/index.html');
+const linksModel = buildPageSeo(artisysSeoConfig, '/links');
+const linksAudit = auditSeoDocument({ html: linksHtml, expected: { canonical: linksModel.canonical, index: true } });
+assert.equal(linksAudit.summary.critical, 0, 'Central ArtiSys com falha SEO: ' + JSON.stringify(linksAudit, null, 2));
+
 assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/devkits\/<\/loc>/, 'página DevKit deve estar no sitemap');
 const devkitHtml = read('public/devkits/index.html');
 const devkitModel = buildPageSeo(artisysSeoConfig, '/devkits');
