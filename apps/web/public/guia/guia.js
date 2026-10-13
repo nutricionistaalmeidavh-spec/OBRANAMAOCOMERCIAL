@@ -64,6 +64,7 @@ function showPage(n){
  state.current=n;save();byId('overview').hidden=true;byId('reader').hidden=false;
  const reader=byId('reader');
  reader.dataset.theme=n%2===0?'light':'dark';
+ byId('reader-theme-toggle').textContent=reader.dataset.theme==='light'?'Usar fundo roxo':'Usar fundo claro';
  reader.dataset.density=page.blocks.join(' ').length>900||page.blocks.length>=18?'dense':'regular';
  byId('lesson-goal').textContent=learningGoals[n-1];
  byId('lesson-task').textContent=learningTasks[n-1];
@@ -117,6 +118,11 @@ async function init(){
  `Lição ${n} desmarcada neste navegador.`:`Lição ${n} concluída neste navegador.`;
  });
  byId('print-button').addEventListener('click',()=>window.print());
+ byId('reader-theme-toggle').addEventListener('click',()=>{
+ const reader=byId('reader');
+ reader.dataset.theme=reader.dataset.theme==='light'?'dark':'light';
+ byId('reader-theme-toggle').textContent=reader.dataset.theme==='light'?'Usar fundo roxo':'Usar fundo claro';
+ });
  const closeMenu=()=>{byId('sidebar').classList.remove('open');byId('nav-backdrop').hidden=true;byId('menu-button').setAttribute('aria-expanded','false')};
  byId('menu-button').addEventListener('click',()=>{const open=byId('sidebar').classList.toggle('open');byId('nav-backdrop').hidden=!open;byId('menu-button').setAttribute('aria-expanded',String(open))});
  byId('nav-backdrop').addEventListener('click',closeMenu);
@@ -124,7 +130,12 @@ async function init(){
 
  document.addEventListener('click',event=>{
   const btn=event.target.closest?.('[data-prompt]');
-  if(btn){const t=btn.getAttribute('data-prompt')||'';navigator.clipboard?.writeText(t).then(()=>{btn.textContent='Copiado ✓'}).catch(()=>{btn.textContent='Selecione o texto acima'});return}
+  if(btn){
+    const t=btn.getAttribute('data-prompt')||'';
+    if(!navigator.clipboard?.writeText){btn.textContent='Selecione e copie o texto acima';return}
+    navigator.clipboard.writeText(t).then(()=>{btn.textContent='Copiado ✓'}).catch(()=>{btn.textContent='Selecione e copie o texto acima'});
+    return
+  }
   if(event.target.closest?.('.nav-page,.search-result,.group-card'))closeMenu()
  });
  }catch(e){byId('overview').innerHTML='<h1>Não foi possível carregar o guia.</h1><p>Atualize a página ou tente novamente mais tarde.</p>';console.error(e)}

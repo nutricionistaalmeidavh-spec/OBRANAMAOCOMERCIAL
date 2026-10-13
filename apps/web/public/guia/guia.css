@@ -68,3 +68,11 @@
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.sidebar,.group-card{transition:none!important}}
 @media print{.reader,.reader[data-theme="light"],.reader[data-theme="dark"]{background:white!important;color:black!important;box-shadow:none!important;border:0!important;padding:0!important}.reader h1,.reader[data-theme="light"] h1{color:black!important}.back-index,.nav-backdrop{display:none!important}}
+
+/* Ação opcional: mantém a alternância por padrão, mas o aluno pode trocar o contraste da lição atual. */
+.reader .reader-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:center}
+.reader .theme-switch{border:1px solid #74559b;border-radius:9px;background:#2b1c43;color:#f6edff;font-size:11px;font-weight:700;padding:7px 12px;min-height:34px}
+.reader .theme-switch:hover{border-color:#c494ff}
+.reader[data-theme="light"] .theme-switch{background:#fff;color:#5d2f8d;border-color:#c7b4df}
+.reader[data-theme="light"] .theme-switch:hover{border-color:#7643b5}
+@media print{.reader .theme-switch{display:none!important}}
