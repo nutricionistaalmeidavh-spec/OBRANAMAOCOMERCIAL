@@ -43,6 +43,9 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(destinations).toContain('01 — 05');
     expect(destinations).toContain('Explorar o site completo');
     const secondary = html.split('<section class="secondary"')[1]?.split('</section>')[0] ?? '';
+    expect(secondary).toContain('data-link-id="academy"');
+    expect(secondary).toContain('href="/academy"');
+    expect(secondary).toContain('ArtiSys Academy');
     expect(secondary).toContain('data-link-id="obra-portal"');
     expect(secondary).not.toContain('data-link-id="site"');
     expect((html.match(/data-link-id="site"/g) ?? [])).toHaveLength(1);
