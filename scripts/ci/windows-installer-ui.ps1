@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Evidence)
+param([Parameter(Mandatory=$true)][string]$Evidence,[switch]$HoldBeforeRun)
 $ErrorActionPreference='Stop'
 Add-Type @'
 using System;
@@ -24,6 +24,13 @@ for($i=0;$i -lt 90;$i++) {
     $h=$p.MainWindowHandle
     $next=[InstallerUi]::GetDlgItem($h,1)
     $record=[ordered]@{elapsedSeconds=($i*2);pid=$p.Id;process=$p.ProcessName;title=$p.MainWindowTitle;controls=[InstallerUi]::Children($h);nextText=[InstallerUi]::Text($next);clicked=$false}
+    if($HoldBeforeRun -and $record.nextText -match 'Finish') {
+      $record.heldForStandardUserReopen=$true
+      $observations+=$record
+      $observations | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $Evidence 'native-installer-ui.json')
+      Write-Host 'Installer completed. Holding Finish so an elevated runner does not recreate the deleted document directory before the limited-user startup probe.'
+      return
+    }
     # First ten seconds are observation only: record whether a supposedly
     # automatic update requires another interaction before driving the wizard.
     if($i -ge 5 -and $next -ne [IntPtr]::Zero -and [InstallerUi]::IsWindowEnabled($next) -and [InstallerUi]::IsWindowVisible($next)) {

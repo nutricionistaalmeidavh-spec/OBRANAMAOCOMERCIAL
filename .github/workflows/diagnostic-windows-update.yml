@@ -2,7 +2,7 @@ name: Diagnostic Windows update reproduction
 on:
   push:
     branches: ['diagnostic/windows-update-reproduction-20261016']
-    paths: ['.github/workflows/diagnostic-windows-update.yml', 'scripts/ci/windows-update-cdp.cjs', 'scripts/ci/windows-installer-ui.ps1']
+    paths: ['.github/workflows/diagnostic-windows-update.yml', 'scripts/ci/windows-update-cdp.cjs', 'scripts/ci/windows-installer-ui.ps1', 'scripts/ci/windows-startup-permissions.cjs']
 permissions:
   contents: read
 concurrency:
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [external-canonical, inside-canonical, inside-stale-shortcut]
+        scenario: [inside-stale-standard]
     env:
       SCENARIO: ${{ matrix.scenario }}
     steps:
@@ -55,7 +55,7 @@ jobs:
           $installer="$base/release/Obra-na-Mao-Desktop-Setup-1.0.18.exe"
           $p=Start-Process $installer -ArgumentList @('/S','/allusers',"/D=$install") -PassThru -Wait
           if($p.ExitCode -ne 0){throw "Baseline installer failed: $($p.ExitCode)"}
-          if($env:SCENARIO -eq 'inside-stale-shortcut'){Copy-Item -LiteralPath $install -Destination $legacy -Recurse}
+          if($env:SCENARIO -like '*stale*'){Copy-Item -LiteralPath $install -Destination $legacy -Recurse}
           $p=Start-Process "$base/release/Obra-na-Mao-Desktop-Setup-2.0.0.exe" -ArgumentList @('/S','/allusers',"/D=$install") -PassThru -Wait
           if($p.ExitCode -ne 0){throw "2.0.0 preparation failed: $($p.ExitCode)"}
           $exe=(Get-ChildItem -LiteralPath $install -Filter 'Obra*Desktop.exe' -File | Select-Object -First 1).FullName
@@ -65,7 +65,19 @@ jobs:
           New-Item -ItemType Directory -Force -Path $documents | Out-Null
           Set-Content -LiteralPath (Join-Path $documents 'preserve-me.txt') -Value 'CANONICAL-DOCUMENT-SENTINEL-20261016' -NoNewline
           $identity=[Security.Principal.WindowsIdentity]::GetCurrent().Name
-          New-SmbShare -Name 'obra-na-mao-desktop-commercial' -Path $shareRoot -FullAccess $identity | Out-Null
+          $stdName='ObraCiStd'
+          $stdPassword='Ci!9'+[guid]::NewGuid().ToString('N')
+          Write-Output "::add-mask::$stdPassword"
+          New-LocalUser -Name $stdName -Password (ConvertTo-SecureString $stdPassword -AsPlainText -Force) -AccountNeverExpires | Out-Null
+          Add-LocalGroupMember -SID 'S-1-5-32-545' -Member $stdName
+          $stdIdentity="$env:COMPUTERNAME\$stdName"
+          "CI_STD_USER=$stdIdentity" >> $env:GITHUB_ENV
+          "CI_STD_PASSWORD=$stdPassword" >> $env:GITHUB_ENV
+          # Give legitimate write access to the existing documents, not to
+          # Program Files. No permissions are weakened/changed after updating.
+          icacls $documents /grant "${stdIdentity}:(OI)(CI)M" /T | Out-Null
+          if($LASTEXITCODE -ne 0){throw 'Fixture document ACL setup failed'}
+          New-SmbShare -Name 'obra-na-mao-desktop-commercial' -Path $shareRoot -FullAccess @($identity,$stdIdentity) | Out-Null
           $unc="\\$env:COMPUTERNAME\obra-na-mao-desktop-commercial\DOCUMENTOS"
           Get-Item -LiteralPath $unc | Format-List * | Out-String | Set-Content "$base/evidence/share-before.txt"
           Get-Acl -LiteralPath $documents | Format-List | Out-String | Set-Content "$base/evidence/acl-before.txt"
@@ -95,6 +107,24 @@ jobs:
           db.commit();db.close()
           '@ | python -
           if($LASTEXITCODE -ne 0){throw 'SQLite fixture creation failed'}
+          icacls $base /grant "${stdIdentity}:(OI)(CI)M" /T | Out-Null
+          icacls $data /grant "${stdIdentity}:(OI)(CI)M" /T | Out-Null
+          if($LASTEXITCODE -ne 0){throw 'Fixture data ACL setup failed'}
+          Copy-Item ./scripts/ci/windows-startup-permissions.cjs "$base/startup-permissions.cjs"
+          $probeCommand=@"
+          @echo off
+          chcp 65001 >nul
+          set ELECTRON_RUN_AS_NODE=1
+          "$exe" "$base/startup-permissions.cjs" "$install/resources/app.asar" "$data/fluxo-dre.sqlite" "$base/evidence/standard-before.json" before-update
+          "@
+          $probeCommand | Set-Content "$base/standard-before.cmd" -Encoding utf8NoBOM
+          $credential=[pscredential]::new($stdIdentity,(ConvertTo-SecureString $stdPassword -AsPlainText -Force))
+          $probe=Start-Process $env:ComSpec -ArgumentList @('/d','/c',"`"$base/standard-before.cmd`"") -Credential $credential -LoadUserProfile -WorkingDirectory $base -PassThru -RedirectStandardOutput "$base/evidence/standard-before.log" -RedirectStandardError "$base/evidence/standard-before-error.log"
+          if(-not $probe.WaitForExit(60000)){throw 'Limited-user baseline probe timed out'}
+          if(-not (Test-Path "$base/evidence/standard-before.json")){throw 'Limited-user baseline probe did not produce evidence'}
+          $before=Get-Content "$base/evidence/standard-before.json" -Raw | ConvertFrom-Json
+          Get-Content "$base/evidence/standard-before.json"
+          if($before.status -ne 'ready-and-writable'){throw 'Limited user must work before the update; otherwise this is not a valid regression fixture.'}
           $wsh=New-Object -ComObject WScript.Shell
           $menu=[Environment]::GetFolderPath('CommonPrograms')
           $links=@(Get-ChildItem -LiteralPath $menu -Recurse -Filter 'Obra*.lnk')
@@ -103,7 +133,7 @@ jobs:
             $s=$wsh.CreateShortcut($link.FullName)
             # Separate ports avoid collisions/TIME_WAIT with the quitting app.
             $s.Arguments='--remote-debugging-port=9223 --inspect=9231'
-            if($env:SCENARIO -eq 'inside-stale-shortcut'){$s.TargetPath=(Get-ChildItem -LiteralPath $legacy -Filter 'Obra*Desktop.exe' -File | Select-Object -First 1).FullName}
+            if($env:SCENARIO -like '*stale*'){$s.TargetPath=(Get-ChildItem -LiteralPath $legacy -Filter 'Obra*Desktop.exe' -File | Select-Object -First 1).FullName}
             $s.Save()
           }
           $links | ForEach-Object {$s=$wsh.CreateShortcut($_.FullName);[pscustomobject]@{link=$_.FullName;target=$s.TargetPath;arguments=$s.Arguments}} | ConvertTo-Json | Set-Content "$base/evidence/shortcuts-before.json"
@@ -119,10 +149,31 @@ jobs:
           Start-Process -FilePath $env:INSTALL_EXE -ArgumentList @('--remote-debugging-port=9222','--inspect=9230') -RedirectStandardOutput "$base/evidence/old-app.log" -RedirectStandardError "$base/evidence/old-app-error.log" | Out-Null
           node $driver update "$base/evidence"
           if($LASTEXITCODE -ne 0){throw 'Original updater invocation failed; inspect evidence'}
-          & ./scripts/ci/windows-installer-ui.ps1 -Evidence "$base/evidence"
-          Start-Sleep -Seconds 10
-          node $driver snapshot "$base/evidence" 9223
-          if($LASTEXITCODE -ne 0){Write-Warning 'Automatic relaunch did not expose CDP; process and file evidence still collected.'}
+          & ./scripts/ci/windows-installer-ui.ps1 -Evidence "$base/evidence" -HoldBeforeRun
+          $credential=[pscredential]::new($env:CI_STD_USER,(ConvertTo-SecureString $env:CI_STD_PASSWORD -AsPlainText -Force))
+          $legacy=Join-Path $base 'legacy-1.0.18'
+          $legacyExe=(Get-ChildItem -LiteralPath $legacy -Filter 'Obra*Desktop.exe' -File | Select-Object -First 1).FullName
+          $probeCommand=@"
+          @echo off
+          chcp 65001 >nul
+          set ELECTRON_RUN_AS_NODE=1
+          "$legacyExe" "$base/startup-permissions.cjs" "$legacy/resources/app.asar" "$env:OBRA_NA_MAO_DATA_DIR/fluxo-dre.sqlite" "$base/evidence/standard-after.json" after-update
+          "@
+          $probeCommand | Set-Content "$base/standard-after.cmd" -Encoding utf8NoBOM
+          $probe=Start-Process $env:ComSpec -ArgumentList @('/d','/c',"`"$base/standard-after.cmd`"") -Credential $credential -LoadUserProfile -WorkingDirectory $base -PassThru -RedirectStandardOutput "$base/evidence/standard-after.log" -RedirectStandardError "$base/evidence/standard-after-error.log"
+          if(-not $probe.WaitForExit(60000)){throw 'Limited-user post-update probe timed out'}
+          Get-Content "$base/evidence/standard-after.json"
+          $fullCommand=@"
+          @echo off
+          chcp 65001 >nul
+          set ELECTRON_RUN_AS_NODE=
+          set OBRA_NA_MAO_DATA_DIR=$env:OBRA_NA_MAO_DATA_DIR
+          "$legacyExe" --remote-debugging-port=9224 --inspect=9232 --user-data-dir="$base/standard-browser-profile"
+          "@
+          $fullCommand | Set-Content "$base/standard-full-app.cmd" -Encoding utf8NoBOM
+          Start-Process $env:ComSpec -ArgumentList @('/d','/c',"`"$base/standard-full-app.cmd`"") -Credential $credential -LoadUserProfile -WorkingDirectory $base -RedirectStandardOutput "$base/evidence/standard-full-app.log" -RedirectStandardError "$base/evidence/standard-full-app-error.log" | Out-Null
+          node $driver snapshot "$base/evidence" 9224
+          if($LASTEXITCODE -ne 0){Write-Warning 'Limited-user GUI snapshot unavailable; real startup-service probe retained.'}
           exit 0
       - name: Collect real post-update state even if the app failed
         if: always()
