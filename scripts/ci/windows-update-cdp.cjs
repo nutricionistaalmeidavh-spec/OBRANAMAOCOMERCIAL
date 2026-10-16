@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const { setTimeout: delay } = require('node:timers/promises');
-const [mode, folder] = process.argv.slice(2);
+const [mode, folder, rendererPort='9222'] = process.argv.slice(2);
 if (mode === 'serve') {
   http.createServer((req,res) => {
     const name = decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname).slice(1);
@@ -53,7 +53,7 @@ if (mode === 'serve') {
       }
     }
     if (mode === 'snapshot') {
-      const renderer = await connect(9222);
+      const renderer = await connect(Number(rendererPort));
       const data = await renderer.evaluate(`(async()=>({text:document.body.innerText,details:document.querySelector('details')?.textContent||null,bootstrap:window.fluxoDre?await window.fluxoDre.app.bootstrap().catch(e=>({error:e.message})):null}))()`);
       fs.writeFileSync(path.join(folder,'snapshot.json'),JSON.stringify(data,null,2));
       await renderer.screenshot(path.join(folder,'screenshot.png'));renderer.close();return;

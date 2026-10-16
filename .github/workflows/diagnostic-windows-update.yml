@@ -69,7 +69,9 @@ jobs:
           $unc="\\$env:COMPUTERNAME\obra-na-mao-desktop-commercial\DOCUMENTOS"
           Get-Item -LiteralPath $unc | Format-List * | Out-String | Set-Content "$base/evidence/share-before.txt"
           Get-Acl -LiteralPath $documents | Format-List | Out-String | Set-Content "$base/evidence/acl-before.txt"
-          $data=Join-Path $base 'data'
+          # Use the application's real default so shell-based relaunch does not
+          # depend on inheriting this step's custom environment variable.
+          $data=Join-Path $env:APPDATA 'obra-na-mao-comercial'
           New-Item -ItemType Directory -Force -Path $data | Out-Null
           "OBRA_NA_MAO_DATA_DIR=$data" >> $env:GITHUB_ENV
           "DOC_UNC=$unc" >> $env:GITHUB_ENV
@@ -99,7 +101,8 @@ jobs:
           if(-not $links.Count){throw 'Installer did not create a Start Menu shortcut'}
           foreach($link in $links){
             $s=$wsh.CreateShortcut($link.FullName)
-            $s.Arguments='--remote-debugging-port=9222 --inspect=9230'
+            # Separate ports avoid collisions/TIME_WAIT with the quitting app.
+            $s.Arguments='--remote-debugging-port=9223 --inspect=9231'
             if($env:SCENARIO -eq 'inside-stale-shortcut'){$s.TargetPath=(Get-ChildItem -LiteralPath $legacy -Filter 'Obra*Desktop.exe' -File | Select-Object -First 1).FullName}
             $s.Save()
           }
@@ -118,8 +121,9 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Original updater invocation failed; inspect evidence'}
           & ./scripts/ci/windows-installer-ui.ps1 -Evidence "$base/evidence"
           Start-Sleep -Seconds 10
-          node $driver snapshot "$base/evidence"
+          node $driver snapshot "$base/evidence" 9223
           if($LASTEXITCODE -ne 0){Write-Warning 'Automatic relaunch did not expose CDP; process and file evidence still collected.'}
+          exit 0
       - name: Collect real post-update state even if the app failed
         if: always()
         shell: pwsh
