@@ -232,9 +232,9 @@ async function refreshModuleCapabilitiesSafe() {
   }
 }
 
-async function assertRemoteStorageCapability() {
+async function assertRemoteStorageCapability({ allowExisting = false } = {}) {
   const session = await services.online.session()
-  if (session?.access?.advancedServer===true || session?.storageTopology?.mode==='remote') return
+  if (session?.access?.advancedServer===true || (allowExisting && session?.storageTopology?.mode==='remote' && session?.storageTopology?.serverId)) return session
   throw new Error('Servidor próprio exige o adicional comercial Advanced Server.')
 }
 
@@ -243,8 +243,6 @@ async function configureStorage(payload) {
   const requestedOperational = payload.operationalMode || (payload.mode === 'server' ? 'lan-client' : 'local')
   if (requestedOperational === 'remote' && (previous.operationalMode !== 'remote' || String(payload.host||previous.host)!==String(previous.host) || String(payload.port||previous.port)!==String(previous.port))) {
     await assertRemoteStorageCapability()
-    const session = await services.online.session()
-    if (session?.access?.advancedServer!==true && previous.operationalMode==='remote') throw new Error('Servidor remoto preexistente não pode ter o endereço alterado sem o adicional.')
   }
   if (previous.operationalMode === 'lan-host' && requestedOperational !== 'lan-host') await services.lanHost.stop()
   const state = services.storage.configure(payload)
@@ -270,8 +268,7 @@ async function connectStorageAddress(address, operationalMode = 'lan-client') {
   const previous = services.storage.state()
   let expectedServerId = null
   if (operationalMode === 'remote') {
-    await assertRemoteStorageCapability()
-    const session = await services.online.session()
+    const session = await assertRemoteStorageCapability({ allowExisting: true })
     if (session?.access?.advancedServer!==true) expectedServerId = String(session?.storageTopology?.serverId||'')||null
   }
   let rejectServerId = null
