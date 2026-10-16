@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [inside-canonical-standard, external-canonical-standard]
+        scenario: [inside-nested-standard]
     env:
       SCENARIO: ${{ matrix.scenario }}
     steps:
@@ -61,6 +61,7 @@ jobs:
           $exe=(Get-ChildItem -LiteralPath $install -Filter 'Obra*Desktop.exe' -File | Select-Object -First 1).FullName
           if(-not $exe){throw 'Installed executable missing'}
           $shareRoot=if($env:SCENARIO -like 'inside-*'){$install}else{Join-Path $base 'outside-program-directory'}
+          if($env:SCENARIO -like '*nested*'){$shareRoot=Join-Path $install 'shared-data'}
           $documents=Join-Path $shareRoot 'DOCUMENTOS'
           New-Item -ItemType Directory -Force -Path $documents | Out-Null
           Set-Content -LiteralPath (Join-Path $documents 'preserve-me.txt') -Value 'CANONICAL-DOCUMENT-SENTINEL-20261016' -NoNewline
