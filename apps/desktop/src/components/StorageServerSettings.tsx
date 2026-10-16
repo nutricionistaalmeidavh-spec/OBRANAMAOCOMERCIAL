@@ -50,6 +50,7 @@ function setupUiReducer(state:SetupUiState,action:SetupUiAction):SetupUiState{
 export default function StorageServerSettings({onMessage}:Props){
   const storage=useAsync(()=>window.fluxoDre.storage.state(),[])
   const online=useAsync(()=>window.fluxoDre.online.state(),[])
+  const serverLicense=useAsync(async()=>{try{const session=await window.fluxoDre.online.session();return{enabled:session?.access?.advancedServer===true,existingRemote:session?.storageTopology?.mode==='remote'}}catch{return{enabled:false,existingRemote:false}}},[])
   const storageApi=window.fluxoDre.storage
   const [modules,setModules]=useState<Record<ModuleKey,any>>({core:null,operation:null,planning:null,finance:null,rh:null,documents:null})
   const [attempts,setAttempts]=useState<Record<ModuleKey,any>>({core:null,operation:null,planning:null,finance:null,rh:null,documents:null})
@@ -145,6 +146,7 @@ export default function StorageServerSettings({onMessage}:Props){
       ?manualAddress.trim()!==storage.data.baseUrl
       :effectiveHost!==storage.data.host||form.port!==String(storage.data.port))
   )
+  const remoteAllowed=serverLicense.data?.enabled===true||serverLicense.data?.existingRemote===true||storage.data?.operationalMode==='remote'
   const isServerMode=form.operationalMode!=='local'
   const paired=!!lanStatus?.credential?.paired
   const isAdmin=lanStatus?.credential?.member?.role==='admin'
@@ -159,6 +161,7 @@ export default function StorageServerSettings({onMessage}:Props){
   },[setupReady])
 
   const changeMode=(mode:Mode)=>{
+    if(mode==='remote'&&!remoteAllowed){onMessage('Servidor próprio disponível somente com adicional contratado.');return}
     setManualProbe(null)
     setConnectionState('idle')
     if(mode!=='lan-client')setDiscoveredServers([])
@@ -215,6 +218,7 @@ export default function StorageServerSettings({onMessage}:Props){
   }
 
   const configureAndFinish=async()=>{
+    if(form.operationalMode==='remote'&&!remoteAllowed){onMessage('Servidor próprio disponível somente com adicional contratado.');return}
     setBusy(true)
     setProgress({stage:'saving',completed:0,total:MODULE_ORDER.length,message:isServerMode?'Preparando a fonte de dados...':'Salvando configuração local...'})
     try{
@@ -406,9 +410,10 @@ export default function StorageServerSettings({onMessage}:Props){
               <option value="local">Somente neste computador — uso individual</option>
               <option value="lan-host">Vários computadores — este é o computador principal</option>
               <option value="lan-client">Vários computadores — conectar a esta empresa</option>
-              <option value="remote">Acesso remoto avançado — servidor próprio</option>
+              {remoteAllowed&&<option value="remote">Acesso remoto avançado — servidor próprio</option>}
             </select>
           </Field>
+          {!remoteAllowed&&<small>Servidor próprio avançado é um adicional contratado à parte. Os modos locais continuam disponíveis.</small>}
 
           {form.operationalMode==='lan-host'&&<Field label="Porta"><input type="number" min="1" max="65535" value={form.port} onChange={event=>setForm({...form,port:event.target.value})}/></Field>}
 
