@@ -14,6 +14,46 @@ function registerFile(db:any,absolutePath:string){fs.mkdirSync(path.dirname(abso
 afterEach(()=>{vi.restoreAllMocks();for(const item of created.splice(0)){item.db.close();fs.rmSync(item.dir,{recursive:true,force:true})}})
 
 describe('DocumentRootService',()=>{
+  it('keeps the database and original network root when mkdir fails, then retries without migration',()=>{
+    const {dir,oldRoot,db,files}=setup()
+    const networkRoot=path.join(dir,'unavailable-share','DOCUMENTOS')
+    db.db.prepare("INSERT INTO configuracoes(chave,valor) VALUES (?,?)").run('documentos_pasta_raiz',networkRoot)
+    const originalMkdir=fs.mkdirSync
+    let connected=false
+    const mkdir=vi.spyOn(fs,'mkdirSync').mockImplementation(((directory:any,options:any)=>{
+      if(String(directory)===networkRoot&&!connected){
+        const error=Object.assign(new Error('Windows network share is not available'),{code:'UNKNOWN'})
+        throw error
+      }
+      return originalMkdir(directory,options)
+    }) as typeof fs.mkdirSync)
+    const service=new DocumentRootService({db,files,defaultDir:oldRoot})
+    expect(service.status()).toMatchObject({ready:false,configured:true,root:networkRoot,code:'UNKNOWN'})
+    expect(files.documentsDir).toBe(networkRoot)
+    expect(db.db.prepare("SELECT valor FROM configuracoes WHERE chave='documentos_pasta_raiz'").get()).toMatchObject({valor:networkRoot})
+    expect(db.list('funcionarios')).toEqual([])
+    connected=true
+    expect(service.retryRoot()).toMatchObject({ready:true,root:networkRoot})
+    expect(fs.existsSync(networkRoot)).toBe(true)
+    expect(db.db.prepare("SELECT valor FROM configuracoes WHERE chave='documentos_pasta_raiz'").get()).toMatchObject({valor:networkRoot})
+    mkdir.mockRestore()
+  })
+
+  it('does not silently fall back to a different root after a permission error',()=>{
+    const {dir,oldRoot,db,files}=setup()
+    const configuredRoot=path.join(dir,'protected-documents')
+    db.db.prepare("INSERT INTO configuracoes(chave,valor) VALUES (?,?)").run('documentos_pasta_raiz',configuredRoot)
+    const originalMkdir=fs.mkdirSync
+    const mkdir=vi.spyOn(fs,'mkdirSync').mockImplementation(((directory:any,options:any)=>{
+      if(String(directory)===configuredRoot)throw Object.assign(new Error('Access denied'),{code:'EACCES'})
+      return originalMkdir(directory,options)
+    }) as typeof fs.mkdirSync)
+    const service=new DocumentRootService({db,files,defaultDir:oldRoot})
+    expect(service.status()).toMatchObject({ready:false,root:configuredRoot,code:'EACCES'})
+    expect(service.getRoot()).toBe(configuredRoot)
+    mkdir.mockRestore()
+  })
+
   it('copia documentos e remapeia caminhos registrados preservando nome_original',async()=>{
     const {oldRoot,newRoot,db,files}=setup(),oldPath=path.join(oldRoot,'Empresa','Funcionários','Pessoa','arquivo.pdf'),record=registerFile(db,oldPath),dialogApi={showOpenDialog:vi.fn(async()=>({canceled:false,filePaths:[newRoot]})),showMessageBox:vi.fn(async()=>({response:0}))},service=new DocumentRootService({db,files,defaultDir:oldRoot,dialogApi,shellApi:{openPath:vi.fn()}});const result=await service.chooseRoot(),expected=path.join(newRoot,'Empresa','Funcionários','Pessoa','arquivo.pdf');expect(result).toMatchObject({path:newRoot,previous:oldRoot,remapped:1});expect(fs.readFileSync(expected,'utf8')).toBe('conteúdo registrado');const updated=db.get('arquivos',record.id);expect(updated.caminho).toBe(expected);expect(updated.nome_original).toBe('Nome recebido do cliente.pdf');expect(files.documentsDir).toBe(newRoot)
   })
