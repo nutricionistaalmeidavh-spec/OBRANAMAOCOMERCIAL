@@ -14,6 +14,11 @@ describe('configuração de dados e servidor',()=>{
     for(const text of ['Como sua empresa usa o Obra na Mão?','Somente neste computador — uso individual','Vários computadores — este é o computador principal','Vários computadores — conectar a esta empresa','Acesso remoto avançado — servidor próprio'])expect(source).toContain(text)
     expect(source).toContain('window.fluxoDre.storage.state()')
     expect(source).toContain('window.fluxoDre.storage.configure')
+    expect(storage).toContain('{remoteAllowed&&<option value="remote">')
+    expect(storage).toContain('advancedServer===true')
+    expect(storage).toContain('Atualizar licença')
+    expect(main).toContain('assertRemoteStorageCapability()')
+    expect(main).toContain('expectedServerId')
   })
 
   it('preserva discovery LAN, conexão manual, remote seguro e reconnect sem expor credenciais',()=>{
