@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [inside-stale-standard]
+        scenario: [inside-canonical-standard, external-canonical-standard]
     env:
       SCENARIO: ${{ matrix.scenario }}
     steps:
@@ -152,17 +152,22 @@ jobs:
           & ./scripts/ci/windows-installer-ui.ps1 -Evidence "$base/evidence" -HoldBeforeRun
           $credential=[pscredential]::new($env:CI_STD_USER,(ConvertTo-SecureString $env:CI_STD_PASSWORD -AsPlainText -Force))
           $legacy=Join-Path $base 'legacy-1.0.18'
-          $legacyExe=(Get-ChildItem -LiteralPath $legacy -Filter 'Obra*Desktop.exe' -File | Select-Object -First 1).FullName
+          $probeApp=if($env:SCENARIO -like '*stale*'){$legacy}else{Split-Path $env:INSTALL_EXE}
+          $legacyExe=(Get-ChildItem -LiteralPath $probeApp -Filter 'Obra*Desktop.exe' -File | Select-Object -First 1).FullName
           $probeCommand=@"
           @echo off
           chcp 65001 >nul
           set ELECTRON_RUN_AS_NODE=1
-          "$legacyExe" "$base/startup-permissions.cjs" "$legacy/resources/app.asar" "$env:OBRA_NA_MAO_DATA_DIR/fluxo-dre.sqlite" "$base/evidence/standard-after.json" after-update
+          "$legacyExe" "$base/startup-permissions.cjs" "$probeApp/resources/app.asar" "$env:OBRA_NA_MAO_DATA_DIR/fluxo-dre.sqlite" "$base/evidence/standard-after.json" after-update
           "@
           $probeCommand | Set-Content "$base/standard-after.cmd" -Encoding utf8NoBOM
           $probe=Start-Process $env:ComSpec -ArgumentList @('/d','/c',"`"$base/standard-after.cmd`"") -Credential $credential -LoadUserProfile -WorkingDirectory $base -PassThru -RedirectStandardOutput "$base/evidence/standard-after.log" -RedirectStandardError "$base/evidence/standard-after-error.log"
           if(-not $probe.WaitForExit(60000)){throw 'Limited-user post-update probe timed out'}
           Get-Content "$base/evidence/standard-after.json"
+          $after=Get-Content "$base/evidence/standard-after.json" -Raw | ConvertFrom-Json
+          if($after.identity -ne $env:CI_STD_USER.ToLower()){throw 'Startup probe did not run as the intended standard user'}
+          $expected=if($env:SCENARIO -like 'inside-*'){'startup-failed'}else{'ready-and-writable'}
+          if($after.status -ne $expected){throw "Regression/control mismatch: expected $expected, observed $($after.status)"}
           $fullCommand=@"
           @echo off
           chcp 65001 >nul
@@ -174,6 +179,11 @@ jobs:
           Start-Process $env:ComSpec -ArgumentList @('/d','/c',"`"$base/standard-full-app.cmd`"") -Credential $credential -LoadUserProfile -WorkingDirectory $base -RedirectStandardOutput "$base/evidence/standard-full-app.log" -RedirectStandardError "$base/evidence/standard-full-app-error.log" | Out-Null
           node $driver snapshot "$base/evidence" 9224
           if($LASTEXITCODE -ne 0){Write-Warning 'Limited-user GUI snapshot unavailable; real startup-service probe retained.'}
+          else {
+            $snapshot=Get-Content "$base/evidence/snapshot.json" -Raw | ConvertFrom-Json
+            if($env:SCENARIO -like 'inside-*' -and $snapshot.details -notmatch 'DocumentRootService'){throw 'Expected genuine document-root startup failure in full installed application'}
+            if($env:SCENARIO -notlike 'inside-*' -and $snapshot.bootstrap.version -ne '2.1.1'){throw 'External-document control must boot the updated application'}
+          }
           exit 0
       - name: Collect real post-update state even if the app failed
         if: always()

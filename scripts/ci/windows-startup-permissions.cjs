@@ -8,7 +8,7 @@ const [asar,databasePath,output,phase]=process.argv.slice(2);
 const originalLoad=Module._load;
 Module._load=function(request,parent,isMain){if(request==='electron')return {dialog:{},shell:{}};return originalLoad.call(this,request,parent,isMain);};
 let db;
-const result={phase,user:process.env.USERNAME,node:process.version,asar,databasePath};
+const result={phase,identity:require('node:child_process').execFileSync('whoami.exe',[],{encoding:'utf8'}).trim(),inheritedUsername:process.env.USERNAME,node:process.version,asar,databasePath};
 try {
   const Database=require(path.join(asar,'node_modules','better-sqlite3'));
   db=new Database(databasePath,{readonly:true,fileMustExist:true});
