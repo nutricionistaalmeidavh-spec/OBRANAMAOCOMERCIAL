@@ -4,7 +4,7 @@ import { getCompany } from './project-state'
 export const LICENSE_MODULES=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'] as const
 export const LICENSE_CHANNELS=['desktop','mobile'] as const
 export type LicenseStatus='active'|'revoked'
-export type License={id?:string;email?:string;code:string;modules:string[];channels:string[];status:LicenseStatus;expiresAt?:string;claimedBy?:string;companyId?:string;note?:string;plan?:string;maxUsers?:number;maxProjects?:number;maxDevices?:number;version?:number;createdAt:string;updatedAt:string}
+export type License={id?:string;email?:string;code:string;modules:string[];channels:string[];status:LicenseStatus;expiresAt?:string;claimedBy?:string;companyId?:string;note?:string;plan?:string;maxUsers?:number;maxProjects?:number;maxDevices?:number;advancedServer?:boolean;version?:number;createdAt:string;updatedAt:string}
 export type LicenseMutationActor={source:'manual'|'billing'|'system';userId?:string;email?:string;orderId?:string}
 export type LicenseEnv={DB:D1Database}
 export class LicenseConflictError extends Error{constructor(){super('Licença alterada concorrentemente. Tente novamente.');this.name='LicenseConflictError'}}
