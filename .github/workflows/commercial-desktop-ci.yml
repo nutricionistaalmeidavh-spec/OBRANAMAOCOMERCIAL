@@ -6,7 +6,7 @@ permissions:
 env:
   # Release freeze: CI/build/artifacts continue, but no GitHub Release is published
   # automatically from main while this flag is false.
-  DESKTOP_AUTO_RELEASE_ENABLED: 'false'
+  DESKTOP_AUTO_RELEASE_ENABLED: 'true'
 
 on:
   push:
