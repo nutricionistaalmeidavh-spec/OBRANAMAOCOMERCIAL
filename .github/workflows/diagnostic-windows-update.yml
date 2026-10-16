@@ -1,0 +1,165 @@
+name: Diagnostic Windows update reproduction
+on:
+  push:
+    branches: ['diagnostic/windows-update-reproduction-20261016']
+    paths: ['.github/workflows/diagnostic-windows-update.yml', 'scripts/ci/windows-update-cdp.cjs']
+permissions:
+  contents: read
+jobs:
+  reproduce:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [external-canonical, inside-canonical, inside-stale-shortcut]
+    env:
+      SCENARIO: ${{ matrix.scenario }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+      - name: Download and verify official release fixtures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base=Join-Path $env:RUNNER_TEMP 'obra-update-ci'
+          New-Item -ItemType Directory -Force -Path $base | Out-Null
+          "CI_BASE=$base" >> $env:GITHUB_ENV
+          $release=Join-Path $base 'release'
+          $evidence=Join-Path $base 'evidence'
+          New-Item -ItemType Directory -Force -Path $release,$evidence | Out-Null
+          foreach($version in @('1.0.18','2.0.0','2.1.1')) {
+            $url="https://github.com/${{ github.repository }}/releases/download/desktop-commercial-v$version"
+            Invoke-WebRequest "$url/Obra-na-Mao-Desktop-Setup-$version.exe" -OutFile "$release/Obra-na-Mao-Desktop-Setup-$version.exe"
+          }
+          Invoke-WebRequest "https://github.com/${{ github.repository }}/releases/download/desktop-commercial-v2.1.1/latest.yml" -OutFile "$release/latest.yml"
+          $expected='PGdPKYdJ2849GlHjUwAZ3uZ9Oe1ff27NMpvgTwz+InYN2d5CidPnnp4KNumQ2hDVoFOAYoJzdx/UrXbaddDjyw=='
+          $actual=[Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData([IO.File]::ReadAllBytes("$release/Obra-na-Mao-Desktop-Setup-2.1.1.exe")))
+          if($actual -ne $expected){throw 'Published installer hash mismatch'}
+          Get-FileHash "$release/*.exe" | Format-Table | Out-String | Set-Content "$evidence/installer-hashes.txt"
+      - name: Install baseline and prepare a real SMB document fixture
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base=$env:CI_BASE
+          $install=Join-Path $env:ProgramFiles 'ObraUpdateCI\obra-na-mao-desktop-commercial'
+          $legacy=Join-Path $base 'legacy-1.0.18'
+          $installer="$base/release/Obra-na-Mao-Desktop-Setup-1.0.18.exe"
+          $p=Start-Process $installer -ArgumentList @('/S','/allusers',"/D=$install") -PassThru -Wait
+          if($p.ExitCode -ne 0){throw "Baseline installer failed: $($p.ExitCode)"}
+          if($env:SCENARIO -eq 'inside-stale-shortcut'){Copy-Item -LiteralPath $install -Destination $legacy -Recurse}
+          $p=Start-Process "$base/release/Obra-na-Mao-Desktop-Setup-2.0.0.exe" -ArgumentList @('/S','/allusers',"/D=$install") -PassThru -Wait
+          if($p.ExitCode -ne 0){throw "2.0.0 preparation failed: $($p.ExitCode)"}
+          $exe=(Get-ChildItem -LiteralPath $install -Filter 'Obra*Desktop.exe' -File | Select-Object -First 1).FullName
+          if(-not $exe){throw 'Installed executable missing'}
+          $shareRoot=if($env:SCENARIO -like 'inside-*'){$install}else{Join-Path $base 'outside-program-directory'}
+          $documents=Join-Path $shareRoot 'DOCUMENTOS'
+          New-Item -ItemType Directory -Force -Path $documents | Out-Null
+          Set-Content -LiteralPath (Join-Path $documents 'preserve-me.txt') -Value 'CANONICAL-DOCUMENT-SENTINEL-20261016' -NoNewline
+          $identity=[Security.Principal.WindowsIdentity]::GetCurrent().Name
+          New-SmbShare -Name 'obra-na-mao-desktop-commercial' -Path $shareRoot -FullAccess $identity | Out-Null
+          $unc="\\$env:COMPUTERNAME\obra-na-mao-desktop-commercial\DOCUMENTOS"
+          Get-Item -LiteralPath $unc | Format-List * | Out-String | Set-Content "$base/evidence/share-before.txt"
+          Get-Acl -LiteralPath $documents | Format-List | Out-String | Set-Content "$base/evidence/acl-before.txt"
+          $data=Join-Path $base 'data'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          "OBRA_NA_MAO_DATA_DIR=$data" >> $env:GITHUB_ENV
+          "DOC_UNC=$unc" >> $env:GITHUB_ENV
+          "DOC_PHYSICAL=$documents" >> $env:GITHUB_ENV
+          "INSTALL_EXE=$exe" >> $env:GITHUB_ENV
+          $env:FIXTURE_DATA=$data
+          $env:FIXTURE_ROOT=$unc
+          @'
+          import sqlite3,subprocess,pathlib,os
+          db=sqlite3.connect(pathlib.Path(os.environ['FIXTURE_DATA'])/'fluxo-dre.sqlite')
+          tag='desktop-commercial-v2.0.0'
+          files=subprocess.check_output(['git','ls-tree','-r','--name-only',tag,'apps/desktop/database/migrations'],text=True).splitlines()
+          for file in sorted(files):
+              if not file.endswith('.sql'):continue
+              version=int(pathlib.PurePosixPath(file).name.split('_')[0])
+              db.executescript(subprocess.check_output(['git','show',tag+':'+file],text=True,encoding='utf-8'))
+              db.execute('INSERT OR IGNORE INTO migrations(id,name) VALUES(?,?)',(version,pathlib.PurePosixPath(file).name))
+              db.execute('PRAGMA user_version='+str(version))
+          db.execute("INSERT INTO empresas(razao_social,nome_fantasia) VALUES('CI PRESERVATION COMPANY','CI PRESERVATION COMPANY')")
+          db.execute("INSERT INTO configuracoes(chave,valor) VALUES('documentos_pasta_raiz',?)",(os.environ['FIXTURE_ROOT'],))
+          db.commit();db.close()
+          '@ | python -
+          if($LASTEXITCODE -ne 0){throw 'SQLite fixture creation failed'}
+          $wsh=New-Object -ComObject WScript.Shell
+          $menu=[Environment]::GetFolderPath('CommonPrograms')
+          $links=@(Get-ChildItem -LiteralPath $menu -Recurse -Filter 'Obra*.lnk')
+          if(-not $links.Count){throw 'Installer did not create a Start Menu shortcut'}
+          foreach($link in $links){
+            $s=$wsh.CreateShortcut($link.FullName)
+            $s.Arguments='--remote-debugging-port=9222 --inspect=9230'
+            if($env:SCENARIO -eq 'inside-stale-shortcut'){$s.TargetPath=(Get-ChildItem -LiteralPath $legacy -Filter 'Obra*Desktop.exe' -File | Select-Object -First 1).FullName}
+            $s.Save()
+          }
+          $links | ForEach-Object {$s=$wsh.CreateShortcut($_.FullName);[pscustomobject]@{link=$_.FullName;target=$s.TargetPath;arguments=$s.Arguments}} | ConvertTo-Json | Set-Content "$base/evidence/shortcuts-before.json"
+      - name: Invoke the original updater through the same IPC as the button
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base=$env:CI_BASE
+          $driver=Join-Path $PWD 'scripts/ci/windows-update-cdp.cjs'
+          Start-Process node -ArgumentList @($driver,'serve',"$base/release") -RedirectStandardOutput "$base/evidence/server.log" -RedirectStandardError "$base/evidence/server-error.log" | Out-Null
+          $env:OBRA_NA_MAO_DATA_DIR=$env:OBRA_NA_MAO_DATA_DIR
+          $env:ELECTRON_ENABLE_LOGGING='1'
+          Start-Process -FilePath $env:INSTALL_EXE -ArgumentList @('--remote-debugging-port=9222','--inspect=9230') -RedirectStandardOutput "$base/evidence/old-app.log" -RedirectStandardError "$base/evidence/old-app-error.log" | Out-Null
+          node $driver update "$base/evidence"
+          if($LASTEXITCODE -ne 0){throw 'Original updater invocation failed; inspect evidence'}
+          Start-Sleep -Seconds 45
+          node $driver snapshot "$base/evidence"
+          if($LASTEXITCODE -ne 0){Write-Warning 'Automatic relaunch did not expose CDP; process and file evidence still collected.'}
+      - name: Collect real post-update state even if the app failed
+        if: always()
+        shell: pwsh
+        run: |
+          $base=$env:CI_BASE
+          if(-not $base){exit 0}
+          $out=Join-Path $base 'evidence'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Get-CimInstance Win32_Process | Where-Object {$_.Name -like 'Obra*Desktop.exe'} | Select-Object ProcessId,ExecutablePath,CommandLine | ConvertTo-Json | Set-Content "$out/processes-after.json"
+          Get-SmbShare -Name 'obra-na-mao-desktop-commercial' -ErrorAction SilentlyContinue | Select-Object Name,Path | ConvertTo-Json | Set-Content "$out/share-after.json"
+          $checks=foreach($p in @($env:DOC_PHYSICAL,$env:DOC_UNC)){
+            if(-not $p){continue}
+            $sentinel=Join-Path $p 'preserve-me.txt'
+            try{$hash=(Get-FileHash -LiteralPath $sentinel -ErrorAction Stop).Hash;[pscustomobject]@{root=$p;documentPreserved=$true;hash=$hash}}
+            catch{[pscustomobject]@{root=$p;documentPreserved=$false;error=$_.Exception.Message}}
+          }
+          $checks | ConvertTo-Json | Set-Content "$out/document-preservation.json"
+          $menu=[Environment]::GetFolderPath('CommonPrograms')
+          $wsh=New-Object -ComObject WScript.Shell
+          Get-ChildItem -LiteralPath $menu -Recurse -Filter 'Obra*.lnk' | ForEach-Object {$s=$wsh.CreateShortcut($_.FullName);[pscustomobject]@{link=$_.FullName;target=$s.TargetPath;arguments=$s.Arguments}} | ConvertTo-Json | Set-Content "$out/shortcuts-after.json"
+          $executables=@()
+          foreach($dir in @((Split-Path $env:INSTALL_EXE), (Join-Path $env:LOCALAPPDATA 'Programs\obra-na-mao-desktop-commercial'),(Join-Path $base 'legacy-1.0.18'))){
+            if($dir -and (Test-Path -LiteralPath $dir)){$executables+=Get-ChildItem -LiteralPath $dir -Filter 'Obra*Desktop.exe' -File | Select-Object FullName,@{n='version';e={$_.VersionInfo.ProductVersion}}}
+          }
+          $executables | ConvertTo-Json | Set-Content "$out/executables-after.json"
+          $env:FIXTURE_DATA=$env:OBRA_NA_MAO_DATA_DIR
+          @'
+          import sqlite3,os,pathlib,json
+          root=os.environ.get('FIXTURE_DATA')
+          if root:
+              file=pathlib.Path(root)/'fluxo-dre.sqlite'
+              if file.exists():
+                  db=sqlite3.connect(file.as_uri()+'?mode=ro',uri=True)
+                  data={'integrity':db.execute('PRAGMA integrity_check').fetchall(),'companies':db.execute('SELECT razao_social FROM empresas').fetchall(),'documentRoot':db.execute("SELECT valor FROM configuracoes WHERE chave='documentos_pasta_raiz'").fetchall(),'schema':db.execute('PRAGMA user_version').fetchone()}
+                  (pathlib.Path(os.environ['CI_BASE'])/'evidence'/'database-after.json').write_text(json.dumps(data,indent=2),encoding='utf-8')
+                  db.close()
+          '@ | python -
+          Get-Content "$out/document-preservation.json"
+          if(Test-Path "$out/snapshot.json"){Get-Content "$out/snapshot.json"}
+          exit 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: update-reproduction-${{ matrix.scenario }}
+          path: ${{ runner.temp }}/obra-update-ci/evidence/
+          retention-days: 14
+          if-no-files-found: warn
