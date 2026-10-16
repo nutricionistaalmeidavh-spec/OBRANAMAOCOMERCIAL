@@ -1,6 +1,16 @@
 # Desktop Windows — releases
 
-## Atual — v2.1.1
+## Atual — v2.1.2
+
+- Instalador oficial: [Obra-na-Mao-Desktop-Setup-2.1.2.exe](https://github.com/nutricionistaalmeidavh-spec/OBRANAMAOCOMERCIAL/releases/download/desktop-commercial-v2.1.2/Obra-na-Mao-Desktop-Setup-2.1.2.exe)
+- GitHub Release: https://github.com/nutricionistaalmeidavh-spec/OBRANAMAOCOMERCIAL/releases/tag/desktop-commercial-v2.1.2
+- Versão oficial mais recente verificada com `latest.yml`, `.exe` e `.blockmap` publicados.
+- Hotfix: uma pasta documental UNC temporariamente inacessível não impede o Desktop de abrir; exibe aviso e oferece reconexão explícita.
+- Preserva a raiz configurada, documentos registrados e banco local: não cria fallback documental nem troca caminhos silenciosamente.
+- Instalação de recuperação: fechar o aplicativo, executar instalador 2.1.2 sobre a versão existente, sem desinstalar nem excluir dados.
+- Testes Windows, macOS, Cloudflare e F31 concluídos com sucesso; publicação pontual, mantendo `DESKTOP_AUTO_RELEASE_ENABLED=false`.
+
+## Anterior — v2.1.1
 
 - Instalador oficial: [Obra-na-Mao-Desktop-Setup-2.1.1.exe](https://github.com/nutricionistaalmeidavh-spec/OBRANAMAOCOMERCIAL/releases/download/desktop-commercial-v2.1.1/Obra-na-Mao-Desktop-Setup-2.1.1.exe)
 - GitHub Release: https://github.com/nutricionistaalmeidavh-spec/OBRANAMAOCOMERCIAL/releases/tag/desktop-commercial-v2.1.1
