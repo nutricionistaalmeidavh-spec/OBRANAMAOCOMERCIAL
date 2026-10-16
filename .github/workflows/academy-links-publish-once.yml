@@ -71,7 +71,7 @@ jobs:
               assert.equal(links.status,200,'ArtiSys links HTTP');
               const html=await links.text();
               assert.match(html,/data-link-id="academy"/,'Academy link not live');
-              assert.match(html,/href="\\/academy"/,'Academy link destination');
+              assert.ok(html.includes('href="/academy"'),'Academy link destination');
               const academy=await fetch(origin+'/academy/api/health',{signal:AbortSignal.timeout(12000)});
               assert.equal(academy.status,200,'Academy health HTTP');
               const payload=await academy.json();
