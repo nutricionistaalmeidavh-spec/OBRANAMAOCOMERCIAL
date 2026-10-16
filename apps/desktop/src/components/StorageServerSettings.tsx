@@ -413,7 +413,7 @@ export default function StorageServerSettings({onMessage}:Props){
               {remoteAllowed&&<option value="remote">Acesso remoto avançado — servidor próprio</option>}
             </select>
           </Field>
-          {!remoteAllowed&&<small>Servidor próprio avançado é um adicional contratado à parte. Os modos locais continuam disponíveis.</small>}
+          {!remoteAllowed&&<div className="setting-actions"><small>Servidor próprio avançado é um adicional contratado à parte. Os modos locais continuam disponíveis.</small><Button type="button" variant="ghost" onClick={()=>void serverLicense.reload()}>Atualizar licença</Button></div>}
 
           {form.operationalMode==='lan-host'&&<Field label="Porta"><input type="number" min="1" max="65535" value={form.port} onChange={event=>setForm({...form,port:event.target.value})}/></Field>}
 
