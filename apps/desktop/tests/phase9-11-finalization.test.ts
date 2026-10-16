@@ -23,10 +23,10 @@ describe('phases 9-11 final release contract',()=>{
     expect(workflow).toContain('windows-latest')
   })
 
-  it('builds a distinct manual v2.1.0 installer without publishing an update',()=>{
+  it('builds a distinct manual v2.1.1 installer without publishing an update',()=>{
     const pkg=JSON.parse(read('apps/desktop/package.json'))
     const ci=read('.github/workflows/commercial-desktop-ci.yml')
-    expect(pkg.version).toBe('2.1.0')
+    expect(pkg.version).toBe('2.1.1')
     expect(pkg.scripts.dist).toContain('--publish never')
     expect(ci).toContain("DESKTOP_AUTO_RELEASE_ENABLED: 'false'")
     expect(ci).toContain("env.DESKTOP_AUTO_RELEASE_ENABLED == 'true'")
