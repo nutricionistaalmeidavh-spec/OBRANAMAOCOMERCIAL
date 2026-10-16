@@ -6,7 +6,7 @@ permissions:
 env:
   # Release freeze: CI/build/artifacts continue, but no GitHub Release is published
   # automatically from main while this flag is false.
-  DESKTOP_AUTO_RELEASE_ENABLED: 'true'
+  DESKTOP_AUTO_RELEASE_ENABLED: 'false'
 
 on:
   push:
@@ -82,7 +82,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
       - name: Publish GitHub release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.DESKTOP_AUTO_RELEASE_ENABLED == 'true'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (env.DESKTOP_AUTO_RELEASE_ENABLED == 'true' || (contains(github.event.head_commit.message, '[publish-desktop-v2.1.1]') && env.DESKTOP_VERSION == '2.1.1'))
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
