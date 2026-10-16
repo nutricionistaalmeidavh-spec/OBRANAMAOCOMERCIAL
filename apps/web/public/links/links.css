@@ -101,23 +101,12 @@ h1 em { font-style: normal; color: var(--purple); }
 }
 .card-feature .card-icon { background: #a468f933; color: #f4e5ff; }
 .card-feature .card-kicker { color: #e2beff; }
+.card-site { background: linear-gradient(112deg, #241735, #171228 82%); }
+.card-site .card-icon { background: #472b73; color: #e5ccff; }
 .card-systems { background: linear-gradient(112deg, #211638, #17122a 82%); }
 .card-systems .card-icon { background: #472b73; color: #e5ccff; }
 .card-developer { background: linear-gradient(112deg, #19132f, #141529 80%); }
 .card-developer .card-icon { background: #3f3883; color: #dcd9ff; }
-.card-free {
-  color: var(--ink); border-color: #eee4ff;
-  background: linear-gradient(120deg, #f6f1ff, #e7def8);
-  box-shadow: 0 10px 32px #03010a42;
-}
-.card-free .card-icon { color: #6732b0; background: #e0d0f7; }
-.card-free .card-kicker { color: #68458e; }
-.card-free .card-copy small { color: #544663; }
-.card-free .card-arrow { border-color: #b6a3d0; }
-.card-free:hover { border-color: #d6b8ff; }
-.card-free:hover .card-arrow { background: #d6c6ed; }
-.card-contact { background: #1c132d; border-color: #634576; }
-.card-contact .card-icon { color: #d6b0ff; background: #3b2055; }
 .secondary { margin-top: 36px; }
 .secondary-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
 .secondary-link {
