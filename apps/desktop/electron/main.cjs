@@ -361,6 +361,8 @@ function registerIpc() {
   ipcMain.handle('files:open-folder', envelope(() => services.documentRoot.openRoot()))
   ipcMain.handle('files:choose-root', envelope(() => services.documentRoot.chooseRoot()))
   ipcMain.handle('files:get-root', envelope(() => services.documentRoot.getRoot()))
+  ipcMain.handle('files:root-status', envelope(() => services.documentRoot.status()))
+  ipcMain.handle('files:retry-root', envelope(() => services.documentRoot.retryRoot()))
   ipcMain.handle('explorer:list', envelope((payload) => services.explorer.list(payload)))
   ipcMain.handle('explorer:preview', envelope((payload) => services.explorer.preview(payload)))
   ipcMain.handle('explorer:open', envelope((payload) => services.explorer.open(payload)))

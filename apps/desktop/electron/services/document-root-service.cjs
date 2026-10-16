@@ -21,7 +21,9 @@ class DocumentRootService {
     this.shell = shellApi
     const configured = this.getConfigured()
     this.files.documentsDir = configured || defaultDir
-    fs.mkdirSync(this.files.documentsDir, { recursive: true })
+    this.rootHealth = { ready: true, code: null, message: null }
+    // A pasta de rede pode ficar indisponível entre sessões: não bloquear o banco nem trocar silenciosamente a origem dos documentos.
+    this.retryRoot()
   }
 
   getConfigured() {
@@ -29,6 +31,25 @@ class DocumentRootService {
   }
 
   getRoot() { return this.files.documentsDir }
+
+  status() {
+    return { root: this.getRoot(), configured: Boolean(this.getConfigured()), ...this.rootHealth }
+  }
+
+  retryRoot() {
+    const root = this.getRoot()
+    try {
+      fs.mkdirSync(root, { recursive: true })
+      fs.accessSync(root, fs.constants.R_OK | fs.constants.W_OK)
+      this.rootHealth = { ready: true, code: null, message: null }
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause))
+      this.rootHealth = { ready: false, code: error.code || 'UNAVAILABLE', message: 'A pasta de documentos está indisponível. Reconecte a unidade de rede ou escolha uma pasta que contenha os documentos registrados.' }
+      // A fonte documental continua apontando para a raiz original; sem fallback ou modificação dos registros.
+      console.warn('Pasta documental indisponível:', root, this.rootHealth.code)
+    }
+    return this.status()
+  }
 
   mirrorStructure(root) {
     fs.mkdirSync(root, { recursive: true })
@@ -94,6 +115,7 @@ class DocumentRootService {
       this.db.db.prepare(`INSERT INTO configuracoes(chave,valor) VALUES (?,?) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor,updated_at=CURRENT_TIMESTAMP`).run(KEY, selected)
     })()
     this.files.documentsDir = selected
+    this.rootHealth = { ready: true, code: null, message: null }
     this.mirrorStructure(selected)
     return { path: selected, previous, remapped: mappings.length }
   }

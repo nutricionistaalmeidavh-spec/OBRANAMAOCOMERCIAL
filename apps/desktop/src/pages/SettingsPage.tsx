@@ -17,6 +17,7 @@ function SettingsGroup({title,description,children}:{title:string;description:st
 
 export default function SettingsPage(){
   const boot=useAsync(()=>window.fluxoDre.app.bootstrap(),[])
+  const documentRootHealth=useAsync(()=>window.fluxoDre.documentos.rootStatus(),[])
   const online=useAsync(()=>window.fluxoDre.online.state(),[])
   const [message,setMessage]=useState('')
   const [onlineUrl,setOnlineUrl]=useState('')
@@ -64,8 +65,9 @@ export default function SettingsPage(){
       <Card className="setting-card setting-card-wide">
         <FolderCog size={21}/>
         <div className="setting-card-copy"><h3>Pasta da documentação</h3><p className="path-text">{boot.data?.documentsPath||'Carregando localização...'}</p></div>
-        <div className="setting-actions"><Button onClick={()=>action(()=>window.fluxoDre.documentos.chooseRoot(),'Pasta definida e estrutura espelhada.')}>Escolher pasta</Button><Button variant="secondary" icon={<FolderOpen size={15}/>} onClick={()=>window.fluxoDre.documentos.openFolder()}>Abrir</Button></div>
-        <small>Todas as empresas, colaboradores e subpastas são criados neste local.</small>
+        <div className="setting-actions"><Button onClick={async()=>{setMessage('Verificando documentos registrados antes de alterar o local...');try{const result=await window.fluxoDre.documentos.chooseRoot();await documentRootHealth.reload();await boot.reload();setMessage(result?'Pasta atualizada com registros preservados.':'Alteração cancelada; arquivos e caminho anterior preservados.')}catch(error:any){setMessage(error.message||'Não foi possível alterar a pasta. Os registros foram preservados.')}}}>Escolher pasta</Button><Button variant="secondary" icon={<FolderOpen size={15}/>} onClick={()=>window.fluxoDre.documentos.openFolder()}>Abrir</Button></div>
+        <small>Todas as empresas, colaboradores e subpastas são criados neste local. Se a unidade de rede estiver desligada, o sistema não troca automaticamente a origem dos arquivos.</small>
+        {documentRootHealth.data?.ready===false&&<div className="settings-feedback" role="alert"><strong>Pasta indisponível.</strong> O sistema permanece acessível, mas documentos dessa origem precisam da conexão. Após reconectar a rede, clique em <Button variant="secondary" onClick={async()=>{try{const state=await window.fluxoDre.documentos.retryRoot();await documentRootHealth.reload();setMessage(state.ready?'Pasta reconectada com sucesso.':'Pasta continua indisponível. Verifique o compartilhamento e as permissões.')}catch(error:any){setMessage(error.message)}}}>Verificar novamente</Button>. A troca de pasta só será concluída se os documentos registrados forem validados.</div>}
       </Card>
       <Card className="setting-card setting-card-compact"><DatabaseBackup size={21}/><div className="setting-card-copy"><h3>Backup manual</h3><p>Cria uma cópia consistente do SQLite em uma pasta escolhida.</p></div><Button onClick={()=>action(()=>window.fluxoDre.backup.create(),'Backup criado com sucesso.')}>Criar backup</Button></Card>
       <Card className="setting-card setting-card-compact"><RotateCcw size={21}/><div className="setting-card-copy"><h3>Restaurar banco</h3><p>Cria uma cópia de segurança antes de substituir o banco atual.</p></div><Button variant="secondary" onClick={()=>action(()=>window.fluxoDre.backup.restore(),'Banco restaurado. Reinicie o aplicativo.')}>Restaurar</Button></Card>
