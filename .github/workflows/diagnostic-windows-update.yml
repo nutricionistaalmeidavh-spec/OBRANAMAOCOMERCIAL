@@ -2,9 +2,12 @@ name: Diagnostic Windows update reproduction
 on:
   push:
     branches: ['diagnostic/windows-update-reproduction-20261016']
-    paths: ['.github/workflows/diagnostic-windows-update.yml', 'scripts/ci/windows-update-cdp.cjs']
+    paths: ['.github/workflows/diagnostic-windows-update.yml', 'scripts/ci/windows-update-cdp.cjs', 'scripts/ci/windows-installer-ui.ps1']
 permissions:
   contents: read
+concurrency:
+  group: diagnostic-windows-update-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   reproduce:
     runs-on: windows-latest
@@ -113,7 +116,8 @@ jobs:
           Start-Process -FilePath $env:INSTALL_EXE -ArgumentList @('--remote-debugging-port=9222','--inspect=9230') -RedirectStandardOutput "$base/evidence/old-app.log" -RedirectStandardError "$base/evidence/old-app-error.log" | Out-Null
           node $driver update "$base/evidence"
           if($LASTEXITCODE -ne 0){throw 'Original updater invocation failed; inspect evidence'}
-          Start-Sleep -Seconds 45
+          & ./scripts/ci/windows-installer-ui.ps1 -Evidence "$base/evidence"
+          Start-Sleep -Seconds 10
           node $driver snapshot "$base/evidence"
           if($LASTEXITCODE -ne 0){Write-Warning 'Automatic relaunch did not expose CDP; process and file evidence still collected.'}
       - name: Collect real post-update state even if the app failed
@@ -124,7 +128,7 @@ jobs:
           if(-not $base){exit 0}
           $out=Join-Path $base 'evidence'
           New-Item -ItemType Directory -Force -Path $out | Out-Null
-          Get-CimInstance Win32_Process | Where-Object {$_.Name -like 'Obra*Desktop.exe'} | Select-Object ProcessId,ExecutablePath,CommandLine | ConvertTo-Json | Set-Content "$out/processes-after.json"
+          Get-CimInstance Win32_Process | Where-Object {$_.Name -like 'Obra*.exe' -or $_.Name -eq 'installer.exe'} | Select-Object ProcessId,ExecutablePath,CommandLine | ConvertTo-Json | Set-Content "$out/processes-after.json"
           Get-SmbShare -Name 'obra-na-mao-desktop-commercial' -ErrorAction SilentlyContinue | Select-Object Name,Path | ConvertTo-Json | Set-Content "$out/share-after.json"
           $checks=foreach($p in @($env:DOC_PHYSICAL,$env:DOC_UNC)){
             if(-not $p){continue}
