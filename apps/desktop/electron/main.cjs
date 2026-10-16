@@ -232,9 +232,16 @@ async function refreshModuleCapabilitiesSafe() {
   }
 }
 
+async function assertRemoteStorageCapability() {
+  const session = await services.online.session()
+  if (session?.access?.advancedServer===true || session?.storageTopology?.mode==='remote') return
+  throw new Error('Servidor próprio exige o adicional comercial Advanced Server.')
+}
+
 async function configureStorage(payload) {
   const previous = services.storage.state()
   const requestedOperational = payload.operationalMode || (payload.mode === 'server' ? 'lan-client' : 'local')
+  if (requestedOperational === 'remote' && previous.operationalMode !== 'remote') await assertRemoteStorageCapability()
   if (previous.operationalMode === 'lan-host' && requestedOperational !== 'lan-host') await services.lanHost.stop()
   const state = services.storage.configure(payload)
   if (state.operationalMode === 'lan-host') {
@@ -257,6 +264,7 @@ async function completeCanonicalStorage(result = {}, options = {}) {
 
 async function connectStorageAddress(address, operationalMode = 'lan-client') {
   const previous = services.storage.state()
+  if (operationalMode === 'remote' && previous.operationalMode !== 'remote') await assertRemoteStorageCapability()
   let rejectServerId = null
   if (previous.operationalMode === 'lan-host') {
     try {
