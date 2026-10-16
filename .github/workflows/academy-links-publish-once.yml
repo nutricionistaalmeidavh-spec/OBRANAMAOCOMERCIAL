@@ -1,0 +1,86 @@
+name: Publish Academy link once
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/academy-links-publish-once.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/academy-links-publish-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run qa:admin-parity
+      - run: npm test -- --run src/links-page.test.ts
+      - run: npm run build
+      - run: npx wrangler deploy --dry-run --config wrangler.ci.jsonc
+
+  publish-once:
+    needs: validate
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[academy-links-publish-once]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require existing Cloudflare deployment credentials
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Existing Cloudflare deploy credentials unavailable in GitHub Actions. No production change performed."
+            exit 1
+          fi
+      - run: npm ci --no-audit --no-fund
+      - name: Publish commercial Worker without data migrations or secret mutations
+        run: npm run worker:deploy
+      - name: Smoke Academy link, standalone Academy, and commercial portal
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const origin='https://artisys.dev';
+          const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+          let lastError;
+          for(let attempt=1;attempt<=12;attempt++){
+            try{
+              const links=await fetch(origin+'/links/',{cache:'no-store',signal:AbortSignal.timeout(12000)});
+              assert.equal(links.status,200,'ArtiSys links HTTP');
+              const html=await links.text();
+              assert.match(html,/data-link-id="academy"/,'Academy link not live');
+              assert.match(html,/href="\\/academy"/,'Academy link destination');
+              const academy=await fetch(origin+'/academy/api/health',{signal:AbortSignal.timeout(12000)});
+              assert.equal(academy.status,200,'Academy health HTTP');
+              const payload=await academy.json();
+              assert.equal(payload.ok,true,'Academy health response');
+              const portal=await fetch(origin+'/sistema.html',{signal:AbortSignal.timeout(12000)});
+              assert.equal(portal.status,200,'Commercial portal HTTP');
+              console.log('Live smoke PASS: /links/ -> /academy, Academy API and commercial portal');
+              process.exit(0);
+            }catch(e){lastError=e;console.warn('Smoke attempt '+attempt+'/12:',String(e));if(attempt<12)await sleep(5000);}
+          }
+          throw lastError;
+          JS
