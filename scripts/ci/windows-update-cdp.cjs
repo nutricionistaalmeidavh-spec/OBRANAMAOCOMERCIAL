@@ -33,16 +33,21 @@ if (mode === 'serve') {
     }
     if (mode === 'snapshot') {
       const renderer = await connect(9222);
-      const data = await renderer.evaluate(`(async()=>({text:document.body.innerText,bootstrap:window.fluxoDre?await window.fluxoDre.app.bootstrap().catch(e=>({error:e.message})):null}))()`);
+      const data = await renderer.evaluate(`(async()=>({text:document.body.innerText,details:document.querySelector('details')?.textContent||null,bootstrap:window.fluxoDre?await window.fluxoDre.app.bootstrap().catch(e=>({error:e.message})):null}))()`);
       fs.writeFileSync(path.join(folder,'snapshot.json'),JSON.stringify(data,null,2));
       await renderer.screenshot(path.join(folder,'screenshot.png'));renderer.close();return;
     }
-    const main = await connect(9230);
-    const configured = await main.evaluate(`(()=>{const updater=process.mainModule.require('electron-updater').autoUpdater;updater.setFeedURL({provider:'generic',url:'http://127.0.0.1:8877'});updater.autoDownload=false;return {version:process.mainModule.require('electron').app.getVersion(),executable:process.execPath};})()`);
-    main.close();
     const renderer = await connect(9222);
+    for(let attempt=0;attempt<40;attempt++) {
+      if(await renderer.evaluate(`typeof window.fluxoDre !== 'undefined'`))break;
+      await delay(500);
+    }
+    fs.writeFileSync(path.join(folder,'initial-page.json'),JSON.stringify(await renderer.evaluate(`({text:document.body.innerText,details:document.querySelector('details')?.textContent||null})`),null,2));
     const before = await renderer.evaluate(`window.fluxoDre.app.bootstrap()`);
     await renderer.screenshot(path.join(folder,'before.png'));
+    const main = await connect(9230);
+    const configured = await main.evaluate(`(()=>{const req=process.getBuiltinModule('module').createRequire(process.resourcesPath+'/app.asar/package.json');const updater=req('electron-updater').autoUpdater;updater.setFeedURL({provider:'generic',url:'http://127.0.0.1:8877'});updater.autoDownload=false;return {version:req('electron').app.getVersion(),executable:process.execPath};})()`);
+    main.close();
     const checked = await renderer.evaluate(`window.fluxoDre.updater.check()`);
     if(checked.availableVersion!=='2.1.1')throw Error('Pinned fixture did not advertise 2.1.1: '+JSON.stringify(checked));
     const downloaded = await renderer.evaluate(`window.fluxoDre.updater.download()`);
