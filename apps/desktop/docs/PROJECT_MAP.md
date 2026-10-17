@@ -150,6 +150,8 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 
 ## Comandos
 
+- `build/preserve-data.nsh` / `build/installSection.nsh`: instalação Windows sobreposta, sem executar desinstaladores legados que removem documentos dentro da instalação. Mantém os recursos NSIS padrão e repara os atalhos para o EXE novo. Empacotador fixado na versão 26.15.3; mudanças no template exigem regressão com instaladores reais.
+
 - `npm run electron:dev`: desenvolvimento completo com Electron.
 - `npm run dev`: somente Vite.
 - `npm run lint`: verificação TypeScript (`tsc -b`).

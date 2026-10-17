@@ -4,6 +4,7 @@ const path = require('node:path');
 const http = require('node:http');
 const { setTimeout: delay } = require('node:timers/promises');
 const [mode, folder, rendererPort='9222'] = process.argv.slice(2);
+const expectedUpdateVersion = process.env.CI_UPDATE_VERSION || '2.1.1';
 if (mode === 'serve') {
   http.createServer((req,res) => {
     const name = decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname).slice(1);
@@ -54,7 +55,7 @@ if (mode === 'serve') {
     }
     if (mode === 'snapshot') {
       const renderer = await connect(Number(rendererPort));
-      const data = await renderer.evaluate(`(async()=>({text:document.body.innerText,details:document.querySelector('details')?.textContent||null,bootstrap:window.fluxoDre?await window.fluxoDre.app.bootstrap().catch(e=>({error:e.message})):null}))()`);
+      const data = await renderer.evaluate(`(async()=>{const details=document.querySelector('details');if(details)details.open=true;return {text:document.body.innerText,details:details?.textContent||null,bootstrap:window.fluxoDre?await window.fluxoDre.app.bootstrap().catch(e=>({error:e.message})):null,documentRoot:window.fluxoDre?.documentos?.rootStatus?await window.fluxoDre.documentos.rootStatus().catch(e=>({error:e.message})):null}})()`);
       fs.writeFileSync(path.join(folder,'snapshot.json'),JSON.stringify(data,null,2));
       await renderer.screenshot(path.join(folder,'screenshot.png'));renderer.close();return;
     }
@@ -73,7 +74,7 @@ if (mode === 'serve') {
     console.log('Pinned feed configured',JSON.stringify(configured));
     const checked = await renderer.evaluate(`window.fluxoDre.updater.check()`);
     console.log('Update check',JSON.stringify(checked));
-    if(checked.availableVersion!=='2.1.1')throw Error('Pinned fixture did not advertise 2.1.1: '+JSON.stringify(checked));
+    if(checked.availableVersion!==expectedUpdateVersion)throw Error('Pinned fixture did not advertise '+expectedUpdateVersion+': '+JSON.stringify(checked));
     const downloaded = await renderer.evaluate(`window.fluxoDre.updater.download()`);
     console.log('Update download',JSON.stringify(downloaded));
     if(downloaded.status!=='downloaded')throw Error('Update not downloaded: '+JSON.stringify(downloaded));
