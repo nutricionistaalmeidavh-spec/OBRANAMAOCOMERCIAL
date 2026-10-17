@@ -55,7 +55,12 @@ if (mode === 'serve') {
     }
     if (mode === 'snapshot') {
       const renderer = await connect(Number(rendererPort));
-      const data = await renderer.evaluate(`(async()=>{const details=document.querySelector('details');if(details)details.open=true;return {text:document.body.innerText,details:details?.textContent||null,bootstrap:window.fluxoDre?await window.fluxoDre.app.bootstrap().catch(e=>({error:e.message})):null,documentRoot:window.fluxoDre?.documentos?.rootStatus?await window.fluxoDre.documentos.rootStatus().catch(e=>({error:e.message})):null}})()`);
+      for(let attempt=0;attempt<40;attempt++) {
+        const text=await renderer.evaluate(`document.body.innerText.trim()`);
+        if(text&&!/^Carregando (interface|acesso)/i.test(text))break;
+        await delay(250);
+      }
+      const data = await renderer.evaluate(`(async()=>{const details=document.querySelector('details');if(details)details.open=true;return {text:document.body.innerText,details:details?.textContent||null,bootstrap:window.fluxoDre?await window.fluxoDre.app.bootstrap().catch(e=>({error:e.message})):null,documentRoot:window.fluxoDre?.documentos?.rootStatus?await window.fluxoDre.documentos.rootStatus().catch(e=>({error:e.message})):null,companies:window.fluxoDre?.empresas?.list?await window.fluxoDre.empresas.list().catch(e=>({error:e.message})):null}})()`);
       fs.writeFileSync(path.join(folder,'snapshot.json'),JSON.stringify(data,null,2));
       await renderer.screenshot(path.join(folder,'screenshot.png'));renderer.close();return;
     }

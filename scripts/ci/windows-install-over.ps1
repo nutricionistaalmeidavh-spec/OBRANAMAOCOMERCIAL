@@ -29,6 +29,8 @@ function Start-StandardApp([string]$label) {
 chcp 65001 >nul
 set ELECTRON_RUN_AS_NODE=
 set OBRA_NA_MAO_DATA_DIR=$data
+set NODE_ENV=test
+set ARTISYS_QA=1
 "$exe" --remote-debugging-port=9224 --inspect=9232 --user-data-dir="$base/browser-$label"
 "@
   $command | Set-Content "$base/app-$label.cmd" -Encoding utf8NoBOM
@@ -72,8 +74,10 @@ try {
   $unc="\\$env:COMPUTERNAME\obra-na-mao-desktop-commercial\DOCUMENTOS"
   $env:FIXTURE_DATA=$data
   $env:FIXTURE_ROOT=$unc
+  $env:FIXTURE_HASH=$beforeHash.ToLower()
+  $env:FIXTURE_SIZE=(Get-Item $sentinel).Length
   @'
-import sqlite3,subprocess,pathlib,os
+import sqlite3,subprocess,pathlib,os,ntpath
 db=sqlite3.connect(pathlib.Path(os.environ['FIXTURE_DATA'])/'fluxo-dre.sqlite')
 tag='desktop-commercial-v2.0.0'
 files=subprocess.check_output(['git','ls-tree','-r','--name-only',tag,'apps/desktop/database/migrations'],text=True).splitlines()
@@ -85,6 +89,8 @@ for file in sorted(files):
     db.execute('PRAGMA user_version='+str(version))
 db.execute("INSERT INTO empresas(razao_social,nome_fantasia) VALUES('CI PRESERVATION COMPANY','CI PRESERVATION COMPANY')")
 db.execute("INSERT INTO configuracoes(chave,valor) VALUES('documentos_pasta_raiz',?)",(os.environ['FIXTURE_ROOT'],))
+db.execute("INSERT INTO arquivos(nome_original,nome_armazenado,caminho,tamanho,extensao,mime_type,hash,origem) VALUES(?,?,?,?,?,?,?,?)",('Documento canônico.txt','preserve-me.txt',ntpath.join(os.environ['FIXTURE_ROOT'],'preserve-me.txt'),int(os.environ['FIXTURE_SIZE']),'.txt','text/plain',os.environ['FIXTURE_HASH'],'importado'))
+db.execute("INSERT INTO documentos(arquivo_id,empresa_id,categoria,titulo) VALUES(1,1,'geral','Documento canônico')")
 db.commit();db.close()
 '@ | python -
   if($LASTEXITCODE -ne 0){throw 'SQLite fixture failed'}
@@ -132,6 +138,7 @@ db.commit();db.close()
   $snapshot=Start-StandardApp 'fixed'
   if($snapshot.bootstrap.version -ne '2.1.3' -or $snapshot.bootstrap.firstRun -ne $false -or $snapshot.details){throw 'Corrected installed app must boot with the original database'}
   if($snapshot.bootstrap.documentsPath -ne $unc){throw 'Canonical document root changed silently'}
+  if(@($snapshot.companies | Where-Object {$_.razao_social -eq 'CI PRESERVATION COMPANY'}).Count -ne 1){throw 'Original company is not readable through the real app API'}
   if($Scenario -eq 'broken-share') {
     if($snapshot.documentRoot.ready -ne $false -or $snapshot.documentRoot.code -ne 'UNKNOWN'){throw 'Already-missing share must be reported without blocking startup or silently falling back'}
   } else {
@@ -160,11 +167,16 @@ import sqlite3,os,pathlib,json
 file=pathlib.Path(os.environ['FIXTURE_DATA'])/'fluxo-dre.sqlite'
 if file.exists():
     db=sqlite3.connect(file.as_uri()+'?mode=ro',uri=True)
-    result={'integrity':db.execute('PRAGMA integrity_check').fetchall(),'companies':db.execute('SELECT razao_social FROM empresas').fetchall(),'root':db.execute("SELECT valor FROM configuracoes WHERE chave='documentos_pasta_raiz'").fetchall()}
+    result={'integrity':db.execute('PRAGMA integrity_check').fetchall(),'companies':db.execute('SELECT razao_social FROM empresas').fetchall(),'root':db.execute("SELECT valor FROM configuracoes WHERE chave='documentos_pasta_raiz'").fetchall(),'files':db.execute('SELECT caminho,hash FROM arquivos').fetchall(),'documents':db.execute('SELECT arquivo_id,empresa_id,titulo FROM documentos WHERE deleted_at IS NULL').fetchall()}
     print(json.dumps(result))
     assert result['integrity']==[['ok']] and result['companies']==[['CI PRESERVATION COMPANY']]
+    import ntpath
+    assert result['root']==[[os.environ['FIXTURE_ROOT']]]
+    assert result['files']==[[ntpath.join(os.environ['FIXTURE_ROOT'],'preserve-me.txt'),os.environ['FIXTURE_HASH']]]
+    assert result['documents']==[[1,1,'Documento canônico']]
     db.close()
 '@ | python - | Set-Content "$out/database-after.json"
+    if($LASTEXITCODE -ne 0){throw 'SQLite integrity, canonical paths, hashes or document references changed'}
   }
   Get-SmbShare -Name 'obra-na-mao-desktop-commercial' -ErrorAction SilentlyContinue | Select-Object Name,Path | ConvertTo-Json | Set-Content "$out/share-after.json"
   Get-ChildItem $menu -Recurse -Filter 'Obra*.lnk' -ErrorAction SilentlyContinue | ForEach-Object {$s=$wsh.CreateShortcut($_.FullName);@{link=$_.FullName;target=$s.TargetPath}} | ConvertTo-Json | Set-Content "$out/shortcuts-after.json"
