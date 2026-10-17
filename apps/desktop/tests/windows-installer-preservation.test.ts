@@ -18,8 +18,9 @@ describe('Windows upgrade preserves canonical files', () => {
   it('replaces stale shortcuts and launches the just-installed executable', () => {
     expect(pkg.build.nsis.include).toBe('build/preserve-data.nsh')
     const section = fs.readFileSync(path.join(desktop, 'build/installSection.nsh'), 'utf8')
-    expect(section).toContain('!insertmacro addStartMenuLink "false"')
-    expect(section).toContain('!insertmacro addDesktopLink "false"')
+    expect(section).toContain('StrCpy $keepShortcuts "false"')
+    expect(section).toContain('!insertmacro addStartMenuLink $keepShortcuts')
+    expect(section).toContain('!insertmacro addDesktopLink $keepShortcuts')
     expect(section).toContain('StrCpy $launchLink "$appExe"')
   })
 })

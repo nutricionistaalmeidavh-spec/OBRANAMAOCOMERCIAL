@@ -32,8 +32,10 @@ DetailPrint "Preservando pastas e documentos existentes durante a atualizacao."
 
 # A preserved .lnk may target a different/older copy. Always repair the normal
 # Start Menu/Desktop links and relaunch the executable just installed.
-!insertmacro addStartMenuLink "false"
-!insertmacro addDesktopLink "false"
+Var /GLOBAL keepShortcuts
+StrCpy $keepShortcuts "false"
+!insertmacro addStartMenuLink $keepShortcuts
+!insertmacro addDesktopLink $keepShortcuts
 StrCpy $launchLink "$appExe"
 
 !ifmacrodef registerFileAssociations
