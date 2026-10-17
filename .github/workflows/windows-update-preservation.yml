@@ -2,7 +2,7 @@ name: Windows installer preservation and recovery
 on:
   push:
     branches: ['fix/windows-update-data-preservation-20261016']
-    paths: ['apps/desktop/**', 'scripts/ci/**', '.github/workflows/windows-update-preservation.yml']
+    paths: ['apps/desktop/**', 'apps/lan-server/**', 'packages/**']
 permissions:
   contents: read
 jobs:

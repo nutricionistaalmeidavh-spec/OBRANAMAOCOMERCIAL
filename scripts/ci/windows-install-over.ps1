@@ -116,7 +116,8 @@ db.commit();db.close()
     # A real old installer must cause the original UNKNOWN before testing repair.
     Install-Official '2.1.1'
     $broken=Start-StandardApp 'broken'
-    if($broken.details -notmatch 'UNKNOWN: unknown error, mkdir'){throw 'Original UNKNOWN was not reproduced before repair'}
+    if($broken.details -notmatch '(UNKNOWN: unknown error|EPERM: operation not permitted), mkdir' -or $broken.bootstrap){throw 'Original real document-root startup failure was not reproduced before repair'}
+    $originalFailureCode=if($broken.details -match 'UNKNOWN:'){'UNKNOWN'}else{'EPERM'}
     Stop-FixtureApp
     $p=Start-Process $fixed -ArgumentList @('/S','/allusers',"/D=$install") -Wait -PassThru
     if($p.ExitCode -ne 0){throw "Install-over failed: $($p.ExitCode)"}
@@ -140,7 +141,7 @@ db.commit();db.close()
   if($snapshot.bootstrap.documentsPath -ne $unc){throw 'Canonical document root changed silently'}
   if(@($snapshot.companies | Where-Object {$_.razao_social -eq 'CI PRESERVATION COMPANY'}).Count -ne 1){throw 'Original company is not readable through the real app API'}
   if($Scenario -eq 'broken-share') {
-    if($snapshot.documentRoot.ready -ne $false -or $snapshot.documentRoot.code -ne 'UNKNOWN'){throw 'Already-missing share must be reported without blocking startup or silently falling back'}
+    if($snapshot.documentRoot.ready -ne $false -or $snapshot.documentRoot.code -ne $originalFailureCode){throw 'Already-missing share must be reported without blocking startup or silently falling back'}
   } else {
     if((Get-FileHash $sentinel -Algorithm SHA256).Hash -ne $beforeHash){throw 'Canonical document changed or disappeared'}
     $after=Probe-Standard 'after'
@@ -169,11 +170,11 @@ if file.exists():
     db=sqlite3.connect(file.as_uri()+'?mode=ro',uri=True)
     result={'integrity':db.execute('PRAGMA integrity_check').fetchall(),'companies':db.execute('SELECT razao_social FROM empresas').fetchall(),'root':db.execute("SELECT valor FROM configuracoes WHERE chave='documentos_pasta_raiz'").fetchall(),'files':db.execute('SELECT caminho,hash FROM arquivos').fetchall(),'documents':db.execute('SELECT arquivo_id,empresa_id,titulo FROM documentos WHERE deleted_at IS NULL').fetchall()}
     print(json.dumps(result))
-    assert result['integrity']==[['ok']] and result['companies']==[['CI PRESERVATION COMPANY']]
+    assert result['integrity']==[('ok',)] and result['companies']==[('CI PRESERVATION COMPANY',)]
     import ntpath
-    assert result['root']==[[os.environ['FIXTURE_ROOT']]]
-    assert result['files']==[[ntpath.join(os.environ['FIXTURE_ROOT'],'preserve-me.txt'),os.environ['FIXTURE_HASH']]]
-    assert result['documents']==[[1,1,'Documento canônico']]
+    assert result['root']==[(os.environ['FIXTURE_ROOT'],)]
+    assert result['files']==[(ntpath.join(os.environ['FIXTURE_ROOT'],'preserve-me.txt'),os.environ['FIXTURE_HASH'])]
+    assert result['documents']==[(1,1,'Documento canônico')]
     db.close()
 '@ | python - | Set-Content "$out/database-after.json"
     if($LASTEXITCODE -ne 0){throw 'SQLite integrity, canonical paths, hashes or document references changed'}

@@ -1,0 +1,53 @@
+name: Verify exact Windows 2.1.3 candidate
+on:
+  push:
+    branches: ['fix/windows-update-data-preservation-20261016']
+    paths: ['scripts/ci/**', '.github/workflows/windows-install-over-recheck.yml', '.github/workflows/windows-update-preservation.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  install-over:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [inside-canonical, inside-nested, inside-stale, broken-share, external-canonical]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Confirm packaged production source is unchanged
+        shell: pwsh
+        run: |
+          git diff --exit-code 5eceb3f178e57f8d18c7f09cb3dd74e2a999ea72 HEAD -- apps/desktop apps/lan-server packages
+          if($LASTEXITCODE -ne 0){throw 'Production source changed; rebuild instead of reusing this candidate'}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-2.1.3-Windows-candidate
+          path: ${{ runner.temp }}/obra-fixed-release
+          run-id: 38985595888
+          github-token: ${{ github.token }}
+      - name: Verify exact EXE bytes
+        shell: pwsh
+        run: |
+          $file="$env:RUNNER_TEMP/obra-fixed-release/Obra-na-Mao-Desktop-Setup-2.1.3.exe"
+          $hash=(Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
+          if($hash -ne 'f4b04821d7d90784c7f55c97b6d1d8defb1db1fc6276fd50c76d662b0488c304'){throw 'Candidate hash mismatch'}
+      - name: Real install-over and preservation checks
+        shell: pwsh
+        env:
+          CI_UPDATE_VERSION: '2.1.3'
+        run: ./scripts/ci/windows-install-over.ps1 -Scenario '${{ matrix.scenario }}' -Release "$env:RUNNER_TEMP/obra-fixed-release"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: install-over-${{ matrix.scenario }}
+          path: ${{ runner.temp }}/obra-install-over/evidence/
+          if-no-files-found: warn
+          retention-days: 30
