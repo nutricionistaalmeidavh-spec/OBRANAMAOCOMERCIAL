@@ -79,9 +79,9 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(landing).toContain('id="prova"');
     expect(landing).toContain('MH Hidráulica LTDA');
     expect(landing).toContain('Ribeirão Preto, SP');
-    expect(landing).toContain('class="proof-journey-content"');
-    expect(landing).toContain('class="proof-case"');
-    for (const label of ['Gestão de obras','Financeiro e documentos','Capacitação da equipe']) expect(landing).toContain(label);
+    expect(landing).toContain('class="proof-evidence"');
+    for (const label of ['+50','Sistemas vendidos','Sistemas em uso real']) expect(landing).toContain(label);
+    expect(landing).not.toContain('class="proof-case"');
     expect(landing).not.toContain('id="processo"');
     expect(landing).not.toContain('class="proof-process"');
     expect(landing).not.toContain('Próximo de você.');
@@ -89,7 +89,7 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(landing).not.toContain('Depois, a ideia ganha forma.');
     expect(landing).not.toContain('Por fim, pronta para a rotina.');
     const styles = read('./artisys-editorial-violet.css');
-    expect(styles).toContain('.proof-journey-content{display:grid;grid-template-columns:minmax(0,1fr);');
+    expect(read('./artisys-home-section-polish.css')).toContain('.proof-evidence{');
     expect(styles).not.toContain('.proof-process{');
     expect(styles).toContain('@media(max-width:800px)');
     expect(landing).toContain('class="nav-login" href="./sistema.html#portal"');
