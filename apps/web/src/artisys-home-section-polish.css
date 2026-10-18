@@ -1,0 +1,197 @@
+/* ArtiSys marketing sections, October 2026.
+ * A single override layer for the public home; application and API remain untouched.
+ * Contrast and rhythm follow the Academy's navy/violet visual language. */
+:root{
+  --home-ink:#f8f7ff;
+  --home-muted:#c7d0e4;
+  --home-stroke:#516080;
+  --home-violet:#d2b1ff;
+}
+.product-showcase{
+  background:#19233a;border-color:#4d5c80;
+  box-shadow:0 14px 32px #03061638;
+}
+.product-showcase .product-heading{
+  background:linear-gradient(145deg,#1d2944,#151d34);
+  padding:clamp(28px,3.6vw,45px);
+}
+.product-showcase .product-indicator{color:var(--home-violet);letter-spacing:.09em}
+.product-showcase .product-heading h2{color:var(--home-ink);font-size:clamp(31px,3.5vw,46px)}
+.product-showcase .product-heading h2 span{color:var(--home-violet)}
+.product-showcase .product-heading>p:not(.product-indicator){
+  color:var(--home-muted);line-height:1.6;margin-top:18px;
+}
+.product-showcase .product-all-link{background:#8751c6;border-color:#b383eb}
+.product-showcase .product-all-link:hover{background:#9561d0}
+.product-list-panel{
+  background:#25304b;border-color:var(--home-stroke);color:var(--home-ink)
+}
+.product-list-top{
+  background:#303b56;border-color:var(--home-stroke);
+  color:#d3ddf2;
+}
+.product-list-body>p{color:#f2edfc;font-weight:650}
+.product-list-item{border-color:#4a5572;color:#fff}
+.product-list-item:hover{background:#343f5b}
+.product-list-kind{
+  color:#d9b9ff;font-size:10px;letter-spacing:.07em;
+  overflow-wrap:normal;word-break:keep-all;hyphens:none;
+}
+.product-list-details strong{color:#fcfaff}
+.product-list-details small{color:#cbd3e6;line-height:1.5}
+.product-list-arrow{color:#d8b6ff}
+.product-showcase .product-collections{border-color:#4a5572}
+.product-showcase .product-collections>span{color:#d2d9e9}
+.product-showcase .product-collections a{
+  background:#33415e;border-color:#65718d;color:#f7f2ff
+}
+.product-showcase .product-collections a:hover{background:#415072;border-color:#c5a2f0}
+
+/* A real customer example is a compact proof point, not another full landing page. */
+.proof-journey{
+  display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);
+  gap:clamp(20px,3.2vw,44px);align-items:center;
+  max-width:1150px;
+  padding:clamp(26px,3vw,43px);
+  margin-top:clamp(12px,2.5vw,28px);
+  margin-bottom:clamp(32px,4vw,54px);
+  background:#1c263e;border:1px solid #435271;border-radius:22px;
+}
+.proof-journey-intro{min-width:0;margin-bottom:0}
+.proof-kicker{color:#d0b0ff;font-size:10px;letter-spacing:.1em}
+.proof-journey-intro h2{
+  color:#fff;font-size:clamp(29px,3.1vw,42px);
+  line-height:1.11;letter-spacing:-.032em;margin-top:13px;
+}
+.proof-journey-intro h2 span{color:#c7a3f8}
+.proof-journey-intro>p:last-child{
+  color:#c4cde1;margin-top:15px;line-height:1.6;font-size:14px;
+}
+.proof-journey-content{
+  background:#27324d;border-color:#566481;
+  box-shadow:none;border-radius:16px;
+}
+.proof-case{padding:clamp(18px,2vw,26px);gap:0}
+.proof-case-top{border-color:#566481;color:#d1d8e9;padding-bottom:13px;font-size:10px}
+.proof-category{background:#42335e;color:#e1cbff;border-color:#6b568f}
+.proof-client{margin-top:19px;gap:12px}
+.proof-client-monogram{
+  width:43px;height:43px;border-radius:12px;
+  color:#e7d5ff;background:#42345f;border-color:#705a97;
+  font-size:15px
+}
+.proof-client h3{color:#fff;font-size:clamp(18px,1.6vw,22px)}
+.proof-client p{color:#c6cee1;font-size:12px}
+.proof-case-description{
+  color:#e1e6f3;font-size:14px;line-height:1.57;
+  margin-top:17px;max-width:600px
+}
+.proof-case-services{
+  margin-top:17px;padding-top:15px;border-color:#566481;gap:7px
+}
+.proof-case-services span{
+  background:#35425e;border-color:#59698b;
+  color:#e5e6f6;padding:6px 9px;font-size:11px
+}
+
+/* Distinct, accessible footer channels from the existing /links central. */
+.footer{align-items:start;gap:26px;padding-top:34px}
+.footer p{font-size:12px;line-height:1.55;color:#aebbd0}
+.footer-links{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px 13px}
+.footer-links a{
+  display:inline-flex;align-items:center;justify-content:center;
+  gap:8px;padding:9px 11px;min-height:44px;
+  color:#cdd4e9;font-size:12px;line-height:1.3;
+  border-radius:10px;border:1px solid transparent;
+  transition:background .2s ease,color .2s ease,border-color .2s ease
+}
+.footer-links a:hover,.footer-links a:focus-visible{
+  color:#fff;background:#242039;border-color:#5c4c75
+}
+.footer-links .footer-link-central{
+  background:#2c2244;border-color:#6e5492;color:#ead9ff;font-weight:740
+}
+.footer-links .footer-link-central:hover{background:#382954;border-color:#bd91f0}
+.footer-bottom{color:#9faac1;font-size:11px}
+
+/* Sticky navigation should not obscure content while scrolling on small phones. */
+@media(max-width:800px){
+  .proof-journey{grid-template-columns:1fr;gap:19px}
+  .footer-links{justify-content:flex-start}
+}
+@media(max-width:540px){
+  .header{padding-top:0}
+  .header .nav{
+    height:60px;min-height:60px;padding-inline:10px;
+    width:calc(100% - 16px);border-radius:0 0 12px 12px
+  }
+  .header .brand{width:clamp(94px,26vw,116px)}
+  .header .nav-login{height:40px;min-height:40px;font-size:11px}
+  .header .menu-toggle{width:40px;height:40px}
+  .header .nav-links{top:60px;left:8px;right:8px}
+  .product-highlights{width:calc(100% - 28px);padding-bottom:22px}
+  .product-showcase .product-heading{padding:28px 23px 27px}
+  .product-showcase .product-heading h2{font-size:clamp(30px,8vw,38px)}
+  .product-showcase .product-heading>p:not(.product-indicator){margin-top:13px}
+  .product-showcase .product-all-link{margin-top:21px;min-height:50px}
+  .product-list-top{min-height:48px;padding:12px 15px}
+  .product-list-body{padding:19px 18px 20px}
+  .product-list-body>p{font-size:17px;line-height:1.35;margin-bottom:14px}
+  .product-list-item{
+    grid-template-columns:minmax(0,1fr) 22px;
+    grid-template-areas:"kind arrow" "details arrow";
+    column-gap:12px;row-gap:5px;padding:15px 0
+  }
+  .product-list-kind{
+    grid-area:kind;font-size:10px;line-height:1.3;
+    white-space:nowrap;overflow-wrap:normal;word-break:keep-all
+  }
+  .product-list-details{grid-area:details;gap:4px}
+  .product-list-details strong{font-size:16px}
+  .product-list-details small{font-size:12px;line-height:1.43}
+  .product-list-arrow{grid-area:arrow;align-self:center;font-size:19px}
+  .product-showcase .product-collections{margin-top:1px;padding-top:14px}
+  .proof-journey{
+    width:calc(100% - 28px);padding:21px 18px 20px;
+    margin-top:7px;margin-bottom:31px;gap:17px;border-radius:18px
+  }
+  .proof-journey-intro{margin-bottom:0;padding-inline:0}
+  .proof-kicker{font-size:10px}
+  .proof-journey-intro h2{
+    font-size:clamp(28px,7.7vw,35px);line-height:1.12;margin-top:10px
+  }
+  .proof-journey-intro>p:last-child{font-size:13px;margin-top:10px;line-height:1.45}
+  .proof-journey-content{border-radius:14px}
+  .proof-case{padding:16px 15px}
+  .proof-case-top{font-size:9px;gap:7px;padding-bottom:11px}
+  .proof-category{padding:5px 8px;font-size:9px}
+  .proof-client{margin-top:14px;gap:10px}
+  .proof-client-monogram{width:38px;height:38px;font-size:13px}
+  .proof-client h3{font-size:18px}
+  .proof-client p{font-size:11px}
+  .proof-case-description{margin-top:13px;font-size:13px;line-height:1.5}
+  .proof-case-services{margin-top:13px;padding-top:11px;gap:6px}
+  .proof-case-services span{font-size:10px;padding:6px 8px}
+  .footer{padding-top:29px;gap:18px}
+  .footer p{margin-top:8px;font-size:12px}
+  .footer-links{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;width:100%
+  }
+  .footer-links a{
+    justify-content:flex-start;padding:10px 11px;font-size:12px;
+    background:#151328;border:1px solid #332c4a;
+    min-height:44px
+  }
+  .footer-links .footer-link-central{grid-column:1/-1;justify-content:space-between}
+  .footer-links a[href="#topo"]{grid-column:1/-1;justify-content:center}
+  .footer-bottom{padding-block:16px 21px;font-size:10px}
+}
+@media(max-width:350px){
+  .header .nav-login{font-size:10px;padding-inline:7px}
+  .header .brand{width:91px}
+  .footer-links a{padding-inline:8px}
+}
+@media(prefers-reduced-motion:reduce){
+  .footer-links a{transition:none}
+}
