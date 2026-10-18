@@ -34,7 +34,7 @@ describe('ArtiSys homepage — Academy featured before DevKits', () => {
 
   it('displays a complete Academy showcase ahead of DevKits without moving or duplicating existing courses', () => {
     const first = landing.indexOf('<section class="academy-feature container" id="academy"');
-    const devkits = landing.indexOf('<section class="devkit-feature container" id="devkits"');
+    const devkits = landing.indexOf('<section class="devkit-feature devkit-feature--single container" id="devkits"');
     const products = landing.indexOf('<section class="product-highlights container" id="produtos"');
     expect(first).toBeGreaterThan(-1);
     expect(first).toBeLessThan(devkits);
