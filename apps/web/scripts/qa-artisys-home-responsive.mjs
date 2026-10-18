@@ -67,6 +67,10 @@ try {
           proofBackground:background('.proof-journey'),
           proofHeight:proof.height,
           proofWidth:proof.width,
+          proofItemCount:document.querySelectorAll('.proof-evidence-item').length,
+          proofContainsLegacyCopy:element('.proof-journey').textContent.includes('CLIENTE ARTISYS'),
+          proofOverflows:proof.scrollWidth>proof.clientWidth+1,
+          proofItemsOverflow:[...document.querySelectorAll('.proof-evidence-item')].some(card=>card.scrollWidth>card.clientWidth+2),
           categoryWordBreak:getComputedStyle(word).wordBreak,
           categoryOverflowWrap:getComputedStyle(word).overflowWrap,
           firstCategoryHeight:word.getBoundingClientRect().height,
@@ -77,13 +81,17 @@ try {
         };
       });
       assert.equal(visual.systemsBackground,'rgb(25, 35, 58)','system card should not be white');
-      assert.equal(visual.proofBackground,'rgb(28, 38, 62)','customer case should not be white');
+      assert.equal(visual.proofBackground,'rgb(28, 38, 62)','social proof should use dark surface');
+      assert.equal(visual.proofItemCount,3,'proof section should have exactly three facts');
+      assert.equal(visual.proofContainsLegacyCopy,false,'old customer-case labels must be gone');
+      assert.equal(visual.proofOverflows,false,'social proof container overflows viewport');
+      assert.equal(visual.proofItemsOverflow,false,'social proof cards overflow');
       assert.equal(visual.footerCentral,'/links/','footer should link to the ArtiSys central');
       assert.equal(visual.tiktok,'https://www.tiktok.com/@artisysdev','TikTok must match canonical central');
       assert.ok(visual.headerHeight<=70,'mobile header exceeds compact target');
       if(width<=540){
         assert.ok(visual.firstCategoryHeight<=visual.firstCategoryLineHeight*1.3,width+' category wrapped mid-word');
-        assert.ok(visual.proofHeight<620,width+' MH customer card too tall: '+visual.proofHeight);
+        assert.ok(visual.proofHeight<520,width+' social proof section too tall: '+visual.proofHeight);
       }
       if(width===390 || width===1280){
         await page.screenshot({path:path.join(artifacts,'home-'+width+'.png'),animations:'disabled'});
