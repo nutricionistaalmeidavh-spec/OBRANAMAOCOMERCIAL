@@ -14,7 +14,7 @@ describe('ArtiSys homepage — Academy featured before DevKits', () => {
     expect(nav.indexOf('href="/academy"')).toBeLessThan(nav.indexOf('href="/devkits/"'));
     expect(landing).toContain('class="academy-hero-pill" href="/academy"');
     expect(landing).toContain('class="academy-feature-link" href="/academy"');
-    expect(landing).toContain('<a href="/academy">Artisys Academy</a>');
+    expect(landing).toContain('<a href="/academy">ArtiSys Academy</a>');
     expect(landing).not.toContain('href="https://artisys.dev/" class="academy-feature-link"');
   });
 
