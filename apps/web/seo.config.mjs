@@ -97,8 +97,8 @@ export const artisysSeoConfig = defineSeoConfig({
     },
     {
       path: '/',
-      title: 'ArtiSys | Sistemas reais, DevKits e ferramentas para desenvolver',
-      description: 'Conheça os sistemas prontos da ArtiSys e os DevKit Tool’s para criar soluções. Software para operações reais e ferramentas para desenvolvedores.',
+      title: 'ArtiSys | Academy, sistemas e DevKits para criar e operar',
+      description: 'Conheça a ArtiSys Academy, as trilhas práticas de IA, os sistemas prontos para empresas e os DevKit Tool’s para desenvolver.',
       schemaType: 'WebPage',
       changeFrequency: 'weekly',
       priority: 1
