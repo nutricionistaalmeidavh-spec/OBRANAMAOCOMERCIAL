@@ -78,6 +78,8 @@ jobs:
         run: npx playwright install chromium
       - name: Run capability-gated P2 release QA
         run: node scripts/qa-p2-release.mjs
+      - name: Verify Artisys homepage responsive hierarchy
+        run: node scripts/qa-artisys-home-responsive.mjs
       - name: Upload Playwright screenshots and QA evidence
         if: always()
         uses: actions/upload-artifact@v4
