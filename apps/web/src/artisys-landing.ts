@@ -3,6 +3,7 @@ import './artisys-refinement.css';
 import './artisys-marketing-2026.css';
 import './artisys-editorial-violet.css';
 import './artisys-clarity-2026.css';
+import './artisys-academy-feature.css';
 
 const menu = document.getElementById('nav-links');
 const toggle = document.querySelector<HTMLButtonElement>('.menu-toggle');
