@@ -10,19 +10,22 @@ const polish = read('./artisys-home-section-polish.css');
 const part = (start: string, end: string) => homepage.split(start)[1]?.split(end)[0] ?? '';
 
 describe('ArtiSys public homepage — visual refinement and official links', () => {
-  it('removes historical sequence numbers and reduces duplicate content in the customer case', () => {
-    const caseStudy = part('<section class="proof-journey container"', '</section>');
-    expect(caseStudy).toContain('class="proof-kicker">NA PRÁTICA');
-    expect(caseStudy).not.toContain('02 / NA PRÁTICA');
-    expect(caseStudy).not.toContain('class="proof-case-label"');
-    expect(caseStudy).toContain('MH Hidráulica LTDA');
-    expect(caseStudy).toContain('Ribeirão Preto, SP');
-    expect(caseStudy).toContain('Da obra ao escritório');
-    expect(caseStudy).toContain('Gestão de obras');
-    expect(caseStudy).toContain('Financeiro e documentos');
-    expect(caseStudy).toContain('Capacitação da equipe');
-    expect(polish).toContain('grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr)');
-    expect(polish).toContain('.proof-case{padding:16px 15px}');
+  it('shows the three real proof points without invented testimonials or legacy copy', () => {
+    const proof = part('<section class="proof-journey container"', '</section>');
+    expect(proof).toContain('class="proof-kicker">RESULTADOS REAIS');
+    expect(proof).toContain('ArtiSys <span>na prática.</span>');
+    expect(proof).toContain('class="proof-evidence-number" aria-label="Mais de 50">+50');
+    expect(proof).toContain('Sistemas vendidos');
+    expect(proof).toContain('MH Hidráulica LTDA');
+    expect(proof).toContain('Ribeirão Preto, SP');
+    expect(proof).toContain('Sistemas em uso real');
+    expect(proof).toContain('Clientes utilizando no dia a dia');
+    expect(proof.match(/class="proof-evidence-item /g)).toHaveLength(3);
+    expect(proof).not.toMatch(/02 \/ NA PRÁTICA|Depoimento|Mercado Livre|PDVs vendidos|CLIENTE ARTISYS|APLICAÇÃO REAL/);
+    expect(proof).not.toContain('<blockquote');
+    expect(proof).not.toContain('class="proof-case"');
+    expect(polish).toContain('grid-template-columns:1.07fr 1fr 1fr');
+    expect(polish).toContain('.proof-evidence-item{min-height:74px;');
   });
 
   it('uses dark readable surfaces and keeps the construction category unbroken on phones', () => {
