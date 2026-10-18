@@ -75,6 +75,13 @@ try {
           categoryOverflowWrap:getComputedStyle(word).overflowWrap,
           firstCategoryHeight:word.getBoundingClientRect().height,
           firstCategoryLineHeight:parseFloat(getComputedStyle(word).lineHeight),
+          devkitWhiteCopyCount:document.querySelectorAll('.devkit-feature .devkit-copy').length,
+          devkitPanelCount:document.querySelectorAll('.devkit-feature .devkit-workbench').length,
+          devkitPanelGradient:getComputedStyle(element('.devkit-feature .devkit-workbench')).backgroundImage,
+          devkitCta:element('.devkit-workbench-cta')?.getAttribute('href'),
+          devkitImageCount:document.querySelectorAll('.devkit-feature .devkit-feature-illustration img').length,
+          devkitOverflow:(()=>{const d=element('.devkit-feature');return d.scrollWidth>d.clientWidth+2})(),
+          footerMinimal:(()=>{const link=footer.querySelector('a[href*="tiktok.com"]');const style=getComputedStyle(link);return {background:style.backgroundColor,border:style.borderTopWidth}})(),
           footerCentral:footer.querySelector('.footer-link-central')?.getAttribute('href'),
           tiktok:footer.querySelector('a[href*="tiktok.com"]')?.getAttribute('href'),
           headerHeight:header.height
@@ -86,6 +93,14 @@ try {
       assert.equal(visual.proofContainsLegacyCopy,false,'old customer-case labels must be gone');
       assert.equal(visual.proofOverflows,false,'social proof container overflows viewport');
       assert.equal(visual.proofItemsOverflow,false,'social proof cards overflow');
+      assert.equal(visual.devkitWhiteCopyCount,0,'DevKit white copy half should be removed');
+      assert.equal(visual.devkitPanelCount,1,'DevKit must be a single image panel');
+      assert.ok(visual.devkitPanelGradient.includes('linear-gradient'),'DevKit workbench should use dark gradient');
+      assert.equal(visual.devkitCta,'/devkits/','DevKit CTA must reach catalog');
+      assert.equal(visual.devkitImageCount,1,'DevKit should preserve one illustration');
+      assert.equal(visual.devkitOverflow,false,'DevKit panel overflows its container');
+      assert.equal(visual.footerMinimal.background,'rgba(0, 0, 0, 0)','footer links should not be filled cards');
+      assert.equal(visual.footerMinimal.border,'0px','footer links should not have card borders');
       assert.equal(visual.footerCentral,'/links/','footer should link to the ArtiSys central');
       assert.equal(visual.tiktok,'https://www.tiktok.com/@artisysdev','TikTok must match canonical central');
       assert.ok(visual.headerHeight<=70,'mobile header exceeds compact target');
@@ -95,7 +110,7 @@ try {
       }
       if(width===390 || width===1280){
         await page.screenshot({path:path.join(artifacts,'home-'+width+'.png'),animations:'disabled'});
-        for(const name of ['product-showcase','proof-journey','footer']){
+        for(const name of ['devkit-feature','product-showcase','proof-journey','footer']){
           await page.locator('.'+name).screenshot({path:path.join(artifacts,name+'-'+width+'.png'),animations:'disabled'});
         }
       }
