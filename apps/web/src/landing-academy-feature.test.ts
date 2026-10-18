@@ -18,6 +18,20 @@ describe('ArtiSys homepage — Academy featured before DevKits', () => {
     expect(landing).not.toContain('href="https://artisys.dev/" class="academy-feature-link"');
   });
 
+  it('keeps the Academy teaser as a compact and balanced link at mobile widths', () => {
+    const hero = landing.split('<section class="hero container viral-hero"')[1]?.split('</section>')[0] ?? '';
+    expect(hero).toContain('class="academy-hero-pill-mark"');
+    expect(hero).toContain('class="academy-hero-pill-content"');
+    expect(hero).toContain('class="academy-hero-pill-arrow"');
+    expect(hero).toContain('aria-label="Conhecer a Artisys Academy e entrar na lista de espera"');
+    expect(hero).toContain('Trilhas com IA · Lista de espera');
+    expect(styles).toContain('display:grid;grid-template-columns:40px minmax(0,1fr) 28px;');
+    expect(styles).toContain('grid-template-columns:38px minmax(0,1fr) 28px;');
+    expect(styles).not.toContain('flex-basis:100%');
+    expect(styles).not.toContain('.academy-hero-pill-dot');
+    expect(styles).toContain('.hero.viral-hero .hero-actions .button{min-height:70px;');
+  });
+
   it('displays a complete Academy showcase ahead of DevKits without moving or duplicating existing courses', () => {
     const first = landing.indexOf('<section class="academy-feature container" id="academy"');
     const devkits = landing.indexOf('<section class="devkit-feature container" id="devkits"');
