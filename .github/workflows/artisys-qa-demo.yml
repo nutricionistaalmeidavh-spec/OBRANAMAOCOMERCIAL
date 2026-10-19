@@ -75,7 +75,7 @@ jobs:
       - name: Preparar renderer Desktop para teste de colaborador
         working-directory: apps/desktop
         run: |
-          npm ci --no-audit --no-fund
+          npm install --workspaces=false --no-audit --no-fund
           npm run build
       - name: Instalar Playwright local sem servicos externos pagos
         working-directory: apps/web
