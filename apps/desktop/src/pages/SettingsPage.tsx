@@ -62,6 +62,13 @@ export default function SettingsPage(){
     </SettingsGroup>
 
     <SettingsGroup title="Arquivos e proteção" description="Pasta documental, backup e proteções locais do Desktop.">
+      {documentRootHealth.data?.source==='server'?<Card className="setting-card setting-card-wide">
+        <FolderCog size={21}/>
+        <div className="setting-card-copy"><h3>Documentos no servidor da empresa</h3><p>Os documentos são compartilhados pelo computador principal. As cópias usadas para abrir arquivos ficam no cache local deste aplicativo.</p></div>
+        <small className="path-text">{documentRootHealth.data.root}</small>
+        {documentRootHealth.data.ready===false&&<div className="settings-feedback" role="alert">{documentRootHealth.data.message}</div>}
+        <Button variant="secondary" onClick={()=>void documentRootHealth.reload()}>Verificar conexão</Button>
+      </Card>:<>
       <Card className="setting-card setting-card-wide">
         <FolderCog size={21}/>
         <div className="setting-card-copy"><h3>Pasta da documentação</h3><p className="path-text">{boot.data?.documentsPath||'Carregando localização...'}</p></div>
@@ -69,6 +76,7 @@ export default function SettingsPage(){
         <small>Todas as empresas, colaboradores e subpastas são criados neste local. Se a unidade de rede estiver desligada, o sistema não troca automaticamente a origem dos arquivos.</small>
         {documentRootHealth.data?.ready===false&&<div className="settings-feedback" role="alert"><strong>Pasta indisponível.</strong> O sistema permanece acessível, mas documentos dessa origem precisam da conexão. Após reconectar a rede, clique em <Button variant="secondary" onClick={async()=>{try{const state=await window.fluxoDre.documentos.retryRoot();await documentRootHealth.reload();setMessage(state.ready?'Pasta reconectada com sucesso.':'Pasta continua indisponível. Verifique o compartilhamento e as permissões.')}catch(error:any){setMessage(error.message)}}}>Verificar novamente</Button>. A troca de pasta só será concluída se os documentos registrados forem validados.</div>}
       </Card>
+      </>}
       <Card className="setting-card setting-card-compact"><DatabaseBackup size={21}/><div className="setting-card-copy"><h3>Backup manual</h3><p>Cria uma cópia consistente do SQLite em uma pasta escolhida.</p></div><Button onClick={()=>action(()=>window.fluxoDre.backup.create(),'Backup criado com sucesso.')}>Criar backup</Button></Card>
       <Card className="setting-card setting-card-compact"><RotateCcw size={21}/><div className="setting-card-copy"><h3>Restaurar banco</h3><p>Cria uma cópia de segurança antes de substituir o banco atual.</p></div><Button variant="secondary" onClick={()=>action(()=>window.fluxoDre.backup.restore(),'Banco restaurado. Reinicie o aplicativo.')}>Restaurar</Button></Card>
       <Card className="setting-card setting-card-compact"><ShieldCheck size={21}/><div className="setting-card-copy"><h3>Segurança local</h3><p>Context isolation ativo, renderer sem Node e banco restrito ao processo principal.</p></div><span className="status status-success">Proteções ativas</span></Card>

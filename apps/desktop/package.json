@@ -1,6 +1,6 @@
 {
   "name": "obra-na-mao-desktop-commercial",
-  "version": "2.1.2",
+  "version": "2.1.4",
   "description": "Obra na Mão Desktop — edição comercial independente",
   "author": "Fluxo DRE",
   "main": "electron/updater-main.cjs",
@@ -35,7 +35,7 @@
     ],
     "mac": {"icon": "electron/assets/icon.icns"},
     "win": {"icon": "electron/assets/icon.ico","target": ["nsis"],"artifactName": "Obra-na-Mao-Desktop-Setup-${version}.${ext}"},
-    "nsis": {"oneClick": false,"allowToChangeInstallationDirectory": true,"createDesktopShortcut": true,"createStartMenuShortcut": true,"shortcutName": "Obra na Mão Desktop"},
+    "nsis": {"include":"build/preserve-data.nsh","oneClick": false,"allowToChangeInstallationDirectory": true,"createDesktopShortcut": true,"createStartMenuShortcut": true,"shortcutName": "Obra na Mão Desktop"},
     "electronVersion": "43.4.1"
   },
   "dependencies": {
@@ -58,7 +58,7 @@
     "concurrently": "^10.0.4",
     "cross-env": "^10.1.0",
     "electron": "43.4.1",
-    "electron-builder": "^26.15.3",
+    "electron-builder": "26.15.3",
     "postcss": "^8.5.25",
     "tailwindcss": "^3.4.19",
     "typescript": "^7.0.2",
