@@ -73,7 +73,7 @@ jobs:
             echo "::error::Release already exists; refusing to replace published bytes"
             exit 1
           fi
-          gh release create "$tag" verified-release/Obra-na-Mao-Desktop-Setup-2.1.3.exe verified-release/Obra-na-Mao-Desktop-Setup-2.1.3.exe.blockmap verified-release/latest.yml --draft --target 5eceb3f178e57f8d18c7f09cb3dd74e2a999ea72 --title "Obra na Mão Desktop Comercial v2.1.3" --notes "Correção do instalador Windows: preserva documentos existentes durante a atualização, refaz atalhos e permite abrir o aplicativo quando a pasta configurada está indisponível. EXE validado em cinco cenários reais de instalação por cima e reinstalação. Arquivos já apagados exigem backup ou recuperação. Validação: https://github.com/$GH_REPO/actions/runs/38993753950"
+          gh release create "$tag" verified-release/Obra-na-Mao-Desktop-Setup-2.1.3.exe verified-release/Obra-na-Mao-Desktop-Setup-2.1.3.exe.blockmap verified-release/latest.yml --draft --target "${{ github.sha }}" --title "Obra na Mão Desktop Comercial v2.1.3" --notes "Correção do instalador Windows: preserva documentos existentes durante a atualização, refaz atalhos e permite abrir o aplicativo quando a pasta configurada está indisponível. EXE validado em cinco cenários reais de instalação por cima e reinstalação. Arquivos já apagados exigem backup ou recuperação. Validação: https://github.com/$GH_REPO/actions/runs/38993753950"
           gh release edit "$tag" --draft=false --latest
       - name: Verify published release
         run: |
