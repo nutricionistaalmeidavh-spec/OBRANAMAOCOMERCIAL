@@ -1,0 +1,90 @@
+name: Publish verified Desktop 2.1.3 once
+on:
+  push:
+    branches: ['release/desktop-2.1.3-verified-once']
+    paths: ['.github/workflows/publish-desktop-2.1.3-once.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: publish-desktop-2.1.3-once
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: contains(github.event.head_commit.message, '[publish-verified-2.1.3]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Confirm tested production source
+        run: git diff --exit-code 5eceb3f178e57f8d18c7f09cb3dd74e2a999ea72 HEAD -- apps/desktop apps/lan-server packages
+      - name: Require successful five-scenario verification
+        run: |
+          gh api repos/$GH_REPO/actions/runs/38993753950 > /tmp/verification-run.json
+          gh api repos/$GH_REPO/actions/runs/38993753950/jobs > /tmp/verification-jobs.json
+          python3 - <<'PY'
+          import json
+          run=json.load(open('/tmp/verification-run.json'))
+          assert run['conclusion']=='success', run['conclusion']
+          assert run['head_sha']=='4726ae0904b60190d964caaa9fdfafd634f64865'
+          jobs=json.load(open('/tmp/verification-jobs.json'))['jobs']
+          expected={'inside-canonical','inside-nested','inside-stale','broken-share','external-canonical'}
+          assert {j['name'] for j in jobs}=={'install-over ('+s+')' for s in expected}
+          assert all(j['conclusion']=='success' for j in jobs)
+          print('All five exact-candidate Windows scenarios passed')
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-2.1.3-Windows-candidate
+          path: verified-release
+          run-id: 38985595888
+          github-token: ${{ github.token }}
+      - name: Verify EXE and updater metadata
+        run: |
+          python3 - <<'PY'
+          import pathlib,hashlib,re,base64
+          root=pathlib.Path('verified-release')
+          exe=root/'Obra-na-Mao-Desktop-Setup-2.1.3.exe'
+          data=exe.read_bytes()
+          assert len(data)==125773454
+          assert hashlib.sha256(data).hexdigest()=='f4b04821d7d90784c7f55c97b6d1d8defb1db1fc6276fd50c76d662b0488c304'
+          metadata=(root/'latest.yml').read_text()
+          assert re.search(r'^version: 2\.1\.3$',metadata,re.M)
+          assert 'Obra-na-Mao-Desktop-Setup-2.1.3.exe' in metadata
+          assert base64.b64encode(hashlib.sha512(data).digest()).decode() in metadata
+          assert str(len(data)) in metadata
+          assert (root/'Obra-na-Mao-Desktop-Setup-2.1.3.exe.blockmap').stat().st_size>0
+          print('Exact tested EXE, SHA512 and version metadata verified')
+          PY
+      - name: Stage complete release and publish automatic update
+        run: |
+          set -euo pipefail
+          tag=desktop-commercial-v2.1.3
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::Release already exists; refusing to replace published bytes"
+            exit 1
+          fi
+          gh release create "$tag" verified-release/Obra-na-Mao-Desktop-Setup-2.1.3.exe verified-release/Obra-na-Mao-Desktop-Setup-2.1.3.exe.blockmap verified-release/latest.yml --draft --target 5eceb3f178e57f8d18c7f09cb3dd74e2a999ea72 --title "Obra na Mão Desktop Comercial v2.1.3" --notes "Correção do instalador Windows: preserva documentos existentes durante a atualização, refaz atalhos e permite abrir o aplicativo quando a pasta configurada está indisponível. EXE validado em cinco cenários reais de instalação por cima e reinstalação. Arquivos já apagados exigem backup ou recuperação. Validação: https://github.com/$GH_REPO/actions/runs/38993753950"
+          gh release edit "$tag" --draft=false --latest
+      - name: Verify published release
+        run: |
+          gh api repos/$GH_REPO/releases/latest > /tmp/published-release.json
+          python3 - <<'PY'
+          import json
+          release=json.load(open('/tmp/published-release.json'))
+          assert release['tag_name']=='desktop-commercial-v2.1.3'
+          assert not release['draft'] and not release['prerelease']
+          assets={a['name']:a for a in release['assets']}
+          assert set(assets)=={'latest.yml','Obra-na-Mao-Desktop-Setup-2.1.3.exe','Obra-na-Mao-Desktop-Setup-2.1.3.exe.blockmap'}
+          assert assets['Obra-na-Mao-Desktop-Setup-2.1.3.exe']['digest']=='sha256:f4b04821d7d90784c7f55c97b6d1d8defb1db1fc6276fd50c76d662b0488c304'
+          print(assets['Obra-na-Mao-Desktop-Setup-2.1.3.exe']['browser_download_url'])
+          PY
