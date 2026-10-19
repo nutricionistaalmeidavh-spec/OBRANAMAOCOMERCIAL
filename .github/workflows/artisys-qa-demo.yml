@@ -52,6 +52,53 @@ permissions:
   contents: read
 
 jobs:
+  pwa-visual:
+    if: ${{ github.event_name == 'pull_request' }}
+    name: PWA Obra360 e Gestao - telas desktop/mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Instalar dependencias Web
+        working-directory: apps/web
+        run: npm ci --no-audit --no-fund
+      - name: Compilar PWA
+        working-directory: apps/web
+        run: npm run build
+      - name: Preparar renderer Desktop para teste de colaborador
+        working-directory: apps/desktop
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run build
+      - name: Instalar Playwright local sem servicos externos pagos
+        working-directory: apps/web
+        run: |
+          npm install --no-save --package-lock=false playwright@1.62.1
+          npx playwright install --with-deps chromium
+      - name: Executar PWA transacional desktop e mobile com dados ficticios
+        working-directory: apps/web
+        run: node scripts/qa-field-transactional.mjs
+      - name: Capturar fluxo de convite e revogacao de colaborador
+        working-directory: apps/web
+        run: node scripts/qa-collaborator-onboarding-e2e.mjs
+      - name: Anexar prints, relatorios e evidencias do navegador
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: obra-na-mao-pwa-visual-${{ github.run_number }}
+          path: |
+            apps/web/qa-artifacts/field-transactional/
+            apps/web/qa-artifacts/collaborator-onboarding-e2e/
+          retention-days: 7
+          if-no-files-found: warn
+
   capture:
     runs-on: ubuntu-latest
     timeout-minutes: 30
