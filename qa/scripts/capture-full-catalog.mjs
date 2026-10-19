@@ -67,10 +67,31 @@ async function snap(title,route,group='Rota'){
   entries.push({num:idx,title,route,group,file,status,heading:details.heading,hash:details.hash,excerpt:details.text});
   if(status!=='capturada')failures.push(title+': possivel erro de interface');
 }
+async function selectActiveDemoContext(){
+  // Algumas paginas usam seletores proprios e ignoram o filtro global.
+  // Escolher a empresa e a obra usando a propria interface garante eventos React reais.
+  for(const desired of ['Demo Obras','Obra Demo - Torre A']){
+    const selects=page.locator('select');
+    const total=await selects.count();
+    for(let i=0;i<total;i++){
+      const select=selects.nth(i);
+      try{
+        const options=await select.locator('option').evaluateAll(nodes=>nodes.map(n=>({value:n.value,label:(n.textContent||'').trim()})));
+        const option=options.find(x=>x.value&&x.label.includes(desired));
+        if(option&&(await select.inputValue())!==option.value){
+          await select.selectOption(option.value,{timeout:1800});
+          await page.waitForTimeout(160);
+        }
+      }catch{ /* Outros selects podem desaparecer durante renderizacao condicional. */ }
+    }
+  }
+}
 async function navigate(route){
   await page.evaluate((hash)=>{location.hash=hash},'#'+route);
-  await page.waitForTimeout(650);
+  await page.waitForTimeout(550);
   await page.locator('body').waitFor({state:'visible'});
+  await selectActiveDemoContext();
+  await page.waitForTimeout(450);
 }
 try{
   app=await electron.launch({
@@ -102,8 +123,12 @@ try{
     ];
     const jobs=[];
     for(const [name,cents] of cargos){
-      try{const row=await api.cargos.save({empresa_id:company.id,nome:name,salario_base_centavos:cents,ativo:1});jobs.push(row);created.cargos++;}
-      catch(err){e('cargo '+name,err);}
+      try{
+        const existing=(await api.cargos.list()).find(x=>String(x.nome||'').toLowerCase()===name.toLowerCase());
+        if(existing){jobs.push(existing);continue;}
+        const row=await api.cargos.save({empresa_id:company.id,nome:name,salario_base_centavos:cents,ativo:1});
+        jobs.push(row);created.cargos++;
+      }catch(err){e('cargo '+name,err);}
     }
     const people=[
       ['Marina Costa',0,510000],['Carlos Lima',2,520000],['Joao Martins',0,360000],
@@ -253,4 +278,4 @@ for(const line of lines){
 const pdfPath=path.join(out,'Obra-na-Mao-QA-Catalogo-Visual.pdf');
 await fs.writeFile(pdfPath,await pdf.save());
 console.log(JSON.stringify({pdfPath,screenshotCount:entries.length,expectedRoutes:routes.length,failures:failures.slice(0,20),fixtures:extra?.counts||null},null,2));
-if(entries.length<routes.length)process.exitCode=1;
+if(entries.length<routes.length||extra?.counts?.employees<8||extra?.counts?.accounts<8)process.exitCode=1;
