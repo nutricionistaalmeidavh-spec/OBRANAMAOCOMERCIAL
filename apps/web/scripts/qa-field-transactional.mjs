@@ -53,7 +53,16 @@ try{
       if(pathname==='/api/bootstrap')return json({needsClaim:false,isOwner:true,role:'admin',platformRole:'superadmin',projectInitialized:true,user:{userId:'qa-owner',email:'qa.owner@example.test',name:'QA Owner'},company:{id:'company-qa',name:'Empresa QA'},project:{id:'project-qa',name:'Obra QA Integrada',customer:'Cliente QA'},membership:{companyId:'company-qa',projectId:'project-qa',email:'qa.owner@example.test',role:'admin'},access:{licenseId:'owner',modules:['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'],channels:['desktop','mobile'],status:'active'}});
       if(pathname==='/api/project'&&request.method()==='GET')return json({state});
       if(pathname==='/api/project/state'&&request.method()==='PUT'){state=structuredClone(body.state);return json({ok:true,state});}
-      if(pathname==='/api/mobile/summary')return json({summary:{generatedAt:new Date().toISOString(),scope:{period:'Histórico da obra · caixa'},modules:{rdo:{open:1},documents:{expiring30d:0},dre:{competenceRevenue:12000000,competenceExpense:8500000,competenceResult:3500000,revenue:10500000,expense:7200000,result:3300000}}}});
+      if(pathname==='/api/mobile/summary')return json({summary:{generatedAt:new Date().toISOString(),scope:{period:'Competência 2026-10 · dados fictícios'},modules:{
+        obra360:{physicalProgress:38.5,activeStages:11,overdueStages:2,productiveHours:1480,completedProduction:23},
+        rdo:{total:19,pending:3,finalized:16},
+        documents:{total:37,expiring30d:4},
+        dre:{competenceRevenue:12000000,competenceExpense:8500000,competenceResult:3500000,revenue:10500000,expense:7200000,result:3300000,budget:3750000,variance:-250000},
+        rh:{activeEmployees:8,openPayrolls:1,pendingPayments:3},
+        contracts:{active:5,totalValue:42000000,addenda:2},
+        procurement:{requestsOpen:7,ordersOpen:4,committed:2860000},
+        measurements:{total:12,open:3,netValue:9850000}
+      }}});
       if(pathname==='/api/mobile/sync/conflicts')return json({conflicts:[]});
       if(pathname==='/api/attendance'&&request.method()==='POST'){
         const day=state.days[today];day.attendance=day.attendance||{};day.attendance[body.employeeId]=body.status;day.presentCount=Object.values(day.attendance).filter(value=>value==='present').length;day.absentCount=Object.values(day.attendance).filter(value=>value==='absent').length;const employee=state.employees.find(item=>item.id===body.employeeId);if(employee)employee.attendance=body.status;return json({day,employee});
@@ -65,7 +74,7 @@ try{
       }
       return json({error:`Unhandled field QA route ${request.method()} ${pathname}`},404);
     });
-    const shot=async name=>{const file=`${viewport.name}-${name}.png`;screenshots.push(file);await page.screenshot({path:path.join(outDir,file),fullPage:true})};
+    const shot=async (name,{fullPage=true}={})=>{const file=`${viewport.name}-${name}.png`;screenshots.push(file);await page.screenshot({path:path.join(outDir,file),fullPage})};
     const waitForSnapshotSync=async(label,promise)=>{try{return await promise}catch(error){const syncText=await page.locator('#fieldSyncStatus').textContent().catch(()=>null);throw new Error(`${viewport.name}: ${label} did not autosync through PUT /api/project/state${syncText?` (${syncText.trim()})`:''}; ${error instanceof Error?error.message:String(error)}`)}};
     const nextSnapshotSync=()=>page.waitForRequest(request=>request.method()==='PUT'&&new URL(request.url()).pathname==='/api/project/state',{timeout:7000});
 
@@ -93,20 +102,24 @@ try{
     // Captura complementar de rotas da Gestao sem alterar dados de producao.
     for(const [alias,hash,expectedSelector] of [
       ['21-gestao-visao-geral','#gestao','#content'],
-      ['22-gestao-rdo','#gestao/rdo','#content'],
-      ['23-gestao-rh','#gestao/rh','#content'],
-      ['24-gestao-financeiro','#gestao/finance','#content'],
-      ['25-gestao-contratos','#gestao/contracts','#content'],
-      ['26-gestao-compras','#gestao/procurement','#content'],
-      ['27-gestao-medicoes','#gestao/measurements','#content'],
-      ['28-gestao-documentos','#gestao/documents','#content']
+      ['21-gestao-producao','#gestao/obra360','#management-obra360'],
+      ['22-gestao-rdo','#gestao/rdo','#management-rdo'],
+      ['23-gestao-rh','#gestao/rh','#management-rh'],
+      ['24-gestao-financeiro','#gestao/dre','#management-dre'],
+      ['25-gestao-contratos','#gestao/contracts','#management-contracts'],
+      ['26-gestao-compras','#gestao/procurement','#management-procurement'],
+      ['27-gestao-medicoes','#gestao/measurements','#management-measurements'],
+      ['28-gestao-documentos','#gestao/documents','#management-documents']
     ]){
       try{
         await page.goto(base+'/gestao.html'+hash,{waitUntil:'domcontentloaded'});
         await page.locator(expectedSelector).waitFor({state:'visible',timeout:4500});
         await page.waitForTimeout(350);
         const visibleText=await page.locator('#content').innerText().catch(()=> '');
-        if(visibleText.trim().length>40)await shot(alias);
+        if(visibleText.trim().length>40){
+          if(hash!=='#gestao')await page.locator(expectedSelector).scrollIntoViewIfNeeded();
+          await shot(alias,{fullPage:hash==='#gestao'});
+        }
       }catch(error){
         console.warn('Optional management capture unavailable '+alias+': '+String(error?.message||error).slice(0,140));
       }
