@@ -14,6 +14,65 @@ function registerFile(db:any,absolutePath:string){fs.mkdirSync(path.dirname(abso
 afterEach(()=>{vi.restoreAllMocks();for(const item of created.splice(0)){item.db.close();fs.rmSync(item.dir,{recursive:true,force:true})}})
 
 describe('DocumentRootService',()=>{
+  function centralSetup() {
+    const context=setup()
+    const networkRoot=path.join(context.dir,'obsolete-share','DOCUMENTOS')
+    context.db.db.prepare('INSERT INTO configuracoes(chave,valor) VALUES (?,?)').run('documentos_pasta_raiz',networkRoot)
+    let mode='server', active=true, online=true
+    context.files.storage={state:()=>({mode,baseUrl:'http://127.0.0.1:4732'})}
+    context.files.moduleStorage={state:()=>({state:active?'central-active':'migration-required'})}
+    context.files.lanClient={syncSourceCapabilities:async()=>{
+      if(!online)throw new Error('Servidor desligado')
+      return {modules:['documents']}
+    },downloadFile:async()=>Buffer.from('PDF central de teste')}
+    context.files.dataAccess={get:async()=>({nome_original:'teste.pdf'})}
+    const originalMkdir=fs.mkdirSync
+    const mkdir=vi.spyOn(fs,'mkdirSync').mockImplementation(((directory:any,options:any)=>{
+      if(String(directory).startsWith(networkRoot))throw Object.assign(new Error('Share unavailable'),{code:'EACCES'})
+      return originalMkdir(directory,options)
+    }) as typeof fs.mkdirSync)
+    const service=new DocumentRootService({db:context.db,files:context.files,defaultDir:context.oldRoot})
+    return {...context,networkRoot,service,mkdir,setMode:(value:string)=>{mode=value},setActive:(value:boolean)=>{active=value},setOnline:(value:boolean)=>{online=value}}
+  }
+
+  it('checks the central source without touching the obsolete network root',async()=>{
+    const {service,networkRoot,mkdir,db}=centralSetup()
+    expect(await service.checkStatus()).toMatchObject({source:'server',ready:true,root:'http://127.0.0.1:4732'})
+    expect(mkdir.mock.calls.some(([directory])=>String(directory).startsWith(networkRoot))).toBe(false)
+    expect(service.getConfigured()).toBe(networkRoot)
+    expect(db.list('arquivos')).toEqual([])
+  })
+
+  it('downloads central bytes into local cache instead of the obsolete share',async()=>{
+    const {files,oldRoot,networkRoot,service}=centralSetup()
+    const cached=await files.materializeCentral(7)
+    expect(cached).toBe(path.join(oldRoot,'.server-cache','7-teste.pdf'))
+    expect(fs.readFileSync(cached,'utf8')).toBe('PDF central de teste')
+    expect(service.getConfigured()).toBe(networkRoot)
+  })
+
+  it('reports an outage and retries the server without local fallback',async()=>{
+    const {service,setOnline,networkRoot,mkdir}=centralSetup()
+    setOnline(false)
+    expect(await service.checkStatus()).toMatchObject({source:'server',ready:false,code:'CENTRAL_UNAVAILABLE'})
+    setOnline(true)
+    expect(await service.retryRoot()).toMatchObject({source:'server',ready:true})
+    expect(mkdir.mock.calls.some(([directory])=>String(directory).startsWith(networkRoot))).toBe(false)
+  })
+
+  it('does not report a server ready while document migration is incomplete',async()=>{
+    const {service,setActive}=centralSetup()
+    setActive(false)
+    expect(await service.checkStatus()).toMatchObject({source:'server',ready:false,code:'CENTRAL_NOT_ACTIVE'})
+  })
+
+  it('keeps the original local root when switching back from the server',()=>{
+    const {service,files,networkRoot,setMode}=centralSetup()
+    setMode('local')
+    expect(service.retryRoot()).toMatchObject({ready:false,root:networkRoot,code:'EACCES'})
+    expect(files.documentsDir).toBe(networkRoot)
+  })
+
   it('keeps the database and original network root when mkdir fails, then retries without migration',()=>{
     const {dir,oldRoot,db,files}=setup()
     const networkRoot=path.join(dir,'unavailable-share','DOCUMENTOS')

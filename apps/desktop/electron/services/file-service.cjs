@@ -20,6 +20,7 @@ function sha256(filePath) {
 
 class FileService {
   constructor({ documentsDir, db, dataAccess = null, lanClient = null, moduleStorage = null, storage = null }) {
+    this.defaultDocumentsDir = documentsDir
     this.documentsDir = documentsDir
     this.db = db
     this.dataAccess = dataAccess
@@ -28,6 +29,14 @@ class FileService {
     this.storage = storage
     fs.mkdirSync(documentsDir, { recursive: true })
   }
+
+  // Central downloads and generated files are temporary local copies. A saved
+  // legacy root remains the local source, never the cache for server documents.
+  get documentsDir() {
+    return this.storage?.state?.().mode === 'server' ? this.defaultDocumentsDir : this.localDocumentsDir
+  }
+
+  set documentsDir(value) { this.localDocumentsDir = value }
 
   documentRoute() {
     const state=this.storage?.state?.()

@@ -114,7 +114,7 @@ Desde o P0 de canonicalização de RH, `src/routes/registry.ts` é o owner de pa
 - `time-service.cjs`: ponto e documentos mensais.
 - `document-service.cjs`: geração de documentos/PDFs.
 - `file-service.cjs`: importação, abertura, localização e exclusão controlada de arquivos.
-- `document-root-service.cjs`: raiz configurável dos documentos.
+- `document-root-service.cjs`: raiz configurável dos documentos. `files:root-status` consulta `checkStatus()`: no modo servidor valida o módulo Documentos e a conexão autenticada, sem acessar a raiz local legada. No modo local mantém a validação e recuperação da pasta original. `FileService.documentsDir` usa o diretório padrão do aplicativo para cache/geração temporária no modo servidor; preserva a raiz local configurada para uso local.
 - `import-service.cjs`: prévia e confirmação do modelo específico de 2026.
 - `universal-import-service.cjs`: análise de Excel/CSV, mapeamento assistido e importação transacional por área.
 - `catalog-service.cjs`: catálogo local de cargos/benefícios; `saveCompensationPolicy` salva cargo + vínculos em transação única.

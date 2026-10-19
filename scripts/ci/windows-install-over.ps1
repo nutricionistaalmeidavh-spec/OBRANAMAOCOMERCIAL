@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Scenario,[Parameter(Mandatory=$true)][string]$Release)
+param([Parameter(Mandatory=$true)][string]$Scenario,[Parameter(Mandatory=$true)][string]$Release,[string]$TargetVersion='2.1.3')
 $ErrorActionPreference='Stop'
 $base=Join-Path $env:RUNNER_TEMP 'obra-install-over'
 $out=Join-Path $base 'evidence'
@@ -111,7 +111,7 @@ db.commit();db.close()
     }
   }
 
-  $fixed=Join-Path $Release 'Obra-na-Mao-Desktop-Setup-2.1.3.exe'
+  $fixed=Join-Path $Release "Obra-na-Mao-Desktop-Setup-$TargetVersion.exe"
   if($Scenario -eq 'broken-share') {
     # A real old installer must cause the original UNKNOWN before testing repair.
     Install-Official '2.1.1'
@@ -135,9 +135,9 @@ db.commit();db.close()
   }
 
   $version=(Get-Item $exe).VersionInfo.ProductVersion
-  if($version -notlike '2.1.3*'){throw "Unexpected installed version: $version"}
+  if($version -notlike "$TargetVersion*"){throw "Unexpected installed version: $version"}
   $snapshot=Start-StandardApp 'fixed'
-  if($snapshot.bootstrap.version -ne '2.1.3' -or $snapshot.bootstrap.firstRun -ne $false -or $snapshot.details){throw 'Corrected installed app must boot with the original database'}
+  if($snapshot.bootstrap.version -ne $TargetVersion -or $snapshot.bootstrap.firstRun -ne $false -or $snapshot.details){throw 'Corrected installed app must boot with the original database'}
   if($snapshot.bootstrap.documentsPath -ne $unc){throw 'Canonical document root changed silently'}
   if(@($snapshot.companies | Where-Object {$_.razao_social -eq 'CI PRESERVATION COMPANY'}).Count -ne 1){throw 'Original company is not readable through the real app API'}
   if($Scenario -eq 'broken-share') {
@@ -157,7 +157,7 @@ db.commit();db.close()
   $p=Start-Process $fixed -ArgumentList @('/S','/allusers',"/D=$install") -Wait -PassThru
   if($p.ExitCode -ne 0){throw 'Repeated install-over failed'}
   $repeat=Start-StandardApp 'repeat'
-  if($repeat.bootstrap.version -ne '2.1.3' -or $repeat.bootstrap.firstRun -ne $false){throw 'Repeated install lost database or failed startup'}
+  if($repeat.bootstrap.version -ne $TargetVersion -or $repeat.bootstrap.firstRun -ne $false){throw 'Repeated install lost database or failed startup'}
   if($Scenario -ne 'broken-share' -and (Get-FileHash $sentinel -Algorithm SHA256).Hash -ne $beforeHash){throw 'Repeated install lost document'}
   @{scenario=$Scenario;version=$version;originalHash=$beforeHash;documentPreserved=($Scenario -ne 'broken-share');appBooted=$true;repeatBooted=$true;root=$unc} | ConvertTo-Json | Set-Content "$out/result.json"
   Get-Content "$out/result.json"
