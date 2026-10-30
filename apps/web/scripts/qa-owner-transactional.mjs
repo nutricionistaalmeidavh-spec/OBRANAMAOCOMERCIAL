@@ -12,7 +12,9 @@ async function waitFor(url){for(let attempt=0;attempt<80;attempt++){try{const re
 const viewports=[
   {name:'desktop',width:1440,height:1000},
   {name:'tablet',width:900,height:1100},
+  {name:'small-mobile',width:320,height:700},
   {name:'mobile',width:390,height:844},
+  {name:'large-mobile',width:430,height:932},
 ];
 const port=await freePort();
 const base=`http://127.0.0.1:${port}`;
@@ -31,6 +33,7 @@ try{
     const page=await context.newPage();
     const requests=[];
     let sequence=1;
+    let activeRole='owner';
     const companies=[{id:'qa-company-existing',name:'Cliente QA existente',adminEmail:'existente.qa@example.test',status:'active',modules:['obra360','rdo','finance'],channels:['desktop','mobile'],usersCount:2,projectsCount:1,devicesCount:1,passwordCreatedAt:'2026-09-20T12:00:00.000Z',license:{id:'qa-license-existing',plan:'pro',expiresAt:'2027-12-31',maxUsers:12,maxProjects:6,maxDevices:3,code:'EXISTINGQA'},users:[{email:'existente.qa@example.test',name:'Admin QA',role:'admin'}],projects:[{name:'Obra QA'}],devices:[{id:'qa-device-existing',name:'Desktop QA',status:'active'}]}];
     const audit=[];
     page.on('dialog',dialog=>dialog.accept());
@@ -42,9 +45,14 @@ try{
       const record={viewport:viewport.name,method:request.method(),pathname,body};requests.push(record);allRequests.push(record);
       const json=(value,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(value)});
       if(pathname==='/api/auth/me')return json({user:{userId:'qa-owner',email:'qa.owner@example.test',name:'QA Owner'}});
-      if(pathname==='/api/central/access')return json({role:'owner',views:['overview','obra','debora','clients','licenses']});
+      if(pathname==='/api/central/access')return json({role:activeRole,views:activeRole==='debora'?['debora']:['overview','obra','debora','clients','licenses']});
       if(pathname==='/api/owner/debora-overview')return json({overview:{clients:0,pro:0,freemium:0,expiring:0,revoked:0},clients:[]});
       if(pathname==='/api/owner/license-audit')return json({events:audit});
+      if(pathname==='/api/owner/debora-observability/summary')return json({accounts:{total:1},presence:{onlineNow:1,activeToday:1},usage:{sessionsToday:3},pro:{total:1},plans:{freemium:0},sales:{paid:1,realizedRevenueCents:5500}});
+      if(pathname==='/api/owner/debora-observability/users')return json({items:[{userId:'qa-debora-user',email:'consultora.teste.mais.longo@example.test',planCode:'pro_monthly',subscriptionStatus:'active',online:true,createdAt:'2026-10-01T12:00:00Z'}],hasMore:false,nextCursor:null});
+      if(pathname==='/api/owner/debora-observability/sales')return json({items:[{id:'qa-sale',email:'consultora.teste.mais.longo@example.test',source:'asaas',planCode:'pro_monthly',status:'paid',amountCents:5500,createdAt:'2026-10-01T12:00:00Z'}],hasMore:false,nextCursor:null});
+      if(pathname==='/api/owner/debora-partners')return json({partners:[{id:'qa-partner',name:'Parceiro QA',code:'QA15',active:true}]});
+      if(pathname==='/api/owner/debora-partner-sales')return json({summary:{paidSales:1,revenueCents:5500},sales:[]});
       if(pathname==='/api/owner/companies'&&request.method()==='GET')return json({companies});
       if(pathname==='/api/owner/companies'&&request.method()==='POST'){
         sequence+=1;
@@ -58,22 +66,71 @@ try{
       if(deviceMatch&&request.method()==='PUT'){for(const company of companies){const device=company.devices?.find(item=>item.id===decodeURIComponent(deviceMatch[1]));if(device){device.status=body.status==='active'?'active':'revoked';return json({ok:true,status:device.status})}}return json({error:'Computador não encontrado.'},404)}
       return json({error:`Unhandled QA route ${request.method()} ${pathname}`},404);
     });
-    const shot=async name=>{const filename=`${viewport.name}-${name}.png`;screenshots.push(filename);await page.screenshot({path:path.join(outDir,filename),fullPage:true})};
+    const assertViewport=async label=>{
+      const state=await page.evaluate(()=>{
+        const viewport=document.documentElement.clientWidth;
+        const width=Math.max(document.documentElement.scrollWidth,document.body.scrollWidth);
+        const offenders=[...document.querySelectorAll('[data-owner-shell] *')].filter(node=>{
+          const rect=node.getBoundingClientRect();
+          return rect.width>0&&(rect.right>viewport+2||rect.left< -2) &&
+            getComputedStyle(node).position!=='fixed' &&
+            !node.closest('.owner-debora-table-wrap');
+        }).slice(0,8).map(node=>node.tagName.toLowerCase()+'.'+String(node.className||'').slice(0,80));
+        return{viewport,width,offenders};
+      });
+      if(state.width>state.viewport+2)throw new Error(`${viewport.name} ${label}: horizontal document overflow (${state.width}px > ${state.viewport}px); ${state.offenders.join(', ')}`);
+    };
+    const shot=async name=>{await assertViewport(name);const filename=`${viewport.name}-${name}.png`;screenshots.push(filename);await page.screenshot({path:path.join(outDir,filename),fullPage:true})};
+    const openOwnerView=async view=>{const toggle=page.locator('[data-owner-nav-toggle]');if(await toggle.isVisible())await toggle.click();await page.locator(`[data-owner-view="${view}"]`).click()};
     await page.goto(`${base}/sistema.html#owner`,{waitUntil:'domcontentloaded'});
     await page.locator('[data-owner-shell]').waitFor({state:'visible'});await shot('01-owner-overview');
-    await page.locator('[data-owner-view="obra"]').click();const form=page.locator('#companyForm');await form.waitFor({state:'visible'});
+    await openOwnerView('obra');const form=page.locator('#companyForm');await form.waitFor({state:'visible'});
     await form.locator('input[name="name"]').fill('Construtora QA');await form.locator('input[name="adminEmail"]').fill('cliente.qa@example.test');await form.locator('input[name="plan"]').fill('pro');await form.locator('input[name="expiresAt"]').fill('2027-12-31');await form.locator('input[name="maxUsers"]').fill('20');await form.locator('input[name="maxProjects"]').fill('8');await form.locator('input[name="maxDevices"]').fill('4');await shot('02-company-form-filled');
     await form.locator('button[type="submit"]').click();await page.locator('#createResult').filter({hasText:'primeiro acesso é reconhecido por esse e-mail'}).waitFor({state:'visible'});await page.waitForFunction(()=>{const button=document.querySelector('#companyForm button[type="submit"]');return button instanceof HTMLButtonElement&&!button.disabled});await shot('03-company-created-by-email');
     const creationIndex=requests.findIndex(item=>item.method==='POST'&&item.pathname==='/api/owner/companies');if(creationIndex<0)throw new Error(`${viewport.name}: company provisioning request was not emitted`);if(!requests.slice(creationIndex+1).some(item=>item.method==='GET'&&item.pathname==='/api/owner/companies'))throw new Error(`${viewport.name}: company provisioning was not re-read from the server`);
-    await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-owner-shell]').waitFor({state:'visible'});await page.locator('[data-owner-view="clients"]').click();await page.locator('[data-owner-current="clients"]').waitFor({state:'visible'});await page.getByText('cliente.qa@example.test',{exact:true}).waitFor({state:'visible'});await shot('04-created-company-visible-in-clients');
+    await page.reload({waitUntil:'domcontentloaded'});await page.locator('[data-owner-shell]').waitFor({state:'visible'});await openOwnerView('clients');await page.locator('[data-owner-current="clients"]').waitFor({state:'visible'});await page.getByText('cliente.qa@example.test',{exact:true}).waitFor({state:'visible'});await shot('04-created-company-visible-in-clients');
     await page.locator('[data-company="qa-company-existing"]').click();const licenseForm=page.locator('#licenseForm');await licenseForm.waitFor({state:'visible'});await shot('05-company-license-detail');
     await licenseForm.locator('input[name="maxUsers"]').fill('25');await licenseForm.locator('input[name="maxProjects"]').fill('9');await licenseForm.locator('button.owner-primary').click();await page.locator('#licenseResult').filter({hasText:'Licença atualizada.'}).waitFor({state:'visible'});await shot('06-license-limits-updated');
     await page.locator('[data-device-id="qa-device-existing"]').click();await page.locator('[data-device-id="qa-device-existing"]').filter({hasText:'Reativar dispositivo'}).waitFor({state:'visible'});await shot('07-device-revoked-license-untouched');
-    await page.locator('[data-owner-view="licenses"]').click();await page.locator('h2',{hasText:'Histórico de alterações'}).waitFor({state:'visible'});await shot('08-license-audit');
+    await openOwnerView('licenses');await page.locator('h2',{hasText:'Histórico de alterações'}).waitFor({state:'visible'});await shot('08-license-audit');
     const creation=requests.find(item=>item.method==='POST'&&item.pathname==='/api/owner/companies');if(!creation||creation.body.adminEmail!=='cliente.qa@example.test')throw new Error(`${viewport.name}: company provisioning was not bound to the requested email`);
     if(Number(creation.body.maxUsers)!==20||Number(creation.body.maxProjects)!==8||Number(creation.body.maxDevices)!==4)throw new Error(`${viewport.name}: commercial limits were not submitted by the UI`);
     const companyUpdates=requests.filter(item=>item.method==='PUT'&&item.pathname==='/api/owner/companies/qa-company-existing');if(!companyUpdates.some(item=>Number(item.body.maxUsers)===25&&Number(item.body.maxProjects)===9))throw new Error(`${viewport.name}: license limits update was not exercised`);if(companyUpdates.some(item=>item.body.status==='suspended'))throw new Error(`${viewport.name}: transactional QA must never suspend a license`);
     const deviceUpdate=requests.find(item=>item.method==='PUT'&&item.pathname==='/api/owner/devices/qa-device-existing');if(!deviceUpdate||deviceUpdate.body.status!=='revoked')throw new Error(`${viewport.name}: device-only revocation was not exercised`);
+    if(viewport.width<=430){
+      activeRole='debora';
+      const beforeDebora=requests.length;
+      await page.reload({waitUntil:'domcontentloaded'});
+      await page.locator('[data-owner-current="debora"]').waitFor({state:'visible'});
+      await page.locator('[data-owner-nav-toggle]').click();
+      await page.locator('[data-owner-jump="debora-users"]').click();
+      await page.locator('[data-owner-nav-current]').filter({hasText:'Consultoras'}).waitFor({state:'visible'});
+      await page.locator('[data-debora-users-body] tr td[data-label="Usuário"]').waitFor({state:'visible'});
+      await shot('09-debora-consultoras');
+      const actions=await page.locator('[data-debora-users-body] [data-debora-user-activity]').count();
+      if(!actions)throw new Error(`${viewport.name}: Débora mobile table lost activity action`);
+      const switchTask=async task=>{await page.locator('[data-owner-nav-toggle]').click();await page.locator(`[data-owner-jump="${task}"]`).click();await page.locator('[data-owner-shell]').evaluate((el,key)=>{if(el.dataset.ownerTask!==key)throw new Error('Task not selected')},task)};
+      await switchTask('debora-sales');
+      await page.locator('[data-debora-sales-body] tr td[data-label="Registro"]').waitFor({state:'visible'});
+      await page.locator('[data-debora-sales-from]').fill('2026-10-01');
+      await page.locator('[data-debora-sales-to]').fill('2026-10-30');
+      await shot('10-debora-vendas-periodo');
+      await switchTask('debora-usage');
+      await page.locator('[data-debora-observability-metric="sales"]').waitFor({state:'visible'});
+      await shot('11-debora-uso-e-metricas');
+      await switchTask('debora-partners');
+      await page.locator('[data-debora-partners-body] tr td[data-label="Parceiro"]').waitFor({state:'visible'});
+      await shot('12-debora-parceiros');
+      await switchTask('debora-license');
+      await page.locator('#deboraLicenseStatus').waitFor({state:'visible'});
+      await page.locator('[data-debora-grant-details] summary').click();
+      await page.locator('#deboraLicenseForm button[type="submit"]').waitFor({state:'visible'});
+      await shot('13-debora-licenciamento');
+      await switchTask('debora-summary');
+      await page.locator('[data-debora-headline="pro"]').waitFor({state:'visible'});
+      await shot('14-debora-resumo');
+      if(requests.slice(beforeDebora).some(item=>item.pathname==='/api/owner/companies'||item.pathname==='/api/owner/license-audit'))throw new Error(`${viewport.name}: restricted Débora session read Obra data`);
+    }
     await context.close();
   }
   const report={schemaVersion:3,status:'passed',generatedAt:new Date().toISOString(),emailFirst:true,googleAuthPreserved:true,licenseSuspensionsPerformed:0,viewports:viewports.map(v=>v.name),requests:allRequests,screenshots};

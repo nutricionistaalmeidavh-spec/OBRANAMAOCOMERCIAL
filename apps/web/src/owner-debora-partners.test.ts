@@ -19,6 +19,17 @@ describe('Débora partners owner module',()=>{
     expect(document.body.textContent).toContain('R$ 84,92');
   });
 
+
+  it('keeps the partner editor closed by default and expands when editing an existing partner',async()=>{
+    const get=vi.fn(async(path:string)=>path.endsWith('/debora-partners')?{data:{partners:[{id:'p1',name:'Ana',code:'ANA15',active:1}]}}:{data:{summary:{},sales:[]}});
+    const post=vi.fn();
+    await bindDeboraPartners({get,post} as any);
+    const editor=document.querySelector<HTMLDetailsElement>('[data-debora-partner-editor]')!;
+    expect(editor.open).toBe(false);
+    document.querySelector<HTMLButtonElement>('[data-debora-edit-partner="p1"]')!.click();
+    expect(editor.open).toBe(true);
+    expect((document.querySelector<HTMLFormElement>('[data-debora-partner-form]')!.elements.namedItem('name') as HTMLInputElement).value).toBe('Ana');
+  });
   it('saves through the existing partner authority instead of a local store',async()=>{
     const get=vi.fn(async(path:string)=>path.includes('partner-sales')?{data:{summary:{},sales:[]}}:{data:{partners:[]}});
     const post=vi.fn(async()=>({data:{partner:{id:'p1'}}}));
