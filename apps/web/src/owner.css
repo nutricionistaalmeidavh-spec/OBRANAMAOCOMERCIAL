@@ -107,3 +107,43 @@ body:has([data-owner-shell]) #content{width:100%;max-width:100%;min-width:0;padd
   .owner-shell[data-owner-task="debora-sales"] .owner-view[data-owner-current="debora"] > #debora-usage,
   .owner-shell[data-owner-task="debora-usage"] .owner-view[data-owner-current="debora"] > #debora-usage{display:block}
 }
+
+
+/* Scoped navigation: only one level of choices on Débora's product page. */
+.owner-navigation.is-product{display:grid;gap:10px;width:min(100%,520px);margin-bottom:8px}
+.owner-navigation.is-product .owner-back-link{
+  appearance:none;display:inline-flex;align-items:center;justify-content:flex-start;
+  width:max-content;max-width:100%;min-height:44px;padding:7px 4px;border:0;
+  background:transparent;color:#2549d8;text-align:left;font:inherit;font-weight:700;cursor:pointer;
+}
+.owner-navigation.is-product .owner-back-link:focus-visible{outline:3px solid #365bd7;outline-offset:3px;border-radius:6px}
+.owner-navigation.is-product .owner-nav-toggle{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 10px;
+  width:100%;min-height:57px;padding:10px 14px;border:1px solid #d7dfed;border-radius:14px;
+  background:#fff;color:#182033;text-align:left;cursor:pointer;
+}
+.owner-navigation.is-product .owner-nav-caption{display:block;grid-column:1;font-size:.73rem;font-weight:700;letter-spacing:.04em;color:#64748b}
+.owner-navigation.is-product [data-owner-nav-current]{display:block;grid-column:1;font-size:1rem}
+.owner-navigation.is-product .owner-nav-chevron{grid-column:2;grid-row:1/3;font-size:1.25rem}
+.owner-navigation.is-product .owner-nav{
+  display:none;position:static;top:auto;z-index:auto;grid-template-columns:minmax(0,1fr);gap:2px;
+  margin:0;padding:5px;border:1px solid #dfe6f0;border-radius:13px;
+  background:#fff;backdrop-filter:none;box-shadow:0 9px 24px rgba(31,45,73,.08);
+}
+.owner-navigation.is-product .owner-nav.is-open{display:grid}
+.owner-navigation.is-product .owner-nav-item{
+  display:flex;justify-content:flex-start;width:100%;min-width:0;min-height:46px;
+  padding:10px 12px;border-radius:9px;text-align:left;font-size:.95rem;
+  font-weight:650;white-space:normal;overflow-wrap:anywhere;
+}
+.owner-navigation.is-product .owner-nav-item.is-active{background:#eaf0ff;color:#233fb1}
+.owner-navigation.is-product .owner-nav-item:focus-visible{outline:3px solid #365bd7;outline-offset:-3px}
+.owner-shell[data-owner-task] .owner-product-banner.debora{display:none}
+@media(max-width:719px){
+  .owner-navigation.is-product{width:100%;gap:7px}
+  .owner-shell .owner-hero-product{margin-bottom:12px;gap:6px}
+  .owner-shell .owner-hero-product h1{font-size:clamp(1.35rem,6vw,1.85rem)}
+  .owner-shell .owner-hero-product p{font-size:.9rem;line-height:1.4}
+  .owner-shell .owner-hero-product .owner-hero-actions{width:auto}
+  .owner-shell .owner-hero-product .owner-hero-actions button{min-height:40px}
+}

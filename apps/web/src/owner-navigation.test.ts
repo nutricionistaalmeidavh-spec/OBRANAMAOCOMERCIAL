@@ -82,6 +82,9 @@ describe('Central Artisys owner navigation',()=>{
     await mountOwnerPortal();
     expect(document.querySelector('[data-owner-current="debora"]')).not.toBeNull();
     expect(document.querySelector('[data-owner-view="obra"]')).toBeNull();
+    expect(document.querySelector('[data-owner-back]')).toBeNull();
+    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(0);
+    expect(document.querySelectorAll('[data-owner-jump]')).toHaveLength(6);
     expect(document.getElementById('companyForm')).toBeNull();
     expect(document.querySelector('[data-metric="companies"]')).toBeNull();
     expect(document.getElementById('deboraLicenseForm')).not.toBeNull();
@@ -212,15 +215,44 @@ describe('Central Artisys owner navigation',()=>{
     expect(client.get).not.toHaveBeenCalledWith('/api/owner/companies');
   });
 
-  it('offers shortcuts to lactation tasks to the superadmin within the product view',async()=>{
+  it('shows one scoped menu for the superadmin while managing Débora Lactação',async()=>{
     await mount();
     clickView('debora');
-    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(5);
+    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(0);
     expect(document.querySelectorAll('[data-owner-jump]')).toHaveLength(6);
+    expect(document.querySelector('[data-owner-back]')).not.toBeNull();
+    expect(document.querySelector('[data-owner-current="debora"]')).not.toBeNull();
+    expect(document.querySelector('[data-owner-nav-current]')?.textContent).toBe('Resumo');
+    expect(document.querySelector('[data-owner-nav-toggle]')?.getAttribute('aria-expanded')).toBe('false');
+    expect(document.querySelector('.owner-nav-group')).toBeNull();
+    expect(document.querySelector('h1')?.textContent).toContain('Débora Lactação');
+
+    const toggle=document.querySelector<HTMLButtonElement>('[data-owner-nav-toggle]')!;
+    toggle.click();
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
     document.querySelector<HTMLButtonElement>('[data-owner-jump="debora-users"]')!.click();
     expect(document.querySelector<HTMLElement>('[data-owner-shell]')?.dataset.ownerTask).toBe('debora-users');
-    clickView('overview');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(document.querySelector('[data-owner-nav-current]')?.textContent).toBe('Consultoras');
+
+    document.querySelector<HTMLButtonElement>('[data-owner-back]')!.click();
+    expect(document.querySelector('[data-owner-current="overview"]')).not.toBeNull();
+    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(5);
     expect(document.querySelectorAll('[data-owner-jump]')).toHaveLength(0);
+    expect(document.querySelector('[data-owner-back]')).toBeNull();
+    expect(document.getElementById('deboraLicenseForm')).toBeNull();
+  });
+
+  it('takes an owner from the unified client list straight to the relevant Débora license form',async()=>{
+    await mount();
+    clickView('clients');
+    const shortcut=document.querySelector<HTMLButtonElement>('[data-debora-email]');
+    expect(shortcut).not.toBeNull();
+    shortcut!.click();
+    expect(document.querySelector<HTMLElement>('[data-owner-shell]')?.dataset.ownerTask).toBe('debora-license');
+    expect(document.querySelector('[data-owner-nav-current]')?.textContent).toBe('Licenças');
+    expect((document.querySelector('#deboraLicenseForm input[name="email"]') as HTMLInputElement).value).toBe(shortcut!.dataset.deboraEmail);
+    expect(document.querySelector('[data-owner-back]')).not.toBeNull();
   });
   it('provisions Obra na Mão by email and keeps the code only as contingency',async()=>{
     await mount();

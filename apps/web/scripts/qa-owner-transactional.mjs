@@ -98,10 +98,27 @@ try{
     const companyUpdates=requests.filter(item=>item.method==='PUT'&&item.pathname==='/api/owner/companies/qa-company-existing');if(!companyUpdates.some(item=>Number(item.body.maxUsers)===25&&Number(item.body.maxProjects)===9))throw new Error(`${viewport.name}: license limits update was not exercised`);if(companyUpdates.some(item=>item.body.status==='suspended'))throw new Error(`${viewport.name}: transactional QA must never suspend a license`);
     const deviceUpdate=requests.find(item=>item.method==='PUT'&&item.pathname==='/api/owner/devices/qa-device-existing');if(!deviceUpdate||deviceUpdate.body.status!=='revoked')throw new Error(`${viewport.name}: device-only revocation was not exercised`);
     if(viewport.width<=430){
+      // Superadmin crosses from global navigation to a single scoped lactation selector.
+      await openOwnerView('debora');
+      await page.locator('[data-owner-current="debora"]').waitFor({state:'visible'});
+      if(await page.locator('[data-owner-view]').count()!==0)throw new Error(`${viewport.name}: global owner choices leaked into Débora product navigation`);
+      if(await page.locator('[data-owner-back]').count()!==1)throw new Error(`${viewport.name}: superadmin has no return-to-Central action`);
+      const menuHidden=await page.locator('#owner-nav-options').evaluate(node=>getComputedStyle(node).display==='none');
+      if(!menuHidden)throw new Error(`${viewport.name}: lactation task selector must begin closed`);
+      await shot('09-superadmin-debora-single-selector-closed');
+      await page.locator('[data-owner-nav-toggle]').click();
+      if(await page.locator('[data-owner-jump]').count()!==6)throw new Error(`${viewport.name}: expected exactly six lactation tasks`);
+      await shot('10-superadmin-debora-single-selector-open');
+      await page.locator('[data-owner-jump="debora-users"]').click();
+      await page.locator('[data-owner-back]').click();
+      await page.locator('[data-owner-current="overview"]').waitFor({state:'visible'});
+      if(await page.locator('[data-owner-view]').count()!==5)throw new Error(`${viewport.name}: global navigation not restored after return`);
+      await shot('11-superadmin-return-to-central');
       activeRole='debora';
       const beforeDebora=requests.length;
       await page.reload({waitUntil:'domcontentloaded'});
       await page.locator('[data-owner-current="debora"]').waitFor({state:'visible'});
+      if(await page.locator('[data-owner-back]').count()!==0||await page.locator('[data-owner-view]').count()!==0)throw new Error(`${viewport.name}: Débora must not see privileged navigation`);
       await page.locator('[data-owner-nav-toggle]').click();
       await page.locator('[data-owner-jump="debora-users"]').click();
       await page.locator('[data-owner-nav-current]').filter({hasText:'Consultoras'}).waitFor({state:'visible'});
