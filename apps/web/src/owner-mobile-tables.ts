@@ -1,11 +1,12 @@
-/** Preserves column context when wide admin tables are displayed as mobile records. */
+/** Adds column labels for mobile record layout without modifying table data/actions. */
 export function labelMobileTableCells(table:HTMLTableElement|null|undefined){
   if(!table)return;
-  const labels=Array.from(table.tHead?.rows[0]?.cells||[],cell=>cell.textContent?.trim()||'Ações');
-  for(const row of Array.from(table.tBodies[0]?.rows||[])){
+  const labels=Array.from(table.querySelectorAll<HTMLTableCellElement>('thead tr:first-child th'),cell=>cell.textContent?.trim()||'Ações');
+  for(const row of table.querySelectorAll<HTMLTableRowElement>('tbody tr')){
     let column=0;
-    for(const cell of Array.from(row.cells)){
-      if(cell.colSpan>1){cell.removeAttribute('data-label');column+=cell.colSpan;continue}
+    for(const cell of row.querySelectorAll<HTMLTableCellElement>('td')){
+      const span=Number(cell.getAttribute('colspan')||1);
+      if(span>1){cell.removeAttribute('data-label');column+=span;continue}
       cell.dataset.label=labels[column]||'Ações';
       column++;
     }
