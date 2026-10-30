@@ -7,7 +7,7 @@ const esc=(value:unknown)=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&am
 const money=(cents:unknown)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(cents||0)/100);
 const rule=(type?:string,value?:number)=>type==='percent'?`${Number(value||0)}%`:type==='fixed'?money(Number(value||0)*100):'—';
 
-export function deboraPartnersSection(){return `<section class="owner-section" data-debora-partners-root>
+export function deboraPartnersSection(){return `<section class="owner-section" id="debora-partners" data-debora-partners-root>
   <div class="owner-section-head"><div><span class="owner-eyebrow">PARCEIROS E CUPONS</span><h2>Parceiros, descontos e comissões</h2><p>Os códigos abaixo são os mesmos usados pelo checkout da Débora. Nenhum dado é duplicado na Central.</p></div></div>
   <p data-debora-partners-status role="status">Carregando parceiros…</p>
   <form class="owner-form-grid" data-debora-partner-form>
