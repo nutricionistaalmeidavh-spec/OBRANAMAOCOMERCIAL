@@ -13,6 +13,7 @@ async function mount(){
   document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
   client.hasSession.mockResolvedValue(true);
   client.get.mockImplementation(async(path:string)=>{
+    if(path==='/api/central/access')return{data:{role:'owner'}};
     if(path==='/api/owner/companies')return{data:{companies:[]}};
     if(path==='/api/owner/debora-overview')return{data:{overview:{clients:0,pro:0,freemium:0,expiring:0,revoked:0},clients:[]}};
     if(path==='/api/owner/license-audit')return{data:{events:[]}};

@@ -36,28 +36,30 @@ function brlToCents(value:unknown){
 }
 
 let ownerView:OwnerView='overview';
+let centralRole:'owner'|'debora'='owner';
 let ownerCompanies:Company[]=[];
 let deboraOverview:DeboraOverview=emptyDeboraOverview();
 let deboraClients:DeboraClient[]=[];
 let licenseHistory:LicenseEvent[]=[];
 let createMessage='';
 
-function header(){return `<header class="owner-hero"><div><small>SUPERADMIN ARTISYS</small><h1>Central Artisys</h1><p>Produtos, clientes e licenças em áreas separadas para reduzir risco operacional.</p></div><div class="owner-hero-actions"><a class="owner-secondary" href="./index.html#portal">Minha operação</a><button id="centralLogout" class="owner-secondary">Sair</button></div></header>`}
-function navigation(active:OwnerView){return `<nav class="owner-nav" aria-label="Navegação do superadmin">${(Object.keys(viewLabels) as OwnerView[]).map(view=>`<button type="button" data-owner-view="${view}" class="owner-nav-item ${active===view?'is-active':''}" aria-current="${active===view?'page':'false'}">${viewLabels[view]}</button>`).join('')}</nav>`}
+function header(){const limited=centralRole==='debora';return `<header class="owner-hero"><div><small>${limited?'ADMINISTRAÇÃO DÉBORA LACTAÇÃO':'SUPERADMIN ARTISYS'}</small><h1>Central Artisys</h1><p>${limited?'Gestão comercial e licenciamento de Débora Lactação.':'Produtos, clientes e licenças em áreas separadas para reduzir risco operacional.'}</p></div><div class="owner-hero-actions">${limited?'':'<a class="owner-secondary" href="./index.html#portal">Minha operação</a>'}<button id="centralLogout" class="owner-secondary">Sair</button></div></header>`}
+function navigation(active:OwnerView){if(centralRole==='debora')return '';return `<nav class="owner-nav" aria-label="Navegação do superadmin">${(Object.keys(viewLabels) as OwnerView[]).map(view=>`<button type="button" data-owner-view="${view}" class="owner-nav-item ${active===view?'is-active':''}" aria-current="${active===view?'page':'false'}">${viewLabels[view]}</button>`).join('')}</nav>`}
 function shell(content:string){return `<div class="owner-shell" data-owner-shell>${header()}${navigation(ownerView)}<div class="owner-view" data-owner-current="${ownerView}">${content}</div></div>`}
 function logout(){document.getElementById('centralLogout')?.addEventListener('click',async()=>{await auth.signOut();location.href='./index.html'})}
 function bindNavigation(){
   document.querySelectorAll<HTMLButtonElement>('[data-owner-view]').forEach(button=>button.addEventListener('click',()=>{
     const next=button.dataset.ownerView as OwnerView;
-    if(next&&next!==ownerView){ownerView=next;renderCurrentView()}
+    if(centralRole==='owner'&&next&&next!==ownerView){ownerView=next;renderCurrentView()}
   }));
   document.querySelectorAll<HTMLButtonElement>('[data-owner-open]').forEach(button=>button.addEventListener('click',()=>{
+    if(centralRole!=='owner')return;
     ownerView=button.dataset.ownerOpen as OwnerView;renderCurrentView();
   }));
 }
 
 function showOwnerLogin(){
-  root().innerHTML=`<section class="auth-page"><div class="auth-card"><small>SUPERADMIN ARTISYS</small><h1>Central Artisys</h1><p>Acesso exclusivo do superadmin. Entre com sua conta Google autorizada.</p><button id="centralGoogleLogin" class="btn" type="button">Entrar com Google</button><p id="centralLoginResult" role="status"></p></div></section>`;
+  root().innerHTML=`<section class="auth-page"><div class="auth-card"><small>ACESSO À CENTRAL ARTISYS</small><h1>Central Artisys</h1><p>Entre com a conta Google autorizada para sua área administrativa.</p><button id="centralGoogleLogin" class="btn" type="button">Entrar com Google</button><p id="centralLoginResult" role="status"></p></div></section>`;
   const button=document.getElementById('centralGoogleLogin') as HTMLButtonElement,result=document.getElementById('centralLoginResult')!;
   button.onclick=async()=>{button.disabled=true;result.textContent='Abrindo Google…';try{await auth.signIn({scope:'openid email profile offline_access'})}catch(error){result.textContent=message(error);button.disabled=false}};
 }
@@ -117,7 +119,7 @@ function bindDeboraLicense(){
       const {data}=await api.post<DeboraLicenseResponse>('/api/owner/debora-license',payload);
       result.textContent=describeDeboraLicense(data);
       if(action!=='status'){
-        try{await Promise.all([refreshDeboraOverview(),refreshLicenseHistory()]);updateDeboraMetrics()}catch{}
+        try{await refreshDeboraOverview();if(centralRole==='owner')await refreshLicenseHistory();updateDeboraMetrics()}catch{}
         void refreshDeboraObservability().catch(()=>{});
       }
     }catch(error){result.textContent=message(error)}finally{button.disabled=false}
@@ -141,6 +143,7 @@ function bindLicenseFilters(){['ownerLicenseProduct','ownerLicenseStatus'].forEa
 function bindCurrentView(){logout();bindNavigation();bindDeboraLicense();bindCompanyCreation();bindCompanyButtons();bindDeboraClientButtons();bindClientFilters();bindLicenseFilters();if(ownerView==='debora'){void bindDeboraObservability(api);void bindDeboraPartners(api)}}
 
 function renderCurrentView(){
+  if(centralRole==='debora')ownerView='debora';
   const content=ownerView==='overview'?overviewView(ownerCompanies):ownerView==='obra'?obraView(ownerCompanies):ownerView==='debora'?deboraView():ownerView==='clients'?clientsView(ownerCompanies):licensesView(ownerCompanies);
   root().innerHTML=shell(content);bindCurrentView();notifyOwnerRendered();
 }
@@ -149,6 +152,7 @@ async function refreshDeboraOverview(){const {data}=await api.get<{overview:Debo
 async function refreshLicenseHistory(){const {data}=await api.get<{events?:LicenseEvent[]}>('/api/owner/license-audit');licenseHistory=data.events||[]}
 
 async function detail(id:string){
+  if(centralRole!=='owner')return;
   const {data}=await api.get<{company:Company}>(`/api/owner/companies/${encodeURIComponent(id)}`),c=data.company;
   root().innerHTML=shell(`<button id="backCompanies" class="owner-secondary owner-back">← Clientes</button><section class="owner-section"><div class="owner-section-head"><div><span class="owner-status status-${companyStatus(c)}">${state(c)}</span><h2>${esc(c.name)}</h2><p>Admin principal: ${esc(c.adminEmail)} · liberação por e-mail.</p></div></div><div class="owner-detail-grid"><article><span>Senha criada</span><strong>${c.passwordCreatedAt?esc(c.passwordCreatedAt):'Aguardando primeiro acesso'}</strong></article><article><span>Plano</span><strong>${esc(c.license?.plan||'Manual')}</strong></article><article><span>Validade</span><strong>${esc(c.license?.expiresAt||'Sem vencimento')}</strong></article></div></section><form id="licenseForm" data-testid="owner-license-form" class="owner-section owner-form-card"><div class="owner-section-head"><div><h2>Licença da empresa</h2><p>Configuração exclusiva do Obra na Mão. Alterar estes campos não muda o e-mail principal.</p></div></div><div class="owner-form-grid"><label>Plano<input name="plan" value="${esc(c.license?.plan||'manual')}" required></label><label>Validade<input name="expiresAt" type="date" value="${esc(dateInput(c.license?.expiresAt))}"></label><label>Máx. usuários<input name="maxUsers" type="number" min="1" max="999" value="${esc(c.license?.maxUsers||10)}" required></label><label>Máx. obras<input name="maxProjects" type="number" min="1" max="999" value="${esc(c.license?.maxProjects||5)}" required></label><label>Máx. computadores<input name="maxDevices" type="number" min="1" max="999" value="${esc(c.license?.maxDevices||2)}" required></label></div><div class="owner-form-block"><h3>Módulos</h3><div class="owner-choice-grid">${choices('modules',modules,c.modules)}</div></div><div class="owner-form-block"><h3>Canais</h3><div class="owner-choice-grid compact">${choices('channels',['desktop','mobile'],c.channels)}</div></div><div class="owner-form-block"><h3>Adicional comercial</h3><label class="check"><input name="advancedServer" type="checkbox" ${c.license?.advancedServer===true?'checked':''}> Servidor próprio avançado</label><p>Ative somente quando contratado. A desativação não apaga dados nem revoga servidores já instalados.</p></div><label>Status<select name="status"><option value="active" ${state(c)!=='Suspensa'?'selected':''}>Liberada</option><option value="suspended" ${state(c)==='Suspensa'?'selected':''}>Suspensa</option></select></label><div class="owner-form-actions"><button class="owner-primary">Salvar licença</button><p role="status" id="licenseResult"></p></div></form><section class="owner-detail-columns"><article class="owner-section"><h2>Usuários</h2>${(c.users||[]).map(u=>`<p>${esc(u.name||u.email)} · ${esc(u.email)} · ${esc(u.role||'')}</p>`).join('')||'<p>Nenhum usuário ativado.</p>'}</article><article class="owner-section"><h2>Obras</h2>${(c.projects||[]).map(p=>`<p>${esc(p.name)}</p>`).join('')||'<p>Nenhuma obra cadastrada.</p>'}</article><article class="owner-section"><h2>Dispositivos</h2>${(c.devices||[]).map(d=>`<div class="owner-device-row"><p>${esc(d.name)} · ${esc(d.status||'')}</p><button type="button" class="owner-secondary" data-device-id="${esc(d.id)}" data-device-status="${esc(d.status||'active')}">${d.status==='revoked'?'Reativar dispositivo':'Revogar dispositivo'}</button></div>`).join('')||'<p>Nenhum desktop ativado.</p>'}</article></section>`);
   bindCurrentView();
@@ -159,8 +163,18 @@ async function detail(id:string){
 }
 
 async function render(){
-  document.querySelector('.nav')?.setAttribute('style','display:none');document.querySelector('.top')?.setAttribute('style','display:none');document.title='Central Artisys — Superadmin';
+  document.querySelector('.nav')?.setAttribute('style','display:none');document.querySelector('.top')?.setAttribute('style','display:none');
   if(!await auth.hasSession()){showOwnerLogin();return}
-  try{await refreshCompanies();try{await refreshDeboraOverview()}catch{deboraOverview=emptyDeboraOverview();deboraClients=[]}try{await refreshLicenseHistory()}catch{licenseHistory=[]}renderCurrentView()}catch(e){root().innerHTML=`<section class="card"><h1>Central Artisys</h1><p>${esc(message(e))}</p><a href="./index.html#portal">Voltar à minha operação</a></section>`}
+  try{
+    const {data:access}=await api.get<{role:'owner'|'debora'}>('/api/central/access');
+    if(access.role!=='owner'&&access.role!=='debora')throw new Error('Perfil administrativo inválido.');
+    centralRole=access.role;
+    document.title=centralRole==='debora'?'Central Artisys — Débora Lactação':'Central Artisys — Superadmin';
+    if(centralRole==='owner')await refreshCompanies();
+    if(centralRole==='debora'){ownerCompanies=[];ownerView='debora';licenseHistory=[]}
+    try{await refreshDeboraOverview()}catch{deboraOverview=emptyDeboraOverview();deboraClients=[]}
+    if(centralRole==='owner'){try{await refreshLicenseHistory()}catch{licenseHistory=[]}}
+    renderCurrentView();
+  }catch(e){root().innerHTML=`<section class="card"><h1>Central Artisys</h1><p>${esc(message(e))}</p><a href="./index.html#portal">Voltar</a></section>`}
 }
-export async function mountOwnerPortal(){ownerView='overview';createMessage='';deboraOverview=emptyDeboraOverview();deboraClients=[];licenseHistory=[];await render()}
+export async function mountOwnerPortal(){centralRole='owner';ownerView='overview';createMessage='';deboraOverview=emptyDeboraOverview();deboraClients=[];licenseHistory=[];await render()}

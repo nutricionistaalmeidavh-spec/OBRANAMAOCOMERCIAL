@@ -28,6 +28,7 @@ async function mount(){
   document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
   client.hasSession.mockResolvedValue(true);
   client.get.mockImplementation(async(path:string)=>{
+    if(path==='/api/central/access')return {data:{role:'owner'}};
     if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
     if(path==='/api/owner/license-audit')return {data:{events:licenseEvents}};
     if(path==='/api/owner/companies/c1')return {data:{company:companies[0]}};
@@ -68,6 +69,26 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.getElementById('companyForm')).toBeNull();
     expect(document.getElementById('deboraLicenseForm')).toBeNull();
     expect(document.querySelector('a[href="./index.html#portal"]')).not.toBeNull();
+  });
+
+  it('renders only lactation administration for an authorized Débora session',async()=>{
+    document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
+    client.hasSession.mockResolvedValue(true);
+    client.get.mockImplementation(async(path:string)=>{
+      if(path==='/api/central/access')return {data:{role:'debora'}};
+      if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
+      throw new Error('Unexpected non-lactation API read: '+path);
+    });
+    await mountOwnerPortal();
+    expect(document.querySelector('[data-owner-current="debora"]')).not.toBeNull();
+    expect(document.querySelector('[data-owner-view="obra"]')).toBeNull();
+    expect(document.getElementById('companyForm')).toBeNull();
+    expect(document.querySelector('[data-metric="companies"]')).toBeNull();
+    expect(document.getElementById('deboraLicenseForm')).not.toBeNull();
+    expect(document.body.textContent).not.toContain('Cliente Ativo');
+    expect(document.body.textContent).not.toContain('Minha operação');
+    expect(client.get).not.toHaveBeenCalledWith('/api/owner/companies');
+    expect(client.get).not.toHaveBeenCalledWith('/api/owner/license-audit');
   });
 
   it('provisions Obra na Mão by email and keeps the code only as contingency',async()=>{
@@ -181,6 +202,7 @@ describe('Central Artisys owner navigation',()=>{
     document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
     client.hasSession.mockResolvedValue(true);
     client.get.mockImplementation(async(path:string)=>{
+      if(path==='/api/central/access')return {data:{role:'owner'}};
       if(path==='/api/owner/debora-overview'||path==='/api/owner/license-audit')throw new Error('optional admin data unavailable');
       return {data:{companies}};
     });
