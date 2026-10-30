@@ -26,7 +26,7 @@ describe('license center internal endpoint',()=>{
     expect(licenseCenterAdminParity()).toEqual({
       contractVersion:1,
       requiredCapabilities:expect.arrayContaining([
-        'obra.company.create','debora.license.manage','debora.observability.read','debora.manual-sales.manage','loja-online.license.update'
+        'obra.company.create','debora.license.manage','debora.observability.read','debora.manual-sales.manage','debora.partners.manage'
       ])
     });
   });
