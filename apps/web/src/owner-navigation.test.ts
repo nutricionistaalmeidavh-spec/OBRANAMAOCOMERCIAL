@@ -190,6 +190,38 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.getElementById('deboraLicenseStatus')?.closest('details')).toBeNull();
     expect(document.getElementById('deboraLicenseRevoke')?.closest('details')).toBeNull();
   });
+
+  it('switches focused Débora tasks without unmounting forms or fetching Obra data',async()=>{
+    document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
+    client.hasSession.mockResolvedValue(true);
+    client.get.mockImplementation(async(path:string)=>{
+      if(path==='/api/central/access')return {data:{role:'debora'}};
+      if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
+      if(path.startsWith('/api/owner/debora-'))return {data:{items:[],partners:[],sales:[],summary:{}}};
+      throw new Error('Unexpected Obra read '+path);
+    });
+    await mountOwnerPortal();
+    const shell=document.querySelector<HTMLElement>('[data-owner-shell]')!;
+    expect(shell.dataset.ownerTask).toBe('debora-summary');
+    document.querySelector<HTMLButtonElement>('[data-owner-jump="debora-license"]')!.click();
+    expect(shell.dataset.ownerTask).toBe('debora-license');
+    expect(document.getElementById('deboraLicenseForm')).not.toBeNull();
+    document.querySelector<HTMLButtonElement>('[data-owner-jump="debora-sales"]')!.click();
+    expect(shell.dataset.ownerTask).toBe('debora-sales');
+    expect(document.getElementById('deboraLicenseForm')).not.toBeNull();
+    expect(client.get).not.toHaveBeenCalledWith('/api/owner/companies');
+  });
+
+  it('offers shortcuts to lactation tasks to the superadmin within the product view',async()=>{
+    await mount();
+    clickView('debora');
+    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(5);
+    expect(document.querySelectorAll('[data-owner-jump]')).toHaveLength(6);
+    document.querySelector<HTMLButtonElement>('[data-owner-jump="debora-users"]')!.click();
+    expect(document.querySelector<HTMLElement>('[data-owner-shell]')?.dataset.ownerTask).toBe('debora-users');
+    clickView('overview');
+    expect(document.querySelectorAll('[data-owner-jump]')).toHaveLength(0);
+  });
   it('provisions Obra na Mão by email and keeps the code only as contingency',async()=>{
     await mount();
     clickView('obra');
