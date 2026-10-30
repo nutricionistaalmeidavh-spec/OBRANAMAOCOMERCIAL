@@ -29,3 +29,25 @@
   .owner-debora-table tbody td{grid-template-columns:minmax(0,1fr)}
   .owner-debora-table tbody td::before{display:block}
 }
+
+/* P2 — Métricas rastreáveis e filtros de vendas. */
+.owner-debora-observability-metrics{display:block;min-width:0}
+.owner-debora-observability-primary,.owner-debora-observability-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0}
+.owner-observability-more{background:#fff}
+.owner-observability-more .owner-debora-observability-detail-grid{padding:0 12px 12px}
+.owner-debora-observability-metric{padding:12px}
+.owner-sales-clear{min-width:0;white-space:normal}
+@media(min-width:720px){
+ .owner-debora-observability-primary{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .owner-debora-observability-detail-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .owner-sales-filter{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end}
+}
+@media(max-width:719px){
+ .owner-debora-observability-primary,.owner-debora-observability-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .owner-debora-observability-metric strong{font-size:clamp(1rem,5vw,1.3rem)}
+ .owner-sales-filter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .owner-sales-filter label{min-width:0}
+ .owner-sales-filter .owner-sales-clear{grid-column:1/-1}
+ .owner-filter-disclosure{margin:10px 0}
+}
+@media(max-width:359px){.owner-sales-filter{grid-template-columns:1fr}}

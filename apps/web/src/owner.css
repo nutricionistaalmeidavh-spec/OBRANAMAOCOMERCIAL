@@ -47,3 +47,49 @@ body:has([data-owner-shell]) #content{width:100%;max-width:100%;min-width:0;padd
   .owner-nav{grid-template-columns:1fr}
   .owner-choice-grid.compact{grid-template-columns:1fr}
 }
+
+/* P1 — Cards e formulários com divulgação progressiva. */
+.owner-debora-headlines{grid-template-columns:repeat(2,minmax(0,1fr))}
+.owner-debora-secondary,.owner-form-disclosure,.owner-observability-more,.owner-filter-disclosure{min-width:0;max-width:100%;border:1px solid #e2e7ef;border-radius:15px;background:#fbfcff}
+.owner-debora-secondary,.owner-observability-more{margin-top:14px}
+.owner-debora-secondary>summary,.owner-form-disclosure>summary,.owner-observability-more>summary,.owner-filter-disclosure>summary{display:list-item;cursor:pointer;min-height:44px;padding:13px 15px;line-height:1.4;font-weight:700;color:#253650;overflow-wrap:anywhere}
+.owner-debora-secondary>summary:focus-visible,.owner-form-disclosure>summary:focus-visible,.owner-observability-more>summary:focus-visible,.owner-filter-disclosure>summary:focus-visible{outline:3px solid #4169d5;outline-offset:2px}
+.owner-debora-secondary .owner-metrics{padding:0 12px 12px}
+.owner-form-disclosure-body{display:grid;gap:12px;padding:0 13px 14px}
+.owner-form-disclosure-body>p{margin:0;color:#64748b;line-height:1.5;font-size:.9rem}
+.owner-license-identity{grid-template-columns:minmax(0,1fr)}
+.owner-license-lookup{gap:9px}
+.owner-record-count,.owner-data-source-note{font-size:.85rem;color:#64748b;line-height:1.5;overflow-wrap:anywhere}
+.owner-record-count{margin:10px 0}
+.owner-data-source-note{margin:10px 0;padding-left:11px;border-left:3px solid #cbd5e1}
+.owner-sales-clear{align-self:end;min-height:42px}
+.owner-filter-disclosure>.owner-debora-observability-filters{margin:0;padding:0 12px 13px}
+@media(min-width:720px){.owner-debora-headlines{grid-template-columns:repeat(4,minmax(0,1fr))}.owner-license-lookup{justify-content:flex-start}}
+@media(max-width:719px){
+  .owner-license-lookup>*{flex:1 1 130px;white-space:normal;text-align:center}
+  .owner-form-disclosure-body .owner-form-actions>button{width:100%;white-space:normal}
+  .owner-debora-secondary .owner-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .owner-form-disclosure,.owner-debora-secondary,.owner-filter-disclosure{border-radius:12px}
+  /* Uma tarefa por vez no celular: o DOM continua intacto, somente a apresentação alterna. */
+  .owner-shell[data-owner-task] .owner-product-banner.debora{display:none}
+  .owner-shell[data-owner-task] .owner-view[data-owner-current="debora"] > #debora-summary,
+  .owner-shell[data-owner-task] .owner-view[data-owner-current="debora"] > #debora-license,
+  .owner-shell[data-owner-task] .owner-view[data-owner-current="debora"] > #debora-usage,
+  .owner-shell[data-owner-task] .owner-view[data-owner-current="debora"] > #debora-partners{display:none}
+  .owner-shell[data-owner-task="debora-summary"] #debora-summary,
+  .owner-shell[data-owner-task="debora-license"] #debora-license,
+  .owner-shell[data-owner-task="debora-partners"] #debora-partners,
+  .owner-shell[data-owner-task="debora-users"] #debora-usage,
+  .owner-shell[data-owner-task="debora-sales"] #debora-usage,
+  .owner-shell[data-owner-task="debora-usage"] #debora-usage{display:block}
+  .owner-shell[data-owner-task="debora-users"] #debora-usage>.owner-section-head,
+  .owner-shell[data-owner-task="debora-users"] #debora-usage>[data-debora-observability-status],
+  .owner-shell[data-owner-task="debora-users"] #debora-usage>[data-debora-observability-metrics],
+  .owner-shell[data-owner-task="debora-sales"] #debora-usage>.owner-section-head,
+  .owner-shell[data-owner-task="debora-sales"] #debora-usage>[data-debora-observability-status],
+  .owner-shell[data-owner-task="debora-sales"] #debora-usage>[data-debora-observability-metrics]{display:none}
+  .owner-shell[data-owner-task="debora-users"] #debora-sales,
+  .owner-shell[data-owner-task="debora-sales"] #debora-users,
+  .owner-shell[data-owner-task="debora-usage"] #debora-users,
+  .owner-shell[data-owner-task="debora-usage"] #debora-sales{display:none}
+}
