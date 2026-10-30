@@ -91,6 +91,61 @@ describe('Central Artisys owner navigation',()=>{
     expect(client.get).not.toHaveBeenCalledWith('/api/owner/license-audit');
   });
 
+  it('has a collapsible, accessible task menu for owner without horizontal tab navigation',async()=>{
+    await mount();
+    const toggle=document.querySelector<HTMLButtonElement>('[data-owner-nav-toggle]');
+    const menu=document.querySelector<HTMLElement>('#owner-nav-options');
+    expect(toggle).not.toBeNull();
+    expect(menu).not.toBeNull();
+    expect(toggle?.getAttribute('aria-controls')).toBe('owner-nav-options');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    toggle?.click();
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(menu?.classList.contains('is-open')).toBe(true);
+    clickView('clients');
+    expect(document.querySelector('[data-owner-current="clients"]')).not.toBeNull();
+    expect(document.querySelector<HTMLButtonElement>('[data-owner-nav-toggle]')?.getAttribute('aria-expanded')).toBe('false');
+    expect(document.querySelector<HTMLElement>('[data-owner-nav-current]')?.textContent).toContain('Clientes');
+  });
+
+  it('offers task-based navigation to Débora without granting Obra access',async()=>{
+    document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
+    client.hasSession.mockResolvedValue(true);
+    client.get.mockImplementation(async(path:string)=>{
+      if(path==='/api/central/access')return {data:{role:'debora'}};
+      if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
+      if(path.startsWith('/api/owner/debora-'))return {data:{items:[],partners:[],sales:[],summary:{},accounts:{}}};
+      throw new Error('Unexpected Obra request: '+path);
+    });
+    const scroll=vi.fn();
+    const previous=HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView=scroll;
+    try{
+      await mountOwnerPortal();
+      const links=[...document.querySelectorAll<HTMLButtonElement>('[data-owner-jump]')];
+      expect(links.map(x=>x.textContent?.trim())).toEqual(['Resumo','Consultoras','Licenças','Vendas','Uso do sistema','Parceiros']);
+      expect(document.querySelector('[data-owner-view="obra"]')).toBeNull();
+      expect(document.getElementById('debora-users')).not.toBeNull();
+      expect(document.getElementById('debora-sales')).not.toBeNull();
+      expect(document.getElementById('debora-partners')).not.toBeNull();
+      document.querySelector<HTMLButtonElement>('[data-owner-nav-toggle]')?.click();
+      document.querySelector<HTMLButtonElement>('[data-owner-jump="debora-users"]')?.click();
+      expect(scroll).toHaveBeenCalled();
+      expect(document.querySelector('[data-owner-nav-current]')?.textContent).toContain('Consultoras');
+      expect(document.querySelector<HTMLButtonElement>('[data-owner-nav-toggle]')?.getAttribute('aria-expanded')).toBe('false');
+      expect(client.get).not.toHaveBeenCalledWith('/api/owner/companies');
+    }finally{HTMLElement.prototype.scrollIntoView=previous;}
+  });
+
+  it('closes task menu on Escape and restores button focus',async()=>{
+    await mount();
+    const toggle=document.querySelector<HTMLButtonElement>('[data-owner-nav-toggle]')!;
+    toggle.click();
+    toggle.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(toggle);
+  });
+
   it('provisions Obra na Mão by email and keeps the code only as contingency',async()=>{
     await mount();
     clickView('obra');
