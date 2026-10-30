@@ -32,13 +32,13 @@
 - Cards simples têm altura orientada pelo conteúdo; não existe altura mínima global para igualar cards vizinhos.
 - O setup de servidor usa **container queries** porque a largura útil depende da sidebar e do grid pai, não apenas do viewport.
 - Dados de demonstração ficam atrás de **Ferramentas de suporte** recolhidas por padrão e não competem com tarefas normais.
-- O owner Web usa o evento explícito `owner:rendered`; `owner-loja-online.ts` não observa mutações globais do DOM.
+- O owner Web usa o evento explícito `owner:rendered` para atualizar as superfícies dos produtos ativos.
 - Nenhuma dependência paga é necessária para esses fluxos; o core permanece local/self-hosted/open source.
 
 ## P2 — Lifecycle e estado canônicos
 
 - `public/field-lifecycle.js` é o único owner dos eventos `field:rendered` e `field:sheet-rendered`; enhancers registram callbacks pela API `window.fieldLifecycle.register`.
-- A Central Loja Online continua no lifecycle explícito `owner:rendered`; nenhuma UI de produto depende de `MutationObserver` global.
+- A Central mantém o lifecycle explícito `owner:rendered` para os produtos ativos; nenhuma UI de produto depende de `MutationObserver` global.
 - `SyncSettings` recebe mudanças pelo canal `online:sync-state-changed`; não existe polling de 5 segundos. A leitura direta permanece apenas para bootstrap e retorno de visibilidade.
 - `StorageServerSettings` centraliza o estado transitório da configuração (busy, discovery, progresso e confirmações) em `setupUiReducer`; estados de domínio/servidor continuam vindo das APIs autoritativas.
 - O PWA inclui o lifecycle canônico no cache offline e o carrega antes dos enhancers em `sistema.html`, `obra.html` e `gestao.html`.

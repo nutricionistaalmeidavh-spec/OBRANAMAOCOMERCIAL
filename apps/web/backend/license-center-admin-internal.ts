@@ -2,14 +2,13 @@ import { ManagedAdminError, createManagedCompany, managedCompanyInventory, setMa
 import { getManualDeboraLicense, grantManualDeboraLicense, resolveProductAccess, revokeManualDeboraLicense } from './product-license-service';
 import { classifyLegacyManualSale, grantManualDeboraLicenseWithSale } from './manual-license-sales';
 import { deboraPartnerAdminRequest } from './debora-partner-admin';
-import { lojaOnlineRequest, LojaOnlineUpstreamError, type LojaOnlineRuntimeEnv } from './loja-online-admin';
+import { type RuntimeEnv } from '../cloudflare/sdk';
 
 type ServiceBinding={fetch(input:RequestInfo|URL,init?:RequestInit):Promise<Response>};
-type Env=LojaOnlineRuntimeEnv&{
+type Env=RuntimeEnv&{
   LICENSE_CENTER_READ_SECRET?:string;
   LICENSE_CENTER_WRITE_SECRET?:string;
   LICENSE_CENTER_WRITE_ENABLED?:string|boolean;
-  LOJAONLINE_LICENSING?:ServiceBinding;
   DEBORA_OBSERVABILITY?:ServiceBinding;
   DEBORA_OBSERVABILITY_SECRET?:string;
   DEBORA_PARTNER_ADMIN_SECRET?:string;
@@ -27,9 +26,8 @@ type AdminDependencies={
   revokeManualDeboraLicense:typeof revokeManualDeboraLicense;
   classifyLegacyManualSale:typeof classifyLegacyManualSale;
   deboraPartnerAdminRequest:typeof deboraPartnerAdminRequest;
-  lojaOnlineRequest:typeof lojaOnlineRequest;
 };
-const defaultDependencies:AdminDependencies={managedCompanyInventory,createManagedCompany,updateManagedCompany,setManagedDeviceStatus,getManualDeboraLicense,grantManualDeboraLicense,grantManualDeboraLicenseWithSale,resolveProductAccess,revokeManualDeboraLicense,classifyLegacyManualSale,deboraPartnerAdminRequest,lojaOnlineRequest};
+const defaultDependencies:AdminDependencies={managedCompanyInventory,createManagedCompany,updateManagedCompany,setManagedDeviceStatus,getManualDeboraLicense,grantManualDeboraLicense,grantManualDeboraLicenseWithSale,resolveProductAccess,revokeManualDeboraLicense,classifyLegacyManualSale,deboraPartnerAdminRequest};
 
 const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 const qaHeader='x-artisys-qa-run';
@@ -42,7 +40,6 @@ function enabled(value:unknown){return value===true||String(value||'').trim().to
 function qaRun(request:Request){return String(request.headers.get(qaHeader)||'').trim()}
 function expectedQaEmail(run:string){return `qa-license-${run}@example.test`.toLowerCase()}
 function expectedObraName(run:string){return `ARTISYS QA E2E ${run}`}
-function expectedLojaName(run:string){return `ARTISYS QA E2E LOJA ${run}`}
 function cleanEmail(value:unknown){return String(value||'').trim().toLowerCase()}
 function validRun(run:string){return qaRunPattern.test(run)}
 async function body(request:Request){return await request.json().catch(()=>({})) as Record<string,unknown>}
@@ -53,12 +50,12 @@ async function requireWriteAccess(request:Request,env:Env){
   return null;
 }
 
-function qaCreationAllowed(run:string,input:Record<string,unknown>,product:'obra'|'loja'){
+function qaCreationAllowed(run:string,input:Record<string,unknown>){
   if(!run)return true;
   if(!validRun(run))return false;
   const email=cleanEmail(input.adminEmail);
-  const name=String(product==='obra'?input.name:input.companyName||'').trim();
-  return email===expectedQaEmail(run)&&name===(product==='obra'?expectedObraName(run):expectedLojaName(run));
+  const name=String(input.name||'').trim();
+  return email===expectedQaEmail(run)&&name===expectedObraName(run);
 }
 
 async function requireObraQaTarget(run:string,companyId:string,deps:AdminDependencies){
@@ -73,17 +70,6 @@ async function requireDeviceQaTarget(run:string,deviceId:string,deps:AdminDepend
   if(!validRun(run))return false;
   const company=(await deps.managedCompanyInventory()).companies.find(item=>Array.isArray(item.devices)&&item.devices.some((device:any)=>device.id===deviceId));
   return !!company&&String(company.name||'')===expectedObraName(run)&&cleanEmail(company.adminEmail)===expectedQaEmail(run);
-}
-
-async function lojaCompany(env:Env,id:string,deps:AdminDependencies){
-  const payload=await deps.lojaOnlineRequest<any>(`/api/internal/artisys/loja-online/companies/${encodeURIComponent(id)}`,{},env);
-  return payload?.company?.license?payload.company:payload?.company||payload;
-}
-async function requireLojaQaTarget(env:Env,run:string,id:string,deps:AdminDependencies){
-  if(!run)return true;
-  if(!validRun(run))return false;
-  const record=await lojaCompany(env,id,deps);
-  return String(record?.company?.name||record?.name||'')===expectedLojaName(run)&&cleanEmail(record?.admin?.email)===expectedQaEmail(run);
 }
 
 async function deboraAction(env:Env,input:Record<string,unknown>,run:string,deps:AdminDependencies){
@@ -118,7 +104,6 @@ function manualSaleError(cause:unknown){
 
 function upstreamError(cause:unknown){
   if(cause instanceof ManagedAdminError)return json(cause.status,{error:'managed_admin_error',message:cause.message});
-  if(cause instanceof LojaOnlineUpstreamError)return json(cause.status,{error:cause.code,message:cause.message});
   if((cause as any)?.status&&String((cause as any)?.code||'').startsWith('debora_'))return json(Number((cause as any).status),{error:(cause as any).code,message:(cause as Error).message});
   return manualSaleError(cause)||json(500,{error:'license_center_write_failed',message:cause instanceof Error?cause.message:'Falha administrativa.'});
 }
@@ -131,7 +116,7 @@ export async function handleLicenseCenterAdminInternal(request:Request,env:Env,d
   try{
     if(path==='/api/internal/license-center/obra/companies'){
       if(request.method!=='POST')return json(405,{error:'method_not_allowed'});
-      if(!qaCreationAllowed(run,input,'obra'))return json(403,{error:'qa_scope_violation'});
+      if(!qaCreationAllowed(run,input))return json(403,{error:'qa_scope_violation'});
       return json(201,await deps.createManagedCompany(input,actor));
     }
     let match=path.match(/^\/api\/internal\/license-center\/obra\/companies\/([^/]+)$/);
@@ -165,19 +150,6 @@ export async function handleLicenseCenterAdminInternal(request:Request,env:Env,d
     if(path==='/api/internal/license-center/debora/partner-commission'){
       if(request.method!=='POST')return json(405,{error:'method_not_allowed'});
       return json(200,await deps.deboraPartnerAdminRequest('/api/admin/partner-commission',{method:'POST',body:JSON.stringify(input)},env));
-    }
-    if(path==='/api/internal/license-center/loja-online/companies'){
-      if(request.method!=='POST')return json(405,{error:'method_not_allowed'});
-      if(!qaCreationAllowed(run,input,'loja'))return json(403,{error:'qa_scope_violation'});
-      return json(201,await deps.lojaOnlineRequest('/api/internal/artisys/loja-online/companies',{method:'POST',body:JSON.stringify(input)},env));
-    }
-    match=path.match(/^\/api\/internal\/license-center\/loja-online\/companies\/([^/]+)\/(license|extend|block|unblock)$/);
-    if(match){
-      const id=decodeURIComponent(match[1]),action=match[2];
-      const expectedMethod=action==='license'?'PUT':'POST';if(request.method!==expectedMethod)return json(405,{error:'method_not_allowed'});
-      if(!await requireLojaQaTarget(env,run,id,deps))return json(403,{error:'qa_scope_violation'});
-      const suffix=action==='license'?'license':action;
-      return json(200,await deps.lojaOnlineRequest(`/api/internal/artisys/loja-online/companies/${encodeURIComponent(id)}/${suffix}`,{method:expectedMethod,body:JSON.stringify(input)},env));
     }
     return json(404,{error:'not_found'});
   }catch(cause){return upstreamError(cause)}

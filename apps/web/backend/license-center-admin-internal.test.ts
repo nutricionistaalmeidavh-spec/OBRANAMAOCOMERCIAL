@@ -16,7 +16,6 @@ function deps(overrides:Record<string,unknown>={}){
     grantManualDeboraLicenseWithSale:vi.fn(),
     getManualDeboraLicense:vi.fn(),resolveProductAccess:vi.fn(),revokeManualDeboraLicense:vi.fn(),
     classifyLegacyManualSale:vi.fn(),
-    lojaOnlineRequest:vi.fn(),
     ...overrides,
   } as any;
 }
@@ -74,6 +73,15 @@ describe('license center internal write gateway',()=>{
     expect(response?.status).toBe(200);
     expect(d.classifyLegacyManualSale).toHaveBeenCalledWith(baseEnv.DB,'legacy@example.test',sale,'general-panel-artisys');
     expect(await response?.json()).toEqual({sale:{id:'classified-1',email:'legacy@example.test'}});
+  });
+
+  it('returns not_found for discontinued product writes without calling active products',async()=>{
+    const d=deps();
+    const response=await handleLicenseCenterAdminInternal(req('/api/internal/license-center/loja-online/companies',{method:'POST',headers:writeHeaders,body:'{}'}),{...baseEnv,LICENSE_CENTER_WRITE_ENABLED:'true'},d);
+    expect(response?.status).toBe(404);
+    expect(await response?.json()).toEqual({error:'not_found'});
+    expect(d.createManagedCompany).not.toHaveBeenCalled();
+    expect(d.grantManualDeboraLicense).not.toHaveBeenCalled();
   });
 
   it('ignores unrelated routes',async()=>{

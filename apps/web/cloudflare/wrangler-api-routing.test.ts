@@ -26,7 +26,6 @@ describe('production Worker asset routing regression', () => {
       '/api/health',
       '/api/license-center',
       '/api/internal/artisys/license-center',
-      '/api/internal/artisys/loja-online/license',
     ]) {
       expect(invokesWorker(path), path).toBe(true);
     }
