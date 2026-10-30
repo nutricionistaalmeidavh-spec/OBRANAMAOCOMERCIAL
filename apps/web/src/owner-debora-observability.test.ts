@@ -56,6 +56,61 @@ describe('Debora observability owner module',()=>{
     expect(document.body.textContent).toContain('1h 00min');
   });
 
+
+  it('offers consistent sales source labels and explains realized versus attributed revenue',async()=>{
+    const client=apiWith(summary,users,sales);
+    await bindDeboraObservability(client as any);
+    expect(document.querySelector('[data-debora-sales-body]')?.textContent).toContain('Manual');
+    expect(document.querySelector('[data-debora-sales-source-note]')?.textContent).toContain('Asaas');
+    expect(document.querySelector('[data-debora-observability-metric="revenue"]')?.textContent).toContain('R
+    const client={get:vi.fn(async()=>{throw new Error('503')})};
+    await bindDeboraObservability(client as any);
+    expect(document.body.textContent).toContain('Atividade indisponível temporariamente');
+    expect(document.querySelector('[data-debora-observability-root]')).not.toBeNull();
+  });
+});
+);
+    expect(document.querySelector('[data-debora-sales-results]')).not.toBeNull();
+  });
+
+  it('filters sales by inclusive dates using the existing paginated server route',async()=>{
+    const client=apiWith(summary,users,sales);
+    await bindDeboraObservability(client as any);
+    const from=document.querySelector<HTMLInputElement>('[data-debora-sales-from]')!;
+    const to=document.querySelector<HTMLInputElement>('[data-debora-sales-to]')!;
+    from.value='2026-10-01';to.value='2026-10-30';to.dispatchEvent(new Event('change',{bubbles:true}));
+    await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/debora-observability/sales',expect.objectContaining({
+      createdFrom:'2026-10-01T00:00:00.000Z',
+      createdTo:'2026-10-30T23:59:59.999Z',
+    })));
+    expect(document.querySelector('[data-debora-sales-results]')?.textContent).toContain('1');
+  });
+
+  it('prevents reversed date filters from calling the server until fixed and supports clearing them',async()=>{
+    const client=apiWith(summary,users,sales);
+    await bindDeboraObservability(client as any);
+    const from=document.querySelector<HTMLInputElement>('[data-debora-sales-from]')!;
+    const to=document.querySelector<HTMLInputElement>('[data-debora-sales-to]')!;
+    const countBefore=client.get.mock.calls.filter(([path])=>path.endsWith('/sales')).length;
+    from.value='2026-10-31';to.value='2026-10-01';to.dispatchEvent(new Event('change',{bubbles:true}));
+    await new Promise(resolve=>setTimeout(resolve,0));
+    const countAfter=client.get.mock.calls.filter(([path])=>path.endsWith('/sales')).length;
+    expect(countAfter).toBe(countBefore);
+    expect(document.querySelector('[data-debora-sales-results]')?.textContent).toContain('Data inicial');
+    document.querySelector<HTMLButtonElement>('[data-debora-sales-clear]')!.click();
+    await vi.waitFor(()=>expect(client.get.mock.calls.filter(([path])=>path.endsWith('/sales')).length).toBeGreaterThan(countAfter));
+    expect(from.value).toBe('');expect(to.value).toBe('');
+  });
+
+  it('offers a safe license shortcut from a consultant record without posting changes',async()=>{
+    const form=document.createElement('form');form.id='deboraLicenseForm';form.innerHTML='<input name="email" type="email">';
+    document.body.append(form);
+    const client=apiWith(summary,users,sales);
+    await bindDeboraObservability(client as any);
+    document.querySelector<HTMLButtonElement>('[data-debora-manage-license="pro@example.test"]')!.click();
+    expect((form.elements.namedItem('email') as HTMLInputElement).value).toBe('pro@example.test');
+    expect(client.get).not.toHaveBeenCalledWith('/api/owner/companies');
+  });
   it('degrades to an explicit telemetry warning instead of removing the section',async()=>{
     const client={get:vi.fn(async()=>{throw new Error('503')})};
     await bindDeboraObservability(client as any);
