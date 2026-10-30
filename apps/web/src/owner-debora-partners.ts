@@ -25,6 +25,7 @@ export function deboraPartnersSection(){return `<section class="owner-section" i
   </form>
   <div class="owner-debora-table-wrap"><table class="owner-debora-table"><thead><tr><th>Parceiro</th><th>Código</th><th>Desconto</th><th>Comissão</th><th>Status</th><th></th></tr></thead><tbody data-debora-partners-body></tbody></table></div>
   <h3>Vendas atribuídas</h3>
+  <p class="owner-data-source-note">Atribuições a parceiros são parte das vendas registradas, não receita adicional. Não some esses valores à receita realizada da observabilidade.</p>
   <div data-debora-partner-summary></div>
   <div class="owner-debora-table-wrap"><table class="owner-debora-table"><thead><tr><th>Data</th><th>Parceiro</th><th>Plano</th><th>Total</th><th>Desconto</th><th>Comissão</th><th>Status</th><th></th></tr></thead><tbody data-debora-partner-sales-body></tbody></table></div>
 </section>`}
