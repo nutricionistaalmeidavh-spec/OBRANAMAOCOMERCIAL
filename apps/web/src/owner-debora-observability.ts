@@ -1,3 +1,4 @@
+import { labelMobileTableCells } from './owner-mobile-tables';
 type OwnerApi={get:<T=any>(path:string,query?:Record<string,unknown>)=>Promise<{data:T}>;post?:<T=any>(path:string,body?:unknown)=>Promise<{data:T}>};
 type Page<T>={items:T[];hasMore:boolean;nextCursor:string|null};
 type DeboraSummary={
@@ -90,6 +91,7 @@ async function loadUsers(){
   if(!activeApi)return;const {data}=await activeApi.get<Page<DeboraUser>>('/api/owner/debora-observability/users',userQuery());
   usersState.hasMore=Boolean(data.hasMore);usersState.nextCursor=data.nextCursor||null;
   const body=document.querySelector<HTMLElement>('[data-debora-users-body]');if(body)body.innerHTML=(data.items||[]).map(user=>`<tr><td><strong>${esc(user.email)}</strong></td><td>${esc(planLabel(effectivePlan(user)))}</td><td>${esc(channelLabel(userOrigin(user)))}</td><td>${esc(paymentLabel(userPayment(user)))}</td><td><span class="owner-debora-presence ${user.online?'is-online':'is-offline'}">${user.online?'Online':'Offline'}</span></td><td>${esc(fmtDateTime(user.lastSeenAt||user.lastSignInAt))}</td><td>${esc(fmtDateTime(user.createdAt))}</td><td><div class="owner-debora-row-actions"><button type="button" class="owner-secondary" data-debora-user-activity="${esc(user.userId)}" data-debora-user-email="${esc(user.email)}">Ver atividade</button>${isLegacyManual(user)?`<button type="button" class="owner-secondary" data-debora-classify-manual="${esc(user.email)}">Classificar pagamento</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="8">Nenhum usuário encontrado.</td></tr>';
+  labelMobileTableCells(body?.closest('table'));
   const prev=document.querySelector<HTMLButtonElement>('[data-debora-users-prev]'),next=document.querySelector<HTMLButtonElement>('[data-debora-users-next]');if(prev)prev.disabled=!usersState.stack.length;if(next)next.disabled=!usersState.hasMore;
   document.querySelectorAll<HTMLButtonElement>('[data-debora-user-activity]').forEach(button=>button.onclick=()=>void loadActivity(button.dataset.deboraUserActivity||'',button.dataset.deboraUserEmail||''));
   document.querySelectorAll<HTMLButtonElement>('[data-debora-classify-manual]').forEach(button=>button.onclick=()=>openLegacyClassification(button.dataset.deboraClassifyManual||''));
@@ -99,6 +101,7 @@ async function loadSales(){
   if(!activeApi)return;const {data}=await activeApi.get<Page<DeboraSale>>('/api/owner/debora-observability/sales',saleQuery());
   salesState.hasMore=Boolean(data.hasMore);salesState.nextCursor=data.nextCursor||null;
   const body=document.querySelector<HTMLElement>('[data-debora-sales-body]');if(body)body.innerHTML=(data.items||[]).map(sale=>`<tr><td>${esc(fmtDateTime(sale.createdAt))}</td><td>${esc(sale.email||'—')}</td><td>${esc(channelLabel(sale.acquisitionChannel||sale.source))}</td><td>${esc(planLabel(sale.planCode))}</td><td>${sale.amountCents===null||sale.amountCents===undefined?'—':esc(fmtMoney(sale.amountCents))}</td><td>${esc(paymentLabel(sale.status))}</td><td>${esc(sale.externalOrderRef||'—')}</td></tr>`).join('')||'<tr><td colspan="7">Nenhuma venda encontrada.</td></tr>';
+  labelMobileTableCells(body?.closest('table'));
   const prev=document.querySelector<HTMLButtonElement>('[data-debora-sales-prev]'),next=document.querySelector<HTMLButtonElement>('[data-debora-sales-next]');if(prev)prev.disabled=!salesState.stack.length;if(next)next.disabled=!salesState.hasMore;
 }
 
