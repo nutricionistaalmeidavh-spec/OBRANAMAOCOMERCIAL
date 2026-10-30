@@ -130,6 +130,11 @@ async function renderPhonePortal(p:Participant){
 async function renderCorporatePortal(){
   try{
     const user=await auth.getUser();if(!user)return publicHome();
+    // A lactation administrator has no Obra membership and must never enter the Obra bootstrap.
+    try{
+      const {data:central}=await api.get<{role:string}>('/api/owner/central-access');
+      if(central.role==='debora'){location.replace('./sistema.html#owner');return}
+    }catch{/* Other users continue through their existing corporate portal. */}
     const b=(await api.get('/api/bootstrap')).data as Bootstrap,pa=b.platformAccess;
     if(pa?.status==='blocked'){portalShell(user.name||user.email||'Usuário','Acesso bloqueado','<article class="mh-empty"><h3>Acesso bloqueado</h3><p>Procure o administrador da sua empresa.</p></article>');return}
     if(pa?.status==='pending'){
