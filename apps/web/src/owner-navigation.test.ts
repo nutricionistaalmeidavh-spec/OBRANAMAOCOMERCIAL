@@ -282,6 +282,7 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.querySelector('a[href="https://deboralactacao.com/admin/seo/"]')).not.toBeNull();
     (form.elements.namedItem('email') as HTMLInputElement).value='consultora@example.test';
     client.post.mockResolvedValue({data:{state:'active',grant:{email:'consultora@example.test',status:'active',plan_code:'pro_6m'}}});
+    document.querySelector<HTMLDetailsElement>('[data-debora-grant-details]')!.open=true;
     form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
     await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/owner/debora-license',{
       action:'grant',

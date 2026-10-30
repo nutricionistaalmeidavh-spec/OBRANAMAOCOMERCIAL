@@ -42,6 +42,23 @@ describe('Central owner Debora integration',()=>{
     expect(form.elements.namedItem('externalOrderRef')).not.toBeNull();
   });
 
+
+  it('blocks accidental grant submission while commercial disclosure is closed',async()=>{
+    await mount();
+    const form=document.getElementById('deboraLicenseForm') as HTMLFormElement;
+    (form.elements.namedItem('email') as HTMLInputElement).value='consultora@example.test';
+    form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    expect(client.post).not.toHaveBeenCalledWith('/api/owner/debora-license',expect.objectContaining({action:'grant'}));
+    expect(document.getElementById('deboraLicenseResult')?.textContent).toContain('Abra a seção');
+  });
+
+  it('does not send a license lookup for an invalid email',async()=>{
+    await mount();
+    const status=document.getElementById('deboraLicenseStatus') as HTMLButtonElement;
+    status.click();
+    expect(client.post).not.toHaveBeenCalledWith('/api/owner/debora-license',expect.objectContaining({action:'status'}));
+    expect(document.getElementById('deboraLicenseResult')?.textContent).toContain('e-mail válido');
+  });
   it('sends explicit sale metadata only on grant, preserving status/revoke payloads',async()=>{
     client.post.mockResolvedValue({data:{state:'active',activation:'cloudflare_d1',grant:{status:'active',expires_at:'2027-03-25T00:00:00Z'}}});
     await mount();
@@ -51,6 +68,7 @@ describe('Central owner Debora integration',()=>{
     (form.elements.namedItem('paymentStatus') as HTMLSelectElement).value='paid';
     (form.elements.namedItem('amount') as HTMLInputElement).value='80,00';
     (form.elements.namedItem('externalOrderRef') as HTMLInputElement).value='MLB-123';
+    document.querySelector<HTMLDetailsElement>('[data-debora-grant-details]')!.open=true;
     form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
     await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/owner/debora-license',{
       action:'grant',email:'client@example.test',sale:{acquisitionChannel:'mercado_livre',paymentStatus:'paid',amountCents:8000,externalOrderRef:'MLB-123'},

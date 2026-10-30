@@ -196,6 +196,8 @@ function bindDeboraLicense(){
   if(!form||!result)return;
   const email=()=>String(new FormData(form).get('email')||'').trim();
   const run=async(action:'grant'|'status'|'revoke',button:HTMLButtonElement)=>{
+    const identity=form.querySelector<HTMLInputElement>('input[name="email"]');
+    if(!identity?.checkValidity()){result.textContent='Informe um e-mail válido da consultora.';identity?.focus();return}
     if(action==='revoke'&&!window.confirm(`Revogar o acesso Pro de ${email()}?`))return;
     button.disabled=true;result.textContent=action==='grant'?'Liberando acesso...':action==='revoke'?'Revogando licença...':'Consultando licença...';
     try{
@@ -215,7 +217,7 @@ function bindDeboraLicense(){
       }
     }catch(error){result.textContent=message(error)}finally{button.disabled=false}
   };
-  form.onsubmit=e=>{e.preventDefault();void run('grant',form.querySelector<HTMLButtonElement>('button[type="submit"]')!)};
+  form.onsubmit=e=>{e.preventDefault();if(!form.querySelector<HTMLDetailsElement>('[data-debora-grant-details]')?.open){result.textContent='Abra a seção Registrar venda e liberar Pro antes de confirmar a liberação.';return}void run('grant',form.querySelector<HTMLButtonElement>('button[type="submit"]')!)};
   const status=document.getElementById('deboraLicenseStatus') as HTMLButtonElement|null,revoke=document.getElementById('deboraLicenseRevoke') as HTMLButtonElement|null;
   if(status)status.onclick=()=>void run('status',status);
   if(revoke)revoke.onclick=()=>void run('revoke',revoke);
