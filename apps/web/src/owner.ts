@@ -119,7 +119,7 @@ function bindDeboraLicense(){
       const {data}=await api.post<DeboraLicenseResponse>('/api/owner/debora-license',payload);
       result.textContent=describeDeboraLicense(data);
       if(action!=='status'){
-        try{await Promise.all([refreshDeboraOverview(),refreshLicenseHistory()]);updateDeboraMetrics()}catch{}
+        try{await refreshDeboraOverview();if(centralRole==='owner')await refreshLicenseHistory();updateDeboraMetrics()}catch{}
         void refreshDeboraObservability().catch(()=>{});
       }
     }catch(error){result.textContent=message(error)}finally{button.disabled=false}
