@@ -162,6 +162,19 @@
         "native:test"
       ],
       "status": "active"
+    },
+    {
+      "id": "owner.central-access.read",
+      "authorityRoutes": [
+        "GET /api/owner/central-access"
+      ],
+      "legacySurface": "Central ArtiSys / Acesso escopado",
+      "generalPanelRequired": false,
+      "reason": "Endpoint de autorização de sessão da Central, independente da paridade de licenciamento.",
+      "e2e": [
+        "native:test"
+      ],
+      "status": "active"
     }
   ]
 }

@@ -21,3 +21,6 @@ ASAAS_API_BASE_URL=https://api-sandbox.asaas.com/v3
 ASAAS_API_KEY=
 ASAAS_WEBHOOK_TOKEN=
 
+
+# Acesso administrativo restrito ao produto Débora Lactação (login com Google verificado).
+DEBORA_CENTRAL_EMAIL=d.moreira.garcia9393@gmail.com

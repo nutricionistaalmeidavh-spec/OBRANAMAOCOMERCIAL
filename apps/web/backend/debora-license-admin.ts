@@ -5,7 +5,7 @@ import { buildDeboraAdminClients, DEBORA_PRODUCT_CODE, getManualDeboraLicense, r
 
 const parseJson=(value:unknown)=>{try{return JSON.parse(String(value||'{}')) as Record<string,unknown>}catch{return{}}};
 
-export function createDeboraLicenseAdminRoutes(secured: RouterRoutes[string]): RouterRoutes {
+export function createDeboraLicenseAdminRoutes(secured: RouterRoutes[string],ownerSecured:RouterRoutes[string]=secured): RouterRoutes {
   return {
     'GET /api/owner/debora-overview': [
       ...secured,
@@ -22,7 +22,7 @@ export function createDeboraLicenseAdminRoutes(secured: RouterRoutes[string]): R
       },
     ],
     'GET /api/owner/license-audit': [
-      ...secured,
+      ...ownerSecured,
       async () => {
         const db=runtimeEnv().DB;
         const [obraResult,deboraResult]=await Promise.all([

@@ -13,10 +13,10 @@ async function respond(work:()=>Promise<unknown>,status=200){
   }
 }
 
-export function createCompanyRoutes(secured:RouterRoutes[string]):RouterRoutes{return{
- ...createDeboraLicenseAdminRoutes(secured),
- ...createDeboraObservabilityAdminRoutes(secured),
- ...createDeboraPartnerAdminRoutes(secured),
+export function createCompanyRoutes(secured:RouterRoutes[string],deboraSecured:RouterRoutes[string]=secured):RouterRoutes{return{
+ ...createDeboraLicenseAdminRoutes(deboraSecured,secured),
+ ...createDeboraObservabilityAdminRoutes(deboraSecured),
+ ...createDeboraPartnerAdminRoutes(deboraSecured),
  'GET /api/owner/companies':[...secured,async()=>json(await managedCompanyInventory())],
  'GET /api/owner/companies/:id':[...secured,async(ctx)=>{const company=(await managedCompanyInventory()).companies.find(item=>item.id===ctx.params.id);return company?json({company}):error('Empresa não encontrada.',404)}],
  'POST /api/owner/companies':[...secured,async(ctx)=>respond(()=>createManagedCompany((ctx.body||{}) as Record<string,unknown>,{userId:ctx.user!.userId,email:ctx.user!.email}),201)],
