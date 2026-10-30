@@ -6,9 +6,8 @@ Colocar a nova Central do Painel Geral em operação com leitura e escrita reais
 
 Workers envolvidos:
 
-- `obra-na-mao-comercial` — autoridade de Obra e Débora e orquestrador da Loja Online.
+- `obra-na-mao-comercial` — autoridade de Obra na Mão e Débora Lactação.
 - `artisys-mercadolivre` — Painel Geral e UI administrativa.
-- `artisys-lojaonline` — autoridade da Loja Online, acessada pelo Obra via `LOJAONLINE_LICENSING`.
 
 ## Segredos
 
@@ -121,7 +120,6 @@ Cada execução cria `qaRunId` único e usa exclusivamente:
 
 ```text
 ARTISYS QA E2E <qaRunId>
-ARTISYS QA E2E LOJA <qaRunId>
 qa-license-<qaRunId>@example.test
 ```
 
@@ -145,7 +143,6 @@ Ao terminar, os registros QA permanecem apenas para auditoria e ficam inativos:
 
 - Obra QA: licença `revoked`/suspensa;
 - Débora QA: `revoked`;
-- Loja Online QA: `BLOCKED`.
 
 Não existe DELETE físico nesta entrega.
 
