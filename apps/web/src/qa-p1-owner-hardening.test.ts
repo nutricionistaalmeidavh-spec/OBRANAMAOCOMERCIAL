@@ -11,7 +11,7 @@ describe('Central Artisys owner P1 hardening',()=>{
       webFile('../wrangler.jsonc'),webFile('../qa/admin-parity-capabilities.json'),
     ]);
     for(const source of [shell,owner,routes,readonly,admin,wrangler,parity]){
-      expect(source).not.toMatch(/loja[\\s_-]*online|lojaonline/i);
+      expect(source).not.toMatch(/loja[\s_-]*online|lojaonline/i);
     }
     expect(owner).toContain('Obra na Mão');
     expect(owner).toContain('Débora Lactação');
