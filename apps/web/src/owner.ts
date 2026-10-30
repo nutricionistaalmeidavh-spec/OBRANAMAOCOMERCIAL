@@ -54,12 +54,13 @@ let createMessage='';
 function header(){const limited=centralRole==='debora';return `<header class="owner-hero"><div><small>${limited?'ADMINISTRAÇÃO DÉBORA LACTAÇÃO':'SUPERADMIN ARTISYS'}</small><h1>Central Artisys</h1><p>${limited?'Gestão comercial e licenciamento de Débora Lactação.':'Produtos, clientes e licenças em áreas separadas para reduzir risco operacional.'}</p></div><div class="owner-hero-actions">${limited?'':'<a class="owner-secondary" href="./index.html#portal">Minha operação</a>'}<button id="centralLogout" class="owner-secondary">Sair</button></div></header>`}
 function navigation(active:OwnerView){
   const isDebora=centralRole==='debora';
-  const items=isDebora
-    ?Object.entries(deboraTaskLabels).map(([id,label],index)=>`<button type="button" class="owner-nav-item ${index===0?'is-active':''}" data-owner-jump="${id}" ${index===0?'aria-current="location"':''}>${label}</button>`).join('')
-    :(Object.keys(viewLabels) as OwnerView[]).map(view=>`<button type="button" data-owner-view="${view}" class="owner-nav-item ${active===view?'is-active':''}" ${active===view?'aria-current="page"':''}>${viewLabels[view]}</button>`).join('');
+  const showTasks=active==='debora';
+  const ownerItems=(Object.keys(viewLabels) as OwnerView[]).map(view=>`<button type="button" data-owner-view="${view}" class="owner-nav-item ${active===view?'is-active':''}" ${active===view?'aria-current="page"':''}>${viewLabels[view]}</button>`).join('');
+  const taskItems=Object.entries(deboraTaskLabels).map(([id,label],index)=>`<button type="button" class="owner-nav-item ${isDebora&&index===0?'is-active':''}" data-owner-jump="${id}" ${isDebora&&index===0?'aria-current="location"':''}>${!isDebora&&id==='debora-license'?'Licenças da Débora':label}</button>`).join('');
+  const items=isDebora?taskItems:showTasks?`${ownerItems}<span class="owner-nav-group">Seções da Débora</span>${taskItems}`:ownerItems;
   return `<div class="owner-navigation"><button type="button" class="owner-nav-toggle" data-owner-nav-toggle aria-controls="owner-nav-options" aria-expanded="false"><span class="owner-nav-caption">Ir para</span><strong data-owner-nav-current>${isDebora?'Resumo':viewLabels[active]}</strong><span class="owner-nav-chevron" aria-hidden="true">⌄</span></button><nav id="owner-nav-options" class="owner-nav" aria-label="${isDebora?'Áreas da Débora Lactação':'Áreas da Central ArtiSys'}">${items}</nav></div>`;
 }
-function shell(content:string){return `<div class="owner-shell" data-owner-shell>${header()}${navigation(ownerView)}<div class="owner-view" data-owner-current="${ownerView}">${content}</div></div>`}
+function shell(content:string){return `<div class="owner-shell" data-owner-shell ${ownerView==='debora'?'data-owner-task="debora-summary"':''}>${header()}${navigation(ownerView)}<div class="owner-view" data-owner-current="${ownerView}">${content}</div></div>`}
 function logout(){document.getElementById('centralLogout')?.addEventListener('click',async()=>{await auth.signOut();location.href='./index.html'})}
 function bindNavigation(){
   const toggle=document.querySelector<HTMLButtonElement>('[data-owner-nav-toggle]');
@@ -82,11 +83,13 @@ function bindNavigation(){
     else closeMenu();
   }));
   document.querySelectorAll<HTMLButtonElement>('[data-owner-jump]').forEach(button=>button.addEventListener('click',()=>{
-    if(centralRole!=='debora')return;
-    const target=document.getElementById(button.dataset.ownerJump||'');
+    if(ownerView!=='debora')return;
+    const task=button.dataset.ownerJump||'';
+    const target=document.getElementById(task);
     if(!target)return;
-    menu?.querySelectorAll('[aria-current]').forEach(node=>node.removeAttribute('aria-current'));
-    menu?.querySelectorAll('.owner-nav-item').forEach(node=>node.classList.remove('is-active'));
+    const shell=document.querySelector<HTMLElement>('[data-owner-shell]');
+    if(shell)shell.dataset.ownerTask=task;
+    menu?.querySelectorAll('[data-owner-jump]').forEach(node=>{node.removeAttribute('aria-current');node.classList.remove('is-active')});
     button.setAttribute('aria-current','location');
     button.classList.add('is-active');
     const label=document.querySelector<HTMLElement>('[data-owner-nav-current]');
