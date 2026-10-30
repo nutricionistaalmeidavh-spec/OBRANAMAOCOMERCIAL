@@ -51,14 +51,29 @@ let deboraClients:DeboraClient[]=[];
 let licenseHistory:LicenseEvent[]=[];
 let createMessage='';
 
-function header(){const limited=centralRole==='debora';return `<header class="owner-hero"><div><small>${limited?'ADMINISTRAÇÃO DÉBORA LACTAÇÃO':'SUPERADMIN ARTISYS'}</small><h1>Central Artisys</h1><p>${limited?'Gestão comercial e licenciamento de Débora Lactação.':'Produtos, clientes e licenças em áreas separadas para reduzir risco operacional.'}</p></div><div class="owner-hero-actions">${limited?'':'<a class="owner-secondary" href="./index.html#portal">Minha operação</a>'}<button id="centralLogout" class="owner-secondary">Sair</button></div></header>`}
+function header(){
+  const limited=centralRole==='debora',product=ownerView==='debora';
+  return `<header class="owner-hero ${product?'owner-hero-product':''}"><div>
+    <small>${product?(limited?'ADMINISTRAÇÃO DÉBORA LACTAÇÃO':'CENTRAL ARTISYS'):(limited?'ADMINISTRAÇÃO DÉBORA LACTAÇÃO':'SUPERADMIN ARTISYS')}</small>
+    <h1>${product?'Débora Lactação':'Central Artisys'}</h1>
+    <p>${product?'Consultoras, licenças, vendas e uso do sistema.':limited?'Gestão comercial e licenciamento de Débora Lactação.':'Produtos, clientes e licenças em áreas separadas para reduzir risco operacional.'}</p>
+  </div><div class="owner-hero-actions">${limited||product?'':'<a class="owner-secondary" href="./index.html#portal">Minha operação</a>'}<button id="centralLogout" class="owner-secondary" type="button">Sair</button></div></header>`;
+}
 function navigation(active:OwnerView){
-  const isDebora=centralRole==='debora';
-  const showTasks=active==='debora';
-  const ownerItems=(Object.keys(viewLabels) as OwnerView[]).map(view=>`<button type="button" data-owner-view="${view}" class="owner-nav-item ${active===view?'is-active':''}" ${active===view?'aria-current="page"':''}>${viewLabels[view]}</button>`).join('');
-  const taskItems=Object.entries(deboraTaskLabels).map(([id,label],index)=>`<button type="button" class="owner-nav-item ${isDebora&&index===0?'is-active':''}" data-owner-jump="${id}" ${isDebora&&index===0?'aria-current="location"':''}>${!isDebora&&id==='debora-license'?'Licenças da Débora':label}</button>`).join('');
-  const items=isDebora?taskItems:showTasks?`${ownerItems}<span class="owner-nav-group">Seções da Débora</span>${taskItems}`:ownerItems;
-  return `<div class="owner-navigation"><button type="button" class="owner-nav-toggle" data-owner-nav-toggle aria-controls="owner-nav-options" aria-expanded="false"><span class="owner-nav-caption">Ir para</span><strong data-owner-nav-current>${isDebora?'Resumo':viewLabels[active]}</strong><span class="owner-nav-chevron" aria-hidden="true">⌄</span></button><nav id="owner-nav-options" class="owner-nav" aria-label="${isDebora?'Áreas da Débora Lactação':'Áreas da Central ArtiSys'}">${items}</nav></div>`;
+  const product=active==='debora';
+  const items=product
+    ?Object.entries(deboraTaskLabels).map(([id,label],index)=>`<button type="button" class="owner-nav-item ${index===0?'is-active':''}" data-owner-jump="${id}" ${index===0?'aria-current="location"':''}>${label}</button>`).join('')
+    :(Object.keys(viewLabels) as OwnerView[]).map(view=>`<button type="button" data-owner-view="${view}" class="owner-nav-item ${active===view?'is-active':''}" ${active===view?'aria-current="page"':''}>${viewLabels[view]}</button>`).join('');
+  const back=product&&centralRole==='owner'?'<button type="button" class="owner-back-link" data-owner-back>← Voltar à Central</button>':'';
+  return `<div class="owner-navigation ${product?'is-product':''}">
+    ${back}
+    <button type="button" class="owner-nav-toggle" data-owner-nav-toggle aria-controls="owner-nav-options" aria-expanded="false">
+      <span class="owner-nav-caption">${product?'Seção atual':'Ir para'}</span>
+      <strong data-owner-nav-current>${product?'Resumo':viewLabels[active]}</strong>
+      <span class="owner-nav-chevron" aria-hidden="true">⌄</span>
+    </button>
+    <nav id="owner-nav-options" class="owner-nav" aria-label="${product?'Seções da Débora Lactação':'Áreas da Central ArtiSys'}">${items}</nav>
+  </div>`;
 }
 function shell(content:string){return `<div class="owner-shell" data-owner-shell ${ownerView==='debora'?'data-owner-task="debora-summary"':''}>${header()}${navigation(ownerView)}<div class="owner-view" data-owner-current="${ownerView}">${content}</div></div>`}
 function logout(){document.getElementById('centralLogout')?.addEventListener('click',async()=>{await auth.signOut();location.href='./index.html'})}
@@ -74,9 +89,15 @@ function bindNavigation(){
     toggle.setAttribute('aria-expanded',String(opened));
     menu?.classList.toggle('is-open',opened);
   });
-  const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'&&toggle?.getAttribute('aria-expanded')==='true'){closeMenu();toggle.focus();event.preventDefault();}};
+  const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'&&toggle?.getAttribute('aria-expanded')==='true'){closeMenu();toggle.focus();event.preventDefault()}};
   toggle?.addEventListener('keydown',escape);
   menu?.addEventListener('keydown',escape);
+  document.querySelector<HTMLButtonElement>('[data-owner-back]')?.addEventListener('click',()=>{
+    if(centralRole!=='owner'||ownerView!=='debora')return;
+    ownerView='overview';
+    renderCurrentView();
+    document.querySelector<HTMLButtonElement>('[data-owner-nav-toggle]')?.focus();
+  });
   document.querySelectorAll<HTMLButtonElement>('[data-owner-view]').forEach(button=>button.addEventListener('click',()=>{
     const next=button.dataset.ownerView as OwnerView;
     if(centralRole==='owner'&&next&&next!==ownerView){ownerView=next;renderCurrentView()}
@@ -228,7 +249,7 @@ function bindCompanyCreation(){
   form.onsubmit=async e=>{e.preventDefault();const button=form.querySelector<HTMLButtonElement>('button[type="submit"]')!,values=new FormData(form);button.disabled=true;try{const {data}=await api.post('/api/owner/companies',{name:values.get('name'),adminEmail:values.get('adminEmail'),plan:values.get('plan'),expiresAt:values.get('expiresAt')||undefined,maxUsers:Number(values.get('maxUsers')),maxProjects:Number(values.get('maxProjects')),maxDevices:Number(values.get('maxDevices')),advancedServer:values.get('advancedServer')==='on',modules:selected(form,'modules'),channels:selected(form,'channels')});createMessage=`Empresa criada e acesso liberado para ${values.get('adminEmail')}. O primeiro acesso é reconhecido por esse e-mail. Código de contingência: ${data.license.code}.`;const result=document.getElementById('createResult');if(result)result.textContent=createMessage;await Promise.all([refreshCompanies(),refreshLicenseHistory().catch(()=>{})])}catch(error){const result=document.getElementById('createResult');if(result)result.textContent=message(error)}finally{button.disabled=false}};
 }
 function bindCompanyButtons(){document.querySelectorAll<HTMLButtonElement>('[data-company]').forEach(button=>button.onclick=()=>void detail(button.dataset.company!).catch(error=>alert(message(error))))}
-function bindDeboraClientButtons(){document.querySelectorAll<HTMLButtonElement>('[data-debora-email]').forEach(button=>button.onclick=()=>{ownerView='debora';renderCurrentView();const input=document.querySelector<HTMLInputElement>('#deboraLicenseForm input[name="email"]');if(input){input.value=button.dataset.deboraEmail||'';input.focus()}})}
+function bindDeboraClientButtons(){document.querySelectorAll<HTMLButtonElement>('[data-debora-email]').forEach(button=>button.onclick=()=>{if(centralRole!=='owner')return;ownerView='debora';renderCurrentView();const input=document.querySelector<HTMLInputElement>('#deboraLicenseForm input[name="email"]');if(input){input.value=button.dataset.deboraEmail||'';document.querySelector<HTMLButtonElement>('[data-owner-jump="debora-license"]')?.click();input.focus()}})}
 function applyClientFilters(){const search=(document.getElementById('ownerClientSearch') as HTMLInputElement|null)?.value.trim().toLowerCase()||'',product=(document.getElementById('ownerClientProduct') as HTMLSelectElement|null)?.value||'all',status=(document.getElementById('ownerClientStatus') as HTMLSelectElement|null)?.value||'all';let visible=0;document.querySelectorAll<HTMLElement>('[data-owner-client]').forEach(node=>{const show=(!search||String(node.dataset.search||'').includes(search))&&(product==='all'||node.dataset.product===product)&&(status==='all'||String(node.dataset.status||'').split(' ').includes(status));node.hidden=!show;if(show)visible+=1});const empty=document.getElementById('ownerClientEmpty');if(empty)empty.hidden=visible>0}
 function bindClientFilters(){['ownerClientSearch','ownerClientProduct','ownerClientStatus'].forEach(id=>{const node=document.getElementById(id);node?.addEventListener(id==='ownerClientSearch'?'input':'change',applyClientFilters)})}
 function applyLicenseFilters(){const product=(document.getElementById('ownerLicenseProduct') as HTMLSelectElement|null)?.value||'all',status=(document.getElementById('ownerLicenseStatus') as HTMLSelectElement|null)?.value||'all';let visible=0;document.querySelectorAll<HTMLElement>('[data-owner-license]').forEach(node=>{const show=(product==='all'||node.dataset.product===product)&&(status==='all'||String(node.dataset.status||'').split(' ').includes(status));node.hidden=!show;if(show)visible+=1});const empty=document.getElementById('ownerLicenseEmpty');if(empty)empty.hidden=visible>0}
