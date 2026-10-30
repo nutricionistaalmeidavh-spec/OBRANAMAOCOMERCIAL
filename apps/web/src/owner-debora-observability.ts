@@ -50,7 +50,7 @@ export function deboraObservabilitySection(){return `<section class="owner-secti
     </section>
     <section class="owner-debora-observability-panel" id="debora-sales"><div class="owner-debora-observability-panel-head"><div><h3>Histórico de vendas</h3><small>Asaas e vendas manuais na mesma linha do tempo, ordenadas por data.</small></div></div>
       <div class="owner-debora-observability-filters owner-sales-filter"><label>Canal<select data-debora-sales-channel><option value="">Todos</option>${channelOptions(true)}</select></label><label>Status<select data-debora-sales-status><option value="">Todos</option><option value="paid">Pago</option><option value="pending">Pendente</option><option value="unpaid">Não pago</option><option value="not_applicable">Não se aplica</option><option value="failed">Falhou</option><option value="expired">Expirou</option></select></label><label>De<input type="date" data-debora-sales-from aria-label="Data inicial das vendas"></label><label>Até<input type="date" data-debora-sales-to aria-label="Data final das vendas"></label><button type="button" class="owner-secondary owner-sales-clear" data-debora-sales-clear>Limpar filtros</button></div>
-      <p class="owner-data-source-note" data-debora-sales-source-note>Fonte: vendas confirmadas pelo Asaas e registros comerciais manuais. Receita realizada considera somente pagamentos marcados como pagos. Vendas atribuídas a parceiros são um subconjunto e não devem ser somadas novamente.</p>
+      <p class="owner-data-source-note" data-debora-sales-source-note>Fonte: transações do Asaas e registros comerciais manuais, inclusive pendentes. Receita realizada considera somente pagamentos marcados como pagos. Vendas atribuídas a parceiros são um subconjunto e não devem ser somadas novamente.</p>
       <p class="owner-record-count" data-debora-sales-results role="status" aria-live="polite">Carregando vendas…</p>
       <div class="owner-debora-table-wrap"><table class="owner-debora-table"><thead><tr><th>Data</th><th>Cliente</th><th>Canal</th><th>Registro</th><th>Plano</th><th>Valor</th><th>Status</th><th>Referência</th></tr></thead><tbody data-debora-sales-body></tbody></table></div>
       <div class="owner-debora-observability-pager"><button type="button" class="owner-secondary" data-debora-sales-prev>Anterior</button><button type="button" class="owner-secondary" data-debora-sales-next>Próxima</button></div>
@@ -82,7 +82,7 @@ function renderSummary(summary:DeboraSummary){
     ['Tempo hoje',formatUsageSeconds(summary.usage?.activeSecondsToday),'usage-today'],
   ];
   target.innerHTML=`<div class="owner-debora-observability-primary">${essentials.map(card).join('')}</div>
-    <p class="owner-data-source-note">Vendas pagas e receita realizada: Asaas + registros comerciais manuais. Métricas de uso: serviço de observabilidade. Os números são históricos e independem dos filtros da tabela.</p>
+    <p class="owner-data-source-note">Vendas pagas e receita realizada: Asaas + registros comerciais manuais. Métricas de uso: serviço de observabilidade. Os números são históricos e independem dos filtros da tabela. Períodos são exibidos no horário de Brasília.</p>
     <details class="owner-observability-more"><summary>Ver mais indicadores de uso</summary>
       <div class="owner-debora-observability-detail-grid">${additional.map(card).join('')}</div>
     </details>`;
@@ -107,8 +107,9 @@ function saleQuery(){
   if(from&&to&&from>to)throw new Error('Data inicial deve ser anterior ou igual à data final.');
   if(status)query.status=status;
   if(channel)query.channel=channel;
-  if(from)query.createdFrom=from+'T00:00:00.000Z';
-  if(to)query.createdTo=to+'T23:59:59.999Z';
+  // Período civil em Brasília (UTC-03 em 2026), convertido para os timestamps UTC do serviço.
+  if(from)query.createdFrom=new Date(from+'T00:00:00.000-03:00').toISOString();
+  if(to)query.createdTo=new Date(to+'T23:59:59.999-03:00').toISOString();
   if(salesState.cursor)query.cursor=salesState.cursor;
   return query;
 }
@@ -148,7 +149,7 @@ async function loadSales(){
   }
   const {data}=await activeApi.get<Page<DeboraSale>>('/api/owner/debora-observability/sales',query);
   salesState.hasMore=Boolean(data.hasMore);salesState.nextCursor=data.nextCursor||null;
-  const result=document.querySelector<HTMLElement>('[data-debora-sales-results]');if(result)result.textContent=`${(data.items||[]).length} venda(s) nesta página${data.hasMore?' · há mais resultados':''}. Os indicadores acima são totais históricos.`;
+  const result=document.querySelector<HTMLElement>('[data-debora-sales-results]');if(result)result.textContent=`${(data.items||[]).length} venda(s) nesta página${data.hasMore?' · há mais resultados':''}. Os indicadores acima são totais históricos, não limitados pelo período.`;
   const body=document.querySelector<HTMLElement>('[data-debora-sales-body]');if(body)body.innerHTML=(data.items||[]).map(sale=>`<tr><td>${esc(fmtDateTime(sale.createdAt))}</td><td>${esc(sale.email||'—')}</td><td>${esc(channelLabel(sale.acquisitionChannel||sale.source))}</td><td>${esc(sale.source==='manual'?'Manual':sale.source==='asaas'?'Asaas':'Não informado')}</td><td>${esc(planLabel(sale.planCode))}</td><td>${sale.amountCents===null||sale.amountCents===undefined?'—':esc(fmtMoney(sale.amountCents))}</td><td>${esc(paymentLabel(sale.status))}</td><td>${esc(sale.externalOrderRef||'—')}</td></tr>`).join('')||'<tr><td colspan="8">Nenhuma venda encontrada.</td></tr>';
   labelMobileTableCells(body?.closest('table'));
   const prev=document.querySelector<HTMLButtonElement>('[data-debora-sales-prev]'),next=document.querySelector<HTMLButtonElement>('[data-debora-sales-next]');if(prev)prev.disabled=!salesState.stack.length;if(next)next.disabled=!salesState.hasMore;
@@ -192,6 +193,14 @@ export async function bindDeboraObservability(api:OwnerApi){
   const status=document.querySelector<HTMLElement>('[data-debora-observability-status]');
   const results=await Promise.allSettled([api.get<DeboraSummary>('/api/owner/debora-observability/summary'),loadUsers(),loadSales()]);
   if(results[0].status==='fulfilled')renderSummary(results[0].value.data);
+  if(results[1].status==='rejected'){
+    const node=document.querySelector<HTMLElement>('[data-debora-users-results]');
+    if(node)node.textContent='Não foi possível carregar as consultoras. Tente novamente.';
+  }
+  if(results[2].status==='rejected'){
+    const node=document.querySelector<HTMLElement>('[data-debora-sales-results]');
+    if(node)node.textContent='Não foi possível carregar o histórico de vendas. Tente novamente.';
+  }
   const failures=results.filter(result=>result.status==='rejected').length;
   if(status)status.textContent=failures===3?'Atividade indisponível temporariamente. O licenciamento continua disponível.':failures?'Parte dos dados está indisponível. As outras áreas continuam disponíveis.':'Dados administrativos atualizados.';
 }

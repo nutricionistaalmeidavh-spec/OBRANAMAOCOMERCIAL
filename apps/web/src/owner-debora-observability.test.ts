@@ -74,8 +74,8 @@ describe('Debora observability owner module',()=>{
     const to=document.querySelector<HTMLInputElement>('[data-debora-sales-to]')!;
     from.value='2026-10-01';to.value='2026-10-30';to.dispatchEvent(new Event('change',{bubbles:true}));
     await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/debora-observability/sales',expect.objectContaining({
-      createdFrom:'2026-10-01T00:00:00.000Z',
-      createdTo:'2026-10-30T23:59:59.999Z',
+      createdFrom:'2026-10-01T03:00:00.000Z',
+      createdTo:'2026-10-31T02:59:59.999Z',
     })));
     expect(document.querySelector('[data-debora-sales-results]')?.textContent).toContain('1');
   });
