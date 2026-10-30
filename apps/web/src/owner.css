@@ -97,3 +97,13 @@ body:has([data-owner-shell]) #content{width:100%;max-width:100%;min-width:0;padd
 .owner-nav-group{flex:1 1 100%;display:block;max-width:100%;font-size:.72rem;color:#62718b;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 0 0}
 @media(max-width:719px){.owner-nav-group{grid-column:1/-1}.owner-consultant-search{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}}
 @media(max-width:359px){.owner-consultant-search{grid-template-columns:1fr}}
+
+/* A regra de visibilidade tem a mesma especificidade do bloqueio inicial. */
+@media(max-width:719px){
+  .owner-shell[data-owner-task="debora-summary"] .owner-view[data-owner-current="debora"] > #debora-summary,
+  .owner-shell[data-owner-task="debora-license"] .owner-view[data-owner-current="debora"] > #debora-license,
+  .owner-shell[data-owner-task="debora-partners"] .owner-view[data-owner-current="debora"] > #debora-partners,
+  .owner-shell[data-owner-task="debora-users"] .owner-view[data-owner-current="debora"] > #debora-usage,
+  .owner-shell[data-owner-task="debora-sales"] .owner-view[data-owner-current="debora"] > #debora-usage,
+  .owner-shell[data-owner-task="debora-usage"] .owner-view[data-owner-current="debora"] > #debora-usage{display:block}
+}
