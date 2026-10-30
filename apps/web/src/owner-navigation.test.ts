@@ -28,7 +28,7 @@ async function mount(){
   document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
   client.hasSession.mockResolvedValue(true);
   client.get.mockImplementation(async(path:string)=>{
-    if(path==='/api/owner/central-access')return {data:{role:'owner'}};
+    if(path==='/api/central/access')return {data:{role:'owner'}};
     if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
     if(path==='/api/owner/license-audit')return {data:{events:licenseEvents}};
     if(path==='/api/owner/companies/c1')return {data:{company:companies[0]}};
@@ -75,7 +75,7 @@ describe('Central Artisys owner navigation',()=>{
     document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
     client.hasSession.mockResolvedValue(true);
     client.get.mockImplementation(async(path:string)=>{
-      if(path==='/api/owner/central-access')return {data:{role:'debora'}};
+      if(path==='/api/central/access')return {data:{role:'debora'}};
       if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
       throw new Error('Unexpected non-lactation API read: '+path);
     });
@@ -202,7 +202,7 @@ describe('Central Artisys owner navigation',()=>{
     document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
     client.hasSession.mockResolvedValue(true);
     client.get.mockImplementation(async(path:string)=>{
-      if(path==='/api/owner/central-access')return {data:{role:'owner'}};
+      if(path==='/api/central/access')return {data:{role:'owner'}};
       if(path==='/api/owner/debora-overview'||path==='/api/owner/license-audit')throw new Error('optional admin data unavailable');
       return {data:{companies}};
     });

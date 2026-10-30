@@ -166,7 +166,7 @@ async function render(){
   document.querySelector('.nav')?.setAttribute('style','display:none');document.querySelector('.top')?.setAttribute('style','display:none');
   if(!await auth.hasSession()){showOwnerLogin();return}
   try{
-    const {data:access}=await api.get<{role:'owner'|'debora'}>('/api/owner/central-access');
+    const {data:access}=await api.get<{role:'owner'|'debora'}>('/api/central/access');
     if(access.role!=='owner'&&access.role!=='debora')throw new Error('Perfil administrativo inválido.');
     centralRole=access.role;
     document.title=centralRole==='debora'?'Central Artisys — Débora Lactação':'Central Artisys — Superadmin';

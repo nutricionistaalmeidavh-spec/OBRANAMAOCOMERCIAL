@@ -132,7 +132,7 @@ async function renderCorporatePortal(){
     const user=await auth.getUser();if(!user)return publicHome();
     // A lactation administrator has no Obra membership and must never enter the Obra bootstrap.
     try{
-      const {data:central}=await api.get<{role:string}>('/api/owner/central-access');
+      const {data:central}=await api.get<{role:string}>('/api/central/access');
       if(central.role==='debora'){location.replace('./sistema.html#owner');return}
     }catch{/* Other users continue through their existing corporate portal. */}
     const b=(await api.get('/api/bootstrap')).data as Bootstrap,pa=b.platformAccess;

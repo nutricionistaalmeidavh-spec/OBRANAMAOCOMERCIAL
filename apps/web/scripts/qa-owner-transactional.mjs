@@ -42,7 +42,7 @@ try{
       const record={viewport:viewport.name,method:request.method(),pathname,body};requests.push(record);allRequests.push(record);
       const json=(value,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(value)});
       if(pathname==='/api/auth/me')return json({user:{userId:'qa-owner',email:'qa.owner@example.test',name:'QA Owner'}});
-      if(pathname==='/api/owner/central-access')return json({role:'owner',views:['overview','obra','debora','clients','licenses']});
+      if(pathname==='/api/central/access')return json({role:'owner',views:['overview','obra','debora','clients','licenses']});
       if(pathname==='/api/owner/debora-overview')return json({overview:{clients:0,pro:0,freemium:0,expiring:0,revoked:0},clients:[]});
       if(pathname==='/api/owner/license-audit')return json({events:audit});
       if(pathname==='/api/owner/companies'&&request.method()==='GET')return json({companies});

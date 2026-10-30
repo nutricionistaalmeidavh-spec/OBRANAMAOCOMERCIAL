@@ -57,7 +57,7 @@ describe('Commercial login and overview DOM flows', () => {
     expect(document.querySelector('[data-resource="obra"]')).not.toBeNull();
     expect(document.querySelector('[data-resource="universidade"]')).not.toBeNull();
     expect(document.body.textContent).not.toContain('Resumo da gestão');
-    expect(client.get.mock.calls.map(call=>call[0])).toEqual(['/api/owner/central-access','/api/bootstrap']);
+    expect(client.get.mock.calls.map(call=>call[0])).toEqual(['/api/central/access','/api/bootstrap']);
   });
   it('shows real authorized aggregates and clears them immediately on logout', async () => {
     client.isSignedIn.mockReturnValue(true);
@@ -76,7 +76,7 @@ describe('Commercial login and overview DOM flows', () => {
     let release!:(value:unknown)=>void;
     client.isSignedIn.mockReturnValue(true);
     client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
-    client.get.mockImplementation(path=>path==='/api/owner/central-access'?Promise.reject(new Error('not a Central admin')):path==='/api/bootstrap'?Promise.resolve({data:bootstrap('admin')}):new Promise(resolve=>{release=resolve}));
+    client.get.mockImplementation(path=>path==='/api/central/access'?Promise.reject(new Error('not a Central admin')):path==='/api/bootstrap'?Promise.resolve({data:bootstrap('admin')}):new Promise(resolve=>{release=resolve}));
     await mountMhPortal();byId<HTMLButtonElement>('logoutBtn').click();release({data:overview});
     await new Promise(resolve=>setTimeout(resolve,0));
     expect(document.body.textContent).not.toContain('54.000,00');

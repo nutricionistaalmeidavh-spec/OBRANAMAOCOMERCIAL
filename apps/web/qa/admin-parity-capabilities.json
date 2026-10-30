@@ -166,7 +166,7 @@
     {
       "id": "owner.central-access.read",
       "authorityRoutes": [
-        "GET /api/owner/central-access"
+        "GET /api/central/access"
       ],
       "legacySurface": "Central ArtiSys / Acesso escopado",
       "generalPanelRequired": false,
