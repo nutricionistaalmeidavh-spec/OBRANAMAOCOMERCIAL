@@ -3,7 +3,6 @@ import { buildDeboraAdminClients, DEBORA_PRODUCT_CODE, summarizeDeboraLicenseOve
 import { createDeboraObservabilityAdminRoutes, fetchDeboraObservability } from './debora-observability-admin';
 import { deboraPartnerAdminRequest } from './debora-partner-admin';
 import { listManualSales, manualSalesSummary } from './manual-license-sales';
-import { lojaOnlineRequest, type LojaOnlineCompany, type LojaOnlineLicenseEvent, type LojaOnlineRuntimeEnv } from './loja-online-admin';
 import { router } from '../cloudflare/sdk';
 import parityRegistry from '../qa/admin-parity-capabilities.json';
 
@@ -13,9 +12,6 @@ type Env={
   LICENSE_CENTER_READ_SECRET?:string;
   OWNER_EMAIL?:string;
   OWNER_COMPANY?:string;
-  LOJAONLINE_LICENSING?:ServiceBinding;
-  LOJAONLINE_LICENSE_SERVICE_SECRET?:string;
-  LOJAONLINE_LICENSE_BASE_URL?:string;
   DEBORA_OBSERVABILITY?:ServiceBinding;
   DEBORA_OBSERVABILITY_SECRET?:string;
   DEBORA_PARTNER_ADMIN_SECRET?:string;
@@ -94,28 +90,9 @@ async function licenseAudit(env:Env){
   return [...obra,...debora].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,100);
 }
 
-function lojaOverview(rows:LojaOnlineCompany[]){
-  const now=Date.now(),limit=now+30*86400000;
-  return {totalClients:rows.length,active:rows.filter(row=>row.accessStatus==='ACTIVE').length,expired:rows.filter(row=>row.accessStatus==='EXPIRED').length,blocked:rows.filter(row=>row.accessStatus==='BLOCKED').length,expiringSoon:rows.filter(row=>{const expiry=row.license?.expiresAt?Date.parse(row.license.expiresAt):NaN;return row.accessStatus==='ACTIVE'&&Number.isFinite(expiry)&&expiry>now&&expiry<=limit}).length};
-}
-
-async function lojaOnlineSnapshot(env:Env){
-  try{
-    const explicitEnv=env as LojaOnlineRuntimeEnv;
-    const [companiesPayload,auditPayload]=await Promise.all([
-      lojaOnlineRequest<{companies:LojaOnlineCompany[]}>('/api/internal/artisys/loja-online/companies',{},explicitEnv),
-      lojaOnlineRequest<{events:LojaOnlineLicenseEvent[]}>('/api/internal/artisys/loja-online/license-audit',{},explicitEnv),
-    ]);
-    const companies=companiesPayload.companies||[];
-    return {available:true,overview:lojaOverview(companies),companies,events:auditPayload.events||[]};
-  }catch(error){
-    return {available:false,error:error instanceof Error?error.message:'Loja Online indisponível.',overview:null,companies:[],events:[]};
-  }
-}
-
 export async function buildLicenseCenterReadonlySnapshot(env:Env){
-  const [obra,debora,audit,lojaOnline]=await Promise.all([obraSnapshot(env),deboraSnapshot(env),licenseAudit(env),lojaOnlineSnapshot(env)]);
-  return {generatedAt:new Date().toISOString(),mode:'read-only',adminParity:licenseCenterAdminParity(),obra,debora,lojaOnline,audit:{events:audit}};
+  const [obra,debora,audit]=await Promise.all([obraSnapshot(env),deboraSnapshot(env),licenseAudit(env)]);
+  return {generatedAt:new Date().toISOString(),mode:'read-only',adminParity:licenseCenterAdminParity(),obra,debora,audit:{events:audit}};
 }
 
 function isDeboraBridgeRead(path:string){
