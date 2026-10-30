@@ -57,19 +57,13 @@ describe('Debora observability owner module',()=>{
   });
 
 
+
   it('offers consistent sales source labels and explains realized versus attributed revenue',async()=>{
     const client=apiWith(summary,users,sales);
     await bindDeboraObservability(client as any);
     expect(document.querySelector('[data-debora-sales-body]')?.textContent).toContain('Manual');
     expect(document.querySelector('[data-debora-sales-source-note]')?.textContent).toContain('Asaas');
-    expect(document.querySelector('[data-debora-observability-metric="revenue"]')?.textContent).toContain('R
-    const client={get:vi.fn(async()=>{throw new Error('503')})};
-    await bindDeboraObservability(client as any);
-    expect(document.body.textContent).toContain('Atividade indisponível temporariamente');
-    expect(document.querySelector('[data-debora-observability-root]')).not.toBeNull();
-  });
-});
-);
+    expect(document.querySelector('[data-debora-observability-metric="revenue"]')?.textContent).toContain('2.597,40');
     expect(document.querySelector('[data-debora-sales-results]')).not.toBeNull();
   });
 
@@ -111,6 +105,7 @@ describe('Debora observability owner module',()=>{
     expect((form.elements.namedItem('email') as HTMLInputElement).value).toBe('pro@example.test');
     expect(client.get).not.toHaveBeenCalledWith('/api/owner/companies');
   });
+
   it('degrades to an explicit telemetry warning instead of removing the section',async()=>{
     const client={get:vi.fn(async()=>{throw new Error('503')})};
     await bindDeboraObservability(client as any);
