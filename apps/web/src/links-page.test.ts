@@ -38,7 +38,7 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     const cardIds = [...destinations.matchAll(/class="link-card[^"]*"[^>]+data-link-id="([^"]+)"/g)].map(match => match[1]);
     expect(cardIds).toEqual(['academy']);
     expect(destinations).toContain('class="link-card card-feature" href="/academy" data-link-id="academy"');
-    expect(destinations).toContain('Trilhas, cursos e lista de espera.');
+    expect(destinations).toContain('Aprenda. Desenvolva. Evolua.');
     expect(destinations).not.toContain('01 — 04');
     expect(html).not.toMatch(/data-link-id="(?:site|sistemas|devkits|whatsapp|obra-portal)"/);
     for (const removed of [
@@ -57,14 +57,37 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect((html.match(/data-link-id="tiktok"/g) ?? [])).toHaveLength(1);
   });
 
-  it('usa cards compactos no mobile sem sacrificar área de toque', () => {
+  it('usa composição glass premium sem textos acima ou abaixo do título', () => {
+    const hero = html.split('<section class="intro"')[1]?.split('</section>')[0] ?? '';
+    expect(hero).toContain('id="page-title"');
+    expect(hero).toContain('Um universo de soluções.');
+    expect(hero).toContain('Seu próximo passo começa aqui.');
+    expect(hero).toContain('class="hero-art" aria-hidden="true"');
+    expect(hero).not.toContain('class="eyebrow"');
+    expect(hero).not.toContain('class="intro-copy"');
+    expect(hero).not.toContain('class="brand-emblem"');
+    expect(html).not.toContain('Software para quem faz acontecer.');
+    expect(html).not.toContain('Soluções, conhecimento e inovação em um só ecossistema.');
+    expect(html).not.toContain('EXPLORE A ARTISYS');
+
+    const academy = html.split('data-link-id="academy"')[1]?.split('</a>')[0] ?? '';
+    expect(academy).toContain('ArtiSys Academy');
+    expect(academy).toContain('Aprenda. Desenvolva. Evolua.');
+    expect(academy).not.toContain('Trilhas, cursos e lista de espera.');
+    expect(css).toContain('backdrop-filter: blur(');
+    expect(css).toContain('-webkit-backdrop-filter: blur(');
+    expect(css).toContain('@supports not');
+  });
+
+  it('mantém área de toque, hierarquia mobile e estados acessíveis', () => {
     const mobile = css.split('@media (max-width: 600px)')[1]?.split('@media (max-width: 380px)')[0] ?? '';
-    expect(mobile).toContain('.link-card { min-height: 84px; gap: 10px; padding: 10px 12px;');
-    expect(mobile).toContain('.card-icon { flex-basis: 42px; height: 42px;');
-    expect(mobile).toContain('.card-copy strong { font-size: 16px;');
-    expect(mobile).toContain('.card-copy small { font-size: 10.5px;');
+    expect(mobile).toContain('.intro {');
+    expect(mobile).toContain('.link-card {');
+    expect(mobile).toContain('.hero-art {');
+    expect(css).toContain('min-height: 48px');
     expect(css).toContain(':focus-visible');
-    expect(css).toContain('flex: 1');
+    expect(css).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(css).toContain('backdrop-filter: blur(');
   });
 
   it('exibe TikTok @artisysdev e WhatsApp, sem Instagram ou GitHub na central', () => {
@@ -85,8 +108,24 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(css).toContain(':focus-visible');
     expect(css).toContain('@media (max-width: 600px)');
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(css).toContain('min-height: 84px');
+    expect(css).toContain('min-height: 94px');
     expect(html).not.toMatch(/<script[^>]+src=["'][^"']+google-analytics/i);
+  });
+
+
+  it('orquestra motions progressivas sem dependência externa e respeita movimento reduzido', () => {
+    const motion = read('../public/links/links-motion.js');
+    expect(html).toContain('src="/links/links-motion.js" defer');
+    expect(motion).toContain('prefers-reduced-motion: reduce');
+    expect(motion).toContain('Element.prototype.animate');
+    expect(motion).toContain('requestAnimationFrame');
+    expect(motion).toContain('pointermove');
+    expect(motion).toContain('activeAnimations.forEach((animation) => animation.cancel())');
+    expect(motion).toContain('fill: "backwards"');
+    expect(motion).not.toMatch(/https?:\/\/|fetch\(|\bimport\s+|\bgsap\b/i);
+    expect(css).toContain('@keyframes glass-sheen');
+    expect(css).toContain('@media (hover: hover) and (pointer: fine)');
+    expect(css).toContain('@media (prefers-reduced-motion: reduce)');
   });
 
   it('não substitui a landing, checkout nem interfere na roteirização da API', () => {
