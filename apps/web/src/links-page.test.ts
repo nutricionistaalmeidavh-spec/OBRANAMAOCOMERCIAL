@@ -38,7 +38,7 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     const cardIds = [...destinations.matchAll(/class="link-card[^"]*"[^>]+data-link-id="([^"]+)"/g)].map(match => match[1]);
     expect(cardIds).toEqual(['academy']);
     expect(destinations).toContain('class="link-card card-feature" href="/academy" data-link-id="academy"');
-    expect(destinations).toContain('Trilhas, cursos e lista de espera.');
+    expect(destinations).toContain('Aprenda. Desenvolva. Evolua.');
     expect(destinations).not.toContain('01 — 04');
     expect(html).not.toMatch(/data-link-id="(?:site|sistemas|devkits|whatsapp|obra-portal)"/);
     for (const removed of [
@@ -108,7 +108,7 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(css).toContain(':focus-visible');
     expect(css).toContain('@media (max-width: 600px)');
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(css).toContain('min-height: 84px');
+    expect(css).toContain('min-height: 94px');
     expect(html).not.toMatch(/<script[^>]+src=["'][^"']+google-analytics/i);
   });
 
