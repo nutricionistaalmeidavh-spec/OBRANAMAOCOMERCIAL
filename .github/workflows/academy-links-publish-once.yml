@@ -1,4 +1,5 @@
 name: Publish Academy link once
+# One-time authorized release: /links glass premium (PR #166), without D1 migrations.
 
 on:
   pull_request:
@@ -72,6 +73,11 @@ jobs:
               const html=await links.text();
               assert.match(html,/data-link-id="academy"/,'Academy link not live');
               assert.ok(html.includes('href="/academy"'),'Academy link destination');
+              assert.ok(html.includes('Aprenda. Desenvolva. Evolua.'),'Glass Academy copy not live');
+              assert.ok(html.includes('/links/links-motion.js'),'Glass motion asset not referenced');
+              const motion=await fetch(origin+'/links/links-motion.js',{cache:'no-store',signal:AbortSignal.timeout(12000)});
+              assert.equal(motion.status,200,'Glass motion asset HTTP');
+              assert.match(await motion.text(),/prefers-reduced-motion/,'Motion accessibility missing');
               const academy=await fetch(origin+'/academy/api/health',{signal:AbortSignal.timeout(12000)});
               assert.equal(academy.status,200,'Academy health HTTP');
               const payload=await academy.json();
