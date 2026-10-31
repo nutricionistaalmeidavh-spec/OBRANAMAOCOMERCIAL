@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080613">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="index,follow">
+  <title>Diagnóstico gratuito para sua empresa | ArtiSys</title>
+  <meta name="description" content="Conte sobre sua operação em poucos minutos. A ArtiSys identifica oportunidades para simplificar processos, integrar ferramentas e melhorar sua gestão.">
+  <link rel="canonical" href="https://artisys.dev/links/diagnostico/">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/artisys-favicon-32.png">
+  <link rel="stylesheet" href="/links/links.css">
+  <link rel="stylesheet" href="/links/diagnostico/diagnostico.css">
+  <script src="/links/diagnostico/diagnostico.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <div class="page-shell">
+    <header class="topbar">
+      <a href="/links/" class="wordmark" aria-label="ArtiSys — voltar à Central"><img src="/artisys-logo.svg" width="138" height="48" alt="ArtiSys"></a>
+      <a class="topbar-link" href="/links/">Voltar à Central <span aria-hidden="true">↗</span></a>
+    </header>
+    <main id="conteudo" class="diagnostic-main">
+      <section class="diagnostic-intro" aria-labelledby="diagnostic-title">
+        <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> AVALIAÇÃO GRATUITA / ARTISYS</p>
+        <h1 id="diagnostic-title">O que sua empresa pode <em>fazer melhor?</em></h1>
+        <p>Conte um pouco sobre sua operação. Vamos identificar oportunidades de melhoria e avaliar quais tipos de sistemas fazem sentido para você.</p>
+        <div class="diagnostic-facts"><span>5 minutos</span><span>Sem compromisso</span><span>Sem precisar conhecer tecnologia</span></div>
+      </section>
+      <section class="diagnostic-panel" aria-label="Formulário de diagnóstico empresarial">
+        <div class="wizard-head">
+          <div><p id="step-overline" class="wizard-overline">ETAPA 1 DE 3</p><h2 id="step-title">Sobre sua empresa</h2></div>
+          <span class="wizard-time" aria-hidden="true">01 / 03</span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-label="Progresso do diagnóstico" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1"><div class="progress-value" id="progress-value"></div></div>
+        <form id="diagnostic-form" novalidate>
+          <fieldset class="wizard-step" data-step="0" aria-labelledby="step-one-title">
+            <legend id="step-one-title" class="sr-only">Dados da empresa e responsável</legend>
+            <p class="step-description">Primeiro, precisamos entender quem você é e como sua empresa funciona.</p>
+            <div class="field-grid">
+              <div class="field"><label for="contact-name">Seu nome <span aria-hidden="true">*</span></label><input id="contact-name" name="name" type="text" autocomplete="name" maxlength="120" minlength="2" placeholder="Como podemos chamar você?" required></div>
+              <div class="field"><label for="company-name">Nome da empresa <span aria-hidden="true">*</span></label><input id="company-name" name="company" type="text" autocomplete="organization" maxlength="140" minlength="2" placeholder="Nome do negócio" required></div>
+              <div class="field"><label for="contact-email">E-mail para retorno <span aria-hidden="true">*</span></label><input id="contact-email" name="email" type="email" autocomplete="email" maxlength="180" placeholder="voce@empresa.com.br" required></div>
+              <div class="field"><label for="contact-whatsapp">WhatsApp <span class="optional">opcional</span></label><input id="contact-whatsapp" name="whatsapp" type="tel" autocomplete="tel" maxlength="22" inputmode="tel" placeholder="(16) 99999-9999"></div>
+              <div class="field"><label for="sector">Qual o segmento? <span aria-hidden="true">*</span></label><select id="sector" name="sector" required><option value="">Selecione o segmento</option><option value="comercio">Comércio e varejo</option><option value="servicos">Prestação de serviços</option><option value="construcao">Construção e engenharia</option><option value="saude">Saúde e clínicas</option><option value="agro">Agronegócio</option><option value="industria">Indústria</option><option value="educacao">Educação</option><option value="outros">Outro segmento</option></select></div>
+              <div class="field"><label for="team-size">Quantas pessoas trabalham na empresa? <span aria-hidden="true">*</span></label><select id="team-size" name="teamSize" required><option value="">Selecione uma faixa</option><option value="1">Só eu</option><option value="2-5">2 a 5 pessoas</option><option value="6-20">6 a 20 pessoas</option><option value="21-50">21 a 50 pessoas</option><option value="51+">Mais de 50 pessoas</option></select></div>
+            </div>
+          </fieldset>
+          <fieldset class="wizard-step" data-step="1" aria-labelledby="step-two-title" hidden>
+            <legend id="step-two-title" class="sr-only">Problemas e rotina</legend>
+            <p class="step-description">Não precisa saber qual sistema quer comprar. Conte onde você sente dificuldade.</p>
+            <div class="field"><span class="field-label" id="pain-label">O que mais atrapalha sua operação? <span aria-hidden="true">*</span></span><p class="field-help" id="pain-help">Escolha até 3 problemas.</p>
+              <div class="choice-grid" role="group" aria-labelledby="pain-label" aria-describedby="pain-help">
+                <label class="choice"><input type="checkbox" name="painPoints" value="tarefas-manuais"><span>Muito trabalho manual e repetitivo</span></label>
+                <label class="choice"><input type="checkbox" name="painPoints" value="clientes-vendas"><span>Perda de clientes ou vendas</span></label>
+                <label class="choice"><input type="checkbox" name="painPoints" value="financeiro"><span>Financeiro desorganizado</span></label>
+                <label class="choice"><input type="checkbox" name="painPoints" value="estoque"><span>Controle de estoque ou equipamentos</span></label>
+                <label class="choice"><input type="checkbox" name="painPoints" value="operacao-projetos"><span>Projetos e tarefas sem acompanhamento</span></label>
+                <label class="choice"><input type="checkbox" name="painPoints" value="documentos"><span>Documentos e informações espalhados</span></label>
+                <label class="choice"><input type="checkbox" name="painPoints" value="integracoes"><span>Programas que não conversam entre si</span></label>
+                <label class="choice"><input type="checkbox" name="painPoints" value="dados-relatorios"><span>Falta de indicadores e relatórios</span></label>
+                <label class="choice"><input type="checkbox" name="painPoints" value="outros"><span>Outro problema</span></label>
+              </div>
+            </div>
+            <div class="field"><label for="current-systems">Quais ferramentas usa hoje? <span class="optional">opcional</span></label><textarea id="current-systems" name="currentSystems" maxlength="500" rows="3" placeholder="Ex.: planilhas, WhatsApp, um sistema de vendas... Pode deixar em branco."></textarea></div>
+            <div class="field"><label for="weekly-hours">Quanto tempo a equipe perde com retrabalho por semana? <span aria-hidden="true">*</span></label><select id="weekly-hours" name="weeklyHours" required><option value="">Selecione uma estimativa</option><option value="nao-sei">Ainda não sei</option><option value="0-2">Até 2 horas</option><option value="3-5">3 a 5 horas</option><option value="6-10">6 a 10 horas</option><option value="11+">Mais de 10 horas</option></select></div>
+          </fieldset>
+          <fieldset class="wizard-step" data-step="2" aria-labelledby="step-three-title" hidden>
+            <legend id="step-three-title" class="sr-only">Objetivos e autorização de contato</legend>
+            <p class="step-description">Últimas perguntas. Elas ajudam a priorizar soluções realmente úteis para sua empresa.</p>
+            <div class="field"><label for="goal">Se pudesse resolver um problema nos próximos 90 dias, qual seria? <span aria-hidden="true">*</span></label><textarea id="goal" name="goal" minlength="10" maxlength="600" rows="4" placeholder="Ex.: organizar pedidos, reduzir erros no estoque e acompanhar o que cada colaborador faz..." required></textarea><p class="field-help">Explique com suas palavras, sem termos técnicos.</p></div>
+            <div class="field-grid"><div class="field"><label for="urgency">Quando gostaria de começar a melhorar isso? <span aria-hidden="true">*</span></label><select id="urgency" name="urgency" required><option value="">Selecione</option><option value="agora">O quanto antes</option><option value="1-3m">Nos próximos 1 a 3 meses</option><option value="3-6m">Nos próximos 3 a 6 meses</option><option value="explorando">Estou só explorando possibilidades</option></select></div>
+            <div class="field"><label for="migration">Tem dados que precisariam ser transferidos? <span aria-hidden="true">*</span></label><select id="migration" name="migration" required><option value="">Selecione</option><option value="sim">Sim, já uso arquivos ou sistemas</option><option value="nao">Não, começaria do zero</option><option value="nao-sei">Não sei dizer</option></select></div></div>
+            <div class="consent-box"><label class="consent-label"><input type="checkbox" name="consent" id="consent" required><span>Autorizo a ArtiSys a usar estas informações para analisar meu negócio e entrar em contato sobre este diagnóstico. <strong>Não enviaremos propostas de outros serviços sem necessidade.</strong></span></label><p>Não inclua senhas, documentos pessoais ou dados sensíveis nas respostas. Você pode solicitar a exclusão das informações pelo <a href="https://wa.me/5516982338805" target="_blank" rel="noopener noreferrer">WhatsApp da ArtiSys</a>.</p></div>
+          </fieldset>
+          <div class="website-check" aria-hidden="true"><label for="website">Não preencher</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+          <p id="form-message" class="form-message" role="status" aria-live="polite"></p>
+          <div class="wizard-actions"><button type="button" id="back-button" class="button-back" hidden>Voltar</button><button type="button" id="next-button" class="button-next">Continuar <span aria-hidden="true">→</span></button><button type="submit" id="submit-button" class="button-next" hidden>Enviar meu diagnóstico <span aria-hidden="true">→</span></button></div>
+        </form>
+        <div id="diagnostic-success" class="diagnostic-success" role="status" aria-live="polite" hidden><span class="success-icon" aria-hidden="true">✓</span><h2>Diagnóstico recebido!</h2><p>Registramos suas respostas. A equipe ArtiSys irá avaliar as informações e poderá entrar em contato pelo canal informado.</p><p class="protocol">Protocolo: <strong id="protocol-number"></strong></p><a class="button-next success-return" href="/links/">Voltar à Central ArtiSys <span aria-hidden="true">→</span></a></div>
+      </section>
+      <p class="diagnostic-footer-note">Sem obrigação de contratação. O diagnóstico inicial não é uma recomendação técnica definitiva.</p>
+    </main>
+    <footer class="footer"><span>© 2026 ArtiSys</span><span>YOUR SYSTEM FACTORY</span></footer>
+  </div>
+</body>
+</html>
