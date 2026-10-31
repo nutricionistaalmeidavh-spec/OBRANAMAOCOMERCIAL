@@ -28,9 +28,11 @@
   reveal(hero, 85, 900, 22);
   reveal(".hero-copy", 230, 730, 14);
   reveal(orb, 350, 1100, 28);
-  reveal(academy, 505, 810, 18);
-  socialLinks.forEach((link, index) => reveal(link, 715 + index * 85, 570, 12));
-  reveal(".footer", 760, 600, 10);
+  // O diagnóstico é a primeira ação; a Academy aparece logo depois.
+  reveal(".diagnostic-callout", 505, 810, 18);
+  reveal(academy, 625, 810, 18);
+  socialLinks.forEach((link, index) => reveal(link, 805 + index * 85, 570, 12));
+  reveal(".footer", 850, 600, 10);
 
   // Fine-pointer parallax only: touch devices get the opening motion, never a heavy loop.
   const finePointer = window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 761px)");

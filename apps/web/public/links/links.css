@@ -245,3 +245,32 @@ h1 em { font-style: normal; color: var(--purple); }
   .intro:hover::before { animation: none !important; }
   .hero-art, .card-icon, .social-nav svg { transition: none !important; }
 }
+
+/* CTA diagnóstico — mantém a direção visual glass premium da Central. */
+.diagnostic-callout {
+  width: 100%; margin-top: 19px; padding: 23px 27px;
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px;
+  border: 1px solid rgba(191, 159, 245, .28); border-radius: 22px;
+  background: linear-gradient(145deg, rgba(74, 51, 111, .22), rgba(19, 21, 33, .82));
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+}
+.diagnostic-callout-kicker { color: #c7b5ec; font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+.diagnostic-callout h2 { max-width: 500px; margin: 8px 0; font-size: clamp(19px, 2.6vw, 24px); letter-spacing: -.035em; line-height: 1.23; }
+.diagnostic-callout p { margin: 0; color: #bdb4cb; font-size: 12px; line-height: 1.6; max-width: 520px; }
+.diagnostic-callout-link {
+  min-height: 49px; display: inline-flex; justify-content: center; align-items: center;
+  gap: 15px; padding: 13px 17px; border: 1px solid rgba(206, 177, 255, .65);
+  border-radius: 13px; background: rgba(139, 101, 192, .23);
+  font-size: 12px; font-weight: 700; white-space: nowrap; color: #eee4ff;
+  transition: background .2s, border-color .2s;
+}
+.diagnostic-callout-link:hover { background: rgba(151, 117, 206, .36); border-color: #d2bbff; }
+.diagnostic-callout-link span { font-size: 19px; }
+@media (max-width: 760px) {
+  .diagnostic-callout { grid-template-columns: 1fr; padding: 21px; gap: 15px; }
+  .diagnostic-callout-link { justify-content: space-between; width: 100%; }
+}
+@media (max-width: 600px) {
+  .diagnostic-callout { padding: 18px; border-radius: 19px; margin-top: 14px; }
+  .diagnostic-callout h2 { font-size: 19px; }
+}
