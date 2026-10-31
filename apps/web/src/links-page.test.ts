@@ -57,14 +57,37 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect((html.match(/data-link-id="tiktok"/g) ?? [])).toHaveLength(1);
   });
 
-  it('usa cards compactos no mobile sem sacrificar área de toque', () => {
+  it('usa composição glass premium sem textos acima ou abaixo do título', () => {
+    const hero = html.split('<section class="intro"')[1]?.split('</section>')[0] ?? '';
+    expect(hero).toContain('id="page-title"');
+    expect(hero).toContain('Um universo de soluções.');
+    expect(hero).toContain('Seu próximo passo começa aqui.');
+    expect(hero).toContain('class="hero-art" aria-hidden="true"');
+    expect(hero).not.toContain('class="eyebrow"');
+    expect(hero).not.toContain('class="intro-copy"');
+    expect(hero).not.toContain('class="brand-emblem"');
+    expect(html).not.toContain('Software para quem faz acontecer.');
+    expect(html).not.toContain('Soluções, conhecimento e inovação em um só ecossistema.');
+    expect(html).not.toContain('EXPLORE A ARTISYS');
+
+    const academy = html.split('data-link-id="academy"')[1]?.split('</a>')[0] ?? '';
+    expect(academy).toContain('ArtiSys Academy');
+    expect(academy).toContain('Aprenda. Desenvolva. Evolua.');
+    expect(academy).not.toContain('Trilhas, cursos e lista de espera.');
+    expect(css).toContain('backdrop-filter: blur(');
+    expect(css).toContain('-webkit-backdrop-filter: blur(');
+    expect(css).toContain('@supports not');
+  });
+
+  it('mantém área de toque, hierarquia mobile e estados acessíveis', () => {
     const mobile = css.split('@media (max-width: 600px)')[1]?.split('@media (max-width: 380px)')[0] ?? '';
-    expect(mobile).toContain('.link-card { min-height: 84px; gap: 10px; padding: 10px 12px;');
-    expect(mobile).toContain('.card-icon { flex-basis: 42px; height: 42px;');
-    expect(mobile).toContain('.card-copy strong { font-size: 16px;');
-    expect(mobile).toContain('.card-copy small { font-size: 10.5px;');
+    expect(mobile).toContain('.intro {');
+    expect(mobile).toContain('.link-card {');
+    expect(mobile).toContain('.hero-art {');
+    expect(css).toContain('min-height: 48px');
     expect(css).toContain(':focus-visible');
-    expect(css).toContain('flex: 1');
+    expect(css).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(css).toContain('backdrop-filter: blur(');
   });
 
   it('exibe TikTok @artisysdev e WhatsApp, sem Instagram ou GitHub na central', () => {
