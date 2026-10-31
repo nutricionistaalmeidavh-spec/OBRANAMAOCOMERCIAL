@@ -7,6 +7,7 @@ import { handleLicenseCenterReadonlyInternal } from '../backend/license-center-r
 import { handleLicenseCenterAdminInternal } from '../backend/license-center-admin-internal';
 import { handleAdminGovernanceRequest } from '../backend/admin-governance-http';
 import { handlePublicDownload } from './public-downloads';
+import { handlePublicDiagnostic } from './public-diagnostic';
 import { handleDevkitLegacyRedirect } from './devkit-canonical-redirect';
 import { router } from './sdk';
 
@@ -56,6 +57,8 @@ export default {
     if (devkitRedirect) return devkitRedirect;
     const publicDownload=await handlePublicDownload(request);
     if(publicDownload)return publicDownload;
+    const diagnostic = await handlePublicDiagnostic(request,env);
+    if(diagnostic)return diagnostic;
     await ensureBillingSchema(env);
     await ensureReservedLifetimeLicense(env);
     const licensing=await handleProductLicenseInternal(request,env);
