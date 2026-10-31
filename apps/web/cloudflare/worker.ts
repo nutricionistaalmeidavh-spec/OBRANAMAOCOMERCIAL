@@ -8,6 +8,7 @@ import { handleLicenseCenterAdminInternal } from '../backend/license-center-admi
 import { handleAdminGovernanceRequest } from '../backend/admin-governance-http';
 import { handlePublicDownload } from './public-downloads';
 import { handleDevkitLegacyRedirect } from './devkit-canonical-redirect';
+import { handlePublicDiagnostic } from './public-diagnostic';
 import { router } from './sdk';
 
 const RESERVED_LICENSE_ID='11e1a89038929aa010bb22c601502da1';
@@ -56,6 +57,8 @@ export default {
     if (devkitRedirect) return devkitRedirect;
     const publicDownload=await handlePublicDownload(request);
     if(publicDownload)return publicDownload;
+    const diagnostic=await handlePublicDiagnostic(request,env);
+    if(diagnostic)return diagnostic;
     await ensureBillingSchema(env);
     await ensureReservedLifetimeLicense(env);
     const licensing=await handleProductLicenseInternal(request,env);

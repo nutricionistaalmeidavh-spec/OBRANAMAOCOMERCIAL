@@ -107,6 +107,8 @@ h1 em { font-style: normal; color: var(--purple); }
 .card-systems .card-icon { background: #472b73; color: #e5ccff; }
 .card-developer { background: linear-gradient(112deg, #19132f, #141529 80%); }
 .card-developer .card-icon { background: #3f3883; color: #dcd9ff; }
+.diagnostic-highlight { max-width: 620px; margin: 0 auto 18px; }
+.diagnostic-entry { min-height: 94px; padding: 14px 18px; }
 .secondary { margin-top: 36px; }
 .secondary-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
 .secondary-link {
