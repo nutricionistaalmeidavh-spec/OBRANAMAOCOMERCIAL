@@ -22,10 +22,7 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
   it('leva aos destinos canônicos existentes e mantém os canais de contato', () => {
     for (const target of [
       'href="/"',
-      'href="/sistemas/"',
-      'href="/devkits/"',
       'href="/academy"',
-      'href="/sistema.html#portal"',
       'href="https://www.tiktok.com/@artisysdev"',
       'https://wa.me/5516982338805?text='
     ]) {
@@ -36,29 +33,28 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(html).not.toContain('href="/devkits/catalogo/"');
   });
 
-  it('prioriza a Academy no primeiro dos quatro cards e mantém contato nos acessos rápidos', () => {
+  it('mantém somente a Academy como card e remove os cinco atalhos solicitados', () => {
     const destinations = html.split('<nav class="destinations"')[1]?.split('</nav>')[0] ?? '';
     const cardIds = [...destinations.matchAll(/class="link-card[^"]*"[^>]+data-link-id="([^"]+)"/g)].map(match => match[1]);
-    expect(cardIds).toEqual(['academy', 'site', 'sistemas', 'devkits']);
-    expect(destinations).toContain('01 — 04');
+    expect(cardIds).toEqual(['academy']);
     expect(destinations).toContain('class="link-card card-feature" href="/academy" data-link-id="academy"');
     expect(destinations).toContain('Trilhas, cursos e lista de espera.');
-    expect(destinations).toContain('Explorar o site completo');
-    expect(destinations).not.toContain('Biblioteca Open Source');
-    expect(destinations).not.toContain('data-link-id="guia-open-source"');
-    expect(destinations).not.toContain('Vamos conversar?');
-
-    const secondary = html.split('<section class="secondary"')[1]?.split('</section>')[0] ?? '';
-    expect(secondary).toContain('data-link-id="whatsapp"');
-    expect(secondary).toContain('Vamos conversar?');
-    expect(secondary).toContain('https://wa.me/5516982338805?text=');
-    expect(secondary).toContain('target="_blank" rel="noopener noreferrer"');
-    expect(secondary).toContain('data-link-id="obra-portal"');
-    expect(secondary).not.toContain('data-link-id="academy"');
-    expect(secondary).not.toContain('data-link-id="site"');
+    expect(destinations).not.toContain('01 — 04');
+    expect(html).not.toMatch(/data-link-id="(?:site|sistemas|devkits|whatsapp|obra-portal)"/);
+    for (const removed of [
+      'Explorar o site completo',
+      'Conheça nossos sistemas',
+      'DevKit Tool’s',
+      'Vamos conversar?',
+      'Acessar Obra na Mão',
+      'ACESSOS RÁPIDOS'
+    ]) {
+      expect(html).not.toContain(removed);
+    }
+    expect(html).not.toContain('class="secondary"');
     expect((html.match(/data-link-id="academy"/g) ?? [])).toHaveLength(1);
-    expect((html.match(/data-link-id="whatsapp"/g) ?? [])).toHaveLength(1);
-    expect((html.match(/data-link-id="site"/g) ?? [])).toHaveLength(1);
+    expect((html.match(/data-link-id="whatsapp-social"/g) ?? [])).toHaveLength(1);
+    expect((html.match(/data-link-id="tiktok"/g) ?? [])).toHaveLength(1);
   });
 
   it('usa cards compactos no mobile sem sacrificar área de toque', () => {
@@ -89,7 +85,7 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(css).toContain(':focus-visible');
     expect(css).toContain('@media (max-width: 600px)');
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(css).toContain('min-height: 56px');
+    expect(css).toContain('min-height: 84px');
     expect(html).not.toMatch(/<script[^>]+src=["'][^"']+google-analytics/i);
   });
 
