@@ -112,6 +112,22 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(html).not.toMatch(/<script[^>]+src=["'][^"']+google-analytics/i);
   });
 
+
+  it('orquestra motions progressivas sem dependência externa e respeita movimento reduzido', () => {
+    const motion = read('../public/links/links-motion.js');
+    expect(html).toContain('src="/links/links-motion.js" defer');
+    expect(motion).toContain('prefers-reduced-motion: reduce');
+    expect(motion).toContain('Element.prototype.animate');
+    expect(motion).toContain('requestAnimationFrame');
+    expect(motion).toContain('pointermove');
+    expect(motion).toContain('activeAnimations.forEach((animation) => animation.cancel())');
+    expect(motion).toContain('fill: "backwards"');
+    expect(motion).not.toMatch(/https?:\/\/|fetch\(|\bimport\s+|\bgsap\b/i);
+    expect(css).toContain('@keyframes glass-sheen');
+    expect(css).toContain('@media (hover: hover) and (pointer: fine)');
+    expect(css).toContain('@media (prefers-reduced-motion: reduce)');
+  });
+
   it('não substitui a landing, checkout nem interfere na roteirização da API', () => {
     const landing = read('../index.html');
     const workerConfig = read('../wrangler.jsonc');

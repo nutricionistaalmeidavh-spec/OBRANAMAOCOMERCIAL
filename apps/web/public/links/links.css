@@ -226,3 +226,22 @@ h1 em { font-style: normal; color: var(--purple); }
 @media (forced-colors: active) {
   .intro, .link-card, .social-nav a { border: 1px solid CanvasText; }
 }
+
+/* Deliberate motion: one entrance, one directional highlight, one hover response. */
+.hero-art { transition: transform 650ms cubic-bezier(.22,1,.36,1); }
+.card-icon, .social-nav svg { transition: transform 550ms cubic-bezier(.22,1,.36,1); }
+@keyframes glass-sheen {
+  0% { opacity: .12; transform: translate3d(-50px,0,0) skewX(-11deg); }
+  55% { opacity: .7; }
+  100% { opacity: 0; transform: translate3d(80px,0,0) skewX(-11deg); }
+}
+@media (hover: hover) and (pointer: fine) {
+  .intro:hover::before { animation: glass-sheen 1350ms cubic-bezier(.22,1,.36,1) both; }
+  .link-card:hover .card-icon { transform: translate3d(0,-2px,0) scale(1.045); }
+  .link-card:hover .card-arrow { transform: translate3d(3px,-3px,0) scale(1.06); }
+  .social-nav a:hover svg { transform: translate3d(0,-1px,0) scale(1.09); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro:hover::before { animation: none !important; }
+  .hero-art, .card-icon, .social-nav svg { transition: none !important; }
+}
