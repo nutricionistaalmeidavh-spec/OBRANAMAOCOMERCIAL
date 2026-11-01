@@ -60,7 +60,7 @@ describe('Central Artisys owner navigation',()=>{
   it('opens on a compact overview with product cards and operational metrics',async()=>{
     await mount();
     expect(document.querySelector('[data-owner-shell]')).not.toBeNull();
-    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(5);
+    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(6);
     expect(document.body.textContent).toContain('Visão geral');
     expect(document.body.textContent).toContain('Obra na Mão');
     expect(document.body.textContent).toContain('Débora Lactação');
@@ -69,6 +69,16 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.getElementById('companyForm')).toBeNull();
     expect(document.getElementById('deboraLicenseForm')).toBeNull();
     expect(document.querySelector('a[href="./index.html#portal"]')).not.toBeNull();
+  });
+
+  it('opens Leads ArtiSys inside the existing owner navigation without exposing other products',async()=>{
+    await mount();
+    clickView('leads');
+    expect(document.querySelector('[data-owner-current="leads"]')).not.toBeNull();
+    expect(document.querySelector('[data-owner-leads-panel]')).not.toBeNull();
+    await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/leads'));
+    expect(document.querySelector('[data-owner-view="debora"]')).not.toBeNull();
+    expect(document.querySelector('[data-owner-view="obra"]')).not.toBeNull();
   });
 
   it('renders only lactation administration for an authorized Débora session',async()=>{
@@ -237,7 +247,7 @@ describe('Central Artisys owner navigation',()=>{
 
     document.querySelector<HTMLButtonElement>('[data-owner-back]')!.click();
     expect(document.querySelector('[data-owner-current="overview"]')).not.toBeNull();
-    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(5);
+    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(6);
     expect(document.querySelectorAll('[data-owner-jump]')).toHaveLength(0);
     expect(document.querySelector('[data-owner-back]')).toBeNull();
     expect(document.getElementById('deboraLicenseForm')).toBeNull();

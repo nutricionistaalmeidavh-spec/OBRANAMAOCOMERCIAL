@@ -8,6 +8,7 @@ import { handleLicenseCenterAdminInternal } from '../backend/license-center-admi
 import { handleAdminGovernanceRequest } from '../backend/admin-governance-http';
 import { handlePublicDownload } from './public-downloads';
 import { handlePublicDiagnostic, reconcilePendingDiagnosticLeads } from './public-diagnostic';
+import { handleOwnerLeadsRequest } from './owner-leads';
 import { handleDevkitLegacyRedirect } from './devkit-canonical-redirect';
 import { router } from './sdk';
 
@@ -66,6 +67,12 @@ export default {
     if(publicDownload)return publicDownload;
     const diagnostic = await handlePublicDiagnostic(request,env,ctx);
     if(diagnostic)return diagnostic;
+    // Owner-only CRM view: reuse the Central's existing verified session/role gate.
+    const ownerLeads=await handleOwnerLeadsRequest(request,env,()=>{
+      const check=new URL('/api/central/access',request.url);
+      return handler.fetch(new Request(check.toString(),{method:'GET',headers:request.headers}),env);
+    });
+    if(ownerLeads)return ownerLeads;
     await ensureBillingSchema(env);
     await ensureReservedLifetimeLicense(env);
     const licensing=await handleProductLicenseInternal(request,env);
