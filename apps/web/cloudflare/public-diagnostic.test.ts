@@ -144,6 +144,78 @@ describe('Diagnóstico público ArtiSys', () => {
     expect((await handlePublicDiagnostic(req(payload(), { 'content-type': 'text/plain' }), env))?.status).toBe(415);
     expect(queries).toHaveLength(0);
   });
+
+  it('encaminha somente lead comercial ao Activepieces depois de persistir no D1', async () => {
+    const { env, queries } = envFake();
+    const integrations = {
+      ...env,
+      ACTIVEPIECES_LEADS_WEBHOOK_URL: 'https://example.activepieces.test/webhook',
+      ACTIVEPIECES_LEADS_WEBHOOK_TOKEN: 'test-token'
+    };
+    const pending: Promise<unknown>[] = [];
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 202 }));
+    try {
+      const response = await handlePublicDiagnostic(req(payload()), integrations, { waitUntil: promise => { pending.push(promise); } });
+      expect(response?.status).toBe(201);
+      expect(queries.some(x => x.query.includes('INSERT INTO kv_records'))).toBe(true);
+      await Promise.all(pending);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe('https://example.activepieces.test/webhook');
+      expect(init?.method).toBe('POST');
+      expect((init?.headers as Record<string, string>)['x-artisys-leads-token']).toBe('test-token');
+      const forwarded = JSON.parse(String(init?.body));
+      expect(forwarded).toMatchObject({
+        nome: 'Ana Souza', email: 'ana@exemplo.com', whatsapp: '16999998888',
+        origem: 'artisys.dev/links/diagnostico', produto: 'Diagnóstico empresarial',
+        consentimento: true
+      });
+      expect(forwarded.mensagem).toContain('Organizar o controle');
+      expect(forwarded).not.toHaveProperty('monthlyRevenue');
+      expect(forwarded).not.toHaveProperty('sensitiveData');
+      expect(forwarded).not.toHaveProperty('currentSystems');
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it('mantém o formulário operante quando o Activepieces está indisponível ou sem configuração', async () => {
+    const { env } = envFake();
+    const pending: Promise<unknown>[] = [];
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('integration offline'));
+    try {
+      const response = await handlePublicDiagnostic(req(payload()), {
+        ...env,
+        ACTIVEPIECES_LEADS_WEBHOOK_URL: 'https://example.activepieces.test/webhook',
+        ACTIVEPIECES_LEADS_WEBHOOK_TOKEN: 'test-token'
+      }, { waitUntil: promise => { pending.push(promise); } });
+      expect(response?.status).toBe(201);
+      await expect(Promise.all(pending)).resolves.toBeDefined();
+      fetchMock.mockClear();
+      const noConfig = await handlePublicDiagnostic(req(payload()), env, { waitUntil: promise => { pending.push(promise); } });
+      expect(noConfig?.status).toBe(201);
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it('não encaminha cadastros inválidos nem formulário sem consentimento', async () => {
+    const { env } = envFake();
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    try {
+      const response = await handlePublicDiagnostic(req({ ...payload(), consent: false }), {
+        ...env,
+        ACTIVEPIECES_LEADS_WEBHOOK_URL: 'https://example.activepieces.test/webhook',
+        ACTIVEPIECES_LEADS_WEBHOOK_TOKEN: 'test-token'
+      }, { waitUntil: () => { throw new Error('must not enqueue'); } });
+      expect(response?.status).toBe(422);
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
   it('não captura rotas vizinhas', async () => {
     const { env } = envFake();
     expect(await handlePublicDiagnostic(new Request('https://artisys.dev/api/auth/me'), env)).toBeNull();
