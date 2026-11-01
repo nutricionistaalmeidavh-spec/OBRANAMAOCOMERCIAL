@@ -70,7 +70,7 @@ export default {
     // Owner-only CRM view: reuse the Central's existing verified session/role gate.
     const ownerLeads=await handleOwnerLeadsRequest(request,env,()=>{
       const check=new URL('/api/central/access',request.url);
-      return handler.fetch(new Request(check,{method:'GET',headers:request.headers}),env);
+      return handler.fetch(new Request(check.toString(),{method:'GET',headers:request.headers}),env);
     });
     if(ownerLeads)return ownerLeads;
     await ensureBillingSchema(env);
