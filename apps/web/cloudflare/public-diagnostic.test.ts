@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { handlePublicDiagnostic, validateDiagnosticPayload } from './public-diagnostic';
+import { handlePublicDiagnostic, validateDiagnosticPayload, reconcilePendingDiagnosticLeads } from './public-diagnostic';
 
 const payload = () => ({
   name: 'Ana Souza', company: 'Oficina Exemplo', email: 'ana@exemplo.com', whatsapp: '16999998888',
@@ -235,6 +235,64 @@ describe('Diagnóstico público ArtiSys', () => {
     } finally {
       fetchMock.mockRestore();
     }
+  });
+
+
+  it('rastreia a campanha TikTok sem anexar dados financeiros ou de saúde ao webhook', async () => {
+    const { env } = envFake();
+    const pending: Promise<unknown>[] = [];
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 202 }));
+    try {
+      const response = await handlePublicDiagnostic(req({
+        ...payload(), utm_source: 'tiktok', utm_medium: 'social',
+        utm_campaign: 'video-automacao', utm_content: 'clip-42', video_tiktok: '42'
+      }), {
+        ...env, ACTIVEPIECES_LEADS_WEBHOOK_URL: 'https://example.activepieces.test/webhook',
+        ACTIVEPIECES_LEADS_WEBHOOK_TOKEN: 'test-token'
+      }, { waitUntil: promise => pending.push(promise) });
+      expect(response?.status).toBe(201);
+      await Promise.all(pending);
+      const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+      expect(body).toMatchObject({
+        origem: 'tiktok', utm_source: 'tiktok', utm_medium: 'social',
+        campanha: 'video-automacao', video_tiktok: '42',
+        porte: '6-20', desafios: ['tarefas-manuais','estoque'],
+        integracoes: ['whatsapp','banks'], gasto_software: '201-500'
+      });
+      expect(body).not.toHaveProperty('monthlyRevenue');
+      expect(body).not.toHaveProperty('sensitiveData');
+    } finally { fetchMock.mockRestore(); }
+  });
+
+  it('reenvia pendência do D1 e marca aceite do webhook para impedir novo envio', async () => {
+    const record = validateDiagnosticPayload(payload());
+    expect(record.ok).toBe(true);
+    if (!record.ok) return;
+    const queries: Array<{sql:string; args:unknown[]}> = [];
+    const db = { prepare(sql:string) {
+      const q = {sql,args:[] as unknown[]}; queries.push(q);
+      return {
+        bind(...args:unknown[]){q.args=args; return this;},
+        async all(){return {results:[{id:'12345678-aaaa-bbbb-cccc-dddddddddddd',record_json:JSON.stringify(record.value)}]};},
+        async run(){return {success:true};}
+      };
+    }};
+    const fetchMock = vi.spyOn(globalThis,'fetch').mockResolvedValue(new Response(null,{status:202}));
+    try {
+      const output=await reconcilePendingDiagnosticLeads({
+        DB:db,ACTIVEPIECES_LEADS_WEBHOOK_URL:'https://example.activepieces.test/webhook',
+        ACTIVEPIECES_LEADS_WEBHOOK_TOKEN:'test-token'
+      });
+      expect(output).toEqual({sent:1,failed:0});
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(queries.some(x=>x.sql.includes('ON CONFLICT(collection,id)'))).toBe(true);
+      const accepted=queries.find(x=>x.sql.includes('ON CONFLICT(collection,id)'));
+      expect(accepted?.args[0]).toBe('artisys_diagnostic_deliveries_v1');
+    } finally {fetchMock.mockRestore();}
+  });
+
+  it('não executa reconciliação sem configurar o webhook', async () => {
+    expect(await reconcilePendingDiagnosticLeads({})).toEqual({sent:0,failed:0});
   });
 
   it('não captura rotas vizinhas', async () => {

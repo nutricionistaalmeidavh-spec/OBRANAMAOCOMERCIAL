@@ -1,6 +1,7 @@
 /** Diagnóstico comercial público e isolado: não usa sessão, pagamentos nem IA externa. */
 const ENDPOINT = '/api/public/diagnostico';
 const COLLECTION = 'artisys_diagnostic_leads_v1';
+const DELIVERY_COLLECTION = 'artisys_diagnostic_deliveries_v1';
 const SECTORS = ['comercio', 'servicos', 'construcao', 'saude', 'agro', 'industria', 'educacao', 'outros'];
 const TEAM_SIZES = ['1', '2-5', '6-20', '21-50', '51+'];
 const PAIN_POINTS = [
@@ -35,6 +36,7 @@ type Diagnostic = {
   integrations: string[]; integrationOther: string; softwareSpend: string;
   monthlyRevenue: string; sensitiveData: string[];
   urgency: string; migration: string; consent: boolean;
+  utmSource: string; utmMedium: string; utmCampaign: string; utmContent: string; utmTerm: string; videoTikTok: string;
 };
 type Validation = { ok: true; value: Diagnostic } | { ok: false; message: string };
 const reject = (message: string): Validation => ({ ok: false, message });
@@ -123,7 +125,14 @@ export function validateDiagnosticPayload(raw: unknown): Validation {
     painPoints: [...painPoints], currentSystems: [...currentSystems], currentSystemsOther, currentSystemNames: systemNames, weeklyHours, goal,
     serverKind, serverProvider, serverAdmin, workDevices: [...workDevices], offlineNeed, usersCount,
     integrations: [...integrations], integrationOther, softwareSpend, monthlyRevenue, sensitiveData: [...sensitiveData],
-    urgency, migration, consent: input.consent === true } };
+    urgency, migration, consent: input.consent === true,
+    utmSource: str(input.utm_source).slice(0, 120),
+    utmMedium: str(input.utm_medium).slice(0, 120),
+    utmCampaign: str(input.utm_campaign).slice(0, 120),
+    utmContent: str(input.utm_content).slice(0, 120),
+    utmTerm: str(input.utm_term).slice(0, 120),
+    videoTikTok: str(input.video_tiktok).slice(0, 120)
+  } };
 }
 
 function respond(body: unknown, status: number, extra: Record<string, string> = {}) {
@@ -164,7 +173,18 @@ async function forwardDiagnosticLeadToActivepieces(
       empresa: lead.company,
       email: lead.email,
       whatsapp: lead.whatsapp,
-      origem: 'artisys.dev/links/diagnostico',
+      origem: lead.utmSource || 'artisys.dev/links/diagnostico',
+      utm_source: lead.utmSource,
+      utm_medium: lead.utmMedium,
+      utm_campaign: lead.utmCampaign,
+      utm_content: lead.utmContent,
+      utm_term: lead.utmTerm,
+      video_tiktok: lead.videoTikTok,
+      campanha: lead.utmCampaign,
+      porte: lead.teamSize,
+      desafios: lead.painPoints,
+      integracoes: lead.integrations,
+      gasto_software: lead.softwareSpend,
       produto: 'Diagnóstico empresarial',
       mensagem: lead.goal,
       setor: lead.sector,
@@ -175,6 +195,43 @@ async function forwardDiagnosticLeadToActivepieces(
     })
   });
   if (!response.ok) throw new Error('Activepieces lead delivery failed');
+}
+
+
+async function markDiagnosticDelivered(id: string, env: any): Promise<void> {
+  const now = new Date().toISOString();
+  await env.DB.prepare(`INSERT INTO kv_records(collection,id,record_json,created_at,updated_at)
+    VALUES(?,?,?,?,?)
+    ON CONFLICT(collection,id) DO UPDATE SET record_json=excluded.record_json,updated_at=excluded.updated_at`)
+    .bind(DELIVERY_COLLECTION, id, JSON.stringify({ deliveredAt: now }), now, now).run();
+}
+
+/** Reconcilia falhas de transporte. Não reenvia informações que tiveram aceite registrado. */
+export async function reconcilePendingDiagnosticLeads(env: any): Promise<{ sent: number; failed: number }> {
+  if (!env?.DB || !env.ACTIVEPIECES_LEADS_WEBHOOK_URL || !env.ACTIVEPIECES_LEADS_WEBHOOK_TOKEN) {
+    return { sent: 0, failed: 0 };
+  }
+  const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const result = await env.DB.prepare(`SELECT lead.id,lead.record_json
+    FROM kv_records lead
+    LEFT JOIN kv_records delivery ON delivery.collection=? AND delivery.id=lead.id
+    WHERE lead.collection=? AND delivery.id IS NULL AND lead.created_at>=?
+    ORDER BY lead.created_at ASC LIMIT 25`)
+    .bind(DELIVERY_COLLECTION,COLLECTION,cutoff).all() as { results?: Array<{id:string;record_json:string}> };
+  let sent=0,failed=0;
+  for (const row of result.results || []) {
+    try {
+      const record = JSON.parse(row.record_json) as Diagnostic;
+      if (!record.name || !record.email || !record.goal) continue;
+      await forwardDiagnosticLeadToActivepieces(record,row.id.slice(0,8).toUpperCase(),env);
+      await markDiagnosticDelivered(row.id,env);
+      sent++;
+    } catch {
+      failed++;
+      console.warn('[diagnostic] Pending Activepieces delivery could not be completed');
+    }
+  }
+  return { sent, failed };
 }
 
 export async function handlePublicDiagnostic(request: Request, env: any, ctx?: DiagnosticWebhookContext): Promise<Response | null> {
@@ -213,6 +270,7 @@ export async function handlePublicDiagnostic(request: Request, env: any, ctx?: D
     if (ctx?.waitUntil && env.ACTIVEPIECES_LEADS_WEBHOOK_URL && env.ACTIVEPIECES_LEADS_WEBHOOK_TOKEN) {
       ctx.waitUntil(
         forwardDiagnosticLeadToActivepieces(result.value, id.slice(0, 8).toUpperCase(), env)
+          .then(() => markDiagnosticDelivered(id, env))
           .catch(() => { console.warn('[diagnostic] Activepieces forwarding failed'); })
       );
     }

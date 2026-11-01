@@ -192,6 +192,12 @@
       [...namedSystemFields].filter(([, field]) => !field.hidden)
         .map(([key, field]) => [key, field.querySelector('input').value.trim()])
     );
+    // Captura somente parâmetros de atribuição, sem dados pessoais do visitante.
+    const sourceParams = new URLSearchParams(window.location.search);
+    for (const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','video_tiktok']) {
+      const value = sourceParams.get(key);
+      if (value) data[key] = value.slice(0,120);
+    }
     sending = true;
     submit.disabled = true;
     submit.firstChild.textContent = 'Enviando... ';

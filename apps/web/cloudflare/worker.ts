@@ -7,7 +7,7 @@ import { handleLicenseCenterReadonlyInternal } from '../backend/license-center-r
 import { handleLicenseCenterAdminInternal } from '../backend/license-center-admin-internal';
 import { handleAdminGovernanceRequest } from '../backend/admin-governance-http';
 import { handlePublicDownload } from './public-downloads';
-import { handlePublicDiagnostic } from './public-diagnostic';
+import { handlePublicDiagnostic, reconcilePendingDiagnosticLeads } from './public-diagnostic';
 import { handleDevkitLegacyRedirect } from './devkit-canonical-redirect';
 import { router } from './sdk';
 
@@ -52,6 +52,13 @@ export async function licenseCenterAdminWithRuntime(request:Request,env:any){
 }
 
 export default {
+  async scheduled(_controller: unknown, env: any, ctx?: { waitUntil(promise: Promise<unknown>): void }) {
+    const task = reconcilePendingDiagnosticLeads(env).catch(() => {
+      console.warn('[diagnostic] Recovery job failed');
+    });
+    if (ctx?.waitUntil) ctx.waitUntil(task);
+    else await task;
+  },
   async fetch(request: Request, env: any, ctx?: { waitUntil(promise: Promise<unknown>): void }) {
     const devkitRedirect = handleDevkitLegacyRedirect(request);
     if (devkitRedirect) return devkitRedirect;
