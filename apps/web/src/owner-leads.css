@@ -1,0 +1,29 @@
+/* A seção de leads usa a tipografia, a largura e o menu da Central ArtiSys. */
+.owner-leads-panel{min-width:0}
+.owner-leads-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:16px}
+.owner-leads-metrics>div{min-width:0;border:1px solid #e7ebf2;border-radius:15px;padding:12px;background:#f8faff}
+.owner-leads-metrics small{display:block;color:#63738a;font-size:.77rem;line-height:1.4}
+.owner-leads-metrics strong{display:block;margin-top:5px;font-size:1.55rem;color:#182033}
+.owner-leads-tools{display:grid;gap:10px;grid-template-columns:1fr;margin-bottom:16px}
+.owner-leads-tools label{min-width:0;display:grid;gap:6px;font-weight:650;font-size:.84rem;color:#354058}
+.owner-leads-tools input,.owner-leads-tools select{min-width:0;width:100%;box-sizing:border-box;padding:11px;border:1px solid #d7deea;border-radius:12px;background:#fff;color:#19243a;font:inherit}
+.owner-leads-list{display:grid;gap:10px}
+.owner-lead-row{border:1px solid #e0e7f0;border-radius:16px;background:#fff;padding:14px;min-width:0}
+.owner-lead-row[hidden]{display:none}
+.owner-lead-head{display:flex;flex-wrap:wrap;align-items:start;justify-content:space-between;gap:9px}
+.owner-lead-head h3{margin:0 0 4px;font-size:1.06rem;overflow-wrap:anywhere}
+.owner-lead-head small{display:block;color:#65728a;overflow-wrap:anywhere}
+.owner-lead-priority{display:inline-flex;align-items:center;border-radius:999px;font-weight:750;font-size:.78rem;padding:6px 9px}
+.owner-lead-priority.priority-alta{background:#fff0ed;color:#9f3524}
+.owner-lead-priority.priority-media{background:#fff6df;color:#795012}
+.owner-lead-priority.priority-baixa{background:#eaf3ff;color:#2453a3}
+.owner-lead-meta{display:flex;gap:7px 13px;flex-wrap:wrap;margin-top:12px;font-size:.77rem;color:#66758c}
+.owner-lead-goal{font-size:.9rem;line-height:1.5;margin:11px 0;overflow-wrap:anywhere}
+.owner-lead-detail{border-top:1px solid #edf1f6;padding-top:10px;margin-top:9px}
+.owner-lead-detail summary{font-weight:650;cursor:pointer;color:#33486b}
+.owner-lead-detail p{margin:8px 0;font-size:.84rem;color:#52627a;overflow-wrap:anywhere}
+.owner-lead-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.owner-lead-actions>a{font-size:.84rem;white-space:normal}
+.owner-leads-empty{color:#64748b;font-size:.85rem;line-height:1.5}
+.owner-leads-footnote{color:#69778d;font-size:.78rem;line-height:1.5;margin:15px 0 0}
+@media(min-width:680px){.owner-leads-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.owner-leads-tools{grid-template-columns:minmax(0,1fr) 180px}.owner-lead-row{padding:16px}}
