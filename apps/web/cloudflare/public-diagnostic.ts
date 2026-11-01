@@ -34,7 +34,7 @@ type Diagnostic = {
   workDevices: string[]; offlineNeed: string; usersCount: string;
   integrations: string[]; integrationOther: string; softwareSpend: string;
   monthlyRevenue: string; sensitiveData: string[];
-  urgency: string; migration: string; consent: true;
+  urgency: string; migration: string; consent: boolean;
 };
 type Validation = { ok: true; value: Diagnostic } | { ok: false; message: string };
 const reject = (message: string): Validation => ({ ok: false, message });
@@ -119,12 +119,11 @@ export function validateDiagnosticPayload(raw: unknown): Validation {
       !validMulti(sensitiveData, SENSITIVE_DATA, ['none', 'unknown'], SENSITIVE_DATA.length - 1)) {
     return reject('Revise o contexto financeiro e as categorias de informações.');
   }
-  if (input.consent !== true) return reject('É necessário consentir com o uso das informações para receber o diagnóstico.');
   return { ok: true, value: { name, company, email, whatsapp, sector, teamSize,
     painPoints: [...painPoints], currentSystems: [...currentSystems], currentSystemsOther, currentSystemNames: systemNames, weeklyHours, goal,
     serverKind, serverProvider, serverAdmin, workDevices: [...workDevices], offlineNeed, usersCount,
     integrations: [...integrations], integrationOther, softwareSpend, monthlyRevenue, sensitiveData: [...sensitiveData],
-    urgency, migration, consent: true } };
+    urgency, migration, consent: input.consent === true } };
 }
 
 function respond(body: unknown, status: number, extra: Record<string, string> = {}) {
@@ -145,7 +144,40 @@ async function rateLimit(request: Request, env: any) {
   return (row?.count ?? 100) <= 5;
 }
 
-export async function handlePublicDiagnostic(request: Request, env: any): Promise<Response | null> {
+type DiagnosticWebhookContext = { waitUntil(promise: Promise<unknown>): void };
+
+// D1 continua canônico; Activepieces recebe apenas dados mínimos para contato comercial.
+// Variáveis secretas ficam no Worker, nunca no JavaScript público nem no repositório.
+async function forwardDiagnosticLeadToActivepieces(
+  lead: Diagnostic, protocol: string, env: any
+): Promise<void> {
+  const endpoint = env.ACTIVEPIECES_LEADS_WEBHOOK_URL;
+  const token = env.ACTIVEPIECES_LEADS_WEBHOOK_TOKEN;
+  if (typeof endpoint !== 'string' || !endpoint || typeof token !== 'string' || !token) return;
+  const url = new URL(endpoint);
+  if (url.protocol !== 'https:') throw new Error('Activepieces endpoint must use HTTPS');
+  const response = await fetch(url.toString(), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-artisys-leads-token': token },
+    body: JSON.stringify({
+      nome: lead.name,
+      empresa: lead.company,
+      email: lead.email,
+      whatsapp: lead.whatsapp,
+      origem: 'artisys.dev/links/diagnostico',
+      produto: 'Diagnóstico empresarial',
+      mensagem: lead.goal,
+      setor: lead.sector,
+      urgencia: lead.urgency,
+      protocolo: protocol,
+      contato_solicitado: true,
+      consentimento: lead.consent === true
+    })
+  });
+  if (!response.ok) throw new Error('Activepieces lead delivery failed');
+}
+
+export async function handlePublicDiagnostic(request: Request, env: any, ctx?: DiagnosticWebhookContext): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== ENDPOINT) return null;
   if (request.method !== 'POST') return respond({ ok: false, message: 'Método não permitido.' }, 405, { allow: 'POST' });
@@ -177,6 +209,13 @@ export async function handlePublicDiagnostic(request: Request, env: any): Promis
     const record = { ...result.value, receivedAt, source: '/links/diagnostico/', status: 'novo', version: 2 };
     await env.DB.prepare('INSERT INTO kv_records(collection,id,record_json,created_at,updated_at) VALUES(?,?,?,?,?)')
       .bind(COLLECTION, id, JSON.stringify(record), receivedAt, receivedAt).run();
+    // Falhas na integração não devem afetar protocolo, formulário ou dados já gravados.
+    if (ctx?.waitUntil && env.ACTIVEPIECES_LEADS_WEBHOOK_URL && env.ACTIVEPIECES_LEADS_WEBHOOK_TOKEN) {
+      ctx.waitUntil(
+        forwardDiagnosticLeadToActivepieces(result.value, id.slice(0, 8).toUpperCase(), env)
+          .catch(() => { console.warn('[diagnostic] Activepieces forwarding failed'); })
+      );
+    }
     return respond({ ok: true, protocol: id.slice(0, 8).toUpperCase() }, 201);
   } catch {
     // Nunca exponha mensagens do D1, dados pessoais ou informações de infraestrutura.

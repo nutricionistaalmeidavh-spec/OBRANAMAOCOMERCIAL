@@ -28,10 +28,12 @@ describe('Diagnóstico via /links', () => {
     expect(motions).toContain('prefers-reduced-motion: reduce');
   });
   it('tem formulário acessível em etapas com contato, problema e consentimento', () => {
-    for (const field of ['name','company','email','sector','teamSize','painPoints','goal','weeklyHours','urgency','consent']) {
+    for (const field of ['name','company','email','sector','teamSize','painPoints','goal','weeklyHours','urgency']) {
       expect(html).toContain(field);
     }
-    expect(html).toContain('name="consent"');
+    expect(html).not.toContain('name="consent"');
+    expect(html).toContain('Ao enviar seu diagnóstico, você solicita');
+    expect(html).toContain('exclusão das informações');
     expect((html.match(/class="wizard-step"/g) || [])).toHaveLength(5);
     for (const attribute of ['serverKind','serverProvider','serverAdmin','workDevices','offlineNeed','usersCount','integrations','integrationOther','softwareSpend','monthlyRevenue','sensitiveData']) {
       expect(html).toContain(`name="${attribute}"`);

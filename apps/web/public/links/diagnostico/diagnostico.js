@@ -192,7 +192,6 @@
       [...namedSystemFields].filter(([, field]) => !field.hidden)
         .map(([key, field]) => [key, field.querySelector('input').value.trim()])
     );
-    data.consent = fields.get('consent') === 'on';
     sending = true;
     submit.disabled = true;
     submit.firstChild.textContent = 'Enviando... ';
