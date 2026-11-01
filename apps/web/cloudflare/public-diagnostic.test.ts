@@ -34,8 +34,9 @@ describe('Diagnóstico público ArtiSys', () => {
       expect(result.value.currentSystems).toEqual(['planilhas', 'whatsapp']);
     }
   });
-  it('exige consentimento e problema real', () => {
-    expect(validateDiagnosticPayload({ ...payload(), consent: false }).ok).toBe(false);
+  it('aceita diagnóstico solicitado sem checkbox, mas ainda valida os dados', () => {
+    expect(validateDiagnosticPayload({ ...payload(), consent: false }).ok).toBe(true);
+    expect(validateDiagnosticPayload({ ...payload(), consent: undefined }).ok).toBe(true);
     expect(validateDiagnosticPayload({ ...payload(), painPoints: [] }).ok).toBe(false);
     expect(validateDiagnosticPayload({ ...payload(), goal: '' }).ok).toBe(false);
     expect(validateDiagnosticPayload({ ...payload(), painPoints: ['x'] }).ok).toBe(false);
@@ -200,17 +201,37 @@ describe('Diagnóstico público ArtiSys', () => {
     }
   });
 
-  it('não encaminha cadastros inválidos nem formulário sem consentimento', async () => {
+  it('não encaminha cadastros inválidos, mas aceita diagnóstico solicitado sem checkbox', async () => {
     const { env } = envFake();
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     try {
-      const response = await handlePublicDiagnostic(req({ ...payload(), consent: false }), {
+      const response = await handlePublicDiagnostic(req({ ...payload(), goal: '', consent: false }), {
         ...env,
         ACTIVEPIECES_LEADS_WEBHOOK_URL: 'https://example.activepieces.test/webhook',
         ACTIVEPIECES_LEADS_WEBHOOK_TOKEN: 'test-token'
       }, { waitUntil: () => { throw new Error('must not enqueue'); } });
       expect(response?.status).toBe(422);
       expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it('encaminha diagnóstico solicitado sem afirmar consentimento explícito para marketing', async () => {
+    const { env } = envFake();
+    const pending: Promise<unknown>[] = [];
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 202 }));
+    try {
+      const response = await handlePublicDiagnostic(req({ ...payload(), consent: undefined }), {
+        ...env,
+        ACTIVEPIECES_LEADS_WEBHOOK_URL: 'https://example.activepieces.test/webhook',
+        ACTIVEPIECES_LEADS_WEBHOOK_TOKEN: 'test-token'
+      }, { waitUntil: promise => { pending.push(promise); } });
+      expect(response?.status).toBe(201);
+      await Promise.all(pending);
+      const forwarded = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+      expect(forwarded.contato_solicitado).toBe(true);
+      expect(forwarded.consentimento).toBe(false);
     } finally {
       fetchMock.mockRestore();
     }
