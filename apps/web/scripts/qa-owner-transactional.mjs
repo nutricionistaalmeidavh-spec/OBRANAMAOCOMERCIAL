@@ -112,7 +112,7 @@ try{
       await page.locator('[data-owner-jump="debora-users"]').click();
       await page.locator('[data-owner-back]').click();
       await page.locator('[data-owner-current="overview"]').waitFor({state:'visible'});
-      if(await page.locator('[data-owner-view]').count()!==5)throw new Error(`${viewport.name}: global navigation not restored after return`);
+      if(await page.locator('[data-owner-view]').count()!==6)throw new Error(`${viewport.name}: global navigation not restored after return`);
       await shot('11-superadmin-return-to-central');
       activeRole='debora';
       const beforeDebora=requests.length;
