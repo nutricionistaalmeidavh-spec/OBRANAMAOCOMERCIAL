@@ -6,6 +6,7 @@ describe('Diagnóstico via /links', () => {
   const html = read('../public/links/diagnostico/index.html');
   const js = read('../public/links/diagnostico/diagnostico.js');
   const css = read('../public/links/diagnostico/diagnostico.css');
+  const attribution = read('../public/links/diagnostic-attribution.js');
   it('tem acesso explícito na Central, sem substituir o único card atual da Academy', () => {
     expect(links).toContain('href="/links/diagnostico/"');
     expect(links).toContain('data-link-id="diagnostico"');
@@ -26,6 +27,13 @@ describe('Diagnóstico via /links', () => {
     expect(motions).toContain('reveal(".diagnostic-callout"');
     expect(motions.indexOf('reveal(".diagnostic-callout"')).toBeLessThan(motions.indexOf('reveal(academy'));
     expect(motions).toContain('prefers-reduced-motion: reduce');
+  });
+  it('preserva parâmetros UTM/vídeo do TikTok ao atravessar a Central ArtiSys', () => {
+    expect(links).toContain('src="/links/diagnostic-attribution.js" defer');
+    expect(attribution).toContain('data-link-id="diagnostico"');
+    expect(attribution).toContain("destination.searchParams.set(key, value.slice(0,120))");
+    for(const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','video_tiktok'])
+      expect(js).toContain(key);
   });
   it('tem formulário acessível em etapas com contato, problema e consentimento', () => {
     for (const field of ['name','company','email','sector','teamSize','painPoints','goal','weeklyHours','urgency']) {
