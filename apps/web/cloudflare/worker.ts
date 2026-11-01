@@ -52,12 +52,12 @@ export async function licenseCenterAdminWithRuntime(request:Request,env:any){
 }
 
 export default {
-  async fetch(request: Request, env: any) {
+  async fetch(request: Request, env: any, ctx?: { waitUntil(promise: Promise<unknown>): void }) {
     const devkitRedirect = handleDevkitLegacyRedirect(request);
     if (devkitRedirect) return devkitRedirect;
     const publicDownload=await handlePublicDownload(request);
     if(publicDownload)return publicDownload;
-    const diagnostic = await handlePublicDiagnostic(request,env);
+    const diagnostic = await handlePublicDiagnostic(request,env,ctx);
     if(diagnostic)return diagnostic;
     await ensureBillingSchema(env);
     await ensureReservedLifetimeLicense(env);
