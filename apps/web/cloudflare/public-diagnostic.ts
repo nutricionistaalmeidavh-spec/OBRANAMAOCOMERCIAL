@@ -34,7 +34,7 @@ type Diagnostic = {
   workDevices: string[]; offlineNeed: string; usersCount: string;
   integrations: string[]; integrationOther: string; softwareSpend: string;
   monthlyRevenue: string; sensitiveData: string[];
-  urgency: string; migration: string; consent: true;
+  urgency: string; migration: string; consent: boolean;
 };
 type Validation = { ok: true; value: Diagnostic } | { ok: false; message: string };
 const reject = (message: string): Validation => ({ ok: false, message });
@@ -119,12 +119,11 @@ export function validateDiagnosticPayload(raw: unknown): Validation {
       !validMulti(sensitiveData, SENSITIVE_DATA, ['none', 'unknown'], SENSITIVE_DATA.length - 1)) {
     return reject('Revise o contexto financeiro e as categorias de informações.');
   }
-  if (input.consent !== true) return reject('É necessário consentir com o uso das informações para receber o diagnóstico.');
   return { ok: true, value: { name, company, email, whatsapp, sector, teamSize,
     painPoints: [...painPoints], currentSystems: [...currentSystems], currentSystemsOther, currentSystemNames: systemNames, weeklyHours, goal,
     serverKind, serverProvider, serverAdmin, workDevices: [...workDevices], offlineNeed, usersCount,
     integrations: [...integrations], integrationOther, softwareSpend, monthlyRevenue, sensitiveData: [...sensitiveData],
-    urgency, migration, consent: true } };
+    urgency, migration, consent: input.consent === true } };
 }
 
 function respond(body: unknown, status: number, extra: Record<string, string> = {}) {
@@ -171,7 +170,8 @@ async function forwardDiagnosticLeadToActivepieces(
       setor: lead.sector,
       urgencia: lead.urgency,
       protocolo: protocol,
-      consentimento: true
+      contato_solicitado: true,
+      consentimento: lead.consent === true
     })
   });
   if (!response.ok) throw new Error('Activepieces lead delivery failed');
