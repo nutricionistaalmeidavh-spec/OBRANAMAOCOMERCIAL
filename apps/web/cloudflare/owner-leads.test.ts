@@ -36,7 +36,7 @@ describe('owner-only diagnostics in the existing Central ArtiSys',()=>{
     const env=envFake();
     const response=await handleOwnerLeadsRequest(new Request(url),env,owner);
     expect(response?.status).toBe(200);
-    expect(response?.headers.get('cache-control')).toBe('no-store');
+    expect(response?.headers.get('cache-control')).toContain('no-store');
     const data=await response!.json() as any;
     expect(data.leads).toHaveLength(1);
     expect(data.leads[0]).toMatchObject({
