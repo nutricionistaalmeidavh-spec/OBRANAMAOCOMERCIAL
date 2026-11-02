@@ -51,3 +51,10 @@
  .owner-filter-disclosure{margin:10px 0}
 }
 @media(max-width:359px){.owner-sales-filter{grid-template-columns:1fr}}
+
+/* Consultant contact stays inside the existing user cell, including mobile cards. */
+.owner-debora-consultant-cell{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.owner-debora-consultant-phone{display:flex;align-items:center;flex-wrap:wrap;gap:4px 9px;font-size:.78rem;color:#536479}
+.owner-debora-consultant-phone.is-empty{color:#78879b}
+.owner-debora-consultant-whatsapp{font-size:.78rem;font-weight:650;color:#165c4c;text-decoration:underline;text-underline-offset:2px}
+.owner-debora-consultant-whatsapp:focus-visible{outline:2px solid #165c4c;outline-offset:2px;border-radius:3px}
