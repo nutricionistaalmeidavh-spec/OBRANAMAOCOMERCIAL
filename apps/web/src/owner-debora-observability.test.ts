@@ -38,6 +38,28 @@ describe('Debora observability owner module',()=>{
     expect(document.body.textContent).toContain('Pago');
   });
 
+  it('shows phone from the canonical consultant API and offers WhatsApp without breaking legacy rows',async()=>{
+    const page={...users,items:[
+      {...users.items[0],phone:'(16) 99999-4321'},
+      {userId:'legacy',email:'legado@example.test',phone:null,planCode:'freemium',online:false},
+    ]};
+    const client=apiWith(summary,page,sales);
+    await bindDeboraObservability(client as any);
+    const rows=Array.from(document.querySelectorAll('[data-debora-users-body] tr'));
+    expect(rows[0].textContent).toContain('(16) 99999-4321');
+    expect(rows[0].querySelector('a[href="https://wa.me/5516999994321"]')).not.toBeNull();
+    expect(rows[1].textContent).toContain('Celular não informado');
+    expect(rows[1].querySelector('a[href*="wa.me"]')).toBeNull();
+  });
+
+  it('escapes an unexpected phone value instead of injecting markup or a WhatsApp link',async()=>{
+    const page={...users,items:[{...users.items[0],phone:'<img src=x onerror=alert(1)>'}]};
+    await bindDeboraObservability(apiWith(summary,page,sales) as any);
+    expect(document.querySelector('[data-debora-users-body] img')).toBeNull();
+    expect(document.querySelector('[data-debora-users-body]')?.textContent).toContain('<img src=x');
+    expect(document.querySelector('[data-debora-users-body] a[href*="wa.me"]')).toBeNull();
+  });
+
   it('keeps filters when advancing user pagination',async()=>{
     const client=apiWith(summary,users,sales);
     await bindDeboraObservability(client as any);
