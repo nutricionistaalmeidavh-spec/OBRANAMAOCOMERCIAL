@@ -10,7 +10,7 @@ type DeboraSummary={
   sales?:{paid?:number;automaticPaid?:number;manualPaid?:number;realizedRevenueCents?:number};
 };
 type DeboraUser={
-  userId:string;email:string;createdAt?:string|null;lastSignInAt?:string|null;lastSeenAt?:string|null;online?:boolean;
+  userId:string;email:string;phone?:string|null;createdAt?:string|null;lastSignInAt?:string|null;lastSeenAt?:string|null;online?:boolean;
   planCode?:string;subscriptionStatus?:string;effectiveLicense?:{planCode?:string;status?:string;source?:string;expiresAt?:string|null}|null;
   manualSale?:{acquisitionChannel?:string;paymentStatus?:string;amountCents?:number|null;externalOrderRef?:string|null}|null;
   sessionsToday?:number;activeSecondsToday?:number;activeSeconds7d?:number;activeSeconds30d?:number;
@@ -113,6 +113,17 @@ function saleQuery(){
   if(salesState.cursor)query.cursor=salesState.cursor;
   return query;
 }
+function consultantWhatsappUrl(phone?:string|null){
+  let digits=String(phone||'').replace(/\D/g,'');
+  if(digits.startsWith('55')&&[12,13].includes(digits.length))digits=digits.slice(2);
+  return /^[1-9][0-9][0-9]{8,9}$/.test(digits)?`https://wa.me/55${digits}`:null;
+}
+function renderConsultantContact(user:DeboraUser){
+  const phone=String(user.phone||'').trim();
+  if(!phone)return '<span class="owner-debora-consultant-phone is-empty">Celular não informado</span>';
+  const whatsapp=consultantWhatsappUrl(phone);
+  return `<span class="owner-debora-consultant-phone"><span>Celular: ${esc(phone)}</span>${whatsapp?`<a class="owner-debora-consultant-whatsapp" href="${esc(whatsapp)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir WhatsApp da consultora ${esc(user.email)}">WhatsApp</a>`:''}</span>`;
+}
 function effectivePlan(user:DeboraUser){return user.effectiveLicense?.planCode||user.planCode||'freemium'}
 function isLegacyManual(user:DeboraUser){return user.effectiveLicense?.planCode==='pro_6m'&&!user.manualSale}
 function userOrigin(user:DeboraUser){return user.manualSale?.acquisitionChannel||user.effectiveLicense?.source||(user.subscriptionStatus?'asaas':'cadastro')}
@@ -122,7 +133,7 @@ async function loadUsers(){
   if(!activeApi)return;const {data}=await activeApi.get<Page<DeboraUser>>('/api/owner/debora-observability/users',userQuery());
   usersState.hasMore=Boolean(data.hasMore);usersState.nextCursor=data.nextCursor||null;
   const count=document.querySelector<HTMLElement>('[data-debora-users-results]');if(count)count.textContent=`${(data.items||[]).length} consultora(s) nesta página${data.hasMore?' · há mais resultados':''}.`;
-  const body=document.querySelector<HTMLElement>('[data-debora-users-body]');if(body)body.innerHTML=(data.items||[]).map(user=>`<tr><td><strong>${esc(user.email)}</strong></td><td>${esc(planLabel(effectivePlan(user)))}</td><td>${esc(channelLabel(userOrigin(user)))}</td><td>${esc(paymentLabel(userPayment(user)))}</td><td><span class="owner-debora-presence ${user.online?'is-online':'is-offline'}">${user.online?'Online':'Offline'}</span></td><td>${esc(fmtDateTime(user.lastSeenAt||user.lastSignInAt))}</td><td>${esc(fmtDateTime(user.createdAt))}</td><td><div class="owner-debora-row-actions"><button type="button" class="owner-secondary" data-debora-user-activity="${esc(user.userId)}" data-debora-user-email="${esc(user.email)}">Ver atividade</button><button type="button" class="owner-secondary" data-debora-manage-license="${esc(user.email)}">Gerenciar licença</button>${isLegacyManual(user)?`<button type="button" class="owner-secondary" data-debora-classify-manual="${esc(user.email)}">Classificar pagamento</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="8">Nenhum usuário encontrado.</td></tr>';
+  const body=document.querySelector<HTMLElement>('[data-debora-users-body]');if(body)body.innerHTML=(data.items||[]).map(user=>`<tr><td><div class="owner-debora-consultant-cell"><strong>${esc(user.email)}</strong>${renderConsultantContact(user)}</div></td><td>${esc(planLabel(effectivePlan(user)))}</td><td>${esc(channelLabel(userOrigin(user)))}</td><td>${esc(paymentLabel(userPayment(user)))}</td><td><span class="owner-debora-presence ${user.online?'is-online':'is-offline'}">${user.online?'Online':'Offline'}</span></td><td>${esc(fmtDateTime(user.lastSeenAt||user.lastSignInAt))}</td><td>${esc(fmtDateTime(user.createdAt))}</td><td><div class="owner-debora-row-actions"><button type="button" class="owner-secondary" data-debora-user-activity="${esc(user.userId)}" data-debora-user-email="${esc(user.email)}">Ver atividade</button><button type="button" class="owner-secondary" data-debora-manage-license="${esc(user.email)}">Gerenciar licença</button>${isLegacyManual(user)?`<button type="button" class="owner-secondary" data-debora-classify-manual="${esc(user.email)}">Classificar pagamento</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="8">Nenhum usuário encontrado.</td></tr>';
   labelMobileTableCells(body?.closest('table'));
   const prev=document.querySelector<HTMLButtonElement>('[data-debora-users-prev]'),next=document.querySelector<HTMLButtonElement>('[data-debora-users-next]');if(prev)prev.disabled=!usersState.stack.length;if(next)next.disabled=!usersState.hasMore;
   document.querySelectorAll<HTMLButtonElement>('[data-debora-user-activity]').forEach(button=>button.onclick=()=>void loadActivity(button.dataset.deboraUserActivity||'',button.dataset.deboraUserEmail||''));
