@@ -108,6 +108,12 @@ class LanDataClient {
   async uploadDocument(payload) {
     return this.request('POST', '/api/v1/documents/upload', { body: payload })
   }
+  async pendingDocumentFiles() {
+    return this.request('GET', '/api/v1/documents/pending-files')
+  }
+  async recoverDocumentFile(id, contentBase64) {
+    return this.request('POST', `/api/v1/files/${Number(id)}/recover`, { body:{contentBase64} })
+  }
 
   async downloadFile(id) {
     return this.requestBytes('GET', `/api/v1/files/${Number(id)}/content`)

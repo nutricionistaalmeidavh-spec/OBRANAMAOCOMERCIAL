@@ -55,6 +55,13 @@ export function granularPermissionDecision(member, domain, action) {
   if (!PERMISSION_DOMAINS.includes(normalizedDomain) || !PERMISSION_ACTIONS.includes(normalizedAction)) return false
   if (member?.permissions === undefined || member?.permissions === null) return null
   if (!moduleAllows(member, normalizedDomain, normalizedAction)) return false
+  // Cloud permission snapshots v1 contain five domains, before Documents was
+  // introduced. Keep the explicitly granted Documents module usable under the
+  // legacy module policy. An explicit documents array (including []) wins.
+  if (normalizedDomain === 'documents' &&
+      /^perm-v1-/.test(String(member?.permissionsRevision || '')) &&
+      member.permissions && typeof member.permissions === 'object' &&
+      !Object.hasOwn(member.permissions, 'documents')) return null
   const actions = member.permissions && typeof member.permissions === 'object'
     ? member.permissions[normalizedDomain]
     : null

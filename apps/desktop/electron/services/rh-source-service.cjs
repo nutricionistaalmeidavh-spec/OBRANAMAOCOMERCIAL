@@ -150,7 +150,11 @@ class RhSourceService {
 
   async timeDocumentContext(payload) {
     const state = this.state()
-    if (state === 'central-active') return await this.lanClient.timeDocumentContext(payload)
+    if (state === 'central-active') {
+      const result = await this.lanClient.timeDocumentContext(payload)
+      if (Number.isFinite(Number(result?.point?.revision))) this.timeRevisions.set(this.timeKey(payload), Number(result.point.revision))
+      return result
+    }
     if (state === 'central-ready') return this.blocked()
     if (typeof this.localTime.documentContext === 'function') return await this.localTime.documentContext(payload)
     return null

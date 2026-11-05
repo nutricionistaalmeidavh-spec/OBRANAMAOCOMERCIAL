@@ -62,6 +62,34 @@ export class DocumentStorageService {
       return saved
     }catch(error){try{fs.unlinkSync(destination)}catch{};throw error}
   }
+  storeMissingFileRecord(data){
+    const saved=this.repository.save('arquivos',{
+      nome_original:safeName(data?.nome_original),nome_armazenado:randomUUID(),
+      caminho:'missing://file/pending',tamanho:data?.tamanho||0,extensao:data?.extensao||null,
+      mime_type:data?.mime_type||null,hash:data?.hash||null,origem:data?.origem||'importado'
+    })
+    return this.repository.save('arquivos',{...saved,caminho:`missing://file/${saved.id}`})
+  }
+  pendingFiles(){
+    return this.db.prepare("SELECT id,nome_original,tamanho,hash FROM arquivos WHERE caminho LIKE 'missing://file/%' ORDER BY id").all()
+  }
+  recoverFile(id,contentBase64){
+    const bytes=this.bytes(contentBase64)
+    this.db.exec('BEGIN IMMEDIATE')
+    let destination
+    try{
+      const file=this.repository.get('arquivos',Number(id))
+      if(!file||file.deleted_at||!String(file.caminho).startsWith('missing://file/'))throw new Error('Somente arquivos históricos pendentes podem ser recuperados.')
+      if(!/^[a-f0-9]{64}$/i.test(String(file.hash||''))||sha256(bytes)!==String(file.hash).toLowerCase())throw new Error('O conteúdo não corresponde ao documento histórico. Nenhum arquivo foi substituído.')
+      const extension=path.extname(safeName(file.nome_original)).slice(0,20)
+      const storageName=`${randomUUID()}${extension}`
+      destination=path.join(this.filesDir,storageName)
+      fs.writeFileSync(destination,bytes,{flag:'wx'})
+      const saved=this.repository.save('arquivos',{...file,nome_armazenado:storageName,caminho:`server://file/${file.id}`,tamanho:bytes.length})
+      this.db.exec('COMMIT')
+      return saved
+    }catch(error){try{this.db.exec('ROLLBACK')}catch{};if(destination)try{fs.unlinkSync(destination)}catch{};throw error}
+  }
   store({file,document}={}){
     this.assertWork(document||{})
     const bytes=this.bytes(file?.contentBase64)
@@ -86,6 +114,7 @@ export class DocumentStorageService {
     }catch(error){try{this.db.exec('ROLLBACK')}catch{};try{fs.unlinkSync(destination)}catch{};throw error}
   }
   pathFor(file){
+    if(String(file?.caminho||'').startsWith('missing://file/'))throw new Error('Documento histórico pendente: recupere o arquivo por backup na Central de documentos.')
     const stored=String(file?.nome_armazenado||'')
     if(!stored||stored!==path.basename(stored))throw new Error('Arquivo central inválido.')
     const target=path.resolve(this.filesDir,stored)

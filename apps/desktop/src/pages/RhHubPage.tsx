@@ -2,6 +2,7 @@ import { BriefcaseBusiness, CalendarClock, FileArchive, ReceiptText, UsersRound,
 import { Link } from 'react-router-dom'
 import { Card, PageHeader } from '../components/ui'
 import { ROUTES } from '../routes/registry'
+import { RhMigrationNotice } from '../components/RhMigrationNotice'
 
 const cards = [
   {to:ROUTES.rhEmployees,title:'Funcionários',description:'Consulte a equipe, cadastros ativos e dados dos colaboradores.',icon:UsersRound},
@@ -15,6 +16,7 @@ const cards = [
 export default function RhHubPage(){
   return <>
     <PageHeader title="RH" description="Gestão dos colaboradores, remuneração, folha, ponto e documentos trabalhistas em um único fluxo."/>
+    <RhMigrationNotice/>
     <section aria-labelledby="rh-admission-flow-title">
       <div className="section-heading">
         <div>

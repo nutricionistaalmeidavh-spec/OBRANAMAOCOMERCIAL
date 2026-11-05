@@ -376,6 +376,8 @@ function registerIpc() {
   ipcMain.handle('explorer:index', envelope((payload) => services.explorerContext.index(payload)))
   ipcMain.handle('explorer:move-to-signed', envelope((payload) => services.explorerContext.moveToSigned(payload)))
   ipcMain.handle('documents:delete', envelope((payload) => services.files.deleteDocument(payload)))
+  ipcMain.handle('documents:pending-files', envelope(() => services.files.pendingDocumentFiles()))
+  ipcMain.handle('documents:recover-backup', envelope(() => services.files.recoverDocumentBackup()))
   ipcMain.handle('documents:generate', envelope((payload) => services.documents.generate(payload)))
   ipcMain.handle('documents:templates', envelope(() => services.documents.listTemplates()))
   ipcMain.handle('documents:save-template', envelope((payload) => services.documents.saveTemplate(payload)))
