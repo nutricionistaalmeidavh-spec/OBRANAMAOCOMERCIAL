@@ -44,6 +44,38 @@ function centralFixture(state='central-active'){
 afterEach(()=>{for(const dir of dirs.splice(0))fs.rmSync(dir,{recursive:true,force:true})})
 
 describe('RH document generation source',()=>{
+  it('baixa as duas quinzenas somente após impressão aceita e preserva parcelas já pagas', async()=>{
+    const f=centralFixture()
+    const getEmployee=vi.fn(async()=>({payments:[{quinzena:1,status:'pago'}],launches:[{quinzena:1,status:'pago'},{quinzena:2,status:'pendente'}]}))
+    const confirm=vi.fn(async()=>({ok:true}))
+    Object.assign(f.rh,{getEmployee,confirm})
+    const result=await f.service.generateForAll({competencia:'2026-10',paymentDate:'2026-11-05',point:true,receipts:true,print:true})
+    expect(result.printed).toBe(true)
+    expect(confirm).toHaveBeenCalledTimes(1)
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({funcionario_id:77,competencia:'2026-10',quinzena:2,data:'2026-11-05'}))
+    expect(result.payments[0]).toMatchObject({ok:true,installments:[2]})
+  })
+
+  it('cancelamento, somente gerar e reimpressão não dão baixa', async()=>{
+    for(const mode of ['cancel','generate','reprint']){
+      const f=centralFixture()
+      const getEmployee=vi.fn(),confirm=vi.fn()
+      Object.assign(f.rh,{getEmployee,confirm})
+      if(mode==='cancel')f.localTime.printEntries.mockImplementation(async(entries:any[])=>({results:entries,printed:false,canceled:true}))
+      await f.service.generateForAll({competencia:'2026-10',point:true,receipts:true,print:mode==='cancel',reprint:mode==='reprint'})
+      expect(getEmployee).not.toHaveBeenCalled()
+      expect(confirm).not.toHaveBeenCalled()
+    }
+  })
+
+  it('informa falha de baixa separadamente sem ocultar impressão concluída', async()=>{
+    const f=centralFixture()
+    Object.assign(f.rh,{getEmployee:vi.fn(async()=>{throw new Error('Servidor indisponível para baixa')})})
+    const result=await f.service.generateForAll({competencia:'2026-10',point:true,receipts:true,print:true})
+    expect(result.printed).toBe(true)
+    expect(result.payments[0]).toMatchObject({ok:false,error:'Servidor indisponível para baixa'})
+  })
+
   it('mantém geração local intacta enquanto RH não é central', async()=>{
     for(const state of ['local','migration-required']){
       const f=centralFixture(state)

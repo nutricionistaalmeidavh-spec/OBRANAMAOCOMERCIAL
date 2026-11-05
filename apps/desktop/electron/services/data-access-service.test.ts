@@ -4,6 +4,24 @@ import { describe, expect, it, vi } from 'vitest'
 const require = createRequire(import.meta.url)
 
 describe('DataAccessService', () => {
+  it('mantém leitura do cadastro e cargo local durante migração RH sem liberar escrita', async () => {
+    const { DataAccessService } = require('./data-access-service.cjs')
+    const db = { list: vi.fn(() => [{ id: 14, cargo_id: 3 }]), get: vi.fn(() => ({ id: 3, nome: 'Encanador' })), save: vi.fn(), remove: vi.fn() }
+    const remote = { list: vi.fn(), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
+    let state='migration-required'
+    const service = new DataAccessService({ db, remote, storage: { state: () => ({ mode: 'server', operationalMode: 'lan-host' }) }, moduleStorage: { state: () => ({ state }) } })
+    expect(await service.list('funcionarios', {status:'ativo'})).toEqual([{id:14,cargo_id:3}])
+    expect(await service.get('cargos',3)).toEqual({id:3,nome:'Encanador'})
+    await expect(service.save('funcionarios',{id:14})).rejects.toThrow(/RH central/)
+    await expect(service.remove('cargos',3)).rejects.toThrow(/RH central/)
+    expect(db.save).not.toHaveBeenCalled()
+    expect(db.remove).not.toHaveBeenCalled()
+    state='central-ready'
+    await expect(service.list('funcionarios',{})).rejects.toThrow(/RH central/)
+    state='central-active'
+    remote.list.mockResolvedValue([{id:114,cargo_id:103}])
+    expect(await service.list('funcionarios',{})).toEqual([{id:114,cargo_id:103}])
+  })
   it('preserva o CRUD local existente por delegacao ao DatabaseService', async () => {
     const { DataAccessService } = require('./data-access-service.cjs')
     const db = { list: vi.fn(() => [{ id: 1 }]), get: vi.fn(() => ({ id: 2 })), save: vi.fn(() => ({ id: 3 })), remove: vi.fn(() => true) }

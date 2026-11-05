@@ -23,7 +23,7 @@ class RhDocumentService {
   async centralContext(payload, { autoFill = true } = {}) {
     let context = await this.rh.timeDocumentContext(payload)
     if (autoFill && !context?.marks?.length) {
-      await this.rh.timeAutoFill({ funcionario_id: payload.funcionario_id, competencia: payload.competencia, overwrite: false })
+      await this.rh.timeAutoFill({ funcionario_id: payload.funcionario_id, competencia: payload.competencia, overwrite: false, expectedRevision: context?.point?.revision })
       context = await this.rh.timeDocumentContext(payload)
     }
     if (!context?.employee || !context?.company || !context?.point) throw new Error('Contexto RH central incompleto para geração de documentos.')
@@ -120,6 +120,28 @@ class RhDocumentService {
   }
 
   async generateForAll(payload) {
+    const result = await this.generateBatch(payload)
+    if (!result?.printed || result.canceled || !payload?.print || payload.reprint) return result
+    const payments = []
+    for (const entry of result.results || []) {
+      if (!entry.ok) continue
+      try {
+        const key = { funcionario_id: entry.funcionario_id, competencia: payload.competencia }
+        const current = await this.rh.getEmployee(key)
+        const paid = new Set((current.payments || []).filter(item => item.status === 'pago').map(item => Number(item.quinzena)))
+        const installments = [...new Set((current.launches || []).filter(item => item.status === 'pendente').map(item => Number(item.quinzena)))].filter(item => (item === 1 || item === 2) && !paid.has(item))
+        for (const quinzena of installments) {
+          await this.rh.confirm({ ...key, quinzena, data: payload.paymentDate, observacoes: 'Baixa automática após geração e envio do lote mensal para impressão.' })
+        }
+        payments.push({ funcionario_id: entry.funcionario_id, nome: entry.nome, ok: true, installments })
+      } catch (error) {
+        payments.push({ funcionario_id: entry.funcionario_id, nome: entry.nome, ok: false, error: error instanceof Error ? error.message : String(error) })
+      }
+    }
+    return { ...result, payments }
+  }
+
+  async generateBatch(payload) {
     const state = this.state()
     if (state === 'local' || state === 'migration-required') return this.localTime.generateForAll(payload)
     if (state === 'central-ready') return this.blocked()

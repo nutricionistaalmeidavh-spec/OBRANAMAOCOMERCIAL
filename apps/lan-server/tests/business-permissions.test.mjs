@@ -64,3 +64,11 @@ test('unknown domain or action never grants access', () => {
   assert.equal(granularPermissionDecision(member, 'unknown', 'view'), false)
   assert.equal(granularPermissionDecision(member, 'core', 'write'), false)
 })
+
+test('snapshot cloud v1 sem domínio Documentos mantém somente módulo explicitamente concedido', () => {
+  const member={role:'admin',modules:['documents'],permissionsRevision:'perm-v1-legacy',permissions:{rh:['view']}}
+  assert.equal(granularPermissionDecision(member,'documents','view'),null)
+  assert.equal(granularPermissionDecision({...member,modules:['rh']},'documents','view'),false)
+  assert.equal(granularPermissionDecision({...member,permissions:{documents:[]}},'documents','view'),false)
+  assert.equal(granularPermissionDecision({...member,permissionsRevision:'perm-v2-test'},'documents','view'),false)
+})
