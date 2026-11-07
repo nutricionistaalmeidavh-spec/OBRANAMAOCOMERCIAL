@@ -9,6 +9,7 @@ import { handleAdminGovernanceRequest } from '../backend/admin-governance-http';
 import { handlePublicDownload } from './public-downloads';
 import { handlePublicDiagnostic, reconcilePendingDiagnosticLeads } from './public-diagnostic';
 import { handleOwnerLeadsRequest } from './owner-leads';
+import { handlePublicLinksEvent, handleOwnerLinksAnalytics } from './links-analytics';
 import { handleDevkitLegacyRedirect } from './devkit-canonical-redirect';
 import { router } from './sdk';
 
@@ -73,6 +74,13 @@ export default {
       return handler.fetch(new Request(check.toString(),{method:'GET',headers:request.headers}),env);
     });
     if(ownerLeads)return ownerLeads;
+    const linkEvent=await handlePublicLinksEvent(request,env);
+    if(linkEvent)return linkEvent;
+    const linksAnalytics=await handleOwnerLinksAnalytics(request,env,()=>{
+      const check=new URL('/api/central/access',request.url);
+      return handler.fetch(new Request(check.toString(),{method:'GET',headers:request.headers}),env);
+    });
+    if(linksAnalytics)return linksAnalytics;
     await ensureBillingSchema(env);
     await ensureReservedLifetimeLicense(env);
     const licensing=await handleProductLicenseInternal(request,env);
