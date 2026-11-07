@@ -2,9 +2,11 @@ import { auth, api } from './cloudflare-client';
 import { bindDeboraObservability, deboraObservabilitySection, refreshDeboraObservability } from './owner-debora-observability';
 import { bindDeboraPartners, deboraPartnersSection } from './owner-debora-partners';
 import { bindOwnerLeads, ownerLeadsSection } from './owner-leads';
+import { bindOwnerLinksAnalytics, ownerLinksAnalyticsSection } from './owner-links-analytics';
 import './owner.css';
 import './owner-debora-observability.css';
 import './owner-leads.css';
+import './owner-links-analytics.css';
 
 type Device={id:string;name:string;status?:string;email?:string;lastSeenAt?:string};
 type Company = {id:string;name:string;adminEmail:string;status:string;reserved?:boolean;modules:string[];channels:string[];passwordCreatedAt?:string;usersCount:number;projectsCount:number;devicesCount:number;license?:{id:string;plan?:string;expiresAt?:string;code?:string;maxUsers?:number;maxProjects?:number;maxDevices?:number;advancedServer?:boolean};users?:Array<{email:string;name?:string;role?:string}>;projects?:Array<{name:string}>;devices?:Device[]};
@@ -12,11 +14,11 @@ type DeboraLicenseResponse={state?:string;activation?:string;grant?:{email?:stri
 type DeboraOverview={clients:number;pro:number;freemium:number;expiring:number;revoked:number};
 type DeboraClient={email:string;planCode:string;status:'active'|'freemium'|'revoked'|'expired';expiresAt:string|null;source:string;expiring:boolean};
 type LicenseEvent={id:string;product:'obra-na-mao'|'debora-lactacao';licenseId?:string;email?:string;action:string;source?:string;actor?:string;createdAt:string;details?:Record<string,unknown>};
-type OwnerView='overview'|'obra'|'debora'|'clients'|'licenses'|'leads';
+type OwnerView='overview'|'obra'|'debora'|'clients'|'licenses'|'leads'|'links';
 
 const modules=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'];
 const labels:Record<string,string>={finance:'Financeiro',rh:'RH',contracts:'Contratos',rdo:'RDO',obra360:'Obra360',dre:'DRE',procurement:'Compras',measurements:'Medições',documents:'Documentos',universidade:'Universidade',ai:'IA',desktop:'Desktop',mobile:'Web / mobile'};
-const viewLabels:Record<OwnerView,string>={overview:'Visão geral',obra:'Obra na Mão',debora:'Débora Lactação',clients:'Clientes',licenses:'Licenças',leads:'Leads ArtiSys'};
+const viewLabels:Record<OwnerView,string>={overview:'Visão geral',obra:'Obra na Mão',debora:'Débora Lactação',clients:'Clientes',licenses:'Licenças',leads:'Leads ArtiSys',links:'Visitas e cliques'};
 const productLabels={'obra-na-mao':'Obra na Mão','debora-lactacao':'Débora Lactação'} as const;
 const deboraTaskLabels={
   'debora-summary':'Resumo',
@@ -256,11 +258,11 @@ function applyClientFilters(){const search=(document.getElementById('ownerClient
 function bindClientFilters(){['ownerClientSearch','ownerClientProduct','ownerClientStatus'].forEach(id=>{const node=document.getElementById(id);node?.addEventListener(id==='ownerClientSearch'?'input':'change',applyClientFilters)})}
 function applyLicenseFilters(){const product=(document.getElementById('ownerLicenseProduct') as HTMLSelectElement|null)?.value||'all',status=(document.getElementById('ownerLicenseStatus') as HTMLSelectElement|null)?.value||'all';let visible=0;document.querySelectorAll<HTMLElement>('[data-owner-license]').forEach(node=>{const show=(product==='all'||node.dataset.product===product)&&(status==='all'||String(node.dataset.status||'').split(' ').includes(status));node.hidden=!show;if(show)visible+=1});const empty=document.getElementById('ownerLicenseEmpty');if(empty)empty.hidden=visible>0}
 function bindLicenseFilters(){['ownerLicenseProduct','ownerLicenseStatus'].forEach(id=>document.getElementById(id)?.addEventListener('change',applyLicenseFilters))}
-function bindCurrentView(){logout();bindNavigation();bindDeboraLicense();bindCompanyCreation();bindCompanyButtons();bindDeboraClientButtons();bindClientFilters();bindLicenseFilters();if(ownerView==='debora'){void bindDeboraObservability(api);void bindDeboraPartners(api)}if(ownerView==='leads'&&centralRole==='owner')void bindOwnerLeads(api)}
+function bindCurrentView(){logout();bindNavigation();bindDeboraLicense();bindCompanyCreation();bindCompanyButtons();bindDeboraClientButtons();bindClientFilters();bindLicenseFilters();if(ownerView==='debora'){void bindDeboraObservability(api);void bindDeboraPartners(api)}if(ownerView==='leads'&&centralRole==='owner')void bindOwnerLeads(api);if(ownerView==='links'&&centralRole==='owner')void bindOwnerLinksAnalytics(api)}
 
 function renderCurrentView(){
   if(centralRole==='debora')ownerView='debora';
-  const content=ownerView==='overview'?overviewView(ownerCompanies):ownerView==='obra'?obraView(ownerCompanies):ownerView==='debora'?deboraView():ownerView==='clients'?clientsView(ownerCompanies):ownerView==='leads'?ownerLeadsSection():licensesView(ownerCompanies);
+  const content=ownerView==='overview'?overviewView(ownerCompanies):ownerView==='obra'?obraView(ownerCompanies):ownerView==='debora'?deboraView():ownerView==='clients'?clientsView(ownerCompanies):ownerView==='leads'?ownerLeadsSection():ownerView==='links'?ownerLinksAnalyticsSection():licensesView(ownerCompanies);
   root().innerHTML=shell(content);bindCurrentView();notifyOwnerRendered();
 }
 async function refreshCompanies(){const {data}=await api.get<{companies:Company[]}>('/api/owner/companies');ownerCompanies=data.companies||[]}
