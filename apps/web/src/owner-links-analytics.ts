@@ -11,7 +11,7 @@ const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c
 const number = (value: number) => Number(value || 0).toLocaleString('pt-BR');
 const dateLabel = (day: string) => day.slice(8, 10) + '/' + day.slice(5, 7);
 const metric = (name: string, value: string, detail: string) =>
-  `<div class="owner-links-metric"><small>${{escapeHtml(name)}</small><strong>${{escapeHtml(value)}</strong><span>${{escapeHtml(detail)}</span></div>`;
+  `<div class="owner-links-metric"><small>${escapeHtml(name)}</small><strong>${escapeHtml(value)}</strong><span>${escapeHtml(detail)}</span></div>`;
 
 export function ownerLinksAnalyticsSection() {
   return `<section class="owner-section owner-links-panel" data-owner-links-panel>
@@ -38,15 +38,15 @@ function chart(daily: Daily[]) {
   const peak = Math.max(1, ...visible.map(item => Math.max(item.views, item.clicks)));
   return `<div class="owner-links-chart"><div class="owner-links-chart-scroll">
     <div class="owner-links-chart-grid" role="img" aria-label="Comparação diária de aberturas e cliques">
-      ${{visible.map(day => {
+      ${visible.map(day => {
         const views = Math.max(0, Math.min(100, Math.round(day.views / peak * 100)));
         const clicks = Math.max(0, Math.min(100, Math.round(day.clicks / peak * 100)));
         const tooltip = dateLabel(day.date) + ': ' + number(day.views) + ' aberturas, ' + number(day.clicks) + ' cliques';
-        return `<div class="owner-links-chart-day" title="${{escapeHtml(tooltip)}">
+        return `<div class="owner-links-chart-day" title="${escapeHtml(tooltip)}">
           <div class="owner-links-chart-bars">
-            <span class="owner-links-bar owner-links-bar-views" style="height:${{views}%"></span>
-            <span class="owner-links-bar owner-links-bar-clicks" style="height:${{clicks}%"></span>
-          </div><small>${{dateLabel(day.date)}</small></div>`;
+            <span class="owner-links-bar owner-links-bar-views" style="height:${views}%"></span>
+            <span class="owner-links-bar owner-links-bar-clicks" style="height:${clicks}%"></span>
+          </div><small>${dateLabel(day.date)}</small></div>`;
       }).join('')}
     </div></div>
     <div class="owner-links-legend"><span><i class="owner-links-key-views"></i>Aberturas</span><span><i class="owner-links-key-clicks"></i>Cliques</span></div>
@@ -57,24 +57,24 @@ function details(data: Payload) {
   const sorted = Array.isArray(data.links) ? data.links : [];
   const daily = Array.isArray(data.daily) ? data.daily : [];
   return `<div class="owner-links-metrics">
-      ${{metric('Aberturas da /links', number(data.views), 'Carregamentos registrados')}
-      ${{metric('Cliques', number(data.clicks), 'Todos os destinos')}
-      ${{metric('Cliques por abertura', data.views ? number(data.interactionRate) + '%' : '—', 'Pode superar 100%')}
-      ${{metric('Destino mais clicado', top?.label || '—', top ? number(top.clicks) + ' cliques' : 'Sem cliques registrados')}
+      ${metric('Aberturas da /links', number(data.views), 'Carregamentos registrados')}
+      ${metric('Cliques', number(data.clicks), 'Todos os destinos')}
+      ${metric('Cliques por abertura', data.views ? number(data.interactionRate) + '%' : '—', 'Pode superar 100%')}
+      ${metric('Destino mais clicado', top?.label || '—', top ? number(top.clicks) + ' cliques' : 'Sem cliques registrados')}
     </div>
     <div class="owner-links-detail">
       <h3>Movimento diário</h3>
-      ${{chart(daily)}
+      ${chart(daily)}
       <details><summary>Ver totais por dia</summary>
         <div class="owner-links-table-scroll"><table><thead><tr><th scope="col">Data</th><th scope="col">Aberturas</th><th scope="col">Cliques</th></tr></thead>
-          <tbody>${{daily.slice().reverse().map(day => `<tr><td>${{escapeHtml(dateLabel(day.date))}</td><td>${{number(day.views)}</td><td>${{number(day.clicks)}</td></tr>`).join('')}</tbody>
+          <tbody>${daily.slice().reverse().map(day => `<tr><td>${escapeHtml(dateLabel(day.date))}</td><td>${number(day.views)}</td><td>${number(day.clicks)}</td></tr>`).join('')}</tbody>
         </table></div>
       </details>
     </div>
     <div class="owner-links-detail">
       <h3>Cliques por destino</h3>
       <div class="owner-links-table-scroll"><table><thead><tr><th scope="col">Destino</th><th scope="col">Cliques</th><th scope="col">Participação</th></tr></thead>
-        <tbody>${{sorted.map(link => `<tr><td>${{escapeHtml(link.label)}</td><td>${{number(link.clicks)}</td><td>${{data.clicks ? number(Math.round(link.clicks / data.clicks * 1000) / 10) + '%' : '—'}</td></tr>`).join('')}</tbody>
+        <tbody>${sorted.map(link => `<tr><td>${escapeHtml(link.label)}</td><td>${number(link.clicks)}</td><td>${data.clicks ? number(Math.round(link.clicks / data.clicks * 1000) / 10) + '%' : '—'}</td></tr>`).join('')}</tbody>
       </table></div>
     </div>
     <p class="owner-links-footnote">Medição iniciada na publicação deste recurso; visitas anteriores permanecem disponíveis no Cloudflare Web Analytics. Os valores representam aberturas e cliques, não pessoas únicas. Horário: Brasília. Não são armazenados IP, cookies, identificadores ou dados pessoais.</p>`;
