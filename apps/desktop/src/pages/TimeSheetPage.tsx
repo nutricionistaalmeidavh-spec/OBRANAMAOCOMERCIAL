@@ -1,6 +1,7 @@
+import ReceiptPolicySelection from '../components/ReceiptPolicySelection'
 import { useWorkContext } from '../hooks/useWorkContext'
 import { FileDown, Printer, RotateCcw, Save, Sparkles, UsersRound } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, Empty, Field, Loading, PageHeader, Status } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
 import { competenceLabel, today } from '../utils/format'
@@ -18,8 +19,10 @@ export default function TimeSheetPage(){
   const [message,setMessage]=useState('')
   const [batchOpen,setBatchOpen]=useState(false)
   const [marksOpen,setMarksOpen]=useState(true)
-  const [printPoint,setPrintPoint]=useState(true)
-  const [printReceipts,setPrintReceipts]=useState(true)
+  const [policyReady,setPolicyReady]=useState(false)
+  const [policySaving,setPolicySaving]=useState(false)
+  const policyState=useCallback((ready:boolean,saving:boolean)=>{setPolicyReady(ready);setPolicySaving(saving)},[])
+  const documentBusy=busy||policySaving||!policyReady
   const employees=useAsync(()=>window.fluxoDre.funcionarios.list({status:'ativo'}),[])
   const cargos=useAsync(()=>window.fluxoDre.cargos.list(),[])
   const point=useAsync(()=>employee?window.fluxoDre.ponto.get({funcionario_id:Number(employee),competencia}):Promise.resolve(null),[employee,competencia,version])
@@ -31,10 +34,10 @@ export default function TimeSheetPage(){
   const save=async()=>{setBusy(true);try{await window.fluxoDre.ponto.save({funcionario_id:Number(employee),competencia,marks});setVersion((v)=>v+1);setMessage('Ficha de ponto salva.')}finally{setBusy(false)}}
   const generate=async()=>{setBusy(true);setMessage('');try{await save();const result=await window.fluxoDre.ponto.generate({funcionario_id:Number(employee),competencia,paymentDate:today()});setMessage('Ficha de ponto e recibos configurados foram gerados na pasta mensal do funcionário.');const generated=result.point||result.receipt;if(generated?.localPath||generated?.path)await window.fluxoDre.documentos.reveal(generated.localPath||generated.path)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
   const summarize=(result:any[])=>{const ok=result.filter((item:any)=>item.ok),failed=result.filter((item:any)=>!item.ok);return failed.length?ok.length+' funcionários processados. '+failed.length+' não foram processados: '+failed.map(failureDetail).join('; ')+'.':ok.length+' funcionários processados.'}
-  const selectionOk=()=>{if(printPoint||printReceipts)return true;setMessage('Selecione fichas de ponto e/ou recibos para gerar ou imprimir.');return false}
-  const generateAll=async()=>{if(!selectionOk())return;setBusy(true);setMessage('');try{const result=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today(),point:printPoint,receipts:printReceipts});setMessage(summarize(result));setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
-  const printAll=async()=>{if(!selectionOk())return;setBusy(true);setMessage('');try{const result:any=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today(),print:true,point:printPoint,receipts:printReceipts});const failed=(result.results||[]).filter((item:any)=>!item.ok);const paymentFailures=(result.payments||[]).filter((item:any)=>!item.ok);const paymentMessage=paymentFailures.length?' Pendências na baixa dos pagamentos: '+paymentFailures.map(failureDetail).join('; ')+'.':result.payments?' Pagamentos do mês atualizados.':'';const suffix=paymentMessage+(failed.length?' '+failed.length+' funcionário(s) não entraram no lote: '+failed.map(failureDetail).join('; ')+'.':'');setMessage(result.canceled?'Impressão cancelada. Os PDFs já gerados foram mantidos.'+suffix:(result.printed?'Lote enviado para a caixa de impressão com '+result.employees+' funcionário(s).':'Nenhum lote foi impresso.')+suffix);setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
-  const reprintAll=async()=>{if(!selectionOk())return;setBusy(true);setMessage('');try{const result:any=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today(),reprint:true,point:printPoint,receipts:printReceipts});const failed=(result.results||[]).filter((item:any)=>!item.ok);const paymentFailures=(result.payments||[]).filter((item:any)=>!item.ok);const paymentMessage=paymentFailures.length?' Pendências na baixa dos pagamentos: '+paymentFailures.map(failureDetail).join('; ')+'.':result.payments?' Pagamentos do mês atualizados.':'';const suffix=paymentMessage+(failed.length?' '+failed.length+' funcionário(s) não entraram no lote: '+failed.map(failureDetail).join('; ')+'.':'');setMessage(result.canceled?'Reimpressão cancelada. Nenhum PDF duplicado foi criado.'+suffix:(result.printed?'Reimpressão enviada para a caixa de impressão com '+result.employees+' funcionário(s). Nenhum PDF duplicado foi criado.':'Nenhum lote foi reimpresso.')+suffix);setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
+  const selectionOk=()=>{if(policyReady&&!policySaving)return true;setMessage('Selecione fichas de ponto e/ou recibos para gerar ou imprimir.');return false}
+  const generateAll=async()=>{if(!selectionOk())return;setBusy(true);setMessage('');try{const result=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today()});setMessage(summarize(result));setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
+  const printAll=async()=>{if(!selectionOk())return;setBusy(true);setMessage('');try{const result:any=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today(),print:true});const failed=(result.results||[]).filter((item:any)=>!item.ok);const paymentFailures=(result.payments||[]).filter((item:any)=>!item.ok);const paymentMessage=paymentFailures.length?' Pendências na baixa dos pagamentos: '+paymentFailures.map(failureDetail).join('; ')+'.':result.payments?' Pagamentos do mês atualizados.':'';const suffix=paymentMessage+(failed.length?' '+failed.length+' funcionário(s) não entraram no lote: '+failed.map(failureDetail).join('; ')+'.':'');setMessage(result.canceled?'Impressão cancelada. Os PDFs já gerados foram mantidos.'+suffix:(result.printed?'Lote enviado para a caixa de impressão com '+result.employees+' funcionário(s).':'Nenhum lote foi impresso.')+suffix);setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
+  const reprintAll=async()=>{if(!selectionOk())return;setBusy(true);setMessage('');try{const result:any=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today(),reprint:true});const failed=(result.results||[]).filter((item:any)=>!item.ok);const paymentFailures=(result.payments||[]).filter((item:any)=>!item.ok);const paymentMessage=paymentFailures.length?' Pendências na baixa dos pagamentos: '+paymentFailures.map(failureDetail).join('; ')+'.':result.payments?' Pagamentos do mês atualizados.':'';const suffix=paymentMessage+(failed.length?' '+failed.length+' funcionário(s) não entraram no lote: '+failed.map(failureDetail).join('; ')+'.':'');setMessage(result.canceled?'Reimpressão cancelada. Nenhum PDF duplicado foi criado.'+suffix:(result.printed?'Reimpressão enviada para a caixa de impressão com '+result.employees+' funcionário(s). Nenhum PDF duplicado foi criado.':'Nenhum lote foi reimpresso.')+suffix);setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
   return <>
     <PageHeader title="Folhas de ponto" description="Controle mensal das marcações e central de geração, impressão e reimpressão dos documentos do período."/>
     <Card className="time-filter"><Field label="Funcionário" wide><select value={employee} onChange={(event)=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option value={item.id} key={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((role:any)=>role.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><div className="readonly-person">{competenceLabel(competencia)}</div></Field></Card>
@@ -43,23 +46,17 @@ export default function TimeSheetPage(){
       <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:18,flexWrap:'wrap'}}>
         <div><h2 style={{margin:'0 0 5px',fontSize:15}}>Documentos da competência</h2><p style={{margin:0,maxWidth:700}}>Gere os documentos do colaborador selecionado ou abra o lote mensal para gerar, imprimir ou reimprimir todos.</p></div>
         <div className="row-actions" style={{gap:8,flexWrap:'wrap'}}>
-          <Button variant="secondary" icon={<UsersRound size={16}/>} onClick={()=>setBatchOpen((value)=>!value)} disabled={busy}>Gerar e imprimir todos</Button>
-          <Button icon={<FileDown size={15}/>} onClick={generate} disabled={busy||!employee||!marks.length}>Gerar deste funcionário</Button>
+          <Button variant="secondary" icon={<UsersRound size={16}/>} onClick={()=>setBatchOpen((value)=>!value)} disabled={documentBusy}>Gerar e imprimir todos</Button>
+          <Button icon={<FileDown size={15}/>} onClick={generate} disabled={documentBusy||!employee||!marks.length}>Gerar deste funcionário</Button>
         </div>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10,marginTop:14}}>
-        <div style={{border:'1px solid var(--border)',borderRadius:8,padding:'12px 14px'}}><strong style={{display:'block',fontSize:12}}>Ficha de ponto</strong><small style={{display:'block',marginTop:4,color:'var(--muted)'}}>Uma ficha mensal por colaborador, usando as marcações revisadas.</small></div>
-        <div style={{border:'1px solid var(--border)',borderRadius:8,padding:'12px 14px'}}><strong style={{display:'block',fontSize:12}}>Recibos de benefícios</strong><small style={{display:'block',marginTop:4,color:'var(--muted)'}}>Somente benefícios configurados para assinatura pela empresa, reunidos no PDF mensal do colaborador.</small></div>
-      </div>
+      <ReceiptPolicySelection disabled={busy} onState={policyState}/>
     </Card>
 
     {batchOpen&&<Card className="print-batch-card" style={{marginBottom:14,maxWidth:760,marginLeft:'auto'}}>
-      <div className="card-header" style={{alignItems:'flex-start'}}><div><h2>Documentos em lote</h2><p>Escolha ficha de ponto, recibos ou ambos. Imprimir gera os PDFs selecionados e abre a caixa do Windows; reimprimir apenas envia novamente o mês selecionado, sem duplicar arquivos.</p></div></div>
-      <div style={{display:'grid',gap:10,margin:'14px'}}>
-        <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}><input type="checkbox" checked={printPoint} onChange={(event)=>setPrintPoint(event.target.checked)}/><span><strong>Fichas de ponto</strong><br/><small>Uma ficha mensal para cada colaborador.</small></span></label>
-        <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}><input type="checkbox" checked={printReceipts} onChange={(event)=>setPrintReceipts(event.target.checked)}/><span><strong>Recibos de benefícios</strong><br/><small>Benefícios definidos pela política de recibos da empresa.</small></span></label>
-      </div>
-      <div className="row-actions" style={{justifyContent:'flex-end',flexWrap:'wrap',padding:'0 14px 14px'}}><Button variant="secondary" onClick={()=>setBatchOpen(false)} disabled={busy}>Cancelar</Button><Button variant="secondary" icon={<FileDown size={15}/>} onClick={generateAll} disabled={busy||(!printPoint&&!printReceipts)}>Somente gerar</Button><Button variant="secondary" icon={<RotateCcw size={15}/>} onClick={reprintAll} disabled={busy||(!printPoint&&!printReceipts)}>Reimprimir</Button><Button icon={<Printer size={15}/>} onClick={printAll} disabled={busy||(!printPoint&&!printReceipts)}>Imprimir</Button></div>
+      <div className="card-header" style={{alignItems:'flex-start'}}><div><h2>Documentos em lote</h2><p>Imprimir gera os PDFs da seleção salva acima e abre a caixa do Windows; reimprimir apenas envia novamente o mês selecionado, sem duplicar arquivos.</p></div></div>
+      <p style={{margin:14}}>O lote usa a seleção salva de cada empresa acima, incluindo os benefícios marcados.</p>
+      <div className="row-actions" style={{justifyContent:'flex-end',flexWrap:'wrap',padding:'0 14px 14px'}}><Button variant="secondary" onClick={()=>setBatchOpen(false)} disabled={busy}>Cancelar</Button><Button variant="secondary" icon={<FileDown size={15}/>} onClick={generateAll} disabled={documentBusy}>Somente gerar</Button><Button variant="secondary" icon={<RotateCcw size={15}/>} onClick={reprintAll} disabled={documentBusy}>Reimprimir</Button><Button icon={<Printer size={15}/>} onClick={printAll} disabled={documentBusy}>Imprimir</Button></div>
     </Card>}
 
     {!employee?<Card><Empty title="Selecione um funcionário" description="Escolha um colaborador para revisar as marcações e gerar os documentos da competência."/></Card>:point.loading?<Card><Loading label="Carregando ficha de ponto..."/></Card>:<>

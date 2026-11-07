@@ -26,6 +26,7 @@ const { RhCatalogSourceService } = require('./services/rh-catalog-source-service
 const { RhSourceService } = require('./services/rh-source-service.cjs')
 const { RhDocumentService } = require('./services/rh-document-service.cjs')
 const { TimeService } = require('./services/time-service.cjs')
+const { ReceiptPolicyService } = require('./services/receipt-policy-service.cjs')
 const { ScannerService } = require('./services/scanner-service.cjs')
 const { WorkImportService } = require('./services/work-import-service.cjs')
 const { UniversalImportService } = require('./services/universal-import-service.cjs')
@@ -153,7 +154,7 @@ function createServices() {
     documents: new DocumentService({ db, fileService: files, dialog, dataAccess, moduleStorage }),
     payroll: rh,
     catalog,
-    time,
+    time, receiptPolicy: new ReceiptPolicyService({ dataAccess }),
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db }),
@@ -421,6 +422,8 @@ function registerIpc() {
     return { ...payment, documents, documentError }
   }))
   ipcMain.handle('payroll:pending', envelope(({ competencia }) => services.payroll.pending(competencia)))
+  ipcMain.handle('time:receipt-policy', envelope(() => services.receiptPolicy.get()))
+  ipcMain.handle('time:save-receipt-policy', envelope(payload => services.receiptPolicy.save(payload)))
   ipcMain.handle('time:get', envelope((payload) => services.time.get(payload)))
   ipcMain.handle('time:auto-fill', envelope((payload) => services.time.autoFill(payload)))
   ipcMain.handle('time:save', envelope((payload) => services.time.save(payload)))
