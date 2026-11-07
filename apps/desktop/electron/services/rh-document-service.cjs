@@ -2,7 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { sanitizeName } = require('./file-service.cjs')
 const { employeeIdentityIssues } = require('./employee-identity.cjs')
-const { filterBenefitsByPolicy } = require('./time-service.cjs')
+const { filterBenefitsByPolicy, receiptDocumentSelection } = require('./receipt-policy-service.cjs')
 
 const MONTHS=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
 
@@ -36,24 +36,23 @@ class RhDocumentService {
     }
   }
 
-  async printableCentralEntry(employeeId, competencia, paymentDate) {
+  async printableCentralEntry(employeeId, competencia, paymentDate, payload = {}) {
     const context = await this.centralContext({ funcionario_id: employeeId, competencia })
     const data = { employee: context.employee, point: context.point, marks: context.marks || [] }
     return {
       funcionario_id: context.employee.id,
       nome: context.employee.nome,
       ok: true,
-      pointHtml: this.localTime.pointHtml(data, context.company, context.cargo),
-      receiptHtml: this.localTime.receiptHtml(data, context.company, context.cargo, context.benefits, paymentDate)
+      pointHtml: receiptDocumentSelection(payload, context.company.politica_recibos).point ? this.localTime.pointHtml(data, context.company, context.cargo) : null,
+      receiptHtml: receiptDocumentSelection(payload, context.company.politica_recibos).receipts ? this.localTime.receiptHtml(data, context.company, context.cargo, context.benefits, paymentDate) : null
     }
   }
 
   async generateCentralDocuments(payload) {
-    const pointSelected = payload.point !== false
-    const receiptsSelected = payload.receipts !== false
+    const context = await this.centralContext(payload)
+    const { point: pointSelected, receipts: receiptsSelected } = receiptDocumentSelection(payload, context.company.politica_recibos)
     if (!pointSelected && !receiptsSelected) throw new Error('Selecione fichas de ponto e/ou recibos para gerar.')
 
-    const context = await this.centralContext(payload)
     const data = { employee: context.employee, point: context.point, marks: context.marks || [] }
     const companyName = context.company?.nome_fantasia || context.company?.razao_social || 'Empresa'
     const folders = this.fileService.employeeFolders(context.employee, companyName)
@@ -113,7 +112,7 @@ class RhDocumentService {
     const employees = (await this.centralEmployees()).filter(employee => !selected || selected.has(Number(employee.id)))
     const entries = []
     for (const employee of employees) {
-      try { entries.push(await this.printableCentralEntry(employee.id, payload.competencia, payload.paymentDate)) }
+      try { entries.push(await this.printableCentralEntry(employee.id, payload.competencia, payload.paymentDate, payload)) }
       catch (error) { entries.push({ funcionario_id: employee.id, nome: employee.nome, ok: false, error: error instanceof Error ? error.message : String(error) }) }
     }
     return entries

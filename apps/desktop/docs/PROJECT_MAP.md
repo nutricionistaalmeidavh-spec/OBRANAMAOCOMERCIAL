@@ -263,3 +263,7 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 
 - `src/components/StorageServerSettings.tsx`: reducer para busy/discovery/progresso/confirmações do setup.
 - Web/PWA: `public/field-lifecycle.js` é o owner único dos eventos de render; enhancers apenas se registram.
+
+## Seleção canônica de documentos mensais
+
+`electron/services/receipt-policy-service.cjs` lê e salva a preferência por empresa no campo existente `empresas.politica_recibos`, com JSON versionado (IDs dos benefícios e seleção de ponto/recibos). Políticas legadas por nome continuam válidas. `time:receipt-policy` e `time:save-receipt-policy` expõem a mesma fonte ao componente `ReceiptPolicySelection.tsx`; a seleção não depende da competência. Geração individual, lote e reimpressão usam a política no backend. O lote preserva os estilos isolados e as páginas de cada documento; cada benefício tem seu próprio bloco e assinatura.

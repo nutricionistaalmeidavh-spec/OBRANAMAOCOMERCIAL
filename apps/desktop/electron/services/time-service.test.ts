@@ -26,6 +26,16 @@ function setup(){
 afterEach(()=>{for(const item of created.splice(0)){item.db.close();fs.rmSync(item.dir,{recursive:true,force:true})}})
 
 describe('folha de ponto mensal comercial',()=>{
+  it('preserva os estilos originais isolados e a orientação de cada documento do lote',()=>{
+    const html=buildPrintBatchHtml([{ok:true,pointHtml:'<html><head><style>@page{size:A4 landscape;margin:9mm}body{font-size:9px}.sign{display:grid}</style></head><body><div class="sign">PONTO</div></body></html>',receiptHtml:'<html><head><style>@page{size:A4;margin:14mm}body{font-size:17px}section{border:1.4px solid #333}.signature{width:45%}</style></head><body><section>RECIBO</section></body></html>'}],{point:true,receipts:true})
+    expect(html).toContain('font-size:17px')
+    expect(html).toContain('section{border:1.4px solid #333}')
+    expect(html).toContain('@scope (.print-document-0)')
+    expect(html).toContain('@scope (.print-document-1)')
+    expect(html).toContain('@page documentPage0{size:A4 landscape;margin:9mm}')
+    expect(html).toContain('@page documentPage1{size:A4;margin:14mm}')
+  })
+
   it('preenche todos os dias com variações estáveis e preserva fins de semana',()=>{
     const {employee,time}=setup()
     const first=time.autoFill({funcionario_id:employee.id,competencia:'2026-08'})
@@ -53,7 +63,7 @@ describe('folha de ponto mensal comercial',()=>{
     expect(filterBenefitsByPolicy(rows,'')).toEqual(rows)
   })
 
-  it('gera recibos com vários benefícios juntos e respeita a política da empresa',async()=>{
+  it('preserva um recibo e uma assinatura por benefício, respeitando a política da empresa',async()=>{
     const {db,company,employee,time}=setup()
     db.save('empresas',{...company,politica_recibos:'Café, Vale-alimentação'})
     time.autoFill({funcionario_id:employee.id,competencia:'2026-08'})
@@ -71,7 +81,8 @@ describe('folha de ponto mensal comercial',()=>{
     expect(receipt).toContain('Café')
     expect(receipt).toContain('Vale-alimentação')
     expect(receipt).not.toContain('Vale-transporte')
-    expect((receipt.match(/assinatura/g)||[]).length).toBe(1)
+    expect((receipt.match(/assinatura/g)||[]).length).toBe(2)
+    expect((receipt.match(/<section>/g)||[]).length).toBe(2)
   })
 
   it('gera somente o tipo de documento selecionado',async()=>{
