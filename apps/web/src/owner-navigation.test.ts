@@ -31,6 +31,7 @@ async function mount(){
     if(path==='/api/central/access')return {data:{role:'owner'}};
     if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
     if(path==='/api/owner/license-audit')return {data:{events:licenseEvents}};
+    if(path.startsWith('/api/owner/links-analytics'))return {data:{days:30,timezone:'America/Sao_Paulo',views:4,clicks:2,interactionRate:50,links:[{id:'academy',label:'ArtiSys Academy',clicks:2}],daily:[{date:'2026-11-07',views:4,clicks:2}]}};
     if(path==='/api/owner/companies/c1')return {data:{company:companies[0]}};
     return {data:{companies}};
   });
@@ -60,7 +61,7 @@ describe('Central Artisys owner navigation',()=>{
   it('opens on a compact overview with product cards and operational metrics',async()=>{
     await mount();
     expect(document.querySelector('[data-owner-shell]')).not.toBeNull();
-    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(6);
+    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(7);
     expect(document.body.textContent).toContain('Visão geral');
     expect(document.body.textContent).toContain('Obra na Mão');
     expect(document.body.textContent).toContain('Débora Lactação');
@@ -79,6 +80,15 @@ describe('Central Artisys owner navigation',()=>{
     await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/leads'));
     expect(document.querySelector('[data-owner-view="debora"]')).not.toBeNull();
     expect(document.querySelector('[data-owner-view="obra"]')).not.toBeNull();
+  });
+
+  it('opens visits and clicks in the existing owner panel without a separate admin',async()=>{
+    await mount();
+    clickView('links');
+    expect(document.querySelector('[data-owner-current="links"]')).not.toBeNull();
+    expect(document.querySelector('[data-owner-links-panel]')).not.toBeNull();
+    await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/links-analytics',{days:30}));
+    expect(document.querySelector('[data-owner-links-content]')?.textContent).toContain('ArtiSys Academy');
   });
 
   it('renders only lactation administration for an authorized Débora session',async()=>{
@@ -247,7 +257,7 @@ describe('Central Artisys owner navigation',()=>{
 
     document.querySelector<HTMLButtonElement>('[data-owner-back]')!.click();
     expect(document.querySelector('[data-owner-current="overview"]')).not.toBeNull();
-    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(6);
+    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(7);
     expect(document.querySelectorAll('[data-owner-jump]')).toHaveLength(0);
     expect(document.querySelector('[data-owner-back]')).toBeNull();
     expect(document.getElementById('deboraLicenseForm')).toBeNull();
