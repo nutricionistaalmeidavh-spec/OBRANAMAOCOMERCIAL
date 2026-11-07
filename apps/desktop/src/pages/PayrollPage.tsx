@@ -47,6 +47,8 @@ const overviewMoney=(value:number,group?:string)=>value===0?'—':brl(group==='d
 
 export default function PayrollPage(){
   const [tab,setTab]=useState('overview')
+  const [expanded,setExpanded]=useState(true)
+  const [tableZoom,setTableZoom]=useState(100)
   const { competencia, empresaId, obraId, update, setCompetencia } = useWorkContext()
   const [employee,setEmployee]=useState('')
   const [version,setVersion]=useState(0)
@@ -149,7 +151,7 @@ export default function PayrollPage(){
     if(!data.employees?.length&&!data.company_expenses?.length)return <Card><Empty title="Sem dados nesta competência" description="A visão geral será preenchida a partir da folha e das contas a pagar."/></Card>
     return <Card className="payroll-overview-card">
       <div className="payroll-overview-intro"><div><h2>Visão geral da competência</h2><p>Valores consolidados da folha e das despesas da empresa. Clique em uma célula com valor para ver sua origem.</p></div><span>{competenceLabel(competencia)}</span></div>
-      <div className="payroll-overview-wrap"><table className="payroll-overview-table">
+      <div className="payroll-overview-wrap"><table className="payroll-overview-table" style={{zoom:tableZoom/100}}>
         <thead>
           <tr><th rowSpan={2} className="payroll-overview-sticky">Funcionário / despesa</th>{overviewGroups.map(group=><th key={group.key} colSpan={group.columns.length} className={'overview-group '+group.key}>{group.label}</th>)}<th rowSpan={2} className="overview-total-head">Total funcionário</th><th rowSpan={2} className="overview-cost-head">Custo empresa</th></tr>
           <tr>{overviewGroups.flatMap(group=>group.columns.map(column=><th key={column.key} className={'overview-subhead '+group.key}>{column.label}</th>))}</tr>
@@ -166,6 +168,10 @@ export default function PayrollPage(){
 
   return <>
     <RhMigrationNotice/>
+    <div className={`payroll-display-controls ${expanded?'is-expanded':''}`}>
+      <Button variant="secondary" aria-pressed={expanded} onClick={()=>setExpanded(value=>!value)}>{expanded?'Usar largura padrão':'Ampliar largura'}</Button>
+      {tab==='overview'&&<label className="payroll-zoom-control">Tamanho da planilha <select aria-label="Tamanho da planilha" value={tableZoom} onChange={event=>setTableZoom(Number(event.target.value))}>{[100,125,150,175,200].map(value=><option key={value} value={value}>{value}%</option>)}</select></label>}
+    </div>
     <PageHeader title="Controle de pagamento" description="Folha, benefícios, descontos, encargos e despesas da empresa por competência." actions={tab==='overview'?<div className="header-actions payroll-overview-actions"><Button variant="secondary" icon={<Download size={15}/>} disabled={!!exporting} onClick={()=>exportOverview('xlsx')}>{exporting==='xlsx'?'Exportando...':'Excel'}</Button><Button variant="secondary" icon={<FileText size={15}/>} disabled={!!exporting} onClick={()=>exportOverview('pdf')}>{exporting==='pdf'?'Exportando...':'PDF'}</Button><Button icon={<UploadCloud size={16}/>} onClick={()=>setImportModal(true)}>Importar planilha</Button></div>:tab==='funcionarios'&&employee?<Button icon={<Plus size={16}/>} onClick={()=>{openVariable();setModal(true)}}>Novo variável</Button>:null}/>
     <div className="toolbar payroll-tabs"><Segmented value={tab} onChange={setTab} options={[{value:'overview',label:'Visão geral'},{value:'funcionarios',label:'Funcionários'},{value:'empresa',label:'Encargos da empresa'},{value:'pendentes',label:'Pendentes'}]}/></div>
     {['overview','empresa'].includes(tab)?<Card className="payroll-overview-filter"><Field label="Competência"><input type="month" value={competencia} onChange={event=>setCompetencia(event.target.value)}/></Field><Field label="Empresa"><select value={empresaId} onChange={event=>update({empresaId:event.target.value})}><option value="">Todas</option>{companies.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome_fantasia||item.razao_social}</option>)}</select></Field><Field label="Obra"><select value={obraId} onChange={event=>update({obraId:event.target.value})}><option value="">Todas as obras</option>{works.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field></Card>:<Card className="payroll-filter"><Field label="Funcionário" wide><select value={employee} onChange={event=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option key={item.id} value={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((cargo:any)=>cargo.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><div className="readonly-person">{competenceLabel(competencia)}</div></Field></Card>}
