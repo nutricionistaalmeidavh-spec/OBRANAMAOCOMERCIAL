@@ -28,7 +28,7 @@ describe('Painel de analytics integrado ao owner da Central ArtiSys', () => {
     expect(document.querySelector('.owner-links-metrics')?.textContent).toContain('40');
     expect(document.querySelector('.owner-links-metrics')?.textContent).toContain('20%');
     expect(document.querySelectorAll('.owner-links-chart-day')).toHaveLength(2);
-    expect(document.querySelectorAll('.owner-links-table-scroll table')).toHaveLength(1);
+    expect(document.querySelectorAll('.owner-links-table-scroll table')).toHaveLength(2);
     expect(document.querySelector('a[href="/links/"]')).not.toBeNull();
     expect(document.body.textContent).toContain('não pessoas únicas');
   });
