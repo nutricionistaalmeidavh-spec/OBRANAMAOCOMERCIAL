@@ -128,6 +128,20 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
   });
 
+  it('registra apenas eventos agregados dos destinos, sem alterar hrefs ou exigir serviço externo', () => {
+    const script = read('../public/links/links-analytics.js');
+    expect(html).toContain('src="/links/links-analytics.js" defer');
+    for (const id of ['site-logo', 'site-principal', 'diagnostico', 'academy', 'tiktok', 'whatsapp-social']) {
+      expect(html).toContain('data-link-id="' + id + '"');
+      expect(script).toContain("'" + id + "'");
+    }
+    expect(script).toContain("record({ type: 'view' })");
+    expect(script).toContain('navigator.sendBeacon');
+    expect(script).toContain("document.addEventListener('click'");
+    expect(script).toContain("credentials: 'omit'");
+    expect(script).not.toMatch(/google-analytics|facebook\.com\/tr|hotjar|localStorage|sessionStorage|document\.cookie/);
+  });
+
   it('não substitui a landing, checkout nem interfere na roteirização da API', () => {
     const landing = read('../index.html');
     const workerConfig = read('../wrangler.jsonc');
