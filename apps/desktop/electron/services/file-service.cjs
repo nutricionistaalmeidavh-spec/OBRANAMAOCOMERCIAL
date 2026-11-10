@@ -40,6 +40,16 @@ class FileService {
     const match=String(value||'').match(/^server:\/\/file\/(\d+)$/)
     return match ? Number(match[1]) : null
   }
+  async pendingDocumentFiles() {
+    if(this.documentRoute()!=='remote')return []
+    return this.lanClient.pendingDocumentFiles()
+  }
+  async recoverDocumentBackup() {
+    if(this.documentRoute()!=='remote')throw new Error('Recuperação exige Documentos ativos no servidor.')
+    const result=await dialog.showOpenDialog({title:'Recuperar documentos históricos de um backup ZIP',properties:['openFile'],filters:[{name:'Backup de documentos',extensions:['zip']}]})
+    if(result.canceled||!result.filePaths[0])return null
+    return require('./document-backup-recovery.cjs').recoverDocumentBackup(result.filePaths[0],this.lanClient)
+  }
 
   async chooseSource(title) {
     const result=await dialog.showOpenDialog({ properties:['openFile'], title })

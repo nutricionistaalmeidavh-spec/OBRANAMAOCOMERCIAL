@@ -12,6 +12,12 @@
 
 Última revisão estrutural: 2026-09-29.
 
+Documentos 2 / Desktop 2.1.2: exportação preserva arquivos ausentes com `__content_missing`; o servidor registra `missing://file/<id>`, sem descartar metadados ou vínculos. Migration LAN `028_document_migration_batches.sql` admite lotes Documentos preservando histórico. Rotas autenticadas `GET /api/v1/documents/pending-files` e `POST /api/v1/files/:id/recover` recuperam somente pendências por SHA256, preservando IDs. IPC `documents:pending-files` e `documents:recover-backup`, serviço `document-backup-recovery.cjs` e `DocumentRecoveryNotice.tsx`: seleção nativa de ZIP, leitura limitada sem extração, aviso em Documentos/Configurações. Bytes novos e recuperados ficam no servidor da empresa; esta alteração não adiciona upload de PDFs ao Cloudflare.
+
+Correção 2026-10-06: `module-migration-service.cjs` identifica novas tentativas pelo formato 2 e reconcilia lotes legados incompatíveis somente após backup e confirmação de rollback de lote não commitado. `DataAccessService` permite leitura local explícita de RH em `migration-required`, alinhada à folha; escritas continuam bloqueadas. `RhMigrationNotice.tsx` informa a origem local nas telas RH, funcionários e folha.
+
+O contrato RH 3 inclui `importacoes` e `importacao_linhas` antes da folha, preservando as referências de auditoria `importacao_linha_id`. O servidor remapeia os IDs do histórico importado e mantém IDs de origem em `module_migration_records.source_data_json`. `qa/recover-local-rh.mjs` ensaia a recuperação em cópias consistentes de SQLite; nunca altera bancos de produção.
+
 Este documento é o ponto de partida para alterações. Leia a seção afetada e abra apenas os arquivos diretamente relacionados; evite uma nova varredura global.
 
 ## Visão geral
@@ -255,3 +261,7 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 
 - `src/components/StorageServerSettings.tsx`: reducer para busy/discovery/progresso/confirmações do setup.
 - Web/PWA: `public/field-lifecycle.js` é o owner único dos eventos de render; enhancers apenas se registram.
+
+## Seleção canônica de documentos mensais
+
+`electron/services/receipt-policy-service.cjs` lê e salva a preferência por empresa no campo existente `empresas.politica_recibos`, com JSON versionado (IDs dos benefícios e seleção de ponto/recibos). Políticas legadas por nome continuam válidas. `time:receipt-policy` e `time:save-receipt-policy` expõem a mesma fonte ao componente `ReceiptPolicySelection.tsx`; a seleção não depende da competência. Geração individual, lote e reimpressão usam a política no backend. O lote preserva os estilos isolados e as páginas de cada documento; cada benefício tem seu próprio bloco e assinatura.

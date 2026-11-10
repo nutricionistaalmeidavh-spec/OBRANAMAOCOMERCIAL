@@ -78,11 +78,13 @@ class DataAccessService {
   }
 
   async list(table, filters) {
+    if (this.isPendingLocalRhRead(table)) return this.db.list(table, filters)
     if (this.assertRoute(table) === 'remote') return this.rememberMany(table, await this.remote.list(table, filters))
     return this.db.list(table, filters)
   }
 
   async get(table, id) {
+    if (this.isPendingLocalRhRead(table)) return this.db.get(table, id)
     if (this.assertRoute(table) === 'remote') return this.rememberRevision(table, await this.remote.get(table, id))
     return this.db.get(table, id)
   }
@@ -90,6 +92,11 @@ class DataAccessService {
   async save(table, data) {
     if (this.assertRoute(table) === 'remote') return this.rememberRevision(table, await this.remote.save(table, data))
     return this.db.save(table, data)
+  }
+
+  isPendingLocalRhRead(table) {
+    return this.transportReady() && this.moduleForTable(table) === 'rh' &&
+      this.moduleStorage?.state?.('rh')?.state === 'migration-required'
   }
 
   async remove(table, id, expectedRevision) {

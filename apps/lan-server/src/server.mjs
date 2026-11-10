@@ -64,7 +64,7 @@ function publicCentralBackup(result = {}) {
 const SERVER_CAPABILITIES = Object.freeze({
   version:1,
   modules:['core','operation','planning','finance','rh','documents','summary'],
-  moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:2,documents:1},
+  moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:3,documents:2},
   bridgeEntities:['frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra'],
   features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1']
 })
@@ -483,6 +483,22 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, finance.syncObligations(scope))
       }
 
+      if (url.pathname === '/api/v1/documents/pending-files') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'documents', action:'view' })
+        if (!documents?.pendingFiles) throw new Error('Recuperação documental indisponível neste servidor.')
+        return sendJson(response, 200, documents.pendingFiles())
+      }
+      const recoverFileMatch = url.pathname.match(/^\/api\/v1\/files\/(\d+)\/recover$/)
+      if (recoverFileMatch) {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        const context = await authenticateLanRequest(request, security)
+        authorizeAction(context, { domain:'documents', action:'edit' })
+        if (!documents?.recoverFile) throw new Error('Recuperação documental indisponível neste servidor.')
+        const body = await readJson(request, MAX_DOCUMENT_BODY_BYTES)
+        return sendJson(response, 200, documents.recoverFile(Number(recoverFileMatch[1]),body.contentBase64))
+      }
       if (url.pathname === '/api/v1/documents/upload') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!documents?.store) return sendJson(response, 503, { error:'documents_unavailable', message:'Storage documental central indisponível.' })

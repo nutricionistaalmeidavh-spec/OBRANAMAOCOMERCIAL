@@ -63,6 +63,8 @@
         "funcionario_obras",
         "cargo_beneficios",
         "funcionario_beneficios",
+        "importacoes",
+        "importacao_linhas",
         "folhas_pagamento",
         "folha_lancamentos",
         "pagamentos_funcionario",
@@ -88,8 +90,6 @@
   },
   "localOnly": [
     "configuracoes",
-    "importacoes",
-    "importacao_linhas",
     "perfis_importacao",
     "pastas_vinculadas"
   ],
@@ -117,7 +117,7 @@
     "operation": 2,
     "planning": 2,
     "finance": 2,
-    "rh": 2,
-    "documents": 1
+    "rh": 3,
+    "documents": 2
   }
 }

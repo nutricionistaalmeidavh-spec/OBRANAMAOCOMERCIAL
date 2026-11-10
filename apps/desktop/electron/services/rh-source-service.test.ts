@@ -34,6 +34,13 @@ function fixture(state='local') {
 }
 
 describe('RhSourceService',()=>{
+  it('usa a revisão do contexto documental para preencher funcionário nunca aberto na tela', async()=>{
+    const f=fixture('central-active')
+    f.lanClient.timeDocumentContext.mockResolvedValue({point:{id:31,revision:9}})
+    await f.service.timeDocumentContext({funcionario_id:4,competencia:'2026-10'})
+    await f.service.timeAutoFill({funcionario_id:4,competencia:'2026-10'})
+    expect(f.lanClient.timeAutoFill).toHaveBeenLastCalledWith(expect.objectContaining({expectedRevision:9}))
+  })
   it('preserva folha e ponto locais em modo local ou migration-required', async()=>{
     for(const state of ['local','migration-required']){
       const f=fixture(state)

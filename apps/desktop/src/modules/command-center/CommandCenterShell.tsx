@@ -10,6 +10,13 @@ import { canonicalPath, COMMAND_NAVIGATION_GROUPS, routeClassName, routeMeta } f
 
 export default function CommandCenterShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
+  const [displaySize, setDisplaySize] = useState(() => {
+    try { const value = localStorage.getItem('artisys.commercial.display-size'); return ['100','125','150'].includes(value || '') ? value! : 'auto' } catch { return 'auto' }
+  })
+  const changeDisplaySize = (value: string) => {
+    setDisplaySize(value)
+    try { localStorage.setItem('artisys.commercial.display-size', value) } catch { /* Keep session preference. */ }
+  }
   const [search, setSearch] = useState('')
   const [closedGroups, setClosedGroups] = useState<string[]>([])
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -57,10 +64,11 @@ export default function CommandCenterShell({ children }: { children: ReactNode }
         </button>
       </div>
     </aside>
-    <main className="main-content">
+    <main className="main-content" data-display-size={displaySize}>
       <header className="artisys-topbar">
         <div className="artisys-breadcrumb"><span>{route.section}</span><i>/</i><strong>{route.label}</strong></div>
         <div className="artisys-topbar-actions">
+          <label className="global-display-size">Visualização <select aria-label="Tamanho da interface em todas as páginas" value={displaySize} onChange={event=>changeDisplaySize(event.target.value)}><option value="auto">Automática</option><option value="100">100%</option><option value="125">125%</option><option value="150">150%</option></select></label>
           <GlobalAiAssistant screenLabel={route.label}/>
           <div className="artisys-topbar-status"><span className="artisys-sync-dot"/>ArtiSys Desktop <b>Comercial</b></div>
         </div>

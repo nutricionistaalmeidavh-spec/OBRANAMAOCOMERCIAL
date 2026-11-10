@@ -2,7 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { sanitizeName } = require('./file-service.cjs')
 const { employeeIdentityIssues } = require('./employee-identity.cjs')
-const { filterBenefitsByPolicy } = require('./time-service.cjs')
+const { filterBenefitsByPolicy, receiptDocumentSelection } = require('./receipt-policy-service.cjs')
 
 const MONTHS=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']
 
@@ -23,7 +23,7 @@ class RhDocumentService {
   async centralContext(payload, { autoFill = true } = {}) {
     let context = await this.rh.timeDocumentContext(payload)
     if (autoFill && !context?.marks?.length) {
-      await this.rh.timeAutoFill({ funcionario_id: payload.funcionario_id, competencia: payload.competencia, overwrite: false })
+      await this.rh.timeAutoFill({ funcionario_id: payload.funcionario_id, competencia: payload.competencia, overwrite: false, expectedRevision: context?.point?.revision })
       context = await this.rh.timeDocumentContext(payload)
     }
     if (!context?.employee || !context?.company || !context?.point) throw new Error('Contexto RH central incompleto para geração de documentos.')
@@ -36,24 +36,23 @@ class RhDocumentService {
     }
   }
 
-  async printableCentralEntry(employeeId, competencia, paymentDate) {
+  async printableCentralEntry(employeeId, competencia, paymentDate, payload = {}) {
     const context = await this.centralContext({ funcionario_id: employeeId, competencia })
     const data = { employee: context.employee, point: context.point, marks: context.marks || [] }
     return {
       funcionario_id: context.employee.id,
       nome: context.employee.nome,
       ok: true,
-      pointHtml: this.localTime.pointHtml(data, context.company, context.cargo),
-      receiptHtml: this.localTime.receiptHtml(data, context.company, context.cargo, context.benefits, paymentDate)
+      pointHtml: receiptDocumentSelection(payload, context.company.politica_recibos).point ? this.localTime.pointHtml(data, context.company, context.cargo) : null,
+      receiptHtml: receiptDocumentSelection(payload, context.company.politica_recibos).receipts ? this.localTime.receiptHtml(data, context.company, context.cargo, context.benefits, paymentDate) : null
     }
   }
 
   async generateCentralDocuments(payload) {
-    const pointSelected = payload.point !== false
-    const receiptsSelected = payload.receipts !== false
+    const context = await this.centralContext(payload)
+    const { point: pointSelected, receipts: receiptsSelected } = receiptDocumentSelection(payload, context.company.politica_recibos)
     if (!pointSelected && !receiptsSelected) throw new Error('Selecione fichas de ponto e/ou recibos para gerar.')
 
-    const context = await this.centralContext(payload)
     const data = { employee: context.employee, point: context.point, marks: context.marks || [] }
     const companyName = context.company?.nome_fantasia || context.company?.razao_social || 'Empresa'
     const folders = this.fileService.employeeFolders(context.employee, companyName)
@@ -113,13 +112,35 @@ class RhDocumentService {
     const employees = (await this.centralEmployees()).filter(employee => !selected || selected.has(Number(employee.id)))
     const entries = []
     for (const employee of employees) {
-      try { entries.push(await this.printableCentralEntry(employee.id, payload.competencia, payload.paymentDate)) }
+      try { entries.push(await this.printableCentralEntry(employee.id, payload.competencia, payload.paymentDate, payload)) }
       catch (error) { entries.push({ funcionario_id: employee.id, nome: employee.nome, ok: false, error: error instanceof Error ? error.message : String(error) }) }
     }
     return entries
   }
 
   async generateForAll(payload) {
+    const result = await this.generateBatch(payload)
+    if (!result?.printed || result.canceled || !payload?.print || payload.reprint) return result
+    const payments = []
+    for (const entry of result.results || []) {
+      if (!entry.ok) continue
+      try {
+        const key = { funcionario_id: entry.funcionario_id, competencia: payload.competencia }
+        const current = await this.rh.getEmployee(key)
+        const paid = new Set((current.payments || []).filter(item => item.status === 'pago').map(item => Number(item.quinzena)))
+        const installments = [...new Set((current.launches || []).filter(item => item.status === 'pendente').map(item => Number(item.quinzena)))].filter(item => (item === 1 || item === 2) && !paid.has(item))
+        for (const quinzena of installments) {
+          await this.rh.confirm({ ...key, quinzena, data: payload.paymentDate, observacoes: 'Baixa automática após geração e envio do lote mensal para impressão.' })
+        }
+        payments.push({ funcionario_id: entry.funcionario_id, nome: entry.nome, ok: true, installments })
+      } catch (error) {
+        payments.push({ funcionario_id: entry.funcionario_id, nome: entry.nome, ok: false, error: error instanceof Error ? error.message : String(error) })
+      }
+    }
+    return { ...result, payments }
+  }
+
+  async generateBatch(payload) {
     const state = this.state()
     if (state === 'local' || state === 'migration-required') return this.localTime.generateForAll(payload)
     if (state === 'central-ready') return this.blocked()

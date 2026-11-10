@@ -3,7 +3,7 @@ const MODULE_TABLES = Object.freeze({
   operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
   planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
   finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'],
-  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'],
+  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'importacoes', 'importacao_linhas', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'],
   documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais']
 })
 
@@ -45,7 +45,8 @@ const REF_MAP = Object.freeze({
   cargo_beneficios: { empresa_id: 'empresas', cargo_id: 'cargos', beneficio_id: 'beneficios' },
   funcionario_beneficios: { empresa_id: 'empresas', funcionario_id: 'funcionarios', beneficio_id: 'beneficios' },
   folhas_pagamento: { empresa_id: 'empresas', conta_id: 'contas' },
-  folha_lancamentos: { empresa_id: 'empresas', folha_id: 'folhas_pagamento', funcionario_id: 'funcionarios' },
+  folha_lancamentos: { empresa_id: 'empresas', folha_id: 'folhas_pagamento', funcionario_id: 'funcionarios', importacao_linha_id: 'importacao_linhas' },
+  importacao_linhas: { importacao_id: 'importacoes' },
   pagamentos_funcionario: { empresa_id: 'empresas', funcionario_id: 'funcionarios', folha_id: 'folhas_pagamento' },
   pontos_mensais: { empresa_id: 'empresas', funcionario_id: 'funcionarios' },
   ponto_marcacoes: { empresa_id: 'empresas', ponto_mensal_id: 'pontos_mensais' },
@@ -160,6 +161,13 @@ export class MigrationService {
       }
       clean[field] = Number(mapping.target_id)
     }
+    if (sourceTable === 'importacao_linhas' && clean.entidade_id != null) {
+      const mapping = Object.values(MODULE_TABLES).some(tables => tables.includes(clean.entidade_tipo))
+        ? this.mappingFor(migration.source_fingerprint, clean.entidade_tipo, clean.entidade_id, migration.migration_id)
+        : null
+      // Original source IDs remain in source_data_json; do not attach audit rows to unrelated central IDs.
+      clean.entidade_id = mapping ? Number(mapping.target_id) : null
+    }
     return clean
   }
 
@@ -219,9 +227,12 @@ export class MigrationService {
         if (seeded) { targetId = Number(seeded.id); createdTarget = 0 }
       }
       if (!targetId) {
-        const saved = table === 'arquivos' && data?.__content_base64
-          ? this.fileStorage?.storeFileRecord?.(remapped, data.__content_base64)
-          : this.repository.save(table, remapped)
+        const saved = table === 'arquivos' && data?.__content_missing === true
+          ? this.fileStorage?.storeMissingFileRecord?.(remapped)
+          : table === 'arquivos' && data?.__content_base64
+            ? this.fileStorage?.storeFileRecord?.(remapped, data.__content_base64)
+            : this.repository.save(table, remapped)
+        if (!saved) throw new Error('Storage físico central indisponível para migrar arquivos.')
         if (table === 'arquivos' && data?.__content_base64 && !this.fileStorage?.storeFileRecord) throw new Error('Storage físico central indisponível para migrar arquivos.')
         if (!saved?.id) throw new Error('Registro central não retornou ID.')
         targetId = Number(saved.id)

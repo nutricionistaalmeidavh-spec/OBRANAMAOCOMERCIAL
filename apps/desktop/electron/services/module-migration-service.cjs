@@ -6,14 +6,15 @@ const MODULE_TABLES = Object.freeze({
   operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
   planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
   finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'],
-  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'],
+  rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'importacoes', 'importacao_linhas', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'],
   documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais']
 })
 
-const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:2, operation:2, planning:2, finance:2, rh:2, documents:1 })
+const MODULE_CONTRACT_VERSIONS = Object.freeze({ core:2, operation:2, planning:2, finance:2, rh:3, documents:2 })
 
 const SOURCE_KEY = 'migration_source_fingerprint'
 const ATTEMPT_PREFIX = 'module_migration_attempt_'
+const MIGRATION_FORMAT_VERSION = 2
 
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical)
@@ -202,10 +203,11 @@ class ModuleMigrationService {
   }
 
   normalizeExportRow(module, table, row) {
+    if (table === 'importacoes' || table === 'importacao_linhas') return { ...row }
     if (module === 'rh') return { ...row, empresa_id: this.resolveLegacyRhCompanyId(table, row) }
     if (module === 'documents' && table === 'arquivos') {
       const filePath=String(row?.caminho||'')
-      if(!filePath||!fs.existsSync(filePath))throw new Error(`Arquivo local #${row?.id ?? '?'} não foi encontrado para migração documental.`)
+      if(!filePath||!fs.existsSync(filePath))return { ...row, __content_missing:true }
       const stat=fs.statSync(filePath)
       if(!stat.isFile())throw new Error(`Caminho do arquivo #${row?.id ?? '?'} não aponta para um arquivo válido.`)
       if(stat.size>25*1024*1024)throw new Error(`Arquivo ${row?.nome_original||row?.id} excede 25 MB e precisa ser tratado antes da migração.`)
@@ -310,6 +312,22 @@ class ModuleMigrationService {
     const sourceDataHash = digest({ module, records: hashableMigrationRecords(exported.records) })
     let attempt = this.readAttempt(module)
 
+    // Old exports used a different entity graph and RH company normalization.
+    // Recover only unfinished legacy batches; never discard committed data.
+    if (attempt && !attempt.formatVersion && attempt.sourceFingerprint === sourceFingerprint &&
+        (JSON.stringify(attempt.expectedCounts) !== JSON.stringify(exported.counts) || attempt.sourceDataHash !== sourceDataHash)) {
+      await this.backup.createSafetySnapshot({ reason: 'legacy-migration-recovery', module, migrationId: attempt.migrationId, appVersion: this.appVersion })
+      const remote = await this.lanClient.migrationStatus(attempt.migrationId)
+      if (['started', 'validated'].includes(remote?.status)) {
+        const reverted = await this.lanClient.migrationRollback(attempt.migrationId)
+        if (reverted?.status !== 'rolled_back') throw new Error('A tentativa antiga não confirmou o rollback; a migração foi preservada para recuperação.')
+      } else if (remote?.status !== 'rolled_back') {
+        throw new Error('A tentativa antiga não está pendente no servidor. Reconcilie seu estado antes de iniciar uma nova migração.')
+      }
+      this.clearAttempt(module)
+      attempt = null
+    }
+
     if (attempt) {
       const sameSource = attempt.sourceFingerprint === sourceFingerprint
       const sameCounts = JSON.stringify(attempt.expectedCounts) === JSON.stringify(exported.counts)
@@ -326,6 +344,7 @@ class ModuleMigrationService {
       attempt = {
         migrationId,
         module,
+        formatVersion: MIGRATION_FORMAT_VERSION,
         sourceFingerprint,
         sourceDataHash,
         expectedCounts: exported.counts,

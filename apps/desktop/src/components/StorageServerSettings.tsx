@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, ChevronDown, Circle, LoaderCircle, RefreshCw, RotateCcw, Search, Server, ShieldCheck, Unplug, Wifi } from 'lucide-react'
 import { useEffect, useMemo, useReducer, useState } from 'react'
+import { DocumentRecoveryNotice } from './DocumentRecoveryNotice'
 import { useAsync } from '../hooks/useAsync'
 import { Button, Card, Confirm, Field, Status } from './ui'
 
@@ -394,6 +395,7 @@ export default function StorageServerSettings({onMessage}:Props){
 
   return <>
     <Card className="setting-card setting-card-feature storage-setup-card">
+      <DocumentRecoveryNotice active={isServerMode && modules.documents?.state==='central-active'}/>
       <div className="storage-setup-head">
         <div className="storage-setup-title"><span className="storage-setup-icon"><Server size={20}/></span><div><h3>Como sua empresa usa o Obra na Mão?</h3><p>Escolha o cenário de uso. O sistema cuida da configuração e mantém as opções técnicas separadas.</p></div></div>
         <span className={`storage-overall-status ${setupReady?'is-ready':progress.stage==='error'?'is-error':''}`}>{statusIcon}{statusTitle}</span>

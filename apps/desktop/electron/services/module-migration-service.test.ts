@@ -4,6 +4,12 @@ import { describe, expect, it, vi } from 'vitest'
 const require = createRequire(import.meta.url)
 const { ModuleMigrationService } = require('./module-migration-service.cjs')
 
+it('preserva metadados de arquivo histórico ausente como pendência documental', () => {
+  const service = Object.create(ModuleMigrationService.prototype)
+  const row = { id:59, caminho:'C:/nao-existe/recibo.pdf', nome_original:'recibo.pdf', hash:'a'.repeat(64) }
+  expect(service.normalizeExportRow('documents','arquivos',row)).toEqual({ ...row, __content_missing:true })
+})
+
 function fixture({mode='lan-host', module='core', moduleState='migration-required', coreState='central-active', capabilities=['core','operation','planning','finance','rh','documents'], rows=null as any}={}) {
   const config = new Map<string,string>()
   const data:any = rows || { empresas:[{id:1,razao_social:'A'}], clientes:[], obras:[] }
@@ -23,7 +29,7 @@ function fixture({mode='lan-host', module='core', moduleState='migration-require
   const calls:any[]=[]
   const expectedCounts=()=>Object.fromEntries(Object.entries(data).map(([table,items]:any)=>[table,items.length]))
   const lanClient:any={
-    syncSourceCapabilities:vi.fn(async()=>({modules:capabilities,moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:2,documents:1}})),
+    syncSourceCapabilities:vi.fn(async()=>({modules:capabilities,moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:3,documents:1}})),
     migrationStart:vi.fn(async(input:any)=>{calls.push(['start',input]);return {status:'started',...input}}),
     migrationRecord:vi.fn(async(id:string,record:any)=>{calls.push(['record',id,record]);return {targetId:record.sourceId,reused:false}}),
     migrationValidate:vi.fn(async(id:string)=>{calls.push(['validate',id]);return {status:'validated',sanityOk:true}}),
@@ -42,6 +48,43 @@ function fixture({mode='lan-host', module='core', moduleState='migration-require
 }
 
 describe('ModuleMigrationService',()=>{
+  function legacyFixture() {
+    const f=fixture()
+    f.config.set('module_migration_attempt_core',JSON.stringify({migrationId:'legacy',sourceFingerprint:'source-1',expectedCounts:{empresas:1},sourceDataHash:'old-export',status:'failed'}))
+    return f
+  }
+
+  it.each(['started','validated','rolled_back'])('recupera lote legado %s com backup e novo contrato',async(status)=>{
+    const f=legacyFixture()
+    f.lanClient.migrationStatus.mockResolvedValueOnce({status})
+    await expect(f.service.migrate('core')).resolves.toMatchObject({status:'committed',migrationId:'mig-1'})
+    expect(f.calls[0][0]).toBe('backup')
+    expect(f.backup.createSafetySnapshot.mock.calls[0][0].reason).toBe('legacy-migration-recovery')
+    if(status!=='rolled_back') expect(f.lanClient.migrationRollback).toHaveBeenCalledWith('legacy')
+    expect(f.config.has('module_migration_attempt_core')).toBe(false)
+  })
+
+  it.each(['committed','unknown'])('preserva lote legado %s sem rollback nem nova escrita',async(status)=>{
+    const f=legacyFixture()
+    f.lanClient.migrationStatus.mockResolvedValueOnce({status})
+    await expect(f.service.migrate('core')).rejects.toThrow(/reconcilie/i)
+    expect(f.lanClient.migrationRollback).not.toHaveBeenCalled()
+    expect(f.lanClient.migrationStart).not.toHaveBeenCalled()
+    expect(f.config.has('module_migration_attempt_core')).toBe(true)
+  })
+
+  it('não esquece lote antigo se backup ou confirmação do rollback falharem',async()=>{
+    const f=legacyFixture()
+    f.backup.createSafetySnapshot.mockRejectedValueOnce(new Error('backup indisponível'))
+    await expect(f.service.migrate('core')).rejects.toThrow(/backup/)
+    expect(f.lanClient.migrationStatus).not.toHaveBeenCalled()
+    f.lanClient.migrationStatus.mockResolvedValueOnce({status:'started'})
+    f.lanClient.migrationRollback.mockResolvedValueOnce({status:'started'})
+    await expect(f.service.migrate('core')).rejects.toThrow(/confirmou o rollback/)
+    expect(f.config.has('module_migration_attempt_core')).toBe(true)
+    expect(f.lanClient.migrationStart).not.toHaveBeenCalled()
+  })
+
   it('remote usa o mesmo protocolo de migração central sem motor paralelo',async()=>{
     const remote=fixture({mode:'remote'})
     await expect(remote.service.preflight('core')).resolves.toMatchObject({canMigrate:true,capability:true})
