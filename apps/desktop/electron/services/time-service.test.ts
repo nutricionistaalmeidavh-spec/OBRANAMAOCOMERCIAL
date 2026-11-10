@@ -26,6 +26,15 @@ function setup(){
 afterEach(()=>{for(const item of created.splice(0)){item.db.close();fs.rmSync(item.dir,{recursive:true,force:true})}})
 
 describe('folha de ponto mensal comercial',()=>{
+  it('data o recibo no dia 05 da competência mesmo quando gerado em outro mês',()=>{
+    const {time,employee,company,cargo}=setup()
+    for(const competencia of ['2026-09','2027-01']){
+      const html=time.receiptHtml({employee,point:{competencia}},company,cargo,[{descricao:'Café',valor_centavos:18000}],'2026-11-10')
+      const [year,month]=competencia.split('-')
+      expect(html).toContain(`Data: 05/${month}/${year}`)
+      expect(html).not.toContain('Data: 10/11/2026')
+    }
+  })
   it('preserva os estilos originais isolados e a orientação de cada documento do lote',()=>{
     const html=buildPrintBatchHtml([{ok:true,pointHtml:'<html><head><style>@page{size:A4 landscape;margin:9mm}body{font-size:9px}.sign{display:grid}</style></head><body><div class="sign">PONTO</div></body></html>',receiptHtml:'<html><head><style>@page{size:A4;margin:14mm}body{font-size:17px}section{border:1.4px solid #333}.signature{width:45%}</style></head><body><section>RECIBO</section></body></html>'}],{point:true,receipts:true})
     expect(html).toContain('font-size:17px')

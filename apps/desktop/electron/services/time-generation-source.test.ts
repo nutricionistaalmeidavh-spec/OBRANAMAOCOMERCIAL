@@ -56,7 +56,6 @@ describe('RH document generation source',()=>{
     expect(reprint[0].pointHtml).toBeNull()
     expect(reprint[0].receiptHtml).toBeTruthy()
   })
-
   it('baixa as duas quinzenas somente após impressão aceita e preserva parcelas já pagas', async()=>{
     const f=centralFixture()
     const getEmployee=vi.fn(async()=>({payments:[{quinzena:1,status:'pago'}],launches:[{quinzena:1,status:'pago'},{quinzena:2,status:'pendente'}]}))

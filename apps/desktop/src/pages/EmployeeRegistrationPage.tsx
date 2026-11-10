@@ -37,7 +37,7 @@ export default function EmployeeRegistrationPage(){
     setSaving(true)
     try{
       const employee=await window.fluxoDre.funcionarios.save({...form,empresa_id:form.empresa_id?Number(form.empresa_id):null,obra_atual_id:form.obra_atual_id?Number(form.obra_atual_id):null,cargo_id:form.cargo_id?Number(form.cargo_id):null,salario_centavos:toCents(form.salario),vale_transporte_opcao:Number(form.vale_transporte_opcao),fgts_optante:Number(form.fgts_optante)})
-      setForm((current:any)=>({...current,id:employee.id}));return employee
+      setForm((current:any)=>({...current,id:employee.id,revision:employee.revision}));return employee
     }finally{setSaving(false)}
   }
   const next=()=>{if(step===0){const error=validateIdentity();if(error)return setMessage(error)}if(step===2&&(!form.empresa_id||!form.cargo_id))return setMessage('Selecione empresa e cargo.');setMessage('');setStep(Math.min(4,step+1))}
