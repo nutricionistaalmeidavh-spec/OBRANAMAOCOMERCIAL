@@ -24,7 +24,7 @@ describe('seleção canônica de documentos e recibos',()=>{
  })
  it('não grava benefícios de outra empresa e não converte preferências corrompidas em imprimir tudo',async()=>{
   const dataAccess={get:async()=>({id:9}),list:async()=>benefits,save:vi.fn()}
-  await expect(new ReceiptPolicyService({dataAccess}).save({companyId:9,benefitIds:[2]})).rejects.toThrow('inválido')
+  await expect(new ReceiptPolicyService({dataAccess}).save({companyId:9,benefitIds:[2],point:true,receipts:true})).rejects.toThrow('inválido')
   expect(dataAccess.save).not.toHaveBeenCalled()
   expect(()=>filterBenefitsByPolicy(benefits,'{inválido')).toThrow('inválida')
  })

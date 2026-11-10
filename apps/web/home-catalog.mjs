@@ -43,5 +43,8 @@ export function injectHomeCatalogSection(html) {
   let output = html;
   if (!output.includes('/sistemas/home-catalog.css')) output = output.replace(/<\/head>/i, '<link rel="stylesheet" href="/sistemas/home-catalog.css">\n</head>');
   if (!output.includes('href="#sistemas-catalogo"')) output = output.replace('<a href="#servicos">Soluções</a>', '<a href="#servicos">Soluções</a><a href="#sistemas-catalogo">Sistemas</a>');
+  // Keep the contact CTA truly last; the generated catalog belongs before it.
+  const contactMarker = '<section class="contact-section"';
+  if (output.includes(contactMarker)) return output.replace(contactMarker, `${renderHomeCatalogSection()}\n${contactMarker}`);
   return output.replace(/<\/main>/i, `${renderHomeCatalogSection()}\n</main>`);
 }

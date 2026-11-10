@@ -1,0 +1,73 @@
+name: Windows installer preservation and recovery
+on:
+  push:
+    branches: ['fix/windows-update-data-preservation-20261016']
+    paths: ['apps/desktop/**', 'apps/lan-server/**', 'packages/**']
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install desktop dependencies
+        working-directory: apps/desktop
+        run: npm ci --workspaces=false --no-audit --no-fund
+      - name: Lint desktop
+        working-directory: apps/desktop
+        run: npm run lint
+      - name: Full desktop suite
+        working-directory: apps/desktop
+        run: npm test
+      - name: LAN regression suite
+        run: npm --prefix apps/lan-server test
+      - name: Build corrected Windows EXE
+        working-directory: apps/desktop
+        run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-2.1.3-Windows-candidate
+          path: |
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.3.exe
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/latest.yml
+          if-no-files-found: error
+          retention-days: 90
+  install-over:
+    needs: package
+    runs-on: windows-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [inside-canonical, inside-nested, inside-stale, broken-share, external-canonical]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-2.1.3-Windows-candidate
+          path: ${{ runner.temp }}/obra-fixed-release
+      - name: Real installer upgrade and install-over regression
+        shell: pwsh
+        env:
+          CI_UPDATE_VERSION: '2.1.3'
+        run: ./scripts/ci/windows-install-over.ps1 -Scenario '${{ matrix.scenario }}' -Release "$env:RUNNER_TEMP/obra-fixed-release"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: install-over-${{ matrix.scenario }}
+          path: ${{ runner.temp }}/obra-install-over/evidence/
+          if-no-files-found: warn
+          retention-days: 30

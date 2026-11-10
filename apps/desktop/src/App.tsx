@@ -30,6 +30,7 @@ import FrontsPage from './pages/FrontsPage'
 import ContractsPage from './pages/ContractsPage'
 import TasksPage from './pages/TasksPage'
 import { DesktopLogin } from './components/DesktopLogin'
+import DocumentRootRecoveryNotice from './components/DocumentRootRecoveryNotice'
 import { LEGACY_ROUTE_ALIASES, ROUTES } from './routes/registry'
 
 export default function App() {
@@ -75,7 +76,7 @@ export default function App() {
   const FinancePage = isClassic ? ClassicFinancePage : CommandCenterFinancePage
 
   return <>
-    <ErrorBoundary><WorkContextProvider><Shell><RouteBoundary><Routes>
+    <ErrorBoundary><WorkContextProvider><Shell><DocumentRootRecoveryNotice/><RouteBoundary><Routes>
       <Route path={ROUTES.dashboard} element={<DashboardPage/>}/>
       <Route path={ROUTES.ai} element={<AiAssistantPage/>}/>
       <Route path={ROUTES.dre} element={<DrePage/>}/>

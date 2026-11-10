@@ -12,6 +12,7 @@ export type RuntimeEnv = {
   ASAAS_API_BASE_URL?: string;
   ASAAS_WEBHOOK_TOKEN?: string;
   OWNER_EMAIL?: string;
+  DEBORA_CENTRAL_EMAIL?: string;
   OWNER_COMPANY?: string;
   OWNER_PROJECT?: string;
   OWNER_CUSTOMER?: string;
@@ -25,7 +26,7 @@ export type RouterContext = {
   user?: AuthUser;
 };
 export type RouterResponse = Response;
-type Middleware = (ctx:RouterContext)=>Promise<Response|void>|Response|void;
+export type Middleware = (ctx:RouterContext)=>Promise<Response|void>|Response|void;
 export type RouterRoutes = Record<string, readonly Middleware[] | Middleware[]>;
 
 const runtime = new AsyncLocalStorage<{env:RuntimeEnv;request:Request}>();

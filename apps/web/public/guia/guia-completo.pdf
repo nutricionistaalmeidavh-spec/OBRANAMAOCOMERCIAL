@@ -1,0 +1,2097 @@
+%PDF-1.4
+%Artisys Web Edition
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 40 /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R 38 0 R 40 0 R 42 0 R 44 0 R 46 0 R 48 0 R 50 0 R 52 0 R 54 0 R 56 0 R 58 0 R 60 0 R 62 0 R 64 0 R 66 0 R 68 0 R 70 0 R 72 0 R 74 0 R 76 0 R 78 0 R 80 0 R 82 0 R 84 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 2148 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (COMECE POR AQUI  /  01) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (PLAYBOOK PR\301TICO * VOL. 01) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 631.6 Tm (DO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 619.2 Tm (PROMPT) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 606.8 Tm (AO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 594.4 Tm (SOFTWARE.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 582.0 Tm (Transforme uma ideia em um sistema funcionando) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 569.6 Tm (com agentes de IA, Git, testes e deploy.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 549.2 Tm (Sem depender de APIs pagas para seguir o caminho principal.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 528.8 Tm (pipeline / app-preview) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 508.4 Tm (> agente: implementar MVP) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 488.0 Tm (> testes: 12 aprovados) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 467.6 Tm (> git: revis\343o conclu\355da) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 447.2 Tm (BUILD APROVADO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 426.8 Tm (DEPLOY OPCIONAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 406.4 Tm (IDEIA -> ESCOPO -> AGENTE -> GIT -> CI -> PRODU\307\303O) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (01 / 40) Tj ET
+
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 3682 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (COMECE POR AQUI  /  02) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (A IA ACELERA. CRIT\311RIO CONSTR\323I.) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (P O R Q U E E S T E G U I A E X I S T E) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 631.6 Tm (A IA ACELERA.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 619.2 Tm (CRIT\311RIO CONSTR\323I.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 598.8 Tm (Construir software n\343o come\347a escolhendo a linguagem. Come\347a) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 586.4 Tm (entendendo o problema que precisa desaparecer do dia a dia de) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 574.0 Tm (algu\351m.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 561.6 Tm (Nos projetos da Artisys, agentes de IA ajudam a transformar demandas em) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 549.2 Tm (requisitos, comparar arquiteturas, produzir c\363digo, revisar mudan\347as e investigar) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 536.8 Tm (falhas. S\363 que o resultado depende de decis\365es, testes e acompanhamento) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 524.4 Tm (humano.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 504.0 Tm (O QUE VOC\312 VAI APRENDER) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 483.6 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 463.2 Tm (PENSAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 442.8 Tm (Investigar concorrentes,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 430.4 Tm (definir escopo e escolher a) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 418.0 Tm (arquitetura certa.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 397.6 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 377.2 Tm (CONSTRUIR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 356.8 Tm (Orientar agentes, trabalhar) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 344.4 Tm (com Git e manter o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 332.0 Tm (hist\363rico do projeto.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 311.6 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 291.2 Tm (ENTREGAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 270.8 Tm (Criar testes, entender o CI) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 258.4 Tm (e publicar com controle de) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 246.0 Tm (vers\365es.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 225.6 Tm (NOSSO COMPROMISSO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 203.8 Tm (Ferramentas gratuitas no n\372cleo. Servi\347os de terceiros e assinaturas aparecem) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 191.4 Tm (apenas como) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 179.0 Tm (alternativas expl\355citas, com limites e custos.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (02 / 40) Tj ET
+
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 3498 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (COMECE POR AQUI  /  03) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (DA IDEIA AO DEPLOY) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (UM PROCESSO COMPLETO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 631.6 Tm (DA IDEIA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 619.2 Tm (AO DEPLOY.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 606.8 Tm (O agente participa de cada etapa. Git registra o trabalho. Testes protegem o) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 594.4 Tm (resultado. Voc\352 mant\351m o controle.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 574.0 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 561.6 Tm (DESCOBERTA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 549.2 Tm (Problema + pesquisa de concorrentes) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 528.8 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 516.4 Tm (ESPECIFICA\307\303O) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 504.0 Tm (Escopo, MVP e crit\351rios de aceite) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 483.6 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 471.2 Tm (ARQUITETURA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 458.8 Tm (Stack, riscos e custo m\355nimo) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 438.4 Tm (04) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 426.0 Tm (IMPLEMENTA\307\303O) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 413.6 Tm (Agente + c\363digo + Git e revis\343o) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 393.2 Tm (05) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 380.8 Tm (VALIDA\307\303O) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 368.4 Tm (Testes, GitHub Actions e corre\347\365es) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 348.0 Tm (06) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 335.6 Tm (PUBLICA\307\303O) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 323.2 Tm (Deploy, monitoramento e evolu\347\343o) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 302.8 Tm (COMO ESTE VOLUME EST\301 ORGANIZADO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 282.4 Tm (01-10) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 270.0 Tm (Planejar) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 249.6 Tm (11-20) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 237.2 Tm (Agentes + Git) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 216.8 Tm (21-30) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 204.4 Tm (CI + stack) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 184.0 Tm (31-40) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 171.6 Tm (Casos + oficina) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (03 / 40) Tj ET
+
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 3496 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (COMECE POR AQUI  /  04) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (VOC\312 N\303O PRECISA COME\307AR PAGANDO.) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (VOC\312 N\303O PRECISA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (COME\307AR PAGANDO.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 627.2 Tm (O objetivo \351 construir um sistema que funcione. Escolha a rota de acordo com seu) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 614.8 Tm (computador, necessidade de publicar e n\355vel de autonomia.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 594.4 Tm (A LOCAL + OPEN SOURCE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 582.0 Tm (N\332CLEO R$ 0) Tj ET
+0.933 0.906 0.973 rg 47.0 500.1 501.0 72.5 re f
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 561.6 Tm (Git local, testes, editor e ferramentas livres. Agente com modelo local) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 551.1 Tm (compat\355vel,) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 540.6 Tm (se o hardware permitir.) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 530.1 Tm (Sem assinatura ou API paga. M\341quina, energia e internet continuam tendo) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 519.6 Tm (custos reais.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 494.1 Tm (B SERVI\307OS FREE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 481.7 Tm (OPCIONAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 461.3 Tm (GitHub Free e hospedagem de frontend est\341tico no Cloudflare Pages ou GitHub) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 448.9 Tm (Pages.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 436.5 Tm (Plataformas de terceiros: planos, cotas e regras podem mudar. N\343o s\343o self-hosted.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 416.1 Tm (C ASSISTIDO POR IA PAGA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 403.7 Tm (OPCIONAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 383.3 Tm (ChatGPT/Codex, Claude ou modelos em API para acelerar pesquisa,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 370.9 Tm (implementa\347\343o e revis\343o.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 358.5 Tm (Nunca indispens\341vel. Exige conferir pre\347o, permiss\365es, limites e cobran\347a.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 338.1 Tm (REGRA DO GUIA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 316.3 Tm (Sempre separar: software open source de R$ 0, servi\347o com plano gratuito e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 303.9 Tm (ferramenta comercial.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 291.5 Tm (Nenhum custo pago entra escondido no tutorial.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (04 / 40) Tj ET
+
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 15 0 R >>
+endobj
+15 0 obj
+<< /Length 4095 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (ESCOPO E ARQUITETURA  /  05) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (QUAL PROBLEMA VAMOS RESOLVER?) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (Um sistema s\363 vale o esfor\347o quando elimina uma tarefa, diminui erros ou melhora) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.8 Tm (uma decis\343o. O agente de IA come\347a perguntando, n\343o programando.) Tj ET
+BT /F2 9.22 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.8 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 598.5 Tm (Caso did\341tico: um pequeno com\351rcio precisa registrar entradas e sa\355das sem) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 586.3 Tm (depender de uma) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 574.2 Tm (planilha compartilhada.) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 554.2 Tm (01) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 534.2 Tm (OBSERVE) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 514.2 Tm (Quem executa a tarefa hoje?) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 502.0 Tm (Onde h\341 retrabalho, perda de) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 489.8 Tm (informa\347\343o e confer\352ncia) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 477.7 Tm (manual?) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 457.7 Tm (02) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 437.7 Tm (DEFINA) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 417.7 Tm (Registre p\372blico, situa\347\343o) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 405.5 Tm (atual, resultado esperado e) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 393.4 Tm (uma m\351trica simples de) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 381.2 Tm (sucesso.) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 361.2 Tm (03) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 341.2 Tm (RECORTE) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 321.2 Tm (O primeiro produto deve) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 309.1 Tm (resolver um fluxo inteiro, n\343o) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 296.9 Tm (vinte funcionalidades) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 284.7 Tm (incompletas.) Tj ET
+BT /F2 9.22 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 264.7 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 243.4 Tm ("Voc\352 \351 analista de produto. Fa\347a at\351 8 perguntas sobre o problema. Depois crie) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 231.2 Tm (problema, p\372blico,) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 219.1 Tm (objetivo, riscos e m\351trica. N\343o escreva c\363digo.") Tj ET
+BT /F2 9.22 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 199.1 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 177.7 Tm (R$ 0: conversa local com modelo compat\355vel ou) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 165.5 Tm (formul\341rio Markdown; nenhuma API \351 necess\341ria.) Tj ET
+BT /F2 9.22 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 145.5 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 124.2 Tm (Confirme o problema com uma pessoa que executa a) Tj ET
+BT /F1 10.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 112.0 Tm (tarefa antes de aprovar o escopo.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (05 / 40) Tj ET
+
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 17 0 R >>
+endobj
+17 0 obj
+<< /Length 3662 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (ESCOPO E ARQUITETURA  /  06) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (CONCORRENTES: O QUE OBSERVAR?) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Usar IA para pesquisar concorrentes acelera a organiza\347\343o das informa\347\365es, mas n\343o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (transforma suposi\347\365es em fatos. Cada descoberta precisa de fonte e data.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (Pesquise solu\347\365es compar\341veis pela necessidade atendida, n\343o s\363 por nomes famosos) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (no setor.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 564.6 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 552.2 Tm (MAPEIE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 539.8 Tm (Liste 5 solu\347\365es. Para cada uma, anote p\372blico, funcionalidades centrais, modelo) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 527.4 Tm (de acesso e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 515.0 Tm (limita\347\365es.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 494.6 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 482.2 Tm (COMPARE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 469.8 Tm (Marque fun\347\365es comuns, diferenciais reais e problemas que permanecem sem solu\347\343o.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 449.4 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 437.0 Tm (PRIORIZE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 424.6 Tm (Escolha funcionalidades pelo impacto no usu\341rio, n\343o pela quantidade de telas do) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 412.2 Tm (concorrente.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 391.8 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 370.0 Tm ("Compare [segmento] para [p\372blico]. Crie matriz com funcionalidade, fonte, data,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 357.6 Tm (evid\352ncia e incerteza.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 345.2 Tm (Separe fatos de hip\363teses.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 324.8 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 303.0 Tm (R$ 0: sites p\372blicos, documenta\347\343o e planilha local;) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 290.6 Tm (agente local ajuda a sintetizar textos fornecidos.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 270.2 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 248.4 Tm (N\343o invente pre\347os, avalia\347\365es nem acesso a recursos) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 236.0 Tm (internos. Valide informa\347\365es nas fontes originais.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (06 / 40) Tj ET
+
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 19 0 R >>
+endobj
+19 0 obj
+<< /Length 3769 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (ESCOPO E ARQUITETURA  /  07) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (UM PRD QUE CABE NO PROJETO) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (O PRD \351 um acordo sobre o que ser\341 constru\355do. Serve como contexto persistente) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.6 Tm (para pessoas e agentes de IA durante a implementa\347\343o.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 597.4 Tm (Um bom PRD cabe na pasta docs/ e pode ser atualizado por vers\343o ou decis\343o.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 577.0 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 556.6 Tm (CONTEXTO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 536.2 Tm (Descreva problema, p\372blico,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 523.8 Tm (hip\363teses, meta mensur\341vel e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 511.4 Tm (fluxo principal de uso.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 491.0 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 470.6 Tm (REGRAS) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 450.2 Tm (Documente estados, c\341lculos,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 437.8 Tm (valida\347\365es, permiss\365es e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 425.4 Tm (depend\352ncias externas.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 405.0 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 384.6 Tm (FRONTEIRAS) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 364.2 Tm (Registre o que n\343o ser\341) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 351.8 Tm (desenvolvido no MVP e as) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 339.4 Tm (d\372vidas ainda abertas.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 319.0 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 297.2 Tm ("Escreva docs/PRD.md com vis\343o, personas, fluxos, requisitos funcionais e n\343o) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 284.8 Tm (funcionais, riscos e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 272.4 Tm (n\343o-escopo. Marque perguntas pendentes.") Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 252.0 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 230.2 Tm (R$ 0: Markdown no reposit\363rio Git; modelos e editores) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 217.8 Tm (livres, sem plataforma propriet\341ria obrigat\363ria.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 197.4 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 175.6 Tm (Pe\347a a outra pessoa que encontre ambiguidades;) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 163.2 Tm (nenhuma regra cr\355tica deve depender apenas de) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 150.8 Tm (interpreta\347\343o da IA.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (07 / 40) Tj ET
+
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 21 0 R >>
+endobj
+21 0 obj
+<< /Length 3779 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (ESCOPO E ARQUITETURA  /  08) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (MVP E CRIT\311RIOS DE ACEITE) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (A frase "cadastro de produtos" n\343o basta. \311 necess\341rio dizer o que acontece em) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (casos normais, inv\341lidos e nas bordas do processo.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (Exemplo: impedir sa\355da de estoque acima do saldo dispon\355vel e exibir a raz\343o da) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (recusa.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 564.6 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 544.2 Tm (HIST\323RIAS) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 523.8 Tm (Como operador, quero lan\347ar) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 511.4 Tm (uma entrada para manter o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 499.0 Tm (saldo correto.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 478.6 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 458.2 Tm (ACEITE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 437.8 Tm (Dado saldo 2, quando retiro 3,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 425.4 Tm (ent\343o o sistema deve bloquear) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 413.0 Tm (e explicar.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 392.6 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 372.2 Tm (FATIAS) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 351.8 Tm (Implemente cadastrar ->) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 339.4 Tm (movimentar -> consultar;) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 327.0 Tm (relat\363rios sofisticados ficam) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 314.6 Tm (para depois.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 294.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 272.4 Tm ("Converta o PRD em at\351 6 hist\363rias independentes com Given/When/Then, caso de erro) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 260.0 Tm (e teste) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 247.6 Tm (observ\341vel. N\343o acrescente fun\347\365es novas.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 227.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 205.4 Tm (R$ 0: issues Markdown, teste local e acompanhamento) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 193.0 Tm (no pr\363prio reposit\363rio.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 172.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 150.8 Tm (Crit\351rio de aceite deve ser verific\341vel por um teste ou) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 138.4 Tm (por execu\347\343o manual reproduz\355vel.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (08 / 40) Tj ET
+
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 23 0 R >>
+endobj
+23 0 obj
+<< /Length 3465 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (ESCOPO E ARQUITETURA  /  09) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (SCRIPT, DESKTOP, WEB OU PWA?) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (Nem toda necessidade pede SaaS. A arquitetura deve combinar conex\343o, usu\341rios,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.6 Tm (equipamentos e manuten\347\343o - n\343o seguir modismos.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 597.4 Tm (Decida onde os dados ficam, como s\343o acessados e o que acontece quando a internet) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 585.0 Tm (cai.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 564.6 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 552.2 Tm (SCRIPT LOCAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 539.8 Tm (Uma tarefa isolada e repetitiva? Um CLI Node/Python costuma bastar.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 519.4 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 507.0 Tm (DESKTOP / PWA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 494.6 Tm (Impressora, scanner ou uso offline? Avalie app instalado, PWA e restri\347\365es do) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 482.2 Tm (navegador.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 461.8 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 449.4 Tm (CLIENTE + SERVIDOR) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 437.0 Tm (Usu\341rios simult\342neos e dados partilhados? Avalie API, autentica\347\343o, persist\352ncia e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 424.6 Tm (hospedagem.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 404.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 382.4 Tm ("Para este PRD, compare script, Electron, PWA offline e web com API. Pontue custo,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 370.0 Tm (offline, hardware,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 357.6 Tm (seguran\347a e suporte.") Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 337.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 315.4 Tm (R$ 0: Node, SQLite, PWA est\341tica e hospedagem na) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 303.0 Tm (pr\363pria m\341quina atendem muitos cen\341rios.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 282.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 260.8 Tm (N\343o confunda PWA com acesso irrestrito a drivers,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 248.4 Tm (scanner e dispositivos do sistema.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (09 / 40) Tj ET
+
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 25 0 R >>
+endobj
+25 0 obj
+<< /Length 3783 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (ESCOPO E ARQUITETURA  /  10) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (PE\307A TR\312S DESENHOS. ESCOLHA UM.) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Um agente pode sugerir diversas arquiteturas; a decis\343o precisa registrar) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (consequ\352ncias, custos e modos de falha.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (Exemplo simplificado: interface local -> servi\347o de dom\355nio -> SQLite, com) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (exporta\347\343o de) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 572.6 Tm (backup.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 531.8 Tm (PROPOSTAS) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 511.4 Tm (Solicite solu\347\343o m\355nima,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 499.0 Tm (intermedi\341ria e escal\341vel. Exija) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 486.6 Tm (diagrama e depend\352ncias.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 466.2 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 445.8 Tm (TRADE-OFFS) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 425.4 Tm (Compare opera\347\343o offline,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 413.0 Tm (seguran\347a, manuten\347\343o, custo) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 400.6 Tm (e risco de lock-in.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 380.2 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 359.8 Tm (REGISTRO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 339.4 Tm (Crie um ADR: contexto,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 327.0 Tm (decis\343o tomada, alternativas) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 314.6 Tm (descartadas e impactos.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 294.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 272.4 Tm ("Proponha 3 arquiteturas para [PRD]. Inclua fluxos de dados, riscos, custos e uma) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 260.0 Tm (ADR recomendada. N\343o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 247.6 Tm (crie infraestrutura externa.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 227.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 205.4 Tm (R$ 0: diagrama Mermaid no README, ADR Markdown) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 193.0 Tm (e runtime local de c\363digo aberto.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 172.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 150.8 Tm (Revise sincroniza\347\343o, backup, autentica\347\343o e fronteiras) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 138.4 Tm (entre frontend e backend.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (10 / 40) Tj ET
+
+endstream
+endobj
+26 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 27 0 R >>
+endobj
+27 0 obj
+<< /Length 4095 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (AGENTES E GIT  /  11) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (AGENTE N\303O \311 S\323 UM CHAT) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (Um agente de desenvolvimento combina modelo, contexto e ferramentas. Conforme a) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 640.2 Tm (autoriza\347\343o, pode ler arquivos, sugerir patches, rodar comandos e testar.) Tj ET
+BT /F2 8.96 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 620.7 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 599.9 Tm (Sem acesso ao projeto, o modelo apenas descreve altera\347\365es. Com ambiente) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 588.1 Tm (autorizado, pode) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 576.3 Tm (atuar nos arquivos.) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 556.8 Tm (01) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 537.4 Tm (PLANEJAMENTO) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 517.9 Tm (Recebe escopo, consulta) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 506.1 Tm (arquivos relevantes e organiza) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 494.3 Tm (passos verific\341veis.) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 474.8 Tm (02) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 455.4 Tm (FERRAMENTAS) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 435.9 Tm (Interage com terminal, editor,) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 424.1 Tm (testes, busca e versionamento) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 412.2 Tm (quando dispon\355veis.) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 392.8 Tm (03) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 373.3 Tm (LIMITES) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 353.9 Tm (Execu\347\365es, credenciais, escrita) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 342.1 Tm (e deploy dependem de) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 330.2 Tm (permiss\365es e confirma\347\365es.) Tj ET
+BT /F2 8.96 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 310.8 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 290.0 Tm ("Inspecione README, package.json e testes. Apresente plano e arquivos afetados) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 278.2 Tm (antes de editar. N\343o) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 266.3 Tm (execute a\347\365es destrutivas.") Tj ET
+BT /F2 8.96 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 246.9 Tm (ROTA R$ 0) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 226.1 Tm (R$ 0: Git + Aider \(c\363digo Apache-2.0\) + Ollama e) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 214.3 Tm (modelo local compat\355vel; exige hardware suficiente.) Tj ET
+BT /F2 8.96 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 194.8 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 174.0 Tm (Use branch pr\363pria e revise diffs. Nunca conceda) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 162.2 Tm (segredos ou opera\347\365es administrativas por) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 150.4 Tm (conveni\352ncia.) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 130.9 Tm (FONTE OFICIAL: TOQUE PARA ABRIR) Tj ET
+BT /F1 9.73 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 111.5 Tm (https://github.com/Aider-AI/aider) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (11 / 40) Tj ET
+
+endstream
+endobj
+28 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 29 0 R >>
+endobj
+29 0 obj
+<< /Length 3772 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (AGENTES E GIT  /  12) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (GPT, CLAUDE OU MODELO LOCAL?) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (As experi\352ncias variam: alguns agentes s\363 respondem, outros operam um workspace e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (prop\365em PRs. Nenhum produto espec\355fico \351 obrigat\363rio.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (Separe tr\352s elementos: a intelig\352ncia do modelo, o executor com ferramentas e o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (acesso ao) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 572.6 Tm (reposit\363rio.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 539.8 Tm (CAMINHO LIVRE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 527.4 Tm (Ollama executa modelos locais; Aider pode conectar o modelo a um projeto Git.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 507.0 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 494.6 Tm (EXPERI\312NCIAS ONLINE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 482.2 Tm (ChatGPT/Codex e Claude/Claude Code dependem de acesso e modalidades comerciais) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 469.8 Tm (espec\355ficos.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 449.4 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 437.0 Tm (DECIS\303O PR\301TICA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 424.6 Tm (Prefira o fluxo que permite inspecionar arquivos alterados, logs, testes e custos.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 404.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 382.4 Tm ("Leia docs/PRD.md. Antes de mudar c\363digo, mostre plano, limita\347\365es do seu acesso,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 370.0 Tm (testes necess\341rios e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 357.6 Tm (pontos de revis\343o humana.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 337.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 315.4 Tm (R$ 0: modelo local sem cobran\347a por token;) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 303.0 Tm (desempenho, licen\347a dos pesos e hardware variam.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 282.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 260.8 Tm (N\343o apresente conectores de leitura como agentes com) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 248.4 Tm (permiss\343o de escrita. Confira a autoriza\347\343o real.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 228.0 Tm (FONTE OFICIAL: TOQUE PARA ABRIR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 207.6 Tm (https://github.com/Aider-AI/aider/blob/main/aider/website/docs/llms/ollama.md) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (12 / 40) Tj ET
+
+endstream
+endobj
+30 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 31 0 R >>
+endobj
+31 0 obj
+<< /Length 3770 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (AGENTES E GIT  /  13) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (CONTEXTO \311 PARTE DO C\323DIGO) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (Uma boa instru\347\343o reduz retrabalho porque especifica objetivo, arquivos,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.6 Tm (restri\347\365es e crit\351rios objetivos de conclus\343o.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 597.4 Tm (Um prompt \372til diz o que fazer, como provar que funcionou e o que n\343o deve ser) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 585.0 Tm (alterado.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 564.6 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 544.2 Tm (CONTEXTO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 523.8 Tm (Inclua objetivo do produto,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 511.4 Tm (stack, caminhos dos arquivos e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 499.0 Tm (regras de neg\363cio.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 478.6 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 458.2 Tm (TAREFA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 437.8 Tm (Pe\347a uma mudan\347a por vez,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 425.4 Tm (escopo pequeno e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 413.0 Tm (preserva\347\343o de contratos) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 400.6 Tm (existentes.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 380.2 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 359.8 Tm (ENTREGA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 339.4 Tm (Exija diff, testes executados,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 327.0 Tm (riscos remanescentes e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 314.6 Tm (instru\347\365es para reproduzir.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 294.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 272.4 Tm ("Implemente [hist\363ria] em branch isolada. N\343o mude outras telas. Adicione testes,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 260.0 Tm (rode lint/build e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 247.6 Tm (apresente diff + riscos. Sem deploy.") Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 227.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 205.4 Tm (R$ 0: salve prompts em docs/prompts/ como arquivos) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 193.0 Tm (de texto; podem ser reutilizados em agentes locais.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 172.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 150.8 Tm (Evite colocar chaves, banco real ou dados de clientes no) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 138.4 Tm (contexto do modelo.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (13 / 40) Tj ET
+
+endstream
+endobj
+32 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 33 0 R >>
+endobj
+33 0 obj
+<< /Length 3978 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (AGENTES E GIT  /  14) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (PLUGINS, APPS E MCP) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Integra\347\365es permitem que um agente descubra ferramentas e acesse sistemas) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (externos. Isso n\343o significa acesso universal ou gratuito.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (MCP \351 um protocolo para expor recursos e a\347\365es; apps/plugins s\343o integra\347\365es) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (concretas) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 572.6 Tm (sujeitas a permiss\365es.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 531.8 Tm (LEITURA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 511.4 Tm (Um conector pode consultar) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 499.0 Tm (arquivos, issues e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 486.6 Tm (documenta\347\343o dentro de um) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 474.2 Tm (escopo autorizado.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 453.8 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 433.4 Tm (ESCRITA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 413.0 Tm (Criar PRs, alterar arquivos ou) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 400.6 Tm (enviar dados requer) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 388.2 Tm (ferramenta compat\355vel e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 375.8 Tm (acesso adicional.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 355.4 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 335.0 Tm (CONTROLE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 314.6 Tm (Revise escopos, origem do) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 302.2 Tm (servidor MCP, logs e o que) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 289.8 Tm (pode sair da sua m\341quina.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 269.4 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 247.6 Tm ("Liste as ferramentas dispon\355veis, permiss\365es e o que voc\352 N\303O consegue fazer.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 235.2 Tm (Pe\347a confirma\347\343o antes de) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 222.8 Tm (qualquer escrita externa.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 202.4 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 180.6 Tm (R$ 0: ferramentas locais via CLI e servidores MCP open) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 168.2 Tm (source podem evitar servi\347os pagos.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 147.8 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 126.0 Tm (Plugins de terceiros podem cobrar. Considere dados) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 113.6 Tm (confidenciais, token de acesso e privil\351gio m\355nimo.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (14 / 40) Tj ET
+
+endstream
+endobj
+34 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 35 0 R >>
+endobj
+35 0 obj
+<< /Length 3076 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (AGENTES E GIT  /  15) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (GIT N\303O \311 GITHUB) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (Git \351 o sistema de versionamento distribu\355do, gratuito e open source. GitHub \351 um) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.6 Tm (servi\347o que hospeda reposit\363rios Git e adiciona colabora\347\343o e automa\347\343o.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 597.4 Tm (O projeto funciona com Git local mesmo sem internet; uma c\363pia remota \351 opcional.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 577.0 Tm (ARTEFATO REUTILIZ\301VEL / EXEMPLO) Tj ET
+0.153 0.086 0.235 rg 47.0 483.2 501.0 83.0 re f
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 555.2 Tm (git init) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 544.7 Tm (git checkout -b feat/estoque) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 534.2 Tm (git add README.md src tests) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 523.7 Tm (git commit -m 'feat: estoque inicial') Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 513.2 Tm (git log --oneline -5) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 502.7 Tm (git diff main...feat/estoque) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 477.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 455.4 Tm ("Explique quais arquivos mudaram, sugira uma mensagem de commit e um PR; n\343o fa\347a) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 443.0 Tm (push at\351 eu revisar) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 430.6 Tm (o diff.") Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 410.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 388.4 Tm (R$ 0: git init, branch, commit, diff e log funcionam) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 376.0 Tm (inteiramente no computador.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 355.6 Tm (ANTES DE CONFIAR) Tj ET
+0.153 0.086 0.235 rg 47.0 303.8 501.0 41.0 re f
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 333.8 Tm (Git n\343o substitui backup de bancos, anexos e arquivos) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 323.3 Tm (que n\343o est\343o versionados.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (15 / 40) Tj ET
+
+endstream
+endobj
+36 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 37 0 R >>
+endobj
+37 0 obj
+<< /Length 4359 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (AGENTES E GIT  /  16) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (COMO A IA L\312 SEU REPOSIT\323RIO) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Conectar GitHub ao chat normalmente disponibiliza consulta aos arquivos) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 640.6 Tm (autorizados; editar e publicar c\363digo exige ferramentas pr\363prias de execu\347\343o.) Tj ET
+BT /F2 8.61 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 622.0 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 602.0 Tm (Consulta n\343o \351 commit. Commit n\343o \351 push. Push n\343o \351 deploy; cada etapa envolve) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 590.6 Tm (permiss\365es) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 579.3 Tm (espec\355ficas.) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 560.6 Tm (01) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 541.9 Tm (PESQUISA) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 523.2 Tm (Conector GitHub do ChatGPT:) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 511.9 Tm (consulta reposit\363rios) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 500.5 Tm (permitidos e ajuda a entender) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 489.1 Tm (arquitetura.) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 470.5 Tm (02) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 451.8 Tm (EDI\307\303O) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 433.1 Tm (Agente com workspace/CLI) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 421.7 Tm (autorizado: modifica arquivos) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 410.4 Tm (locais, roda testes e prepara) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 399.0 Tm (altera\347\365es.) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 380.3 Tm (03) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 361.6 Tm (PUBLICA\307\303O) Tj ET
+0.933 0.906 0.973 rg 47.0 295.5 501.0 58.5 re f
+BT /F3 7.60 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 343.0 Tm (Git push ou PR precisa de) Tj ET
+BT /F3 7.60 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 333.3 Tm (credenciais apropriadas; o) Tj ET
+BT /F3 7.60 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 323.7 Tm (pipeline pode fazer deploy) Tj ET
+BT /F3 7.60 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 314.1 Tm (ap\363s regras definidas.) Tj ET
+BT /F2 8.61 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 290.8 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 270.8 Tm ("Analise src/ e tests/. Liste risco e plano. Se n\343o puder alterar o reposit\363rio,) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 259.4 Tm (forne\347a patch; n\343o afirme que) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 248.1 Tm (fez push.") Tj ET
+BT /F2 8.61 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 229.4 Tm (ROTA R$ 0) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 209.4 Tm (R$ 0: Git local + Aider/Ollama; GitHub Free pode) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 198.1 Tm (hospedar remoto com controles pr\363prios.) Tj ET
+BT /F2 8.61 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 179.4 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 159.4 Tm (Confira o nome do reposit\363rio, permiss\365es de app,) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 148.1 Tm (branch e segredos antes de conectar qualquer agente.) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 129.4 Tm (FONTE OFICIAL: TOQUE PARA ABRIR) Tj ET
+BT /F1 9.34 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 110.7 Tm (https://help.openai.com/pt-br/articles/11145903-connecting-github-to-chatgpt) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (16 / 40) Tj ET
+
+endstream
+endobj
+38 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 39 0 R >>
+endobj
+39 0 obj
+<< /Length 3183 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (AGENTES E GIT  /  17) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (REPOSIT\323RIO SEM BAGUN\307A) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (A estrutura inicial ajuda pessoas e agentes a localizar decis\365es, implementar) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.6 Tm (tarefas e testar sem adivinhar a organiza\347\343o.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 597.4 Tm (Arquivos m\355nimos: README.md, LICENSE, .gitignore, src/, tests/, docs/ e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 585.0 Tm (.github/workflows/.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 564.6 Tm (ARTEFATO REUTILIZ\301VEL / EXEMPLO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 542.8 Tm (miniest.../) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 530.4 Tm (README.md LICENSE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 518.0 Tm (.gitignore package.json) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 505.6 Tm (src/ tests/) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 493.2 Tm (docs/PRD.md docs/ADR-001.md) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 480.8 Tm (docs/prompts/) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 468.4 Tm (.github/workflows/ci.yml) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 448.0 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 426.2 Tm ("Crie somente a estrutura inicial e um README execut\341vel. Adicione .gitignore para) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 413.8 Tm (env, chaves, builds e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 401.4 Tm (dados locais.") Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 381.0 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 359.2 Tm (R$ 0: reposit\363rio Git local; licen\347a expl\355cita define o que) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 346.8 Tm (terceiros podem reutilizar.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 326.4 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 304.6 Tm (N\343o publique .env, bancos reais, bin\341rios internos ou) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 292.2 Tm (material de cliente. Veja git status antes do primeiro) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 279.8 Tm (push.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (17 / 40) Tj ET
+
+endstream
+endobj
+40 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 41 0 R >>
+endobj
+41 0 obj
+<< /Length 4094 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (AGENTES E GIT  /  18) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (P\332BLICO OU PRIVADO?) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (O custo de criar reposit\363rio p\372blico ou privado pode ser R$ 0, mas a exposi\347\343o do) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (c\363digo e o consumo de automa\347\365es n\343o s\343o iguais.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (P\372blico \351 \363timo para exemplos did\341ticos. Privado faz sentido para c\363digo comercial) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 572.6 Tm (informa\347\365es sens\355veis.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 539.8 Tm (REPOSIT\323RIO P\332BLICO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 527.4 Tm (C\363digo pode ser lido e copiado. Actions em runners padr\343o hospedados pelo GitHub) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 515.0 Tm (t\352m minutos) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 502.6 Tm (gratuitos.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 482.2 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 469.8 Tm (REPOSIT\323RIO PRIVADO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 457.4 Tm (Acesso restrito aos autorizados. No GitHub Free, h\341 cota mensal inclu\355da para) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 445.0 Tm (Actions.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 424.6 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 412.2 Tm (POL\315TICA DE SEGREDOS) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 399.8 Tm (Um repo privado n\343o autoriza commitar tokens. Credenciais devem ficar fora do) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 387.4 Tm (c\363digo.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 367.0 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 345.2 Tm ("Avalie este repo e classifique o que pode ser p\372blico. Liste riscos de exposi\347\343o,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 332.8 Tm (licen\347as e custo de) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 320.4 Tm (execu\347\343o do CI.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 300.0 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 278.2 Tm (R$ 0: GitHub Free oferece reposit\363rios p\372blicos e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 265.8 Tm (privados; Git local independe do GitHub.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 245.4 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 223.6 Tm (Se publicar, remova hist\363rico sens\355vel antes de divulgar.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 211.2 Tm (Considere que forks e clones permanecem com) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 198.8 Tm (terceiros.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 186.4 Tm (FONTE OFICIAL: TOQUE PARA ABRIR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 166.0 Tm (https://docs.github.com/en/actions/concepts/billing-and-usage) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (18 / 40) Tj ET
+
+endstream
+endobj
+42 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 43 0 R >>
+endobj
+43 0 obj
+<< /Length 3976 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (CI, DEPLOY E CUSTOS  /  19) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (O QUE \311 GITHUB ACTIONS?) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (GitHub Actions executa workflows em resposta a eventos como push, pull request ou) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.9 Tm (agendamento. Cada job roda em um runner.) Tj ET
+BT /F2 9.16 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 620.0 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 598.8 Tm (Um arquivo YAML em .github/workflows/ descreve quando e como instalar, testar,) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 586.7 Tm (gerar build) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 574.6 Tm (e produzir artefatos.) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 554.8 Tm (01) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 534.9 Tm (EVENTO) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 515.0 Tm (Um push ou PR dispara um) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 502.9 Tm (workflow configurado com) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 490.9 Tm (permiss\365es limitadas.) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 471.0 Tm (02) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 451.1 Tm (RUNNER) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 431.2 Tm (Uma m\341quina hospedada pelo) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 419.2 Tm (GitHub \(ou sua\) executa os) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 407.1 Tm (comandos declarados no job.) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 387.2 Tm (03) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 367.3 Tm (RESULTADO) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 347.4 Tm (Logs, artefatos e status) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 335.4 Tm (mostram o que passou ou) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 323.3 Tm (falhou antes do merge.) Tj ET
+BT /F2 9.16 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 303.4 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 282.2 Tm ("Crie workflow para pull_request: instalar depend\352ncias travadas, rodar npm test e) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 270.1 Tm (npm run build. N\343o) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 258.0 Tm (configure deploy nesta etapa.") Tj ET
+BT /F2 9.16 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 238.1 Tm (ROTA R$ 0) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 216.9 Tm (R$ 0: testes locais; em projetos p\372blicos, runners padr\343o) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 204.8 Tm (hospedados pelo GitHub n\343o cobram minutos.) Tj ET
+BT /F2 9.16 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 184.9 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 163.7 Tm (Runners self-hosted exigem isolamento e cuidado) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 151.6 Tm (extremo com PRs externos e c\363digo n\343o confi\341vel.) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 131.7 Tm (FONTE OFICIAL: TOQUE PARA ABRIR) Tj ET
+BT /F1 9.94 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 111.9 Tm (https://docs.github.com/en/actions/concepts/billing-and-usage) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (19 / 40) Tj ET
+
+endstream
+endobj
+44 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 45 0 R >>
+endobj
+45 0 obj
+<< /Length 3857 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (CI, DEPLOY E CUSTOS  /  20) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (O PRIMEIRO WORKFLOW YAML) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Um pipeline pequeno e confi\341vel vale mais que uma cole\347\343o de verifica\347\365es) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (inst\341veis. Comece por instalar, testar e compilar.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (A regra \351: o mesmo comando usado pelo desenvolvedor precisa funcionar no runner) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (limpo.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 564.6 Tm (ARTEFATO REUTILIZ\301VEL / EXEMPLO) Tj ET
+0.933 0.906 0.973 rg 47.0 365.8 501.0 188.0 re f
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 542.8 Tm (name: CI) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 532.3 Tm (on: [push, pull_request]) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 521.8 Tm (permissions:) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 511.3 Tm (contents: read) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 500.8 Tm (jobs:) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 490.3 Tm (test:) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 479.8 Tm (runs-on: ubuntu-latest) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 469.3 Tm (steps:) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 458.8 Tm (- uses: actions/checkout@v4) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 448.3 Tm (- uses: actions/setup-node@v4) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 437.8 Tm (with:) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 427.3 Tm (node-version: '22') Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 416.8 Tm (cache: npm) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 406.3 Tm (- run: npm ci) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 395.8 Tm (- run: npm test) Tj ET
+BT /F3 8.30 Tf 0.200 0.125 0.251 rg 1 0 0 1 54.0 385.3 Tm (- run: npm run build) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 359.8 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 338.0 Tm ("Gere YAML com checkout, setup-node, npm ci, npm test e npm run build. Restrinja) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 325.6 Tm (permissions: contents:) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 313.2 Tm (read.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 292.8 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 271.0 Tm (R$ 0: node:test e execu\347\343o local. O servi\347o Actions) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 258.6 Tm (segue as regras do repo p\372blico/privado.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 238.2 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 216.4 Tm (Teste em branch antes de exigir o check. Nunca execute) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 204.0 Tm (comandos arbitr\341rios provenientes de issue ou PR.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (20 / 40) Tj ET
+
+endstream
+endobj
+46 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 47 0 R >>
+endobj
+47 0 obj
+<< /Length 3468 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (CI, DEPLOY E CUSTOS  /  21) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (A IA AJUDA A CORRIGIR CI) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (N\343o pe\347a "deixe tudo verde" sem entender a causa. O papel do agente \351 localizar a) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.6 Tm (falha, propor um patch m\355nimo e provar a corre\347\343o.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 597.4 Tm (Exemplo: depend\352ncia funciona localmente, mas a vers\343o travada diverge do) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 585.0 Tm (package-lock no) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 572.6 Tm (runner.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 539.8 Tm (COLETE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 527.4 Tm (Copie mensagem, etapa, vers\343o do runtime e comando que falhou; retire tokens dos) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 515.0 Tm (logs.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 494.6 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 482.2 Tm (REPRODUZA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 469.8 Tm (Rode o mesmo comando em ambiente limpo e crie caso m\355nimo de reprodu\347\343o.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 449.4 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 437.0 Tm (CORRIJA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 424.6 Tm (Altere a causa, adicione teste de regress\343o e abra PR com evid\352ncias.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 404.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 382.4 Tm ("Com estes logs sanitizados, explique causa prov\341vel, passos para reproduzir e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 370.0 Tm (patch m\355nimo. N\343o desative) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 357.6 Tm (testes para passar.") Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 337.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 315.4 Tm (R$ 0: logs do runner, comandos locais e patch revisado;) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 303.0 Tm (agente local pode analisar logs colados.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 282.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 260.8 Tm (Um pipeline verde n\343o garante seguran\347a nem aus\352ncia) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 248.4 Tm (de bugs. Fa\347a revis\343o funcional e teste manual.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (21 / 40) Tj ET
+
+endstream
+endobj
+48 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 49 0 R >>
+endobj
+49 0 obj
+<< /Length 3572 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (CI, DEPLOY E CUSTOS  /  22) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (GITHUB E CLOUDFLARE PAGES) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Conecte um reposit\363rio GitHub ao Cloudflare Pages: ap\363s cada push na branch) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (configurada, o servi\347o constr\363i e publica o site automaticamente.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (Para um Vite est\341tico, a sa\355da de build costuma ser dist/. Uma PR pode gerar) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (preview isolado.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 564.6 Tm (ARTEFATO REUTILIZ\301VEL / EXEMPLO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 542.8 Tm (SERVI\307O: Cloudflare Pages \(Free opcional\)) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 530.4 Tm (Fonte Git: GitHub autorizado) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 518.0 Tm (Framework preset: Vite) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 505.6 Tm (Build command: npm run build) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 493.2 Tm (Build output directory: dist) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 480.8 Tm (Production branch: main) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 468.4 Tm (PR: verificar URL de preview) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 448.0 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 426.2 Tm ("Gere instru\347\365es para publicar somente o frontend est\341tico Vite: comando npm run) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 413.8 Tm (build, sa\355da dist, branch) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 401.4 Tm (main e checklist.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 381.0 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 359.2 Tm (Cloudflare Pages Free \351 servi\347o gratuito opcional: 500) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 346.8 Tm (builds/m\352s, 1 simult\342neo, 20 min de limite por build.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 326.4 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 304.6 Tm (Mudan\347as em PR n\343o devem acessar credenciais de) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 292.2 Tm (produ\347\343o. Pages n\343o hospeda automaticamente API) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 279.8 Tm (Node persistente.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 259.4 Tm (FONTE OFICIAL: TOQUE PARA ABRIR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 239.0 Tm (https://developers.cloudflare.com/pages/configuration/git-integration/) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (22 / 40) Tj ET
+
+endstream
+endobj
+50 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 51 0 R >>
+endobj
+51 0 obj
+<< /Length 4270 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (CI, DEPLOY E CUSTOS  /  23) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (SITE EST\301TICO N\303O \311 BACKEND) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (Um HTML/JS publicado pode rodar no navegador. J\341 uma API Node com processo) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 640.7 Tm (cont\355nuo e SQLite em disco precisa de infraestrutura apropriada.) Tj ET
+BT /F2 8.60 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 622.0 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 602.0 Tm (Pages Functions/Workers executam c\363digo no modelo edge com limita\347\365es e cotas) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 590.7 Tm (diferentes) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 579.3 Tm (de um servidor Node tradicional.) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 560.7 Tm (01) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 542.0 Tm (FRONTEND) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 523.3 Tm (Vite, HTML, CSS e JS podem) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 512.0 Tm (ser publicados como arquivos) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 500.7 Tm (est\341ticos em Pages.) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 482.0 Tm (02) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 463.3 Tm (BACKEND) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 444.7 Tm (API Node + SQLite persistente) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 433.3 Tm (permanece no self-hosted, em) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 422.0 Tm (servidor ou arquitetura) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 410.6 Tm (espec\355fica compat\355vel.) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 391.9 Tm (03) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 373.3 Tm (DADOS) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 354.6 Tm (IndexedDB funciona no) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 343.3 Tm (navegador do usu\341rio; n\343o \351) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 331.9 Tm (base compartilhada) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 320.6 Tm (automaticamente.) Tj ET
+BT /F2 8.60 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 301.9 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 282.0 Tm ("Desenhe fronteiras do app: navegador, API, autentica\347\343o e banco. Diga) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 270.6 Tm (explicitamente o que Pages n\343o) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 259.3 Tm (pode hospedar.") Tj ET
+BT /F2 8.60 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 240.6 Tm (ROTA R$ 0) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 220.7 Tm (R$ 0: frontend local + backend Node/SQLite local.) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 209.3 Tm (Servi\347o externo gratuito \351 alternativa, n\343o n\372cleo.) Tj ET
+BT /F2 8.60 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 190.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 170.7 Tm (Pages Functions consomem cotas Workers. Valide) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 159.3 Tm (persist\352ncia, limites, privacidade e custos antes de) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 148.0 Tm (migrar.) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 129.3 Tm (FONTE OFICIAL: TOQUE PARA ABRIR) Tj ET
+BT /F1 9.33 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 110.7 Tm (https://developers.cloudflare.com/pages/functions/pricing/) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (23 / 40) Tj ET
+
+endstream
+endobj
+52 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 53 0 R >>
+endobj
+53 0 obj
+<< /Length 3542 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (CI, DEPLOY E CUSTOS  /  24) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (DEPLOY LOCAL E ROLLBACK) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Seu projeto deve funcionar sem Cloudflare. Um servidor pr\363prio ou computador local) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (pode servir o frontend e a API com ferramentas livres.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (O segredo de um deploy seguro \351 poder repetir uma vers\343o, verificar sa\372de e voltar) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (para a) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 572.6 Tm (anterior.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 539.8 Tm (ROTA LOCAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 527.4 Tm (Node atende a API; Caddy/Nginx entrega os arquivos est\341ticos; acesso remoto exige) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 515.0 Tm (rede segura.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 494.6 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 482.2 Tm (RELEASE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 469.8 Tm (Gere build versionado, registre commit e fa\347a backup antes de atualizar dados.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 449.4 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 437.0 Tm (RETORNO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 424.6 Tm (Em caso de falha, restaure build anterior e verifique compatibilidade de) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 412.2 Tm (migra\347\365es.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 391.8 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 370.0 Tm ("Descreva deploy self-hosted de frontend est\341tico e API Node em m\341quina pr\363pria,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 357.6 Tm (com healthcheck,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 345.2 Tm (backup e rollback documentados.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 324.8 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 303.0 Tm (R$ 0 em licen\347as: Git, Node, SQLite e Caddy; hardware,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 290.6 Tm (dom\355nio, rede e energia podem custar.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 270.2 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 248.4 Tm (N\343o abra portas indiscriminadamente. Configure TLS,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 236.0 Tm (firewall, backups e permiss\343o de acesso.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (24 / 40) Tj ET
+
+endstream
+endobj
+54 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 55 0 R >>
+endobj
+55 0 obj
+<< /Length 4414 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (CI, DEPLOY E CUSTOS  /  25) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (QUANTO CUSTA CADA ROTA?) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (Trate custo por etapa: intelig\352ncia do agente, armazenamento de c\363digo, minutos de) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 640.9 Tm (CI, publica\347\343o, dom\355nio e opera\347\343o.) Tj ET
+BT /F2 8.44 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 622.6 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 603.0 Tm (O software pode ser R$ 0, mas computador, energia, conex\343o e tempo de manuten\347\343o) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 591.9 Tm (continuam existindo.) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 573.5 Tm (01) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 555.2 Tm (CORE R$ 0) Tj ET
+0.153 0.086 0.235 rg 47.0 490.2 501.0 57.7 re f
+BT /F3 7.45 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 536.9 Tm (Git + Aider/Ollama + testes) Tj ET
+BT /F3 7.45 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 527.5 Tm (locais + app self-hosted. N\343o) Tj ET
+BT /F3 7.45 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 518.1 Tm (cobra API; exige computador) Tj ET
+BT /F3 7.45 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 508.6 Tm (compat\355vel.) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 485.7 Tm (02) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 467.4 Tm (SERVI\307OS FREE) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 449.1 Tm (GitHub Free privado: 2.000) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 438.0 Tm (minutos/m\352s inclu\355dos no) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 426.9 Tm (Actions; p\372blico: runners) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 415.7 Tm (padr\343o gratuitos.) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 397.4 Tm (03) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 379.1 Tm (PAGO OPCIONAL) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 360.8 Tm (Ap\363s 2.000 min, mais 500 min) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 349.6 Tm (Linux x64 de 2 n\372cleos a US$) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 338.5 Tm (0,006/min = US$ 3, se) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 327.4 Tm (faturados.) Tj ET
+BT /F2 8.44 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 309.1 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 289.5 Tm ("Fa\347a or\347amento por cen\341rio. Separe R$ 0 em software, servi\347os free com limites,) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 278.4 Tm (infraestrutura e) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 267.2 Tm (assinaturas opcionais.") Tj ET
+BT /F2 8.44 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 248.9 Tm (ROTA R$ 0) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 229.4 Tm (Cloudflare Pages Free: 500 builds/m\352s. Dom\355nio) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 218.2 Tm (pr\363prio, runners extras e planos premium s\343o escolhas) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 207.1 Tm (opcionais.) Tj ET
+BT /F2 8.44 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 188.8 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 169.2 Tm (Pre\347os em USD e cotas mudam. Exemplo hipot\351tico) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 158.1 Tm (sem armazenamento extra, impostos ou convers\343o) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 146.9 Tm (cambial.) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 128.6 Tm (FONTE OFICIAL: TOQUE PARA ABRIR) Tj ET
+BT /F1 9.16 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 110.3 Tm (https://docs.github.com/en/billing/reference/actions-runner-pricing) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (25 / 40) Tj ET
+
+endstream
+endobj
+56 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 57 0 R >>
+endobj
+57 0 obj
+<< /Length 4027 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (STACK E AUTOMA\307\325ES  /  26) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (FRONTEND, API E BANCO R$ 0) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (O kit usa pe\347as livres, pequenas e substitu\355veis: Vite/TypeScript para a) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (interface, Node.js para regras de neg\363cio e SQLite para persist\352ncia local.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (Projeto demonstrativo: miniestoque. Na rota est\341tica, dados ficam no dispositivo;) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (na rota API, o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 572.6 Tm (servidor controla grava\347\365es.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 531.8 Tm (FRONTEND) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 511.4 Tm (Vite organiza build; TypeScript) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 499.0 Tm (ajuda a identificar contratos e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 486.6 Tm (tipos incorretos.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 466.2 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 445.8 Tm (DOM\315NIO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 425.4 Tm (Fun\347\365es test\341veis separam) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 413.0 Tm (valida\347\343o de produto e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 400.6 Tm (movimenta\347\343o da camada) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 388.2 Tm (visual.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 367.8 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 347.4 Tm (PERSIST\312NCIA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 327.0 Tm (IndexedDB serve \340 demo local;) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 314.6 Tm (SQLite \351 indicado para banco) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 302.2 Tm (embutido gerenciado pela) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 289.8 Tm (aplica\347\343o.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 269.4 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 247.6 Tm ("Proponha stack m\355nima de licen\347a aberta para miniestoque offline. Justifique cada) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 235.2 Tm (depend\352ncia e mostre o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 222.8 Tm (que pode ser removido.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 202.4 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 180.6 Tm (R$ 0: Vite, TypeScript, Node.js e SQLite; sem banco) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 168.2 Tm (gerenciado ou API comercial obrigat\363ria.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 147.8 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 126.0 Tm (Escolha armazenamento conforme usu\341rios) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 113.6 Tm (concorrentes, backups e necessidade de sincroniza\347\343o.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (26 / 40) Tj ET
+
+endstream
+endobj
+58 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 59 0 R >>
+endobj
+59 0 obj
+<< /Length 3472 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (STACK E AUTOMA\307\325ES  /  27) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (MODELE, VERSIONE E FA\307A BACKUP) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (Modelagem vem antes das telas. Um lan\347amento de estoque precisa registrar quem,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.6 Tm (quando, por qu\352 e quanto modificou.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 597.4 Tm (Evite gravar apenas o saldo atual: mantenha hist\363rico de movimenta\347\365es para) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 585.0 Tm (auditoria e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 572.6 Tm (reconstru\347\343o.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 539.8 Tm (MODELO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 527.4 Tm (Product\(id, sku, nome\) e Movement\(id, product_id, delta, created_at, reason\).) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 507.0 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 494.6 Tm (INTEGRIDADE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 482.2 Tm (Use transa\347\343o; jamais permita saldo negativo quando o dom\355nio pro\355be.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 461.8 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 449.4 Tm (RECUPERA\307\303O) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 437.0 Tm (Migra\347\365es versionadas, exporta\347\343o e teste peri\363dico de restaura\347\343o com dados) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 424.6 Tm (fict\355cios.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 404.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 382.4 Tm ("Desenhe tabelas, chaves, \355ndices e regras para estoque. Crie migra\347\343o revers\355vel) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 370.0 Tm (e casos de teste de) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 357.6 Tm (concorr\352ncia.") Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 337.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 315.4 Tm (R$ 0: SQLite, SQL e backup local; armazenamento) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 303.0 Tm (gerenciado \351 opcional.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 282.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 260.8 Tm (N\343o copie o arquivo do SQLite em uso sem m\351todo) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 248.4 Tm (adequado. Teste restaurar, n\343o s\363 gerar backups.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (27 / 40) Tj ET
+
+endstream
+endobj
+60 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 61 0 R >>
+endobj
+61 0 obj
+<< /Length 3724 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (STACK E AUTOMA\307\325ES  /  28) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (OLLAMA N\303O \311 UM AGENTE SOZINHO) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Ollama serve modelos localmente; um agente como Aider pode conect\341-los aos) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (arquivos e ao Git. S\343o responsabilidades diferentes.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (Modelos variam em peso, licen\347a e qualidade. Contexto longo e reposit\363rios maiores) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (exigem) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 572.6 Tm (mem\363ria adequada.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 552.2 Tm (ARTEFATO REUTILIZ\301VEL / EXEMPLO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 530.4 Tm (# Ap\363s instalar Ollama e Aider:) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 518.0 Tm (ollama --version) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 505.6 Tm (ollama pull NOME_DO_MODELO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 493.2 Tm (ollama run NOME_DO_MODELO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 472.8 Tm (# Em projeto Git, com servi\347o local ativo:) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 460.4 Tm (aider --model ollama_chat/NOME_DO_MODELO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 440.0 Tm (# Conferir Git ap\363s altera\347\365es:) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 427.6 Tm (git status) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 415.2 Tm (git diff) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 394.8 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 373.0 Tm ("Leia este erro de teste. Sugira hip\363tese e altera\347\343o m\355nima. Antes de mudar) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 360.6 Tm (arquivos, apresente plano de) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 348.2 Tm (verifica\347\343o.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 327.8 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 306.0 Tm (R$ 0 em API: Ollama \(MIT\) + modelo com licen\347a) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 293.6 Tm (adequada + Aider \(Apache-2.0\). Requer hardware.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 273.2 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 251.4 Tm (Modelo local menor pode errar mais e esquecer) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 239.0 Tm (contexto; nunca aceite c\363digo apenas porque compilou.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 218.6 Tm (FONTE OFICIAL: TOQUE PARA ABRIR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 198.2 Tm (https://github.com/Aider-AI/aider/blob/main/aider/website/docs/llms/ollama.md) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (28 / 40) Tj ET
+
+endstream
+endobj
+62 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 63 0 R >>
+endobj
+63 0 obj
+<< /Length 3779 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (STACK E AUTOMA\307\325ES  /  29) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (OCR COM REVIS\303O HUMANA) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (OCR encontra texto em imagens; interpretar campos e comparar quantidades exige) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.6 Tm (valida\347\343o de formato, regras e contexto.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 597.4 Tm (Em um documento fiscal demonstrativo, extrair data e itens \351 uma coisa; confirmar) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 585.0 Tm (recebimento \351 outra.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 564.6 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 544.2 Tm (CAPTURA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 523.8 Tm (Leia PDF ou imagem fict\355cia) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 511.4 Tm (com Tesseract/Docling;) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 499.0 Tm (preserve refer\352ncia \340 origem.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 478.6 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 458.2 Tm (ESTRUTURE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 437.8 Tm (Normalize itens, unidade,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 425.4 Tm (quantidade e data; marque) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 413.0 Tm (campos ausentes ou amb\355guos.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 392.6 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 372.2 Tm (CONFIRA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 351.8 Tm (Compare quantidades) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 339.4 Tm (esperadas com recebidas e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 327.0 Tm (solicite aceite humano antes) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 314.6 Tm (de gravar.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 294.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 272.4 Tm ("Analise este OCR fict\355cio. Extraia campos em JSON com confidence/uncertainty e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 260.0 Tm (enumere tudo que exige) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 247.6 Tm (revis\343o.") Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 227.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 205.4 Tm (R$ 0: ferramentas OCR abertas executadas localmente;) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 193.0 Tm (n\343o exige envio da imagem para API externa.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 172.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 150.8 Tm (N\343o use OCR sozinho para aprovar movimenta\347\343o) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 138.4 Tm (fiscal, temperatura ou conformidade regulat\363ria.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (29 / 40) Tj ET
+
+endstream
+endobj
+64 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 65 0 R >>
+endobj
+65 0 obj
+<< /Length 3490 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (STACK E AUTOMA\307\325ES  /  30) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (DOCUMENTOS EM LOTE) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Uma automa\347\343o \372til transforma uma sequ\352ncia repetitiva em opera\347\343o rastre\341vel:) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (entrada, valida\347\343o, gera\347\343o, confer\352ncia e sa\355da.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (Exemplo: a cada compet\352ncia, gerar recibos fict\355cios em PDF com nome padronizado e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (\355ndice) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 572.6 Tm (de execu\347\343o.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 539.8 Tm (ENTRADA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 527.4 Tm (Importe registros de exemplo e confira campos obrigat\363rios antes de criar) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 515.0 Tm (arquivos.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 494.6 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 482.2 Tm (PROCESSAMENTO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 469.8 Tm (Gere PDFs individuais, coloque na ordem correta e registre erros por documento.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 449.4 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 437.0 Tm (SA\315DA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 424.6 Tm (Mostre pr\351via, imprima sob confirma\347\343o e permita reprocessar somente itens falhos.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 404.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 382.4 Tm ("Desenhe fluxo Node-RED ou Node.js para gerar 20 PDFs fict\355cios, logs por item e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 370.0 Tm (reprocessamento) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 357.6 Tm (idempotente.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 337.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 315.4 Tm (R$ 0: Node-RED/Node.js, templates pr\363prios, PDF e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 303.0 Tm (diret\363rios locais sem servi\347o de automa\347\343o pago.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 282.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 260.8 Tm (N\343o permita sobrescrever documentos assinados; inclua) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 248.4 Tm (vers\343o, backup e revis\343o humana.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (30 / 40) Tj ET
+
+endstream
+endobj
+66 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 67 0 R >>
+endobj
+67 0 obj
+<< /Length 4011 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (ARTISYS NA PR\301TICA  /  31) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (RH: UM CLIQUE PARA GERAR TODOS) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (O fluxo de documentos do Obra na M\343o ajuda a enxergar o problema: uma rotina) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.6 Tm (mensal de fichas, recibos, organiza\347\343o e confer\352ncia.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 597.4 Tm (A vers\343o comercial possui gest\343o por compet\352ncia, documentos n\343o) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 585.0 Tm (assinados/assinados e) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 572.6 Tm (digitaliza\347\343o; aqui usamos arquitetura did\341tica.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 531.8 Tm (PROBLEMA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 511.4 Tm (Abrir modelo, preencher,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 499.0 Tm (salvar e imprimir colaborador) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 486.6 Tm (por colaborador gera) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 474.2 Tm (retrabalho.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 453.8 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 433.4 Tm (SOLU\307\303O) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 413.0 Tm (Gerador em lote + \355ndice de) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 400.6 Tm (documentos + armazenamento) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 388.2 Tm (separado por compet\352ncia.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 367.8 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 347.4 Tm (CRIT\311RIO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 327.0 Tm (Quantidade gerada deve bater) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 314.6 Tm (com registros v\341lidos e erros) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 302.2 Tm (precisam ser reprocess\341veis.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 281.8 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 260.0 Tm ("A partir do caso de RH, escreva proposta autoral de automa\347\343o sem usar dados) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 247.6 Tm (reais e sem copiar c\363digo) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 235.2 Tm (comercial.") Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 214.8 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 193.0 Tm (R$ 0: projeto demonstrativo com dados sint\351ticos,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 180.6 Tm (Node.js, PDF e armazenamento local.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 160.2 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 138.4 Tm (Registros assinados n\343o s\343o equivalentes a documentos) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 126.0 Tm (rec\351m-gerados. Preserve hist\363rico e identidades) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 113.6 Tm (distintas.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (31 / 40) Tj ET
+
+endstream
+endobj
+68 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 69 0 R >>
+endobj
+69 0 obj
+<< /Length 3813 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (ARTISYS NA PR\301TICA  /  32) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (UMA VENDA \311 UM FLUXO) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Um PDV real n\343o termina ao clicar em "Finalizar". Venda, caixa, estoque,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (devolu\347\343o, permiss\365es e dispositivos se relacionam.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (O manual de QA do Artisys PDV documenta fluxos de balc\343o, caixa, estoque,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (comandas,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 572.6 Tm (entrega e testes automatizados.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 531.8 Tm (DOM\315NIO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 511.4 Tm (Uma venda v\341lida afeta) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 499.0 Tm (estoque e financeiro conforme) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 486.6 Tm (regras \372nicas.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 466.2 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 445.8 Tm (PERMISS\325ES) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 425.4 Tm (Estorno, sangria e devolu\347\343o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 413.0 Tm (exigem autoriza\347\343o compat\355vel) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 400.6 Tm (com o perfil.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 380.2 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 359.8 Tm (QUALIDADE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 339.4 Tm (Teste saldo, devolu\347\343o parcial,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 327.0 Tm (caixa fechado e integra\347\343o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 314.6 Tm (entre m\363dulos.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 294.2 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 272.4 Tm ("Desenhe fluxo de venda com pr\351-condi\347\365es e efeitos em estoque/caixa. Liste testes) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 260.0 Tm (de falha e permiss\365es) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 247.6 Tm (por a\347\343o.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 227.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 205.4 Tm (R$ 0: simula\347\343o com dados fict\355cios, Node.js e testes) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 193.0 Tm (locais; nenhuma opera\347\343o fiscal real.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 172.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 150.8 Tm (Screenshots e casos s\343o estudo de arquitetura, n\343o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 138.4 Tm (licen\347a para redistribuir o PDV comercial.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (32 / 40) Tj ET
+
+endstream
+endobj
+70 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 71 0 R >>
+endobj
+71 0 obj
+<< /Length 3416 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (ARTISYS NA PR\301TICA  /  33) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (UMA BASE LOCAL, UM PORTAL WEB) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (No Obra na M\343o Comercial, o desktop mant\351m banco e fun\347\365es locais; o portal) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 639.6 Tm (web/PWA usa acesso autorizado e dados sincronizados.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 597.4 Tm (O manual separa scanner WIA, arquivos locais e impress\343o no desktop das) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 585.0 Tm (visualiza\347\365es) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 572.6 Tm (m\363veis no portal.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 539.8 Tm (DESKTOP) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 527.4 Tm (Armazena dados localmente, acessa drivers e controla arquivos/operadores.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 507.0 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 494.6 Tm (SINCRONIZA\307\303O) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 482.2 Tm (Valida identidade, origem, vers\343o e conflito antes de enviar/receber altera\347\365es.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 461.8 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 449.4 Tm (WEB/PWA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 437.0 Tm (Exibe dados permitidos ao perfil; n\343o assume que pode acessar hardware do Windows.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 416.6 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 394.8 Tm ("Compare arquitetura desktop-first vs API central. Descreva contratos,) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 382.4 Tm (autentica\347\343o, fila offline e resolu\347\343o) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 370.0 Tm (de conflitos.") Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 349.6 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 327.8 Tm (R$ 0: arquitetura local ilustrativa; publicar portal \351) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 315.4 Tm (opcional e exige avaliar seguran\347a da rede.) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 295.0 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 273.2 Tm (Nunca trate simples c\363pia manual de SQLite como) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 260.8 Tm (sincroniza\347\343o de dados entre dispositivos.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (33 / 40) Tj ET
+
+endstream
+endobj
+72 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 73 0 R >>
+endobj
+73 0 obj
+<< /Length 3794 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (ARTISYS NA PR\301TICA  /  34) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (PLAYWRIGHT, K6 E RELEASE) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 652.0 Tm (Uma aplica\347\343o \372til precisa resistir a erros, uso repetido e mudan\347as de vers\343o.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 639.6 Tm (Testes tornam expectativas expl\355citas.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 619.2 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 597.4 Tm (Playwright verifica fluxos visuais; k6 permite simular carga em APIs. Testes de) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (unidade) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 572.6 Tm (protegem regras.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 552.2 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 531.8 Tm (FUNCIONAL) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 511.4 Tm (Teste cadastrar produto,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 499.0 Tm (registrar sa\355da inv\341lida e) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 486.6 Tm (consultar saldo ap\363s) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 474.2 Tm (recarregar.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 453.8 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 433.4 Tm (INTERFACE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 413.0 Tm (Automatize jornada cr\355tica no) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 400.6 Tm (navegador e guarde evid\352ncia) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 388.2 Tm (de falha quando necess\341rio.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 367.8 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 347.4 Tm (CARGA + RELEASE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 327.0 Tm (Teste limites do backend em) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 314.6 Tm (ambiente pr\363prio e fa\347a) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 302.2 Tm (checklist de backup e rollback.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 281.8 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 260.0 Tm ("Crie matriz: regra, teste de unidade, E2E Playwright e carga k6. Inclua falhas) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 247.6 Tm (esperadas e dados fict\355cios.") Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 227.2 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 205.4 Tm (R$ 0: node:test, Playwright e k6 executados localmente;) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 193.0 Tm (CI hospedada \351 opcional.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 172.6 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 150.8 Tm (N\343o dispare carga contra terceiros sem autoriza\347\343o. QA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 138.4 Tm (n\343o substitui revis\343o de acessibilidade.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (34 / 40) Tj ET
+
+endstream
+endobj
+74 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 75 0 R >>
+endobj
+75 0 obj
+<< /Length 4688 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (ARTISYS NA PR\301TICA  /  35) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (SEGREDOS, LICEN\307AS E PERMISS\325ES) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (Agentes aceleram mudan\347as, inclusive mudan\347as erradas. Controle de acesso,) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 641.4 Tm (licen\347as e revis\343o de depend\352ncias s\343o essenciais.) Tj ET
+BT /F2 8.01 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 624.1 Tm (CASO OU DECIS\303O CENTRAL) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 605.5 Tm (Um workflow inseguro pode expor tokens ou permitir execu\347\343o de c\363digo de terceiros) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 594.9 Tm (no seu) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 584.3 Tm (ambiente.) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 567.0 Tm (01) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 549.6 Tm (SEGREDOS) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 532.2 Tm (Mantenha .env fora do Git, use) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 521.6 Tm (escopos m\355nimos e rotacione) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 511.1 Tm (credenciais expostas.) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 493.7 Tm (02) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 476.3 Tm (SUPPLY CHAIN) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 458.9 Tm (Fixe depend\352ncias, revise) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 448.3 Tm (licen\347as e examine scripts de) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 437.8 Tm (instala\347\343o e workflows.) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 420.4 Tm (03) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 403.0 Tm (APROVA\307\303O) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 385.6 Tm (Proteja main, restrinja deploy,) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 375.1 Tm (revise PRs e teste restaura\347\343o) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 364.5 Tm (antes de opera\347\365es) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 353.9 Tm (destrutivas.) Tj ET
+BT /F2 8.01 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 336.6 Tm (PROMPT PARA USAR COM SEU AGENTE) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 318.0 Tm ("Audite repo, workflows e depend\352ncias. Liste riscos por severidade, patch) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 307.4 Tm (sugerido e evid\352ncia. N\343o) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 296.8 Tm (revele chaves encontradas.") Tj ET
+BT /F2 8.01 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 279.5 Tm (ROTA R$ 0) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 260.9 Tm (R$ 0: git diff, npm audit, verifica\347\343o manual e pol\355ticas) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 250.3 Tm (no README; servi\347os premium n\343o s\343o exigidos.) Tj ET
+BT /F2 8.01 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 232.9 Tm (ANTES DE CONFIAR) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 214.4 Tm (Nunca execute c\363digo de PR n\343o confi\341vel em runner) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 203.8 Tm (self-hosted com segredos ou acesso \340 rede interna.) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 186.4 Tm (FONTE OFICIAL: TOQUE PARA ABRIR) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 169.0 Tm (https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/add-runners) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 151.6 Tm (UM MVP PEQUENO.) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 141.1 Tm (UM RESULTADO REAL.) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 130.5 Tm (Vamos sair da teoria: um miniestoque funcional com cadastro, entradas, sa\355das,) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 119.9 Tm (testes e hist\363rico. Tudo roda) Tj ET
+BT /F1 8.69 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 109.4 Tm (localmente, sem API paga.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (35 / 40) Tj ET
+
+endstream
+endobj
+76 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 77 0 R >>
+endobj
+77 0 obj
+<< /Length 3843 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (PROJETO GUIADO  /  36) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (UM MVP PEQUENO. UM RESULTADO REAL.) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 652.0 Tm (HIST\323RIA DO USU\301RIO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 630.2 Tm ("Tenho uma pequena loja e preciso registrar o que entrou, o que saiu e o saldo) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 617.8 Tm (atual sem) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 605.4 Tm (perder o hist\363rico das movimenta\347\365es.") Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 585.0 Tm (01) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 564.6 Tm (CADASTRO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 544.2 Tm (Nome e SKU \372nico. Nada de) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 531.8 Tm (dezenas de campos no primeiro) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 519.4 Tm (dia.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 499.0 Tm (02) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 478.6 Tm (MOVIMENTOS) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 458.2 Tm (Somente quantidades inteiras.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 445.8 Tm (Sa\355da nunca deixa saldo negativo.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 425.4 Tm (03) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 405.0 Tm (ACEITE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 384.6 Tm (Entrada de 10 e sa\355da de 3) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 372.2 Tm (precisam resultar em saldo 7.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 351.8 Tm (PROMPT 01 / ANALISE O PROBLEMA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 331.4 Tm ("Atue como analista de produto. Escreva um PRD para um miniestoque local. Inclua) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 319.0 Tm (p\372blico, MVP, fora do) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 306.6 Tm (escopo, crit\351rios de aceite e riscos. N\343o programe antes de validar o escopo.") Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 286.2 Tm (ARQUIVO GERADO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 265.8 Tm (docs/PRD.md) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 253.4 Tm (Escopo, valida\347\365es e crit\351rios test\341veis.) Tj ET
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 233.0 Tm (ROTA R$ 0) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 211.2 Tm (Markdown, Git local e agente opcional com modelo) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 198.8 Tm (local.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 178.4 Tm (ARQUITETURA:) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 166.0 Tm (3 PE\307AS, 0 APIs.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 153.6 Tm (A op\347\343o principal \351 local: interface no navegador, servidor Node.js e banco) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 141.2 Tm (SQLite. Separar responsabilidades) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 128.8 Tm (facilita testar e evoluir.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (36 / 40) Tj ET
+
+endstream
+endobj
+78 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 79 0 R >>
+endobj
+79 0 obj
+<< /Length 3706 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (PROJETO GUIADO  /  37) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (ARQUITETURA: TR\312S PE\307AS, ZERO APIS) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 652.0 Tm (COMO OS DADOS CIRCULAM) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 631.6 Tm (BROWSER) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 619.2 Tm (Interface local) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 598.8 Tm (NODE.JS) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 586.4 Tm (HTTP + valida\347\343o) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 566.0 Tm (SQLITE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 553.6 Tm (Banco local) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 533.2 Tm (UMA DISTIN\307\303O QUE EVITA ERROS) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 512.8 Tm (A vitrine opcional do Cloudflare Pages \351 est\341tica e guarda dados fict\355cios no) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 500.4 Tm (navegador. Ela N\303O executa a) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 488.0 Tm (API Node.js nem o banco SQLite.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 467.6 Tm (ARQUIVOS DO EXEMPLO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 447.2 Tm (src/store.js SQLite) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 426.8 Tm (src/server.js API HTTP) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 406.4 Tm (public/ Interface) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 386.0 Tm (tests/ Regras) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 365.6 Tm (preview/ Demo est\341tica) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 345.2 Tm (DECIS\325ES DO MVP) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 324.8 Tm (Sem depend\352ncias npm externas. SQL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 312.4 Tm (parametrizado, transa\347\343o por movimento e acesso) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 300.0 Tm (restrito a 127.0.0.1.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 279.6 Tm (PROMPT 02 / ESCOLHA A ARQUITETURA) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 259.2 Tm ("Compare app local Node+SQLite, navegador offline e servi\347o remoto. Explique) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 246.8 Tm (opera\347\343o, riscos e custo.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 234.4 Tm (Registre uma ADR e n\343o conecte servi\347os sem autoriza\347\343o.") Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 214.0 Tm (RODE, TESTE) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 201.6 Tm (E CONFIRA.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 189.2 Tm (Agora abra a pasta do kit. O c\363digo implementa cadastro, movimenta\347\365es com) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 176.8 Tm (transa\347\343o e uma API local. Os) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 164.4 Tm (testes verificam o resultado.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (37 / 40) Tj ET
+
+endstream
+endobj
+80 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 81 0 R >>
+endobj
+81 0 obj
+<< /Length 3400 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (PROJETO GUIADO  /  38) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (RODE, TESTE E CONFIRA) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 652.0 Tm (TERMINAL / EXECUTE NA PASTA DO PROJETO) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 630.2 Tm (> node --version) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 609.8 Tm (> npm run check) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 589.4 Tm (> npm test) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 569.0 Tm (> npm start) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 548.6 Tm (Abra http://127.0.0.1:3000 no navegador) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 528.2 Tm (TESTES EXECUTADOS NESTE KIT) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 507.8 Tm (Entrada 10, sa\355da 3: saldo 7) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 487.4 Tm (Sa\355da maior que saldo: rejeitada) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 467.0 Tm (API local: cadastro, movimento e exporta\347\343o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 446.6 Tm (DEMONSTRA\307\303O DE 2 MINUTOS) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 426.2 Tm (Cadastre CAD-A5. Registre 10 entradas, depois 3 sa\355das. Confirme saldo 7. Tente) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 413.8 Tm (retirar mais 8: a aplica\347\343o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 401.4 Tm (deve bloquear, sem alterar o hist\363rico.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 381.0 Tm (PROMPT 03 / REVIS\303O) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 360.6 Tm ("Rode check, testes e build. Liste as evid\352ncias,) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 348.2 Tm (falhas e limites; n\343o diga que fez deploy sem) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 335.8 Tm (faz\352-lo.") Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 315.4 Tm (ATEN\307\303O AO RUNTIME) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 295.0 Tm (O exemplo usa node:sqlite nativo. Consulte a) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 282.6 Tm (estabilidade da API para sua vers\343o do Node.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 262.2 Tm (UM PUSH. DOIS) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 249.8 Tm (FLUXOS DISTINTOS.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 237.4 Tm (GitHub Actions roda verifica\347\365es. O Cloudflare Pages pode publicar a demonstra\347\343o) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 225.0 Tm (est\341tica ap\363s um push.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 212.6 Tm (S\343o etapas separadas.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (38 / 40) Tj ET
+
+endstream
+endobj
+82 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 83 0 R >>
+endobj
+83 0 obj
+<< /Length 3904 >>
+stream
+0.075 0.047 0.137 rg 0.0 0.0 595.0 842.0 re f
+0.102 0.063 0.184 rg 0.0 754.0 595.0 88.0 re f
+0.329 0.196 0.463 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.824 0.643 1.000 rg 1 0 0 1 50.0 764.0 Tm (PROJETO GUIADO  /  39) Tj ET
+BT /F2 22.00 Tf 0.969 0.941 0.996 rg 1 0 0 1 50.0 722.0 Tm (UM PUSH, DOIS FLUXOS DISTINTOS) Tj ET
+0.329 0.196 0.463 rg 50.0 671.0 495.0 1.0 re f
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 652.0 Tm (GIT PUSH) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 630.2 Tm (C\363digo enviado) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 609.8 Tm (ACTIONS) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 588.0 Tm (Testa e compila) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 567.6 Tm (PAGES) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 545.8 Tm (Publica preview) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 525.4 Tm (.github/workflows/ci.yml) Tj ET
+0.153 0.086 0.235 rg 47.0 338.5 501.0 177.5 re f
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 505.0 Tm (name: Qualidade do miniestoque) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 494.5 Tm (on: [push, pull_request]) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 484.0 Tm (permissions:) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 473.5 Tm (contents: read) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 463.0 Tm (jobs:) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 452.5 Tm (test-and-build:) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 442.0 Tm (runs-on: ubuntu-latest) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 431.5 Tm (steps:) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 421.0 Tm (- uses: actions/checkout@v4) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 410.5 Tm (- uses: actions/setup-node@v4) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 400.0 Tm (with:) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 389.5 Tm (node-version: '24') Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 379.0 Tm (- run: npm run check) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 368.5 Tm (- run: npm test) Tj ET
+BT /F3 8.30 Tf 0.965 0.910 1.000 rg 1 0 0 1 54.0 358.0 Tm (- run: npm run build) Tj ET
+BT /F2 9.40 Tf 0.824 0.643 1.000 rg 1 0 0 1 54.0 332.5 Tm (CLOUDFLARE PAGES / OPCIONAL) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 310.7 Tm (Comando de build: npm run build) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 290.3 Tm (Diret\363rio de sa\355da: dist) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 269.9 Tm (N\303O CONFUNDA DEPLOY COM APROVA\307\303O) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 249.5 Tm (A integra\347\343o Git do Pages n\343o espera automaticamente os testes do Actions. A) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 237.1 Tm (preview publica somente arquivos) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 224.7 Tm (est\341ticos, n\343o a API SQLite.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 204.3 Tm (SEU PROJETO) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 191.9 Tm (TEM UM CAMINHO.) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 179.5 Tm (A primeira entrega n\343o precisa ser complexa: precisa ser reproduz\355vel, segura nos) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 167.1 Tm (limites do MVP e f\341cil de) Tj ET
+BT /F1 10.20 Tf 0.969 0.941 0.996 rg 1 0 0 1 54.0 154.7 Tm (revisar com um agente de IA.) Tj ET
+0.329 0.196 0.463 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.769 0.698 0.847 rg 1 0 0 1 510.0 27.0 Tm (39 / 40) Tj ET
+
+endstream
+endobj
+84 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 85 0 R >>
+endobj
+85 0 obj
+<< /Length 2811 >>
+stream
+0.980 0.976 0.988 rg 0.0 0.0 595.0 842.0 re f
+0.941 0.914 0.973 rg 0.0 754.0 595.0 88.0 re f
+0.867 0.804 0.941 rg 50.0 753.0 495.0 1.0 re f
+BT /F2 14.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 805.0 Tm (ARTISYS) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 372.0 807.0 Tm (DO PROMPT AO SOFTWARE) Tj ET
+BT /F2 8.00 Tf 0.443 0.220 0.741 rg 1 0 0 1 50.0 764.0 Tm (PROJETO GUIADO  /  40) Tj ET
+BT /F2 22.00 Tf 0.157 0.102 0.227 rg 1 0 0 1 50.0 722.0 Tm (SEU PROJETO TEM UM CAMINHO) Tj ET
+0.867 0.804 0.941 rg 50.0 671.0 495.0 1.0 re f
+BT /F2 9.40 Tf 0.443 0.220 0.741 rg 1 0 0 1 54.0 652.0 Tm (CHECKLIST DE ACEITE) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 630.2 Tm (PRD e limites documentados Cadastro com SKU \372nico) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 609.8 Tm (Entrada e sa\355da com saldo Teste de saldo negativo) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 589.4 Tm (SQLite local protegido Comandos funcionando) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 569.0 Tm (GitHub Actions configurado Preview separado da API) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 548.6 Tm (QUANTO CUSTA PARA SEGUIR?) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 528.2 Tm (CORE LOCAL R$ 0 Node.js, SQLite, Git, testes e arquivos pr\363prios.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 507.8 Tm (PLANO FREE Opcional GitHub e Cloudflare t\352m cotas e pol\355ticas pr\363prias.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 487.4 Tm (PAGO Opcional Modelos, hospedagem ou dom\355nio: sem depend\352ncia.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 467.0 Tm (ARQUIVO PR\301TICO QUE ACOMPANHA O GUIA) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 446.6 Tm (ARTISYS_Miniestoque_OpenSource.zip) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 426.2 Tm (Inclui c\363digo, testes, prompts de agente, PRD, arquitetura, workflow e preview.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 413.8 Tm (Download separado junto ao) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 401.4 Tm (PDF.) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 381.0 Tm (PR\323XIMA EVOLU\307\303O) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 360.6 Tm (Pe\347a ao agente um plano para autentica\347\343o, permiss\365es, backup restaur\341vel e acesso) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 348.2 Tm (multiusu\341rio. S\363 depois) Tj ET
+BT /F1 10.20 Tf 0.157 0.102 0.227 rg 1 0 0 1 54.0 335.8 Tm (considere uma opera\347\343o p\372blica.) Tj ET
+0.867 0.804 0.941 rg 50.0 42.0 495.0 1.0 re f
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 50.0 27.0 Tm (ARTISYS / GUIA GRATUITO / EDICAO WEB) Tj ET
+BT /F2 8.00 Tf 0.384 0.325 0.447 rg 1 0 0 1 510.0 27.0 Tm (40 / 40) Tj ET
+
+endstream
+endobj
+xref
+0 86
+0000000000 65535 f 
+0000000030 00000 n 
+0000000079 00000 n 
+0000000409 00000 n 
+0000000506 00000 n 
+0000000608 00000 n 
+0000000703 00000 n 
+0000000849 00000 n 
+0000003049 00000 n 
+0000003195 00000 n 
+0000006929 00000 n 
+0000007077 00000 n 
+0000010628 00000 n 
+0000010776 00000 n 
+0000014325 00000 n 
+0000014473 00000 n 
+0000018621 00000 n 
+0000018769 00000 n 
+0000022484 00000 n 
+0000022632 00000 n 
+0000026454 00000 n 
+0000026602 00000 n 
+0000030434 00000 n 
+0000030582 00000 n 
+0000034100 00000 n 
+0000034248 00000 n 
+0000038084 00000 n 
+0000038232 00000 n 
+0000042380 00000 n 
+0000042528 00000 n 
+0000046353 00000 n 
+0000046501 00000 n 
+0000050324 00000 n 
+0000050472 00000 n 
+0000054503 00000 n 
+0000054651 00000 n 
+0000057780 00000 n 
+0000057928 00000 n 
+0000062340 00000 n 
+0000062488 00000 n 
+0000065724 00000 n 
+0000065872 00000 n 
+0000070019 00000 n 
+0000070167 00000 n 
+0000074196 00000 n 
+0000074344 00000 n 
+0000078254 00000 n 
+0000078402 00000 n 
+0000081923 00000 n 
+0000082071 00000 n 
+0000085696 00000 n 
+0000085844 00000 n 
+0000090167 00000 n 
+0000090315 00000 n 
+0000093910 00000 n 
+0000094058 00000 n 
+0000098525 00000 n 
+0000098673 00000 n 
+0000102753 00000 n 
+0000102901 00000 n 
+0000106426 00000 n 
+0000106574 00000 n 
+0000110351 00000 n 
+0000110499 00000 n 
+0000114331 00000 n 
+0000114479 00000 n 
+0000118022 00000 n 
+0000118170 00000 n 
+0000122234 00000 n 
+0000122382 00000 n 
+0000126248 00000 n 
+0000126396 00000 n 
+0000129865 00000 n 
+0000130013 00000 n 
+0000133860 00000 n 
+0000134008 00000 n 
+0000138749 00000 n 
+0000138897 00000 n 
+0000142793 00000 n 
+0000142941 00000 n 
+0000146700 00000 n 
+0000146848 00000 n 
+0000150301 00000 n 
+0000150449 00000 n 
+0000154406 00000 n 
+0000154554 00000 n 
+trailer
+<< /Size 86 /Root 1 0 R >>
+startxref
+157418
+%%EOF

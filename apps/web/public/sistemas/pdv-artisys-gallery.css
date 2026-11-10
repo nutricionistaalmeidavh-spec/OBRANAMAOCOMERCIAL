@@ -1,0 +1,45 @@
+/* Apenas /sistemas/pdv-artisys/: galeria estática, sem scripts ou interação. */
+.product-hero--pdv{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,.72fr);column-gap:clamp(25px,4vw,58px);row-gap:24px;align-items:center}
+.product-hero--pdv .hero-copy{grid-column:1;grid-row:1}
+.product-hero--pdv .product-facts{grid-column:1;grid-row:2;max-width:none;margin-top:0}
+.pdv-featured-picture{grid-column:2;grid-row:1/3;align-self:center;margin:0;min-width:0;padding:12px;background:#1c1330;border:1px solid #594072;border-radius:19px;box-shadow:0 12px 35px #0002}
+.pdv-featured-picture figcaption{padding:10px 6px 1px;color:#ddcbed;font-size:12px;line-height:1.5;text-align:center}
+.pdv-photo{display:block;width:100%;aspect-ratio:1/1;background-image:url('/sistemas/pdv-artisys/media/pdv-gallery-atlas.avif');background-repeat:no-repeat;background-size:200% 200%;background-color:#f9f8fb;border-radius:12px}
+.pdv-photo--overview{background-position:left top}
+.pdv-photo--balcao{background-position:right top}
+.pdv-photo--mesas{background-position:left bottom}
+.pdv-photo--mobile{background-position:right bottom}
+.pdv-gallery{margin:0 0 34px;max-width:100%;padding:clamp(22px,3.3vw,39px);border:1px solid #d8cbe7;border-radius:21px;background:#f4f1fa;color:#292238}
+.pdv-gallery-heading{display:flex;justify-content:space-between;align-items:end;gap:30px;margin-bottom:22px}
+.pdv-gallery-heading .section-kicker{color:#7037ad;margin-bottom:10px}
+.pdv-gallery-heading h2{margin:0;font-size:clamp(25px,2.8vw,38px);line-height:1.14;letter-spacing:-.03em;text-wrap:balance}
+.pdv-gallery-heading>p{max-width:340px;margin:0;font-size:14px;line-height:1.65;color:#554a62}
+.pdv-gallery-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.pdv-gallery-card{margin:0;min-width:0;padding:9px;background:#fff;border:1px solid #e0d7eb;border-radius:14px;box-shadow:0 5px 20px #2313380c}
+.pdv-gallery-card .pdv-photo{border-radius:9px}
+.pdv-gallery-card figcaption{display:flex;flex-direction:column;gap:4px;padding:14px 9px 10px}
+.pdv-gallery-card figcaption strong{font-size:15px;font-weight:750;line-height:1.4;color:#292238}
+.pdv-gallery-card figcaption span{font-size:12px;line-height:1.55;color:#554a62}
+@media(max-width:920px){
+ .product-hero--pdv{grid-template-columns:minmax(0,1fr) minmax(210px,.75fr);gap:22px}
+ .pdv-gallery-heading{display:block}
+ .pdv-gallery-heading>p{max-width:550px;margin-top:10px}
+}
+@media(max-width:650px){
+ .product-hero--pdv{display:flex;flex-direction:column;align-items:stretch;gap:20px}
+ .product-hero--pdv .hero-copy{order:0}
+ .product-hero--pdv .pdv-featured-picture{order:1;width:min(100%,335px);align-self:center;padding:10px}
+ .product-hero--pdv .product-facts{order:2;width:100%;margin:0}
+ .pdv-gallery{padding:18px 13px 21px;border-radius:16px;margin-bottom:24px}
+ .pdv-gallery-heading{margin-bottom:17px}
+ .pdv-gallery-heading h2{font-size:26px}
+ .pdv-gallery-heading>p{font-size:13px}
+ .pdv-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .pdv-gallery-card{padding:6px;border-radius:11px}
+ .pdv-gallery-card figcaption{padding:10px 7px 8px}
+ .pdv-gallery-card figcaption strong{font-size:13px}
+ .pdv-gallery-card figcaption span{font-size:11px}
+ .pdv-gallery-card:last-child{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:center}
+ .pdv-gallery-card:last-child figcaption{padding:8px}
+}
+@media(prefers-reduced-motion:reduce){.pdv-gallery-card,.pdv-featured-picture{transition:none}}

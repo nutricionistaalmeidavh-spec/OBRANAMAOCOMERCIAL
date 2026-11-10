@@ -233,9 +233,18 @@ async function refreshModuleCapabilitiesSafe() {
   }
 }
 
+async function assertRemoteStorageCapability({ allowExisting = false } = {}) {
+  const session = await services.online.session()
+  if (session?.access?.advancedServer===true || (allowExisting && session?.storageTopology?.mode==='remote' && session?.storageTopology?.serverId)) return session
+  throw new Error('Servidor próprio exige o adicional comercial Advanced Server.')
+}
+
 async function configureStorage(payload) {
   const previous = services.storage.state()
   const requestedOperational = payload.operationalMode || (payload.mode === 'server' ? 'lan-client' : 'local')
+  if (requestedOperational === 'remote' && (previous.operationalMode !== 'remote' || String(payload.host||previous.host)!==String(previous.host) || String(payload.port||previous.port)!==String(previous.port))) {
+    await assertRemoteStorageCapability()
+  }
   if (previous.operationalMode === 'lan-host' && requestedOperational !== 'lan-host') await services.lanHost.stop()
   const state = services.storage.configure(payload)
   if (state.operationalMode === 'lan-host') {
@@ -258,6 +267,11 @@ async function completeCanonicalStorage(result = {}, options = {}) {
 
 async function connectStorageAddress(address, operationalMode = 'lan-client') {
   const previous = services.storage.state()
+  let expectedServerId = null
+  if (operationalMode === 'remote') {
+    const session = await assertRemoteStorageCapability({ allowExisting: true })
+    if (session?.access?.advancedServer!==true) expectedServerId = String(session?.storageTopology?.serverId||'')||null
+  }
   let rejectServerId = null
   if (previous.operationalMode === 'lan-host') {
     try {
@@ -265,7 +279,7 @@ async function connectStorageAddress(address, operationalMode = 'lan-client') {
       rejectServerId = currentServer?.serverId || null
     } catch {}
   }
-  const result = await services.storage.connectAddress(address, { rejectServerId, operationalMode })
+  const result = await services.storage.connectAddress(address, { rejectServerId, expectedServerId, operationalMode })
   if (previous.operationalMode === 'lan-host') await services.lanHost.stop()
   destroyTray()
   await refreshModuleCapabilitiesSafe()
@@ -348,6 +362,8 @@ function registerIpc() {
   ipcMain.handle('files:open-folder', envelope(() => services.documentRoot.openRoot()))
   ipcMain.handle('files:choose-root', envelope(() => services.documentRoot.chooseRoot()))
   ipcMain.handle('files:get-root', envelope(() => services.documentRoot.getRoot()))
+  ipcMain.handle('files:root-status', envelope(() => services.documentRoot.checkStatus()))
+  ipcMain.handle('files:retry-root', envelope(() => services.documentRoot.retryRoot()))
   ipcMain.handle('explorer:list', envelope((payload) => services.explorer.list(payload)))
   ipcMain.handle('explorer:preview', envelope((payload) => services.explorer.preview(payload)))
   ipcMain.handle('explorer:open', envelope((payload) => services.explorer.open(payload)))

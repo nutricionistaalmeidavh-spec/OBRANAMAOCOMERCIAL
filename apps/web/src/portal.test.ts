@@ -50,13 +50,14 @@ describe('Commercial login and overview DOM flows', () => {
     client.isSignedIn.mockReturnValue(true);client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});client.get.mockResolvedValue({data:bootstrap(role)});
     await mountMhPortal();
     expect(document.querySelector('h1')?.textContent).toBe('Visão geral');
+    expect(document.querySelector('.cp-context span')?.textContent).toBe('Empresa teste');
     expect(document.querySelector('.cp-welcome p')?.textContent).toMatch(/^(Bom dia|Boa tarde|Boa noite), Pessoa$/);
     expect(Array.from(document.querySelectorAll('.cp-bottom-nav span')).map(node=>node.textContent)).toContain('Mais');
     expect(document.querySelector('[data-resource="gestao"]')).toBeNull();
     expect(document.querySelector('[data-resource="obra"]')).not.toBeNull();
     expect(document.querySelector('[data-resource="universidade"]')).not.toBeNull();
     expect(document.body.textContent).not.toContain('Resumo da gestão');
-    expect(client.get.mock.calls.map(call=>call[0])).toEqual(['/api/bootstrap']);
+    expect(client.get.mock.calls.map(call=>call[0])).toEqual(['/api/central/access','/api/bootstrap']);
   });
   it('shows real authorized aggregates and clears them immediately on logout', async () => {
     client.isSignedIn.mockReturnValue(true);
@@ -75,14 +76,14 @@ describe('Commercial login and overview DOM flows', () => {
     let release!:(value:unknown)=>void;
     client.isSignedIn.mockReturnValue(true);
     client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
-    client.get.mockImplementation(path=>path==='/api/bootstrap'?Promise.resolve({data:bootstrap('admin')}):new Promise(resolve=>{release=resolve}));
+    client.get.mockImplementation(path=>path==='/api/central/access'?Promise.reject(new Error('not a Central admin')):path==='/api/bootstrap'?Promise.resolve({data:bootstrap('admin')}):new Promise(resolve=>{release=resolve}));
     await mountMhPortal();byId<HTMLButtonElement>('logoutBtn').click();release({data:overview});
     await new Promise(resolve=>setTimeout(resolve,0));
     expect(document.body.textContent).not.toContain('54.000,00');
     expect(document.querySelector('#portalOverview')).toBeNull();
   });
   it('completes first access through the collaborator route and keeps phone users outside management', async () => {
-    client.post.mockImplementation(async path => ({data:path==='/api/edu/access-status'?{needsPasswordSetup:true}:path==='/api/edu/first-access'?{token:'test-phone-session',participant:{id:'p1',name:'Colaborador Teste',phone:'11999990000',jobRole:'Encarregado'}}:{company:{name:'Empresa teste'},access:{modules:['obra360']}}}));
+    client.post.mockImplementation(async path => ({data:path==='/api/edu/access-status'?{needsPasswordSetup:true}:path==='/api/edu/first-access'?{token:'test-phone-session',participant:{id:'p1',name:'Colaborador Teste',phone:'11999990000',jobRole:'Encarregado'}}:{company:{name:'Empresa teste'},project:{name:'Obra de teste oculta'},access:{modules:['obra360']}}}));
     location.hash='#colaborador';await mountMhPortal();byId<HTMLInputElement>('phoneIdentity').value='11999990000';byId<HTMLButtonElement>('phoneFirst').click();
     await vi.waitFor(()=>expect(document.getElementById('phoneSetup')).not.toBeNull());
     byId<HTMLInputElement>('newPassword').value='test-password-only';byId<HTMLInputElement>('confirmPassword').value='different';
@@ -92,6 +93,7 @@ describe('Commercial login and overview DOM flows', () => {
     byId<HTMLFormElement>('phoneSetup').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
     await vi.waitFor(()=>expect(document.querySelector('h1')?.textContent).toBe('Visão geral'));
     expect(localStorage.getItem('obn-edu-session')).toBe('test-phone-session');
+    expect(document.querySelector('.cp-context span')?.textContent).toBe('Empresa teste');
     expect(document.querySelector('[data-resource="gestao"]')).toBeNull();
     expect(document.querySelector('[data-resource="obra"]')).not.toBeNull();
     expect(client.get).not.toHaveBeenCalled();

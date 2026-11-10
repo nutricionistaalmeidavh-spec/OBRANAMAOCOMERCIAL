@@ -87,12 +87,45 @@ export const artisysSeoConfig = defineSeoConfig({
   },
   pages: [
     {
+      path: '/links',
+      canonical: 'https://artisys.dev/links/',
+      title: 'Central ArtiSys | Academy e canais oficiais',
+      description: 'Acesse a ArtiSys Academy e acompanhe nossos canais oficiais no TikTok e WhatsApp.',
+      schemaType: 'WebPage',
+      changeFrequency: 'monthly',
+      priority: 0.65
+    },
+    {
       path: '/',
-      title: 'ArtiSys | Sistemas, sites e automações para negócios',
-      description: 'A ArtiSys cria sistemas sob medida, sites profissionais e automações para empresas que querem vender, organizar e crescer.',
+      title: 'ArtiSys | Academy, sistemas e DevKits para criar e operar',
+      description: 'Conheça a ArtiSys Academy, as trilhas práticas de IA, os sistemas prontos para empresas e os DevKit Tool’s para desenvolver.',
       schemaType: 'WebPage',
       changeFrequency: 'weekly',
       priority: 1
+    },
+    {
+      path: '/devkits',
+      canonical: 'https://artisys.dev/devkits/',
+      title: 'DevKit Tool’s ArtiSys | 63 kits e Guia Open Source',
+      description: 'Explore 63 DevKit Tool’s com preços, filtros e Guia Open Source com 82 projetos. Compra pelo WhatsApp ArtiSys.',
+      schemaType: 'CollectionPage',
+      changeFrequency: 'weekly',
+      priority: 0.9,
+      jsonLd: [{
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: 'DevKit Tool’s ArtiSys',
+        numberOfItems: 63
+      }]
+    },
+    {
+      path: '/guia',
+      canonical: 'https://artisys.dev/guia/',
+      title: 'Do Prompt ao Software | Guia gratuito Artisys',
+      description: '40 lições gratuitas: planeje, desenvolva e publique sistemas com agentes de IA, Git, GitHub Actions e deploy.',
+      schemaType: 'WebPage',
+      changeFrequency: 'monthly',
+      priority: 0.85
     },
     {
       path: '/sistemas',

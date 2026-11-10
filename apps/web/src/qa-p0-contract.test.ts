@@ -6,12 +6,12 @@ import { describe, expect, it } from 'vitest';
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 const readJson=async(path:string)=>JSON.parse(await readFile(path,'utf8'));
 
-const expectedFlows=['owner-shell','owner-overview','loja-online','clientes','licencas','auditoria','obra-regression','debora-regression'];
+const expectedFlows=['owner-shell','owner-overview','clientes','licencas','auditoria','obra-regression','debora-regression'];
 
 describe('Central Artisys shared QA P0 contract',()=>{
   it('declares quick/full/release scripts and keeps native gates in release',async()=>{
     const pkg=await readJson(resolve(root,'package.json'));
-    for(const name of ['qa:prepare','qa:quick','qa:full','qa:p2','qa:release','qa:cross-system']){
+    for(const name of ['qa:prepare','qa:quick','qa:full','qa:p2','qa:release']){
       expect(typeof pkg.scripts?.[name]).toBe('string');
     }
     expect(pkg.scripts['qa:release']).toContain('qa:p2');
@@ -34,13 +34,12 @@ describe('Central Artisys shared QA P0 contract',()=>{
     }
   });
 
-  it('does not commit owner credentials or Loja Online licensing secret into QA JSON',async()=>{
+  it('does not commit owner credentials into QA JSON',async()=>{
     const files=[resolve(root,'qa/artisys-qa.config.json')];
     const flowDir=resolve(root,'qa/flows');
     for(const name of await readdir(flowDir)) if(name.endsWith('.json')) files.push(resolve(flowDir,name));
     for(const file of files){
       const text=await readFile(file,'utf8');
-      expect(text).not.toContain('LOJAONLINE_LICENSE_SERVICE_SECRET=');
       expect(text).not.toMatch(/nutricionistaalmeidavh@gmail\.com/i);
     }
   });

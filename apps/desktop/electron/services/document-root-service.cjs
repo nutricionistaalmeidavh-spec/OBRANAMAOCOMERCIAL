@@ -21,14 +21,56 @@ class DocumentRootService {
     this.shell = shellApi
     const configured = this.getConfigured()
     this.files.documentsDir = configured || defaultDir
-    fs.mkdirSync(this.files.documentsDir, { recursive: true })
+    this.rootHealth = { ready: true, code: null, message: null }
+    // A pasta de rede pode ficar indisponível entre sessões: não bloquear o banco nem trocar silenciosamente a origem dos documentos.
+    if (!this.isCentral()) this.retryRoot()
   }
 
   getConfigured() {
     return this.db.db.prepare('SELECT valor FROM configuracoes WHERE chave=?').get(KEY)?.valor || null
   }
 
-  getRoot() { return this.files.documentsDir }
+  getRoot() { return this.files.localDocumentsDir || this.files.documentsDir }
+
+  isCentral() { return this.files.storage?.state?.().mode === 'server' }
+
+  status() {
+    return { source: 'local', root: this.getRoot(), configured: Boolean(this.getConfigured()), ...this.rootHealth }
+  }
+
+  async checkStatus() {
+    if (!this.isCentral()) return this.retryRoot()
+    const state = this.files.storage.state()
+    const base = { source: 'server', root: state.baseUrl || '', configured: true }
+    try {
+      this.files.documentRoute()
+    } catch {
+      return { ...base, ready: false, code: 'CENTRAL_NOT_ACTIVE', message: 'A configuração dos documentos centrais ainda não foi concluída. Conclua a configuração do servidor em Configurações do sistema.' }
+    }
+    try {
+      const capabilities = await this.files.lanClient.syncSourceCapabilities()
+      if (!capabilities?.modules?.includes('documents')) throw new Error('Módulo Documentos indisponível')
+      return { ...base, ready: true, code: null, message: null }
+    } catch {
+      return { ...base, ready: false, code: 'CENTRAL_UNAVAILABLE', message: 'Não foi possível acessar os documentos centrais. Verifique se o computador principal está ligado e conectado à rede.' }
+    }
+  }
+
+  retryRoot() {
+    if (this.isCentral()) return this.checkStatus()
+    const root = this.getRoot()
+    try {
+      fs.mkdirSync(root, { recursive: true })
+      fs.accessSync(root, fs.constants.R_OK | fs.constants.W_OK)
+      this.rootHealth = { ready: true, code: null, message: null }
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause))
+      this.rootHealth = { ready: false, code: error.code || 'UNAVAILABLE', message: 'A pasta de documentos está indisponível. Reconecte a unidade de rede ou escolha uma pasta que contenha os documentos registrados.' }
+      // A fonte documental continua apontando para a raiz original; sem fallback ou modificação dos registros.
+      console.warn('Pasta documental indisponível:', root, this.rootHealth.code)
+    }
+    return this.status()
+  }
 
   mirrorStructure(root) {
     fs.mkdirSync(root, { recursive: true })
@@ -70,6 +112,7 @@ class DocumentRootService {
   }
 
   async chooseRoot() {
+    if (this.isCentral()) throw new Error('Os documentos são gerenciados pelo servidor da empresa. A pasta local não altera a origem central.')
     const picked = await this.dialog.showOpenDialog({ title: 'Escolha a pasta raiz da documentação', properties: ['openDirectory','createDirectory'] })
     if (picked.canceled || !picked.filePaths[0]) return null
     const selected = path.resolve(picked.filePaths[0])
@@ -94,6 +137,7 @@ class DocumentRootService {
       this.db.db.prepare(`INSERT INTO configuracoes(chave,valor) VALUES (?,?) ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor,updated_at=CURRENT_TIMESTAMP`).run(KEY, selected)
     })()
     this.files.documentsDir = selected
+    this.rootHealth = { ready: true, code: null, message: null }
     this.mirrorStructure(selected)
     return { path: selected, previous, remapped: mappings.length }
   }

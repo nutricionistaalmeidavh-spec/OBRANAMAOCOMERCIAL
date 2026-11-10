@@ -120,7 +120,7 @@ Desde o P0 de canonicalização de RH, `src/routes/registry.ts` é o owner de pa
 - `time-service.cjs`: ponto e documentos mensais.
 - `document-service.cjs`: geração de documentos/PDFs.
 - `file-service.cjs`: importação, abertura, localização e exclusão controlada de arquivos.
-- `document-root-service.cjs`: raiz configurável dos documentos.
+- `document-root-service.cjs`: raiz configurável dos documentos. `files:root-status` consulta `checkStatus()`: no modo servidor valida o módulo Documentos e a conexão autenticada, sem acessar a raiz local legada. No modo local mantém a validação e recuperação da pasta original. `FileService.documentsDir` usa o diretório padrão do aplicativo para cache/geração temporária no modo servidor; preserva a raiz local configurada para uso local.
 - `import-service.cjs`: prévia e confirmação do modelo específico de 2026.
 - `universal-import-service.cjs`: análise de Excel/CSV, mapeamento assistido e importação transacional por área.
 - `catalog-service.cjs`: catálogo local de cargos/benefícios; `saveCompensationPolicy` salva cargo + vínculos em transação única.
@@ -155,6 +155,8 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 5. a página e os testes relacionados.
 
 ## Comandos
+
+- `build/preserve-data.nsh`, `build/installSection.nsh` e `build/installUtil.nsh`: instalação Windows sobreposta, sem executar desinstaladores legados que removem documentos dentro da instalação. Mantém os recursos NSIS padrão e repara os atalhos para o EXE novo. Empacotador fixado na versão 26.15.3; mudanças no template exigem regressão com instaladores reais.
 
 - `npm run electron:dev`: desenvolvimento completo com Electron.
 - `npm run dev`: somente Vite.
@@ -265,3 +267,5 @@ Ao adicionar ou mudar uma operação pública, mantenha sincronizados:
 ## Seleção canônica de documentos mensais
 
 `electron/services/receipt-policy-service.cjs` lê e salva a preferência por empresa no campo existente `empresas.politica_recibos`, com JSON versionado (IDs dos benefícios e seleção de ponto/recibos). Políticas legadas por nome continuam válidas. `time:receipt-policy` e `time:save-receipt-policy` expõem a mesma fonte ao componente `ReceiptPolicySelection.tsx`; a seleção não depende da competência. Geração individual, lote e reimpressão usam a política no backend. O lote preserva os estilos isolados e as páginas de cada documento; cada benefício tem seu próprio bloco e assinatura.
+
+A impressão de RH envia um único trabalho em preto e branco (`color:false`) e conserva o PDF consolidado em `Lotes RH/<competência>`, na raiz gerenciada dos documentos. O arquivo mantém a sequência ponto/recibos por funcionário e pode ser aberto ao fim do lote. Cancelar a impressão preserva o PDF e não dá baixa.

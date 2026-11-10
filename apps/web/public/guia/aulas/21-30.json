@@ -1,0 +1,292 @@
+[
+  {
+    "number": 21,
+    "title": "Quando o CI falha, como investigar",
+    "lead": "O objetivo não é fazer a bolinha verde aparecer a qualquer custo. Uma falha deve ser reproduzida, compreendida e corrigida com o menor patch possível; os logs do Actions são a evidência principal.",
+    "steps": [
+      "Abra o job vermelho e encontre o primeiro comando que falhou, sua saída e o exit code. Não copie tokens do log.",
+      "Reproduza localmente no mesmo Node do runner usando npm ci e o comando exato do passo com erro.",
+      "Faça ao agente uma pergunta objetiva com arquivo, comando e trecho do erro redigido; peça hipóteses classificadas por probabilidade.",
+      "Aplique uma correção mínima em branch. Rode teste específico, regressão e build; compare o diff antes de atualizar a PR.",
+      "Use re-run apenas para falhas transitórias documentadas. Não remova teste, não adicione || true e não desative branch protection para obter sucesso artificial."
+    ],
+    "example": "Falha observável típica: npm ci retorna EUSAGE quando package-lock.json não corresponde ao package.json. Correção correta: ajustar lockfile local, registrar mudança e testar. Não substituir por npm install no CI sem avaliar reprodutibilidade.",
+    "prompt": "Com base neste log sanitizado, separe fatos, hipóteses e próximos testes. Sugira patch mínimo, comandos para reproduzir e critérios para confirmar a correção. Preserve segurança e não pule testes.",
+    "checks": [
+      "Causa indicada por evidência",
+      "O patch altera só arquivos pertinentes",
+      "Novo run verde corresponde ao patch revisado"
+    ],
+    "free": "Git, npm e logs locais não requerem APIs.",
+    "optional": "Execuções extras de runners privados podem consumir cota.",
+    "caution": "O log não é seguro para compartilhar integralmente se contiver dados sensíveis.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/using-workflow-run-logs"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 22,
+    "title": "Ligue GitHub a um deploy automático",
+    "lead": "Em sites estáticos, é possível conectar um projeto ao Cloudflare Pages (ou publicar por outro serviço) e criar preview por branch/PR. Isso não implica que um servidor Node/SQLite passará a rodar dentro do frontend.",
+    "steps": [
+      "Confirme que o projeto compila localmente: npm run build deve produzir dist/ (ou o diretório documentado).",
+      "Crie um projeto Pages com integração Git, autorizando só o repositório de demonstração. Selecione a branch de produção explicitamente.",
+      "Configure framework Vite, comando npm run build e diretório dist apenas quando esses valores corresponderem ao projeto.",
+      "Abra PR ou envie branch para obter preview. Verifique URL, conteúdo, console e assets; não teste em produção primeiro.",
+      "Após aprovação, faça merge e espere o deploy do commit correto. Verifique o commit SHA e o HTML publicado; documente rollback."
+    ],
+    "example": "Git push feat/nova-tela → CI da branch → URL de preview → revisão → merge main → Pages constrói e publica. O GitHub Actions pode verificar, mas a integração Pages pode realizar o deploy separadamente.",
+    "prompt": "Confira meu package.json e diga build command, output directory, branch de produção, configuração de preview e pontos de rollback para Cloudflare Pages. Não assuma que minhas APIs Node serão hospedadas ali.",
+    "checks": [
+      "Build local igual ao do provedor",
+      "Preview distinto de produção",
+      "Commit publicado verificado"
+    ],
+    "free": "Builds e páginas estáticas podem caber no plano gratuito de hospedagem; confirme cotas.",
+    "optional": "Domínio customizado e recursos avançados são opcionais.",
+    "caution": "Nunca copie credenciais de produção para variáveis de previews públicos.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://developers.cloudflare.com/pages/configuration/git-integration/"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 23,
+    "title": "Frontend, Worker, API e banco não são iguais",
+    "lead": "Um site pode conter HTML/CSS/JS sem backend. Workers executam código em ambiente edge com APIs e limites próprios; isso não é o processo Node persistente com acesso direto ao SQLite da máquina. Entender as fronteiras evita deploys que exibem tela bonita mas não salvam nada.",
+    "steps": [
+      "Desenhe cada solicitação: navegador → arquivo estático; navegador → /api/*; API → banco, se houver.",
+      "Abra DevTools Network para verificar resposta e tipo de conteúdo de uma rota. HTML quando esperava JSON é sinal de fallback incorreto.",
+      "No laboratório local, configure um servidor Node que valide regras e use SQLite no mesmo computador.",
+      "Para opção edge, avalie serviços compatíveis, storage, credenciais e runtime, sem copiar código Node cegamente.",
+      "Registre contrato de API: status, formato JSON, regras de autenticação e tratamento de erros. Proteja /api/* antes de configurar fallback de SPA."
+    ],
+    "example": "Exemplo de fronteira: GET /guia/conteudo.json precisa retornar JSON estático; GET /api/estoque precisa chegar ao backend autorizado. Se ambos retornarem index.html, roteamento está errado.",
+    "prompt": "Examine meu fluxo de deploy e diferencie arquivos estáticos, functions, Workers e API Node. Para cada endpoint especifique dono, runtime, storage, autenticação e teste negativo esperado. Não altere roteamento /api/* sem revisão.",
+    "checks": [
+      "Sei qual runtime recebe cada requisição",
+      "JSON não cai em fallback HTML",
+      "Existe teste de acesso não autorizado"
+    ],
+    "free": "Node local + SQLite e arquivo estático são rota de software livre.",
+    "optional": "Workers, D1 e outras soluções gerenciadas têm planos e limites próprios.",
+    "caution": "Alterações em roteamento de API, OAuth e Workers exigem testes antes de merge.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://developers.cloudflare.com/workers/static-assets/routing/worker-script/"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 24,
+    "title": "Rollback e publicação sem sustos",
+    "lead": "Publicação segura precisa de versão identificável, smoke test e capacidade de retorno. 'Deploy automático' descreve um gatilho, não substitui verificação de saúde. No monorepo comercial, é especialmente importante não mexer em APIs e login para publicar uma página.",
+    "steps": [
+      "Identifique qual branch e commit geraram o build. Guarde SHA em metadados de publicação.",
+      "Defina smoke checks públicos: página carrega, download disponível, CSS e JS retornam tipos corretos, links funcionam.",
+      "Defina checks protegidos: sem autenticação, dados privados retornam 401/403; saúde não exige expor dados confidenciais.",
+      "Se houver regressão, reverta commit ou selecione release anterior no provedor. O banco pode precisar de plano próprio de migração reversível.",
+      "Registre incidentes: horário, SHA, endpoint afetado, impacto, correção, responsável e evidência após rollback."
+    ],
+    "example": "Plano simples: versão A saudável → PR adiciona /guia → CI aprovado → merge → build do SHA B → smoke do /guia e /api/health → em caso de regressão, rollback para A.",
+    "prompt": "Atue como engenheiro de release. Gere checklist de deploy seguro para rota estática dentro de site com /api e OAuth. Não sugira desligar autenticação. Inclua smoke, rollback, logs, SHA e testes de regressão.",
+    "checks": [
+      "Versão do deploy identificável",
+      "API protegida conserva respostas corretas",
+      "Rollback não depende de improviso"
+    ],
+    "free": "Git revert e self-hosted local são gratuitos em licença.",
+    "optional": "Cloudflare e provedores podem oferecer histórico e rollback com limites.",
+    "caution": "Nunca aplicar migração de banco irreversível no mesmo passo que alteração visual.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 25,
+    "title": "O que custa mesmo num projeto com IA",
+    "lead": "Divida a conta entre software, execução de agente, minutos de CI, hospedagem, armazenamento, domínio, operação e risco. O número de minutos por mês não é o mesmo que uma fatura: planos mudam, runners diferem e há cotas.",
+    "steps": [
+      "Faça uma planilha com colunas componente, quem hospeda, unidade cobrada, franquia grátis, uso previsto e excedente.",
+      "Rota local: Node/SQLite/Git e agente com modelo local compatível, sem cobrança de licença ou API; há custo de computador e energia.",
+      "Rota com serviços: GitHub Free e Cloudflare gratuito dentro dos limites atuais. Verifique no painel da sua conta o consumo real.",
+      "Rota paga opcional: agente hospedado, domínio, máquina maior, armazenamento e outros serviços. Somente adicione após demonstrar necessidade.",
+      "Defina alertas, limitação de builds por PR e retenção de artefatos. Revise orçamento mensalmente."
+    ],
+    "example": "Cenário fictício: 5 builds/dia × 20 dias = 100 builds/mês; 4 min por build = 400 runner-minutos computados. A cobrança depende de repo público/privado, tamanho do runner e plano; não é uma cotação.",
+    "prompt": "Crie uma matriz de custos em R$ 0 local, serviço gratuito e pago opcional. Não presuma valores atuais; exponha fórmula para estimar minutos, builds, storage e APIs e forneça fontes oficiais.",
+    "checks": [
+      "Custo variável e custo fixo separados",
+      "Planos gratuitos não tratados como open source",
+      "Há limite operacional e alerta"
+    ],
+    "free": "Ferramentas locais e open source não exigem contrato de API.",
+    "optional": "Assinatura de IA e infraestrutura gerenciada são opções com cobrança própria.",
+    "caution": "Repositório público não justifica expor código comercial para economizar Actions.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://docs.github.com/en/billing/concepts/product-billing/github-actions"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 26,
+    "title": "Uma stack local completa por R$ 0 de licença",
+    "lead": "Para o miniestoque, use o mínimo: frontend HTML/JS, servidor Node e SQLite local. Evite complexidade de framework enquanto regras do domínio não estiverem provadas. Depois pode migrar a UI para Vite/React se fizer sentido.",
+    "steps": [
+      "Confira Node LTS compatível e npm no computador; registre versão utilizada.",
+      "Crie src/store.js para persistência e regras de saldo, src/server.js para HTTP e public/ para interface.",
+      "Defina contrato POST /products, POST /movements e GET /products; documente respostas, erros e validação.",
+      "Não deixe a UI calcular saldo como fonte de verdade; o servidor valida e registra movimentos de forma transacional.",
+      "Adicione npm test e npm start ao package.json e teste num computador limpo com dados sintéticos."
+    ],
+    "example": "Arquitetura: navegador 127.0.0.1:3000 → rota HTTP Node → serviço de estoque → SQLite. Regra: quantidade positiva inteira e saída negada se saldo insuficiente.",
+    "prompt": "Desenhe um esqueleto mínimo de API HTTP Node e SQLite para estoque. Separe handler, regras e acesso ao banco. Não adicione autenticação, SaaS, fiscal ou deploy remoto antes do MVP.",
+    "checks": [
+      "Consigo instalar e iniciar localmente",
+      "Saldo validado no servidor",
+      "Dados de exemplo não contêm informações reais"
+    ],
+    "free": "Node e SQLite são gratuitos e executáveis localmente.",
+    "optional": "Frontend hospedado ou stack enterprise são opcionais.",
+    "caution": "A biblioteca SQLite escolhida precisa ter suporte à versão do Node da máquina.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://www.sqlite.org/about.html"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 27,
+    "title": "Dados corretos, transações e backup",
+    "lead": "Armazenamento é parte da funcionalidade, não detalhe invisível. O valor do miniestoque está em conseguir explicar o saldo e restaurar os dados. Um backup sem teste de restauração não protege o usuário.",
+    "steps": [
+      "Modele produtos com id, SKU único, nome e data; movimentos com id, produto_id, tipo, quantidade, data e origem.",
+      "Use transação para validar saldo e gravar movimento de modo indivisível. Se duas saídas ocorrerem juntas, não permita saldo negativo.",
+      "Adote migrations versionadas para evolução do banco. Atualizações não devem perder movimentos anteriores.",
+      "Implemente exportação de dados fictícios e rotina de backup usando a API adequada ao banco SQLite em vez de copiar arquivo ativo indiscriminadamente.",
+      "Teste restauração em diretório novo. Confira contagem de produtos, movimentos, saldo e integridade."
+    ],
+    "example": "Regra: antes da saída, consultar saldo dentro da mesma transação. Se saldo < quantidade, lançar erro sem gravar. Teste duas operações simultâneas e estado final.",
+    "prompt": "Revise meu modelo SQLite quanto a SKU único, integridade referencial, transações, concorrência e backup consistente. Gere testes que confirmem dados antes e depois de uma falha.",
+    "checks": [
+      "Uma saída inválida não muda dados",
+      "Dados restaurados correspondem à origem",
+      "Há versão do schema"
+    ],
+    "free": "SQLite usa armazenamento local sem serviço pago.",
+    "optional": "Backups gerenciados externos são opcionais e têm custos/privacidade.",
+    "caution": "Nunca use dump com dados reais no repositório público.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://www.sqlite.org/backup.html"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 28,
+    "title": "IA local com Ollama, do modelo ao agente",
+    "lead": "Ollama permite executar modelos no computador, mas não transforma automaticamente uma resposta em edição segura de repositório. Para trabalhar com código, um cliente CLI/agente autorizado precisa ter acesso ao projeto, e o modelo deve caber na memória disponível.",
+    "steps": [
+      "Instale Ollama pelo guia oficial do seu sistema. Confirme o serviço rodando e use ollama list para consultar modelos locais.",
+      "Selecione modelo licenciado e compatível com seu hardware; confirme tamanho, contexto suportado, idioma e limitações.",
+      "Execute ollama run NOME_DO_MODELO para pedir plano de arquitetura. Nunca apresente nome de modelo inexistente como comando pronto.",
+      "Se usar executor como Aider, leia sua documentação de integração com Ollama e teste primeiro em clone/branch de laboratório.",
+      "Compare respostas do modelo com os requisitos e execute testes manualmente. Quanto menor ou menos adequado o modelo, maior a necessidade de revisão."
+    ],
+    "example": "ollama list\nollama run NOME_DO_MODELO\n# Substitua por um modelo já instalado e compatível\n# A resposta no terminal NÃO significa que arquivos Git foram alterados.",
+    "prompt": "Explique a diferença entre servir um LLM local, conectar um cliente de ferramentas e permitir alterações no repositório. Liste requisitos mínimos e riscos, sem sugerir que algum download é gratuito em processamento.",
+    "checks": [
+      "Modelo responde localmente",
+      "Executor e permissões identificados",
+      "Nenhum patch aplicado sem diff"
+    ],
+    "free": "Ollama é uma alternativa de software livre; infraestrutura local tem custos reais.",
+    "optional": "GPUs alugadas e APIs de modelos são opcionais.",
+    "caution": "Modelos têm licenças próprias, mesmo quando executados localmente.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://docs.ollama.com/"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 29,
+    "title": "OCR útil precisa de conferência humana",
+    "lead": "OCR transforma imagem em texto, não comprova a verdade da informação. Para notas e recibos, é importante preferir extração direta de PDFs digitais quando viável e recorrer ao OCR em scans/imagens. A conferência deve anteceder gravações financeiras ou operacionais.",
+    "steps": [
+      "Separe PDFs digitais de imagens: tente extração textual direta quando houver texto selecionável.",
+      "Para imagem, teste Tesseract ou ferramenta aberta com amostra sintética. Registre a origem e a página do texto.",
+      "Normalize quantidade, unidade, descrição, data e valores com regras determinísticas, sem adivinhar o que está ausente.",
+      "Marque baixa confiança e campos inválidos para revisão manual. Não atualize estoque automaticamente baseado só em OCR.",
+      "Compare extraído x esperado em três arquivos de teste: legível, borrado e com valores ambiguamente formatados."
+    ],
+    "example": "Entrada de teste: linha 'Parafuso 10 un'. Saída preliminar: {descricao:'Parafuso',quantidade:10,unidade:'un',revisado:false}. Somente após conferência humana permitir importação.",
+    "prompt": "Descreva pipeline local: detectar PDF digital → extrair texto → OCR só quando preciso → parser de quantidades → tela de revisão → confirmação. Inclua testes para texto ambíguo e regras de validação.",
+    "checks": [
+      "Texto extraído guarda referência à origem",
+      "Dados críticos exigem confirmação",
+      "Não há invenção de campo ausente"
+    ],
+    "free": "Tesseract e bibliotecas livres podem funcionar localmente.",
+    "optional": "APIs comerciais de OCR podem ter limites e tarifas; opcionais.",
+    "caution": "Não teste com documentos pessoais de terceiros sem autorização.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://github.com/tesseract-ocr/tesseract"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 30,
+    "title": "Automatize documentos em lote com rastreabilidade",
+    "lead": "Gerar dezenas de documentos só ajuda se cada arquivo estiver correto, identificado e reproduzível. Node-RED pode orquestrar fluxos, mas uma função Node local também basta para um gerador simples.",
+    "steps": [
+      "Defina uma estrutura de entrada com id fictício, mês de competência, nome e registros de jornada ou pagamentos de exemplo.",
+      "Valide campos antes de gerar: formatos, duplicatas, quantidade de registros e valores inconsistentes.",
+      "Gere documento determinístico por pessoa e competência. Use nomes de arquivo únicos e organizados em pastas.",
+      "Registre sucesso e falha por item, evitando que uma falha apague os outros resultados. Permita reprocessamento.",
+      "Teste em lote com três registros: válido, inválido e duplicado. Revise o relatório e os PDFs visualmente antes de imprimir."
+    ],
+    "example": "saida/2026-10/EMP001_ficha-ponto.pdf\nsaida/2026-10/EMP002_ficha-ponto.pdf\nsaida/2026-10/manifesto.json\n# manifesto associa id, versão do modelo, status e data de geração",
+    "prompt": "Faça plano para automatizar PDFs de jornada fictícia por competência usando Node e biblioteca livre. Inclua validação, geração, histórico de falhas e reprocessamento, sem acessar arquivos de empregados reais.",
+    "checks": [
+      "Cada saída corresponde a um registro",
+      "Lote fornece manifesto de sucesso/falha",
+      "Teste de impressão e revisão manual definidos"
+    ],
+    "free": "Node-RED local ou script Node com bibliotecas livres: sem API paga.",
+    "optional": "Serviço de geração em nuvem pode ser opcional.",
+    "caution": "Nunca incluir CPF, endereço ou recibos reais em exemplos públicos.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://nodered.org/docs/"
+      }
+    ],
+    "status": "draft-for-review"
+  }
+]

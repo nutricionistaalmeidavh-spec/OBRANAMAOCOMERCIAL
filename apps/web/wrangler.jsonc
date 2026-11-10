@@ -11,17 +11,12 @@
     "required": [
       "GEMINI_API_KEY",
       "LICENSE_SERVICE_SECRET",
-      "LOJAONLINE_LICENSE_SERVICE_SECRET",
       "LICENSE_CENTER_READ_SECRET",
       "LICENSE_CENTER_WRITE_SECRET",
       "DEBORA_OBSERVABILITY_SECRET"
     ]
   },
   "services": [
-    {
-      "binding": "LOJAONLINE_LICENSING",
-      "service": "artisys-lojaonline"
-    },
     {
       "binding": "DEBORA_OBSERVABILITY",
       "service": "consulroriaamamenta-o"
@@ -30,7 +25,12 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*",
+      "/devkits/catalogo",
+      "/devkits/catalogo/*"
+    ]
   },
   "d1_databases": [
     {
@@ -53,6 +53,12 @@
     "OWNER_PROJECT": "Operação Comercial",
     "OWNER_CUSTOMER": "Obra na Mão",
     "GOOGLE_CLIENT_ID": "826322917381-ia1khl7es1gqddv6jsmg8p75m7amfle5.apps.googleusercontent.com",
-    "LICENSE_CENTER_WRITE_ENABLED": "true"
+    "LICENSE_CENTER_WRITE_ENABLED": "true",
+    "DEBORA_CENTRAL_EMAIL": "d.moreira.garcia9393@gmail.com"
+  },
+  "triggers": {
+    "crons": [
+      "*/15 * * * *"
+    ]
   }
 }

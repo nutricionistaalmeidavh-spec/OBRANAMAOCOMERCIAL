@@ -17,7 +17,9 @@ assert.match(transformed, /<meta property="og:title"/i);
 assert.match(transformed, /<meta name="twitter:card"/i);
 assert.match(transformed, /<script type="application\/ld\+json">/i);
 assert.match(transformed, /<meta name="viewport"/i);
-assert.match(transformed, /id="sistemas-catalogo"/i, 'home deve receber seção pública de sistemas');
+assert.doesNotMatch(transformed, /id="sistemas-catalogo"/i, 'home não deve inserir cards do catálogo durante o build');
+assert.doesNotMatch(transformed, /id="dos-videos"|id="servicos"/i, 'home não deve reexibir seções removidas');
+assert.match(transformed, /class="button secondary" href="\/sistemas\/"/i, 'home deve apresentar CTA de sistemas prontos');
 assert.match(transformed, /href="\/sistemas\/"/i, 'home deve apontar para o catálogo público');
 
 const audit = auditSeoDocument({ html: transformed, expected: { canonical: model.canonical, index: true } });
@@ -36,6 +38,30 @@ for (const slug of ['sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-
   assert.ok(!sitemap.includes(`https://artisys.dev/sistemas/${slug}/`), `${slug} deve permanecer apenas na coleção Agro`);
 }
 
+assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/links\/<\/loc>/, 'Central ArtiSys deve estar no sitemap');
+assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/guia\/<\/loc>/, 'Guia ArtiSys deve estar no sitemap');
+assert.match(read('public/guia/index.html'), /<link rel="canonical" href="https:\/\/artisys\.dev\/guia\/">/, 'Guia precisa ter URL canonica propria');
+const linksHtml = read('public/links/index.html');
+const linksModel = buildPageSeo(artisysSeoConfig, '/links');
+const linksAudit = auditSeoDocument({ html: linksHtml, expected: { canonical: linksModel.canonical, index: true } });
+assert.equal(linksAudit.summary.critical, 0, 'Central ArtiSys com falha SEO: ' + JSON.stringify(linksAudit, null, 2));
+
+assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/devkits\/<\/loc>/, 'página DevKit deve estar no sitemap');
+const devkitHtml = read('public/devkits/index.html');
+const devkitModel = buildPageSeo(artisysSeoConfig, '/devkits');
+const devkitAudit = auditSeoDocument({ html: devkitHtml, expected: { canonical: devkitModel.canonical, index: true } });
+assert.equal(devkitAudit.summary.critical, 0, 'página DevKit com falha SEO: ' + JSON.stringify(devkitAudit, null, 2));
+assert.match(devkitHtml, /DevKit Tool.s/, 'página DevKit precisa identificar a categoria');
+assert.match(transformed, /href="\/devkits\/"/i, 'landing deve levar à página DevKit');
+
+const devkitCatalog = JSON.parse(read('public/devkits/kits.json'));
+assert.equal(devkitCatalog.items.length, 63, 'página DevKit precisa manter 63 kits');
+assert.equal(new Set(devkitCatalog.items.map(x => x.category)).size, 10, 'categorias DevKit');
+assert.equal(devkitCatalog.items.filter(x => Number.isFinite(x.price)).length, 63, 'preços DevKit');
+assert.match(devkitHtml, /id="kit-grid"/, 'página DevKit deve conter catálogo');
+assert.match(devkitHtml, /Guia Open Source/, 'página DevKit deve conter guia');
+assert.doesNotMatch(devkitHtml, /github.com\/nutricionistaalmeidavh-spec\/DevKitTools|MATRIZ-KITS|\.zip|SHA-256/i);
+assert.ok(!sitemap.includes('<loc>https://artisys.dev/devkits/catalogo/</loc>'), 'sitemap não pode indexar URL antiga');
 const catalogIndex = read('public/sistemas/index.html');
 const catalogModel = buildPageSeo(artisysSeoConfig, '/sistemas');
 const catalogAudit = auditSeoDocument({ html: catalogIndex, expected: { canonical: catalogModel.canonical, index: true } });

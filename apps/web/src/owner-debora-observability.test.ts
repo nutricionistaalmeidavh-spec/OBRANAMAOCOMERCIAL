@@ -38,6 +38,28 @@ describe('Debora observability owner module',()=>{
     expect(document.body.textContent).toContain('Pago');
   });
 
+  it('shows phone from the canonical consultant API and offers WhatsApp without breaking legacy rows',async()=>{
+    const page={...users,items:[
+      {...users.items[0],phone:'(16) 99999-4321'},
+      {userId:'legacy',email:'legado@example.test',phone:null,planCode:'freemium',online:false},
+    ]};
+    const client=apiWith(summary,page,sales);
+    await bindDeboraObservability(client as any);
+    const rows=Array.from(document.querySelectorAll('[data-debora-users-body] tr'));
+    expect(rows[0].textContent).toContain('(16) 99999-4321');
+    expect(rows[0].querySelector('a[href="https://wa.me/5516999994321"]')).not.toBeNull();
+    expect(rows[1].textContent).toContain('Celular não informado');
+    expect(rows[1].querySelector('a[href*="wa.me"]')).toBeNull();
+  });
+
+  it('escapes an unexpected phone value instead of injecting markup or a WhatsApp link',async()=>{
+    const page={...users,items:[{...users.items[0],phone:'<img src=x onerror=alert(1)>'}]};
+    await bindDeboraObservability(apiWith(summary,page,sales) as any);
+    expect(document.querySelector('[data-debora-users-body] img')).toBeNull();
+    expect(document.querySelector('[data-debora-users-body]')?.textContent).toContain('<img src=x');
+    expect(document.querySelector('[data-debora-users-body] a[href*="wa.me"]')).toBeNull();
+  });
+
   it('keeps filters when advancing user pagination',async()=>{
     const client=apiWith(summary,users,sales);
     await bindDeboraObservability(client as any);
@@ -54,6 +76,56 @@ describe('Debora observability owner module',()=>{
     document.querySelector<HTMLButtonElement>('[data-debora-user-activity="u1"]')!.click();
     await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/debora-observability/users/u1/sessions',{limit:25}));
     expect(document.body.textContent).toContain('1h 00min');
+  });
+
+
+
+  it('offers consistent sales source labels and explains realized versus attributed revenue',async()=>{
+    const client=apiWith(summary,users,sales);
+    await bindDeboraObservability(client as any);
+    expect(document.querySelector('[data-debora-sales-body]')?.textContent).toContain('Manual');
+    expect(document.querySelector('[data-debora-sales-source-note]')?.textContent).toContain('Asaas');
+    expect(document.querySelector('[data-debora-observability-metric="revenue"]')?.textContent).toContain('2.597,40');
+    expect(document.querySelector('[data-debora-sales-results]')).not.toBeNull();
+  });
+
+  it('filters sales by inclusive dates using the existing paginated server route',async()=>{
+    const client=apiWith(summary,users,sales);
+    await bindDeboraObservability(client as any);
+    const from=document.querySelector<HTMLInputElement>('[data-debora-sales-from]')!;
+    const to=document.querySelector<HTMLInputElement>('[data-debora-sales-to]')!;
+    from.value='2026-10-01';to.value='2026-10-30';to.dispatchEvent(new Event('change',{bubbles:true}));
+    await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/debora-observability/sales',expect.objectContaining({
+      createdFrom:'2026-10-01T03:00:00.000Z',
+      createdTo:'2026-10-31T02:59:59.999Z',
+    })));
+    expect(document.querySelector('[data-debora-sales-results]')?.textContent).toContain('1');
+  });
+
+  it('prevents reversed date filters from calling the server until fixed and supports clearing them',async()=>{
+    const client=apiWith(summary,users,sales);
+    await bindDeboraObservability(client as any);
+    const from=document.querySelector<HTMLInputElement>('[data-debora-sales-from]')!;
+    const to=document.querySelector<HTMLInputElement>('[data-debora-sales-to]')!;
+    const countBefore=client.get.mock.calls.filter(([path])=>path.endsWith('/sales')).length;
+    from.value='2026-10-31';to.value='2026-10-01';to.dispatchEvent(new Event('change',{bubbles:true}));
+    await new Promise(resolve=>setTimeout(resolve,0));
+    const countAfter=client.get.mock.calls.filter(([path])=>path.endsWith('/sales')).length;
+    expect(countAfter).toBe(countBefore);
+    expect(document.querySelector('[data-debora-sales-results]')?.textContent).toContain('Data inicial');
+    document.querySelector<HTMLButtonElement>('[data-debora-sales-clear]')!.click();
+    await vi.waitFor(()=>expect(client.get.mock.calls.filter(([path])=>path.endsWith('/sales')).length).toBeGreaterThan(countAfter));
+    expect(from.value).toBe('');expect(to.value).toBe('');
+  });
+
+  it('offers a safe license shortcut from a consultant record without posting changes',async()=>{
+    const form=document.createElement('form');form.id='deboraLicenseForm';form.innerHTML='<input name="email" type="email">';
+    document.body.append(form);
+    const client=apiWith(summary,users,sales);
+    await bindDeboraObservability(client as any);
+    document.querySelector<HTMLButtonElement>('[data-debora-manage-license="pro@example.test"]')!.click();
+    expect((form.elements.namedItem('email') as HTMLInputElement).value).toBe('pro@example.test');
+    expect(client.get).not.toHaveBeenCalledWith('/api/owner/companies');
   });
 
   it('degrades to an explicit telemetry warning instead of removing the section',async()=>{

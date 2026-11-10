@@ -31,7 +31,6 @@ checks.push(run('p1:field-transactional',process.execPath,[path.join(root,'scrip
 checks.push(run('p1:admin-governance-transactional',process.execPath,[path.join(root,'scripts','qa-admin-governance-transactional.mjs')]));
 checks.push(run('p1:desktop-renderer-transactional',process.execPath,[path.join(root,'scripts','qa-desktop-renderer-transactional.mjs')]));
 checks.push(run('p1:collaborator-onboarding-e2e',process.execPath,[path.join(root,'scripts','qa-collaborator-onboarding-e2e.mjs')]));
-checks.push(run('cross:read-only',process.execPath,[path.join(root,'scripts','qa-cross-system.mjs')],{env:{...process.env,LOJAONLINE_LICENSE_SERVICE_SECRET:''},critical:false}));
 
 const capabilityManifest=await readJson(path.join(root,'qa','business-capabilities.json'),{capabilities:[]});
 const statusByCheck=new Map(checks.map(check=>[check.name,check.status]));

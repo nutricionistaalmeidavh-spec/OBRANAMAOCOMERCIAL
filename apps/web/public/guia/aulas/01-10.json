@@ -1,0 +1,262 @@
+[
+  {
+    "number": 1,
+    "title": "Comece com um projeto pequeno",
+    "lead": "Você vai usar a mesma ideia durante todo o guia: uma loja precisa saber quanto entrou, saiu e quanto resta de cada produto. Não comece criando interfaces complexas. O primeiro resultado será registrar uma entrada de 10 unidades, uma saída de 3 e consultar o saldo 7.",
+    "steps": [
+      "Abra uma pasta vazia chamada miniestoque-lab. Não use os arquivos comerciais da Artisys; todos os dados deste laboratório são fictícios.",
+      "Escreva em README.md uma frase sobre quem usa o sistema, qual tarefa ele resolve e qual seria um erro inaceitável.",
+      "Peça ao agente somente uma análise do problema. Não autorize criação de arquivos ainda.",
+      "Revise as perguntas feitas pela IA e responda como usuário. Guarde as decisões em docs/decisoes.md.",
+      "Considere o primeiro marco concluído quando outra pessoa entender a necessidade sem consultar este guia."
+    ],
+    "example": "Problema: o vendedor registra entradas e saídas numa planilha compartilhada; duas edições concorrentes deixam o saldo incerto. Resultado mínimo: histórico de movimentações e saldo que nunca fique negativo.",
+    "prompt": "Atue como analista de produto. Meu cenário é um miniestoque local para uma pequena loja. Faça até oito perguntas antes de propor telas ou tecnologias. Ao final, entregue problema, persona, métrica, riscos e três hipóteses que precisam de validação. Não escreva código.",
+    "checks": [
+      "Existe um usuário e uma tarefa concreta",
+      "Problema e impacto foram registrados",
+      "Há ao menos uma métrica verificável"
+    ],
+    "free": "Editor, Markdown e Git locais: software R$ 0.",
+    "optional": "Um assistente online pode ajudar a escrever, mas é opcional e pode ter limites.",
+    "caution": "Não confunda demonstração didática com projeto pronto para uma empresa.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 2,
+    "title": "O agente acelera, mas quem decide é você",
+    "lead": "Um agente é útil ao analisar arquivos, elaborar propostas e executar testes quando possui ferramentas autorizadas. Ele também pode interpretar requisitos erroneamente. Aprenda a separar sugestões de evidências de execução.",
+    "steps": [
+      "Crie três colunas: tarefa delegável, evidência exigida e aprovação humana.",
+      "Delegue ao agente a escrita de um rascunho de PRD e peça que marque cada suposição como 'não validada'.",
+      "Confira uma afirmação do agente contra o próprio material de origem. Uma resposta confiante não substitui a fonte.",
+      "Se a IA afirmar que editou arquivos, confira git diff; se afirmar que testou, exija comando e saída.",
+      "Só aprove um passo quando houver artefato verificável, como arquivo versionado ou relatório de teste."
+    ],
+    "example": "Tarefa: 'escreva testes para saída maior que saldo'. Evidência aceitável: arquivo tests/estoque.test.js, comando npm test, resultado e diff. 'Já corrigi' sem diff não basta.",
+    "prompt": "Você é meu revisor técnico. Para cada conclusão, distinga hipótese, implementação e evidência. Não atribua a si execução de comandos que não realizou. Se faltar acesso, diga o que devo verificar. Ao final, forneça checklist de aceite.",
+    "checks": [
+      "Cada promessa tem uma evidência observável",
+      "Decisões sensíveis continuam humanas",
+      "Permissões não foram presumidas"
+    ],
+    "free": "Revisão manual e testes locais não exigem API.",
+    "optional": "Modelos hospedados podem acelerar análise; confirme cobrança e autorização.",
+    "caution": "Evite enviar informações de clientes, chaves ou dados pessoais a agentes não autorizados.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 3,
+    "title": "Da ideia à publicação: o mapa de trabalho",
+    "lead": "Para evitar o ciclo 'mude uma tela, quebre o login', separe o projeto em marcos independentes e defina antes o que não pode mudar. O Git registra versões; CI verifica alterações; deploy torna uma versão disponível para usuários.",
+    "steps": [
+      "Marco 1: descoberta e escopo. Saída: docs/PRD.md com problema, usuário, funcionalidades e não funcionalidades.",
+      "Marco 2: arquitetura e implementação. Saída: README, código organizado, testes e comandos de execução.",
+      "Marco 3: qualidade. Saída: GitHub Actions verde, diff revisado e teste manual do principal fluxo.",
+      "Marco 4: publicação. Saída: URL ou instalador, indicação da versão e plano de reversão.",
+      "Marco 5: manutenção. Saída: registro de problemas reais e alterações pequenas, uma hipótese por vez."
+    ],
+    "example": "Exemplo: branch feat/entrada-saida → PR → ações de CI → revisão → merge → deploy de preview/produção conforme configuração → verificação de saúde.",
+    "prompt": "Desenhe um fluxo Mermaid do meu projeto com descoberta, PRD, arquitetura, branch, testes, PR, aprovação, deploy e rollback. Identifique quais etapas exigem decisão humana e quais podem ser automatizadas.",
+    "checks": [
+      "Consigo apontar qual artefato sai de cada marco",
+      "Entendo que push não garante publicação",
+      "Tenho um rollback planejado"
+    ],
+    "free": "Git local, Mermaid e testes locais são ferramentas livres.",
+    "optional": "GitHub e Cloudflare têm planos gratuitos com cotas; ambos são serviços opcionais.",
+    "caution": "Não coloque branch, CI e deploy como se fossem a mesma operação.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://docs.github.com/en/get-started/using-github/github-flow"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 4,
+    "title": "Escolha sua rota sem dependência paga",
+    "lead": "Há três caminhos distintos. Gratuito em software não quer dizer infraestrutura sem custo. O guia usa ferramentas abertas/localmente executáveis como referência; GitHub e Cloudflare são opções de conveniência, não pré-requisitos.",
+    "steps": [
+      "Rota local: Node.js, Git, SQLite e editor. Uma interface pode funcionar só no próprio computador.",
+      "Rota hospedada gratuita: repositório GitHub Free e frontend estático em serviço como Cloudflare Pages, dentro dos limites vigentes.",
+      "Rota com agente online: modelo hospedado ou serviço comercial para sugerir/editar código; confirme o plano e as permissões.",
+      "Escreva os custos que existem fora da licença de software: computador, energia, domínio, rede, manutenção e tempo.",
+      "Defina uma regra: se a assinatura de um serviço acabar hoje, os dados e o código do laboratório continuam recuperáveis?"
+    ],
+    "example": "Uma página estática pode ser hospedada gratuitamente; o backend Node com SQLite não passa a funcionar na Cloudflare Pages só por fazer push.",
+    "prompt": "Compare rotas local, serviços gratuitos e ferramentas pagas opcionais para meu miniestoque. Produza tabela com requisitos de hardware, dependências, riscos, pontos de falha, custos variáveis e estratégia de migração. Não invente preços.",
+    "checks": [
+      "Identifiquei uma rota executável sem API paga",
+      "Separei software livre e plano grátis de terceiros",
+      "Entendo quem hospeda cada parte"
+    ],
+    "free": "Git, Node e SQLite locais: R$ 0 de licença.",
+    "optional": "Hospedagem, domínio e IA em nuvem somente se escolhidos; consultar preço no dia.",
+    "caution": "Modelos locais podem exigir hardware que você não possui.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://docs.github.com/en/billing"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 5,
+    "title": "Formule um problema antes da solução",
+    "lead": "O problema do miniestoque não é 'falta um dashboard bonito'. É não conseguir saber qual foi o saldo em um horário e por que ele mudou. Essa distinção economiza telas e evita código inútil.",
+    "steps": [
+      "Entreviste duas pessoas que hoje fazem a tarefa. Pergunte onde ocorre a conferência manual e qual erro custa tempo ou dinheiro.",
+      "Escreva: 'Quando [situação], [usuário] precisa [objetivo], pois [consequência]'.",
+      "Descreva o processo atual em no máximo cinco passos; marque onde existe duplicação de registro.",
+      "Escolha uma medida simples: conseguir explicar toda divergência de estoque em até cinco minutos.",
+      "Separe necessidades comprovadas de suposições. Só as necessidades passam ao primeiro escopo."
+    ],
+    "example": "Problema verificável: 'O vendedor não consegue explicar saídas divergentes'. Não requisito prematuro: 'preciso de IA generativa e microserviços'.",
+    "prompt": "Entrevistarei o usuário de um miniestoque. Gere oito perguntas neutras, sem induzir respostas. Depois transforme minhas respostas em problema, evidência, exceções, métrica e hipóteses ainda não testadas. Não recomende stack.",
+    "checks": [
+      "Problema expresso sem tecnologia",
+      "Uma medida pode ser verificada",
+      "As hipóteses estão explícitas"
+    ],
+    "free": "Anotações em Markdown e entrevistas locais, sem dependências.",
+    "optional": "Formulários online são opcionais; revise privacidade e limites de coleta.",
+    "caution": "Não peça acesso a dados comerciais para reproduzir o exemplo didático.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 6,
+    "title": "Pesquise concorrentes com evidência",
+    "lead": "Pesquisas com IA são úteis para levantar hipóteses sobre funcionalidades de softwares concorrentes, mas não provam preços, limitações ou interfaces. Pesquise nos sites oficiais e registre a data da consulta.",
+    "steps": [
+      "Escolha duas categorias: app de inventário e controle de estoque para pequenas lojas.",
+      "Para cada concorrente, localize documentação, página de recursos e termos de uso. Guarde links e data.",
+      "Monte uma tabela: recurso, público, modo offline, importação, exportação, preço divulgado e evidência.",
+      "Peça ao agente para agrupar recursos em essenciais, diferenciais e irrelevantes para este MVP.",
+      "Para cada alegação não confirmada, marque 'não verificado', em vez de inventar informação."
+    ],
+    "example": "| Recurso | Produto A | Produto B | Nosso MVP |\n|---|---|---|---|\n| Entrada/saída | Fonte oficial | Fonte oficial | Sim |\n| Saldo negativo | Testar | Testar | Bloquear |\n| Exportação | Conferir | Conferir | JSON |",
+    "prompt": "Pesquise categorias de sistemas de estoque. Traga no máximo cinco produtos, link oficial por afirmação e data. Separe fato observado, hipótese e recomendação. Não use avaliações ou preços sem fonte verificável.",
+    "checks": [
+      "Cada funcionalidade citada tem uma fonte",
+      "Preço e plano têm data",
+      "A escolha do MVP considera o usuário, não a popularidade"
+    ],
+    "free": "Busca pública, documentação e planilha local são suficientes.",
+    "optional": "Analisadores online podem agilizar síntese, mas verifique links.",
+    "caution": "Evite reproduzir layout ou código protegido de concorrentes.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 7,
+    "title": "Escreva um PRD que o agente entenda",
+    "lead": "PRD é uma especificação curta: descreve problema, objetivos, fluxo esperado e limites. Também é a principal fonte de contexto para agentes, QA e futuras alterações. O PRD não deve ser escondido no histórico de chat.",
+    "steps": [
+      "Crie docs/PRD.md e registre quem opera o miniestoque e em qual dispositivo.",
+      "Liste o fluxo: cadastrar produto → registrar entrada → registrar saída → consultar saldo → exportar histórico.",
+      "Defina regras: SKU único; quantidade inteira positiva; saída nunca torna saldo negativo.",
+      "Liste explicitamente o que fica fora: login social, fiscal, compras, nuvem, sincronização multi-loja.",
+      "Inclua critérios de aceite e riscos. Commite o PRD antes de pedir a implementação."
+    ],
+    "example": "# PRD / Miniestoque\nUsuário: operador de pequena loja\nObjetivo: registrar mudanças auditáveis de estoque\nEscopo: produtos, entradas, saídas, saldo e exportação\nFora do escopo: pagamentos, NF-e, sincronização\nRegra: saída > saldo retorna erro sem alterar dados",
+    "prompt": "Escreva um PRD em Markdown a partir destes requisitos. Faça perguntas sobre ambiguidades. Inclua critérios de aceite, não-requisitos, riscos e proposta de fases. Não invente integrações.",
+    "checks": [
+      "PRD em arquivo legível no repositório",
+      "Regras escritas sem ambiguidade",
+      "Não-requisitos explícitos"
+    ],
+    "free": "Markdown + Git + revisão humana: R$ 0.",
+    "optional": "Plataforma de gestão de produto paga não é necessária.",
+    "caution": "Mudança de escopo precisa atualizar PRD e testes.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 8,
+    "title": "MVP e critérios de aceite executáveis",
+    "lead": "Um MVP não é uma lista longa de recursos incompletos; é um fluxo menor que pode ser executado de ponta a ponta. Todo requisito deve ter um cenário testável.",
+    "steps": [
+      "Comece pela história: 'Como operador, registro saídas para saber o saldo confiável'.",
+      "Escreva um cenário de sucesso: dado saldo 10, quando sai 3, então saldo passa a 7.",
+      "Escreva um cenário inválido: dado saldo 2, quando tenta sair 3, então API rejeita e saldo permanece 2.",
+      "Defina casos de borda: SKU duplicado, quantidade zero, número fracionado, produto inexistente.",
+      "Escolha um critério de pronto: testes passam numa instalação limpa e um usuário realiza o fluxo sem instruções extras."
+    ],
+    "example": "Given produto SKU ABC com saldo 10\nWhen registrar saída de 3\nThen saldo = 7 e movimento aparece no histórico\nGiven saldo 2\nWhen registrar saída de 3\nThen erro e saldo permanece 2",
+    "prompt": "Converta meu PRD em cenários Given/When/Then, com casos positivo, negativo e de borda. Para cada caso diga como verificá-lo por teste automatizado ou manual. Não implemente ainda.",
+    "checks": [
+      "Há critérios para sucesso e falha",
+      "Cada requisito possui uma prova",
+      "O escopo continua pequeno"
+    ],
+    "free": "node:test é incluído no Node.js e não exige compra.",
+    "optional": "Ferramentas de teste hospedadas são opcionais.",
+    "caution": "Teste passando não garante que o usuário compreende a interface.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://nodejs.org/api/test.html"
+      }
+    ],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 9,
+    "title": "Script, desktop, web ou PWA?",
+    "lead": "O formato adequado depende de acesso à internet, hardware, múltiplos usuários e instalação. Não use uma tecnologia apenas porque um agente a recomendou.",
+    "steps": [
+      "Script CLI: bom para rotinas internas sem interface; ruim para um operador que precisa navegar com cliques.",
+      "Desktop: indicado para arquivos e dispositivos locais; exige atualização e instalação.",
+      "Frontend estático: excelente para visualização e demonstrações locais; não executa sozinho uma API Node ou banco SQLite.",
+      "Aplicação web: facilita acesso remoto, mas adiciona autenticação, rede, hospedagem e operação.",
+      "PWA: melhora instalação e alguns cenários offline; não equivale a acesso irrestrito a periféricos do sistema operacional."
+    ],
+    "example": "Escolha deste guia: API Node em localhost + SQLite + frontend servido pela mesma aplicação. Vitrine estática, se publicada, usa dados demonstrativos separados.",
+    "prompt": "Compare CLI, Electron, site estático, PWA e web full-stack para estoque pequeno que deve funcionar sem internet. Dê nota para manutenção, dados, segurança, backup, dispositivos e complexidade. Recomende o mais simples.",
+    "checks": [
+      "Plataforma justificada pelos requisitos",
+      "Back-end e frontend não confundidos",
+      "Há estratégia para ficar offline"
+    ],
+    "free": "Node + SQLite podem operar na máquina local.",
+    "optional": "Hospedagem, Electron e nuvem são escolhas, não pressupostos.",
+    "caution": "PWA não concede automaticamente acesso a impressão fiscal e drivers.",
+    "links": [],
+    "status": "draft-for-review"
+  },
+  {
+    "number": 10,
+    "title": "Compare arquiteturas e registre a decisão",
+    "lead": "Peça ao agente opções de arquitetura, mas escolha por consequências. Para o laboratório, simplicidade verificável vale mais que escalabilidade hipotética.",
+    "steps": [
+      "Arquitetura A: CLI + JSON local. Simples, mas ruim para consulta por tela e consistência em múltiplas operações.",
+      "Arquitetura B: frontend + servidor Node local + SQLite. Adequada ao MVP e permite teste de regras no backend.",
+      "Arquitetura C: frontend hospedado + API remota + banco gerenciado. Útil para acesso remoto, com operação e custos adicionais.",
+      "Registre docs/adr/0001-arquitetura.md: contexto, opções, escolha, motivos, rejeições e plano de revisão.",
+      "Defina fronteiras: UI exibe dados; servidor valida regras; banco persiste mudanças; backup é operação explícita."
+    ],
+    "example": "Browser (interface) → HTTP localhost → Node (validações) → SQLite (transações). Em nenhum ponto a interface deve alterar o banco diretamente.",
+    "prompt": "Atue como arquiteto. Proponha três arquiteturas para este PRD, incluindo custo, riscos, isolamento, backup, facilidade de teste e limites. Recomende uma e escreva um ADR em Markdown. Não crie recursos não pedidos.",
+    "checks": [
+      "Tenho um ADR versionado",
+      "Consigo explicar por que descartei alternativas",
+      "Sei onde ficam regras e dados"
+    ],
+    "free": "SQLite e Node locais não cobram licença.",
+    "optional": "Banco gerenciado é opcional, com custos próprios.",
+    "caution": "Não chamar um diagrama de implementação validada.",
+    "links": [
+      {
+        "label": "Referência oficial",
+        "url": "https://www.sqlite.org/atomiccommit.html"
+      }
+    ],
+    "status": "draft-for-review"
+  }
+]

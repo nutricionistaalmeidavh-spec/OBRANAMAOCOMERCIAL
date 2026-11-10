@@ -44,6 +44,18 @@ function centralFixture(state='central-active'){
 afterEach(()=>{for(const dir of dirs.splice(0))fs.rmSync(dir,{recursive:true,force:true})})
 
 describe('RH document generation source',()=>{
+  it('aplica a escolha persistida também na geração individual e na reimpressão',async()=>{
+    const f=centralFixture()
+    Object.assign(f.context.company,{politica_recibos:JSON.stringify({version:1,benefitIds:[3],point:false,receipts:true})})
+    f.context.benefits=[{beneficio_id:3,descricao:'Café',valor_centavos:18000},{beneficio_id:1,descricao:'Vale-transporte',valor_centavos:25000}] as any
+    const result=await f.service.generateDocuments({funcionario_id:77,competencia:'2026-10'})
+    expect(result.point).toBeUndefined()
+    expect(f.localTime.pointHtml).not.toHaveBeenCalled()
+    expect(f.localTime.receiptHtml.mock.calls[0][3]).toEqual([{beneficio_id:3,descricao:'Café',valor_centavos:18000}])
+    const reprint=await f.service.prepareCentralEntries({competencia:'2026-10'})
+    expect(reprint[0].pointHtml).toBeNull()
+    expect(reprint[0].receiptHtml).toBeTruthy()
+  })
   it('baixa as duas quinzenas somente após impressão aceita e preserva parcelas já pagas', async()=>{
     const f=centralFixture()
     const getEmployee=vi.fn(async()=>({payments:[{quinzena:1,status:'pago'}],launches:[{quinzena:1,status:'pago'},{quinzena:2,status:'pendente'}]}))

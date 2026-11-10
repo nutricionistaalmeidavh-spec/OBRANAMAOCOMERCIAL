@@ -21,7 +21,6 @@
   "flows": {
     "owner-shell": "flows/00-owner-shell.json",
     "owner-overview": "flows/01-owner-overview.json",
-    "loja-online": "flows/02-loja-online.json",
     "clientes": "flows/03-clientes.json",
     "licencas": "flows/04-licencas.json",
     "auditoria": "flows/05-auditoria.json",
@@ -30,22 +29,55 @@
   },
   "qaProfiles": {
     "quick": {
-      "flows": ["owner-shell", "loja-online"],
-      "criticalFlows": ["owner-shell"],
+      "flows": [
+        "owner-shell",
+        "owner-overview"
+      ],
+      "criticalFlows": [
+        "owner-shell"
+      ],
       "includeVisual": false,
       "includeDesktop": false,
       "includeNetwork": false
     },
     "full": {
-      "flows": ["owner-shell", "owner-overview", "loja-online", "clientes", "licencas", "auditoria", "obra-regression", "debora-regression"],
-      "criticalFlows": ["owner-shell", "loja-online", "obra-regression", "debora-regression"],
+      "flows": [
+        "owner-shell",
+        "owner-overview",
+        "clientes",
+        "licencas",
+        "auditoria",
+        "obra-regression",
+        "debora-regression"
+      ],
+      "criticalFlows": [
+        "owner-shell",
+        "obra-regression",
+        "debora-regression"
+      ],
       "includeVisual": false,
       "includeDesktop": false,
       "includeNetwork": false
     },
     "release": {
-      "flows": ["owner-shell", "owner-overview", "loja-online", "clientes", "licencas", "auditoria", "obra-regression", "debora-regression"],
-      "criticalFlows": ["owner-shell", "owner-overview", "loja-online", "clientes", "licencas", "auditoria", "obra-regression", "debora-regression"],
+      "flows": [
+        "owner-shell",
+        "owner-overview",
+        "clientes",
+        "licencas",
+        "auditoria",
+        "obra-regression",
+        "debora-regression"
+      ],
+      "criticalFlows": [
+        "owner-shell",
+        "owner-overview",
+        "clientes",
+        "licencas",
+        "auditoria",
+        "obra-regression",
+        "debora-regression"
+      ],
       "includeVisual": false,
       "includeDesktop": false,
       "includeNetwork": false

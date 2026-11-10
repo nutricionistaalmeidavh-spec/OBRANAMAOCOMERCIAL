@@ -21,6 +21,7 @@ export function normalizeManagedCompanyInput(input:Record<string,unknown>,allowe
     maxUsers:bounded(input.maxUsers,10),
     maxProjects:bounded(input.maxProjects,5),
     maxDevices:bounded(input.maxDevices,2),
+    advancedServer:input.advancedServer===true,
   };
 }
 
@@ -37,7 +38,7 @@ export function companyViews(companies:Row[],licenses:Row[],users:Row[],projects
     const companyProjects=projects.filter(project=>project.companyId===id).map(project=>({id:project.id,name:project.name}));
     const companyDevices=devices.filter(device=>device.companyId===id).map(device=>({id:device.id,name:device.name,email:device.email,status:device.status,lastSeenAt:device.lastSeenAt}));
     const passwordCreatedAt=credentials.find(item=>norm(item.email)===adminEmail)?.created_at||null;
-    return{id,name:company?.name||`Licença reservada — ${adminEmail||'sem e-mail'}`,adminEmail,reserved:!company,status:license?.status==='revoked'?'suspended':license?.expiresAt&&license.expiresAt<new Date().toISOString()?'expired':!license?.claimedBy?'pending':'active',license:license?{id:license.id,plan:license.plan,status:license.status,expiresAt:license.expiresAt,maxUsers:license.maxUsers,maxProjects:license.maxProjects,maxDevices:license.maxDevices,claimed:!!license.claimedBy}:null,modules:license?.modules||[],channels:license?.channels||[],passwordCreatedAt,usersCount:companyUsers.length,projectsCount:companyProjects.length,devicesCount:companyDevices.length,users:companyUsers,projects:companyProjects,devices:companyDevices};
+    return{id,name:company?.name||`Licença reservada — ${adminEmail||'sem e-mail'}`,adminEmail,reserved:!company,status:license?.status==='revoked'?'suspended':license?.expiresAt&&license.expiresAt<new Date().toISOString()?'expired':!license?.claimedBy?'pending':'active',license:license?{id:license.id,plan:license.plan,status:license.status,expiresAt:license.expiresAt,maxUsers:license.maxUsers,maxProjects:license.maxProjects,maxDevices:license.maxDevices,advancedServer:license.advancedServer===true,claimed:!!license.claimedBy}:null,modules:license?.modules||[],channels:license?.channels||[],passwordCreatedAt,usersCount:companyUsers.length,projectsCount:companyProjects.length,devicesCount:companyDevices.length,users:companyUsers,projects:companyProjects,devices:companyDevices};
   };
   return{companies:[...companies.filter(company=>!operationIds.has(company.id)).map(company=>view(company,licenses.find(license=>license.id===company.licenseId)||licenses.find(license=>license.companyId===company.id))),...licenses.filter(license=>!license.companyId&&!companies.some(company=>company.licenseId===license.id)&&norm(license.email)!==norm(ownerEmail)).map(license=>view(undefined,license))],operationCompanyIds:[...operationIds]};
 }
@@ -59,7 +60,7 @@ export async function createManagedCompany(input:Record<string,unknown>,actor:Ma
   const stamp=new Date().toISOString(),companyId=crypto.randomUUID().replace(/-/g,''),companyRecord={name,principalEmail:email,createdAt:stamp,createdBy:actor.userId,tenantVersion:1,attendanceTimesheetMode:'disabled'};
   const inserted=await runtimeEnv().DB.prepare("INSERT INTO kv_records(collection,id,record_json,created_at,updated_at) SELECT 'companies',?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM kv_records WHERE (collection IN ('licenses','platform_accesses') AND lower(json_extract(record_json,'$.email'))=?) OR (collection='companies' AND lower(json_extract(record_json,'$.principalEmail'))=?) )").bind(companyId,JSON.stringify(companyRecord),stamp,stamp,email,email).run();
   if(Number(inserted.meta?.changes||0)!==1)throw new ManagedAdminError('Este e-mail já foi reservado por outra criação.',409);
-  const license=await createLicense({email,companyId,modules,channels,status:'active',plan:normalized.plan,expiresAt:normalized.expiresAt,maxUsers:normalized.maxUsers,maxProjects:normalized.maxProjects,maxDevices:normalized.maxDevices},{source:'manual',userId:actor.userId,email:actor.email});
+  const license=await createLicense({email,companyId,modules,channels,status:'active',plan:normalized.plan,expiresAt:normalized.expiresAt,maxUsers:normalized.maxUsers,maxProjects:normalized.maxProjects,maxDevices:normalized.maxDevices,advancedServer:normalized.advancedServer},{source:'manual',userId:actor.userId,email:actor.email});
   await db.update('companies',[{id:companyId,record:{...companyRecord,licenseId:license.id,licensedModules:modules,licensedChannels:channels}}]);
   const company=(await managedCompanyInventory()).companies.find(item=>item.id===companyId);
   return{company,license};
@@ -71,7 +72,7 @@ export async function updateManagedCompany(companyId:string,input:Record<string,
   const modules=(Array.isArray(input.modules)?input.modules:company.modules).map(String).filter(value=>(LICENSE_MODULES as readonly string[]).includes(value));
   const channels=(Array.isArray(input.channels)?input.channels:company.channels).map(String).filter(value=>(LICENSE_CHANNELS as readonly string[]).includes(value));
   if(!modules.length||!channels.length)throw new ManagedAdminError('Selecione módulos e canais.',400);
-  const license=await mutateLicense(company.license.id,current=>({...current,modules,channels,status:input.status==='suspended'?'revoked':input.status==='active'?'active':current.status,plan:input.plan!==undefined?String(input.plan||'custom'):current.plan,expiresAt:input.expiresAt===null||input.expiresAt===''?undefined:input.expiresAt!==undefined?String(input.expiresAt):current.expiresAt,maxUsers:input.maxUsers!==undefined?bounded(input.maxUsers,current.maxUsers||10):current.maxUsers,maxProjects:input.maxProjects!==undefined?bounded(input.maxProjects,current.maxProjects||5):current.maxProjects,maxDevices:input.maxDevices!==undefined?bounded(input.maxDevices,current.maxDevices||2):current.maxDevices}),{source:'manual',userId:actor.userId,email:actor.email},'company_updated');
+  const license=await mutateLicense(company.license.id,current=>({...current,modules,channels,status:input.status==='suspended'?'revoked':input.status==='active'?'active':current.status,plan:input.plan!==undefined?String(input.plan||'custom'):current.plan,expiresAt:input.expiresAt===null||input.expiresAt===''?undefined:input.expiresAt!==undefined?String(input.expiresAt):current.expiresAt,maxUsers:input.maxUsers!==undefined?bounded(input.maxUsers,current.maxUsers||10):current.maxUsers,maxProjects:input.maxProjects!==undefined?bounded(input.maxProjects,current.maxProjects||5):current.maxProjects,maxDevices:input.maxDevices!==undefined?bounded(input.maxDevices,current.maxDevices||2):current.maxDevices,advancedServer:typeof input.advancedServer==='boolean'?input.advancedServer:current.advancedServer}),{source:'manual',userId:actor.userId,email:actor.email},'company_updated');
   return{company:(await managedCompanyInventory()).companies.find(item=>item.id===companyId),license};
 }
 

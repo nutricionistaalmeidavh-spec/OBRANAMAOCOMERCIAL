@@ -58,9 +58,9 @@ try{
     baseURL:productionBase,
     endpoints:[
       {name:'central-shell',path:'/sistema',expectedStatus:200},
-      {name:'owner-overview-protected',path:'/api/owner/loja-online/overview',expectedStatus:[401,403],expectJson:true},
-      {name:'owner-companies-protected',path:'/api/owner/loja-online/companies',expectedStatus:[401,403],expectJson:true},
-      {name:'owner-audit-protected',path:'/api/owner/loja-online/license-audit',expectedStatus:[401,403],expectJson:true},
+      {name:'owner-overview-protected',path:'/api/owner/debora-overview',expectedStatus:[401,403],expectJson:true},
+      {name:'owner-companies-protected',path:'/api/owner/companies',expectedStatus:[401,403],expectJson:true},
+      {name:'owner-audit-protected',path:'/api/owner/license-audit',expectedStatus:[401,403],expectJson:true},
     ],
   });
 

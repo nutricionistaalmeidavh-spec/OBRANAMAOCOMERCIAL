@@ -1,0 +1,50 @@
+name: Guia v2 - QA visual real
+on:
+  pull_request:
+    paths:
+      - 'apps/web/public/guia/**'
+      - 'apps/web/scripts/verify-guia.mjs'
+      - 'apps/web/scripts/qa-guia-browser.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guia-visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify editorial contract and build
+        run: npm run build
+      - name: Install Playwright (isolated, no secrets)
+        run: |
+          npm install --no-save --package-lock=false playwright@1.62.1
+          npx playwright install --with-deps chromium
+      - name: Start static preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/artisys-guia-preview.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/guia/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/artisys-guia-preview.log
+          exit 1
+      - name: QA real in desktop/mobile Chromium
+        run: node scripts/qa-guia-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: guia-v2-capturas-reais
+          path: apps/web/qa-evidence-guia/*.png
+          retention-days: 7
+          if-no-files-found: warn

@@ -21,6 +21,7 @@ describe('Central Artisys P1 automatic sweeps',()=>{
   it('keeps the automatic API sweep read-only and unauthenticated',async()=>{
     const source=await readFile(new URL('../scripts/qa-p1-sweep.mjs',import.meta.url),'utf8');
     expect(source).not.toContain('LOJAONLINE_LICENSE_SERVICE_SECRET');
+    expect(source).not.toContain('/loja-online/');
     expect(source).not.toMatch(/method:\s*['"]POST['"]/);
     expect(source).not.toMatch(/method:\s*['"]PUT['"]/);
     expect(source).not.toMatch(/method:\s*['"]DELETE['"]/);

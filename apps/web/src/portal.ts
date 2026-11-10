@@ -123,13 +123,18 @@ async function renderPhonePortal(p:Participant){
   try{
     const token=localStorage.getItem(SESSION)||'',b=(await api.post('/api/phone/bootstrap',{token})).data as Bootstrap;
     if(b.access?.modules?.includes('obra360'))cards=card('obra','Obra360','Dias, frentes, equipe, presença e rotina de campo.','./obra.html#obra','⌂','encarregado')+cards;
-    meta=`${b.company?.name||'Empresa'}${b.project?.name?` · ${b.project.name}`:''} · acesso por celular`;
+    meta=b.company?.name||'Empresa';
   }catch{}
   portalShell(p.name,meta,cards)
 }
 async function renderCorporatePortal(){
   try{
     const user=await auth.getUser();if(!user)return publicHome();
+    // A lactation administrator has no Obra membership and must never enter the Obra bootstrap.
+    try{
+      const {data:central}=await api.get<{role:string}>('/api/central/access');
+      if(central.role==='debora'){location.replace('./sistema.html#owner');return}
+    }catch{/* Other users continue through their existing corporate portal. */}
     const b=(await api.get('/api/bootstrap')).data as Bootstrap,pa=b.platformAccess;
     if(pa?.status==='blocked'){portalShell(user.name||user.email||'Usuário','Acesso bloqueado','<article class="mh-empty"><h3>Acesso bloqueado</h3><p>Procure o administrador da sua empresa.</p></article>');return}
     if(pa?.status==='pending'){
@@ -145,7 +150,7 @@ async function renderCorporatePortal(){
     if(b.needsClaim)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
     if(b.role==='admin'||b.platformRole==='superadmin'||b.isOwner)cards+=card('cobranca','Plano e cobrança','Consulte sua assinatura, pagamentos ou conheça outros planos.','./sistema.html#plano-cobranca','▤');
     if(!cards)cards='<article class="mh-empty"><h3>Nenhum sistema liberado</h3><p>Seu login está válido, mas ainda não há módulos liberados para este perfil.</p></article>';
-    portalShell(user.name||user.email||'Usuário',`${b.platformRole==='superadmin'?'Superadmin · ':''}${b.company?.name||'Empresa'}${b.project?.name?` · ${b.project.name}`:''}`,cards,b)
+    portalShell(user.name||user.email||'Usuário',`${b.platformRole==='superadmin'?'Superadmin · ':''}${b.company?.name||'Empresa'}`,cards,b)
   }catch(e){publicHome();toast(apiErr(e))}
 }
 async function openPortal(){

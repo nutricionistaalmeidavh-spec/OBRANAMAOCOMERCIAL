@@ -61,7 +61,7 @@
   async function load() {
     try {
       const items = await window.ArtiSysMarketplace.loadApprovedFeed();
-      const collectionItems = items.filter((item) => item.pageMode === 'collection' && item.collection === collectionSlug && !staticSlugs.has(item.slug));
+      const collectionItems = items.filter((item) => item.pageMode === 'collection' && item.collection === collectionSlug && !staticSlugs.has(item.slug) && !window.ArtiSysMarketplace.canonicalProductSlugForItemId(item.item_id));
       slot.replaceChildren(...collectionItems.map(card));
       slot.hidden = collectionItems.length === 0;
     } catch (error) {

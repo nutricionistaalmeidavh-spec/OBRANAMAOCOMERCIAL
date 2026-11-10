@@ -1,5 +1,10 @@
 (() => {
   const FEED_URL = 'https://artisys-mercadolivre.nutricionistaalmeidavh.workers.dev/api/site-catalog/feed';
+  // Só no site público: vincula anúncios legados aos produtos canônicos, sem alterar o painel Mercado Livre.
+  const CANONICAL_MARKETPLACE_ITEMS = Object.freeze({
+    MLB5225444179: 'pdv-artisys',
+    MLB7387378512: 'pdv-nexus'
+  });
 
   function installMarketplaceStyles() {
     if (document.getElementById('artisys-marketplace-style')) return;
@@ -56,17 +61,21 @@
     enriched.pictures = Array.isArray(item.pictures) ? item.pictures.filter((url) => String(url).startsWith('https://')) : [];
     enriched.soldQuantity = Number(item.soldQuantity || 0);
     enriched.priceMode = item.priceMode || 'marketplace';
-    if (item.priceMode === 'marketplace' && Number.isFinite(Number(item.price))) enriched.priceLabel = priceLabel(item);
+    if (!product.checkoutOfferId && item.priceMode === 'marketplace' && Number.isFinite(Number(item.price))) enriched.priceLabel = priceLabel(item);
     return enriched;
   }
+
+  const HIDDEN_UNLINKED_SLUGS = new Set(['loja-online', 'oficina-agricola', 'sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-manutencao']);
 
   function mergeApprovedFeed(staticProducts, feedItems) {
     const result = (staticProducts || []).map((product) => ({ ...product }));
     const bySlug = new Map(result.map((product, index) => [String(product.slug || ''), index]));
     for (const item of feedItems || []) {
       if (item.pageMode === 'digital') continue;
-      const slug = String(item.slug || '').trim();
-      if (!slug) continue;
+      // O anúncio MLB7387378512 é do Nexus Clássico, não do Nexus normal: nunca copiar imagens/preços dele.
+      if (String(item.item_id||'') === 'MLB7387378512') continue;
+      const slug = CANONICAL_MARKETPLACE_ITEMS[String(item.item_id || '')] || String(item.slug || '').trim();
+      if (!slug || HIDDEN_UNLINKED_SLUGS.has(slug)) continue;
       if (bySlug.has(slug)) {
         const index = bySlug.get(slug);
         result[index] = enrichStaticProduct(result[index], item);
@@ -104,6 +113,7 @@
     feedUrl: FEED_URL,
     loadApprovedFeed,
     mergeApprovedFeed,
-    priceLabel
+    priceLabel,
+    canonicalProductSlugForItemId: id => CANONICAL_MARKETPLACE_ITEMS[String(id || '')] || null
   });
 })();

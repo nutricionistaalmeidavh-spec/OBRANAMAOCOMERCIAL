@@ -1,0 +1,118 @@
+name: Desktop 2.1.4 document source correction
+on:
+  push:
+    branches: ['fix/central-document-health-2.1.4']
+permissions:
+  contents: read
+concurrency:
+  group: desktop-documents-2.1.4
+  cancel-in-progress: false
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies
+        working-directory: apps/desktop
+        run: npm ci --workspaces=false --no-audit --no-fund
+      - name: Lint and full desktop regression
+        working-directory: apps/desktop
+        run: |
+          npm run lint
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          npm test
+      - name: LAN regression
+        run: npm --prefix apps/lan-server test
+      - name: Build Windows installer
+        working-directory: apps/desktop
+        run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-2.1.4-Windows-candidate
+          path: |
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.4.exe
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.4.exe.blockmap
+            apps/desktop/release/latest.yml
+          if-no-files-found: error
+          retention-days: 90
+  install-over:
+    needs: package
+    runs-on: windows-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [inside-canonical, inside-nested, inside-stale, broken-share, external-canonical]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-2.1.4-Windows-candidate
+          path: ${{ runner.temp }}/obra-fixed-release
+      - name: Actual Windows update, install-over and repeated installation
+        shell: pwsh
+        env:
+          CI_UPDATE_VERSION: '2.1.4'
+        run: ./scripts/ci/windows-install-over.ps1 -Scenario '${{ matrix.scenario }}' -Release "$env:RUNNER_TEMP/obra-fixed-release" -TargetVersion '2.1.4'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: documents-2.1.4-install-over-${{ matrix.scenario }}
+          path: ${{ runner.temp }}/obra-install-over/evidence/
+          if-no-files-found: warn
+          retention-days: 30
+  publish:
+    needs: [package, install-over]
+    if: contains(github.event.head_commit.message, '[release-desktop-2.1.4]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-2.1.4-Windows-candidate
+          path: verified-release
+      - name: Verify updater metadata against tested installer
+        run: |
+          python3 - <<'PY'
+          import pathlib,hashlib,re,base64
+          root=pathlib.Path('verified-release')
+          exe=root/'Obra-na-Mao-Desktop-Setup-2.1.4.exe'
+          data=exe.read_bytes()
+          metadata=(root/'latest.yml').read_text()
+          assert re.search(r'^version: 2\.1\.4$',metadata,re.M)
+          assert exe.name in metadata
+          assert base64.b64encode(hashlib.sha512(data).digest()).decode() in metadata
+          assert str(len(data)) in metadata
+          assert (root/(exe.name+'.blockmap')).stat().st_size>0
+          print('Verified SHA256:',hashlib.sha256(data).hexdigest())
+          PY
+      - name: Publish tested update
+        run: |
+          set -euo pipefail
+          tag=desktop-commercial-v2.1.4
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo 'Release already exists; refusing to overwrite published bytes'
+            exit 1
+          fi
+          gh release create "$tag" verified-release/Obra-na-Mao-Desktop-Setup-2.1.4.exe verified-release/Obra-na-Mao-Desktop-Setup-2.1.4.exe.blockmap verified-release/latest.yml --draft --target '${{ github.sha }}' --title 'Obra na Mão Desktop Comercial v2.1.4' --notes 'Corrige o aviso de pasta antiga em computadores com Documentos centralizados, verifica a conexão autenticada com o servidor e utiliza cache temporário local para abrir arquivos centrais. Preserva banco, documentos, configuração e vínculo existentes. Instalador validado em cinco cenários Windows de atualização e reinstalação.'
+          gh release edit "$tag" --draft=false --latest

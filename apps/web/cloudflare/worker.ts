@@ -7,6 +7,10 @@ import { handleLicenseCenterReadonlyInternal } from '../backend/license-center-r
 import { handleLicenseCenterAdminInternal } from '../backend/license-center-admin-internal';
 import { handleAdminGovernanceRequest } from '../backend/admin-governance-http';
 import { handlePublicDownload } from './public-downloads';
+import { handlePublicDiagnostic, reconcilePendingDiagnosticLeads } from './public-diagnostic';
+import { handleOwnerLeadsRequest } from './owner-leads';
+import { handlePublicLinksEvent, handleOwnerLinksAnalytics } from './links-analytics';
+import { handleDevkitLegacyRedirect } from './devkit-canonical-redirect';
 import { router } from './sdk';
 
 const RESERVED_LICENSE_ID='11e1a89038929aa010bb22c601502da1';
@@ -50,9 +54,33 @@ export async function licenseCenterAdminWithRuntime(request:Request,env:any){
 }
 
 export default {
-  async fetch(request: Request, env: any) {
+  async scheduled(_controller: unknown, env: any, ctx?: { waitUntil(promise: Promise<unknown>): void }) {
+    const task = reconcilePendingDiagnosticLeads(env).catch(() => {
+      console.warn('[diagnostic] Recovery job failed');
+    });
+    if (ctx?.waitUntil) ctx.waitUntil(task);
+    else await task;
+  },
+  async fetch(request: Request, env: any, ctx?: { waitUntil(promise: Promise<unknown>): void }) {
+    const devkitRedirect = handleDevkitLegacyRedirect(request);
+    if (devkitRedirect) return devkitRedirect;
     const publicDownload=await handlePublicDownload(request);
     if(publicDownload)return publicDownload;
+    const diagnostic = await handlePublicDiagnostic(request,env,ctx);
+    if(diagnostic)return diagnostic;
+    // Owner-only CRM view: reuse the Central's existing verified session/role gate.
+    const ownerLeads=await handleOwnerLeadsRequest(request,env,()=>{
+      const check=new URL('/api/central/access',request.url);
+      return handler.fetch(new Request(check.toString(),{method:'GET',headers:request.headers}),env);
+    });
+    if(ownerLeads)return ownerLeads;
+    const linkEvent=await handlePublicLinksEvent(request,env);
+    if(linkEvent)return linkEvent;
+    const linksAnalytics=await handleOwnerLinksAnalytics(request,env,()=>{
+      const check=new URL('/api/central/access',request.url);
+      return handler.fetch(new Request(check.toString(),{method:'GET',headers:request.headers}),env);
+    });
+    if(linksAnalytics)return linksAnalytics;
     await ensureBillingSchema(env);
     await ensureReservedLifetimeLicense(env);
     const licensing=await handleProductLicenseInternal(request,env);
