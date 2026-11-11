@@ -1,0 +1,125 @@
+name: Publish Obra na Mao macOS installers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/commercial-desktop-macos-publish.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obra-na-mao-macos-v2.1.6-publish
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Build macOS ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            os: macos-15
+            label: Apple-Silicon
+          - arch: x64
+            os: macos-15-intel
+            label: Intel
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      ARCH: ${{ matrix.arch }}
+      LABEL: ${{ matrix.label }}
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Verify architecture and release version
+        shell: bash
+        run: |
+          test "$(uname -m)" = "$([[ "$ARCH" = arm64 ]] && echo arm64 || echo x86_64)"
+          V=$(node -p "require('./package.json').version")
+          test "$V" = "2.1.6"
+          echo "APP_VERSION=$V" >> "$GITHUB_ENV"
+      - name: Install dependencies
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Verify source and tests
+        run: |
+          npm run lint
+          npm test
+          npm run build
+      - name: Rebuild native Electron dependencies
+        run: npx electron-builder install-app-deps
+      - name: Package DMG on native architecture
+        run: npx electron-builder --mac dmg --$ARCH --publish never
+      - name: Verify and name installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG=$(find release -maxdepth 1 -type f -name '*.dmg' -print -quit)
+          test -n "$DMG"
+          hdiutil verify "$DMG"
+          file "$DMG"
+          shasum -a 256 "$DMG"
+          OUT="release/Obra-na-Mao-Desktop-v$APP_VERSION-macOS-$LABEL.dmg"
+          mv "$DMG" "$OUT"
+          test -s "$OUT"
+          echo "Verified installer: $OUT"
+      - name: Store installer for publication
+        uses: actions/upload-artifact@v4
+        with:
+          name: obranamao-macos-${{ matrix.arch }}
+          path: apps/desktop/release/Obra-na-Mao-Desktop-*.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish permanent GitHub release
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: obranamao-macos-*
+          path: dist
+          merge-multiple: true
+      - name: Verify both architectures exist
+        run: |
+          set -euo pipefail
+          test -s dist/Obra-na-Mao-Desktop-v2.1.6-macOS-Apple-Silicon.dmg
+          test -s dist/Obra-na-Mao-Desktop-v2.1.6-macOS-Intel.dmg
+          sha256sum dist/*.dmg
+      - name: Publish without replacing Windows latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="desktop-commercial-macos-v2.1.6"
+          cat > notes.md <<'NOTES'
+          Instaladores Obra na Mão Desktop v2.1.6 para macOS.
+
+          - Apple Silicon: Mac com chip M1/M2/M3/M4 ou posterior.
+          - Intel: Mac com processador Intel.
+          - O aplicativo é distribuído sem assinatura/notarização Apple; o macOS pode solicitar confirmação para abrir.
+          - Esta release é independente do feed de autoupdate Windows, que permanece preservado.
+          NOTES
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.dmg --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" dist/*.dmg \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Obra na Mão Desktop macOS v2.1.6" \
+              --notes-file notes.md \
+              --latest=false
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,assets
