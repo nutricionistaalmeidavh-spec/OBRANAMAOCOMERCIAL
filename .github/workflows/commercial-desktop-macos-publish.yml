@@ -58,7 +58,24 @@ jobs:
       - name: Rebuild native Electron dependencies
         run: npx electron-builder install-app-deps
       - name: Package DMG on native architecture
-        run: npx electron-builder --mac dmg --$ARCH --publish never
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$ARCH" = "x64" ]]; then
+            # macOS Intel dmg-builder has an APFS CNID overflow on current GitHub images.
+            # Build the native .app, then create a standard HFS+ DMG using macOS hdiutil.
+            npx electron-builder --mac --x64 --dir --publish never
+            APP=$(find release/mac -maxdepth 1 -type d -name '*.app' -print -quit)
+            test -n "$APP"
+            mkdir -p release/dmg-staging
+            ditto "$APP" "release/dmg-staging/$(basename "$APP")"
+            ln -s /Applications release/dmg-staging/Applications
+            hdiutil create -format UDZO -fs HFS+ -volname 'Obra na Mão Desktop' \
+              -srcfolder release/dmg-staging \
+              "release/Obra-na-Mao-Desktop-v$APP_VERSION-macOS-$LABEL.dmg"
+          else
+            npx electron-builder --mac dmg --arm64 --publish never
+          fi
       - name: Verify and name installer
         shell: bash
         run: |
