@@ -218,8 +218,8 @@ export async function resendLicenseDelivery(id:string,env:DeliveryEnvironment){
   return attemptLicenseDelivery(id,env,true);
 }
 export async function drainLicenseDeliveries(env:DeliveryEnvironment){
-  const rows=await env.DB.prepare("SELECT id FROM kv_records WHERE collection=? AND json_extract(record_json,'$.status') IN ('queued','failed','sending') ORDER BY updated_at ASC LIMIT 15")
-    .bind(COLLECTION).all<{id:string}>();
+  const rows=await env.DB.prepare("SELECT id FROM kv_records WHERE collection=? AND json_extract(record_json,'$.status') IN ('queued','failed','sending') AND COALESCE(CAST(json_extract(record_json,'$.attempts') AS INTEGER),0)<5 AND (json_extract(record_json,'$.nextAttemptAt') IS NULL OR json_extract(record_json,'$.nextAttemptAt')<=?) ORDER BY updated_at ASC LIMIT 15")
+    .bind(COLLECTION,now()).all<{id:string}>();
   const results=[];
   for(const row of rows.results||[])results.push(await attemptLicenseDelivery(row.id,env));
   return results;
