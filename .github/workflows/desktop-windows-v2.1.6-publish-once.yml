@@ -1,0 +1,154 @@
+name: Publish verified Obra na Mão Windows v2.1.6 once
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/desktop-windows-v2.1.6-publish-once.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/desktop-windows-v2.1.6-publish-once.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: obra-na-mao-windows-v2.1.6-publish-once
+  cancel-in-progress: false
+
+env:
+  SOURCE_SHA: a4dbb726a426b640c5a1d1c0417dc2bd02feb871
+  VERIFIED_RUN: '42828653664'
+  VERSION: '2.1.6'
+  ARTIFACT: Obra-na-Mao-Desktop-Commercial-2.1.6-Windows
+
+jobs:
+  verify-candidate:
+    name: Verify exact successful Windows CI candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Refuse source changes after Windows CI build
+        run: |
+          set -euo pipefail
+          git diff --exit-code "$SOURCE_SHA" HEAD -- apps/desktop apps/lan-server packages package.json tsconfig.json .nvmrc
+      - name: Verify original successful build provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$VERIFIED_RUN" --jq '[.conclusion,.event,.head_sha] | @tsv' > run.txt
+          grep -Fx $'success\tpush\ta4dbb726a426b640c5a1d1c0417dc2bd02feb871' run.txt
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/13770666106" --jq '.expired' | grep -Fx false
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT }}
+          run-id: 42828653664
+          github-token: ${{ github.token }}
+          path: candidate
+      - name: Verify updater metadata, filename, size and SHA512
+        run: |
+          python3 - <<'PY'
+          import pathlib,re,base64,hashlib
+          root=pathlib.Path("candidate")
+          exe=root/"Obra-na-Mao-Desktop-Setup-2.1.6.exe"
+          blockmap=root/(exe.name+".blockmap")
+          metadata=(root/"latest.yml").read_text(encoding="utf-8")
+          data=exe.read_bytes()
+          assert len(data)>100_000_000, "Installer size suspicious"
+          assert blockmap.stat().st_size>1000
+          assert re.search(r"^version:\s*2\.1\.6\s*$",metadata,re.M)
+          assert exe.name in metadata
+          assert base64.b64encode(hashlib.sha512(data).digest()).decode() in metadata
+          assert re.search(r"^\s*size:\s*"+str(len(data))+r"\s*$",metadata,re.M)
+          print("SHA256:", hashlib.sha256(data).hexdigest(), "Size:",len(data))
+          PY
+
+  install-over:
+    name: Windows real install-over (${{ matrix.scenario }})
+    needs: verify-candidate
+    runs-on: windows-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [inside-canonical, inside-nested, inside-stale, broken-share, external-canonical]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT }}
+          run-id: 42828653664
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/obra-fixed-release
+      - name: Installed Windows upgrade and preservation regression
+        shell: pwsh
+        env:
+          CI_UPDATE_VERSION: '2.1.6'
+        run: ./scripts/ci/windows-install-over.ps1 -Scenario '${{ matrix.scenario }}' -Release "$env:RUNNER_TEMP/obra-fixed-release" -TargetVersion '2.1.6'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-v2.1.6-install-over-${{ matrix.scenario }}
+          path: ${{ runner.temp }}/obra-install-over/evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
+  publish:
+    name: Publish Windows release after all verified scenarios
+    needs: [verify-candidate, install-over]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-windows-v2.1.6]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT }}
+          run-id: 42828653664
+          github-token: ${{ github.token }}
+          path: candidate
+      - name: Publish immutable verified candidate to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="desktop-commercial-v$VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release already exists: refusing to overwrite published installers"
+            exit 1
+          fi
+          gh release create "$tag" \
+            "candidate/Obra-na-Mao-Desktop-Setup-$VERSION.exe" \
+            "candidate/Obra-na-Mao-Desktop-Setup-$VERSION.exe.blockmap" \
+            candidate/latest.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Obra na Mão Desktop Windows v$VERSION" \
+            --notes "Windows v$VERSION: atualiza o desktop com correções de RH, recibos e impressão, preservando os documentos e a configuração das instalações anteriores. EXE proveniente do Windows CI de 10/11/2026 (run $VERIFIED_RUN); o código do aplicativo permanece idêntico ao CI. Cinco cenários reais de instalação sobre versões anteriores validados neste workflow." \
+            --latest
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,assets,tagName,isDraft,isPrerelease
+      - name: Verify published bytes against original candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha=$(sha256sum "candidate/Obra-na-Mao-Desktop-Setup-$VERSION.exe" | cut -d' ' -f1)
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/desktop-commercial-v$VERSION" --jq '.assets[] | [.name,.digest] | @tsv' > release-assets.tsv
+          grep -Fx $'Obra-na-Mao-Desktop-Setup-2.1.6.exe\tsha256:'"$sha" release-assets.tsv
+          grep -q '^latest.yml' release-assets.tsv
+          grep -q '^Obra-na-Mao-Desktop-Setup-2.1.6.exe.blockmap' release-assets.tsv
