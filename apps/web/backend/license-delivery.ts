@@ -202,19 +202,19 @@ export async function attemptLicenseDelivery(id:string,env:DeliveryEnvironment,f
     const sent=await sendLicenseWelcome(license,env);
     const success:DeliveryRecord={...pending,status:'sent',updatedAt:now(),sentAt:now(),messageId:sent.messageId,leaseUntil:undefined,error:undefined};
     await compareAndSet(id,lock,success,env);
-    return safeDeliveryState(success);
+    return getLicenseDeliveryStatus(id,env);
   }catch(cause){
     const code=cause instanceof Error&&cause.message==='EMAIL_TRANSPORT_NOT_CONFIGURED'?'EMAIL_TRANSPORT_NOT_CONFIGURED':'EMAIL_SEND_FAILED';
     const minutes=Math.min(60,5*Math.pow(2,Math.max(0,pending.attempts-1)));
     const failed:DeliveryRecord={...pending,status:'failed',updatedAt:now(),error:code,leaseUntil:undefined,nextAttemptAt:new Date(Date.now()+minutes*60_000).toISOString()};
     await compareAndSet(id,lock,failed,env);
-    return safeDeliveryState(failed);
+    return getLicenseDeliveryStatus(id,env);
   }
 }
 export async function resendLicenseDelivery(id:string,env:DeliveryEnvironment){
   const license=await getLicense(id,{DB:env.DB});
   if(!license||!validLicenseRecipient(license))throw new Error('LICENSE_EMAIL_NOT_ELIGIBLE');
-  await enqueueLicenseDelivery(license,env);
+  if(!await readRecord(id,env))return enqueueLicenseDelivery(license,env);
   return attemptLicenseDelivery(id,env,true);
 }
 export async function drainLicenseDeliveries(env:DeliveryEnvironment){
