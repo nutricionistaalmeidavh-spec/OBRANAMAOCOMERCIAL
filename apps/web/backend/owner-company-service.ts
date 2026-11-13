@@ -1,5 +1,6 @@
 import { db, runtimeEnv } from '../cloudflare/sdk';
 import { createLicense, mutateLicense, LICENSE_MODULES, LICENSE_CHANNELS } from './license-service';
+import { enqueueLicenseDelivery } from './license-delivery';
 
 type Row=Record<string,any>&{id:string};
 export type ManagedActor={userId:string;email?:string};
@@ -63,7 +64,9 @@ export async function createManagedCompany(input:Record<string,unknown>,actor:Ma
   const license=await createLicense({email,companyId,modules,channels,status:'active',plan:normalized.plan,expiresAt:normalized.expiresAt,maxUsers:normalized.maxUsers,maxProjects:normalized.maxProjects,maxDevices:normalized.maxDevices,advancedServer:normalized.advancedServer},{source:'manual',userId:actor.userId,email:actor.email});
   await db.update('companies',[{id:companyId,record:{...companyRecord,licenseId:license.id,licensedModules:modules,licensedChannels:channels}}]);
   const company=(await managedCompanyInventory()).companies.find(item=>item.id===companyId);
-  return{company,license};
+  let delivery:unknown={status:'failed'};
+  try{delivery=await enqueueLicenseDelivery(license,runtimeEnv())}catch{console.warn('[license-email] Could not queue delivery. License remains active.');}
+  return{company,license,delivery};
 }
 
 export async function updateManagedCompany(companyId:string,input:Record<string,unknown>,actor:ManagedActor){

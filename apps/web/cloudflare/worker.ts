@@ -1,4 +1,5 @@
 import { handler } from '../backend/index';
+import { drainLicenseDeliveries } from '../backend/license-delivery';
 import { handleAsaasWebhook } from '../backend/asaas-webhook';
 import { ensureBillingSchema } from '../backend/billing-schema-runtime';
 import { handleCorporatePasswordAuth } from '../backend/corporate-password-auth';
@@ -55,9 +56,10 @@ export async function licenseCenterAdminWithRuntime(request:Request,env:any){
 
 export default {
   async scheduled(_controller: unknown, env: any, ctx?: { waitUntil(promise: Promise<unknown>): void }) {
-    const task = reconcilePendingDiagnosticLeads(env).catch(() => {
-      console.warn('[diagnostic] Recovery job failed');
-    });
+    const task=Promise.all([
+      reconcilePendingDiagnosticLeads(env).catch(() => { console.warn('[diagnostic] Recovery job failed'); }),
+      drainLicenseDeliveries(env).catch(() => { console.warn('[license-email] Delivery recovery job failed'); })
+    ]);
     if (ctx?.waitUntil) ctx.waitUntil(task);
     else await task;
   },
