@@ -60,6 +60,18 @@ describe('Analytics da Central /links sem rastreamento pessoal', () => {
     expect(data.daily.at(-1)).toMatchObject({ date: '2026-11-07', views: 1, clicks: 3 });
     expect(data.daily).toHaveLength(7);
   });
+  it('registra o Mercado Livre como destino oficial sem armazenar URL ou dados pessoais', async () => {
+    const env = fakeEnv();
+    const recorded = await handlePublicLinksEvent(event({ type: 'click', linkId: 'mercado-livre' }), env as never, fixedNow);
+    expect(recorded?.status).toBe(204);
+    expect(env.counts.get('2026-11-07:click:mercado-livre')).toBe(1);
+    const summary = await handleOwnerLinksAnalytics(new Request(dashboardUrl), env as never, owner, fixedNow);
+    const data = await summary!.json() as any;
+    expect(data.links.find((x: any) => x.id === 'mercado-livre')).toMatchObject({
+      label: 'Mercado Livre', clicks: 1
+    });
+    expect(JSON.stringify([...env.counts])).not.toContain('mercadolivre.com.br');
+  });
   it('impede leitura anônima e por perfil Débora antes de consultar D1', async () => {
     for (const authorize of [
       async () => new Response('{}', { status: 401 }),
