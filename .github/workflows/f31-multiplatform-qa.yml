@@ -32,6 +32,7 @@ jobs:
           node --test
           apps/lan-server/tests/f31-multiclient-scale.test.mjs
           apps/lan-server/tests/lan-ten-client-load.test.mjs
+          apps/lan-server/tests/lan-ten-client-finance-docs-backup.test.mjs
           apps/lan-server/tests/f8-f12-multi-client.test.mjs
           apps/lan-server/tests/f14-f16-integrated.test.mjs
           apps/lan-server/tests/migration-full-pipeline.test.mjs
