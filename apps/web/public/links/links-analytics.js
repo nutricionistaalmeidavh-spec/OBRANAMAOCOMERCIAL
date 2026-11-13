@@ -3,7 +3,7 @@
   'use strict';
   const endpoint = '/api/links/metrics';
   const ids = new Set([
-    'site-logo', 'site-principal', 'diagnostico', 'academy', 'tiktok', 'whatsapp-social'
+    'site-logo', 'site-principal', 'diagnostico', 'academy', 'mercado-livre', 'tiktok', 'whatsapp-social'
   ]);
 
   function record(payload) {
