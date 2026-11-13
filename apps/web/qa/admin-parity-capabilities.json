@@ -175,6 +175,20 @@
         "native:test"
       ],
       "status": "active"
+    },
+    {
+      "id": "obra.license.email-delivery",
+      "authorityRoutes": [
+        "GET /api/owner/licenses/:id/delivery",
+        "POST /api/owner/licenses/:id/delivery"
+      ],
+      "legacySurface": "Central ArtiSys / Cliente / Entrega por e-mail",
+      "generalPanelRequired": false,
+      "reason": "Consulta e reenvio administrativo da entrega. A criação pelo painel geral já envia automaticamente via serviço canônico de empresa.",
+      "e2e": [
+        "native:test"
+      ],
+      "status": "active"
     }
   ]
 }
