@@ -7,12 +7,13 @@ describe('Diagnóstico via /links', () => {
   const js = read('../public/links/diagnostico/diagnostico.js');
   const css = read('../public/links/diagnostico/diagnostico.css');
   const attribution = read('../public/links/diagnostic-attribution.js');
-  it('tem acesso explícito na Central, sem substituir o único card atual da Academy', () => {
+  it('tem acesso explícito na Central, preservando os cards Academy e Mercado Livre', () => {
     expect(links).toContain('href="/links/diagnostico/"');
     expect(links).toContain('data-link-id="diagnostico"');
     expect(links).toContain('src="/links/links-motion.js" defer');
     const destinations = links.split('<nav class="destinations"')[1]?.split('</nav>')[0] || '';
-    expect((destinations.match(/class="link-card /g) || [])).toHaveLength(1);
+    const ids = [...destinations.matchAll(/class="link-card[^"]*"[^>]+data-link-id="([^"]+)"/g)].map(match => match[1]);
+    expect(ids).toEqual(['academy', 'mercado-livre']);
   });
   it('mostra o formulário acima da Academy sem alterar canais ou motion', () => {
     const diagnosticIndex = links.indexOf('class="diagnostic-callout"');
@@ -25,7 +26,8 @@ describe('Diagnóstico via /links', () => {
     expect((links.match(/data-link-id="academy"/g) || [])).toHaveLength(1);
     const motions = read('../public/links/links-motion.js');
     expect(motions).toContain('reveal(".diagnostic-callout"');
-    expect(motions.indexOf('reveal(".diagnostic-callout"')).toBeLessThan(motions.indexOf('reveal(academy'));
+    expect(motions.indexOf('reveal(".diagnostic-callout"')).toBeLessThan(motions.indexOf('destinationCards.forEach'));
+    expect(motions).toContain('destinationCards.forEach((link, index) => reveal(link');
     expect(motions).toContain('prefers-reduced-motion: reduce');
   });
   it('preserva parâmetros UTM/vídeo do TikTok ao atravessar a Central ArtiSys', () => {
