@@ -152,3 +152,82 @@ jobs:
           grep -Fx $'Obra-na-Mao-Desktop-Setup-2.1.6.exe\tsha256:'"$sha" release-assets.tsv
           grep -q '^latest.yml' release-assets.tsv
           grep -q '^Obra-na-Mao-Desktop-Setup-2.1.6.exe.blockmap' release-assets.tsv
+
+
+  drive-package:
+    name: Prepare two Drive-safe Windows installer parts
+    needs: verify-candidate
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT }}
+          run-id: 42828653664
+          github-token: ${{ github.token }}
+          path: candidate
+      - name: Split exact verified EXE into two parts with checksum and instructions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $name = "Obra-na-Mao-Desktop-Setup-$env:VERSION.exe"
+          $source = Join-Path $PWD "candidate/$name"
+          $directory = Join-Path $PWD "drive-parts"
+          New-Item -ItemType Directory -Force -Path $directory | Out-Null
+          $expected = (Get-FileHash -Algorithm SHA256 $source).Hash.ToLowerInvariant()
+          $buffer = New-Object byte[] (70 * 1024 * 1024)
+          $stream = [System.IO.File]::OpenRead($source)
+          try {
+            $part = 1
+            while (($read = $stream.Read($buffer,0,$buffer.Length)) -gt 0) {
+              $dest = Join-Path $directory ("$name.part"+$part.ToString('00'))
+              $file = [System.IO.File]::Create($dest)
+              try { $file.Write($buffer,0,$read) } finally { $file.Dispose() }
+              $part++
+            }
+          } finally { $stream.Dispose() }
+          if ($part -ne 3) { throw 'Unexpected number of installer parts' }
+          Set-Content -Encoding ascii (Join-Path $directory 'SHA256.txt') ("SHA256: $expected" + [Environment]::NewLine + "File: $name")
+          $cmd = @(
+            '@echo off'
+            'setlocal'
+            'cd /d "%~dp0"'
+            ('copy /b "'+$name+'.part01"+"'+$name+'.part02" "'+$name+'" >nul')
+            'if errorlevel 1 (echo Erro ao juntar as partes & pause & exit /b 1)'
+            ('certutil -hashfile "'+$name+'" SHA256 | findstr /i "'+$expected+'" >nul')
+            'if errorlevel 1 (echo Erro de integridade SHA256 & pause & exit /b 1)'
+            'echo Instalador verificado. Pode executar o EXE gerado.'
+            'pause'
+          )
+          $cmd | Set-Content -Encoding ascii (Join-Path $directory 'RECOMBINAR.cmd')
+          $readme = @(
+            "Obra na Mao Desktop Windows v$env:VERSION"
+            '1. Baixe os dois ZIPs desta versao do Drive.'
+            '2. Extraia ambos na mesma pasta.'
+            '3. Execute RECOMBINAR.cmd para montar e verificar o EXE.'
+            '4. Execute o EXE gerado. Seus dados ficam preservados.'
+            'O EXE completo tambem pode ser baixado diretamente na release do GitHub.'
+            'https://github.com/nutricionistaalmeidavh-spec/OBRANAMAOCOMERCIAL/releases/tag/desktop-commercial-v2.1.6'
+          )
+          $readme | Set-Content -Encoding utf8 (Join-Path $directory 'LEIA-ME.txt')
+          $sum = (Get-Item (Join-Path $directory "$name.part01")).Length + (Get-Item (Join-Path $directory "$name.part02")).Length
+          if ($sum -ne (Get-Item $source).Length) { throw 'Split size mismatch' }
+          Write-Output "Validated SHA256: $expected"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Windows-v2.1.6-Drive-Parte-01
+          path: |
+            drive-parts/*.part01
+            drive-parts/RECOMBINAR.cmd
+            drive-parts/SHA256.txt
+            drive-parts/LEIA-ME.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Windows-v2.1.6-Drive-Parte-02
+          path: drive-parts/*.part02
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90
