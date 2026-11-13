@@ -6,7 +6,7 @@
 
   const hero = document.querySelector(".intro");
   const orb = hero?.querySelector(".hero-art");
-  const academy = document.querySelector('[data-link-id="academy"]');
+  const destinationCards = [...document.querySelectorAll(".destinations .link-card")];
   const socialLinks = [...document.querySelectorAll(".social-nav a")];
   const activeAnimations = [];
   const easing = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -28,10 +28,10 @@
   reveal(hero, 85, 900, 22);
   reveal(".hero-copy", 230, 730, 14);
   reveal(orb, 350, 1100, 28);
-  // O diagnóstico é a primeira ação; a Academy aparece logo depois.
+  // O diagnóstico aparece primeiro, seguido pelos destinos oficiais em sequência.
   reveal(".diagnostic-callout", 505, 810, 18);
-  reveal(academy, 625, 810, 18);
-  socialLinks.forEach((link, index) => reveal(link, 805 + index * 85, 570, 12));
+  destinationCards.forEach((link, index) => reveal(link, 625 + index * 110, 810, 18));
+  socialLinks.forEach((link, index) => reveal(link, 925 + index * 85, 570, 12));
   reveal(".footer", 850, 600, 10);
 
   // Fine-pointer parallax only: touch devices get the opening motion, never a heavy loop.
