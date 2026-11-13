@@ -129,7 +129,7 @@ h1 em { font-style: normal; color: var(--purple); }
   transform: rotate(-9deg);
   box-shadow: inset -10px -15px 25px rgba(0,0,0,.8), 0 12px 22px rgba(0,0,0,.44);
 }
-.destinations { width: min(680px, 100%); margin: 25px auto 0; }
+.destinations { width: min(680px, 100%); margin: 25px auto 0; display: grid; gap: 14px; }
 .link-card {
   position: relative; display: flex; align-items: center; gap: 20px; min-height: 112px;
   padding: 22px 27px; border-radius: 22px; cursor: pointer;
