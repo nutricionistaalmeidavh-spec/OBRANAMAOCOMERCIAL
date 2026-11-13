@@ -480,6 +480,23 @@
         "native:test"
       ],
       "reason": "Publicação automática; o resumo é consumido pelas superfícies de Gestão."
+    },
+    {
+      "id": "license-email-delivery",
+      "business": true,
+      "uiRequired": true,
+      "backend": [
+        "GET /api/owner/licenses/:id/delivery",
+        "POST /api/owner/licenses/:id/delivery"
+      ],
+      "surface": "Central ArtiSys / Cliente / Entrega por e-mail",
+      "action": "Consultar estado e reenviar e-mail com código, downloads e guia PDF",
+      "profiles": [
+        "superadmin"
+      ],
+      "e2e": [
+        "native:test"
+      ]
     }
   ]
 }
