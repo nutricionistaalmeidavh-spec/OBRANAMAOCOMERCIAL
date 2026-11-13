@@ -33,10 +33,13 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(html).not.toContain('href="/devkits/catalogo/"');
   });
 
-  it('mantém somente a Academy como card e remove os cinco atalhos solicitados', () => {
+  it('mantém a Academy e adiciona o Mercado Livre sem restaurar atalhos removidos', () => {
     const destinations = html.split('<nav class="destinations"')[1]?.split('</nav>')[0] ?? '';
     const cardIds = [...destinations.matchAll(/class="link-card[^"]*"[^>]+data-link-id="([^"]+)"/g)].map(match => match[1]);
-    expect(cardIds).toEqual(['academy']);
+    expect(cardIds).toEqual(['academy', 'mercado-livre']);
+    expect(destinations).toContain('href="https://www.mercadolivre.com.br/pagina/artisys#from=share_eshop_hub_mobile"');
+    expect(destinations).toMatch(/href="https:\/\/www\.mercadolivre\.com\.br\/pagina\/artisys[^\"]*" target="_blank" rel="noopener noreferrer" data-link-id="mercado-livre"/);
+    expect(destinations).toContain('Loja ArtiSys no Mercado Livre');
     expect(destinations).toContain('class="link-card card-feature" href="/academy" data-link-id="academy"');
     expect(destinations).toContain('Aprenda. Desenvolva. Evolua.');
     expect(destinations).not.toContain('01 — 04');
@@ -53,6 +56,9 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     }
     expect(html).not.toContain('class="secondary"');
     expect((html.match(/data-link-id="academy"/g) ?? [])).toHaveLength(1);
+    expect((html.match(/data-link-id="mercado-livre"/g) ?? [])).toHaveLength(1);
+    expect(css).toMatch(/\.destinations\s*\{[^}]*gap:\s*14px/);
+    expect(read('../public/links/links-motion.js')).toContain('destinationCards.forEach');
     expect((html.match(/data-link-id="whatsapp-social"/g) ?? [])).toHaveLength(1);
     expect((html.match(/data-link-id="tiktok"/g) ?? [])).toHaveLength(1);
   });
@@ -131,7 +137,7 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
   it('registra apenas eventos agregados dos destinos, sem alterar hrefs ou exigir serviço externo', () => {
     const script = read('../public/links/links-analytics.js');
     expect(html).toContain('src="/links/links-analytics.js" defer');
-    for (const id of ['site-logo', 'site-principal', 'diagnostico', 'academy', 'tiktok', 'whatsapp-social']) {
+    for (const id of ['site-logo', 'site-principal', 'diagnostico', 'academy', 'mercado-livre', 'tiktok', 'whatsapp-social']) {
       expect(html).toContain('data-link-id="' + id + '"');
       expect(script).toContain("'" + id + "'");
     }

@@ -5,6 +5,7 @@ const LINK_LABELS: Record<string, string> = {
   'site-principal': 'Site principal · topo',
   'diagnostico': 'Diagnóstico gratuito',
   'academy': 'ArtiSys Academy',
+  'mercado-livre': 'Mercado Livre',
   'tiktok': 'TikTok',
   'whatsapp-social': 'WhatsApp'
 };
