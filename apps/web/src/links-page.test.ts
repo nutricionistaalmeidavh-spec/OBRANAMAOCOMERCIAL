@@ -57,6 +57,8 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(html).not.toContain('class="secondary"');
     expect((html.match(/data-link-id="academy"/g) ?? [])).toHaveLength(1);
     expect((html.match(/data-link-id="mercado-livre"/g) ?? [])).toHaveLength(1);
+    expect(css).toMatch(/\.destinations\s*\{[^}]*gap:\s*14px/);
+    expect(read('../public/links/links-motion.js')).toContain('destinationCards.forEach');
     expect((html.match(/data-link-id="whatsapp-social"/g) ?? [])).toHaveLength(1);
     expect((html.match(/data-link-id="tiktok"/g) ?? [])).toHaveLength(1);
   });
