@@ -147,3 +147,7 @@ body:has([data-owner-shell]) #content{width:100%;max-width:100%;min-width:0;padd
   .owner-shell .owner-hero-product .owner-hero-actions{width:auto}
   .owner-shell .owner-hero-product .owner-hero-actions button{min-height:40px}
 }
+
+/* License delivery action stays usable on 320px phones without horizontal overflow. */
+#licenseDeliveryResend{display:flex;box-sizing:border-box;width:100%;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:normal;text-align:center;line-height:1.4}
+#licenseDeliveryStatus{overflow-wrap:anywhere}
