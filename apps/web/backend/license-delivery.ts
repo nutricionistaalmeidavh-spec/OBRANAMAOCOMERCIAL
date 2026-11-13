@@ -194,7 +194,11 @@ export async function attemptLicenseDelivery(id:string,env:DeliveryEnvironment,f
     if(record.attempts>=5)return safeDeliveryState(record);
   }
   const license=await getLicense(id,{DB:env.DB});
-  if(!license||!validLicenseRecipient(license)||normalizedEmail(license.email)!==record.email)return {status:'not_requested'};
+  if(!license||!validLicenseRecipient(license)||normalizedEmail(license.email)!==record.email){
+    const cancelled:DeliveryRecord={...record,status:'failed',attempts:5,updatedAt:stamp,error:'LICENSE_NO_LONGER_ELIGIBLE',nextAttemptAt:undefined,leaseUntil:undefined};
+    await compareAndSet(id,raw,cancelled,env);
+    return safeDeliveryState(cancelled);
+  }
   const pending:DeliveryRecord={...record,status:'sending',attempts:force?1:record.attempts+1,updatedAt:stamp,leaseUntil:new Date(Date.now()+90_000).toISOString(),nextAttemptAt:undefined,error:undefined};
   if(!await compareAndSet(id,raw,pending,env))return getLicenseDeliveryStatus(id,env);
   const lock=JSON.stringify(pending);
