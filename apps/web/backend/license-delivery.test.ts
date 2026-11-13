@@ -19,7 +19,7 @@ describe('Obra na Mão automatic licensing email',()=>{
 
   it('generates a valid PDF quick start with per-license activation steps',()=>{
     const bytes=makeQuickStartPdf(license);
-    expect(new TextDecoder().decode(bytes.slice(0,9))).toBe('%PDF-1.4');
+    expect(new TextDecoder().decode(bytes.slice(0,8))).toBe('%PDF-1.4');
     const text=new TextDecoder().decode(bytes);
     expect(text).toContain('ABCD1234EFGH');
     expect(text).toContain('%%EOF');
@@ -34,11 +34,11 @@ describe('Obra na Mão automatic licensing email',()=>{
   });
 
   it('sends once via the existing native Cloudflare EMAIL binding and confirms messageId',async()=>{
-    const send=vi.fn(async()=>({messageId:'cf-message-1'}));
+    const send=vi.fn(async(_message:Record<string,unknown>)=>({messageId:'cf-message-1'}));
     const response=await sendLicenseWelcome(license,{EMAIL:{send},EMAIL_FROM:'welcome@artisys.dev'});
     expect(response.messageId).toBe('cf-message-1');
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0].attachments?.[0]?.type).toBe('application/pdf');
+    expect((send.mock.calls[0][0].attachments as Array<Record<string,unknown>>)?.[0]?.type).toBe('application/pdf');
     expect(send.mock.calls[0][0].to).toBe('cliente@example.com');
   });
 
