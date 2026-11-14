@@ -84,6 +84,10 @@ jobs:
         run: node scripts/qa-wppprospector-landing.mjs
       - name: Verify real Financeiro hero, motion and responsive screenshots
         run: node scripts/qa-artisys-finance-landing.mjs
+      - name: Build site with current Holerites enhancements
+        run: npm run build
+      - name: QA visual Holerites desktop and mobile, aspect ratios and carousel
+        run: node scripts/qa-holerites-landing.mjs
       - name: Upload Playwright screenshots and QA evidence
         if: always()
         uses: actions/upload-artifact@v4
