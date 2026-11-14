@@ -66,12 +66,21 @@
   }
 
   const HIDDEN_UNLINKED_SLUGS = new Set(['loja-online', 'oficina-agricola', 'sistema-lavoura', 'pecuaria', 'maquinas-agricolas', 'frota-manutencao']);
+  // Bloqueia somente o anúncio antigo na vitrine da ArtiSys, sem alterar o anúncio no Mercado Livre.
+  const REMOVED_SITE_ITEM_IDS = new Set(['MLB7417818080']);
+  const REMOVED_SITE_SLUGS = new Set(['oficina-agricola', 'software-oficina-agricola-e-maquinas-pesadas-com-os']);
+
+  function isRemovedSiteItem(item) {
+    return REMOVED_SITE_ITEM_IDS.has(String(item?.item_id || '').trim()) ||
+      REMOVED_SITE_SLUGS.has(String(item?.slug || '').trim().toLowerCase());
+  }
+
 
   function mergeApprovedFeed(staticProducts, feedItems) {
     const result = (staticProducts || []).map((product) => ({ ...product }));
     const bySlug = new Map(result.map((product, index) => [String(product.slug || ''), index]));
     for (const item of feedItems || []) {
-      if (item.pageMode === 'digital') continue;
+      if (isRemovedSiteItem(item) || item.pageMode === 'digital') continue;
       // O anúncio MLB7387378512 é do Nexus Clássico, não do Nexus normal: nunca copiar imagens/preços dele.
       if (String(item.item_id||'') === 'MLB7387378512') continue;
       const slug = CANONICAL_MARKETPLACE_ITEMS[String(item.item_id || '')] || String(item.slug || '').trim();
@@ -114,6 +123,7 @@
     loadApprovedFeed,
     mergeApprovedFeed,
     priceLabel,
+    isRemovedSiteItem,
     canonicalProductSlugForItemId: id => CANONICAL_MARKETPLACE_ITEMS[String(id || '')] || null
   });
 })();
