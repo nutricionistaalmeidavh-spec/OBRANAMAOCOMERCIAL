@@ -64,7 +64,13 @@
         "title": "PDV ArtiSys | Sistema de vendas e caixa para Windows",
         "description": "Conheça o PDV ArtiSys para caixa, produtos, vendas e relatórios operacionais em computadores Windows."
       },
-      "checkoutOfferId": "pdv-artisys-restaurantes"
+      "checkoutOfferId": "pdv-artisys-restaurantes",
+      "media": {
+        "cover": {
+          "src": "/sistemas/pdv-artisys/media/pdv-gallery-atlas.avif",
+          "alt": "Montagem de capturas reais da operação do PDV ArtiSys"
+        }
+      }
     },
     {
       "slug": "pdv-nexus",
@@ -280,7 +286,30 @@
         "description": "CRM de vendas e prospecção integrado ao ArtiSys Financeiro para Windows. Leads, funil, propostas, recebíveis com confirmação, fluxo de caixa, DRE e conciliação."
       },
       "checkoutOfferId": "artisys-sistema-financeiro",
-      "priceAmount": 169.9
+      "priceAmount": 169.9,
+      "media": {
+        "cover": {
+          "src": "/sistemas/artisys-finance/media/dashboard-real.webp",
+          "alt": "Dashboard real do ArtiSys Financeiro com indicadores e lançamentos"
+        },
+        "gallery": [
+          {
+            "src": "/sistemas/artisys-finance/media/dashboard-real.webp",
+            "alt": "Dashboard financeiro real do ArtiSys Financeiro",
+            "caption": "Visão financeira"
+          },
+          {
+            "src": "/sistemas/artisys-finance/media/crm-funil-real.webp",
+            "alt": "Kanban de CRM real integrado ao ArtiSys Financeiro",
+            "caption": "CRM integrado"
+          },
+          {
+            "src": "/sistemas/artisys-finance/media/contas-real.webp",
+            "alt": "Tela real de contas a pagar e a receber do ArtiSys Financeiro",
+            "caption": "Contas e recebíveis"
+          }
+        ]
+      }
     },
     {
       "slug": "nutridesk",
@@ -370,6 +399,33 @@
       "seo": {
         "title": "CRM ArtiSys WppProspector | Leads, vendas e WhatsApp",
         "description": "Organize leads, pipeline e conversas com o CRM WppProspector; conexão ao WhatsApp opcional."
+      },
+      "media": {
+        "hero": {
+          "src": "/wppprospector/media/hero-showcase-real.webp",
+          "alt": "Captura real do CRM WppProspector apresentando o funil comercial"
+        },
+        "cover": {
+          "src": "/wppprospector/media/kanban-real.webp",
+          "alt": "Kanban real de oportunidades do CRM WppProspector"
+        },
+        "gallery": [
+          {
+            "src": "/wppprospector/media/kanban-real.webp",
+            "alt": "Funil Kanban real do WppProspector",
+            "caption": "Funil comercial"
+          },
+          {
+            "src": "/wppprospector/media/leads-real.webp",
+            "alt": "Tela real de cadastro de leads no CRM WppProspector",
+            "caption": "Gestão de leads"
+          },
+          {
+            "src": "/wppprospector/media/painel-real.webp",
+            "alt": "Painel principal real do sistema WppProspector",
+            "caption": "Painel do CRM"
+          }
+        ]
       }
     },
     {
@@ -411,6 +467,29 @@
       "seo": {
         "title": "ArtiSys Holerites | Gestão de folha e PDFs",
         "description": "Sistema para Windows com holerites, férias, décimo terceiro, rescisão e recibos em PDF."
+      },
+      "media": {
+        "cover": {
+          "src": "/gest%C3%A3oholerites/media/holerites-dashboard-real.webp",
+          "alt": "Dashboard real de gestão de holerites do sistema ArtiSys"
+        },
+        "gallery": [
+          {
+            "src": "/gest%C3%A3oholerites/media/holerites-dashboard-real.webp",
+            "alt": "Dashboard real do ArtiSys Holerites",
+            "caption": "Visão geral"
+          },
+          {
+            "src": "/gest%C3%A3oholerites/media/holerite-impresso-real.webp",
+            "alt": "Modelo de holerite real produzido para impressão pelo ArtiSys Holerites",
+            "caption": "Holerite em PDF"
+          },
+          {
+            "src": "/gest%C3%A3oholerites/media/holerites-ferias-real.webp",
+            "alt": "Tela real do fluxo de férias no ArtiSys Holerites",
+            "caption": "Férias"
+          }
+        ]
       }
     },
     {
@@ -452,6 +531,29 @@
       "seo": {
         "title": "ArtiSys Oficina | Gestão de ordens, estoque e vendas",
         "description": "Organize ordens de serviço, estoque, clientes e vendas com o ArtiSys Oficina para Windows."
+      },
+      "media": {
+        "cover": {
+          "src": "/oficina/media/dashboard.webp",
+          "alt": "Dashboard real do ArtiSys Oficina com indicadores e operações"
+        },
+        "gallery": [
+          {
+            "src": "/oficina/media/dashboard.webp",
+            "alt": "Painel principal real do sistema ArtiSys Oficina",
+            "caption": "Painel da oficina"
+          },
+          {
+            "src": "/oficina/media/ordens.webp",
+            "alt": "Tela real de ordens de serviço do ArtiSys Oficina",
+            "caption": "Ordens de serviço"
+          },
+          {
+            "src": "/oficina/media/estoque.webp",
+            "alt": "Tela real de estoque de peças do ArtiSys Oficina",
+            "caption": "Estoque"
+          }
+        ]
       }
     }
   ]
