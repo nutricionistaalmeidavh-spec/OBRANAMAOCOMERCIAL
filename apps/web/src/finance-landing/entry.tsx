@@ -7,7 +7,6 @@ import { TextEffect } from './motion-primitives/text-effect';
 import { BorderBeam } from './magic-ui/border-beam';
 import { configureUmami, trackFinanceEvent } from './umami';
 import { loadOptionalEffects } from './optional-effects';
-import './finance-island.css';
 
 type Screenshot = {
   image: string;
