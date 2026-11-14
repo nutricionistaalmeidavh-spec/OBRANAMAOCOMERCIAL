@@ -36,6 +36,7 @@
 .finance-nav{display:flex;align-items:center;justify-content:center;gap:32px;margin-left:auto}
 .finance-nav a{
   color:var(--finance-white);font-size:13px;font-weight:650;
+  display:inline-flex;align-items:center;min-height:44px;
   text-decoration:none;text-underline-offset:6px;
   transition:opacity .25s cubic-bezier(.22,1,.36,1);
 }
@@ -242,6 +243,7 @@
 .finance-gallery-card figcaption strong{font-size:15px;color:var(--finance-white)}
 .finance-gallery-card figcaption span{flex:1 1 200px;font-size:12px;line-height:1.5;color:var(--finance-light-muted)}
 .finance-gallery-card figcaption a{
+  display:inline-flex;align-items:center;min-height:44px;
   font-size:12px;color:#e0c3fb;text-underline-offset:4px;font-weight:700;
 }
 .finance-page .finance-conversion{
@@ -340,7 +342,7 @@
 }
 @media(max-width:560px){
   .finance-page .brand img{width:115px}
-  .finance-page .back-link{min-height:40px;font-size:11px;padding:7px 12px}
+  .finance-page .back-link{min-height:44px;font-size:11px;padding:9px 12px}
   .finance-page .product-hero{padding:42px 0 110px}
   .finance-page .product-hero .eyebrow{font-size:10px;margin-bottom:15px}
   .finance-page .product-hero h1{font-size:clamp(39px,10.5vw,53px);line-height:1.08}
