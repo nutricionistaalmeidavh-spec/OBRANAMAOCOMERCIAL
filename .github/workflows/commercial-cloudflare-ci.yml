@@ -90,6 +90,8 @@ jobs:
         run: npm run build
       - name: QA visual Holerites desktop and mobile, aspect ratios and carousel
         run: node scripts/qa-holerites-landing.mjs
+      - name: QA ArtiSys storefront Astro, Embla and real screenshots
+        run: node scripts/qa-marketing-vitrine.mjs
       - name: Upload Playwright screenshots and QA evidence
         if: always()
         uses: actions/upload-artifact@v4

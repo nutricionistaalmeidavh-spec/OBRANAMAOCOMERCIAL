@@ -40,7 +40,8 @@
     "wpp:build": "vite build --config vite.wppprospector.config.ts",
     "wpp:verify": "node scripts/verify-wppprospector-experience.mjs",
     "marketing:build": "node scripts/build-marketing.mjs",
-    "marketing:verify": "node scripts/verify-marketing-build.mjs"
+    "marketing:verify": "node scripts/verify-marketing-build.mjs",
+    "qa:marketing": "node scripts/qa-marketing-vitrine.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.5.0",

@@ -1,0 +1,48 @@
+name: ArtiSys Marketing P2 P3 QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/marketing-astro/**'
+      - 'apps/web/**'
+      - '.github/workflows/artisys-marketing-storefront.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/marketing-astro/**'
+      - 'apps/web/**'
+      - '.github/workflows/artisys-marketing-storefront.yml'
+permissions:
+  contents: read
+jobs:
+  storefront:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install web dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify catalog and build all site assets
+        run: npm run build
+      - name: Install Playwright
+        run: npm install --no-save --package-lock=false playwright@1.62.1
+      - name: Install Chromium
+        run: |
+          npx playwright install-deps chromium
+          npx playwright install chromium
+      - name: QA actual storefront on mobile and desktop
+        run: node scripts/qa-marketing-vitrine.mjs
+      - name: Upload real browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artisys-marketing-qa-${{ github.run_number }}
+          path: apps/web/qa-artifacts/marketing-storefront/
+          if-no-files-found: warn
+          retention-days: 14
