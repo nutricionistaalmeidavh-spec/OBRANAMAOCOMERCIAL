@@ -73,7 +73,7 @@ function renderFinanceGallery() {
       <div><p class="section-kicker">Capturas reais do aplicativo</p><h2 id="finance-gallery-title">Conheça o Financeiro por dentro.</h2></div>
       <p>Telas do ArtiSys Financeiro para Windows, registradas em testes reais do aplicativo com dados demonstrativos.</p>
     </div>
-    <div class="finance-gallery-grid">
+    <div class="finance-gallery-grid" id="finance-react-carousel" data-gallery-source="electron-qa">
       <figure class="finance-gallery-card finance-gallery-card--wide">
         <div class="finance-gallery-screen">${image('crm-funil-real.webp','CRM ArtiSys: funil Kanban, oportunidades, propostas e vinculação de recebíveis mediante confirmação.')}</div>
         <figcaption><strong>CRM e funil de vendas</strong><span>Leads, oportunidades, propostas e histórico comercial na mesma operação.</span><a href="${media}crm-funil-real.webp" target="_blank" rel="noopener noreferrer">Ampliar captura real</a></figcaption>
@@ -113,13 +113,14 @@ function renderFinanceHero(product, access, status) {
         <h1 id="product-title">Vendas e finanças.<span> Conectadas.</span></h1>
         <p class="hero-summary">Do primeiro lead ao controle do caixa. Organize propostas, recebimentos e resultados com a segurança de decidir quando uma venda entra no financeiro.</p>
         <div class="hero-actions">
-          <a class="button primary" data-product-cta href="${escapeHtml(product.ctaHref)}"${externalAttrs(product.ctaHref)}>${escapeHtml(product.ctaLabel)}</a>
-          <a class="button secondary" href="#financeiro-em-acao">Ver telas reais <span aria-hidden="true">↗</span></a>
+          <a class="button primary" data-product-cta data-umami-event="finance_checkout" href="${escapeHtml(product.ctaHref)}"${externalAttrs(product.ctaHref)}>${escapeHtml(product.ctaLabel)}</a>
+          <a class="button secondary" data-umami-event="finance_gallery" href="#financeiro-em-acao">Ver telas reais <span aria-hidden="true">↗</span></a>
           ${access}
         </div>
         <p class="finance-hero-assurance">Licença do aplicativo para Windows · Sem assinatura obrigatória</p>
       </div>
       <div class="finance-hero-media">
+        <div id="finance-particles" aria-hidden="true"></div>
         <figure class="finance-hero-screenshot">
           <div class="finance-device-frame">
             <img src="./media/dashboard-real.webp" width="1440" height="900" fetchpriority="high" decoding="async" alt="Captura real do dashboard ArtiSys Financeiro, com indicadores de caixa e contas.">
@@ -183,6 +184,7 @@ function renderProductPage(product) {
   <link rel="stylesheet" href="../product-page.css">
   ${product.slug === 'pdv-artisys' ? '<link rel="stylesheet" href="../pdv-artisys-gallery.css">' : ''}
   ${product.slug === 'artisys-finance' ? '<link rel="stylesheet" href="../artisys-finance-gallery.css">' : ''}
+  ${product.slug === 'artisys-finance' ? '<script type="module" src="/assets/finance-landing.js"></script>' : ''}
   ${product.slug === 'artisys-finance' ? '<script src="../artisys-finance-motion.js" defer></script>' : ''}
   ${product.slug === 'artisys-finance' ? '<meta name="color-scheme" content="light">' : ''}
 </head>
@@ -190,9 +192,9 @@ function renderProductPage(product) {
   <!-- artisys-generated:product -->
   <a class="skip-link" href="#product-title">Ir para o produto</a>
   ${product.slug === 'artisys-finance' ? '<header class="product-header"><div class="finance-header-inner"><a class="brand" href="/" aria-label="ArtiSys, página inicial"><img src="/artisys-logo.svg" alt="ArtiSys"></a><nav class="finance-nav" aria-label="Navegação Financeiro"><a href="#finance-feature-heading">Benefícios</a><a href="#financeiro-em-acao">Telas reais</a><a href="#finance-conversion-title">Integração CRM</a></nav><a class="back-link" href="/sistemas/">Todos os sistemas</a></div></header>' : '<header class="product-header"><a class="brand" href="/" aria-label="ArtiSys, página inicial"><img src="/artisys-logo.svg" alt="ArtiSys"></a><a class="back-link" href="/sistemas/">Todos os sistemas</a></header>'}
-  <main${product.slug === 'artisys-finance' ? ' class="finance-motion-root"' : ''}>
+  <main${product.slug === 'artisys-finance' ? ' class="finance-motion-root" data-smooth-scroll="false" data-particles-enabled="false" data-tilt-enabled="false"' : ''}>
     ${product.slug === 'artisys-finance' ? renderFinanceHero(product, access, status) : `<section class="product-hero${product.slug === 'pdv-artisys' ? ' product-hero--pdv' : ''}" aria-labelledby="product-title">
-      <div class="hero-copy"><p class="eyebrow">${escapeHtml(product.category)} · ${escapeHtml(typeLabel(product.type))}</p><h1 id="product-title">${escapeHtml(product.name)}</h1><p class="hero-summary">${escapeHtml(product.summary)}</p><div class="hero-actions"><a class="button primary" data-product-cta href="${escapeHtml(product.ctaHref)}"${externalAttrs(product.ctaHref)}>${escapeHtml(product.ctaLabel)}</a>${access}</div></div>
+      <div class="hero-copy"><p class="eyebrow">${escapeHtml(product.category)} · ${escapeHtml(typeLabel(product.type))}</p><h1 id="product-title">${escapeHtml(product.name)}</h1><p class="hero-summary">${escapeHtml(product.summary)}</p><div class="hero-actions"><a class="button primary" data-product-cta${product.slug === 'artisys-finance' ? ' data-umami-event="finance_checkout"' : ''} href="${escapeHtml(product.ctaHref)}"${externalAttrs(product.ctaHref)}>${escapeHtml(product.ctaLabel)}</a>${access}</div></div>
       ${product.slug === 'pdv-artisys' ? '<figure class="pdv-featured-picture"><div class="pdv-photo pdv-photo--overview" role="img" aria-label="PDV ArtiSys em notebook com periféricos de caixa, balança, leitor de código e QR Code."></div><figcaption>PDV ArtiSys · visão geral e periféricos</figcaption></figure>' : ''}
       ${product.slug === 'artisys-finance' ? '<figure class="finance-featured-picture"><a href="#financeiro-em-acao" aria-label="Conhecer as capturas reais do ArtiSys Financeiro"><img src="./media/dashboard-real.webp" width="1440" height="900" alt="Dashboard real do ArtiSys Financeiro com saldos, contas a pagar e receber e fluxo de caixa." fetchpriority="high" decoding="async"></a><figcaption>Dashboard real do aplicativo · dados de demonstração</figcaption></figure>' : ''}
       <aside class="product-facts" aria-label="Resumo comercial"><div><span>Status</span><strong>${escapeHtml(status)}</strong></div><div><span>Formato</span><strong>${escapeHtml(typeLabel(product.type))}</strong></div><div><span>Investimento</span><strong>${escapeHtml(product.priceLabel)}</strong></div></aside>
