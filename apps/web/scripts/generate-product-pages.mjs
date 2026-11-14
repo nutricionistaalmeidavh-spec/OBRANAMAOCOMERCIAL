@@ -131,7 +131,7 @@ function renderFinanceHero(product, access, status) {
         </figure>
       </div>
     </div>
-    <svg class="finance-wave" viewBox="0 0 1440 165" preserveAspectRatio="none" focusable="false" aria-hidden="true"><path fill="#ffffff" d="M0,48 C190,20 325,28 476,82 C615,130 726,160 853,148 C1005,132 1093,70 1226,60 C1318,52 1383,68 1440,77 L1440,165 L0,165 Z"></path></svg>
+    <svg class="finance-wave" viewBox="0 0 1440 165" preserveAspectRatio="none" focusable="false" aria-hidden="true"><path fill="#f4f1fa" d="M0,48 C190,20 325,28 476,82 C615,130 726,160 853,148 C1005,132 1093,70 1226,60 C1318,52 1383,68 1440,77 L1440,165 L0,165 Z"></path></svg>
   </section>
   <aside class="product-facts" aria-label="Resumo comercial">
     <div><span>Produto</span><strong>Financeiro + CRM integrado</strong></div>
@@ -199,7 +199,7 @@ function renderProductPage(product) {
     </section>`}
     ${product.slug === 'artisys-finance' ? renderFinanceFeatures() : ''}
     ${product.slug === 'pdv-artisys' ? renderPdvGallery() : ''}
-    ${product.slug === 'artisys-finance' ? renderFinanceGallery() : ''}
+    ${product.slug === 'artisys-finance' ? '<div class="finance-gallery-shell">' + renderFinanceGallery() + '</div>' : ''}
     <div class="product-details">
     <section class="content-section split-section" aria-labelledby="audience-title"><div><p class="section-kicker">Para quem é</p><h2 id="audience-title">Feito para uma rotina real.</h2></div><p class="large-copy">${escapeHtml(product.audience)}</p></section>
     <section class="content-section" aria-labelledby="benefits-title"><p class="section-kicker">O que melhora</p><h2 id="benefits-title">Menos improviso. Mais clareza na operação.</h2><div class="benefit-grid">${product.benefits.map((item, index) => `<article><span>${String(index + 1).padStart(2, '0')}</span><p>${escapeHtml(item)}</p></article>`).join('')}</div></section>
