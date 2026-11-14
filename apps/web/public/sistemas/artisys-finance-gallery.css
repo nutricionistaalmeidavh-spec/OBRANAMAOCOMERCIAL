@@ -270,6 +270,9 @@
   background:linear-gradient(120deg,#38135a,#5e20a7 67%,#6b24b3);
   border:0;border-radius:25px;
 }
+.finance-page .product-cta,
+.finance-page .product-cta h2{color:#ffffff}
+.finance-page .product-cta .section-kicker{color:#e4ccfa}
 .finance-page .product-cta .button.primary{
   background:#fff;border-color:#fff;color:#421778;border-radius:999px;
 }
@@ -329,6 +332,7 @@
   .finance-hero-media{height:290px;margin-top:8px}
   .finance-hero-screenshot{right:0;width:100%;top:11%}
   .finance-hero-screenshot-secondary{width:58%;bottom:3%;left:-2%}
+  .finance-hero-screenshot figcaption{display:none}
   .finance-wave{height:85px}
   .finance-page .product-facts{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:-4px;padding-bottom:22px}
   .finance-page .product-facts div{min-height:70px;padding:10px 9px}
