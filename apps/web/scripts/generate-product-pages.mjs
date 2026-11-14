@@ -184,6 +184,7 @@ function renderProductPage(product) {
   <link rel="stylesheet" href="../product-page.css">
   ${product.slug === 'pdv-artisys' ? '<link rel="stylesheet" href="../pdv-artisys-gallery.css">' : ''}
   ${product.slug === 'artisys-finance' ? '<link rel="stylesheet" href="../artisys-finance-gallery.css">' : ''}
+  ${product.slug === 'artisys-finance' ? '<link rel="stylesheet" href="../artisys-finance-island.css">' : ''}
   ${product.slug === 'artisys-finance' ? '<script type="module" src="/assets/finance-landing.js"></script>' : ''}
   ${product.slug === 'artisys-finance' ? '<script src="../artisys-finance-motion.js" defer></script>' : ''}
   ${product.slug === 'artisys-finance' ? '<meta name="color-scheme" content="light">' : ''}
