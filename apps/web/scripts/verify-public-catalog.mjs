@@ -44,6 +44,12 @@ for (const filename of [
 const financeDesignCss = readCatalog('artisys-finance-gallery.css');
 const financeDesignJs = readCatalog('artisys-finance-motion.js');
 assert.match(financeDesignCss, /\.finance-page \.product-hero/, 'hero styles are product-scoped');
+assert.match(financeDesignCss, /--finance-night:var\(--bg\)/, 'Financeiro inherits brand night token');
+assert.match(financeDesignCss, /--finance-accent:var\(--accent\)/, 'Financeiro inherits brand purple');
+assert.match(financeDesignCss, /--finance-paper:var\(--paper\)/, 'Financeiro inherits brand paper');
+assert.match(financeDesignCss, /\.finance-gallery-shell\{background:var\(--finance-night\)/, 'gallery uses a distinct dark full-width surface');
+assert.match(financeDesignCss, /\.content-section:nth-child\(even\)/, 'content alternates surfaces');
+assert.doesNotMatch(financeDesignCss, /#6d22d1|#6420c4|#ef62d8|#9926b0|#bd439c/i, 'unapproved magenta hero palette cannot return');
 assert.match(financeDesignCss, /@media\s*\(max-width:\s*768px\)/, 'hero collapses for mobile');
 assert.match(financeDesignCss, /prefers-reduced-motion:\s*reduce/, 'motion preference honored');
 assert.match(financeDesignCss, /grid-auto-flow:\s*dense/, 'bento layout has no holes');
@@ -128,6 +134,7 @@ for (const product of catalog.products) {
       assert.match(page, /dados de demonstração/, 'Honest QA screenshot labeling');
       assert.equal((page.match(/class="finance-gallery-card(?: finance-gallery-card--wide)?"/g) || []).length, 5, 'Finance gallery has five real feature screens');
       assert.match(page, /class="finance-header-inner"/, 'finance has editorial navigation');
+      assert.match(page, /class="finance-gallery-shell"/, 'Financeiro CRM gallery has a full-width dark brand surface');
       assert.match(page, /class="finance-hero-inner"/, 'finance uses an editorial screenshot hero');
       assert.match(page, /class="finance-wave"/, 'finance uses SVG wave');
       assert.match(page, /class="finance-feature-grid"/, 'finance has feature triptych');
