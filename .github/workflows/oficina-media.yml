@@ -1,0 +1,82 @@
+name: Import genuine Oficina QA screenshots
+on:
+  push:
+    branches: [feat/oficina-landing-20261114]
+    paths:
+      - '.github/workflows/oficina-media.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import-oficina-media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install open-source Pillow for image compression
+        run: python -m pip install --disable-pip-version-check "Pillow>=11,<13"
+      - name: Retrieve successful real Oficina desktop and mobile QA artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/oficina-desktop /tmp/oficina-mobile
+          curl --retry 3 --retry-all-errors -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/oficina-desktop.zip \
+            "https://api.github.com/repos/nutricionistaalmeidavh-spec/OficinaAgricola/actions/artifacts/13775535806/zip"
+          curl --retry 3 --retry-all-errors -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/oficina-mobile.zip \
+            "https://api.github.com/repos/nutricionistaalmeidavh-spec/OficinaAgricola/actions/artifacts/13776029107/zip"
+          unzip -q /tmp/oficina-desktop.zip -d /tmp/oficina-desktop
+          unzip -q /tmp/oficina-mobile.zip -d /tmp/oficina-mobile
+          test -s /tmp/oficina-desktop/01-dashboard.png
+          test -s /tmp/oficina-desktop/jornada/03-os-entrada.png
+          test -s /tmp/oficina-mobile/01-dashboard.png
+      - name: Convert only verified product UI screenshots to WebP
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          desktop=Path('/tmp/oficina-desktop')
+          mobile=Path('/tmp/oficina-mobile')
+          out=Path('apps/web/public/oficina/media')
+          out.mkdir(parents=True, exist_ok=True)
+          frames={
+            'dashboard.webp':desktop/'01-dashboard.png',
+            'ordens.webp':desktop/'02-ordens.png',
+            'ordem-detalhe.webp':desktop/'03-os-detalhe.png',
+            'relatorios.webp':desktop/'10-relatorios-sql.png',
+            'os-entrada.webp':desktop/'jornada/03-os-entrada.png',
+            'orcamento.webp':desktop/'jornada/04-orcamento-aprovado.png',
+            'vendas.webp':desktop/'postgres/06-venda-confirmada.png',
+            'estoque.webp':desktop/'postgres/07-historico-estoque.png',
+            'inventario.webp':desktop/'postgres/12-inventario-fisico.png',
+            'dashboard-mobile.webp':mobile/'01-dashboard.png',
+          }
+          for name,path in frames.items():
+            if not path.is_file(): raise FileNotFoundError(path)
+            with Image.open(path) as src:
+              img=src.convert('RGB')
+              img.thumbnail((1440, 2000))
+              img.save(out/name,format='WEBP',quality=82,method=6)
+            if (out/name).stat().st_size < 5000: raise RuntimeError(f'Invalid screenshot: {name}')
+            print(name,(out/name).stat().st_size)
+          PY
+      - name: Commit real screenshots to the feature branch
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/web/public/oficina/media/*.webp
+          if git diff --staged --quiet; then exit 0; fi
+          git commit -m "assets(oficina): capturas reais Playwright desktop e mobile"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
