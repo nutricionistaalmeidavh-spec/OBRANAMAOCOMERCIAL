@@ -136,6 +136,16 @@ jobs:
             awk -v d="$DURATION" 'BEGIN { exit (d >= 29.8 && d <= 30.2) ? 0 : 1 }'
           fi
 
+      - name: Capture full visual catalog and PDF with QA-only data
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        env:
+          NODE_ENV: test
+          ARTISYS_QA: '1'
+          OBRA_NA_MAO_DATA_DIR: ${{ runner.temp }}/qa-visual-obranamao-${{ github.run_id }}
+          QA_VISUAL_OUT: qa-artifacts/visual-catalog
+        run: xvfb-run -a node qa/scripts/capture-full-catalog.mjs
+
       - name: Upload QA and Demo artifacts
         if: always()
         uses: actions/upload-artifact@v4
