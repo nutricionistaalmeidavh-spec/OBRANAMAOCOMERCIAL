@@ -87,6 +87,24 @@ export const artisysSeoConfig = defineSeoConfig({
   },
   pages: [
     {
+      path: '/gestãoholerites',
+      canonical: 'https://artisys.dev/gest%C3%A3oholerites/',
+      title: 'ArtiSys Holerites | Folha de pagamento e recibos em PDF no Windows',
+      description: 'ArtiSys Holerites: folha mensal, férias, 13º, rescisão e contracheques A4. Software desktop offline para Windows. Veja telas reais.',
+      schemaType: 'WebPage',
+      changeFrequency: 'monthly',
+      priority: 0.84,
+      jsonLd: [{
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        name: 'ArtiSys Holerites',
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Windows',
+        url: 'https://artisys.dev/gest%C3%A3oholerites/',
+        provider: { '@id': 'https://artisys.dev/#organization' }
+      }]
+    },
+    {
       path: '/wppprospector',
       canonical: 'https://artisys.dev/wppprospector/',
       title: 'CRM ArtiSys WppProspector | Leads, vendas e WhatsApp no mesmo lugar',
