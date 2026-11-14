@@ -23,7 +23,17 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      input: ['index.html', 'sistema.html', 'gestao.html', 'obra.html', 'universidade.html'],
+      input: ['index.html', 'sistema.html', 'gestao.html', 'obra.html', 'universidade.html', 'src/finance-landing/entry.tsx'],
+      output: {
+        // Stable local entry for the SEO-first Financeiro page copied from public/.
+        // Other site and system bundles retain Vite's original hashed behavior.
+        entryFileNames(chunk) {
+          const path = chunk.facadeModuleId?.replaceAll('\\\\', '/') || '';
+          return path.endsWith('/src/finance-landing/entry.tsx')
+            ? 'assets/finance-landing.js'
+            : 'assets/[name]-[hash].js';
+        }
+      },
       maxParallelFileOps: 128
     }
   }

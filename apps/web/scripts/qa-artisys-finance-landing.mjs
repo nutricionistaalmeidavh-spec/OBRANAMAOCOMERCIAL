@@ -7,9 +7,15 @@ import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
 
 const webRoot = resolve(fileURLToPath(new URL('../public/', import.meta.url)));
+const distRoot = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
+
 const output = fileURLToPath(new URL('../qa-artifacts/artisys-finance/', import.meta.url));
 
 execFileSync(process.execPath, ['scripts/run-generate-product-pages.mjs'], {
+  cwd: resolve(fileURLToPath(new URL('../', import.meta.url))),
+  stdio: 'inherit'
+});
+execFileSync('npm', ['run', 'build'], {
   cwd: resolve(fileURLToPath(new URL('../', import.meta.url))),
   stdio: 'inherit'
 });
@@ -28,8 +34,10 @@ const server = createServer(async (req, response) => {
     response.writeHead(400); response.end(); return;
   }
   const requested = decodeURIComponent(url.pathname + (url.pathname.endsWith('/') ? 'index.html' : ''));
-  const filePath = resolve(webRoot, '.' + requested);
-  if (!filePath.startsWith(webRoot + sep)) {
+  const asset = requested.startsWith('/assets/');
+  const base = asset ? distRoot : webRoot;
+  const filePath = resolve(base, '.' + requested);
+  if (!filePath.startsWith(base + sep)) {
     response.writeHead(403); response.end(); return;
   }
   try {
@@ -58,7 +66,23 @@ try {
     const page = await context.newPage();
     const exceptions = [];
     page.on('pageerror', (error) => exceptions.push(error.message));
+    page.on('console', (message) => { if (message.type() === 'error') exceptions.push('console: ' + message.text()); });
+    page.on('requestfailed', (request) => exceptions.push('request: ' + request.url() + ': ' + request.failure()?.errorText));
+    page.on('response', (response) => { if (response.status() >= 400) exceptions.push('http ' + response.status() + ': ' + response.url()); });
     await page.goto(url, { waitUntil: 'domcontentloaded' });
+    try {
+    await page.locator('.finance-embla-root').waitFor({ state: 'visible', timeout: 12000 });
+    } catch (error) {
+      const diagnostics = await page.evaluate(() => ({
+        ready: document.readyState,
+        html: document.querySelector('#finance-react-carousel')?.outerHTML.slice(0, 500),
+        script: document.querySelector('script[src="/assets/finance-landing.js"]')?.outerHTML,
+        moduleScriptCount: document.querySelectorAll('script[type="module"]').length,
+        reactRoots: document.querySelectorAll('.finance-embla-root').length
+      }));
+      console.error('Financeiro carousel mount diagnostics:', JSON.stringify({ diagnostics, exceptions }, null, 2));
+      throw error;
+    }
     const heroImage = page.locator('.finance-hero-screenshot img');
     await heroImage.evaluate((element) => element.decode());
     await page.locator('.finance-hero-screenshot-secondary img').evaluate((element) => element.decode());
@@ -93,6 +117,10 @@ try {
         imageSrc: image.getAttribute('src'),
         featureCards: cards.length,
         galleryCards: gallery.querySelectorAll('.finance-gallery-card').length,
+        sliderMounted: !!document.querySelector('#finance-react-carousel .finance-embla-root'),
+        slideCount: document.querySelectorAll('.finance-embla-slide').length,
+        nextButton: !!document.querySelector('button[aria-label="Próxima tela"]'),
+        localBundle: [...document.querySelectorAll('script[type="module"]')].some((script) => script.src.endsWith('/assets/finance-landing.js')),
         wave: !!document.querySelector('svg.finance-wave path'),
         motionScript: !!document.querySelector('script[src="../artisys-finance-motion.js"]'),
         ctaLinks: [...document.querySelectorAll('[data-product-cta]')].map((link) => link.getAttribute('href')),
@@ -126,6 +154,10 @@ try {
     assert.equal(data.wave, true);
     assert.equal(data.featureCards, 3);
     assert.equal(data.galleryCards, 5);
+    assert.equal(data.sliderMounted, true, 'actual Embla React gallery must mount');
+    assert.equal(data.slideCount, 5, 'Embla must use five canonical screenshots from server HTML');
+    assert.equal(data.nextButton, true, 'shadcn style controls must be accessible');
+    assert.equal(data.localBundle, true, 'React island must be delivered by local Vite bundle');
     assert.equal(data.motionScript, true);
     assert.equal(data.checkoutTitleColor, 'rgb(255, 255, 255)', 'final purchase CTA must be legible on violet');
     assert.equal(data.headerBackground, 'rgb(13, 10, 29)', 'header must use canonical ArtiSys night');
@@ -186,8 +218,19 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(250);
+  await page.locator('.finance-embla-root').waitFor({ state: 'visible', timeout: 12000 });
   const activeMotion = await page.locator('.finance-hero-copy h1').evaluate((element) => element.getAnimations().length);
   assert.ok(activeMotion > 0, 'native motion should animate when allowed');
+  const current = page.locator('.finance-embla-count');
+  const before = await current.textContent();
+  await page.getByRole('button', { name: 'Próxima tela' }).click();
+  await page.waitForTimeout(450);
+  const after = await current.textContent();
+  assert.notEqual(before, after, 'Embla Next must navigate screenshots');
+  await page.getByRole('button', { name: 'Tela anterior' }).click();
+  await page.waitForTimeout(450);
+  assert.equal(await current.textContent(), before, 'Embla Previous must work');
+
   await page.locator('.finance-feature').first().scrollIntoViewIfNeeded();
   await page.waitForTimeout(180);
   assert.deepEqual(errors, [], 'motion-enabled page must run without exceptions');
