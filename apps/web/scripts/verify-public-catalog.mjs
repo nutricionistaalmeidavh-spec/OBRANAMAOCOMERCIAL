@@ -95,6 +95,18 @@ for (const product of catalog.products) {
     assert.match(page, /<script type="application\/ld\+json">/i);
     assert.match(page, /class="product-hero(?: product-hero--pdv)?"/i);
     assert.match(page, /data-product-cta/i);
+    if (product.slug === 'artisys-finance') {
+      assert.match(page, /href="\.\.\/artisys-finance-gallery\.css"/, 'Finance has a dedicated scoped stylesheet');
+      assert.match(page, /id="financeiro-em-acao"/, 'Finance includes real gallery');
+      assert.match(page, /id="finance-conversion-title"/, 'Finance explains confirmed CRM conversion');
+      assert.match(page, /crm-funil-real\.webp/, 'CRM Kanban screenshot');
+      assert.match(page, /crm-agenda-real\.webp/, 'CRM agenda screenshot');
+      assert.match(page, /crm-indicadores-real\.webp/, 'CRM indicators screenshot');
+      assert.match(page, /dashboard-real\.webp/, 'Finance dashboard screenshot');
+      assert.match(page, /dados de demonstração/, 'Honest QA screenshot labeling');
+      assert.equal((page.match(/class="finance-gallery-card(?: finance-gallery-card--wide)?"/g) || []).length, 5, 'Finance gallery has five real feature screens');
+      assert.doesNotMatch(page, /<script[^>]*src=|MutationObserver|createElement\(/i, 'Finance gallery is static and zero-mutation');
+    }
     if (product.slug === 'pdv-artisys') {
       assert.match(page, /class="product-hero product-hero--pdv"/, 'PDV receives compact editorial hero only');
       assert.match(page, /href="\.\.\/pdv-artisys-gallery\.css"/, 'PDV includes scoped gallery stylesheet');
