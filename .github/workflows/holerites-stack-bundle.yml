@@ -67,4 +67,7 @@ jobs:
             exit 0
           fi
           git commit -m "build(holerites): bundle self-hosted Motion Embla and real screenshot viewport"
+          # Integra commits concorrentes de QA/código sem sobrescrever a branch.
+          git fetch origin fix/holerites-responsive-media-motion-embla
+          git rebase origin/fix/holerites-responsive-media-motion-embla
           git push origin HEAD:fix/holerites-responsive-media-motion-embla
