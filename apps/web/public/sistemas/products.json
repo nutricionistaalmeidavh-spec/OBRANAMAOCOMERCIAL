@@ -1,1 +1,335 @@
-{"version":3,"collections":[{"slug":"agro","name":"Sistemas ArtiSys para o Agro","category":"Agro","summary":"Área dedicada às soluções ArtiSys para operações rurais, conforme disponibilidade comercial.","featured":true,"seo":{"title":"Sistemas para o Agro | ArtiSys","description":"Explore a coleção Agro e acompanhe a disponibilidade de soluções ArtiSys para operações rurais."}}],"products":[{"slug":"pdv-artisys","name":"PDV ArtiSys","category":"Comércio","type":"desktop","status":"available","pageMode":"individual","priceLabel":"R$ 89,90","priceAmount":89.9,"summary":"PDV para bares, restaurantes e lanchonetes: caixa, mesas, comandas, cozinha e delivery.","audience":"Bares, restaurantes, lanchonetes e operações de alimentação que precisam coordenar atendimento, produção e vendas.","features":["Frente de caixa e pagamentos mistos","Comandas, mesas e cardápio QR Code","Painel de cozinha (KDS) e pedidos","Delivery, retirada e balcão","Estoque, fichas técnicas e ingredientes","Relatórios e operação em rede local"],"benefits":["Organiza os pedidos do atendimento à cozinha","Integra caixa, estoque e venda em uma operação","Facilita o acompanhamento de mesas, comandas e delivery"],"steps":["Cadastre os produtos e informações da operação","Registre as vendas no caixa durante o atendimento","Acompanhe os registros e relatórios para conferir a rotina"],"faq":[{"question":"O PDV ArtiSys funciona em computador Windows?","answer":"Sim. Esta versão do produto é voltada ao uso desktop em Windows."},{"question":"O sistema organiza produtos e vendas?","answer":"Sim. Cadastro de produtos, operação de caixa e registros de venda fazem parte do fluxo apresentado pelo produto."},{"question":"Como contratar?","answer":"Use o botão de contato desta página para falar com a ArtiSys e confirmar a versão indicada para sua operação."}],"featured":true,"ctaLabel":"Comprar PDV ArtiSys","ctaHref":"https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=pdv-artisys-restaurantes","seo":{"title":"PDV ArtiSys | Sistema de vendas e caixa para Windows","description":"Conheça o PDV ArtiSys para caixa, produtos, vendas e relatórios operacionais em computadores Windows."},"checkoutOfferId":"pdv-artisys-restaurantes"},{"slug":"pdv-nexus","name":"PDV Nexus","category":"Comércio","type":"desktop","status":"available","pageMode":"individual","priceLabel":"R$ 39,90","priceAmount":39.9,"summary":"Frente de caixa para lojas e pequenos comércios, com produtos, estoque, código de barras e relatórios.","audience":"Lojas, varejos e balcões que precisam registrar vendas com controle de estoque e caixa em Windows.","features":["Caixa e vendas com pagamentos mistos","Produtos, clientes e código de barras","Estoque, lotes, validade e inventário","Balanças e vendas por unidade ou peso","Operadores, permissões e fechamento de caixa","Relatórios, exportação CSV e backup local"],"benefits":["Centraliza vendas e controle de caixa","Relaciona vendas, produtos e movimentações de estoque","Facilita a conferência e os relatórios da operação"],"steps":["Instale a versão compatível com seu Windows","Cadastre produtos, clientes e operadores","Registre vendas, acompanhe o estoque e feche o caixa"],"faq":[{"question":"Qual versão do Windows é compatível?","answer":"O checkout permite selecionar as versões de instalação para Windows 10/11, Windows 8 (32 bits) e Windows 7, conforme a oferta disponível."},{"question":"O sistema suporta código de barras e balanças?","answer":"Sim. Há recursos para leitura de códigos e operações por peso, conforme os equipamentos compatíveis."},{"question":"Quando recebo o instalador?","answer":"A liberação do download é feita após a confirmação do pagamento e a entrega autorizada pelo sistema ArtiSys."}],"featured":true,"checkoutOfferId":"pdv-nexus","ctaLabel":"Comprar PDV Nexus","ctaHref":"https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=pdv-nexus","seo":{"title":"PDV Nexus | Frente de caixa, estoque e vendas","description":"PDV Nexus para comércio: caixa, produtos, código de barras, balanças, estoque, relatórios e versões para Windows."}},{"slug":"obra-na-mao","name":"Obra na Mão","category":"Construção","type":"saas","status":"available","pageMode":"individual","priceLabel":"R$ 299,90","summary":"Gestão de obras, equipe, campo, RDO, administração e capacitação em uma operação integrada.","audience":"Empreiteiras, construtoras e equipes que precisam conectar operação de campo, gestão administrativa e capacitação.","features":["Obra360 e rotina de campo","Gestão administrativa","Universidade empresarial","Acesso web e mobile"],"benefits":["Conecta informações de campo e administração","Reduz a dispersão de rotinas entre ferramentas diferentes","Mantém acesso e capacitação dentro do mesmo ecossistema"],"steps":["Organize a empresa, obras e responsáveis","Registre e acompanhe a rotina operacional","Use os módulos de gestão e capacitação conforme as permissões da equipe"],"faq":[{"question":"O Obra na Mão funciona pela web?","answer":"Sim. O produto possui acesso web e fluxos preparados para uso em diferentes telas."},{"question":"Quem já é cliente acessa por onde?","answer":"O botão “Já sou cliente” leva ao portal existente do Obra na Mão, sem alterar o fluxo de login atual."},{"question":"Os módulos operacionais mudam por causa desta página?","answer":"Não. Esta página é apenas comercial e permanece separada de Obra360, Gestão, Universidade, licenças e dados."}],"featured":true,"ctaLabel":"Comprar Obra na Mão","ctaHref":"https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=obra-na-mao","accessHref":"/sistema.html#portal","seo":{"title":"Obra na Mão | Gestão integrada para obras e equipes","description":"Conheça o Obra na Mão: gestão de obras, campo, administração e capacitação em um ecossistema web integrado."},"checkoutOfferId":"obra-na-mao","priceAmount":299.9},{"slug":"consultora-amamentacao","name":"Consultora de Amamentação","category":"Saúde","type":"web","status":"managed","pageMode":"external","externalHref":"https://deboralactacao.com/comercial/","accessHref":"https://deboralactacao.com/","priceLabel":"Sob consulta","summary":"Sistema de gestão para consultoras de amamentação, com agenda, prontuário, evolução e acompanhamento em um fluxo especializado.","audience":"Consultoras de amamentação que querem organizar atendimentos, histórico clínico e rotina profissional em um sistema dedicado.","features":["Prontuário mãe e bebê","Agenda e histórico","Evolução e acompanhamento","Documentos de atendimento"],"benefits":["Mantém informações de mãe e bebê no contexto do atendimento","Organiza histórico e acompanhamento ao longo do tempo","Centraliza a rotina profissional em uma experiência dedicada"],"steps":["Conheça a landing comercial específica do produto","Confira o fluxo e os recursos apresentados","Entre em contato pelo canal comercial da solução"],"faq":[{"question":"Existe uma página comercial própria?","answer":"Sim. O produto já possui uma landing comercial específica e o catálogo ArtiSys aponta diretamente para ela."},{"question":"É voltado para consultoras de amamentação?","answer":"Sim. O posicionamento comercial e os fluxos do sistema são específicos para essa atuação."},{"question":"Já sou cliente. Onde acesso?","answer":"Use o acesso existente em deboralactacao.com."}],"featured":false,"ctaLabel":"Conhecer o sistema","ctaHref":"https://deboralactacao.com/comercial/","seo":{"title":"Consultora de Amamentação | Sistema de gestão especializado","description":"Sistema de gestão para consultoras de amamentação com agenda, prontuário, evolução e acompanhamento."}},{"slug":"artisys-finance","name":"ArtiSys Finance","category":"Financeiro","type":"desktop","status":"available","pageMode":"individual","priceLabel":"R$ 169,90","summary":"Sistema financeiro desktop local-first para contas, fluxo de caixa, DRE, recorrências, relatórios e conciliação de extratos.","audience":"Profissionais e pequenas operações que querem controlar a vida financeira no próprio computador, com dados locais e visão organizada de contas, caixa e resultados.","features":["Contas a pagar e receber","Fluxo de caixa e DRE","Recorrências e alertas","Extratos e conciliação","Relatórios, recibos e backup local"],"benefits":["Mantém o núcleo financeiro no computador do usuário","Concentra contas, caixa, indicadores e relatórios no mesmo fluxo","Permite importar e revisar extratos antes da conciliação"],"steps":["Cadastre contas, categorias e lançamentos financeiros","Acompanhe caixa, vencimentos, DRE e alertas","Importe extratos, revise conciliações e gere relatórios quando necessário"],"faq":[{"question":"O ArtiSys Finance depende de nuvem?","answer":"Não. O produto foi estruturado como desktop local-first, com banco SQLite local e sem serviço pago obrigatório."},{"question":"Há fluxo de caixa e DRE?","answer":"Sim. O sistema reúne fluxo de caixa, DRE, indicadores, pagar e receber e saldos por conta."},{"question":"É possível importar extratos?","answer":"Sim. O produto possui importação e conciliação determinística para fontes suportadas, com revisão antes da confirmação."}],"featured":false,"ctaLabel":"Comprar Sistema Financeiro","ctaHref":"https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=artisys-sistema-financeiro","seo":{"title":"ArtiSys Finance | Sistema financeiro desktop local-first","description":"Controle contas, fluxo de caixa, DRE, recorrências, relatórios, extratos e conciliação em um sistema financeiro desktop local-first."},"checkoutOfferId":"artisys-sistema-financeiro","priceAmount":169.9},{"slug":"nutridesk","name":"NutriDesk","category":"Saúde","type":"desktop","status":"available","pageMode":"individual","priceLabel":"Sob consulta","summary":"Sistema desktop para rotina clínica de nutricionistas, com prontuário, avaliações, exames, planos alimentares, documentos e acompanhamento longitudinal.","audience":"Nutricionistas que precisam organizar pacientes, avaliações, exames, planos alimentares e documentos em uma rotina clínica estruturada.","features":["Prontuário e acompanhamento longitudinal","Avaliações e exames laboratoriais","Planos alimentares e PDFs","Importação de pacientes e avaliações","Packs clínicos por contexto de atendimento"],"benefits":["Centraliza o histórico do paciente e a evolução clínica","Conecta avaliações, exames e plano alimentar no mesmo prontuário","Reduz trabalho repetitivo com importações, templates e documentos"],"steps":["Cadastre ou importe o paciente e seus dados clínicos","Registre avaliações, exames e plano alimentar","Acompanhe a evolução e gere os documentos necessários para o atendimento"],"faq":[{"question":"O NutriDesk possui prontuário e acompanhamento?","answer":"Sim. O produto reúne histórico, avaliações, exames e acompanhamento longitudinal do paciente."},{"question":"Há geração de plano alimentar e documentos?","answer":"Sim. O sistema possui planos alimentares, substituições, receitas e geração de PDFs e relatórios."},{"question":"É possível importar dados?","answer":"Sim. Há fluxos de importação para pacientes, avaliações e exames em formatos suportados."}],"featured":false,"ctaLabel":"Quero conhecer o NutriDesk","ctaHref":"/#contato","seo":{"title":"NutriDesk | Sistema desktop para nutricionistas","description":"Organize prontuário, avaliações, exames, planos alimentares, documentos e acompanhamento clínico com o NutriDesk."}}]}
+{
+  "version": 3,
+  "collections": [
+    {
+      "slug": "agro",
+      "name": "Sistemas ArtiSys para o Agro",
+      "category": "Agro",
+      "summary": "Área dedicada às soluções ArtiSys para operações rurais, conforme disponibilidade comercial.",
+      "featured": true,
+      "seo": {
+        "title": "Sistemas para o Agro | ArtiSys",
+        "description": "Explore a coleção Agro e acompanhe a disponibilidade de soluções ArtiSys para operações rurais."
+      }
+    }
+  ],
+  "products": [
+    {
+      "slug": "pdv-artisys",
+      "name": "PDV ArtiSys",
+      "category": "Comércio",
+      "type": "desktop",
+      "status": "available",
+      "pageMode": "individual",
+      "priceLabel": "R$ 89,90",
+      "priceAmount": 89.9,
+      "summary": "PDV para bares, restaurantes e lanchonetes: caixa, mesas, comandas, cozinha e delivery.",
+      "audience": "Bares, restaurantes, lanchonetes e operações de alimentação que precisam coordenar atendimento, produção e vendas.",
+      "features": [
+        "Frente de caixa e pagamentos mistos",
+        "Comandas, mesas e cardápio QR Code",
+        "Painel de cozinha (KDS) e pedidos",
+        "Delivery, retirada e balcão",
+        "Estoque, fichas técnicas e ingredientes",
+        "Relatórios e operação em rede local"
+      ],
+      "benefits": [
+        "Organiza os pedidos do atendimento à cozinha",
+        "Integra caixa, estoque e venda em uma operação",
+        "Facilita o acompanhamento de mesas, comandas e delivery"
+      ],
+      "steps": [
+        "Cadastre os produtos e informações da operação",
+        "Registre as vendas no caixa durante o atendimento",
+        "Acompanhe os registros e relatórios para conferir a rotina"
+      ],
+      "faq": [
+        {
+          "question": "O PDV ArtiSys funciona em computador Windows?",
+          "answer": "Sim. Esta versão do produto é voltada ao uso desktop em Windows."
+        },
+        {
+          "question": "O sistema organiza produtos e vendas?",
+          "answer": "Sim. Cadastro de produtos, operação de caixa e registros de venda fazem parte do fluxo apresentado pelo produto."
+        },
+        {
+          "question": "Como contratar?",
+          "answer": "Use o botão de contato desta página para falar com a ArtiSys e confirmar a versão indicada para sua operação."
+        }
+      ],
+      "featured": true,
+      "ctaLabel": "Comprar PDV ArtiSys",
+      "ctaHref": "https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=pdv-artisys-restaurantes",
+      "seo": {
+        "title": "PDV ArtiSys | Sistema de vendas e caixa para Windows",
+        "description": "Conheça o PDV ArtiSys para caixa, produtos, vendas e relatórios operacionais em computadores Windows."
+      },
+      "checkoutOfferId": "pdv-artisys-restaurantes"
+    },
+    {
+      "slug": "pdv-nexus",
+      "name": "PDV Nexus",
+      "category": "Comércio",
+      "type": "desktop",
+      "status": "available",
+      "pageMode": "individual",
+      "priceLabel": "R$ 39,90",
+      "priceAmount": 39.9,
+      "summary": "Frente de caixa para lojas e pequenos comércios, com produtos, estoque, código de barras e relatórios.",
+      "audience": "Lojas, varejos e balcões que precisam registrar vendas com controle de estoque e caixa em Windows.",
+      "features": [
+        "Caixa e vendas com pagamentos mistos",
+        "Produtos, clientes e código de barras",
+        "Estoque, lotes, validade e inventário",
+        "Balanças e vendas por unidade ou peso",
+        "Operadores, permissões e fechamento de caixa",
+        "Relatórios, exportação CSV e backup local"
+      ],
+      "benefits": [
+        "Centraliza vendas e controle de caixa",
+        "Relaciona vendas, produtos e movimentações de estoque",
+        "Facilita a conferência e os relatórios da operação"
+      ],
+      "steps": [
+        "Instale a versão compatível com seu Windows",
+        "Cadastre produtos, clientes e operadores",
+        "Registre vendas, acompanhe o estoque e feche o caixa"
+      ],
+      "faq": [
+        {
+          "question": "Qual versão do Windows é compatível?",
+          "answer": "O checkout permite selecionar as versões de instalação para Windows 10/11, Windows 8 (32 bits) e Windows 7, conforme a oferta disponível."
+        },
+        {
+          "question": "O sistema suporta código de barras e balanças?",
+          "answer": "Sim. Há recursos para leitura de códigos e operações por peso, conforme os equipamentos compatíveis."
+        },
+        {
+          "question": "Quando recebo o instalador?",
+          "answer": "A liberação do download é feita após a confirmação do pagamento e a entrega autorizada pelo sistema ArtiSys."
+        }
+      ],
+      "featured": true,
+      "checkoutOfferId": "pdv-nexus",
+      "ctaLabel": "Comprar PDV Nexus",
+      "ctaHref": "https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=pdv-nexus",
+      "seo": {
+        "title": "PDV Nexus | Frente de caixa, estoque e vendas",
+        "description": "PDV Nexus para comércio: caixa, produtos, código de barras, balanças, estoque, relatórios e versões para Windows."
+      }
+    },
+    {
+      "slug": "obra-na-mao",
+      "name": "Obra na Mão",
+      "category": "Construção",
+      "type": "saas",
+      "status": "available",
+      "pageMode": "individual",
+      "priceLabel": "R$ 299,90",
+      "summary": "Gestão de obras, equipe, campo, RDO, administração e capacitação em uma operação integrada.",
+      "audience": "Empreiteiras, construtoras e equipes que precisam conectar operação de campo, gestão administrativa e capacitação.",
+      "features": [
+        "Obra360 e rotina de campo",
+        "Gestão administrativa",
+        "Universidade empresarial",
+        "Acesso web e mobile"
+      ],
+      "benefits": [
+        "Conecta informações de campo e administração",
+        "Reduz a dispersão de rotinas entre ferramentas diferentes",
+        "Mantém acesso e capacitação dentro do mesmo ecossistema"
+      ],
+      "steps": [
+        "Organize a empresa, obras e responsáveis",
+        "Registre e acompanhe a rotina operacional",
+        "Use os módulos de gestão e capacitação conforme as permissões da equipe"
+      ],
+      "faq": [
+        {
+          "question": "O Obra na Mão funciona pela web?",
+          "answer": "Sim. O produto possui acesso web e fluxos preparados para uso em diferentes telas."
+        },
+        {
+          "question": "Quem já é cliente acessa por onde?",
+          "answer": "O botão “Já sou cliente” leva ao portal existente do Obra na Mão, sem alterar o fluxo de login atual."
+        },
+        {
+          "question": "Os módulos operacionais mudam por causa desta página?",
+          "answer": "Não. Esta página é apenas comercial e permanece separada de Obra360, Gestão, Universidade, licenças e dados."
+        }
+      ],
+      "featured": true,
+      "ctaLabel": "Comprar Obra na Mão",
+      "ctaHref": "https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=obra-na-mao",
+      "accessHref": "/sistema.html#portal",
+      "seo": {
+        "title": "Obra na Mão | Gestão integrada para obras e equipes",
+        "description": "Conheça o Obra na Mão: gestão de obras, campo, administração e capacitação em um ecossistema web integrado."
+      },
+      "checkoutOfferId": "obra-na-mao",
+      "priceAmount": 299.9
+    },
+    {
+      "slug": "consultora-amamentacao",
+      "name": "Consultora de Amamentação",
+      "category": "Saúde",
+      "type": "web",
+      "status": "managed",
+      "pageMode": "external",
+      "externalHref": "https://deboralactacao.com/comercial/",
+      "accessHref": "https://deboralactacao.com/",
+      "priceLabel": "Sob consulta",
+      "summary": "Sistema de gestão para consultoras de amamentação, com agenda, prontuário, evolução e acompanhamento em um fluxo especializado.",
+      "audience": "Consultoras de amamentação que querem organizar atendimentos, histórico clínico e rotina profissional em um sistema dedicado.",
+      "features": [
+        "Prontuário mãe e bebê",
+        "Agenda e histórico",
+        "Evolução e acompanhamento",
+        "Documentos de atendimento"
+      ],
+      "benefits": [
+        "Mantém informações de mãe e bebê no contexto do atendimento",
+        "Organiza histórico e acompanhamento ao longo do tempo",
+        "Centraliza a rotina profissional em uma experiência dedicada"
+      ],
+      "steps": [
+        "Conheça a landing comercial específica do produto",
+        "Confira o fluxo e os recursos apresentados",
+        "Entre em contato pelo canal comercial da solução"
+      ],
+      "faq": [
+        {
+          "question": "Existe uma página comercial própria?",
+          "answer": "Sim. O produto já possui uma landing comercial específica e o catálogo ArtiSys aponta diretamente para ela."
+        },
+        {
+          "question": "É voltado para consultoras de amamentação?",
+          "answer": "Sim. O posicionamento comercial e os fluxos do sistema são específicos para essa atuação."
+        },
+        {
+          "question": "Já sou cliente. Onde acesso?",
+          "answer": "Use o acesso existente em deboralactacao.com."
+        }
+      ],
+      "featured": false,
+      "ctaLabel": "Conhecer o sistema",
+      "ctaHref": "https://deboralactacao.com/comercial/",
+      "seo": {
+        "title": "Consultora de Amamentação | Sistema de gestão especializado",
+        "description": "Sistema de gestão para consultoras de amamentação com agenda, prontuário, evolução e acompanhamento."
+      }
+    },
+    {
+      "slug": "artisys-finance",
+      "name": "ArtiSys Finance",
+      "category": "Financeiro",
+      "type": "desktop",
+      "status": "available",
+      "pageMode": "individual",
+      "priceLabel": "R$ 169,90",
+      "summary": "Gestão financeira e CRM comercial integrados no mesmo aplicativo para Windows. Organize oportunidades, propostas, contas, fluxo de caixa, DRE e conciliação sem assinatura obrigatória.",
+      "audience": "Profissionais e pequenas empresas que precisam conectar prospecção e vendas com o controle financeiro, mantendo dados e decisões no próprio computador.",
+      "features": [
+        "CRM de leads e prospecção com funil Kanban",
+        "Oportunidades, propostas PDF e acompanhamento comercial",
+        "Agenda, tarefas, metas e indicadores de vendas",
+        "Recebíveis sugeridos após venda ganha, com confirmação",
+        "Contas a pagar e receber, fluxo de caixa e DRE",
+        "Recorrências, alertas, importação de extratos e conciliação",
+        "Relatórios, exportações e backup local"
+      ],
+      "benefits": [
+        "CRM e Financeiro no mesmo aplicativo, sem depender de um serviço externo obrigatório",
+        "Venda ganha não entra automaticamente no saldo: o recebível exige revisão e confirmação",
+        "Centralize contas, fluxo de caixa, DRE, indicadores, tarefas comerciais e relatórios",
+        "Mantenha os dados principais em SQLite local e controle a operação no desktop"
+      ],
+      "steps": [
+        "Cadastre suas contas e organize leads, clientes e oportunidades no CRM",
+        "Crie propostas, programe tarefas e acompanhe o funil e os indicadores de vendas",
+        "Ao ganhar uma venda, revise a sugestão de parcelas e confirme antes de criar recebíveis",
+        "Concilie extratos e acompanhe o fluxo de caixa e a DRE com valores efetivamente registrados"
+      ],
+      "faq": [
+        {
+          "question": "O CRM faz parte do ArtiSys Financeiro?",
+          "answer": "Sim. O CRM comercial está integrado ao próprio aplicativo, com leads, oportunidades, funil, propostas, agenda, indicadores e metas. Não exige contratar um CRM externo."
+        },
+        {
+          "question": "Uma venda ganha cria automaticamente uma conta a receber?",
+          "answer": "Não. A venda gera uma sugestão de recebíveis. Você visualiza as parcelas e confirma explicitamente a criação no Financeiro. Projeções comerciais não alteram caixa, saldos ou DRE."
+        },
+        {
+          "question": "O ArtiSys Financeiro depende de nuvem ou assinatura?",
+          "answer": "Não. O núcleo do produto é desktop local-first, com banco SQLite local e sem serviço pago obrigatório. Atualizações online são opcionais e dependem da conexão do usuário."
+        },
+        {
+          "question": "Há fluxo de caixa, DRE e conciliação?",
+          "answer": "Sim. O aplicativo reúne contas a pagar e receber, fluxo de caixa, DRE, recorrências e importação de extratos de fontes suportadas para conciliação revisada."
+        },
+        {
+          "question": "As imagens são do sistema real?",
+          "answer": "Sim. As capturas apresentadas foram feitas durante testes automatizados do aplicativo Electron real com dados demonstrativos, sem mockups."
+        }
+      ],
+      "featured": false,
+      "ctaLabel": "Comprar Sistema Financeiro",
+      "ctaHref": "https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=artisys-sistema-financeiro",
+      "seo": {
+        "title": "ArtiSys Financeiro | CRM integrado, contas, fluxo de caixa e DRE",
+        "description": "CRM de vendas e prospecção integrado ao ArtiSys Financeiro para Windows. Leads, funil, propostas, recebíveis com confirmação, fluxo de caixa, DRE e conciliação."
+      },
+      "checkoutOfferId": "artisys-sistema-financeiro",
+      "priceAmount": 169.9
+    },
+    {
+      "slug": "nutridesk",
+      "name": "NutriDesk",
+      "category": "Saúde",
+      "type": "desktop",
+      "status": "available",
+      "pageMode": "individual",
+      "priceLabel": "Sob consulta",
+      "summary": "Sistema desktop para rotina clínica de nutricionistas, com prontuário, avaliações, exames, planos alimentares, documentos e acompanhamento longitudinal.",
+      "audience": "Nutricionistas que precisam organizar pacientes, avaliações, exames, planos alimentares e documentos em uma rotina clínica estruturada.",
+      "features": [
+        "Prontuário e acompanhamento longitudinal",
+        "Avaliações e exames laboratoriais",
+        "Planos alimentares e PDFs",
+        "Importação de pacientes e avaliações",
+        "Packs clínicos por contexto de atendimento"
+      ],
+      "benefits": [
+        "Centraliza o histórico do paciente e a evolução clínica",
+        "Conecta avaliações, exames e plano alimentar no mesmo prontuário",
+        "Reduz trabalho repetitivo com importações, templates e documentos"
+      ],
+      "steps": [
+        "Cadastre ou importe o paciente e seus dados clínicos",
+        "Registre avaliações, exames e plano alimentar",
+        "Acompanhe a evolução e gere os documentos necessários para o atendimento"
+      ],
+      "faq": [
+        {
+          "question": "O NutriDesk possui prontuário e acompanhamento?",
+          "answer": "Sim. O produto reúne histórico, avaliações, exames e acompanhamento longitudinal do paciente."
+        },
+        {
+          "question": "Há geração de plano alimentar e documentos?",
+          "answer": "Sim. O sistema possui planos alimentares, substituições, receitas e geração de PDFs e relatórios."
+        },
+        {
+          "question": "É possível importar dados?",
+          "answer": "Sim. Há fluxos de importação para pacientes, avaliações e exames em formatos suportados."
+        }
+      ],
+      "featured": false,
+      "ctaLabel": "Quero conhecer o NutriDesk",
+      "ctaHref": "/#contato",
+      "seo": {
+        "title": "NutriDesk | Sistema desktop para nutricionistas",
+        "description": "Organize prontuário, avaliações, exames, planos alimentares, documentos e acompanhamento clínico com o NutriDesk."
+      }
+    }
+  ]
+}
