@@ -1,0 +1,79 @@
+name: Publish ArtiSys Oficina landing once
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/public/oficina/**'
+      - 'apps/web/src/oficina-landing.test.ts'
+      - 'apps/web/seo.config.mjs'
+      - '.github/workflows/oficina-landing-publish-once.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/oficina-landing-publish-once.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Validate genuine screenshots and commercial copy
+        run: npx vitest run src/oficina-landing.test.ts
+      - name: Verify generated catalog, SEO, and assets
+        run: npm run build
+      - name: Compile Cloudflare Worker without secrets or D1 migrations
+        run: npx wrangler deploy --dry-run --config wrangler.ci.jsonc
+  publish-once:
+    needs: validate
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[oficina-landing-publish-once]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require existing deployment credentials (never modify keys)
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::Deployment token unavailable'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::Account ID unavailable'; exit 1; }
+      - run: npm ci --no-audit --no-fund
+      - name: Deploy the existing ArtiSys Worker plus static site
+        run: npm run worker:deploy
+      - name: Verify /oficina/ and real media are live
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const url='https://artisys.dev/oficina/';
+          let last;
+          for(let i=0;i<12;i++){
+            try{
+              const response=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(15000)});
+              assert.equal(response.status,200);
+              const html=await response.text();
+              assert.match(html,/ArtiSys Oficina/);
+              assert.match(html,/dashboard\.webp/);
+              const img=await fetch(url+'media/dashboard.webp',{cache:'no-store',signal:AbortSignal.timeout(15000)});
+              assert.equal(img.status,200);
+              assert.match(img.headers.get('content-type')||'',/image\/webp/);
+              console.log('Oficina landing and genuine product screenshot LIVE');
+              process.exit(0);
+            }catch(e){last=e;console.warn('Smoke '+(i+1)+'/12:',e.message);if(i<11)await new Promise(r=>setTimeout(r,5000));}
+          }
+          throw last;
+          JS
