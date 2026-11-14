@@ -80,6 +80,8 @@ jobs:
         run: node scripts/qa-p2-release.mjs
       - name: Verify Artisys homepage responsive hierarchy
         run: node scripts/qa-artisys-home-responsive.mjs
+      - name: Verify real CRM landing screenshots on mobile and desktop
+        run: node scripts/qa-wppprospector-landing.mjs
       - name: Upload Playwright screenshots and QA evidence
         if: always()
         uses: actions/upload-artifact@v4

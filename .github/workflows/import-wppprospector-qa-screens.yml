@@ -1,0 +1,74 @@
+name: Import verified WppProspector QA screenshots
+
+on:
+  push:
+    branches:
+      - feat/wppprospector-real-screens-motion-20261114
+    paths:
+      - .github/workflows/import-wppprospector-qa-screens.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import-screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Pillow (open source, build-time only)
+        run: python -m pip install --disable-pip-version-check "Pillow>=11,<13"
+      - name: Download successful real Playwright QA artifact from CRM
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/wpp-qa
+          curl --retry 3 --retry-all-errors -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/wpp-qa.zip \
+            "https://api.github.com/repos/nutricionistaalmeidavh-spec/WppProspector/actions/artifacts/14085508798/zip"
+          unzip -q /tmp/wpp-qa.zip -d /tmp/wpp-qa
+          test -s /tmp/wpp-qa/screenshots/09-desktop-dashboard.png
+          test -s /tmp/wpp-qa/screenshots/12-desktop-kanban.png
+          test -s /tmp/wpp-qa/screenshots/13-desktop-leads.png
+          test -s /tmp/wpp-qa/screenshots/15-desktop-central-inteligencia.png
+          test -s /tmp/wpp-qa/screenshots/19-mobile-kanban.png
+      - name: Convert genuine test screenshots to lightweight WebP
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          src = Path('/tmp/wpp-qa/screenshots')
+          dst = Path('apps/web/public/wppprospector/media')
+          dst.mkdir(parents=True, exist_ok=True)
+          frames = {
+            '09-desktop-dashboard': 'painel-real.webp',
+            '12-desktop-kanban': 'kanban-real.webp',
+            '13-desktop-leads': 'leads-real.webp',
+            '15-desktop-central-inteligencia': 'inteligencia-real.webp',
+            '19-mobile-kanban': 'kanban-mobile-real.webp',
+          }
+          for screenshot, target in frames.items():
+            original = Image.open(src / f'{screenshot}.png').convert('RGB')
+            original.thumbnail((1440, 2200))
+            original.save(dst / target, format='WEBP', quality=80, method=6)
+            if (dst / target).stat().st_size < 3000:
+              raise RuntimeError(f'Unexpected tiny screenshot: {target}')
+            print(target, original.size, (dst / target).stat().st_size)
+          PY
+      - name: Commit only approved screenshots to feature branch
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/web/public/wppprospector/media/*.webp
+          if git diff --staged --quiet; then exit 0; fi
+          git commit -m "assets: add genuine WppProspector Playwright screenshots"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

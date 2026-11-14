@@ -55,12 +55,28 @@ const crmAudit = auditSeoDocument({ html: crmHtml, expected: { canonical: crmMod
 assert.equal(crmAudit.summary.critical, 0, 'WppProspector com falha SEO: ' + JSON.stringify(crmAudit, null, 2));
 assert.match(crmHtml, /<link rel="canonical" href="https:\/\/artisys\.dev\/wppprospector\/">/i);
 assert.match(crmHtml, /"@type":"SoftwareApplication"/, 'CRM exige schema SoftwareApplication');
-assert.match(crmHtml, /n[aã]o [eé] captura real da tela/i, 'mockup deve ser identificado como ilustrativo');
-assert.match(crmHtml, /CRM utiliz[aá]vel sem WhatsApp/i, 'CRM manual deve ser descrito sem integrações obrigatórias');
-assert.match(crmHtml, /n[aã]o sincronizam automaticamente/i, 'múltiplos PCs não sincronizam automaticamente');
-assert.match(crmHtml, /Baileys/i, 'conexão WhatsApp não oficial exige aviso explícito');
-assert.match(crmHtml, /custos de mensagens/i, 'integração Meta pode ter custos');
+const crmMotion = read('public/wppprospector/motion.js');
+assert.match(crmHtml, /Captura real do sistema · QA Playwright/, 'prints devem identificar a origem real e dados fictícios');
+assert.doesNotMatch(crmHtml, /Apresentação visual ilustrativa|mini-lead|preview-board/, 'remover painel fictício anterior');
+assert.match(crmHtml, /WhatsApp e IA só se você quiser/, 'integrações continuam opcionais');
+assert.match(crmHtml, /Baileys: open source e não oficial/, 'declarar que Baileys não é API oficial');
+assert.match(crmHtml, /custos externos/, 'a Meta pode ter cobrança adicional');
+assert.match(crmHtml, /não sincronizam dados automaticamente/, 'não anunciar sincronização de bancos locais');
+assert.match(crmHtml, /id="galeria"/, 'capturas devem fazer parte da galeria');
+assert.match(crmHtml, /id="galeria-anterior"/, 'galeria navegável para teclado e toque');
+assert.match(crmHtml, /id="galeria-proxima"/, 'galeria navegável para teclado e toque');
+for (const filename of ['painel-real.webp','kanban-real.webp','leads-real.webp','inteligencia-real.webp','kanban-mobile-real.webp']) {
+  const imagePath = `public/wppprospector/media/${filename}`;
+  const image = readFileSync(new URL(`../${imagePath}`, import.meta.url));
+  assert.ok(image.length > 5000, `captura real inválida: ${filename}`);
+  assert.equal(image.toString('ascii', 0, 4), 'RIFF', `imagem WebP inválida: ${filename}`);
+  assert.equal(image.toString('ascii', 8, 12), 'WEBP', `imagem WebP inválida: ${filename}`);
+  assert.ok(crmHtml.includes(`/wppprospector/media/${filename}`), `imagem não utilizada na landing: ${filename}`);
+}
+assert.ok(crmHtml.length < 13000, 'evitar retorno ao excesso de texto da primeira landing');
 assert.match(crmCss, /prefers-reduced-motion/, 'respeitar acessibilidade de movimento');
+assert.match(crmMotion, /IntersectionObserver/, 'efeitos devem carregar de forma progressiva');
+assert.match(crmMotion, /prefers-reduced-motion/, 'movimento deve ser opcional');
 
 assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/devkits\/<\/loc>/, 'página DevKit deve estar no sitemap');
 const devkitHtml = read('public/devkits/index.html');
