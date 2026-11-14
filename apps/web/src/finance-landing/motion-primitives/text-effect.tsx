@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
 /** Local Motion Primitives-style reveal. Never hides copy from assistive tech. */
