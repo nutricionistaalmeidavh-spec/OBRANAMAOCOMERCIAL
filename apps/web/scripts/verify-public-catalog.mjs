@@ -41,6 +41,34 @@ for (const filename of [
   assert.equal(imageBytes.subarray(0, 4).toString(), 'RIFF', 'Financeiro screenshot must be a real WebP: ' + filename);
   assert.equal(imageBytes.subarray(8, 12).toString(), 'WEBP', 'Financeiro screenshot must use WebP format: ' + filename);
 }
+
+// Explicitly selected open-source stack: actual npm imports inside one isolated React island.
+// The static HTML remains canonical content and still works without the enhancements.
+const financeStackEntry = readFileSync(new URL('../src/finance-landing/entry.tsx', import.meta.url), 'utf8');
+const financeStackUi = readFileSync(new URL('../src/finance-landing/ui/button.tsx', import.meta.url), 'utf8');
+const financeStackMotion = readFileSync(new URL('../src/finance-landing/motion-primitives/text-effect.tsx', import.meta.url), 'utf8');
+const financeMagicUi = readFileSync(new URL('../src/finance-landing/magic-ui/border-beam.tsx', import.meta.url), 'utf8');
+const financeStackOptions = readFileSync(new URL('../src/finance-landing/optional-effects.ts', import.meta.url), 'utf8');
+const financeAnalytics = readFileSync(new URL('../src/finance-landing/umami.ts', import.meta.url), 'utf8');
+const financePackage = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+assert.match(financeStackEntry, /embla-carousel-react/, 'Embla carousel must be actually imported');
+assert.match(financeStackEntry, /motion\/react/, 'Motion must animate real gallery transitions');
+assert.match(financeStackEntry, /createRoot/, 'isolate React on finance gallery without re-rendering the site');
+assert.match(financeStackUi, /@radix-ui\/react-slot/, 'shadcn-style buttons use accessible Radix Slot');
+assert.match(financeStackMotion, /motion\/react/, 'Motion Primitives typography is functional');
+assert.match(financeMagicUi, /finance-border-beam/, 'local Magic UI visual accent exists');
+assert.match(financeStackOptions, /import\(['"]lenis['"]\)/, 'Lenis is opt-in, not core');
+assert.match(financeStackOptions, /@tsparticles\/slim/, 'tsParticles is opt-in, not core');
+assert.match(financeStackEntry, /react-parallax-tilt/, 'React tilt is an optional dynamic import');
+assert.match(financeAnalytics, /data-website-id/, 'Umami configuration is explicit');
+assert.match(financeAnalytics, /https:/, 'Umami requires HTTPS and explicit self-hosted URL');
+assert.doesNotMatch(financeStackEntry + financeAnalytics, /https:\/\/cdn\.|unpkg\.com|jsdelivr/, 'no runtime CDN dependency');
+for (const dependency of [
+  'react','react-dom','motion','embla-carousel-react',
+  'react-parallax-tilt','lenis','@tsparticles/engine','@tsparticles/slim',
+  '@radix-ui/react-slot','class-variance-authority','clsx'
+]) assert.ok(financePackage.dependencies[dependency], 'missing zero-cost open-source dependency ' + dependency);
+
 const financeDesignCss = readCatalog('artisys-finance-gallery.css');
 const financeDesignJs = readCatalog('artisys-finance-motion.js');
 assert.match(financeDesignCss, /\.finance-page \.product-hero/, 'hero styles are product-scoped');
@@ -135,6 +163,10 @@ for (const product of catalog.products) {
       assert.equal((page.match(/class="finance-gallery-card(?: finance-gallery-card--wide)?"/g) || []).length, 5, 'Finance gallery has five real feature screens');
       assert.match(page, /class="finance-header-inner"/, 'finance has editorial navigation');
       assert.match(page, /class="finance-gallery-shell"/, 'Financeiro CRM gallery has a full-width dark brand surface');
+      assert.match(page, /id="finance-react-carousel"/, 'Embla progressive enhancement uses existing canonical screenshot markup');
+      assert.match(page, /src="\/assets\/finance-landing\.js"/, 'self-hosted React island compiled into local static asset');
+      assert.match(page, /data-umami-event="finance_checkout"/, 'canonical buy CTA emits Umami event when configured');
+      assert.match(page, /data-umami-event="finance_gallery"/, 'gallery entry event can be tracked without required service');
       assert.match(page, /class="finance-hero-inner"/, 'finance uses an editorial screenshot hero');
       assert.match(page, /class="finance-wave"/, 'finance uses SVG wave');
       assert.match(page, /class="finance-feature-grid"/, 'finance has feature triptych');
