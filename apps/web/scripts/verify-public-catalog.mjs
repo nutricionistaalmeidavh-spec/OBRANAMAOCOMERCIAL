@@ -209,7 +209,14 @@ for (const product of catalog.products) {
       assert.equal((page.match(/>Já sou cliente<\/a>/g) || []).length, 2);
     }
 
-    assert.doesNotMatch(page, /\/src\/|cloudflare-client|\/api\/|portal\.ts|owner\.ts|field\.ts|type="module"/i);
+    const approvedFinanceModule = '<script type="module" src="/assets/finance-landing.js"></script>';
+    const securitySurface = product.slug === 'artisys-finance'
+      ? page.replace(approvedFinanceModule, '')
+      : page;
+    if (product.slug === 'artisys-finance') {
+      assert.equal(page.split(approvedFinanceModule).length - 1, 1, 'exactly one local Financeiro module is allowed');
+    }
+    assert.doesNotMatch(securitySurface, /\/src\/|cloudflare-client|\/api\/|portal\.ts|owner\.ts|field\.ts|type="module"/i, 'no private API or unauthorized module on commercial pages');
   }
 }
 
