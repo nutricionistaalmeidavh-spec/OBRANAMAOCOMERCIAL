@@ -1,3 +1,4 @@
+import * as React from 'react';
 import type { CSSProperties } from 'react';
 
 /** Local Magic UI-inspired visual primitive. Pure CSS, no paid API or CDN. */
