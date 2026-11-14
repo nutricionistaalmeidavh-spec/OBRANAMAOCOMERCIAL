@@ -1,0 +1,76 @@
+/* WppProspector isolated React enhancement. All tokens scoped to CRM only. */
+.crm-hero-motion,.crm-hero-tilt{width:100%;transform-style:preserve-3d}
+.crm-hero-motion picture,.crm-hero-tilt picture{display:block;width:100%}
+.crm-hero-motion .hero-art-image{display:block;width:100%;height:auto}
+.crm-hero-tilt{transform-origin:center center}
+.crm-gallery-enhanced{display:block!important;overflow:hidden!important;padding:0!important;scroll-snap-type:none!important;scrollbar-width:none!important}
+.crm-gallery-enhanced .crm-embla-viewport{overflow:hidden;width:100%;min-width:0;touch-action:pan-y pinch-zoom;cursor:grab}
+.crm-gallery-enhanced .crm-embla-viewport:active{cursor:grabbing}
+.crm-embla-container{display:flex;align-items:stretch;gap:19px;min-width:0;padding:2px max(24px,calc((100vw - 1190px)/2)) 27px}
+.crm-embla-slide{flex:0 0 clamp(420px,64vw,850px);min-width:0}
+.crm-magic-card{height:100%;padding:1px;border-radius:21px;overflow:hidden;background:rgba(138,98,180,.35)}
+.crm-magic-card-inner{border-radius:20px;background:#1b132d;height:100%;overflow:hidden;padding:7px}
+.crm-real-shot .shot-card{flex:unset;display:flex;width:100%;height:100%;min-width:0;border:0;border-radius:15px;background:#181224;padding:0;scroll-snap-align:unset;box-shadow:none}
+.crm-real-shot .shot-image{border-radius:13px 13px 6px 6px;aspect-ratio:1.65;overflow:hidden}
+.crm-real-shot .shot-image img{width:100%;height:100%;object-fit:cover;object-position:top left}
+.crm-real-shot .shot-caption{display:flex;align-items:center;justify-content:space-between;padding:16px 14px 12px;gap:20px}
+.crm-real-shot:hover .shot-card{transform:none}
+.crm-real-shot:hover .shot-image img{transform:scale(1.018)}
+.gallery-controls.crm-react-controls>.gallery-arrow{display:none}
+.crm-embla-controls{display:flex;gap:8px}
+.crm-ui-button{display:inline-flex;align-items:center;justify-content:center;flex:none;cursor:pointer;user-select:none;font-family:inherit;font-size:21px;line-height:1;font-weight:450;transition:background .5s cubic-bezier(.22,1,.36,1),transform .5s cubic-bezier(.22,1,.36,1),border-color .5s cubic-bezier(.22,1,.36,1)}
+.crm-ui-button--icon{width:48px;height:48px;border-radius:50%}
+.crm-ui-button--normal{padding:11px 18px;border-radius:999px}
+.crm-ui-button--outline{color:#f8efff;border:1px solid #8262a4;background:#2b1b3e}
+.crm-ui-button--ghost{color:white;background:transparent;border:1px solid transparent}
+.crm-ui-button--primary{color:white;border:1px solid #a475ee;background:#7241bd}
+.crm-ui-button:hover:not(:disabled){background:#51336d;transform:translateY(-2px);border-color:#c9a1fa}
+.crm-ui-button:focus-visible{outline:3px solid #d8a9ff;outline-offset:4px}
+.crm-ui-button:disabled{opacity:.35;cursor:not-allowed;transform:none}
+@media(max-width:760px){
+ .crm-embla-container{gap:14px;padding-inline:18px}
+ .crm-embla-slide{flex-basis:min(78vw,640px)}
+ .crm-ui-button--icon{width:39px;height:39px;font-size:19px}
+}
+@media(max-width:640px){
+ .crm-embla-slide{flex-basis:84vw}
+ .crm-magic-card{border-radius:16px}
+ .crm-magic-card-inner{padding:5px;border-radius:15px}
+ .crm-real-shot .shot-image{aspect-ratio:1.43}
+ .crm-real-shot .shot-caption{padding:11px 7px 8px}
+ .crm-real-shot .shot-caption strong{font-size:12px}
+ .crm-real-shot .shot-caption span{font-size:8px}
+ .crm-hero-tilt{transform:none!important}
+}
+@media(max-width:380px){
+ .crm-embla-container{padding-inline:15px}
+ .crm-embla-slide{flex-basis:89vw}
+}
+@media(prefers-reduced-motion:reduce){
+ .crm-hero-motion,.crm-hero-tilt,.crm-real-shot .shot-image img,.crm-ui-button{transition:none!important;animation:none!important;transform:none!important}
+}
+
+/* Magic UI Bento, gapless and intentionally asymmetrical.
+   Grid geometry: 12 cols x 2 rows; 7x2 + 5x1 + 5x1 = 24 cells. */
+#crm-connection-bento .crm-bento-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:repeat(2,minmax(146px,auto));grid-auto-flow:dense;gap:14px;width:100%}
+#crm-connection-bento .crm-bento-area{min-width:0;min-height:0}
+#crm-connection-bento .crm-bento-area--featured{grid-column:span 7;grid-row:span 2}
+#crm-connection-bento .crm-bento-area--small{grid-column:span 5;grid-row:span 1}
+#crm-connection-bento .crm-bento-item{min-height:100%;width:100%;border-radius:20px}
+#crm-connection-bento .crm-bento-item .crm-magic-card-inner{height:100%;padding:0;background:#171125}
+#crm-connection-bento .crm-bento-content{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:27px;height:100%;isolation:isolate;overflow:hidden;position:relative}
+#crm-connection-bento .crm-bento-content h3{font-size:clamp(20px,2.2vw,29px);font-weight:750;line-height:1.16;margin:11px 0 0;color:#fff;letter-spacing:-.025em}
+#crm-connection-bento .crm-bento-content p{font-size:13px;line-height:1.65;color:#cbbfe0;max-width:450px;margin:3px 0 0}
+#crm-connection-bento .crm-bento-featured{background:rgba(175,119,235,.54)}
+#crm-connection-bento .crm-bento-featured .crm-magic-card-inner{background:linear-gradient(150deg,#312047,#171124)}
+#crm-connection-bento .crm-bento-featured .crm-bento-content img{margin:22px auto -74px;width:100%;height:auto;max-width:630px;border-radius:12px;border:1px solid #694e89;box-shadow:0 18px 54px rgba(6,4,18,.35)}
+#crm-connection-bento .status{line-height:1.5}
+@media(max-width:760px){
+ #crm-connection-bento .crm-bento-grid{grid-template-columns:1fr;grid-template-rows:auto;grid-auto-flow:row;gap:12px}
+ #crm-connection-bento .crm-bento-area--featured,#crm-connection-bento .crm-bento-area--small{grid-column:auto;grid-row:auto}
+ #crm-connection-bento .crm-bento-content{padding:21px}
+ #crm-connection-bento .crm-bento-featured .crm-bento-content img{margin:16px auto -55px}
+ #crm-connection-bento .crm-bento-area--small .crm-bento-content{min-height:145px}
+}
+
+#crm-connection-bento.crm-bento-enhanced{display:block;width:100%;max-width:100%}

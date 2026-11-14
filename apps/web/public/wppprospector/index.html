@@ -21,10 +21,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="preload" as="image" href="/wppprospector/media/painel-real.webp" media="(min-width: 641px)">
-  <link rel="preload" as="image" href="/wppprospector/media/kanban-mobile-real.webp" media="(max-width: 640px)">
+  <link rel="preload" as="image" href="/wppprospector/media/hero-showcase-real.webp" media="(min-width: 641px)">
+  <link rel="preload" as="image" href="/wppprospector/media/hero-showcase-mobile-real.webp" media="(max-width: 640px)">
   <link rel="stylesheet" href="/wppprospector/style.css">
+  <link rel="stylesheet" href="/wppprospector/experience/experience.css">
+  <script src="/wppprospector/analytics-config.js" defer></script>
+  <script src="/wppprospector/analytics.js" defer></script>
   <script src="/wppprospector/motion.js" defer></script>
+  <script type="module" src="/wppprospector/experience/experience.js"></script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ArtiSys WppProspector CRM","applicationCategory":"BusinessApplication","operatingSystem":"Windows","description":"CRM comercial com leads, oportunidades, kanban, propostas e WhatsApp opcional. Gestão manual sem IA obrigatória.","url":"https://artisys.dev/wppprospector/","provider":{"@type":"Organization","name":"ArtiSys","url":"https://artisys.dev/"}}</script>
 </head>
 <body>
@@ -33,77 +37,33 @@
     <nav class="nav shell" aria-label="Navegação principal">
       <a class="brand" href="/" aria-label="ArtiSys, página inicial"><img src="/artisys-logo.svg" width="130" height="45" alt="ArtiSys"></a>
       <div class="nav-links"><a href="#telas">Telas reais</a><a href="#conexao">WhatsApp</a><a href="#licenca">Licença</a></div>
-      <a class="nav-cta" href="https://wa.me/5516982338805?text=Ol%C3%A1%21%20Quero%20conhecer%20o%20CRM%20WppProspector%20da%20ArtiSys." target="_blank" rel="noopener noreferrer">Falar com a ArtiSys <span class="cta-arrow" aria-hidden="true">↗</span></a>
+      <a class="nav-cta" href="https://wa.me/5516982338805?text=Ol%C3%A1%21%20Quero%20conhecer%20o%20CRM%20WppProspector%20da%20ArtiSys." target="_blank" rel="noopener noreferrer" data-crm-cta="whatsapp">Falar com a ArtiSys <span class="cta-arrow" aria-hidden="true">↗</span></a>
     </nav>
   </header>
   <main id="conteudo">
-    <section class="hero shell" aria-labelledby="titulo">
+    <section class="hero shell hero-reference" aria-labelledby="titulo">
       <div class="hero-copy" data-reveal>
         <p class="kicker">CRM ARTISYS / WPPPROSPECTOR</p>
         <h1 id="titulo">Transforme conversas<br><em>em vendas.</em></h1>
         <p class="intro">Leads, oportunidades e negociações. Tudo em um só lugar.</p>
         <div class="actions">
-          <a class="button button-primary" href="#licenca">Conhecer o CRM <span class="cta-arrow" aria-hidden="true">↗</span></a>
-          <a class="button button-secondary" href="#telas">Explorar as telas <span class="cta-arrow" aria-hidden="true">↗</span></a>
+          <a class="button button-primary" href="#licenca" data-crm-cta="licenca">Conhecer o CRM <span class="cta-arrow" aria-hidden="true">↗</span></a>
+          <a class="button button-secondary" href="#telas" data-crm-cta="prints">Explorar as telas <span class="cta-arrow" aria-hidden="true">↗</span></a>
         </div>
       </div>
 
-      <figure class="hero-figure product-showcase">
-        <div class="product-stage" data-hero-stage>
-          <svg class="stage-orbit" viewBox="0 0 1100 640" fill="none" aria-hidden="true" focusable="false">
-            <defs>
-              <linearGradient id="orbit-light" x1="160" y1="550" x2="1040" y2="120" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#8536B8" stop-opacity="0"/>
-                <stop offset=".34" stop-color="#AD6DFF" stop-opacity=".62"/>
-                <stop offset=".65" stop-color="#78D5DA" stop-opacity=".44"/>
-                <stop offset="1" stop-color="#905AFF" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-            <path d="M65 451C175 548 785 587 1015 317C1081 239 1004 186 929 182C733 172 348 366 165 339" stroke="url(#orbit-light)" stroke-width="2.6" stroke-linecap="round"/>
-            <path d="M105 478C241 577 824 585 1031 335" stroke="#B47FFF" stroke-opacity=".18" stroke-width="1.4"/>
-          </svg>
-          <div class="stage-ambient" aria-hidden="true"></div>
-
-          <div class="stage-card stage-card-leads" data-stage-layer="leads">
-            <span class="stage-card-tag">CONTATOS</span>
-            <span class="stage-card-title">Leads organizados</span>
-            <img src="/wppprospector/media/leads-real.webp" width="320" height="196" loading="lazy" decoding="async" alt="Prévia da lista real de leads do WppProspector, com dados de teste.">
+      <figure class="hero-figure product-showcase hero-art" data-hero-stage>
+        <div class="hero-art-shell">
+          <span class="hero-art-aurora" aria-hidden="true"></span>
+          <div id="crm-hero-visual">
+            <picture>
+            <source media="(max-width: 640px)" srcset="/wppprospector/media/hero-showcase-mobile-real.webp" type="image/webp">
+            <img class="hero-art-image" src="/wppprospector/media/hero-showcase-real.webp" width="1600" height="950" fetchpriority="high" decoding="async" alt="Composição cinematográfica do CRM ArtiSys com prints reais do dashboard em notebook, kanban no celular, leads e configurações, todos capturados em QA com dados fictícios.">
+            </picture>
           </div>
-
-          <div class="stage-card stage-card-rules" data-stage-layer="rules">
-            <span class="stage-card-tag">CONFIGURAÇÃO</span>
-            <span class="stage-card-title">Regras opcionais</span>
-            <img src="/wppprospector/media/inteligencia-real.webp" width="320" height="196" loading="lazy" decoding="async" alt="Prévia real da central de inteligência do CRM, com dados de teste.">
-          </div>
-
-          <div class="laptop-device" data-stage-layer="laptop">
-            <div class="laptop-lid">
-              <div class="laptop-camera" aria-hidden="true"></div>
-              <div class="laptop-display">
-                <img src="/wppprospector/media/painel-real.webp" width="1440" height="978" fetchpriority="high" decoding="async" alt="Print real do dashboard do CRM ArtiSys WppProspector no desktop, capturado pelo Playwright com dados fictícios.">
-              </div>
-            </div>
-            <div class="laptop-hinge" aria-hidden="true"></div>
-            <div class="laptop-base" aria-hidden="true"><span></span></div>
-          </div>
-
-          <div class="phone-device" data-stage-layer="phone">
-            <div class="phone-shell">
-              <div class="phone-notch" aria-hidden="true"></div>
-              <div class="phone-display">
-                <img src="/wppprospector/media/kanban-mobile-real.webp" width="390" height="844" fetchpriority="high" decoding="async" alt="Print real do kanban mobile do WppProspector, capturado pelo Playwright com dados fictícios.">
-              </div>
-              <div class="phone-home" aria-hidden="true"></div>
-            </div>
-          </div>
-
-          <div class="stage-card stage-card-pipeline" data-stage-layer="pipeline">
-            <span class="stage-card-tag">OPORTUNIDADES</span>
-            <span class="stage-card-title">Funil de vendas</span>
-            <img src="/wppprospector/media/kanban-real.webp" width="320" height="196" loading="lazy" decoding="async" alt="Prévia real das colunas de oportunidades do kanban.">
-          </div>
+          <span class="hero-art-light" aria-hidden="true"></span>
         </div>
-        <figcaption>Captura real do sistema · QA Playwright · dados fictícios</figcaption>
+        <figcaption>Interfaces reais do WppProspector · Capturas de QA com dados fictícios</figcaption>
       </figure>
       <div class="hero-highlights" aria-label="Destaques do CRM">
         <span>Leads em um só lugar</span><span>Funil visual</span><span>WhatsApp e IA opcionais</span>
@@ -114,7 +74,7 @@
     <section class="gallery-section" id="telas" aria-labelledby="telas-titulo">
       <div class="shell gallery-head" data-reveal>
         <div><p class="kicker">A INTERFACE, SEM MAQUIAGEM</p><h2 id="telas-titulo">Veja o CRM <em>de verdade.</em></h2></div>
-        <div class="gallery-controls" aria-label="Controles da galeria">
+        <div class="gallery-controls" id="crm-gallery-controls" aria-label="Controles da galeria">
           <button type="button" class="gallery-arrow" id="galeria-anterior" aria-label="Ver captura anterior">←</button>
           <button type="button" class="gallery-arrow" id="galeria-proxima" aria-label="Ver próxima captura">→</button>
         </div>
@@ -138,7 +98,7 @@
 
     <section class="connection shell" id="conexao" aria-labelledby="conexao-titulo">
       <div class="connection-heading" data-reveal><p class="kicker">DO SEU JEITO</p><h2 id="conexao-titulo">WhatsApp é opção.<br><em>Organização é o essencial.</em></h2></div>
-      <div class="connection-list" data-reveal>
+      <div class="connection-list" id="crm-connection-bento">
         <div><span class="status status-core">Sem conexão</span><strong>CRM manual</strong><p>Organize leads e vendas sem WhatsApp ou IA.</p></div>
         <div><span class="status">QR Code</span><strong>Conexão local</strong><p>Baileys: open source e não oficial.</p></div>
         <div><span class="status">Meta API</span><strong>Canal oficial</strong><p>Opcional, sujeito a custos externos.</p></div>
@@ -150,8 +110,8 @@
         <div data-reveal><p class="kicker">LICENÇA COMERCIAL</p><h2 id="licenca-titulo">Um CRM para<br><em>chamar de seu.</em></h2><p>Licença vitalícia disponível para Windows, com ativação por código.</p><p class="fineprint">O limite de PCs é definido na compra. Instalações locais não sincronizam dados automaticamente.</p></div>
         <div class="purchase-card" data-reveal>
           <p>WPPPROSPECTOR CRM</p><h3>Seu próximo cliente<br>começa aqui.</h3>
-          <a class="button button-primary" href="https://wa.me/5516982338805?text=Ol%C3%A1%21%20Quero%20consultar%20a%20licen%C3%A7a%20vital%C3%ADcia%20do%20CRM%20ArtiSys%20WppProspector." target="_blank" rel="noopener noreferrer">Consultar licença <span class="cta-arrow" aria-hidden="true">↗</span></a>
-          <a class="store-link" href="https://www.mercadolivre.com.br/pagina/artisys#from=share_eshop_hub_mobile" target="_blank" rel="noopener noreferrer">Loja ArtiSys no Mercado Livre ↗</a>
+          <a class="button button-primary" href="https://wa.me/5516982338805?text=Ol%C3%A1%21%20Quero%20consultar%20a%20licen%C3%A7a%20vital%C3%ADcia%20do%20CRM%20ArtiSys%20WppProspector." target="_blank" rel="noopener noreferrer" data-crm-cta="licenca">Consultar licença <span class="cta-arrow" aria-hidden="true">↗</span></a>
+          <a class="store-link" href="https://www.mercadolivre.com.br/pagina/artisys#from=share_eshop_hub_mobile" target="_blank" rel="noopener noreferrer" data-crm-cta="mercadolivre">Loja ArtiSys no Mercado Livre ↗</a>
         </div>
       </div>
     </section>
@@ -165,7 +125,7 @@
       </div>
     </section>
 
-    <section class="end-cta" data-reveal><div class="shell"><h2>Menos planilhas.<br><em>Mais oportunidades.</em></h2><a class="button button-primary" href="https://wa.me/5516982338805?text=Ol%C3%A1%21%20Quero%20saber%20mais%20sobre%20o%20CRM%20WppProspector." target="_blank" rel="noopener noreferrer">Conhecer o WppProspector <span class="cta-arrow" aria-hidden="true">↗</span></a></div></section>
+    <section class="end-cta" data-reveal><div class="shell"><h2>Menos planilhas.<br><em>Mais oportunidades.</em></h2><a class="button button-primary" href="https://wa.me/5516982338805?text=Ol%C3%A1%21%20Quero%20saber%20mais%20sobre%20o%20CRM%20WppProspector." target="_blank" rel="noopener noreferrer" data-crm-cta="whatsapp">Conhecer o WppProspector <span class="cta-arrow" aria-hidden="true">↗</span></a></div></section>
   </main>
   <footer class="footer"><div class="shell footer-layout"><a href="/" aria-label="ArtiSys, página inicial"><img src="/artisys-logo.svg" width="112" height="39" alt="ArtiSys"></a><span>© 2026 ArtiSys · Sistemas para operações reais</span><a href="/sistemas/">Ver outros sistemas ↗</a></div></footer>
 </body>

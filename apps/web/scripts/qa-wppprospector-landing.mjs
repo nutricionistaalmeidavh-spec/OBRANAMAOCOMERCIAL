@@ -54,11 +54,26 @@ try {
     });
     const page = await context.newPage();
     const exceptions = [];
+    const analyticsRequests = [];
+    const blockedFiles = [];
     page.on('pageerror', (error) => exceptions.push(error.message));
+    page.on('request', (request) => {
+      if (request.url().includes('/analytics/')) analyticsRequests.push(request.url());
+    });
+    page.on('response', (response) => {
+      if (response.status() >= 400 && response.url().includes('/wppprospector/')) {
+        blockedFiles.push(response.url() + ' ' + response.status());
+      }
+    });
     await page.goto(url, { waitUntil: 'domcontentloaded' });
-    await page.locator('.laptop-display img').waitFor({ state: 'visible' });
-    await page.locator('.laptop-display img').evaluate((img) => img.decode());
-    await page.locator('.phone-display img').evaluate((img) => img.decode());
+    await page.locator('#crm-hero-visual .hero-art-image').waitFor({ state: 'visible' });
+    await page.locator('#crm-hero-visual .hero-art-image').evaluate((img) => img.decode());
+    try {
+      await page.locator('.crm-embla-slide').first().waitFor({ state: 'attached', timeout: 12000 });
+      await page.locator('#crm-connection-bento .crm-bento-grid').waitFor({ state: 'attached', timeout: 12000 });
+    } catch (error) {
+      throw new Error('CRM React island failed at ' + width + 'px: ' + JSON.stringify({ exceptions, blockedFiles }) + '; ' + error.message);
+    }
     const health = await page.evaluate(() => ({
       title: document.querySelector('h1')?.innerText || '',
       scrollWidth: document.documentElement.scrollWidth,
@@ -68,18 +83,15 @@ try {
         return h1.getBoundingClientRect().height / parseFloat(getComputedStyle(h1).lineHeight);
       })(),
       hero: (() => {
-        const laptop = document.querySelector('.laptop-display img');
-        const phone = document.querySelector('.phone-display img');
+        const image = document.querySelector('#crm-hero-visual .hero-art-image');
         return {
-          loaded: laptop.complete && laptop.naturalWidth > 0,
-          url: laptop.currentSrc,
-          phoneLoaded: phone.complete && phone.naturalWidth > 0,
-          phoneUrl: phone.currentSrc,
+          loaded: image.complete && image.naturalWidth > 0,
+          url: image.currentSrc,
           hasStage: !!document.querySelector('[data-hero-stage]'),
-          stageCards: document.querySelectorAll('.stage-card img').length
+          reactLoaded: !!document.querySelector('.crm-hero-motion')
         };
       })(),
-      screenshots: [...document.querySelectorAll('.shot-card img')].map((image) => ({
+      screenshots: [...document.querySelectorAll('.crm-embla-slide img')].map((image) => ({
         loaded: image.complete && image.naturalWidth > 0,
         path: image.getAttribute('src')
       }))
@@ -87,30 +99,36 @@ try {
     assert.match(health.title, /Transforme conversas/);
     assert.ok(health.scrollWidth <= health.viewport + 2, width + 'px horizontal page overflow');
     assert.ok(health.hero.loaded, width + 'px hero must use real screenshot');
-    assert.ok(health.hero.url.includes('painel-real.webp'));
-    assert.ok(health.hero.phoneLoaded, width + 'px real mobile screenshot must load');
-    assert.ok(health.hero.phoneUrl.includes('kanban-mobile-real.webp'));
-    assert.ok(health.hero.hasStage && health.hero.stageCards === 3, 'expected laptop, phone and 3 real miniatures');
+    assert.ok(health.hero.url.includes(width <= 640 ? 'hero-showcase-mobile-real.webp' : 'hero-showcase-real.webp'));
+    assert.ok(health.hero.hasStage && health.hero.reactLoaded, 'React should progressively enhance authentic CRM hero');
     if (width >= 768) assert.ok(health.h1Lines < 3.2, 'hero heading should occupy max three lines');
     assert.equal(health.screenshots.length, 3, 'real QA gallery contains three screens');
     for (const image of health.screenshots) {
-      const imageElement = page.locator('#galeria img[src="' + image.path + '"]');
+      const imageElement = page.locator('.crm-embla-slide img[src="' + image.path + '"]');
       await imageElement.scrollIntoViewIfNeeded();
       await imageElement.evaluate((img) => img.decode());
       const loaded = await imageElement.evaluate(img => img.complete && img.naturalWidth > 0);
       assert.ok(loaded, 'image failed to load: ' + image.path);
     }
+    const bentoHealth = await page.locator('#crm-connection-bento').evaluate((el) => {
+      const bento = el.querySelector('.crm-bento-grid');
+      return { width: el.getBoundingClientRect().width, bentoWidth: bento.getBoundingClientRect().width, cards: bento.children.length };
+    });
+    assert.equal(bentoHealth.cards, 3, 'bento must contain manual, Baileys, and Meta options');
+    assert.ok(bentoHealth.bentoWidth > bentoHealth.width * .95, 'bento should occupy full connection container');
+    assert.deepEqual(analyticsRequests, [], 'Umami must not track without explicit opt-in at ' + width + 'px');
+    assert.deepEqual(blockedFiles, [], 'all self-hosted experience assets must resolve at ' + width + 'px');
     assert.deepEqual(exceptions, [], 'browser JS errors at ' + width + 'px');
     if (width === 1440) {
       await page.locator('#telas').scrollIntoViewIfNeeded();
-      await page.locator('#galeria').evaluate(el => el.scrollTo({ left: 0, behavior: 'instant' }));
-      await page.waitForTimeout(130);
-      const before = await page.locator('#galeria').evaluate(el => el.scrollLeft);
-      await page.locator('#galeria-proxima').click();
-      await page.waitForTimeout(220);
-      const after = await page.locator('#galeria').evaluate(el => el.scrollLeft);
-      assert.ok(after > before, 'next gallery arrow must scroll to a real screenshot');
-      await page.locator('#galeria-anterior').click();
+      const previous = page.locator('.crm-embla-controls button').first();
+      const next = page.locator('.crm-embla-controls button').last();
+      assert.equal(await previous.count(), 1, 'shadcn navigation controls must render');
+      assert.equal(await next.count(), 1, 'Emblas next button must render');
+      await next.click();
+      await page.waitForTimeout(350);
+      assert.equal(await previous.isEnabled(), true, 'Embla must advance the screenshot gallery');
+      await previous.click();
     }
     if ([390, 1440].includes(width)) {
       await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));

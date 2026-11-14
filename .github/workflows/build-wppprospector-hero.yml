@@ -1,0 +1,44 @@
+name: Generate WppProspector cinematic hero from QA captures
+
+on:
+  push:
+    branches:
+      - feat/wppprospector-hero-visual-reference-20261114
+    paths:
+      - apps/web/scripts/generate-wppprospector-hero.py
+      - apps/web/package.json
+      - .github/workflows/build-wppprospector-hero.yml
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Pillow open-source image processor
+        run: python -m pip install --disable-pip-version-check "Pillow>=11,<13"
+      - name: Build self-hosted WebP creative from approved CRM screens
+        run: python apps/web/scripts/generate-wppprospector-hero.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Resolve and lock open-source CRM UI dependencies
+        working-directory: apps/web
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit reproducible visual assets and dependency lock
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/web/package-lock.json apps/web/public/wppprospector/media/hero-showcase-real.webp apps/web/public/wppprospector/media/hero-showcase-mobile-real.webp
+          if git diff --staged --quiet; then exit 0; fi
+          git commit -m "build(site): lock OSS CRM experience and add genuine cinematic screenshot visuals"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
