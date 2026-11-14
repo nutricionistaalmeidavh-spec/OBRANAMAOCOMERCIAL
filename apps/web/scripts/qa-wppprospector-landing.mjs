@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { join, resolve, sep } from 'node:path';
 import { chromium } from 'playwright';
 
-const root = fileURLToPath(new URL('../public/', import.meta.url));
+const root = resolve(fileURLToPath(new URL('../public/', import.meta.url)));
 const out = fileURLToPath(new URL('../qa-artifacts/wppprospector/', import.meta.url));
 const types = {
   '.html': 'text/html; charset=utf-8',
