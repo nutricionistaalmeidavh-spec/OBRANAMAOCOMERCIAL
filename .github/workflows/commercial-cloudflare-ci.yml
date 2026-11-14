@@ -82,6 +82,8 @@ jobs:
         run: node scripts/qa-artisys-home-responsive.mjs
       - name: Verify real CRM landing screenshots on mobile and desktop
         run: node scripts/qa-wppprospector-landing.mjs
+      - name: Verify real Financeiro hero, motion and responsive screenshots
+        run: node scripts/qa-artisys-finance-landing.mjs
       - name: Upload Playwright screenshots and QA evidence
         if: always()
         uses: actions/upload-artifact@v4
