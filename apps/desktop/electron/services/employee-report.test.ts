@@ -13,19 +13,24 @@ const JSZip = require('jszip')
 it('exports selected employees and fields across all report formats', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'employee-report-'))
   const employee = { id: 1, nome: 'Pessoa & Cia', cpf: '01234567890', empresa_id: 7, data_nascimento: '1980-06-13' }
-  const db = {
-    list: (table: string) => table === 'empresas'
-      ? [{ id: 7, nome_fantasia: 'Empresa de teste' }]
-      : [employee, { id: 2, nome: 'Pessoa excluída', empresa_id: 7 }]
+  const tables: Record<string, object[]> = {
+    empresas: [{ id: 7, nome_fantasia: 'Empresa de teste' }],
+    funcionarios: [{ ...employee, cargo_id: 4 }, { id: 2, nome: 'Pessoa excluída', empresa_id: 7 }],
+    beneficios: [{ id: 3, nome: 'Café', ativo: 1 }],
+    cargo_beneficios: [{ cargo_id: 4, beneficio_id: 3, ativo: 1, valor_centavos: 1100 }],
+    funcionario_beneficios: [
+      { funcionario_id: 1, beneficio_id: 3, valor_centavos: 1525, inicio: '2026-11-05' },
+      { funcionario_id: 1, beneficio_id: 3, valor_centavos: 2000, inicio: '2026-12-01' }
+    ]
   }
-  const payroll = { fixedBenefits: vi.fn(() => [{ tipo: 'beneficio_1', descricao: 'Café', valor: 1525, natureza: 'credito' }]) }
+  const dataAccess = { list: vi.fn(async (table: string) => tables[table]) }
   const selection = { ids: [1], empresaId: 7, competencia: '2026-11', campos: ['nome', 'cpf', 'data_nascimento', 'beneficios'] }
   const dialog = { showSaveDialog: vi.fn() }
   try {
     for (const formato of ['xlsx', 'csv', 'pdf', 'docx']) {
       const filename = 'relatorio.' + formato
       dialog.showSaveDialog.mockResolvedValue({ filePath: path.join(dir, filename) })
-      await expect(exportEmployeeReport({ db, payroll, dialog }, { ...selection, formato })).resolves.toBe(filename)
+      await expect(exportEmployeeReport({ dataAccess, dialog }, { ...selection, formato })).resolves.toBe(filename)
     }
 
     const workbook = new Workbook()
@@ -43,10 +48,10 @@ it('exports selected employees and fields across all report formats', async () =
     const document = await word.file('word/document.xml').async('string')
     expect(document).toContain('Pessoa &amp; Cia')
     expect(document).not.toContain('Pessoa excluída')
-    expect(payroll.fixedBenefits).toHaveBeenCalledWith(employee, '2026-11')
+    expect(dataAccess.list).toHaveBeenCalledWith('funcionarios', { empresa_id: 7 })
     dialog.showSaveDialog.mockResolvedValue({ canceled: true })
-    await expect(exportEmployeeReport({ db, payroll, dialog }, { ...selection, formato: 'xlsx' })).resolves.toBeNull()
-    await expect(exportEmployeeReport({ db, payroll, dialog }, { ...selection, ids: [], formato: 'xlsx' })).rejects.toThrow(/Confira/)
+    await expect(exportEmployeeReport({ dataAccess, dialog }, { ...selection, formato: 'xlsx' })).resolves.toBeNull()
+    await expect(exportEmployeeReport({ dataAccess, dialog }, { ...selection, ids: [], formato: 'xlsx' })).rejects.toThrow(/Confira/)
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
