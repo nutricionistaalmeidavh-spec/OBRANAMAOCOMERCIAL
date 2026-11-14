@@ -14,6 +14,8 @@ describe('P2 central ArtiSys storefront', () => {
     expect(page).toContain('preview={false}');
     expect(page).toContain('<ArtiSysProductGrid');
     expect(page).toContain('<ArtiSysScreenshotGallery');
+    expect(read('src/layouts/MarketingLayout.astro')).not.toContain("import 'astro-component-kit/global.css'");
+    expect(read('src/styles/tokens.css')).not.toContain('@import');
     expect(page).toContain('ItemList');
     expect(listPrimaryLandingProducts()).toHaveLength(8);
     expect(new Set(listPrimaryLandingProducts().map(p => p.href)).size).toBe(8);
