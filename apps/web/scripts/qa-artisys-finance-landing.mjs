@@ -69,6 +69,20 @@ try {
       const gallery = document.querySelector('.finance-gallery');
       const cards = document.querySelectorAll('.finance-feature');
       const getLines = (element) => element.getBoundingClientRect().height / parseFloat(getComputedStyle(element).lineHeight);
+      const rgb = (value) => (value.match(/\d+(?:\.\d+)?/g) || []).slice(0, 3).map(Number);
+      const luminance = (value) => {
+        const channels = rgb(value).map((c) => {
+          const v = c / 255;
+          return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+        });
+        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+      };
+      const contrast = (fg, bg) => {
+        const light = Math.max(luminance(fg), luminance(bg));
+        const dark = Math.min(luminance(fg), luminance(bg));
+        return (light + 0.05) / (dark + 0.05);
+      };
+      const computed = (selector) => getComputedStyle(document.querySelector(selector));
       return {
         body: document.body.className,
         title: h1?.textContent || '',
@@ -84,7 +98,24 @@ try {
         ctaLinks: [...document.querySelectorAll('[data-product-cta]')].map((link) => link.getAttribute('href')),
         crmCopy: document.querySelector('#finance-conversion-title')?.textContent || '',
         mobileColumnCount: getComputedStyle(document.querySelector('.finance-feature-grid')).gridTemplateColumns.split(' ').length,
-        checkoutTitleColor: getComputedStyle(document.querySelector('.product-cta h2')).color
+        checkoutTitleColor: getComputedStyle(document.querySelector('.product-cta h2')).color,
+        headerBackground: computed('.product-header').backgroundColor,
+        heroGradient: computed('.product-hero').backgroundImage,
+        waveFill: computed('.finance-wave path').fill,
+        pageBackground: computed('.finance-page').backgroundColor,
+        featureBackground: computed('.finance-feature-section').backgroundColor,
+        featureCardBackground: computed('.finance-feature').backgroundColor,
+        galleryBackground: computed('.finance-gallery-shell').backgroundColor,
+        galleryCardBackground: computed('.finance-gallery-card').backgroundColor,
+        detailsBackground: computed('.product-details').backgroundColor,
+        detailsAlternateBackground: computed('.product-details .content-section:nth-child(2)').backgroundColor,
+        galleryHeadingContrast: contrast(computed('.finance-gallery-heading h2').color, computed('.finance-gallery-shell').backgroundColor),
+        galleryCopyContrast: contrast(computed('.finance-gallery-heading > p').color, computed('.finance-gallery-shell').backgroundColor),
+        galleryCardContrast: contrast(computed('.finance-gallery-card strong').color, computed('.finance-gallery-card').backgroundColor),
+        galleryLinkContrast: contrast(computed('.finance-gallery-card figcaption a').color, computed('.finance-gallery-card').backgroundColor),
+        featureCopyContrast: contrast(computed('.finance-feature-copy p').color, computed('.finance-feature').backgroundColor),
+        backLinkHeight: document.querySelector('.back-link').getBoundingClientRect().height,
+        galleryLinkHeight: document.querySelector('.finance-gallery-card figcaption a').getBoundingClientRect().height
       };
     });
 
@@ -97,6 +128,26 @@ try {
     assert.equal(data.galleryCards, 5);
     assert.equal(data.motionScript, true);
     assert.equal(data.checkoutTitleColor, 'rgb(255, 255, 255)', 'final purchase CTA must be legible on violet');
+    assert.equal(data.headerBackground, 'rgb(13, 10, 29)', 'header must use canonical ArtiSys night');
+    assert.ok(data.heroGradient.includes('rgb(13, 10, 29)'), 'hero must start with ArtiSys night');
+    assert.ok(data.heroGradient.includes('rgb(112, 55, 173)'), 'hero must finish with canonical purple');
+    assert.equal(data.pageBackground, 'rgb(244, 241, 250)', 'page uses brand paper, not white on white');
+    assert.equal(data.waveFill, 'rgb(244, 241, 250)', 'wave matches paper below the hero');
+    assert.equal(data.featureBackground, 'rgb(244, 241, 250)', 'benefits have an off-white section');
+    assert.equal(data.featureCardBackground, 'rgb(255, 255, 255)', 'benefit cards stand out against paper');
+    assert.equal(data.galleryBackground, 'rgb(13, 10, 29)', 'CRM gallery is a distinct full-width night section');
+    assert.equal(data.galleryCardBackground, 'rgb(33, 22, 47)', 'dark gallery cards are distinct from screenshots');
+    assert.equal(data.detailsBackground, 'rgb(244, 241, 250)', 'detail sections use branded paper');
+    assert.equal(data.detailsAlternateBackground, 'rgb(255, 255, 255)', 'detail sections alternate surfaces');
+    for (const [name, value] of Object.entries({
+      galleryHeading: data.galleryHeadingContrast,
+      galleryCopy: data.galleryCopyContrast,
+      galleryCard: data.galleryCardContrast,
+      galleryLink: data.galleryLinkContrast,
+      featureCopy: data.featureCopyContrast
+    })) assert.ok(value >= 4.5, name + ' text contrast below WCAG AA: ' + value.toFixed(2));
+    assert.ok(data.backLinkHeight >= 44, 'back link tap target below 44px');
+    assert.ok(data.galleryLinkHeight >= 44, 'gallery link tap target below 44px');
     assert.equal(data.ctaLinks.length, 2, 'preserve 2 canonical checkout links');
     assert.ok(data.ctaLinks.every((link) => link === 'https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=artisys-sistema-financeiro'));
     assert.match(data.crmCopy, /A venda avança/);
