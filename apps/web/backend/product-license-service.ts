@@ -3,7 +3,7 @@ export const DEBORA_MANUAL_PLAN='pro_6m';
 export const DEBORA_MANUAL_SOURCE='mercado_livre_manual';
 
 type LicenseRow={id:string;product_code:string;email:string;plan_code:string;status:string;starts_at:string;expires_at:string|null;source:string;external_ref:string;metadata_json:string;created_at:string;updated_at:string};
-export type ProductAccess={productCode:string;planCode:string;active:boolean;commercial:boolean;enforceLimits:boolean;patientLimit:number|null;mediaUpload:boolean;expiresAt:string|null;source:string;status:string};
+export type ProductAccess={productCode:string;planCode:string;active:boolean;commercial:boolean;enforceLimits:boolean;patientLimit:number|null;mediaUpload:boolean;expiresAt:string|null;source:string;status:string;calendarAccess?:boolean};
 type OverviewAccount={email:string;status:string;source?:string};
 type OverviewLicense={email:string;plan_code:string;status:string;expires_at:string|null;source?:string;updated_at?:string};
 export type DeboraAdminClient={email:string;planCode:string;status:'active'|'freemium'|'revoked'|'expired';expiresAt:string|null;source:string;expiring:boolean};
@@ -77,7 +77,23 @@ export async function resolveProductAccess(db:D1Database,productCode:string,emai
   const account=await commercialAccount(db,productCode,email);
   if(!account||account.status!=='commercial')return unmanagedAccess();
   const license=await activeLicense(db,productCode,email);
-  return accessForLicense(license,now);
+  const access=accessForLicense(license,now);
+  if(!access.active)return access;
+
+  // Calendar authorization is derived exclusively from this existing license
+  // authority. The manual sales table records the source chosen in the CEO panel.
+  // A courtesy or pending manual grant is not a paid subscription; partnership
+  // is the specific exception, for as long as the associated license is active.
+  let calendarAccess=false;
+  if(access.status==='active'&&license?.source===DEBORA_MANUAL_SOURCE){
+    const latestSale=await db.prepare(`SELECT acquisition_channel,payment_status FROM manual_license_sales
+      WHERE product_code=? AND license_id=? ORDER BY created_at DESC,id DESC LIMIT 1`)
+      .bind(productCode,license.id).first<{acquisition_channel:string;payment_status:string}>();
+    calendarAccess=latestSale?.acquisition_channel==='partnership'||latestSale?.payment_status==='paid';
+  }else if(access.status==='active'&&license?.source==='asaas'){
+    calendarAccess=true;
+  }
+  return{...access,calendarAccess};
 }
 
 function eventStatement(db:D1Database,{licenseId=null,productCode,email,action,actor='',source='',details={}}:{licenseId?:string|null;productCode:string;email:string;action:string;actor?:string;source?:string;details?:Record<string,unknown>},at:string){
