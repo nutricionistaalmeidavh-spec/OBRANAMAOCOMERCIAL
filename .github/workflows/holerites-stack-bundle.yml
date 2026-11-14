@@ -1,0 +1,73 @@
+name: Bundle local Motion and Embla for Holerites landing
+
+on:
+  push:
+    branches:
+      - fix/holerites-responsive-media-motion-embla
+    paths:
+      - apps/web/src/holerites-landing-experience.ts
+      - .github/workflows/holerites-stack-bundle.yml
+
+permissions:
+  contents: write
+
+jobs:
+  local-bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar somente dependencias locais para empacotamento
+        working-directory: apps/web
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --package-lock=false --no-audit --no-fund motion@14.12.0 embla-carousel@8.6.0
+      - name: Empacotar Motion e Embla localmente sem CDN
+        working-directory: apps/web
+        run: |
+          node --input-type=module <<'JS'
+          import { build } from 'esbuild';
+          await build({
+            entryPoints: ['src/holerites-landing-experience.ts'],
+            outfile: 'public/gestãoholerites/experience.bundle.js',
+            platform: 'browser',
+            format: 'iife',
+            target: 'es2022',
+            bundle: true,
+            minify: true,
+            legalComments: 'none',
+            sourcemap: false
+          });
+          JS
+      - name: Produzir viewport horizontal real do QA sem distorcer screenshots
+        run: |
+          python3 -m pip install --quiet --user pillow
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          base=Path('apps/web/public/gestãoholerites/media')
+          im=Image.open(base/'holerites-dashboard-real.webp').convert('RGB')
+          height=min(im.height,round(im.width*10/16))
+          im.crop((0,0,im.width,height)).save(base/'holerites-dashboard-viewport.webp','WEBP',quality=83,method=6)
+          print('Viewport do screenshot real:',im.width,'x',height)
+          PY
+      - name: Registrar somente os dois artefatos locais da landing
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "apps/web/public/gestãoholerites/experience.bundle.js" "apps/web/public/gestãoholerites/media/holerites-dashboard-viewport.webp"
+          if git diff --cached --quiet; then
+            echo "Bundle já atualizado."
+            exit 0
+          fi
+          git commit -m "build(holerites): bundle self-hosted Motion Embla and real screenshot viewport"
+          # Integra commits concorrentes de QA/código sem sobrescrever a branch.
+          git fetch origin fix/holerites-responsive-media-motion-embla
+          git rebase origin/fix/holerites-responsive-media-motion-embla
+          git push origin HEAD:fix/holerites-responsive-media-motion-embla

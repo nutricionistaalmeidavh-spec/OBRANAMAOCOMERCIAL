@@ -18,9 +18,10 @@
   <meta name="twitter:description" content="Conheça o sistema real, veja as capturas do aplicativo e o modelo impresso A4.">
   <link rel="icon" href="/icons/artisys-favicon-32.png" type="image/png">
   <link rel="apple-touch-icon" href="/icons/artisys-apple-touch-icon.png">
-  <link rel="preload" as="image" href="/gest%C3%A3oholerites/media/holerites-dashboard-real.webp" type="image/webp">
+  <link rel="preload" as="image" href="/gest%C3%A3oholerites/media/holerites-dashboard-viewport.webp" type="image/webp">
   <link rel="stylesheet" href="/gest%C3%A3oholerites/style.css">
   <script src="/gest%C3%A3oholerites/motion.js" defer></script>
+  <script src="/gest%C3%A3oholerites/experience.bundle.js" defer></script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"ArtiSys Holerites","applicationCategory":"BusinessApplication","operatingSystem":"Windows","description":"Emissão e organização offline de holerites, folha mensal, férias, 13º, rescisão e PDF A4.","url":"https://artisys.dev/gest%C3%A3oholerites/","provider":{"@type":"Organization","name":"ArtiSys","url":"https://artisys.dev/"}}</script>
 </head>
 <body>
@@ -34,7 +35,7 @@
   </header>
 
   <main id="conteudo">
-    <section class="hero" aria-labelledby="main-title">
+    <section class="hero" data-reveal aria-labelledby="main-title">
       <div class="hero-blur hero-blur-left" aria-hidden="true"></div>
       <div class="hero-blur hero-blur-right" aria-hidden="true"></div>
       <div class="wrap hero-inner">
@@ -50,7 +51,7 @@
           <div class="float-card float-card-right" aria-hidden="true"><span class="float-symbol">✓</span><strong>Dados locais</strong><small>Funciona offline</small></div>
           <div class="laptop" role="img" aria-label="Computador com captura real do painel ArtiSys Holerites mostrando visão geral e indicadores de folha">
             <div class="laptop-camera" aria-hidden="true"></div>
-            <div class="laptop-screen"><img src="/gest%C3%A3oholerites/media/holerites-dashboard-real.webp" width="1440" height="960" alt="Captura real da visão geral do ArtiSys Holerites, com dados demonstrativos" fetchpriority="high"></div>
+            <div class="laptop-screen"><img src="/gest%C3%A3oholerites/media/holerites-dashboard-viewport.webp" width="1425" height="891" alt="Recorte horizontal da captura real de QA do painel ArtiSys Holerites, sem esticar o conteúdo" fetchpriority="high"></div>
             <div class="laptop-base" aria-hidden="true"><span></span></div>
           </div>
         </div>
@@ -59,20 +60,20 @@
       </div>
     </section>
 
-    <section class="quick-features wrap" aria-label="O que o sistema oferece">
-      <article><span class="quick-number">01</span><h2>Gestão de funcionários</h2><p>Cadastros organizados para emitir os documentos com os dados corretos.</p></article>
-      <article><span class="quick-number">02</span><h2>Folha de pagamento</h2><p>Vencimentos, descontos, impostos e histórico em uma rotina simples.</p></article>
-      <article><span class="quick-number">03</span><h2>PDF pronto para imprimir</h2><p>Contracheque A4 com proventos, descontos, líquido e assinatura.</p></article>
+    <section class="quick-features bento-grid wrap" aria-label="O que o sistema oferece">
+      <article class="bento-card bento-card-main"><span class="quick-number">01</span><h2>Gestão de funcionários</h2><p>Cadastros organizados para emitir os documentos com os dados corretos.</p></article>
+      <article class="bento-card"><span class="quick-number">02</span><h2>Folha de pagamento</h2><p>Vencimentos, descontos, impostos e histórico em uma rotina simples.</p></article>
+      <article class="bento-card"><span class="quick-number">03</span><h2>PDF pronto para imprimir</h2><p>Contracheque A4 com proventos, descontos, líquido e assinatura.</p></article>
     </section>
 
-    <section class="feature-story wrap" id="recursos" aria-labelledby="feature-title">
+    <section class="feature-story wrap" data-reveal id="recursos" aria-labelledby="feature-title">
       <div class="story-copy">
         <p class="section-label">TUDO EM UM SÓ LUGAR</p>
         <h2 id="feature-title">Menos trabalho manual.<br><em>Mais controle.</em></h2>
         <p>Do cadastro à geração do recibo, o ArtiSys Holerites reúne a rotina de pessoal em um aplicativo local, com interface clara e histórico consultável.</p>
         <ul class="feature-list"><li>Empresas e colaboradores cadastrados</li><li>Verbas recorrentes e lançamentos individuais</li><li>Folha mensal e geração em lote</li><li>Backup local e exportação CSV</li></ul>
       </div>
-      <figure class="promo-visual"><img src="/gest%C3%A3oholerites/media/artisys-holerites-recursos.webp" width="1200" height="1200" loading="lazy" decoding="async" alt="Peça visual ArtiSys com notebook e recursos: cadastro, férias, 13º, rescisão e backup"><figcaption>Apresentação visual dos recursos</figcaption></figure>
+      <figure class="promo-visual"><img src="/gest%C3%A3oholerites/media/artisys-holerites-recursos.webp" width="1180" height="1180" loading="lazy" decoding="async" alt="Peça visual ArtiSys com notebook e recursos: cadastro, férias, 13º, rescisão e backup"><figcaption>Apresentação visual dos recursos</figcaption></figure>
     </section>
 
     <section class="screens-section" id="telas" aria-labelledby="screens-title">
@@ -80,24 +81,24 @@
         <div><p class="section-label">O SISTEMA DE VERDADE</p><h2 id="screens-title">Veja as telas <em>reais.</em></h2><p>Capturas feitas com QA no Electron e dados demonstrativos — sem telas inventadas.</p></div>
         <div class="gallery-actions" aria-label="Controles da galeria"><button id="gallery-prev" class="gallery-arrow" type="button" aria-label="Imagem anterior">←</button><button id="gallery-next" class="gallery-arrow" type="button" aria-label="Próxima imagem">→</button></div>
       </div>
-      <div class="screen-track" id="screen-gallery" role="region" aria-label="Capturas reais do ArtiSys Holerites" tabindex="0">
-        <a class="screen-card" href="/gest%C3%A3oholerites/media/holerites-dashboard-real.webp" target="_blank" rel="noopener" aria-label="Ampliar painel principal"><img src="/gest%C3%A3oholerites/media/holerites-dashboard-real.webp" width="1440" height="960" loading="lazy" alt="Visão geral real do sistema de Holerites, com dados fictícios"><div><strong>Visão geral</strong><span>01 / PAINEL</span></div></a>
-        <a class="screen-card" href="/gest%C3%A3oholerites/media/holerites-calculo-real.webp" target="_blank" rel="noopener" aria-label="Ampliar folha mensal"><img src="/gest%C3%A3oholerites/media/holerites-calculo-real.webp" width="1440" height="960" loading="lazy" alt="Editor real do holerite mensal com lançamento de valores"><div><strong>Folha de pagamento</strong><span>02 / RECIBOS</span></div></a>
-        <a class="screen-card" href="/gest%C3%A3oholerites/media/holerites-ferias-real.webp" target="_blank" rel="noopener" aria-label="Ampliar férias"><img src="/gest%C3%A3oholerites/media/holerites-ferias-real.webp" width="1440" height="960" loading="lazy" alt="Tela real de férias do aplicativo com formulário de demonstrativo"><div><strong>Férias</strong><span>03 / DOCUMENTOS</span></div></a>
-        <a class="screen-card" href="/gest%C3%A3oholerites/media/holerites-rescisao-real.webp" target="_blank" rel="noopener" aria-label="Ampliar rescisão"><img src="/gest%C3%A3oholerites/media/holerites-rescisao-real.webp" width="1440" height="960" loading="lazy" alt="Tela real de rescisão contratual no sistema"><div><strong>Rescisão</strong><span>04 / DOCUMENTOS</span></div></a>
-        <a class="screen-card" href="/gest%C3%A3oholerites/media/holerites-historico-real.webp" target="_blank" rel="noopener" aria-label="Ampliar histórico"><img src="/gest%C3%A3oholerites/media/holerites-historico-real.webp" width="1440" height="960" loading="lazy" alt="Histórico real de recibos do aplicativo"><div><strong>Histórico</strong><span>05 / CONTROLE</span></div></a>
-      </div>
+      <div class="screen-track" id="screen-gallery" role="region" aria-label="Capturas reais do ArtiSys Holerites" tabindex="0" data-embla><div class="screen-container">
+        <a class="screen-card" href="/gest%C3%A3oholerites/media/holerites-dashboard-real.webp" target="_blank" rel="noopener" aria-label="Ampliar painel principal"><div class="screen-media"><img src="/gest%C3%A3oholerites/media/holerites-dashboard-real.webp" width="1425" height="1412" loading="lazy" alt="Visão geral real do sistema de Holerites, com dados fictícios"></div><div><strong>Visão geral</strong><span>01 / PAINEL</span></div></a>
+        <a class="screen-card" href="/gest%C3%A3oholerites/media/holerites-calculo-real.webp" target="_blank" rel="noopener" aria-label="Ampliar folha mensal"><div class="screen-media"><img src="/gest%C3%A3oholerites/media/holerites-calculo-real.webp" width="1425" height="1463" loading="lazy" alt="Editor real do holerite mensal com lançamento de valores"></div><div><strong>Folha de pagamento</strong><span>02 / RECIBOS</span></div></a>
+        <a class="screen-card" href="/gest%C3%A3oholerites/media/holerites-ferias-real.webp" target="_blank" rel="noopener" aria-label="Ampliar férias"><div class="screen-media"><img src="/gest%C3%A3oholerites/media/holerites-ferias-real.webp" width="1234" height="1550" loading="lazy" alt="Tela real de férias do aplicativo com formulário de demonstrativo"></div><div><strong>Férias</strong><span>03 / DOCUMENTOS</span></div></a>
+        <a class="screen-card" href="/gest%C3%A3oholerites/media/holerites-rescisao-real.webp" target="_blank" rel="noopener" aria-label="Ampliar rescisão"><div class="screen-media"><img src="/gest%C3%A3oholerites/media/holerites-rescisao-real.webp" width="1097" height="1550" loading="lazy" alt="Tela real de rescisão contratual no sistema"></div><div><strong>Rescisão</strong><span>04 / DOCUMENTOS</span></div></a>
+        <a class="screen-card" href="/gest%C3%A3oholerites/media/holerites-historico-real.webp" target="_blank" rel="noopener" aria-label="Ampliar histórico"><div class="screen-media"><img src="/gest%C3%A3oholerites/media/holerites-historico-real.webp" width="1440" height="960" loading="lazy" alt="Histórico real de recibos do aplicativo"></div><div><strong>Histórico</strong><span>05 / CONTROLE</span></div></a>
+      </div></div>
       <p class="gallery-footnote wrap">Clique em uma captura para ver em tamanho maior.</p>
     </section>
 
-    <section class="print-section wrap" id="impressao" aria-labelledby="print-title">
+    <section class="print-section wrap" data-reveal id="impressao" aria-labelledby="print-title">
       <div class="print-text"><p class="section-label">DO SISTEMA PARA O PAPEL</p><h2 id="print-title">Pronto para <em>imprimir.</em></h2><p>Emita um contracheque organizado em A4 com identificação do colaborador, proventos, descontos, totais e assinatura.</p><div class="print-tags"><span>PDF A4</span><span>2 vias</span><span>Preto e branco</span></div><a class="btn btn-primary" href="/gest%C3%A3oholerites/media/holerite-impresso-real.webp" target="_blank" rel="noopener">Ver modelo real ampliado <span aria-hidden="true">↗</span></a></div>
-      <div class="print-images"><figure class="print-photo"><img src="/gest%C3%A3oholerites/media/artisys-holerites-impressao.webp" width="1200" height="1200" loading="lazy" decoding="async" alt="Ilustração promocional do ArtiSys Holerites com impressora e recibo de pagamento"><figcaption>Imagem promocional</figcaption></figure><figure class="real-print"><a href="/gest%C3%A3oholerites/media/holerite-impresso-real.webp" target="_blank" rel="noopener"><img src="/gest%C3%A3oholerites/media/holerite-impresso-real.webp" width="1024" height="1450" loading="lazy" decoding="async" alt="Captura real de PDF A4 com duas vias de um mesmo holerite de exemplo"></a><figcaption>PDF real gerado pelo Electron · dados fictícios</figcaption></figure></div>
+      <div class="print-images"><figure class="print-photo"><img src="/gest%C3%A3oholerites/media/artisys-holerites-impressao.webp" width="1180" height="1180" loading="lazy" decoding="async" alt="Ilustração promocional do ArtiSys Holerites com impressora e recibo de pagamento"><figcaption>Imagem promocional</figcaption></figure><figure class="real-print"><a href="/gest%C3%A3oholerites/media/holerite-impresso-real.webp" target="_blank" rel="noopener"><img src="/gest%C3%A3oholerites/media/holerite-impresso-real.webp" width="834" height="1180" loading="lazy" decoding="async" alt="Captura real de PDF A4 com duas vias de um mesmo holerite de exemplo"></a><figcaption>PDF real gerado pelo Electron · dados fictícios</figcaption></figure></div>
     </section>
 
-    <section class="visual-banner wrap" aria-labelledby="visual-banner-title"><div><p class="section-label">MAIS SIMPLES DO INÍCIO AO FIM</p><h2 id="visual-banner-title">Uma ferramenta para a rotina de quem faz a folha acontecer.</h2></div><img src="/gest%C3%A3oholerites/media/artisys-holerites-hero.webp" width="1200" height="1200" loading="lazy" decoding="async" alt="Peça promocional com ArtiSys Holerites em notebook, organização da folha e recursos do sistema"></section>
+    <section class="visual-banner wrap" data-reveal aria-labelledby="visual-banner-title"><div><p class="section-label">MAIS SIMPLES DO INÍCIO AO FIM</p><h2 id="visual-banner-title">Uma ferramenta para a rotina de quem faz a folha acontecer.</h2></div><img src="/gest%C3%A3oholerites/media/artisys-holerites-hero.webp" width="1180" height="1180" loading="lazy" decoding="async" alt="Peça promocional com ArtiSys Holerites em notebook, organização da folha e recursos do sistema"></section>
 
-    <section class="purchase-section" id="licenca" aria-labelledby="purchase-title"><div class="wrap purchase-inner"><div><p class="section-label">UMA ROTINA MAIS ORGANIZADA</p><h2 id="purchase-title">Seu próximo holerite,<br><em>sem complicação.</em></h2><p>Software desktop para Windows, com dados no próprio computador. Consulte as condições comerciais e de ativação da licença.</p></div><div class="purchase-box"><strong>ARTISYS HOLERITES</strong><p>Folha de pagamento e emissão de recibos em um único aplicativo.</p><a class="btn btn-primary" href="https://wa.me/5516982338805?text=Ol%C3%A1%21%20Gostaria%20de%20comprar%20o%20ArtiSys%20Holerites%20para%20Windows." target="_blank" rel="noopener noreferrer">Consultar aquisição <span aria-hidden="true">↗</span></a><a class="shop-link" href="https://www.mercadolivre.com.br/pagina/artisys#from=share_eshop_hub_mobile" target="_blank" rel="noopener noreferrer">Ver loja ArtiSys no Mercado Livre ↗</a></div></div></section>
+    <section class="purchase-section" data-reveal id="licenca" aria-labelledby="purchase-title"><div class="wrap purchase-inner"><div><p class="section-label">UMA ROTINA MAIS ORGANIZADA</p><h2 id="purchase-title">Seu próximo holerite,<br><em>sem complicação.</em></h2><p>Software desktop para Windows, com dados no próprio computador. Consulte as condições comerciais e de ativação da licença.</p></div><div class="purchase-box"><strong>ARTISYS HOLERITES</strong><p>Folha de pagamento e emissão de recibos em um único aplicativo.</p><a class="btn btn-primary" href="https://wa.me/5516982338805?text=Ol%C3%A1%21%20Gostaria%20de%20comprar%20o%20ArtiSys%20Holerites%20para%20Windows." target="_blank" rel="noopener noreferrer">Consultar aquisição <span aria-hidden="true">↗</span></a><a class="shop-link" href="https://www.mercadolivre.com.br/pagina/artisys#from=share_eshop_hub_mobile" target="_blank" rel="noopener noreferrer">Ver loja ArtiSys no Mercado Livre ↗</a></div></div></section>
 
     <section class="faq wrap" aria-labelledby="faq-title"><div><p class="section-label">DÚVIDAS FREQUENTES</p><h2 id="faq-title">O que você<br><em>precisa saber.</em></h2></div><div class="faq-list"><details><summary>O sistema funciona sem internet?</summary><p>Sim. O aplicativo Windows trabalha com dados armazenados localmente. Internet pode ser necessária para baixar atualizações.</p></details><details><summary>Consigo exportar os recibos em PDF?</summary><p>Sim. Você pode gerar PDF A4 para impressão e consultar holerites registrados no histórico.</p></details><details><summary>Faz férias, 13º salário e rescisão?</summary><p>O sistema oferece demonstrativos desses documentos, além da folha mensal. Confira valores e regras aplicáveis com seu responsável contábil.</p></details><details><summary>Calcula os impostos automaticamente?</summary><p>O cálculo automático de INSS e IRRF está implementado para competências de 2026. Outras competências exigem conferência e utilização de lançamento manual.</p></details><details><summary>Ele substitui o eSocial ou o contador?</summary><p>Não. É uma ferramenta de apoio à elaboração e impressão de demonstrativos, sem substituição da escrituração ou das obrigações trabalhistas oficiais.</p></details></div></section>
   </main>
