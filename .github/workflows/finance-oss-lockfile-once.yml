@@ -1,0 +1,32 @@
+name: One-shot Financeiro OSS lockfile
+on:
+  push:
+    branches: [feat/finance-open-source-ui-stack-20261114]
+    paths:
+      - '.github/workflows/finance-oss-lockfile-once.yml'
+permissions:
+  contents: write
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve exact zero-cost open-source dependencies
+        working-directory: apps/web
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit reproducible lockfile
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "build: lock Financeiro open-source UI dependencies"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
