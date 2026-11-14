@@ -41,6 +41,15 @@ for (const filename of [
   assert.equal(imageBytes.subarray(0, 4).toString(), 'RIFF', 'Financeiro screenshot must be a real WebP: ' + filename);
   assert.equal(imageBytes.subarray(8, 12).toString(), 'WEBP', 'Financeiro screenshot must use WebP format: ' + filename);
 }
+const financeDesignCss = readCatalog('artisys-finance-gallery.css');
+const financeDesignJs = readCatalog('artisys-finance-motion.js');
+assert.match(financeDesignCss, /\.finance-page \.product-hero/, 'hero styles are product-scoped');
+assert.match(financeDesignCss, /@media\s*\(max-width:\s*768px\)/, 'hero collapses for mobile');
+assert.match(financeDesignCss, /prefers-reduced-motion:\s*reduce/, 'motion preference honored');
+assert.match(financeDesignCss, /grid-auto-flow:\s*dense/, 'bento layout has no holes');
+assert.match(financeDesignJs, /IntersectionObserver/, 'native in-view reveal');
+assert.match(financeDesignJs, /window\.matchMedia/, 'motion capability detected');
+assert.doesNotMatch(financeDesignJs, /https?:\/\/|MutationObserver|fetch\(/, 'no runtime external requests or DOM mutation observer');
 const catalog = JSON.parse(readCatalog('products.json'));
 
 assert.equal(catalog.version, 3, 'catalog version must be 3 after presentation-mode rollout');
@@ -118,7 +127,17 @@ for (const product of catalog.products) {
       assert.match(page, /dashboard-real\.webp/, 'Finance dashboard screenshot');
       assert.match(page, /dados de demonstração/, 'Honest QA screenshot labeling');
       assert.equal((page.match(/class="finance-gallery-card(?: finance-gallery-card--wide)?"/g) || []).length, 5, 'Finance gallery has five real feature screens');
-      assert.doesNotMatch(page, /<script[^>]*src=|MutationObserver|createElement\(/i, 'Finance gallery is static and zero-mutation');
+      assert.match(page, /class="finance-header-inner"/, 'finance has editorial navigation');
+      assert.match(page, /class="finance-hero-inner"/, 'finance uses an editorial screenshot hero');
+      assert.match(page, /class="finance-wave"/, 'finance uses SVG wave');
+      assert.match(page, /class="finance-feature-grid"/, 'finance has feature triptych');
+      assert.match(page, /class="finance-motion-root"/, 'finance has scoped motion root');
+      assert.match(page, /src="\.\.\/artisys-finance-motion\.js" defer/, 'motion script is local to this page');
+      assert.match(page, /href="#financeiro-em-acao"/, 'secondary CTA opens real evidence');
+      assert.match(page, /class="finance-hero-screenshot"/, 'hero includes real screenshot');
+      assert.match(page, /id="finance-conversion-title"/, 'CRM confirmation remains');
+      assert.doesNotMatch(page, /gsap\.min\.js|cdnjs|unpkg|jsdelivr/i, 'core uses no external animation library');
+      assert.doesNotMatch(page, /MutationObserver|createElement\(/i, 'motion does not need DOM mutations');
     }
     if (product.slug === 'pdv-artisys') {
       assert.match(page, /class="product-hero product-hero--pdv"/, 'PDV receives compact editorial hero only');
