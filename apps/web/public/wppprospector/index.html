@@ -39,31 +39,77 @@
   <main id="conteudo">
     <section class="hero shell" aria-labelledby="titulo">
       <div class="hero-copy" data-reveal>
-        <p class="kicker">CRM ARTISYS · WPPPROSPECTOR</p>
-        <h1 id="titulo">Seu comercial.<br><em>Tudo sob controle.</em></h1>
-        <p class="intro">Leads, oportunidades e conversas no mesmo lugar. WhatsApp e IA só se você quiser.</p>
+        <p class="kicker">CRM ARTISYS / WPPPROSPECTOR</p>
+        <h1 id="titulo">Transforme conversas<br><em>em vendas.</em></h1>
+        <p class="intro">Leads, oportunidades e negociações. Tudo em um só lugar.</p>
         <div class="actions">
-          <a class="button button-primary" href="#telas">Ver telas reais <span class="cta-arrow" aria-hidden="true">↗</span></a>
-          <a class="button button-secondary" href="#licenca">Conhecer a licença <span class="cta-arrow" aria-hidden="true">↗</span></a>
+          <a class="button button-primary" href="#licenca">Conhecer o CRM <span class="cta-arrow" aria-hidden="true">↗</span></a>
+          <a class="button button-secondary" href="#telas">Explorar as telas <span class="cta-arrow" aria-hidden="true">↗</span></a>
         </div>
       </div>
-      <figure class="hero-figure" data-reveal>
-        <div class="screen-frame">
-          <div class="screen-toolbar" aria-hidden="true"><span class="dots"><i></i><i></i><i></i></span><span>WPPPROSPECTOR / CRM ARTISYS</span><span>PAINEL</span></div>
-          <picture>
-            <source media="(max-width: 640px)" srcset="/wppprospector/media/kanban-mobile-real.webp" type="image/webp">
-            <img src="/wppprospector/media/painel-real.webp" width="1440" height="978" fetchpriority="high" alt="Captura real do CRM WppProspector em teste Playwright: dashboard no desktop ou pipeline na versão mobile. Os dados são fictícios.">
-          </picture>
+
+      <figure class="hero-figure product-showcase">
+        <div class="product-stage" data-hero-stage>
+          <svg class="stage-orbit" viewBox="0 0 1100 640" fill="none" aria-hidden="true" focusable="false">
+            <defs>
+              <linearGradient id="orbit-light" x1="160" y1="550" x2="1040" y2="120" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#8536B8" stop-opacity="0"/>
+                <stop offset=".34" stop-color="#AD6DFF" stop-opacity=".62"/>
+                <stop offset=".65" stop-color="#78D5DA" stop-opacity=".44"/>
+                <stop offset="1" stop-color="#905AFF" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M65 451C175 548 785 587 1015 317C1081 239 1004 186 929 182C733 172 348 366 165 339" stroke="url(#orbit-light)" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M105 478C241 577 824 585 1031 335" stroke="#B47FFF" stroke-opacity=".18" stroke-width="1.4"/>
+          </svg>
+          <div class="stage-ambient" aria-hidden="true"></div>
+
+          <div class="stage-card stage-card-leads" data-stage-layer="leads">
+            <span class="stage-card-tag">CONTATOS</span>
+            <span class="stage-card-title">Leads organizados</span>
+            <img src="/wppprospector/media/leads-real.webp" width="320" height="196" loading="lazy" decoding="async" alt="Prévia da lista real de leads do WppProspector, com dados de teste.">
+          </div>
+
+          <div class="stage-card stage-card-rules" data-stage-layer="rules">
+            <span class="stage-card-tag">CONFIGURAÇÃO</span>
+            <span class="stage-card-title">Regras opcionais</span>
+            <img src="/wppprospector/media/inteligencia-real.webp" width="320" height="196" loading="lazy" decoding="async" alt="Prévia real da central de inteligência do CRM, com dados de teste.">
+          </div>
+
+          <div class="laptop-device" data-stage-layer="laptop">
+            <div class="laptop-lid">
+              <div class="laptop-camera" aria-hidden="true"></div>
+              <div class="laptop-display">
+                <img src="/wppprospector/media/painel-real.webp" width="1440" height="978" fetchpriority="high" decoding="async" alt="Print real do dashboard do CRM ArtiSys WppProspector no desktop, capturado pelo Playwright com dados fictícios.">
+              </div>
+            </div>
+            <div class="laptop-hinge" aria-hidden="true"></div>
+            <div class="laptop-base" aria-hidden="true"><span></span></div>
+          </div>
+
+          <div class="phone-device" data-stage-layer="phone">
+            <div class="phone-shell">
+              <div class="phone-notch" aria-hidden="true"></div>
+              <div class="phone-display">
+                <img src="/wppprospector/media/kanban-mobile-real.webp" width="390" height="844" fetchpriority="high" decoding="async" alt="Print real do kanban mobile do WppProspector, capturado pelo Playwright com dados fictícios.">
+              </div>
+              <div class="phone-home" aria-hidden="true"></div>
+            </div>
+          </div>
+
+          <div class="stage-card stage-card-pipeline" data-stage-layer="pipeline">
+            <span class="stage-card-tag">OPORTUNIDADES</span>
+            <span class="stage-card-title">Funil de vendas</span>
+            <img src="/wppprospector/media/kanban-real.webp" width="320" height="196" loading="lazy" decoding="async" alt="Prévia real das colunas de oportunidades do kanban.">
+          </div>
         </div>
         <figcaption>Captura real do sistema · QA Playwright · dados fictícios</figcaption>
       </figure>
+      <div class="hero-highlights" aria-label="Destaques do CRM">
+        <span>Leads em um só lugar</span><span>Funil visual</span><span>WhatsApp e IA opcionais</span>
+      </div>
     </section>
 
-    <section class="proof shell" aria-label="Recursos principais" data-reveal>
-      <div><strong>Leads</strong><span>Clientes organizados</span></div>
-      <div><strong>Kanban</strong><span>Negociações visíveis</span></div>
-      <div><strong>Propostas</strong><span>Próximos passos claros</span></div>
-    </section>
 
     <section class="gallery-section" id="telas" aria-labelledby="telas-titulo">
       <div class="shell gallery-head" data-reveal>

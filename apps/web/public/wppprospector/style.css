@@ -108,3 +108,116 @@ h1 em,h2 em{font-style:normal;color:#b777ff}
 @media(max-width:640px){.hero{padding-top:56px}.hero h1{font-size:clamp(46px,11vw,65px)}.intro{font-size:14px}.actions{gap:9px}.button{min-height:51px;min-width:unset;padding-left:15px;font-size:12px;gap:10px}.hero-figure{margin-top:42px}.screen-frame{border-radius:17px;transform:none}.screen-frame img{width:100%;height:450px;object-fit:cover;object-position:top;}.screen-toolbar span:last-child{display:none}.hero-figure figcaption{text-align:center;font-size:10px}.proof{margin-top:57px;margin-bottom:70px}.proof>div{padding:17px 8px;text-align:center}.proof strong{font-size:14px}.proof span{font-size:9px}.gallery-controls{gap:5px}.gallery-arrow{width:37px;height:37px;font-size:18px}.gallery-head{align-items:end}.gallery-head h2{font-size:clamp(33px,7.5vw,45px)}.shot-card{flex-basis:84vw;border-radius:15px;padding:6px}.shot-image{aspect-ratio:1.43}.shot-caption{padding:11px 7px 7px}.shot-caption strong{font-size:12px}.shot-caption span{font-size:8px}.connection h2,.purchase h2,.questions h2,.end-cta h2{font-size:clamp(35px,8vw,47px)}.purchase-layout>div>p:not(.kicker){font-size:14px}.purchase-card{padding:28px}.questions-list summary{font-size:13px}.footer-layout{gap:12px}.footer-layout span{order:3;width:100%}}
 @media(max-width:380px){.nav-cta{font-size:10px}.brand img{width:103px}.nav-cta .cta-arrow{display:none}.hero h1{font-size:42px}.actions{display:grid;grid-template-columns:1fr}.actions .button{width:100%}.proof span{font-size:8px}.gallery-head{flex-wrap:wrap}.gallery-track{padding-inline:15px}.shot-card{flex-basis:89vw}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.screen-frame,.shot-card,.shot-image img,.button,.nav-cta,.cta-arrow,.gallery-arrow,.questions-list summary span{transition:none!important}.screen-frame{transform:none}}
+
+
+/* Product-led cinematic composition. All imagery comes from real WppProspector QA captures. */
+.hero{padding-top:clamp(64px,7vw,108px)}
+.hero:before{inset:-155px -15% -35%;background:radial-gradient(ellipse at 50% 53%,rgba(113,55,195,.33),transparent 63%)}
+.hero-copy{max-width:1090px}
+.hero h1{max-width:1080px;font-size:clamp(50px,7.4vw,99px);margin:23px auto 22px;line-height:1.04;letter-spacing:-.056em}
+.hero .intro{max-width:590px}
+.hero .actions{margin-top:29px}
+.hero-figure.product-showcase{max-width:1160px;margin:49px auto 0;padding:0}
+.hero-figure.product-showcase:before{inset:12% 15% 0;background:radial-gradient(ellipse at 52% 60%,rgba(110,61,196,.30),transparent 67%);filter:none}
+.product-stage{position:relative;width:100%;min-height:430px;aspect-ratio:1100/640;max-height:700px;isolation:isolate;overflow:visible;perspective:1600px}
+.product-stage:after{content:"";position:absolute;z-index:0;left:10%;right:9%;bottom:6%;height:5%;border-radius:50%;background:rgba(127,80,197,.31);filter:blur(26px);pointer-events:none}
+.stage-ambient{position:absolute;z-index:-1;inset:15% 7% 13%;background:radial-gradient(ellipse at 54% 45%,rgba(87,56,161,.52),rgba(10,8,22,0) 64%),radial-gradient(ellipse at 42% 88%,rgba(42,116,143,.13),transparent 56%);pointer-events:none}
+.stage-orbit{position:absolute;inset:0;z-index:1;width:100%;height:100%;pointer-events:none;overflow:visible;filter:drop-shadow(0 0 9px rgba(117,130,222,.19))}
+.laptop-device{position:absolute;z-index:3;width:76%;top:12%;left:10%;filter:drop-shadow(0 26px 25px rgba(5,3,18,.62));transform-origin:50% 88%;transform:perspective(1500px) rotateY(-4deg) rotateX(2deg);transition:transform .85s var(--ease)}
+.laptop-device:hover{transform:perspective(1500px) rotateY(-1deg) rotateX(0)}
+.laptop-lid{position:relative;padding:12px 12px 11px;background:linear-gradient(127deg,#625d69,#18171e 12%,#060609 81%,#4c4658);border:1px solid #97909f;border-radius:17px 17px 7px 7px;box-shadow:inset 0 1px 2px rgba(255,255,255,.48),0 0 0 2px rgba(10,8,17,.48)}
+.laptop-camera{position:absolute;z-index:2;top:4px;left:calc(50% - 2px);width:4px;height:4px;border-radius:50%;background:#665a77;box-shadow:0 0 2px #aa82e8}
+.laptop-display{aspect-ratio:1.72;overflow:hidden;border:1px solid #1a1722;border-radius:4px;background:#eef0f3}
+.laptop-display img{display:block;width:100%;height:100%;object-fit:cover;object-position:top left;filter:saturate(.95);transform:translateZ(0)}
+.laptop-hinge{position:relative;z-index:4;margin:0 1%;height:7px;background:linear-gradient(90deg,#77717f,#121218 25%,#2e2c37 56%,#777080);border-radius:0 0 5px 5px}
+.laptop-base{position:relative;z-index:3;width:115%;height:28px;margin-left:-7.5%;background:linear-gradient(180deg,#a8a2aa 0%,#66606b 17%,#37363d 51%,#171820 69%,#a5a0a9 100%);clip-path:polygon(7% 0,93% 0,100% 86%,96% 100%,4% 100%,0 86%);box-shadow:0 5px 20px rgba(7,4,20,.35)}
+.laptop-base span{display:block;width:19%;height:4px;margin:0 auto;border-radius:0 0 6px 6px;background:linear-gradient(180deg,#4a4850,#8b8790)}
+.phone-device{position:absolute;z-index:7;top:33%;right:5%;width:17%;filter:drop-shadow(0 22px 30px rgba(6,3,18,.78));transform:perspective(1100px) rotateY(-12deg) rotateZ(2deg);transform-origin:50% 80%;transition:transform .85s var(--ease)}
+.phone-device:hover{transform:perspective(1100px) rotateY(-4deg) rotateZ(0)}
+.phone-shell{position:relative;padding:8px 6px 13px;border:2px solid #77727e;border-radius:30px;background:linear-gradient(100deg,#15121a,#040308 55%,#25202c);box-shadow:inset 0 0 0 2px #08060e,0 0 0 1px rgba(235,215,255,.18)}
+.phone-display{overflow:hidden;aspect-ratio:390/844;border-radius:21px;background:#e9ebee}
+.phone-display img{display:block;width:100%;height:100%;object-fit:cover;object-position:top left}
+.phone-notch{position:absolute;z-index:2;top:8px;left:50%;width:36%;height:13px;transform:translateX(-50%);border-radius:0 0 12px 12px;background:#09080b}
+.phone-home{position:absolute;bottom:5px;left:38%;width:24%;height:3px;border-radius:999px;background:#84798c}
+.stage-card{position:absolute;z-index:4;display:flex;flex-direction:column;align-items:stretch;gap:6px;width:17%;max-width:197px;padding:10px;border:1px solid rgba(169,129,219,.54);border-radius:14px;background:linear-gradient(146deg,rgba(46,36,69,.94),rgba(17,15,33,.97));box-shadow:inset 0 1px rgba(255,255,255,.12),0 14px 32px rgba(3,2,16,.50);transform:translateZ(0);transition:transform .7s var(--ease),border-color .7s var(--ease);pointer-events:none}
+.stage-card-tag{font-size:8px;font-weight:800;letter-spacing:.11em;color:#b6a0d6}
+.stage-card-title{font-size:13px;font-weight:700;line-height:1.15;color:#fff}
+.stage-card img{display:block;width:100%;height:auto;aspect-ratio:1.7;object-fit:cover;object-position:top left;border-radius:7px;border:1px solid rgba(250,250,255,.1);background:#f4f6f8}
+.stage-card-leads{top:12%;left:0;transform:rotate(-6deg)}
+.stage-card-rules{right:0;top:7%;transform:rotate(5deg);z-index:5}
+.stage-card-pipeline{bottom:12%;left:0;transform:rotate(4deg);z-index:5}
+.stage-card:hover{transform:rotate(0) translateY(-7px);border-color:#d1a1ff}
+.hero-figure.product-showcase figcaption{margin-top:0;text-align:center;color:#a79cba}
+.hero-highlights{display:flex;justify-content:center;gap:0;margin:26px auto 0;max-width:690px;padding-bottom:12px}
+.hero-highlights span{position:relative;flex:1;text-align:center;font-size:12px;font-weight:600;color:#dac9e9;white-space:nowrap}
+.hero-highlights span+span{border-left:1px solid rgba(196,164,234,.31)}
+.proof{display:none}
+.gallery-section{margin-top:105px}
+.product-stage [data-stage-layer]{backface-visibility:hidden}
+@media (min-width:1000px){.stage-card-leads{left:1%;top:17%}.stage-card-rules{right:1%;top:10%}.stage-card-pipeline{left:4%;bottom:10%}}
+@media (max-width:950px){
+ .product-stage{min-height:390px}
+ .laptop-device{top:17%;left:8%;width:79%}
+ .phone-device{top:38%;right:2%;width:19%}
+ .stage-card{width:19%;padding:8px;border-radius:11px}
+ .stage-card-tag{font-size:7px}
+ .stage-card-title{font-size:11px}
+ .stage-card-leads{top:11%;left:0}
+ .stage-card-rules{top:7%;right:0}
+ .stage-card-pipeline{bottom:11%;left:1%}
+}
+@media (max-width:760px){
+ .hero{padding-top:73px}
+ .hero h1{font-size:clamp(48px,8.4vw,67px);max-width:720px}
+ .hero-figure.product-showcase{margin-top:40px}
+ .product-stage{min-height:340px}
+ .laptop-device{top:17%;left:4%;width:87%;transform:none}
+ .phone-device{top:40%;right:2%;width:23%;transform:rotate(2deg)}
+ .stage-card-leads{display:none}
+ .stage-card-rules{top:7%;right:0;width:23%}
+ .stage-card-pipeline{left:0;bottom:9%;width:22%}
+ .stage-card img{aspect-ratio:1.5}
+ .hero-highlights{margin-top:22px}
+ .gallery-section{margin-top:75px}
+}
+@media (max-width:640px){
+ .hero{padding-top:55px}
+ .hero h1{font-size:clamp(42px,9.7vw,61px);margin:19px auto 16px;letter-spacing:-.049em}
+ .hero .intro{font-size:14px;max-width:340px}
+ .hero .actions{gap:10px}
+ .hero-figure.product-showcase{margin-top:35px}
+ .product-stage{aspect-ratio:1/1.13;min-height:0;max-height:none}
+ .stage-orbit{top:20%;height:70%}
+ .stage-ambient{inset:3% 0 1%}
+ .laptop-device{width:98%;left:1%;top:11%}
+ .laptop-lid{padding:6px 6px 7px;border-radius:9px 9px 4px 4px}
+ .laptop-camera{top:2px;width:3px;height:3px}
+ .laptop-display{aspect-ratio:1.72}
+ .laptop-base{height:15px}
+ .laptop-hinge{height:4px}
+ .phone-device{width:33%;top:42%;right:2%;transform:rotate(3deg)}
+ .phone-shell{padding:5px 4px 9px;border-radius:22px}
+ .phone-display{border-radius:15px}
+ .phone-notch{top:5px;height:9px}
+ .phone-home{bottom:3px;height:2px}
+ .stage-card-rules{display:none}
+ .stage-card-pipeline{width:37%;max-width:190px;left:1%;bottom:5%;transform:rotate(-5deg);padding:7px}
+ .stage-card-pipeline .stage-card-tag{font-size:7px}
+ .stage-card-pipeline .stage-card-title{font-size:11px}
+ .stage-card-pipeline img{aspect-ratio:1.65}
+ .hero-highlights{flex-wrap:wrap;margin-top:17px;gap:8px 0}
+ .hero-highlights span{font-size:10px}
+ .hero-figure.product-showcase figcaption{font-size:10px;margin-top:3px}
+ .gallery-section{margin-top:65px}
+}
+@media (max-width:380px){
+ .hero h1{font-size:clamp(38px,10vw,44px)}
+ .hero .actions{display:flex;flex-direction:column}
+ .hero .actions .button{width:min(100%,260px)}
+ .hero-highlights span{font-size:9px}
+ .stage-card-pipeline{bottom:7%}
+}
+@media (prefers-reduced-motion:reduce){
+ .laptop-device,.phone-device,.stage-card{transform:none!important;transition:none!important}
+ .product-stage .stage-orbit{filter:none}
+}
