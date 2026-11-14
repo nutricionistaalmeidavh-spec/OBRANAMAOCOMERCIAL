@@ -57,6 +57,7 @@ try {
     page.on('pageerror', (error) => exceptions.push(error.message));
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.locator('.hero-figure img').waitFor({ state: 'visible' });
+    await page.locator('.hero-figure img').evaluate((img) => img.decode());
     const health = await page.evaluate(() => ({
       title: document.querySelector('h1')?.innerText || '',
       scrollWidth: document.documentElement.scrollWidth,
@@ -81,8 +82,10 @@ try {
     if (width >= 768) assert.ok(health.h1Lines < 3.2, 'hero heading should occupy max three lines');
     assert.equal(health.screenshots.length, 3, 'real QA gallery contains three screens');
     for (const image of health.screenshots) {
-      await page.locator('img[src="' + image.path + '"]').scrollIntoViewIfNeeded();
-      const loaded = await page.locator('img[src="' + image.path + '"]').evaluate(img => img.complete && img.naturalWidth > 0);
+      const imageElement = page.locator('img[src="' + image.path + '"]');
+      await imageElement.scrollIntoViewIfNeeded();
+      await imageElement.evaluate((img) => img.decode());
+      const loaded = await imageElement.evaluate(img => img.complete && img.naturalWidth > 0);
       assert.ok(loaded, 'image failed to load: ' + image.path);
     }
     assert.deepEqual(exceptions, [], 'browser JS errors at ' + width + 'px');
