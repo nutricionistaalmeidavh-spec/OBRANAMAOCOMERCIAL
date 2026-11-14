@@ -113,6 +113,8 @@ try {
       await page.locator('#galeria-anterior').click();
     }
     if ([390, 1440].includes(width)) {
+      await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+      await page.waitForTimeout(150);
       await page.screenshot({ path: join(out, 'landing-' + width + '.png'), fullPage: true, animations: 'disabled' });
     }
     await context.close();
