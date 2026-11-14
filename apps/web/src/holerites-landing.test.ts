@@ -55,3 +55,34 @@ describe('landing ArtiSys Holerites (página estática independente)',()=>{
   expect(html).not.toMatch(/<link[^>]+rel="stylesheet"[^>]+href="https?:\/\//);
  });
 });
+
+describe('Holerites P0/P1 media fidelity and UI interactions', () => {
+  it('keeps the real dashboard and all gallery images uncropped at their natural proportions', () => {
+    expect(css).toMatch(/\.laptop-screen img\s*\{[^}]*object-fit:\s*contain/s);
+    expect(css).toMatch(/\.screen-card img\s*\{[^}]*object-fit:\s*contain/s);
+    expect(css).toMatch(/\.real-print img\s*\{[^}]*object-fit:\s*contain/s);
+    expect(css).toMatch(/\.visual-banner img\s*\{[^}]*object-fit:\s*contain/s);
+    expect(css).not.toMatch(/\.laptop-screen img\s*\{[^}]*object-fit:\s*cover/s);
+    expect(css).not.toMatch(/\.visual-banner img\s*\{[^}]*object-fit:\s*cover/s);
+  });
+
+  it('renders responsive, accessible bento cards without mandatory paid services', () => {
+    expect(html).toContain('class="bento-grid');
+    expect(css).toContain('.bento-grid');
+    expect(css).toContain('minmax(0');
+    expect(html).toContain('id="screen-gallery"');
+    expect(html).toContain('id="gallery-prev"');
+    expect(html).toContain('id="gallery-next"');
+    expect(html).not.toMatch(/src="https?:\/\//);
+  });
+
+  it('uses a locally bundled Motion and Embla enhancement with reduced-motion and analytics opt-in', () => {
+    const source=readFileSync(new URL('./holerites-landing-experience.ts',import.meta.url),'utf8');
+    expect(source).toContain("from 'motion'");
+    expect(source).toContain("from 'embla-carousel'");
+    expect(source).toContain('prefers-reduced-motion: reduce');
+    expect(source).toContain('umami');
+    expect(html).toContain('experience.bundle.js');
+    expect(html).not.toMatch(/https?:\/\/(?:cdn|unpkg|esm\.sh)/);
+  });
+});
