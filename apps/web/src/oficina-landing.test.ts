@@ -47,7 +47,7 @@ describe('Landing ArtiSys Oficina · rota isolada', () => {
   it('é mobile-first, sem dependência CDN, com movimento reduzido e observabilidade opcional', () => {
     expect(css()).toContain('prefers-reduced-motion: reduce');
     expect(css()).toContain(':focus-visible');
-    expect(css()).toContain('@media (max-width: 640px)');
+    expect(css()).toContain('@media (max-width:640px)');
     expect(js()).toContain('IntersectionObserver');
     expect(js()).toContain('scrollBy');
     expect(js()).toContain('prefers-reduced-motion');
