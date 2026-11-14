@@ -1,0 +1,75 @@
+name: Import actual ArtiSys Financeiro QA screenshots
+
+on:
+  push:
+    branches: [feat/artisys-finance-crm-real-screens-20261114]
+    paths: ['.github/workflows/import-artisys-finance-real-screens.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  capture-real-screens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install open-source Pillow for image optimization
+        run: python -m pip install --disable-pip-version-check "Pillow>=11,<13"
+      - name: Retrieve successful, original Windows Electron QA artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/artisys-finance-evidence
+          curl --retry 3 --retry-all-errors --fail --silent --show-error --location \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/artisys-finance-evidence.zip \
+            "https://api.github.com/repos/nutricionistaalmeidavh-spec/sistemafinanceiro/actions/artifacts/14096983862/zip"
+          unzip -q /tmp/artisys-finance-evidence.zip -d /tmp/artisys-finance-evidence
+          test -s /tmp/artisys-finance-evidence/qa-artifacts/final/screenshots/01-dashboard-final.png
+          test -s /tmp/artisys-finance-evidence/qa-artifacts/crm/screenshots/crm-comercial-funil-recebiveis.png
+          test -s /tmp/artisys-finance-evidence/qa-artifacts/crm/screenshots/crm-p2-relatorios.png
+      - name: Convert only approved, authentic screenshot captures to WebP
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          source=Path('/tmp/artisys-finance-evidence/qa-artifacts')
+          target=Path('apps/web/public/sistemas/artisys-finance/media')
+          target.mkdir(parents=True,exist_ok=True)
+          images={
+            'final/screenshots/01-dashboard-final.png':'dashboard-real.webp',
+            'final/screenshots/03-pagar-receber-final.png':'contas-real.webp',
+            'final/screenshots/04-dre-final.png':'dre-real.webp',
+            'crm/screenshots/crm-comercial-funil-recebiveis.png':'crm-funil-real.webp',
+            'crm/screenshots/crm-p2-agenda.png':'crm-agenda-real.webp',
+            'crm/screenshots/crm-p2-relatorios.png':'crm-indicadores-real.webp',
+          }
+          for name,dest in images.items():
+            origin=source / name
+            if not origin.is_file():raise FileNotFoundError(origin)
+            with Image.open(origin) as raw:
+              if raw.width < 950 or raw.height < 700:raise RuntimeError(f'Unexpected screenshot geometry: {origin}')
+              rgb=raw.convert('RGB')
+              rgb.thumbnail((1600,2400))
+              out=target/dest
+              rgb.save(out,format='WEBP',quality=85,method=6)
+              if out.stat().st_size < 5000:raise RuntimeError(f'Invalid screenshot file: {dest}')
+              print(f'{dest}: {rgb.width}x{rgb.height}, {out.stat().st_size} bytes')
+          PY
+      - name: Commit verified real media only to this feature branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/public/sistemas/artisys-finance/media/*.webp
+          if git diff --staged --quiet; then exit 0; fi
+          git commit -m "assets: import original Electron screenshots for ArtiSys Finance"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

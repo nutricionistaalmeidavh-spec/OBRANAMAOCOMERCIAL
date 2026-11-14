@@ -28,6 +28,19 @@ assert.match(pdvCss, /pdv-gallery-atlas\.avif/, 'gallery references uploaded ima
 assert.match(pdvCss, /@media\(max-width:650px\)/, 'mobile gallery stays compact');
 assert.match(pdvCss, /\.product-hero--pdv/, 'gallery affects PDV hero only');
 assert.doesNotMatch(pdvCss, /javascript:|url\(['"]?https?:/i, 'gallery must not load scripts or remote images');
+// Media provenance: files imported from the successful ArtiSys Financeiro Electron QA artifact.
+const financeMediaRoot = 'sistemas/artisys-finance/media/';
+for (const filename of [
+  'dashboard-real.webp', 'contas-real.webp', 'dre-real.webp',
+  'crm-funil-real.webp', 'crm-agenda-real.webp', 'crm-indicadores-real.webp',
+]) {
+  const imagePath = new URL(financeMediaRoot + filename, publicRoot);
+  assert.ok(existsSync(imagePath), 'Financeiro real screenshot missing: ' + filename);
+  const imageBytes = readFileSync(imagePath);
+  assert.ok(imageBytes.byteLength > 10000 && imageBytes.byteLength < 500000, 'Financeiro screenshot size invalid: ' + filename);
+  assert.equal(imageBytes.subarray(0, 4).toString(), 'RIFF', 'Financeiro screenshot must be a real WebP: ' + filename);
+  assert.equal(imageBytes.subarray(8, 12).toString(), 'WEBP', 'Financeiro screenshot must use WebP format: ' + filename);
+}
 const catalog = JSON.parse(readCatalog('products.json'));
 
 assert.equal(catalog.version, 3, 'catalog version must be 3 after presentation-mode rollout');
@@ -95,6 +108,18 @@ for (const product of catalog.products) {
     assert.match(page, /<script type="application\/ld\+json">/i);
     assert.match(page, /class="product-hero(?: product-hero--pdv)?"/i);
     assert.match(page, /data-product-cta/i);
+    if (product.slug === 'artisys-finance') {
+      assert.match(page, /href="\.\.\/artisys-finance-gallery\.css"/, 'Finance has a dedicated scoped stylesheet');
+      assert.match(page, /id="financeiro-em-acao"/, 'Finance includes real gallery');
+      assert.match(page, /id="finance-conversion-title"/, 'Finance explains confirmed CRM conversion');
+      assert.match(page, /crm-funil-real\.webp/, 'CRM Kanban screenshot');
+      assert.match(page, /crm-agenda-real\.webp/, 'CRM agenda screenshot');
+      assert.match(page, /crm-indicadores-real\.webp/, 'CRM indicators screenshot');
+      assert.match(page, /dashboard-real\.webp/, 'Finance dashboard screenshot');
+      assert.match(page, /dados de demonstração/, 'Honest QA screenshot labeling');
+      assert.equal((page.match(/class="finance-gallery-card(?: finance-gallery-card--wide)?"/g) || []).length, 5, 'Finance gallery has five real feature screens');
+      assert.doesNotMatch(page, /<script[^>]*src=|MutationObserver|createElement\(/i, 'Finance gallery is static and zero-mutation');
+    }
     if (product.slug === 'pdv-artisys') {
       assert.match(page, /class="product-hero product-hero--pdv"/, 'PDV receives compact editorial hero only');
       assert.match(page, /href="\.\.\/pdv-artisys-gallery\.css"/, 'PDV includes scoped gallery stylesheet');

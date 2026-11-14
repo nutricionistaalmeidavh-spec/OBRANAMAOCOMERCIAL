@@ -1,0 +1,88 @@
+name: Publish Financeiro landing with verified real screenshots once
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/finance-landing-publish-once.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/finance-landing-publish-once.yml'
+      - 'apps/web/scripts/generate-product-pages.mjs'
+      - 'apps/web/public/sistemas/products.json'
+      - 'apps/web/public/sistemas/artisys-finance-gallery.css'
+      - 'apps/web/public/sistemas/artisys-finance/media/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Verify original QA media and canonical checkout invariants
+        run: npm run catalog:verify
+      - name: Build landing and system portal
+        run: npm run build
+      - name: Worker compilation without live changes
+        run: npx wrangler deploy --dry-run --config wrangler.ci.jsonc
+
+  publish-once:
+    needs: validate
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[finance-landing-publish-once]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require existing Cloudflare deployment credentials
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare deployment credentials unavailable; no production change performed."
+            exit 1
+          fi
+      - run: npm ci --no-audit --no-fund
+      - name: Verify and deploy static landing, without D1 migrations or secret edits
+        run: npm run worker:deploy
+      - name: Verify Financeiro CRM landing and authentic image are live
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          let failure;
+          for(let attempt=1;attempt<=12;attempt++){
+            try{
+              const page=await fetch('https://artisys.dev/sistemas/artisys-finance/',{cache:'no-store',signal:AbortSignal.timeout(15000)});
+              assert.equal(page.status,200);
+              const html=await page.text();
+              assert.match(html,/id="financeiro-em-acao"/);
+              assert.match(html,/id="finance-conversion-title"/);
+              assert.match(html,/crm-funil-real\.webp/);
+              const image=await fetch('https://artisys.dev/sistemas/artisys-finance/media/crm-funil-real.webp',{cache:'no-store',signal:AbortSignal.timeout(15000)});
+              assert.equal(image.status,200);
+              assert.match(image.headers.get('content-type')||'',/image\/webp/);
+              console.log('Published Financeiro with real CRM and canonical conversion evidence');
+              process.exit(0);
+            }catch(e){failure=e;console.warn('Live retry '+attempt+'/12:',e.message);if(attempt<12)await new Promise(r=>setTimeout(r,5000));}
+          }
+          throw failure;
+          JS
