@@ -88,6 +88,8 @@ try {
     assert.deepEqual(exceptions, [], 'browser JS errors at ' + width + 'px');
     if (width === 1440) {
       await page.locator('#telas').scrollIntoViewIfNeeded();
+      await page.locator('#galeria').evaluate(el => el.scrollTo({ left: 0, behavior: 'instant' }));
+      await page.waitForTimeout(130);
       const before = await page.locator('#galeria').evaluate(el => el.scrollLeft);
       await page.locator('#galeria-proxima').click();
       await page.waitForTimeout(220);
