@@ -105,6 +105,24 @@ export const artisysSeoConfig = defineSeoConfig({
       }]
     },
     {
+      path: '/oficina',
+      canonical: 'https://artisys.dev/oficina/',
+      title: 'ArtiSys Oficina | Gestão de ordens, estoque e vendas no Windows',
+      description: 'Organize ordens de serviço, clientes, veículos, estoque de peças, vendas e relatórios no ArtiSys Oficina. Conheça as telas reais do sistema.',
+      schemaType: 'WebPage',
+      changeFrequency: 'weekly',
+      priority: 0.84,
+      jsonLd: [{
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        name: 'ArtiSys Oficina',
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Windows',
+        url: 'https://artisys.dev/oficina/',
+        provider: { '@id': 'https://artisys.dev/#organization' }
+      }]
+    },
+    {
       path: '/wppprospector',
       canonical: 'https://artisys.dev/wppprospector/',
       title: 'CRM ArtiSys WppProspector | Leads, vendas e WhatsApp no mesmo lugar',
