@@ -80,7 +80,7 @@ describe('P2/P3 safe static overlay', () => {
       writeFileSync(join(website,'sistemas/index.html'), 'OLD CATALOG');
       writeFileSync(join(website,'api/health'), 'KEEP API');
       writeFileSync(join(website,'oficina/index.html'), 'KEEP OFICINA');
-      writeFileSync(join(astro,'index.html'), '<!doctype html><html data-artisys-marketing="p2-p3"><head><link rel="canonical" href="https://artisys.dev/sistemas/"></head><body><h1>Vitrine</h1></body></html>');
+      writeFileSync(join(astro,'index.html'), '<!doctype html><html data-artisys-marketing="p2-p3"><head><link rel="canonical" href="https://artisys.dev/sistemas/"></head><body><h1>Vitrine</h1><article data-catalog-item>Produto</article></body></html>');
       writeFileSync(join(astro,'_artisys-marketing/index.css'), 'body{color:purple}');
       const result = overlayMarketingAssets({productionDir:website,astroDir:astro});
       expect(result.assets).toBe(1);
