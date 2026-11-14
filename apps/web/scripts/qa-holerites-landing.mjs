@@ -37,7 +37,7 @@ try{
   for(let i=0;i<await images.count();i++){
    await images.nth(i).scrollIntoViewIfNeeded();
    await images.nth(i).evaluate(el=>new Promise((resolve,reject)=>{
-    if(el.complete && el.naturalWidth>0){resolve(true);return}
+    if(el.complete){if(el.naturalWidth>0)resolve(true);else reject(new Error('Imagem inválida: '+el.src));return}
     el.addEventListener('load',()=>resolve(true),{once:true});
     el.addEventListener('error',()=>reject(new Error('Imagem não carregou: '+el.src)),{once:true});
    }));
