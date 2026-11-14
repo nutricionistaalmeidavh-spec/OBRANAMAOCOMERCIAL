@@ -1,0 +1,66 @@
+---
+interface Media { src:string;alt:string;caption?:string; }
+interface Product { slug:string;name:string;href:string;media?:{gallery?:Media[]}; }
+interface Props { products:Product[]; }
+const {products}=Astro.props;
+const screens=products.flatMap(product=>(product.media?.gallery || []).map(media=>({
+  ...media,productName:product.name,href:product.href
+})));
+---
+{screens.length>0 &&
+<section class="as-gallery" id="telas-reais" aria-labelledby="as-gallery-title">
+  <div class="as-container">
+    <div class="as-gallery-head" data-as-reveal>
+      <div><p class="as-eyebrow">Por dentro do sistema</p><h2 id="as-gallery-title" class="as-section-title">Veja os sistemas em ação.</h2>
+      <p class="as-section-description">Capturas reais utilizadas nas demonstrações dos produtos, com dados de exemplo. Arraste para conhecer as funcionalidades.</p></div>
+      <div class="as-gallery-controls" data-embla-controls>
+        <button type="button" data-embla-prev aria-label="Imagem anterior">←</button>
+        <span data-embla-progress aria-live="polite">1 de {screens.length}</span>
+        <button type="button" data-embla-next aria-label="Próxima imagem">→</button>
+      </div>
+    </div>
+    <div class="as-embla" data-embla aria-roledescription="carrossel" aria-label="Galeria de capturas reais dos sistemas">
+      <div class="as-embla-viewport" data-embla-viewport tabindex="0">
+        <div class="as-embla-container">
+          {screens.map((screen,index)=>
+            <article class="as-embla-slide" role="group" aria-roledescription="slide" aria-label={String(index+1)+' de '+String(screens.length)}>
+              <figure class="as-gallery-figure">
+                <div class="as-gallery-topbar" aria-hidden="true"><span></span><span></span><span></span></div>
+                <img src={screen.src} alt={screen.alt} width="1440" height="900" loading="lazy" decoding="async"/>
+                <figcaption>
+                  <div><strong>{screen.productName}</strong><span>{screen.caption || 'Captura real'}</span></div>
+                  <a href={screen.href}>Conhecer sistema <span aria-hidden="true">↗</span></a>
+                </figcaption>
+              </figure>
+            </article>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>}
+<style>
+  .as-gallery{padding:70px 0 100px;border-top:1px solid var(--as-border);border-bottom:1px solid var(--as-border);background:linear-gradient(180deg,#100a21 0%,#0b0719 100%)}
+  .as-gallery-head{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:27px}
+  .as-gallery-head>.as-gallery-controls{flex:none}
+  .as-gallery-controls{display:flex;align-items:center;gap:13px;color:var(--as-muted)}
+  .as-gallery-controls button{width:44px;height:44px;border-radius:50%;border:1px solid var(--as-border-strong);color:var(--as-text);background:#241636;cursor:pointer;font-size:1.2rem}
+  .as-gallery-controls button:not(:disabled):hover{background:#51307c}
+  .as-gallery-controls button:disabled{opacity:.4;cursor:not-allowed}
+  .as-gallery-controls span{font-size:.81rem;min-width:58px;text-align:center}
+  .as-embla{min-width:0;overflow:hidden}
+  .as-embla-viewport{overflow:hidden;outline-offset:4px}
+  .as-embla-container{display:flex;gap:18px;touch-action:pan-y pinch-zoom}
+  .as-embla-slide{flex:0 0 min(74%,830px);min-width:0}
+  .as-gallery-figure{margin:0;border-radius:var(--as-radius-lg);border:1px solid var(--as-border-strong);background:var(--as-surface);overflow:hidden}
+  .as-gallery-topbar{height:32px;background:#1d1232;display:flex;align-items:center;gap:6px;padding:0 12px}
+  .as-gallery-topbar span{width:7px;height:7px;border-radius:50%;background:#805da2}
+  .as-gallery-figure img{width:100%;aspect-ratio:16/10;display:block;object-fit:contain;background:#090617}
+  figcaption{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px}
+  figcaption div{display:grid;gap:3px}
+  figcaption strong{font-size:.97rem}
+  figcaption span{font-size:.84rem;color:var(--as-muted)}
+  figcaption a{font-size:.86rem;color:#e3c3ff;text-decoration:underline;text-underline-offset:4px;white-space:nowrap}
+  @media(max-width:760px){.as-gallery-head{align-items:start;flex-direction:column}.as-embla-slide{flex-basis:90%}.as-gallery{padding:55px 0 75px}figcaption{align-items:start;flex-direction:column}}
+  @media(max-width:480px){.as-embla-slide{flex-basis:96%}}
+</style>

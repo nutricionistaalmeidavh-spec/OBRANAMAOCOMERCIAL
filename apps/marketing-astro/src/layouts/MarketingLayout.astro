@@ -1,5 +1,5 @@
 ---
-import 'astro-component-kit/global.css';
+// Kit components are imported individually: no Google Fonts or remote global CSS.
 import '../styles/tokens.css';
 interface Props {
   title: string;
@@ -10,7 +10,7 @@ interface Props {
 const { title, description, canonical='https://artisys.dev/sistemas/', preview=true } = Astro.props;
 ---
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-artisys-marketing={preview ? 'preview' : 'p2-p3'}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -23,33 +23,39 @@ const { title, description, canonical='https://artisys.dev/sistemas/', preview=t
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="pt_BR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/png" href="/icons/artisys-favicon-32.png" />
     <title>{title}</title>
   </head>
   <body>
     <a class="as-skip" href="#conteudo">Pular para o conteúdo</a>
     <header class="as-header">
       <div class="as-container as-header-inner">
-        <a class="as-brand" href="https://artisys.dev/" aria-label="ArtiSys, início">ARTISYS<span aria-hidden="true">.</span></a>
+        <a class="as-brand" href="/" aria-label="ArtiSys, início">
+          <img src="/artisys-logo.svg" width="130" height="44" alt="ArtiSys" />
+        </a>
         <nav aria-label="Navegação comercial">
-          <a href="https://artisys.dev/sistemas/">Todos os sistemas</a>
-          <a href="https://artisys.dev/links/">Links</a>
+          <a href="#catalogo">Sistemas</a>
+          <a href="#telas-reais">Telas reais</a>
+          <a href="/links/">Links</a>
         </nav>
       </div>
     </header>
     <main id="conteudo"><slot /></main>
-    <footer class="as-footer"><div class="as-container"><span>ArtiSys · Sistema e tecnologia para operações reais</span><a href="https://artisys.dev/">Página inicial</a></div></footer>
+    <footer class="as-footer"><div class="as-container"><span>© 2026 ArtiSys · Sistemas reais para operações reais</span><a href="/">Página inicial</a></div></footer>
   </body>
 </html>
 <style>
   .as-skip{position:absolute;left:16px;top:-90px;background:white;color:#17102b;padding:12px;border-radius:10px;z-index:100}
   .as-skip:focus{top:12px}
-  .as-header{border-bottom:1px solid var(--as-border);background:rgba(8,6,19,.95)}
+  .as-header{position:relative;z-index:20;border-bottom:1px solid var(--as-border);background:rgba(8,6,19,.96)}
   .as-header-inner{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}
-  .as-brand{font-size:1.35rem;font-weight:850;letter-spacing:.08em}
-  .as-brand span{color:var(--as-purple)}
+  .as-brand{display:inline-flex;align-items:center}
+  .as-brand img{object-fit:contain;display:block;width:130px;height:auto}
   nav{display:flex;gap:24px;align-items:center;font-size:.9rem;color:var(--as-muted)}
   nav a:hover{color:var(--as-text)}
   .as-footer{border-top:1px solid var(--as-border);padding:30px 0;color:var(--as-muted);font-size:.86rem}
   .as-footer>div{display:flex;justify-content:space-between;gap:14px}
-  @media(max-width:550px){nav{gap:10px;font-size:.76rem}.as-header-inner{min-height:66px}.as-footer>div{flex-direction:column}}
+  @media(max-width:550px){nav{gap:12px;font-size:.76rem}.as-header-inner{min-height:66px}.as-brand img{width:98px}.as-footer>div{flex-direction:column}}
 </style>

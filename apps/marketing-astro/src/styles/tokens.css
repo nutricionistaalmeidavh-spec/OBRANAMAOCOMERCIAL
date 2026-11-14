@@ -29,7 +29,7 @@
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;min-width:320px;background:var(--as-bg);color:var(--as-text);font-family:Outfit,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;min-width:320px;background:var(--as-bg);color:var(--as-text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
 button,input{font:inherit}
 :where(a,button,input,summary):focus-visible{outline:3px solid #d8b8ff;outline-offset:4px}

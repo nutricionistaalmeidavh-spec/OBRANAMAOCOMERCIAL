@@ -2,31 +2,60 @@
 import ArtiSysProductCard from './ArtiSysProductCard.astro';
 interface Product {
   slug:string; name:string; category:string; summary:string; href:string;
-  priceLabel?:string; featured?:boolean;
+  priceLabel?:string; featured?:boolean; media?:{cover?:{src:string;alt:string}};
 }
 interface Props { products:Product[]; title?:string; description?:string; }
 const {products,title='Sistemas ArtiSys',description='Explore cada produto em sua página oficial.'} = Astro.props;
-const screenshots:Record<string,string> = {
-  wppprospector:'https://artisys.dev/wppprospector/media/kanban-real.webp',
-  'artisys-finance':'https://artisys.dev/sistemas/artisys-finance/media/dashboard-real.webp',
-  'gestao-holerites':'https://artisys.dev/gest%C3%A3oholerites/media/holerites-dashboard-real.webp',
-  oficina:'https://artisys.dev/oficina/media/dashboard.webp'
-};
+const categories = [...new Set(products.map(product => product.category))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
 ---
 <section class="as-container as-catalog" id="catalogo" aria-labelledby="as-catalog-title">
-  <div class="as-catalog-head">
-    <p class="as-eyebrow">Catálogo oficial</p>
+  <div class="as-catalog-head" data-as-reveal>
+    <p class="as-eyebrow">Vitrine digital</p>
     <h2 class="as-section-title" id="as-catalog-title">{title}</h2>
     <p class="as-section-description">{description}</p>
   </div>
-  <div class="as-grid">
-    {products.map(product => <ArtiSysProductCard name={product.name} category={product.category} summary={product.summary} href={product.href} price={product.priceLabel} image={screenshots[product.slug]} featured={product.featured} />)}
+  <div class="as-catalog-tools">
+    <div class="as-search-wrap">
+      <label for="catalog-search">Buscar um sistema</label>
+      <input id="catalog-search" type="search" autocomplete="off" placeholder="Ex.: CRM, PDV, holerite, obra..." />
+    </div>
+    <div class="as-filters" role="group" aria-label="Filtrar sistemas por categoria">
+      <button type="button" class="as-filter" data-catalog-filter data-value="Todos" aria-pressed="true">Todos</button>
+      {categories.map(category => <button type="button" class="as-filter" data-catalog-filter data-value={category} aria-pressed="false">{category}</button>)}
+    </div>
   </div>
+  <div class="as-results"><output id="catalog-count" aria-live="polite">{products.length} sistemas</output></div>
+  <div class="as-grid" data-catalog-grid>
+    {products.map(product =>
+      <ArtiSysProductCard slug={product.slug} name={product.name} category={product.category} summary={product.summary}
+        href={product.href} price={product.priceLabel} image={product.media?.cover?.src} imageAlt={product.media?.cover?.alt} featured={product.featured}/>
+    )}
+  </div>
+  <div id="catalog-empty" class="as-empty" hidden>
+    <h3>Nenhum sistema encontrado.</h3>
+    <p>Tente outro termo ou volte ao filtro “Todos”.</p>
+  </div>
+  <p class="as-marketplace-note">Outros produtos homologados podem ser encontrados na <a href="/sistemas/agro/">coleção Agro</a> e na <a href="https://www.mercadolivre.com.br/pagina/artisys" rel="noopener noreferrer" target="_blank">loja oficial ArtiSys</a>. </p>
 </section>
 <style>
-  .as-catalog{padding:50px 0 90px}
-  .as-catalog-head{margin-bottom:32px}
+  .as-catalog{padding:45px 0 90px}
+  .as-catalog-head{margin-bottom:28px}
+  .as-catalog-tools{padding:22px 0;display:flex;flex-wrap:wrap;gap:20px;align-items:end;justify-content:space-between;border-top:1px solid var(--as-border);border-bottom:1px solid var(--as-border)}
+  .as-search-wrap{display:grid;gap:9px;flex:0 1 345px;min-width:min(100%,250px)}
+  label{font-weight:650;color:var(--as-muted);font-size:.8rem}
+  input{width:100%;min-height:48px;padding:12px 15px;border:1px solid var(--as-border-strong);border-radius:var(--as-radius-sm);background:#120d24;color:var(--as-text);outline-offset:3px}
+  input::placeholder{color:#b1a3c7}
+  .as-filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex:1;justify-content:flex-end}
+  .as-filter{border:1px solid var(--as-border);background:var(--as-surface);color:var(--as-muted);border-radius:999px;padding:10px 14px;min-height:40px;font-weight:680;cursor:pointer;transition:background-color .2s,border-color .2s,color .2s}
+  .as-filter:hover,.as-filter[aria-pressed="true"]{background:#3a205b;border-color:var(--as-purple);color:var(--as-text)}
+  .as-results{margin:20px 0;font-size:.84rem;color:var(--as-muted)}
   .as-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
-  @media(max-width:1000px){.as-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media(max-width:650px){.as-grid{grid-template-columns:1fr}}
+  .as-empty{border:1px dashed var(--as-border-strong);text-align:center;border-radius:var(--as-radius-md);padding:40px 20px;margin-top:20px}
+  .as-empty h3{margin:0 0 .5rem}
+  .as-empty p{margin:0;color:var(--as-muted)}
+  .as-marketplace-note{font-size:.83rem;color:var(--as-muted-soft);line-height:1.6;margin-top:28px}
+  .as-marketplace-note a{color:#e0bbff;text-decoration:underline;text-underline-offset:3px}
+  [hidden]{display:none!important}
+  @media(max-width:1050px){.as-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.as-catalog-tools{align-items:stretch}.as-filters{justify-content:flex-start}}
+  @media(max-width:650px){.as-grid{grid-template-columns:1fr}.as-search-wrap{flex-basis:100%;min-width:0}.as-filter{padding:8px 11px}}
 </style>

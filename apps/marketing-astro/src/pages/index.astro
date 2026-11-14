@@ -3,13 +3,60 @@ import MarketingLayout from '../layouts/MarketingLayout.astro';
 import ArtiSysHero from '../components/ArtiSysHero.astro';
 import ArtiSysBento from '../components/ArtiSysBento.astro';
 import ArtiSysProductGrid from '../components/ArtiSysProductGrid.astro';
+import ArtiSysScreenshotGallery from '../components/ArtiSysScreenshotGallery.astro';
 import ArtiSysCTA from '../components/ArtiSysCTA.astro';
-import { listPrimaryLandingProducts } from '../data/catalog.mjs';
-const products = listPrimaryLandingProducts();
+import { listPrimaryLandingProducts, loadCanonicalCatalog, canonicalLandingUrl } from '../data/catalog.mjs';
+
+const mainProducts = listPrimaryLandingProducts();
+const extraProducts = loadCanonicalCatalog().products
+  .filter(product => product.slug === 'consultora-amamentacao')
+  .map(product => ({...product,href:canonicalLandingUrl(product)}));
+const products = [...mainProducts, ...extraProducts];
+const heroMedia = mainProducts.find(product => product.slug === 'wppprospector')?.media?.hero;
+const itemList = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Sistemas ArtiSys',
+  url: 'https://artisys.dev/sistemas/',
+  description: 'Conheça os sistemas ArtiSys para empresas, comércio, construção, RH, CRM, saúde e financeiro.',
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListElement: products.map((product, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: product.name,
+      url: product.href
+    }))
+  }
+};
 ---
-<MarketingLayout title="ArtiSys Design System · Prévia P0/P1" description="Prévia isolada dos componentes comerciais ArtiSys. Não é a vitrine publicada." preview={true}>
-  <ArtiSysHero eyebrow="Prévia de componentes · P0/P1" title="Tecnologia para a operação real." description="Catálogo e componentes visuais ArtiSys com código aberto, HTML estático e links oficiais de cada sistema." primaryLabel="Explorar sistemas" primaryHref="#catalogo" secondaryLabel="Site atual" secondaryHref="https://artisys.dev/sistemas/" screenshotSrc="https://artisys.dev/wppprospector/media/hero-showcase-real.webp" screenshotAlt="Captura real do CRM WppProspector" />
-  <ArtiSysBento />
-  <ArtiSysProductGrid products={products} title="Explore o ecossistema ArtiSys." description="Os dados e links abaixo vêm do único products.json do site principal." />
-  <ArtiSysCTA title="Encontre o sistema para sua empresa." description="Consulte as páginas individuais com funcionalidades, telas e condições comerciais." href="https://artisys.dev/sistemas/" label="Visitar catálogo atual" />
+<MarketingLayout
+  title="Sistemas ArtiSys | Softwares para empresas"
+  description="Conheça os sistemas ArtiSys para comércio, construção, CRM, RH, saúde e financeiro. Veja telas reais e acesse a página de cada produto."
+  canonical="https://artisys.dev/sistemas/"
+  preview={false}>
+  <script type="application/ld+json" set:html={JSON.stringify(itemList)} />
+  <ArtiSysHero
+    eyebrow="Softwares ArtiSys · Vitrine oficial"
+    title="O sistema certo para quem faz acontecer."
+    description="Conheça nossos softwares em telas reais. Explore por área, compare funcionalidades e encontre a solução para sua operação."
+    primaryLabel="Explorar sistemas"
+    primaryHref="#catalogo"
+    secondaryLabel="Ver telas reais"
+    secondaryHref="#telas-reais"
+    screenshotSrc={heroMedia?.src}
+    screenshotAlt={heroMedia?.alt}
+  />
+  <ArtiSysProductGrid products={products} title="Encontre a solução ideal." description="Cada produto possui sua própria apresentação, funcionalidades e condições comerciais. Escolha por segmento ou encontre pelo nome." />
+  <ArtiSysScreenshotGallery products={mainProducts} />
+  <ArtiSysBento title="Experiência clara. Sistemas reais." />
+  <ArtiSysCTA
+    title="Precisa de uma solução para sua rotina?"
+    description="Conheça os produtos e converse com a ArtiSys sobre o que sua empresa precisa. Sem cadastro obrigatório para explorar o catálogo."
+    href="/#contato"
+    label="Conversar sobre meu projeto"
+  />
+  <script>
+    import '../scripts/marketing-interactions.ts';
+  </script>
 </MarketingLayout>

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm run catalog:generate && vite",
-    "build": "node scripts/write-build-meta.mjs && npm run catalog:verify && npm run seo:generate && node scripts/verify-canonical-collections.mjs && npm run seo:verify && npm run assets:verify && node scripts/verify-guia.mjs && npm run wpp:build && npm run wpp:verify && vite build",
+    "build": "node scripts/write-build-meta.mjs && npm run catalog:verify && npm run seo:generate && node scripts/verify-canonical-collections.mjs && npm run seo:verify && npm run assets:verify && node scripts/verify-guia.mjs && npm run wpp:build && npm run wpp:verify && vite build && node scripts/build-marketing.mjs && node scripts/verify-marketing-build.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "catalog:generate": "node scripts/run-generate-product-pages.mjs",
@@ -38,7 +38,10 @@
     "qa:collaborator-onboarding:e2e": "npm run qa:prepare:core && node scripts/qa-collaborator-onboarding-e2e.mjs",
     "qa:owner:responsive": "npm run qa:prepare:core && node scripts/qa-owner-transactional.mjs",
     "wpp:build": "vite build --config vite.wppprospector.config.ts",
-    "wpp:verify": "node scripts/verify-wppprospector-experience.mjs"
+    "wpp:verify": "node scripts/verify-wppprospector-experience.mjs",
+    "marketing:build": "node scripts/build-marketing.mjs",
+    "marketing:verify": "node scripts/verify-marketing-build.mjs",
+    "qa:marketing": "node scripts/qa-marketing-vitrine.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.5.0",
