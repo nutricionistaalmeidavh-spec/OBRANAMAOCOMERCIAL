@@ -58,7 +58,12 @@ assert.match(crmHtml, /"@type":"SoftwareApplication"/, 'CRM exige schema Softwar
 const crmMotion = read('public/wppprospector/motion.js');
 assert.match(crmHtml, /Captura real do sistema · QA Playwright/, 'prints devem identificar a origem real e dados fictícios');
 assert.doesNotMatch(crmHtml, /Apresentação visual ilustrativa|mini-lead|preview-board/, 'remover painel fictício anterior');
-assert.match(crmHtml, /WhatsApp e IA só se você quiser/, 'integrações continuam opcionais');
+assert.match(crmHtml, /WhatsApp e IA opcionais/, 'integrações continuam opcionais');
+assert.match(crmHtml, /class="laptop-device"/, 'hero deve exibir notebook com captura real');
+assert.match(crmHtml, /class="phone-device"/, 'hero deve exibir celular com captura real');
+assert.match(crmHtml, /class="stage-card stage-card-leads"/, 'composição deve usar interface real como cartão');
+assert.match(crmHtml, /class="stage-card stage-card-pipeline"/, 'composição deve mostrar funil real');
+assert.doesNotMatch(crmHtml, /systemshifthq|picsum\.photos/i, 'não permitir screenshots de terceiros ou imagens genéricas');
 assert.match(crmHtml, /Baileys: open source e não oficial/, 'declarar que Baileys não é API oficial');
 assert.match(crmHtml, /custos externos/, 'a Meta pode ter cobrança adicional');
 assert.match(crmHtml, /não sincronizam dados automaticamente/, 'não anunciar sincronização de bancos locais');
@@ -73,9 +78,11 @@ for (const filename of ['painel-real.webp','kanban-real.webp','leads-real.webp',
   assert.equal(image.toString('ascii', 8, 12), 'WEBP', `imagem WebP inválida: ${filename}`);
   assert.ok(crmHtml.includes(`/wppprospector/media/${filename}`), `imagem não utilizada na landing: ${filename}`);
 }
-assert.ok(crmHtml.length < 13000, 'evitar retorno ao excesso de texto da primeira landing');
+assert.ok(crmHtml.length < 14500, 'evitar retorno ao excesso de blocos da primeira landing');
+assert.doesNotMatch(crmHtml, /class="proof shell"/, 'benefícios duplicados devem ter sido removidos');
 assert.match(crmCss, /prefers-reduced-motion/, 'respeitar acessibilidade de movimento');
 assert.match(crmMotion, /IntersectionObserver/, 'efeitos devem carregar de forma progressiva');
+assert.match(crmMotion, /data-stage-layer/, 'animação de entrada deve usar a composição real do hero');
 assert.match(crmMotion, /prefers-reduced-motion/, 'movimento deve ser opcional');
 
 assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/devkits\/<\/loc>/, 'página DevKit deve estar no sitemap');
