@@ -70,6 +70,9 @@ for (const dependency of [
 ]) assert.ok(financePackage.dependencies[dependency], 'missing zero-cost open-source dependency ' + dependency);
 
 const financeDesignCss = readCatalog('artisys-finance-gallery.css');
+const financeIslandCss = readCatalog('artisys-finance-island.css');
+assert.match(financeIslandCss, /\.finance-embla-viewport/, 'actual Embla viewport is styled locally');
+assert.match(financeIslandCss, /prefers-reduced-motion:reduce/, 'carousel honors reduced motion');
 const financeDesignJs = readCatalog('artisys-finance-motion.js');
 assert.match(financeDesignCss, /\.finance-page \.product-hero/, 'hero styles are product-scoped');
 assert.match(financeDesignCss, /--finance-night:var\(--bg\)/, 'Financeiro inherits brand night token');
