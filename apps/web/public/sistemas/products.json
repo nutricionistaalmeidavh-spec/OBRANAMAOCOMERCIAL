@@ -330,6 +330,129 @@
         "title": "NutriDesk | Sistema desktop para nutricionistas",
         "description": "Organize prontuário, avaliações, exames, planos alimentares, documentos e acompanhamento clínico com o NutriDesk."
       }
+    },
+    {
+      "slug": "wppprospector",
+      "name": "WppProspector",
+      "category": "CRM",
+      "type": "desktop",
+      "status": "available",
+      "pageMode": "external",
+      "externalHref": "/wppprospector/",
+      "priceLabel": "Consulte a landing page",
+      "summary": "CRM para organizar leads, oportunidades, funil de vendas e conversas com conexão opcional ao WhatsApp.",
+      "audience": "Equipes comerciais e pequenos negócios que querem centralizar contatos e oportunidades.",
+      "features": [
+        "Leads e pipeline Kanban",
+        "Cadastro e organização de contatos",
+        "Conversas e integrações opcionais com WhatsApp",
+        "Acompanhamento de oportunidades"
+      ],
+      "benefits": [
+        "Visualize oportunidades por etapa",
+        "Conecte conversas ao atendimento quando desejar",
+        "Mantenha o processo comercial organizado"
+      ],
+      "steps": [
+        "Conheça as telas reais na landing",
+        "Confira as formas de conexão disponíveis",
+        "Escolha a configuração adequada ao seu negócio"
+      ],
+      "faq": [
+        {
+          "question": "O WhatsApp é obrigatório?",
+          "answer": "Não. A conexão é opcional, conforme a modalidade apresentada na landing."
+        }
+      ],
+      "featured": true,
+      "ctaLabel": "Conhecer WppProspector",
+      "ctaHref": "/wppprospector/",
+      "seo": {
+        "title": "CRM ArtiSys WppProspector | Leads, vendas e WhatsApp",
+        "description": "Organize leads, pipeline e conversas com o CRM WppProspector; conexão ao WhatsApp opcional."
+      }
+    },
+    {
+      "slug": "gestao-holerites",
+      "name": "ArtiSys Holerites",
+      "category": "RH",
+      "type": "desktop",
+      "status": "available",
+      "pageMode": "external",
+      "externalHref": "/gest%C3%A3oholerites/",
+      "priceLabel": "Consulte a landing page",
+      "summary": "Emissão de holerites, férias, 13º e rescisões com recibos em PDF para Windows.",
+      "audience": "Empresas e profissionais administrativos que precisam organizar e conferir documentos de folha.",
+      "features": [
+        "Cadastro de funcionários",
+        "Holerites mensais e recibos PDF A4",
+        "Cálculos de férias e 13º",
+        "Fluxos de rescisão e histórico"
+      ],
+      "benefits": [
+        "Centralize informações do colaborador",
+        "Gere PDFs próprios para conferência e impressão",
+        "Organize os documentos de cada competência"
+      ],
+      "steps": [
+        "Conheça a demonstração real",
+        "Confira os recursos de folha e recibos",
+        "Veja as condições na página do produto"
+      ],
+      "faq": [
+        {
+          "question": "Funciona em Windows?",
+          "answer": "Sim. A landing descreve uma aplicação desktop offline para Windows."
+        }
+      ],
+      "featured": true,
+      "ctaLabel": "Conhecer ArtiSys Holerites",
+      "ctaHref": "/gest%C3%A3oholerites/",
+      "seo": {
+        "title": "ArtiSys Holerites | Gestão de folha e PDFs",
+        "description": "Sistema para Windows com holerites, férias, décimo terceiro, rescisão e recibos em PDF."
+      }
+    },
+    {
+      "slug": "oficina",
+      "name": "ArtiSys Oficina",
+      "category": "Oficina",
+      "type": "desktop",
+      "status": "available",
+      "pageMode": "external",
+      "externalHref": "/oficina/",
+      "priceLabel": "Consulte a landing page",
+      "summary": "Gestão de ordens de serviço, clientes, veículos, estoque de peças, vendas e relatórios para oficinas.",
+      "audience": "Oficinas e equipes de manutenção que precisam organizar entradas, serviços e entregas.",
+      "features": [
+        "Ordens de serviço e histórico",
+        "Cadastro de clientes e veículos",
+        "Peças e estoque",
+        "Vendas e relatórios"
+      ],
+      "benefits": [
+        "Acompanhe a execução de serviços",
+        "Relaciona peças e vendas à operação",
+        "Centraliza a rotina de oficina"
+      ],
+      "steps": [
+        "Veja o sistema em screenshots reais",
+        "Avalie os recursos da sua oficina",
+        "Confira a oferta e as instruções na landing"
+      ],
+      "faq": [
+        {
+          "question": "A página é do antigo produto Oficina Agrícola?",
+          "answer": "Não. Esta é a landing atual ArtiSys Oficina. O anúncio antigo Oficina Agrícola não integra este catálogo."
+        }
+      ],
+      "featured": false,
+      "ctaLabel": "Conhecer ArtiSys Oficina",
+      "ctaHref": "/oficina/",
+      "seo": {
+        "title": "ArtiSys Oficina | Gestão de ordens, estoque e vendas",
+        "description": "Organize ordens de serviço, estoque, clientes e vendas com o ArtiSys Oficina para Windows."
+      }
     }
   ]
 }

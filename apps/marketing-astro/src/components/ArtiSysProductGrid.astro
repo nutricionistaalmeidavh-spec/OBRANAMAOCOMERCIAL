@@ -1,0 +1,32 @@
+---
+import ArtiSysProductCard from './ArtiSysProductCard.astro';
+interface Product {
+  slug:string; name:string; category:string; summary:string; href:string;
+  priceLabel?:string; featured?:boolean;
+}
+interface Props { products:Product[]; title?:string; description?:string; }
+const {products,title='Sistemas ArtiSys',description='Explore cada produto em sua página oficial.'} = Astro.props;
+const screenshots:Record<string,string> = {
+  wppprospector:'https://artisys.dev/wppprospector/media/kanban-real.webp',
+  'artisys-finance':'https://artisys.dev/sistemas/artisys-finance/media/dashboard-real.webp',
+  'gestao-holerites':'https://artisys.dev/gest%C3%A3oholerites/media/holerites-dashboard-real.webp',
+  oficina:'https://artisys.dev/oficina/media/dashboard.webp'
+};
+---
+<section class="as-container as-catalog" id="catalogo" aria-labelledby="as-catalog-title">
+  <div class="as-catalog-head">
+    <p class="as-eyebrow">Catálogo oficial</p>
+    <h2 class="as-section-title" id="as-catalog-title">{title}</h2>
+    <p class="as-section-description">{description}</p>
+  </div>
+  <div class="as-grid">
+    {products.map(product => <ArtiSysProductCard name={product.name} category={product.category} summary={product.summary} href={product.href} price={product.priceLabel} image={screenshots[product.slug]} featured={product.featured} />)}
+  </div>
+</section>
+<style>
+  .as-catalog{padding:50px 0 90px}
+  .as-catalog-head{margin-bottom:32px}
+  .as-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  @media(max-width:1000px){.as-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:650px){.as-grid{grid-template-columns:1fr}}
+</style>

@@ -90,7 +90,7 @@ assert.doesNotMatch(financeDesignJs, /https?:\/\/|MutationObserver|fetch\(/, 'no
 const catalog = JSON.parse(readCatalog('products.json'));
 
 assert.equal(catalog.version, 3, 'catalog version must be 3 after presentation-mode rollout');
-assert.equal(catalog.products.length, 6, 'only six linked systems must remain in the public catalog');
+assert.equal(catalog.products.length, 9, 'the six existing items and three dedicated landing destinations must be present');
 assert.equal(catalog.collections.length, 1, 'only Agro collection is approved for this rollout');
 assert.equal(catalog.collections[0].slug, 'agro');
 
@@ -119,6 +119,20 @@ const excluded = ['compatibiliza-bim', 'wpp-prospector', 'republica'];
 for (const slug of excluded) assert.ok(!catalog.products.some((product) => product.slug === slug), `${slug} must stay out of the catalog`);
 
 const allowedTypes = new Set(['desktop', 'web', 'saas']);
+const legacyId = 'MLB7417818080';
+assert.ok(!catalog.products.some(p => p.slug === 'oficina-agricola' || p.marketplaceItemId === legacyId), 'legacy Oficina Agrícola must never reappear as canonical');
+for (const [slug, href] of Object.entries({
+  'wppprospector': '/wppprospector/',
+  'gestao-holerites': '/gest%C3%A3oholerites/',
+  'oficina': '/oficina/'
+})) {
+  const product = catalog.products.find(p => p.slug === slug);
+  assert.ok(product, `missing linked landing page: ${slug}`);
+  assert.equal(product.pageMode, 'external');
+  assert.equal(product.externalHref, href);
+  assert.ok(existsSync(new URL(href.endsWith('/') ? href.slice(1) + 'index.html' : href.slice(1) + '/index.html', publicRoot)), `existing page must remain: ${href}`);
+}
+
 const allowedModes = new Set(['individual', 'external', 'collection']);
 const slugs = new Set();
 const individual = [];

@@ -1,0 +1,44 @@
+:root {
+  color-scheme: dark;
+  --as-bg: #080613;
+  --as-raised: #120e27;
+  --as-surface: #17102b;
+  --as-surface-hover: #241637;
+  --as-border: #4e376a;
+  --as-border-strong: #7955a2;
+  --as-violet: #8643ef;
+  --as-purple: #aa62ff;
+  --as-text: #faf8ff;
+  --as-muted: #c6b8da;
+  --as-muted-soft: #ab9cbd;
+  --as-radius-sm: 10px;
+  --as-radius-md: 16px;
+  --as-radius-lg: 22px;
+  --as-max: 1180px;
+  --as-ease: cubic-bezier(.2,.65,.25,1);
+  --as-shadow: 0 25px 70px rgba(0,0,0,.26);
+  /* Match Astro Component Kit tokens to ArtiSys, without modifying its sources. */
+  --c-bg-1: var(--as-bg);
+  --c-bg-2: var(--as-surface);
+  --c-text-1: var(--as-text);
+  --c-text-2: var(--as-muted);
+  --r-xl: var(--as-radius-lg);
+  --sp-4: 1rem;
+  --sp-6: 1.5rem;
+  --sp-8: 2rem;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;min-width:320px;background:var(--as-bg);color:var(--as-text);font-family:Outfit,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit}
+:where(a,button,input,summary):focus-visible{outline:3px solid #d8b8ff;outline-offset:4px}
+:where(img,video){max-width:100%}
+::selection{background:var(--as-purple);color:#080613}
+.as-container{width:min(var(--as-max),calc(100% - 40px));margin-inline:auto}
+.as-eyebrow{font-size:.76rem;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:#d2acff}
+.as-section-title{font-size:clamp(2rem,4vw,3.4rem);line-height:1.08;letter-spacing:-.04em;margin:.5rem 0 1rem}
+.as-section-description{color:var(--as-muted);max-width:660px;line-height:1.65}
+.as-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:600px){.as-container{width:min(var(--as-max),calc(100% - 28px))}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

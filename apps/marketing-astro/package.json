@@ -1,0 +1,19 @@
+{
+  "name": "@artisys/marketing-astro",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12 <23"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check:catalog": "node scripts/verify-catalog.mjs"
+  },
+  "dependencies": {
+    "astro": "5.17.0",
+    "astro-component-kit": "0.7.1"
+  }
+}

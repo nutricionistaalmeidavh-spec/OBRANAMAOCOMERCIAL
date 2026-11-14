@@ -1,0 +1,42 @@
+name: ArtiSys marketing P0/P1 foundation
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/marketing-astro/**'
+      - 'apps/web/catalog-contract.mjs'
+      - 'apps/web/public/sistemas/products.json'
+      - 'apps/web/src/marketing-*.test.ts'
+      - '.github/workflows/artisys-marketing-foundation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/marketing-astro/**'
+      - 'apps/web/catalog-contract.mjs'
+      - 'apps/web/public/sistemas/products.json'
+      - 'apps/web/src/marketing-*.test.ts'
+      - '.github/workflows/artisys-marketing-foundation.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install existing web dependencies
+        run: npm ci --prefix apps/web --no-audit --no-fund
+      - name: Validate current commercial catalog and SEO
+        run: npm run catalog:verify --prefix apps/web
+      - name: Run P0/P1 contract tests
+        working-directory: apps/web
+        run: npx vitest run src/marketing-catalog-contract.test.ts src/marketing-design-system-contract.test.ts
+      - name: Install isolated Astro and Astro Component Kit
+        run: npm install --prefix apps/marketing-astro --no-audit --no-fund --package-lock=false
+      - name: Verify shared catalog in Astro
+        run: npm run check:catalog --prefix apps/marketing-astro
+      - name: Build isolated static design system
+        run: npm run build --prefix apps/marketing-astro

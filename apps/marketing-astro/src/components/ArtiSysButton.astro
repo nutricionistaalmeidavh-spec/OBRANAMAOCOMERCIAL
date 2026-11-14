@@ -1,0 +1,14 @@
+---
+interface Props { href: string; label: string; variant?: 'primary' | 'secondary'; external?: boolean; }
+const { href, label, variant='primary', external=false } = Astro.props;
+---
+<a class:list={['as-btn', 'as-btn--'+variant]} href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}>{label}<span aria-hidden="true">↗</span></a>
+<style>
+  .as-btn{display:inline-flex;align-items:center;justify-content:center;gap:.7em;min-height:48px;padding:.8rem 1.25rem;border-radius:999px;font-size:.9rem;font-weight:750;transition:transform .2s var(--as-ease),background-color .2s,border-color .2s;white-space:normal;text-align:center}
+  .as-btn:hover{transform:translateY(-2px)}
+  .as-btn--primary{background:var(--as-purple);color:#130520;border:1px solid #bf89ff}
+  .as-btn--primary:hover{background:#c38cff}
+  .as-btn--secondary{background:rgba(255,255,255,.035);color:var(--as-text);border:1px solid var(--as-border-strong)}
+  .as-btn--secondary:hover{border-color:#c9a0fa;background:rgba(170,98,255,.09)}
+  @media(prefers-reduced-motion:reduce){.as-btn:hover{transform:none}}
+</style>
