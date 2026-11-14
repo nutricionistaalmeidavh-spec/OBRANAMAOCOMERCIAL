@@ -410,7 +410,7 @@ function registerIpc() {
   ipcMain.handle('payroll-import:undo', envelope(({ id }) => services.payroll.importUndo(id)))
   ipcMain.handle('payroll:export-overview', envelope((payload) => services.payrollExports.export(payload)))
   ipcMain.handle('payroll:overview', envelope((payload) => services.payroll.overview(payload)))
-  ipcMain.handle('employees:export-report', envelope(payload => exportEmployeeReport({ db: services.db, payroll: services.payroll, dialog, window: mainWindow }, payload)))
+  ipcMain.handle('employees:export-report', envelope(payload => exportEmployeeReport({ dataAccess: services.dataAccess, dialog, window: mainWindow }, payload)))
   ipcMain.handle('payroll:employee', envelope((payload) => services.payroll.getEmployee(payload)))
   ipcMain.handle('payroll:save-variable', envelope((payload) => services.payroll.saveVariable(payload)))
   ipcMain.handle('payroll:remove-variable', envelope(({ id }) => services.payroll.removeVariable(id)))

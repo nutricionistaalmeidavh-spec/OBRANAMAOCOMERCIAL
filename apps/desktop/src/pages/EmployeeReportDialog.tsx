@@ -123,9 +123,9 @@ export default function EmployeeReportDialog({ employees, companies, onClose, on
           </ul>
           {!visible.length && <p>Nenhum funcionário encontrado.</p>}
         </fieldset>
-        {error && <div className="notice field-wide" role="alert">{error}</div>}
       </fieldset>
       <div className="form-actions">
+        {error && <div className="notice" role="alert">{error}</div>}
         <Button type="button" variant="secondary" disabled={saving} onClick={close}>Cancelar</Button>
         <Button type="submit" disabled={saving || !selectedIds.length || !fieldsSelected.size} icon={<Download size={16}/>}>
           {saving ? 'Gerando…' : 'Gerar relatório'}

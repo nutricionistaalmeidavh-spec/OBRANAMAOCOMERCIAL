@@ -26,26 +26,39 @@ const request = z.object({
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const decimal = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })
 
-function buildReport(db, payroll, selection) {
+async function buildReport(dataAccess, selection) {
   const ids = new Set(selection.ids)
-  const employees = db.list('funcionarios', selection.empresaId === null ? {} : { empresa_id: selection.empresaId })
+  const employees = (await dataAccess.list('funcionarios', selection.empresaId === null ? {} : { empresa_id: selection.empresaId }))
     .filter(employee => ids.has(employee.id))
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
   if (employees.length !== ids.size) throw new Error('A seleção de funcionários mudou. Atualize a lista e tente novamente.')
 
   const selected = new Set(selection.campos)
   const includeBenefits = selected.has('beneficios')
-  const companies = new Map(db.list('empresas').map(company => [company.id, company]))
+  const [companyRows, benefitRows, cargoLinks, employeeLinks] = await Promise.all([
+    selected.has('empresa') || selected.has('cnpj') ? dataAccess.list('empresas') : [],
+    includeBenefits ? dataAccess.list('beneficios', { ativo: 1 }) : [],
+    includeBenefits ? dataAccess.list('cargo_beneficios', { ativo: 1 }) : [],
+    includeBenefits ? dataAccess.list('funcionario_beneficios') : []
+  ])
+  const companies = new Map(companyRows.map(company => [company.id, company]))
+  const benefitNames = new Map(benefitRows.filter(benefit => Number(benefit.ativo) === 1)
+    .map(benefit => [benefit.id, benefit.nome]))
   const benefitLabels = new Map()
   const records = employees.map(employee => {
     const company = companies.get(employee.empresa_id)
     const benefits = new Map()
-    if (includeBenefits) {
-      for (const benefit of payroll.fixedBenefits(employee, selection.competencia)) {
-        benefitLabels.set(benefit.tipo, benefit.descricao)
-        benefits.set(benefit.tipo, (benefit.natureza === 'desconto' ? -1 : 1) * benefit.valor / 100)
+    for (const link of cargoLinks) {
+      if (link.cargo_id === employee.cargo_id && Number(link.ativo) === 1 && benefitNames.has(link.beneficio_id)) {
+        benefits.set(link.beneficio_id, (link.natureza === 'desconto' ? -1 : 1) * link.valor_centavos / 100)
       }
     }
+    const overrides = employeeLinks.filter(link => link.funcionario_id === employee.id && benefitNames.has(link.beneficio_id)
+      && (!link.inicio || link.inicio.slice(0, 7) <= selection.competencia)
+      && (!link.fim || link.fim.slice(0, 7) >= selection.competencia))
+      .sort((a, b) => (a.inicio || '').localeCompare(b.inicio || ''))
+    for (const link of overrides) benefits.set(link.beneficio_id, link.valor_centavos / 100)
+    for (const id of benefits.keys()) benefitLabels.set(id, benefitNames.get(id))
     return {
       ...employee,
       empresa: company?.nome_fantasia || company?.razao_social,
@@ -174,11 +187,11 @@ const render = {
   docx: word
 }
 
-async function exportEmployeeReport({ db, payroll, dialog, window }, payload) {
+async function exportEmployeeReport({ dataAccess, dialog, window }, payload) {
   const parsed = request.safeParse(payload)
   if (!parsed.success) throw new Error('Confira os funcionários, campos, competência e formato do relatório.')
   const { formato, competencia } = parsed.data
-  const report = buildReport(db, payroll, parsed.data)
+  const report = await buildReport(dataAccess, parsed.data)
   const result = await dialog.showSaveDialog(window, {
     title: 'Salvar relatório de funcionários',
     defaultPath: `funcionarios-${competencia}.${formato}`,
