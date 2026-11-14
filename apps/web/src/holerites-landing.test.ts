@@ -67,7 +67,7 @@ describe('Holerites P0/P1 media fidelity and UI interactions', () => {
   });
 
   it('renders responsive, accessible bento cards without mandatory paid services', () => {
-    expect(html).toContain('class="bento-grid');
+    expect(html).toContain('class="quick-features bento-grid');
     expect(css).toContain('.bento-grid');
     expect(css).toContain('minmax(0');
     expect(html).toContain('id="screen-gallery"');
