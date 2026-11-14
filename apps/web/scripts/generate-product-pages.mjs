@@ -60,6 +60,49 @@ function renderPdvGallery() {
   </section>`;
 }
 
+
+/** Real screenshots only: captured by the Windows Electron QA run (14 Nov 2026).
+ * Media is imported from verified GitHub Actions artifact, not generated mockups.
+ * Static HTML; no client scripts, observers, or extra API calls.
+ */
+function renderFinanceGallery() {
+  const media = './media/';
+  const image = (file, alt, eager = false) => `<img src="${media}${file}" alt="${escapeHtml(alt)}" loading="${eager ? 'eager' : 'lazy'}" decoding="async" width="1440" height="900">`;
+  return `<section class="finance-gallery" id="financeiro-em-acao" aria-labelledby="finance-gallery-title">
+    <div class="finance-gallery-heading">
+      <div><p class="section-kicker">Capturas reais do aplicativo</p><h2 id="finance-gallery-title">Conheça o Financeiro por dentro.</h2></div>
+      <p>Telas do ArtiSys Financeiro para Windows, registradas em testes reais do aplicativo com dados demonstrativos.</p>
+    </div>
+    <div class="finance-gallery-grid">
+      <figure class="finance-gallery-card finance-gallery-card--wide">
+        <div class="finance-gallery-screen">${image('crm-funil-real.webp','CRM ArtiSys: funil Kanban, oportunidades, propostas e vinculação de recebíveis mediante confirmação.')}</div>
+        <figcaption><strong>CRM e funil de vendas</strong><span>Leads, oportunidades, propostas e histórico comercial na mesma operação.</span><a href="${media}crm-funil-real.webp" target="_blank" rel="noopener noreferrer">Ampliar captura real</a></figcaption>
+      </figure>
+      <figure class="finance-gallery-card">
+        <div class="finance-gallery-screen">${image('contas-real.webp','Tela real de contas a pagar e receber do ArtiSys Financeiro.')}</div>
+        <figcaption><strong>Pagar e receber</strong><span>Controle financeiro por conta, valor e vencimento.</span><a href="${media}contas-real.webp" target="_blank" rel="noopener noreferrer">Ampliar captura real</a></figcaption>
+      </figure>
+      <figure class="finance-gallery-card">
+        <div class="finance-gallery-screen">${image('dre-real.webp','Tela real da DRE no ArtiSys Financeiro.')}</div>
+        <figcaption><strong>DRE e resultados</strong><span>Indicadores financeiros baseados em lançamentos confirmados.</span><a href="${media}dre-real.webp" target="_blank" rel="noopener noreferrer">Ampliar captura real</a></figcaption>
+      </figure>
+      <figure class="finance-gallery-card">
+        <div class="finance-gallery-screen">${image('crm-agenda-real.webp','Tela real da agenda e follow-ups do módulo CRM comercial.')}</div>
+        <figcaption><strong>Agenda comercial</strong><span>Compromissos e próximos passos de cada oportunidade.</span><a href="${media}crm-agenda-real.webp" target="_blank" rel="noopener noreferrer">Ampliar captura real</a></figcaption>
+      </figure>
+      <figure class="finance-gallery-card">
+        <div class="finance-gallery-screen">${image('crm-indicadores-real.webp','Tela real de indicadores do CRM com taxa de fechamento e projeções comerciais.')}</div>
+        <figcaption><strong>Indicadores do CRM</strong><span>Taxas de conversão, metas e previsão ponderada.</span><a href="${media}crm-indicadores-real.webp" target="_blank" rel="noopener noreferrer">Ampliar captura real</a></figcaption>
+      </figure>
+    </div>
+    <section class="finance-conversion" aria-labelledby="finance-conversion-title">
+      <div><p class="section-kicker">CRM + Financeiro</p><h3 id="finance-conversion-title">A venda avança. O lançamento depende de você.</h3><p>O CRM acompanha a negociação e sugere recebíveis quando a venda é ganha. A conta a receber só nasce depois de sua confirmação explícita, evitando previsões comerciais no saldo, caixa ou DRE.</p></div>
+      <ol aria-label="Etapas da conversão comercial"><li>Lead cadastrado</li><li>Oportunidade e proposta</li><li>Venda ganha</li><li>Revisão e confirmação</li><li>Recebível no Financeiro</li></ol>
+    </section>
+    <p class="finance-gallery-disclaimer">Imagens autênticas da versão de testes do ArtiSys Financeiro; valores e contatos são demonstrativos. A interface pode variar conforme atualizações.</p>
+  </section>`;
+}
+
 function renderProductPage(product) {
   const seo = buildPageSeo(artisysSeoConfig, `/sistemas/${product.slug}`);
   const access = product.accessHref ? `<a class="button secondary" href="${escapeHtml(product.accessHref)}"${externalAttrs(product.accessHref)}>Já sou cliente</a>` : '';
@@ -78,6 +121,7 @@ function renderProductPage(product) {
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../product-page.css">
   ${product.slug === 'pdv-artisys' ? '<link rel="stylesheet" href="../pdv-artisys-gallery.css">' : ''}
+  ${product.slug === 'artisys-finance' ? '<link rel="stylesheet" href="../artisys-finance-gallery.css">' : ''}
 </head>
 <body>
   <!-- artisys-generated:product -->
@@ -87,9 +131,11 @@ function renderProductPage(product) {
     <section class="product-hero${product.slug === 'pdv-artisys' ? ' product-hero--pdv' : ''}" aria-labelledby="product-title">
       <div class="hero-copy"><p class="eyebrow">${escapeHtml(product.category)} · ${escapeHtml(typeLabel(product.type))}</p><h1 id="product-title">${escapeHtml(product.name)}</h1><p class="hero-summary">${escapeHtml(product.summary)}</p><div class="hero-actions"><a class="button primary" data-product-cta href="${escapeHtml(product.ctaHref)}"${externalAttrs(product.ctaHref)}>${escapeHtml(product.ctaLabel)}</a>${access}</div></div>
       ${product.slug === 'pdv-artisys' ? '<figure class="pdv-featured-picture"><div class="pdv-photo pdv-photo--overview" role="img" aria-label="PDV ArtiSys em notebook com periféricos de caixa, balança, leitor de código e QR Code."></div><figcaption>PDV ArtiSys · visão geral e periféricos</figcaption></figure>' : ''}
+      ${product.slug === 'artisys-finance' ? '<figure class="finance-featured-picture"><a href="#financeiro-em-acao" aria-label="Conhecer as capturas reais do ArtiSys Financeiro"><img src="./media/dashboard-real.webp" width="1440" height="900" alt="Dashboard real do ArtiSys Financeiro com saldos, contas a pagar e receber e fluxo de caixa." fetchpriority="high" decoding="async"></a><figcaption>Dashboard real do aplicativo · dados de demonstração</figcaption></figure>' : ''}
       <aside class="product-facts" aria-label="Resumo comercial"><div><span>Status</span><strong>${escapeHtml(status)}</strong></div><div><span>Formato</span><strong>${escapeHtml(typeLabel(product.type))}</strong></div><div><span>Investimento</span><strong>${escapeHtml(product.priceLabel)}</strong></div></aside>
     </section>
     ${product.slug === 'pdv-artisys' ? renderPdvGallery() : ''}
+    ${product.slug === 'artisys-finance' ? renderFinanceGallery() : ''}
     <div class="product-details">
     <section class="content-section split-section" aria-labelledby="audience-title"><div><p class="section-kicker">Para quem é</p><h2 id="audience-title">Feito para uma rotina real.</h2></div><p class="large-copy">${escapeHtml(product.audience)}</p></section>
     <section class="content-section" aria-labelledby="benefits-title"><p class="section-kicker">O que melhora</p><h2 id="benefits-title">Menos improviso. Mais clareza na operação.</h2><div class="benefit-grid">${product.benefits.map((item, index) => `<article><span>${String(index + 1).padStart(2, '0')}</span><p>${escapeHtml(item)}</p></article>`).join('')}</div></section>
