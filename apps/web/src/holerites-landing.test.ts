@@ -20,6 +20,7 @@ describe('landing ArtiSys Holerites (página estática independente)',()=>{
  it('reuses marketing images and the actual Electron/Actions test screenshots without placeholders',()=>{
   const assets=[
    'artisys-holerites-hero.webp','artisys-holerites-recursos.webp','artisys-holerites-impressao.webp','holerite-impresso-real.webp',
+   'holerites-dashboard-viewport.webp',
    'holerites-dashboard-real.webp','holerites-calculo-real.webp','holerites-ferias-real.webp','holerites-rescisao-real.webp','holerites-historico-real.webp'
   ];
   for(const asset of assets){
@@ -83,6 +84,7 @@ describe('Holerites P0/P1 media fidelity and UI interactions', () => {
     expect(source).toContain('prefers-reduced-motion: reduce');
     expect(source).toContain('umami');
     expect(html).toContain('experience.bundle.js');
+    expect(readFileSync(new URL('../public/gestãoholerites/experience.bundle.js',import.meta.url)).byteLength).toBeGreaterThan(40000);
     expect(html).not.toMatch(/https?:\/\/(?:cdn|unpkg|esm\.sh)/);
   });
 });
