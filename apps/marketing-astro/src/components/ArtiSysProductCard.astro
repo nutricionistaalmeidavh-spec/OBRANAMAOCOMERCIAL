@@ -1,19 +1,25 @@
 ---
 import ArtiSysButton from './ArtiSysButton.astro';
 interface Props {
-  name: string;
-  category: string;
-  summary: string;
-  href: string;
-  price?: string;
-  image?: string;
-  featured?: boolean;
+  slug:string;
+  name:string;
+  category:string;
+  summary:string;
+  href:string;
+  price?:string;
+  image?:string;
+  imageAlt?:string;
+  featured?:boolean;
 }
-const {name,category,summary,href,price,image,featured=false} = Astro.props;
+const {slug,name,category,summary,href,price,image,imageAlt,featured=false} = Astro.props;
+const external=href.startsWith('https://') && !href.startsWith('https://artisys.dev/');
 ---
-<article class:list={['as-product-card',{'as-featured':featured}]}>
+<article class:list={['as-product-card',{'as-featured':featured}]} data-catalog-item data-product={slug} data-category={category} data-as-reveal>
   <div class="as-product-visual">
-    {image ? <img src={image} alt={'Tela real de '+name} width="960" height="600" loading="lazy" decoding="async" /> : <span aria-hidden="true" class="as-product-mark">ArtiSys</span>}
+    {image ?
+      <img src={image} alt={imageAlt || 'Captura real do produto '+name} width="1440" height="900" loading="lazy" decoding="async" /> :
+      <div class="as-product-brand" aria-label={name}><span>ARTISYS</span><strong>{name}</strong></div>
+    }
   </div>
   <div class="as-product-info">
     <span class="as-product-category">{category}</span>
@@ -21,22 +27,25 @@ const {name,category,summary,href,price,image,featured=false} = Astro.props;
     <p>{summary}</p>
     <div class="as-product-actions">
       <span class="as-price">{price}</span>
-      <ArtiSysButton href={href} label="Ver sistema" variant="secondary" />
+      <ArtiSysButton href={href} label="Ver sistema" external={external} variant="secondary" />
     </div>
   </div>
 </article>
 <style>
-  .as-product-card{min-width:0;border:1px solid var(--as-border);border-radius:var(--as-radius-lg);overflow:hidden;background:var(--as-surface);transition:transform .2s var(--as-ease),border-color .2s,box-shadow .2s}
+  .as-product-card{min-width:0;display:flex;flex-direction:column;border:1px solid var(--as-border);border-radius:var(--as-radius-lg);overflow:hidden;background:var(--as-surface);transition:transform .25s var(--as-ease),border-color .25s,box-shadow .25s}
   .as-product-card:hover{transform:translateY(-3px);border-color:var(--as-purple);box-shadow:var(--as-shadow)}
   .as-product-visual{height:200px;display:grid;place-items:center;background:radial-gradient(ellipse at 80% 20%,#422169 0%,#120c26 70%);overflow:hidden}
-  .as-product-visual img{width:100%;height:100%;object-fit:cover;object-position:top}
-  .as-product-mark{font-size:2.2rem;letter-spacing:-.06em;font-weight:800;color:#ceb2f6;opacity:.75}
-  .as-product-info{padding:24px;display:flex;flex-direction:column;gap:10px}
+  .as-product-visual img{width:100%;height:100%;object-fit:contain;object-position:center;background:#100b1e}
+  .as-product-brand{height:100%;width:100%;display:flex;flex-direction:column;gap:14px;justify-content:center;align-items:center;text-align:center;padding:24px;background:linear-gradient(130deg,#0d091c,#2a1847)}
+  .as-product-brand span{color:#caa7ff;font-weight:800;letter-spacing:.23em;font-size:.78rem}
+  .as-product-brand strong{font-size:clamp(1.2rem,2.6vw,1.8rem);font-weight:750;letter-spacing:-.03em}
+  .as-product-info{padding:23px;display:flex;flex:1;flex-direction:column;gap:10px}
   .as-product-category{font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:#d6b4ff;font-weight:800}
-  h3{font-size:1.45rem;letter-spacing:-.03em;margin:0}
-  p{color:var(--as-muted);line-height:1.55;font-size:.9rem;min-height:4em;margin:0}
+  h3{font-size:1.42rem;letter-spacing:-.03em;margin:0}
+  p{color:var(--as-muted);line-height:1.55;font-size:.9rem;min-height:4.15em;margin:0}
   .as-product-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;padding-top:12px}
-  .as-price{font-size:.8rem;color:var(--as-muted)}
+  .as-price{font-size:.79rem;color:var(--as-muted)}
+  [hidden]{display:none!important}
   @media(max-width:500px){.as-product-actions{flex-direction:column;align-items:stretch}.as-product-visual{height:190px}}
   @media(prefers-reduced-motion:reduce){.as-product-card:hover{transform:none}}
 </style>
