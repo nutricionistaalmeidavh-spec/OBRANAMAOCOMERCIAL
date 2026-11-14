@@ -28,6 +28,19 @@ assert.match(pdvCss, /pdv-gallery-atlas\.avif/, 'gallery references uploaded ima
 assert.match(pdvCss, /@media\(max-width:650px\)/, 'mobile gallery stays compact');
 assert.match(pdvCss, /\.product-hero--pdv/, 'gallery affects PDV hero only');
 assert.doesNotMatch(pdvCss, /javascript:|url\(['"]?https?:/i, 'gallery must not load scripts or remote images');
+// Media provenance: files imported from the successful ArtiSys Financeiro Electron QA artifact.
+const financeMediaRoot = 'sistemas/artisys-finance/media/';
+for (const filename of [
+  'dashboard-real.webp', 'contas-real.webp', 'dre-real.webp',
+  'crm-funil-real.webp', 'crm-agenda-real.webp', 'crm-indicadores-real.webp',
+]) {
+  const imagePath = new URL(financeMediaRoot + filename, publicRoot);
+  assert.ok(existsSync(imagePath), 'Financeiro real screenshot missing: ' + filename);
+  const imageBytes = readFileSync(imagePath);
+  assert.ok(imageBytes.byteLength > 10000 && imageBytes.byteLength < 500000, 'Financeiro screenshot size invalid: ' + filename);
+  assert.equal(imageBytes.subarray(0, 4).toString(), 'RIFF', 'Financeiro screenshot must be a real WebP: ' + filename);
+  assert.equal(imageBytes.subarray(8, 12).toString(), 'WEBP', 'Financeiro screenshot must use WebP format: ' + filename);
+}
 const catalog = JSON.parse(readCatalog('products.json'));
 
 assert.equal(catalog.version, 3, 'catalog version must be 3 after presentation-mode rollout');
