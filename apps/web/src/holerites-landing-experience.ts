@@ -60,6 +60,22 @@ if (!reducedMotion) {
   });
 }
 
+// P1 Motion Primitives: affordance magnética sutil apenas em ponteiro fino.
+// Sem rastreamento, sem efeito no teclado e sem animação para reduced-motion.
+if (!reducedMotion && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  document.querySelectorAll<HTMLElement>('.hero-actions .btn, .purchase-box .btn').forEach(button => {
+    button.addEventListener('pointermove', (event) => {
+      const box = button.getBoundingClientRect();
+      const dx = Math.max(-6, Math.min(6, (event.clientX - box.left - box.width / 2) * 0.08));
+      const dy = Math.max(-5, Math.min(5, (event.clientY - box.top - box.height / 2) * 0.08));
+      animate(button, { x: dx, y: dy }, { duration: 0.25, ease: 'easeOut' });
+    });
+    button.addEventListener('pointerleave', () => {
+      animate(button, { x: 0, y: 0 }, { duration: 0.35, ease: 'easeOut' });
+    });
+  });
+}
+
 // P1 Umami: integração preparada, mas auto-hospedagem é opt-in e NUNCA exigida.
 // Apenas se o site configurar uma URL de script na mesma origem e website-id.
 const configuredScript = document.querySelector<HTMLMetaElement>('meta[name="artisys-umami-script"]')?.content;
