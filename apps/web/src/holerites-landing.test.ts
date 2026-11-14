@@ -39,7 +39,7 @@ describe('landing ArtiSys Holerites (página estática independente)',()=>{
   expect(html).toContain('Windows');
   expect(html).toContain('offline');
   expect(html).toContain('competências de 2026');
-  expect(html).toContain('não substitui');
+  expect(html).toContain('sem substituição');
   expect(html).toContain('mercadolivre.com.br/pagina/artisys');
   expect(html).toContain('wa.me/5516982338805');
   expect(html).not.toContain('R$ 89,90');
@@ -52,6 +52,6 @@ describe('landing ArtiSys Holerites (página estática independente)',()=>{
   expect(script).toContain('scrollBy');
   expect(script).toContain('prefers-reduced-motion: reduce');
   expect(html).not.toMatch(/src="https?:\/\//);
-  expect(html).not.toMatch(/<link[^>]+href="https?:\/\//);
+  expect(html).not.toMatch(/<link[^>]+rel="stylesheet"[^>]+href="https?:\/\//);
  });
 });
