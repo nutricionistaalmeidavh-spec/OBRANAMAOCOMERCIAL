@@ -78,21 +78,25 @@ class PayrollService {
     this.db.db.prepare('UPDATE contas SET status=?,data_efetiva=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(status, payment.data, account.id)
   }
 
-  syncFixed(sheet, employee, cargo) {
-    const fixed = []
-    const salary = employee.salario_centavos || cargo?.salario_base_centavos || 0
-    if (salary) fixed.push({ tipo: 'salario', descricao: 'Salário base', valor: salary, natureza: 'credito', quinzena: 1 })
+  fixedBenefits(employee, competencia, cargo = employee.cargo_id ? this.db.get('cargos', employee.cargo_id) : null) {
     const benefitMap = new Map()
     if (cargo) {
       const benefits = this.db.db.prepare(`SELECT cb.*,b.nome,b.tipo FROM cargo_beneficios cb JOIN beneficios b ON b.id=cb.beneficio_id WHERE cb.cargo_id=? AND cb.ativo=1 AND b.ativo=1`).all(cargo.id)
       for (const benefit of benefits) benefitMap.set(benefit.beneficio_id,{ tipo: `beneficio_${benefit.beneficio_id}`, descricao: benefit.nome, valor: benefit.valor_centavos, natureza: benefit.natureza, quinzena: benefit.quinzena })
     }
-    const overrides = this.db.db.prepare(`SELECT fb.*,b.nome,b.tipo FROM funcionario_beneficios fb JOIN beneficios b ON b.id=fb.beneficio_id WHERE fb.funcionario_id=? AND b.ativo=1 AND (fb.inicio IS NULL OR substr(fb.inicio,1,7)<=?) AND (fb.fim IS NULL OR substr(fb.fim,1,7)>=?) ORDER BY fb.beneficio_id,fb.inicio DESC`).all(employee.id,sheet.competencia,sheet.competencia)
+    const overrides = this.db.db.prepare(`SELECT fb.*,b.nome,b.tipo FROM funcionario_beneficios fb JOIN beneficios b ON b.id=fb.beneficio_id WHERE fb.funcionario_id=? AND b.ativo=1 AND (fb.inicio IS NULL OR substr(fb.inicio,1,7)<=?) AND (fb.fim IS NULL OR substr(fb.fim,1,7)>=?) ORDER BY fb.beneficio_id,fb.inicio DESC`).all(employee.id,competencia,competencia)
     for (const benefit of overrides) if (!benefitMap.has('employee-'+benefit.beneficio_id)) {
       benefitMap.set('employee-'+benefit.beneficio_id,{ tipo: `beneficio_${benefit.beneficio_id}`, descricao: benefit.nome, valor: benefit.valor_centavos, natureza: 'credito', quinzena: 1 })
       benefitMap.delete(benefit.beneficio_id)
     }
-    for (const benefit of benefitMap.values()) fixed.push(benefit)
+    return [...benefitMap.values()]
+  }
+
+  syncFixed(sheet, employee, cargo) {
+    const fixed = []
+    const salary = employee.salario_centavos || cargo?.salario_base_centavos || 0
+    if (salary) fixed.push({ tipo: 'salario', descricao: 'Salário base', valor: salary, natureza: 'credito', quinzena: 1 })
+    fixed.push(...this.fixedBenefits(employee, sheet.competencia, cargo))
     const benefitCatalog = new Map(this.db.db.prepare("SELECT id,nome,tipo FROM beneficios WHERE ativo=1").all().map(item=>[Number(item.id),item]))
     const importedKeys = new Set(this.db.db.prepare("SELECT * FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND origem='importacao'").all(sheet.id,employee.id).map(item=>classifyPayrollOverviewLaunch(item,benefitCatalog)))
     const find = this.db.db.prepare("SELECT id FROM folha_lancamentos WHERE folha_id=? AND funcionario_id=? AND tipo=? AND origem='cargo'")

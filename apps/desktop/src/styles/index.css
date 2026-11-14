@@ -32,3 +32,10 @@ html{scrollbar-width:thin;scrollbar-color:#94a3b8 transparent}
 .selected-row-block{background:#eef5ff}
 .error-inline{white-space:pre-wrap;background:#fff5f5;border:1px solid #fecaca;color:#9f1239;border-radius:8px;padding:10px 12px;font-size:11px;max-width:100%;overflow:auto}
 @media(max-width:1180px){.rdo-row,.rdo-equipment,.rdo-occurrence{grid-template-columns:1fr 1fr}.rdo-row .icon-button{justify-self:start}}
+
+.employee-report-options { border: 0; margin: 0; min-width: 0; }
+.employee-report-group { border: 1px solid var(--border); border-radius: 8px; padding: 10px; min-width: 0; }
+.employee-report-group legend { padding: 0 6px; font-weight: 650; }
+.employee-report-list { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; }
+.employee-report-list label { padding: 6px 2px; }
+.employee-report-list small { color: var(--muted); margin-left: 6px; }

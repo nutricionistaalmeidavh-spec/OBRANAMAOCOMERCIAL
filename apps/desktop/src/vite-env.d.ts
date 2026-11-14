@@ -1,6 +1,9 @@
 /// <reference types="vite/client" />
 type EntityApi = { list(filters?: Record<string, unknown>): Promise<any[]>; get(id: number): Promise<any>; save(data: Record<string, unknown>): Promise<any>; remove(id: number, revision?: number): Promise<boolean> }
 type RevisionConflictDetails = { resourceType:string|null; resourceId:string|null; expectedRevision:number; currentRevision:number; current:any }
+type EmployeeReportField = 'empresa'|'cnpj'|'nome'|'cpf'|'data_nascimento'|'email'|'telefone'|'beneficios'
+type EmployeeReportFormat = 'xlsx'|'csv'|'pdf'|'docx'
+type EmployeeReportSelection = { ids: number[]; empresaId: number|null; campos: EmployeeReportField[]; formato: EmployeeReportFormat; competencia: string }
 type UpdaterState = { status:'idle'|'checking'|'current'|'available'|'downloading'|'downloaded'|'error'|'unsupported'; currentVersion:string; availableVersion:string|null; progress:number|null; error:string|null; supported:boolean }
 type OperationalStorageMode = 'local'|'lan-host'|'lan-client'|'remote'
 type CompanyStorageRequirement = { mode:'lan-server'|'remote'; serverId:string; autoEnroll?:boolean }
@@ -82,7 +85,7 @@ interface Window { fluxoDre: {
   conflicts:{onRevisionConflict(listener:(details:RevisionConflictDetails)=>void):()=>void}
   empresas: EntityApi; clientes: EntityApi; fornecedores: EntityApi; obras: EntityApi & { importSpreadsheets(): Promise<any>; overview(obra_id:number): Promise<any>; timeline(obra_id:number): Promise<any[]> }; etapas: EntityApi; locais: EntityApi; orcamentos: EntityApi; cronograma: EntityApi; rdos: EntityApi; rdoEquipe: EntityApi; rdoEquipamentos: EntityApi; rdoOcorrencias: EntityApi; rdoAnexos: EntityApi; arquivos: EntityApi
   medicoes: EntityApi & { saveWithItems(data:any):Promise<any>; anexos:EntityApi; itensMedidos:EntityApi; importAttachment(data:any):Promise<any>; mapa: EntityApi }; contas: EntityApi & { payment(id:number,payment:any):Promise<any> }
-  categorias: EntityApi; cargos: EntityApi; funcionarios: EntityApi; folhas: EntityApi; lancamentosFolha: EntityApi; pagamentosFuncionario: EntityApi; beneficios: EntityApi; epis: EntityApi; funcionarioEpis: EntityApi; fontes: EntityApi; pastas: EntityApi
+  categorias: EntityApi; cargos: EntityApi; funcionarios: EntityApi & { exportReport(selection: EmployeeReportSelection): Promise<string|null> }; folhas: EntityApi; lancamentosFolha: EntityApi; pagamentosFuncionario: EntityApi; beneficios: EntityApi; epis: EntityApi; funcionarioEpis: EntityApi; fontes: EntityApi; pastas: EntityApi
   documentos: EntityApi & { pendingFiles():Promise<Array<{id:number;nome_original:string;hash:string|null}>>; recoverBackup():Promise<{restored:number;skipped:number;pending:number;errors:string[]}|null>; generate(data:any):Promise<any>; templates():Promise<any[]>; saveTemplate(data:any):Promise<any>; chooseLocalTemplate():Promise<any>; setDefaultTemplate(data:any):Promise<any>; importForEmployee(data:any):Promise<any>; importForWork(data:any):Promise<any>; open(path:string):Promise<any>; reveal(path:string):Promise<any>; copyPath(path:string):Promise<any>; openFolder():Promise<any>; chooseRoot():Promise<any>; getRoot():Promise<string>; rootStatus():Promise<{source?:'local'|'server';root:string;configured:boolean;ready:boolean;code:string|null;message:string|null}>; retryRoot():Promise<{source?:'local'|'server';root:string;configured:boolean;ready:boolean;code:string|null;message:string|null}>; delete(data:any):Promise<any> }
   explorador: ExplorerApi
   scanner: ScannerApi
