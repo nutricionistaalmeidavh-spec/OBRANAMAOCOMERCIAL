@@ -16,10 +16,12 @@ describe('marketing P0 canonical contract', () => {
   it('links to existing pages, not generated duplicates', () => {
     for (const product of listPrimaryLandingProducts()) {
       const pathname = new URL(product.href).pathname;
-      const file = new URL(pathname.slice(1) + 'index.html', root);
-      expect(existsSync(file)).toBe(true);
       if (product.pageMode === 'external') {
+        const file = new URL(pathname.slice(1) + 'index.html', root);
+        expect(existsSync(file)).toBe(true);
         expect(existsSync(new URL('sistemas/' + product.slug + '/index.html', root))).toBe(false);
+      } else {
+        expect(pathname).toBe('/sistemas/' + product.slug + '/');
       }
     }
   });
