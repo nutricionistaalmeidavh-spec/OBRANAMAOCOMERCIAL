@@ -117,6 +117,7 @@ Desde o P0 de canonicalização de RH, `src/routes/registry.ts` é o owner de pa
 - `storage-connection-service.cjs`: persiste `storage_mode`, `lan_server_host` e `lan_server_port` em `configuracoes`, mantendo `local` como padrão, e testa compatibilidade do serviço LAN v1.
 - `works-service.cjs`, `planning-service.cjs`, `field-service.cjs`, `procurement-service.cjs` e `contracts-service.cjs`: serviços modulares para operação, planejamento, RDO, compras e contratos; permanecem locais nesta etapa.
 - `payroll-service.cjs`: lançamentos e confirmação de folha.
+- `employee-batch-service.cjs` e IPC `employees:admission-*`: download, prévia e confirmação da admissão em lote no hub de RH, com gravação na fonte ativa e datas de ASO/NR nas observações da ficha.
 - `employee-report.cjs` e IPC `employees:export-report`: exportação local de funcionários em Excel, CSV, PDF e Word, com consulta à fonte de RH ativa e benefícios fixos por competência.
 - `time-service.cjs`: ponto e documentos mensais.
 - `document-service.cjs`: geração de documentos/PDFs.
