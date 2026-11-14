@@ -13,7 +13,6 @@ const next = document.querySelector<HTMLButtonElement>('#gallery-next');
 
 if (viewport && previous && next) {
   try {
-    window.__holeritesFallback?.destroy();
     const carousel = EmblaCarousel(viewport, {
       align: 'start',
       containScroll: 'trimSnaps',
@@ -22,6 +21,7 @@ if (viewport && previous && next) {
       duration: reducedMotion ? 0 : 25,
       watchDrag: true
     });
+    window.__holeritesFallback?.destroy();
     const updateButtons = () => {
       previous.disabled = !carousel.canScrollPrev();
       next.disabled = !carousel.canScrollNext();
