@@ -1,0 +1,43 @@
+---
+import ArtiSysButton from './ArtiSysButton.astro';
+import ArtiSysScreenshotFrame from './ArtiSysScreenshotFrame.astro';
+interface Props {
+  eyebrow?: string;
+  title: string;
+  description: string;
+  primaryLabel: string;
+  primaryHref: string;
+  secondaryLabel?: string;
+  secondaryHref?: string;
+  screenshotSrc?: string;
+  screenshotAlt?: string;
+}
+const { eyebrow='ArtiSys · soluções digitais',title,description,primaryLabel,primaryHref,secondaryLabel,secondaryHref,screenshotSrc,screenshotAlt } = Astro.props;
+---
+<section class="as-hero" aria-labelledby="as-hero-title">
+  <div class="as-hero-glow" aria-hidden="true"></div>
+  <div class="as-container as-hero-inner">
+    <div class="as-hero-content">
+      <p class="as-eyebrow">{eyebrow}</p>
+      <h1 id="as-hero-title">{title}</h1>
+      <p class="as-hero-description">{description}</p>
+      <div class="as-actions">
+        <ArtiSysButton href={primaryHref} label={primaryLabel} />
+        {secondaryLabel && secondaryHref && <ArtiSysButton href={secondaryHref} label={secondaryLabel} variant="secondary" />}
+      </div>
+    </div>
+    {screenshotSrc && <div class="as-hero-media"><ArtiSysScreenshotFrame src={screenshotSrc} alt={screenshotAlt} label="Captura real do sistema" priority={true} /></div>}
+  </div>
+</section>
+<style>
+  .as-hero{isolation:isolate;position:relative;overflow:hidden;padding:clamp(68px,8vw,116px) 0}
+  .as-hero-glow{position:absolute;z-index:-1;inset:-40% -30% auto auto;width:78%;height:140%;pointer-events:none;background:radial-gradient(ellipse,rgba(134,67,239,.2) 0%,transparent 65%)}
+  .as-hero-inner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:center;gap:clamp(25px,5vw,72px)}
+  .as-hero h1{margin:.8rem 0 1.2rem;font-size:clamp(2.7rem,5.8vw,5.8rem);line-height:1.02;letter-spacing:-.055em;text-wrap:balance}
+  .as-hero-description{font-size:clamp(1rem,1.6vw,1.2rem);line-height:1.65;max-width:600px;color:var(--as-muted)}
+  .as-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+  .as-hero-media{min-width:0;transform:perspective(1100px) rotateY(-4deg);transition:transform .4s var(--as-ease)}
+  .as-hero-media:hover{transform:perspective(1100px) rotateY(0deg)}
+  @media(max-width:800px){.as-hero-inner{grid-template-columns:1fr}.as-hero{padding:68px 0}.as-hero-media{transform:none}}
+  @media(prefers-reduced-motion:reduce){.as-hero-media:hover{transform:none}}
+</style>

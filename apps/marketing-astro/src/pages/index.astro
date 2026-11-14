@@ -1,0 +1,15 @@
+---
+import MarketingLayout from '../layouts/MarketingLayout.astro';
+import ArtiSysHero from '../components/ArtiSysHero.astro';
+import ArtiSysBento from '../components/ArtiSysBento.astro';
+import ArtiSysProductGrid from '../components/ArtiSysProductGrid.astro';
+import ArtiSysCTA from '../components/ArtiSysCTA.astro';
+import { listPrimaryLandingProducts } from '../data/catalog.mjs';
+const products = listPrimaryLandingProducts();
+---
+<MarketingLayout title="ArtiSys Design System · Prévia P0/P1" description="Prévia isolada dos componentes comerciais ArtiSys. Não é a vitrine publicada." preview={true}>
+  <ArtiSysHero eyebrow="Prévia de componentes · P0/P1" title="Tecnologia para a operação real." description="Catálogo e componentes visuais ArtiSys com código aberto, HTML estático e links oficiais de cada sistema." primaryLabel="Explorar sistemas" primaryHref="#catalogo" secondaryLabel="Site atual" secondaryHref="https://artisys.dev/sistemas/" screenshotSrc="https://artisys.dev/wppprospector/media/hero-showcase-real.webp" screenshotAlt="Captura real do CRM WppProspector" />
+  <ArtiSysBento />
+  <ArtiSysProductGrid products={products} title="Explore o ecossistema ArtiSys." description="Os dados e links abaixo vêm do único products.json do site principal." />
+  <ArtiSysCTA title="Encontre o sistema para sua empresa." description="Consulte as páginas individuais com funcionalidades, telas e condições comerciais." href="https://artisys.dev/sistemas/" label="Visitar catálogo atual" />
+</MarketingLayout>

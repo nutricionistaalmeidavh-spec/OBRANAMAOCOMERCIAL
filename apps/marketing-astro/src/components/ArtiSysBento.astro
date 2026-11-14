@@ -1,0 +1,30 @@
+---
+import { GlassCard } from 'astro-component-kit/cards';
+interface Props { eyebrow?:string; title?:string; }
+const {eyebrow='Experiência ArtiSys',title='Software real, apresentado com clareza.'} = Astro.props;
+---
+<section class="as-bento as-container" aria-labelledby="as-bento-title">
+  <p class="as-eyebrow">{eyebrow}</p>
+  <h2 id="as-bento-title" class="as-section-title">{title}</h2>
+  <div class="as-bento-grid">
+    <GlassCard title="Capturas reais" subtitle="Telas do sistema geradas em QA" hoverable={true}>
+      <p>Mostramos recursos efetivamente disponíveis, sem telas inventadas.</p>
+    </GlassCard>
+    <GlassCard title="Licenciamento transparente" subtitle="Condições por produto" hoverable={true}>
+      <p>Preços e planos são informados apenas pela fonte comercial oficial.</p>
+    </GlassCard>
+    <GlassCard title="Experiência acessível" subtitle="Mobile-first e sem efeitos excessivos" hoverable={true}>
+      <p>Interações por teclado, foco visível e respeito a movimento reduzido.</p>
+    </GlassCard>
+  </div>
+</section>
+<style>
+  .as-bento{padding:45px 0 90px}
+  .as-bento-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  .as-bento :global(.glass-card){max-width:none;min-width:0;background:var(--as-surface);border-color:var(--as-border);color:var(--as-text)}
+  .as-bento :global(.glass-card:hover){border-color:var(--as-purple)}
+  .as-bento :global(.glass-card__title){color:var(--as-text)}
+  .as-bento :global(.glass-card__subtitle){color:var(--as-muted)}
+  p{color:var(--as-muted);line-height:1.5}
+  @media(max-width:760px){.as-bento-grid{grid-template-columns:1fr}}
+</style>

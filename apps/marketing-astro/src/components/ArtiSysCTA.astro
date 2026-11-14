@@ -1,0 +1,15 @@
+---
+import ArtiSysButton from './ArtiSysButton.astro';
+interface Props { title:string; description:string; href:string; label:string; }
+const {title,description,href,label}=Astro.props;
+---
+<section class="as-container as-cta" aria-labelledby="as-cta-title">
+  <div><p class="as-eyebrow">Conheça a ArtiSys</p><h2 id="as-cta-title">{title}</h2><p>{description}</p></div>
+  <ArtiSysButton href={href} label={label} />
+</section>
+<style>
+  .as-cta{display:flex;align-items:center;justify-content:space-between;gap:25px;margin-bottom:100px;border:1px solid var(--as-border-strong);border-radius:var(--as-radius-lg);padding:clamp(25px,5vw,55px);background:linear-gradient(115deg,#211337,#100b21)}
+  h2{font-size:clamp(1.6rem,3vw,2.6rem);margin:.5rem 0;letter-spacing:-.035em}
+  p:not(.as-eyebrow){color:var(--as-muted);line-height:1.6;max-width:600px}
+  @media(max-width:760px){.as-cta{flex-direction:column;align-items:stretch}}
+</style>
