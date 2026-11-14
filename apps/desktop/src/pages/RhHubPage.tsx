@@ -1,4 +1,6 @@
-import { BriefcaseBusiness, CalendarClock, FileArchive, ReceiptText, UsersRound, WalletCards } from 'lucide-react'
+import { useState } from 'react'
+import EmployeeBatchDialog from './EmployeeBatchDialog'
+import { BriefcaseBusiness, FileSpreadsheet, CalendarClock, FileArchive, ReceiptText, UsersRound, WalletCards } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, PageHeader } from '../components/ui'
 import { ROUTES } from '../routes/registry'
@@ -14,6 +16,7 @@ const cards = [
 ]
 
 export default function RhHubPage(){
+  const [batchOpen, setBatchOpen] = useState(false)
   return <>
     <PageHeader title="RH" description="Gestão dos colaboradores, remuneração, folha, ponto e documentos trabalhistas em um único fluxo."/>
     <RhMigrationNotice/>
@@ -40,6 +43,16 @@ export default function RhHubPage(){
         </div>
         <span className="artisys-rh-card-arrow" aria-hidden="true">›</span>
       </Card></Link>)}
+      <button type="button" className="rh-card-link rh-batch-card" onClick={() => setBatchOpen(true)}>
+        <Card className="artisys-rh-card">
+          <div className="artisys-rh-card-body">
+            <div className="artisys-rh-card-icon"><FileSpreadsheet size={20}/></div>
+            <div className="artisys-rh-card-copy"><strong>Como gerar relatório</strong><p>Baixe o modelo e importe funcionários em lote.</p></div>
+          </div>
+          <span className="artisys-rh-card-arrow" aria-hidden="true">›</span>
+        </Card>
+      </button>
     </div>
+    {batchOpen && <EmployeeBatchDialog onClose={() => setBatchOpen(false)}/>}
   </>
 }

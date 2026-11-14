@@ -21,6 +21,7 @@ const { PayrollExportService } = require('./services/payroll-export-service.cjs'
 const { DocumentService } = require('./services/document-service.cjs')
 const { PayrollService } = require('./services/payroll-service.cjs')
 const { exportEmployeeReport } = require('./services/employee-report.cjs')
+const { EmployeeBatchService } = require('./services/employee-batch-service.cjs')
 const { DocumentRootService } = require('./services/document-root-service.cjs')
 const { CatalogService } = require('./services/catalog-service.cjs')
 const { RhCatalogSourceService } = require('./services/rh-catalog-source-service.cjs')
@@ -154,6 +155,7 @@ function createServices() {
     payrollExports: new PayrollExportService({ payroll: rh, dialog }),
     documents: new DocumentService({ db, fileService: files, dialog, dataAccess, moduleStorage }),
     payroll: rh,
+    employeeBatch: new EmployeeBatchService({ dataAccess, dialog }),
     catalog,
     time, receiptPolicy: new ReceiptPolicyService({ dataAccess }),
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
@@ -410,6 +412,9 @@ function registerIpc() {
   ipcMain.handle('payroll-import:undo', envelope(({ id }) => services.payroll.importUndo(id)))
   ipcMain.handle('payroll:export-overview', envelope((payload) => services.payrollExports.export(payload)))
   ipcMain.handle('payroll:overview', envelope((payload) => services.payroll.overview(payload)))
+  ipcMain.handle('employees:admission-template', envelope(() => services.employeeBatch.download(mainWindow)))
+  ipcMain.handle('employees:admission-preview', envelope(({ companyId }) => services.employeeBatch.choose(mainWindow, companyId)))
+  ipcMain.handle('employees:admission-commit', envelope(({ token }) => services.employeeBatch.commit(token)))
   ipcMain.handle('employees:export-report', envelope(payload => exportEmployeeReport({ dataAccess: services.dataAccess, dialog, window: mainWindow }, payload)))
   ipcMain.handle('payroll:employee', envelope((payload) => services.payroll.getEmployee(payload)))
   ipcMain.handle('payroll:save-variable', envelope((payload) => services.payroll.saveVariable(payload)))

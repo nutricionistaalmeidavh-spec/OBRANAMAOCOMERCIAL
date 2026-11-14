@@ -216,3 +216,11 @@ input::placeholder,textarea::placeholder{color:#9aa5b8}.search{color:#7d889e}
 .dre-expense-track{height:8px;background:#edf2fb;border-radius:9px;overflow:hidden}.dre-expense-track>span{display:block;height:100%;background:#0b59f5;border-radius:9px}
 .dre-evolution-chart{height:320px;margin-top:20px}
 @media(max-width:1400px){.dre-insights-grid{grid-template-columns:1fr}}
+
+.rh-batch-card {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
