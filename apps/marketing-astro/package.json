@@ -10,10 +10,13 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "check:catalog": "node scripts/verify-catalog.mjs"
+    "check:catalog": "node scripts/verify-catalog.mjs && node scripts/verify-media.mjs",
+    "check:media": "node scripts/verify-media.mjs"
   },
   "dependencies": {
     "astro": "5.17.0",
-    "astro-component-kit": "0.7.1"
+    "astro-component-kit": "0.7.1",
+    "motion": "14.10.1",
+    "embla-carousel": "8.6.0"
   }
 }
