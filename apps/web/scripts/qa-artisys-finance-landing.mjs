@@ -66,8 +66,23 @@ try {
     const page = await context.newPage();
     const exceptions = [];
     page.on('pageerror', (error) => exceptions.push(error.message));
+    page.on('console', (message) => { if (message.type() === 'error') exceptions.push('console: ' + message.text()); });
+    page.on('requestfailed', (request) => exceptions.push('request: ' + request.url() + ': ' + request.failure()?.errorText));
+    page.on('response', (response) => { if (response.status() >= 400) exceptions.push('http ' + response.status() + ': ' + response.url()); });
     await page.goto(url, { waitUntil: 'domcontentloaded' });
+    try {
     await page.locator('.finance-embla-root').waitFor({ state: 'visible', timeout: 12000 });
+    } catch (error) {
+      const diagnostics = await page.evaluate(() => ({
+        ready: document.readyState,
+        html: document.querySelector('#finance-react-carousel')?.outerHTML.slice(0, 500),
+        script: document.querySelector('script[src="/assets/finance-landing.js"]')?.outerHTML,
+        moduleScriptCount: document.querySelectorAll('script[type="module"]').length,
+        reactRoots: document.querySelectorAll('.finance-embla-root').length
+      }));
+      console.error('Financeiro carousel mount diagnostics:', JSON.stringify({ diagnostics, exceptions }, null, 2));
+      throw error;
+    }
     const heroImage = page.locator('.finance-hero-screenshot img');
     await heroImage.evaluate((element) => element.decode());
     await page.locator('.finance-hero-screenshot-secondary img').evaluate((element) => element.decode());
