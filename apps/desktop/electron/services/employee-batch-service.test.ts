@@ -21,7 +21,7 @@ it('previews an Excel batch and saves valid rows through the active data source 
       for (const [label, value] of Object.entries(values)) row.getCell(headers.indexOf(label)).value = value
     }
     const identity = { 'Nome completo *':'Pessoa Teste', 'CPF *':'012.345.678-90', 'Data de nascimento *':'01/06/1990',
-      'Cargo *':'Encanador', 'Data de admissão *':new Date('2026-11-09T00:00:00Z'), 'Data do ASO admissional':'06/11/2026', 'Data NR-35':'07/11/2026' }
+      'Cargo *':'Encanador', 'Data de admissão *':new Date('2026-11-09T00:00:00Z'), 'Data do ASO admissional':'06/11/2026', 'Data NR-35':'07/11/2026', 'Obra atual':'Obra Teste', 'Optante FGTS':'Sim', 'Optante vale-transporte':'Não', 'UF CTPS':'SP', 'Chave PIX':'chave-teste', 'EPIs entregues':'Botina (123)', 'Data da entrega dos EPIs':'09/11/2026' }
     addEmployee(identity)
     addEmployee({ ...identity, 'CPF *':'111.222.333-44' })
     addEmployee({ ...identity, 'CPF *':'222.333.444-55', 'Data de admissão *':'31/11/2026' })
@@ -30,8 +30,13 @@ it('previews an Excel batch and saves valid rows through the active data source 
     const employees = [{ cpf:'11122233344' }]
     const dataAccess = {
       get: vi.fn(async () => ({ id:7, status:'ativa' })),
-      list: vi.fn(async (table: string) => table === 'funcionarios' ? employees : [{ id:3, nome:'Encanador', ativo:1, salario_base_centavos:250000 }]),
-      save: vi.fn(async (_table: string, row: { cpf: string }) => { employees.push(row); return { id:8, ...row } })
+      list: vi.fn(async (table: string) => ({
+        funcionarios: employees,
+        cargos: [{ id:3, nome:'Encanador', ativo:1, salario_base_centavos:250000 }],
+        obras: [{ id:4, empresa_id:7, nome:'Obra Teste' }],
+        epis: [{ id:5, nome:'Botina', ca:'123', ativo:1 }]
+      } as Record<string, unknown[]>)[table]),
+      save: vi.fn(async (table: string, row: { cpf: string }) => { if (table === 'funcionarios') employees.push(row); return { id:8, ...row } })
     }
     const dialog = { showOpenDialog: vi.fn(async () => ({ filePaths:[file] })) }
     const service = new EmployeeBatchService({ dataAccess, dialog })
@@ -40,10 +45,11 @@ it('previews an Excel batch and saves valid rows through the active data source 
     expect(dataAccess.save).not.toHaveBeenCalled()
     const result = await service.commit(preview.token)
     expect(result.created).toBe(1)
-    expect(dataAccess.save).toHaveBeenCalledExactlyOnceWith('funcionarios', expect.objectContaining({
-      empresa_id:7, cargo_id:3, cpf:'012.345.678-90', admissao:'2026-11-09', data_nascimento:'1990-06-01',
+    expect(dataAccess.save).toHaveBeenNthCalledWith(1, 'funcionarios', expect.objectContaining({
+      empresa_id:7, cargo_id:3, obra_atual_id:4, fgts_optante:1, vale_transporte_opcao:0, ctps_uf:'SP', pix:'chave-teste', cpf:'012.345.678-90', admissao:'2026-11-09', data_nascimento:'1990-06-01',
       observacoes:'Data do ASO admissional: 06/11/2026\nData NR-35: 07/11/2026', salario_centavos:250000
     }))
+    expect(dataAccess.save).toHaveBeenNthCalledWith(2, 'funcionario_epis', { empresa_id:7, funcionario_id:8, epi_id:5, data_entrega:'2026-11-09', quantidade:1 })
     await expect(service.commit(preview.token)).rejects.toThrow(/Abra novamente/)
     const repeated = await service.choose(undefined, 7)
     expect(repeated.rows[0].errors).toContain('CPF já cadastrado.')

@@ -17,10 +17,27 @@ const fields = [
   ['intervalo_fim', 'Fim do intervalo'], ['jornada_fim', 'Saída'],
   ['aso', 'Data do ASO admissional'], ['aso_validade', 'Validade do ASO'],
   ['nr06', 'Data NR-06'], ['nr12', 'Data NR-12'], ['nr18', 'Data NR-18'], ['nr35', 'Data NR-35'],
-  ['outros', 'Outros exames ou treinamentos e datas'], ['observacoes', 'Observações']
+  ['outros', 'Outros exames ou treinamentos e datas'], ['observacoes', 'Observações'],
+  ['sexo', 'Sexo'], ['cor', 'Cor / raça'], ['escolaridade', 'Escolaridade'],
+  ['deficiencia', 'Deficiência'], ['beneficiarios', 'Beneficiários'],
+  ['ctps_uf', 'UF CTPS'], ['ctps_expedicao', 'Expedição CTPS'],
+  ['cnh', 'CNH'], ['cnh_categoria', 'Categoria CNH'], ['titulo_eleitor', 'Título eleitoral'],
+  ['titulo_eleitor_zona', 'Zona eleitoral'], ['titulo_eleitor_secao', 'Seção eleitoral'],
+  ['certificado_reservista', 'Reservista'], ['reservista_categoria', 'Categoria reservista'],
+  ['endereco_logradouro', 'Logradouro'], ['endereco_numero', 'Número'],
+  ['endereco_complemento', 'Complemento'], ['endereco_bairro', 'Bairro'],
+  ['endereco_cidade', 'Cidade'], ['endereco_uf', 'UF do endereço'],
+  ['obra', 'Obra atual'], ['experiencia_dias', 'Experiência em dias'],
+  ['experiencia_fim', 'Término da experiência'], ['fgts_optante', 'Optante FGTS'],
+  ['fgts_opcao_em', 'Data da opção FGTS'], ['vale_transporte_opcao', 'Optante vale-transporte'],
+  ['vale_transporte_detalhes', 'Trajeto e tarifas do vale-transporte'], ['banco', 'Banco'],
+  ['agencia', 'Agência'], ['conta_bancaria', 'Conta bancária'], ['pix', 'Chave PIX'],
+  ['epis', 'EPIs entregues'], ['epi_entrega', 'Data da entrega dos EPIs']
 ]
-const dateKeys = new Set(['admissao','data_nascimento','rg_emissao','aso','aso_validade','nr06','nr12','nr18','nr35'])
+const dateKeys = new Set(['admissao','data_nascimento','rg_emissao','aso','aso_validade','nr06','nr12','nr18','nr35','ctps_expedicao','experiencia_fim','fgts_opcao_em','epi_entrega'])
 const recordKeys = ['aso','aso_validade','nr06','nr12','nr18','nr35','outros']
+const toggleKeys = new Set(['fgts_optante', 'vale_transporte_opcao'])
+const epiNames = value => [...new Set(String(value || '').split(';').map(nameKey).filter(Boolean))]
 const timeKeys = new Set(['jornada_inicio','intervalo_inicio','intervalo_fim','jornada_fim'])
 const nameKey = value => String(value ?? '').normalize('NFD').replace(/\p{M}/gu, '').trim().replace(/\s+/g, ' ').toLowerCase()
 const cpfKey = value => String(value ?? '').trim().replace(/[.\-\s]/g, '')
@@ -57,6 +74,9 @@ async function createAdmissionTemplate() {
     'Informe a data real de admissão. Para horários, use HH:MM.',
     'Informe as datas de ASO e NRs aplicáveis. Elas são salvas nas observações da ficha do funcionário.',
     'Para outras NRs ou exames, informe o nome e a respectiva data na coluna de outros treinamentos.',
+    'Para FGTS e vale-transporte, preencha Sim ou Não. Informe a obra pelo nome cadastrado.',
+    'Em EPIs entregues, separe os nomes por ponto e vírgula. Para distinguir nomes iguais, use Nome (CA).',
+    'Preencha a data de entrega ao informar EPIs. Cada item listado registra uma unidade.',
     'O salário-base e os benefícios fixos vêm do cargo. CPFs existentes e linhas repetidas são sinalizados na prévia.'
   ]) help.addRow([text]).alignment = { wrapText: true }
   help.getRow(1).font = { bold: true, size: 15 }
@@ -82,6 +102,19 @@ function parseAdmissions(sheet) {
         if (!value) errors.push(`${label}: use uma data válida.`)
       }
       if (timeKeys.has(key) && !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) errors.push(`${label}: use HH:MM.`)
+      if (toggleKeys.has(key)) {
+        const choice = { sim:1, nao:0, '1':1, '0':0 }[nameKey(value)]
+        if (choice !== 0 && choice !== 1) errors.push(`${label}: informe Sim ou Não.`)
+        value = choice
+      }
+      if (key === 'experiencia_dias') {
+        if (!/^\d{1,2}$/.test(value) || Number(value) < 1 || Number(value) > 90) errors.push('Experiência: informe de 1 a 90 dias.')
+        value = Number(value)
+      }
+      if (key === 'sexo') {
+        value = nameKey(value).replaceAll(' ', '_')
+        if (!['feminino', 'masculino', 'outro', 'nao_informado'].includes(value)) errors.push('Sexo: informe Feminino, Masculino, Outro ou Não informado.')
+      }
       data[key] = value
     }
     data.cpf = cpfKey(data.cpf)
@@ -89,6 +122,9 @@ function parseAdmissions(sheet) {
     if (data.nome && data.nome.split(/\s+/).length < 2) errors.push('Informe nome e sobrenome.')
     if (data.data_nascimento && data.admissao && data.data_nascimento >= data.admissao) errors.push('Nascimento deve ser anterior à admissão.')
     if (data.aso && data.aso_validade && data.aso_validade < data.aso) errors.push('Validade do ASO deve ser igual ou posterior ao exame.')
+    if (data.experiencia_fim && data.admissao && data.experiencia_fim < data.admissao) errors.push('Término da experiência anterior à admissão.')
+    if (data.epis && !data.epi_entrega) errors.push('Informe a data de entrega dos EPIs.')
+    if (data.epi_entrega && !epiNames(data.epis).length) errors.push('Informe os EPIs entregues.')
     if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) errors.push('E-mail inválido.')
     entries.push({ line:i + 2, data, errors })
   }
@@ -115,9 +151,11 @@ class EmployeeBatchService {
 
   async review(entries, companyId) {
     if (!Number.isSafeInteger(companyId) || companyId <= 0) throw new Error('Selecione a empresa.')
-    const [company, cargos, employees] = await Promise.all([
+    const [company, cargos, employees, works, equipment] = await Promise.all([
       this.dataAccess.get('empresas', companyId), this.dataAccess.list('cargos', { empresa_id: companyId }),
-      this.dataAccess.list('funcionarios')
+      this.dataAccess.list('funcionarios'),
+      entries.some(entry => entry.data.obra) ? this.dataAccess.list('obras', { empresa_id:companyId }) : [],
+      entries.some(entry => entry.data.epis) ? this.dataAccess.list('epis', { empresa_id:companyId }) : []
     ])
     if (!company || !active(company)) throw new Error('Empresa ativa não encontrada.')
     const cpfs = new Set(employees.filter(employee => !employee.deleted_at).map(employee => cpfKey(employee.cpf)))
@@ -126,7 +164,16 @@ class EmployeeBatchService {
       const roles = cargos.filter(item => Number(item.ativo) === 1 && nameKey(item.nome) === nameKey(entry.data.cargo))
       if (entry.data.cargo && roles.length !== 1) errors.push('Cargo ativo não encontrado de forma inequívoca para a empresa.')
       if (entry.data.cpf && cpfs.has(entry.data.cpf)) errors.push('CPF já cadastrado.')
-      return { ...entry, errors, role: roles[0] }
+      const matchingWorks = works.filter(item => item.empresa_id === companyId && active(item) && nameKey(item.nome) === nameKey(entry.data.obra))
+      if (entry.data.obra && matchingWorks.length !== 1) errors.push('Obra não encontrada de forma inequívoca para a empresa.')
+      const epis = []
+      for (const name of epiNames(entry.data.epis)) {
+        const matches = equipment.filter(item => Number(item.ativo) === 1 &&
+          (nameKey(item.nome) === name || nameKey(`${item.nome} (${item.ca})`) === name))
+        if (matches.length !== 1) errors.push(`EPI não encontrado de forma inequívoca: ${name}.`)
+        else if (!epis.some(item => item.id === matches[0].id)) epis.push(matches[0])
+      }
+      return { ...entry, errors, role: roles[0], work:matchingWorks[0], epis }
     })
   }
 
@@ -153,11 +200,11 @@ class EmployeeBatchService {
     try {
       const checked = await this.review(batch.entries, batch.companyId)
       const results = []
-      for (const { line, data, role, errors } of checked) {
+      for (const { line, data, role, work, epis, errors } of checked) {
         const result = { line, name:data.nome || '', errors }
         results.push(result)
         if (errors.length) continue
-        const { cargo, observacoes, ...employee } = data
+        const { cargo, obra, observacoes, epis:_names, epi_entrega, ...employee } = data
         const notes = recordKeys.filter(key => employee[key]).map(key => {
           const label = fields.find(([field]) => field === key)[1]
           const value = employee[key]
@@ -165,17 +212,27 @@ class EmployeeBatchService {
         })
         for (const key of recordKeys) delete employee[key]
         try {
-          await this.dataAccess.save('funcionarios', {
+          const saved = await this.dataAccess.save('funcionarios', {
             ...employee, cpf:employee.cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4'),
             observacoes:[observacoes, ...notes].filter(Boolean).join('\n'),
-            empresa_id:batch.companyId, cargo_id:role.id, salario_centavos:role.salario_base_centavos || 0, status:'ativo'
+            empresa_id:batch.companyId, cargo_id:role.id, obra_atual_id:work?.id ?? null, salario_centavos:role.salario_base_centavos || 0, status:'ativo'
           })
+          result.created = true
+          for (const item of epis) {
+            try {
+              await this.dataAccess.save('funcionario_epis', {
+                empresa_id:batch.companyId, funcionario_id:saved.id, epi_id:item.id, data_entrega:epi_entrega, quantidade:1
+              })
+            } catch {
+              errors.push(`Cadastro criado. Registre na ficha a entrega de ${item.nome}.`)
+            }
+          }
         } catch (error) {
           console.error('Falha na admissão em lote', { line, code: error?.code })
           errors.push('Falha ao salvar. Reabra a planilha para verificar a situação desta linha.')
         }
       }
-      return { created:results.filter(result => !result.errors.length).length, rows:results }
+      return { created:results.filter(result => result.created).length, rows:results }
     } finally { this.busy = false }
   }
 }
