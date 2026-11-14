@@ -83,7 +83,8 @@ try {
         motionScript: !!document.querySelector('script[src="../artisys-finance-motion.js"]'),
         ctaLinks: [...document.querySelectorAll('[data-product-cta]')].map((link) => link.getAttribute('href')),
         crmCopy: document.querySelector('#finance-conversion-title')?.textContent || '',
-        mobileColumnCount: getComputedStyle(document.querySelector('.finance-feature-grid')).gridTemplateColumns.split(' ').length
+        mobileColumnCount: getComputedStyle(document.querySelector('.finance-feature-grid')).gridTemplateColumns.split(' ').length,
+        checkoutTitleColor: getComputedStyle(document.querySelector('.product-cta h2')).color
       };
     });
 
@@ -95,6 +96,7 @@ try {
     assert.equal(data.featureCards, 3);
     assert.equal(data.galleryCards, 5);
     assert.equal(data.motionScript, true);
+    assert.equal(data.checkoutTitleColor, 'rgb(255, 255, 255)', 'final purchase CTA must be legible on violet');
     assert.equal(data.ctaLinks.length, 2, 'preserve 2 canonical checkout links');
     assert.ok(data.ctaLinks.every((link) => link === 'https://pagamentos-artisys-central.nutricionistaalmeidavh.workers.dev/comprar?oferta=artisys-sistema-financeiro'));
     assert.match(data.crmCopy, /A venda avança/);
