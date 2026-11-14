@@ -30,6 +30,8 @@ npm run wpp:verify
 npm run build
 ```
 
+Compatibilização: a atualização preserva as demais landings ArtiSys e as versões mais recentes das dependências existentes na `main`. O arquivo `package-lock.json` é regenerado e versionado após o merge do escopo.
+
 O build produz `public/wppprospector/experience/experience.js` e `experience.css`, copiados para `dist/wppprospector/experience` no build principal do Vite. **Nenhuma CDN ou servidor de frontend pago é necessário.** O bundle inclui React, Motion, Embla e os componentes visuais, compilados localmente.
 
 O HTML original permanece navegável sem React. As imagens da galeria e do hero vêm de imagens WebP que combinam screenshots reais do CRM capturados pelo Playwright com dados fictícios de QA.
