@@ -87,6 +87,24 @@ export const artisysSeoConfig = defineSeoConfig({
   },
   pages: [
     {
+      path: '/wppprospector',
+      canonical: 'https://artisys.dev/wppprospector/',
+      title: 'CRM ArtiSys WppProspector | Leads, vendas e WhatsApp no mesmo lugar',
+      description: 'Organize leads, oportunidades, propostas, tarefas e conversas no CRM ArtiSys WppProspector. Funciona sem WhatsApp ou IA obrigatórios. Conheça a licença vitalícia.',
+      schemaType: 'WebPage',
+      changeFrequency: 'weekly',
+      priority: 0.84,
+      jsonLd: [{
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        name: 'ArtiSys WppProspector CRM',
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Windows',
+        url: 'https://artisys.dev/wppprospector/',
+        provider: { '@id': 'https://artisys.dev/#organization' }
+      }]
+    },
+    {
       path: '/links',
       canonical: 'https://artisys.dev/links/',
       title: 'Central ArtiSys | Academy e canais oficiais',

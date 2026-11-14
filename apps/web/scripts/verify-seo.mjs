@@ -46,6 +46,22 @@ const linksModel = buildPageSeo(artisysSeoConfig, '/links');
 const linksAudit = auditSeoDocument({ html: linksHtml, expected: { canonical: linksModel.canonical, index: true } });
 assert.equal(linksAudit.summary.critical, 0, 'Central ArtiSys com falha SEO: ' + JSON.stringify(linksAudit, null, 2));
 
+// WppProspector is a self-contained static marketing page, never part of the authenticated CRM.
+assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/wppprospector\/<\/loc>/, 'CRM WppProspector ausente do sitemap');
+const crmHtml = read('public/wppprospector/index.html');
+const crmCss = read('public/wppprospector/style.css');
+const crmModel = buildPageSeo(artisysSeoConfig, '/wppprospector');
+const crmAudit = auditSeoDocument({ html: crmHtml, expected: { canonical: crmModel.canonical, index: true } });
+assert.equal(crmAudit.summary.critical, 0, 'WppProspector com falha SEO: ' + JSON.stringify(crmAudit, null, 2));
+assert.match(crmHtml, /<link rel="canonical" href="https:\/\/artisys\.dev\/wppprospector\/">/i);
+assert.match(crmHtml, /"@type":"SoftwareApplication"/, 'CRM exige schema SoftwareApplication');
+assert.match(crmHtml, /n[aã]o [eé] captura real da tela/i, 'mockup deve ser identificado como ilustrativo');
+assert.match(crmHtml, /CRM utiliz[aá]vel sem WhatsApp/i, 'CRM manual deve ser descrito sem integrações obrigatórias');
+assert.match(crmHtml, /n[aã]o sincronizam automaticamente/i, 'múltiplos PCs não sincronizam automaticamente');
+assert.match(crmHtml, /Baileys/i, 'conexão WhatsApp não oficial exige aviso explícito');
+assert.match(crmHtml, /custos de mensagens/i, 'integração Meta pode ter custos');
+assert.match(crmCss, /prefers-reduced-motion/, 'respeitar acessibilidade de movimento');
+
 assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/devkits\/<\/loc>/, 'página DevKit deve estar no sitemap');
 const devkitHtml = read('public/devkits/index.html');
 const devkitModel = buildPageSeo(artisysSeoConfig, '/devkits');
