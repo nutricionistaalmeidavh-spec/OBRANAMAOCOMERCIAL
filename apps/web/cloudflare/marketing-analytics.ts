@@ -20,9 +20,10 @@ type Db = {prepare:(sql:string)=>{bind:(...values:unknown[])=>{run:()=>Promise<u
 type Env = {DB:Db};
 type Authorize = ()=>Promise<Response>;
 const emptyCounts = () => ({ views:0,productClicks:0,checkoutClicks:0,contactClicks:0,galleryClicks:0 });
-const labels:Record<Type,keyof ReturnType<typeof emptyCounts>> = {
+type CommercialType=Exclude<Type,'site_click'>;
+const labels:Record<CommercialType,keyof ReturnType<typeof emptyCounts>> = {
   view:'views',product_click:'productClicks',checkout_click:'checkoutClicks',
-  contact_click:'contactClicks',gallery_click:'galleryClicks',site_click:'views'
+  contact_click:'contactClicks',gallery_click:'galleryClicks'
 };
 function shiftDay(day:string,days:number) {
   const value=new Date(day+'T00:00:00Z');value.setUTCDate(value.getUTCDate()+days);
@@ -82,7 +83,7 @@ export function summarizeMarketingAnalytics(
     if(!targetDay || destination || !['view','product_click','checkout_click','contact_click','gallery_click'].includes(type))continue;
     if(product!=='catalog' && !productCounts.has(product))continue;
     if(product==='catalog' && type!=='view')continue;
-    const field=labels[type];
+    const field=labels[type as CommercialType];
     targetDay[field]+=value;summary[field]+=value;
     if(product==='catalog')catalogCounts[field]+=value;
     else productCounts.get(product)![field]+=value;
