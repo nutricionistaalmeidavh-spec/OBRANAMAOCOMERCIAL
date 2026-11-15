@@ -65,7 +65,7 @@ describe('P2: registro de oportunidades WhatsApp sem formulário',()=>{
     expect(response?.status).toBe(200);
     const statement=env.DB.prepare.mock.calls[0][0] as string;
     expect(statement).toContain('progression.record_json AS progression_json');
-    expect((statement.match(/\\?/g)||[])).toHaveLength(3);
+    expect((statement.match(/\?/g)||[])).toHaveLength(3);
   });
 });
 describe('P2: progresso comercial canônico registrado manualmente pelo proprietário',()=>{
