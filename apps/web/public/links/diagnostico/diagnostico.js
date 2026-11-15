@@ -3,6 +3,17 @@
   const form = document.querySelector('#diagnostic-form');
   if (!form) return;
   const steps = [...form.querySelectorAll('.wizard-step')];
+  let fullEngaged=false;
+  const fullStepsSeen=new Set();
+  const trackDiagnosticStep=(step)=>{
+    window.dispatchEvent(new CustomEvent('artisys-diagnostic-stage',{detail:{step}}));
+  };
+  window.addEventListener('artisys-open-full',()=>{
+    fullEngaged=true;
+    trackDiagnosticStep('full_step_1');
+    fullStepsSeen.add('full_step_1');
+  });
+
   const next = document.querySelector('#next-button');
   const back = document.querySelector('#back-button');
   const submit = document.querySelector('#submit-button');
@@ -104,6 +115,10 @@
   function showStep(index, moveFocus = false) {
     current = index;
     steps.forEach((step, i) => { step.hidden = i !== index; });
+    if(fullEngaged){
+      const stage='full_step_'+(index+1);
+      if(!fullStepsSeen.has(stage)){fullStepsSeen.add(stage);trackDiagnosticStep(stage);}
+    }
     title.textContent = heading[index];
     overline.textContent = `ETAPA ${index + 1} DE ${steps.length}`;
     counter.textContent = `0${index + 1} / 0${steps.length}`;
@@ -208,6 +223,7 @@
       });
       const result = await response.json();
       if (!response.ok || result.ok !== true) throw new Error(result.message || 'Não foi possível enviar. Tente novamente.');
+      trackDiagnosticStep('full_submitted');
       form.hidden = true;
       document.querySelector('.wizard-head').hidden = true;
       progress.hidden = true;
@@ -217,6 +233,7 @@
       success.querySelector('h2').setAttribute('tabindex', '-1');
       success.querySelector('h2').focus();
     } catch (error) {
+      trackDiagnosticStep('full_error');
       status(error instanceof Error ? error.message : 'Falha no envio. Tente novamente.');
     } finally {
       sending = false;
