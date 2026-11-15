@@ -1,10 +1,12 @@
 import catalog from '../public/sistemas/products.json';
 import { brazilDay } from './links-analytics';
+import { validWhatsappEvent, WHATSAPP_CTA_ROUTES } from './whatsapp-attribution';
 
 /** Only daily aggregated counters in existing kv_records. No migrations, IP, UA or cookies. */
 const COLLECTION = 'artisys_marketing_daily_v1';
 const allowed = new Set((catalog.products as Array<{slug:string}>).map(p=>p.slug));
-const types = ['view','product_click','checkout_click','contact_click','gallery_click','site_click'] as const;
+const types = ['view','product_click','checkout_click','contact_click','gallery_click','site_click','whatsapp_click','funnel_step'] as const;
+export const DIAGNOSTIC_STEPS = ['page_open','quick_open','quick_started','quick_submitted','quick_error','full_open','full_step_1','full_step_2','full_step_3','full_step_4','full_submitted','full_error'] as const;
 export const HOME_DESTINATIONS = [
   {id:'sistemas',label:'Sistemas'},
   {id:'devkits',label:'DevKit Tools'},
@@ -14,13 +16,13 @@ export const HOME_DESTINATIONS = [
 ] as const;
 const destinations=new Set<string>(HOME_DESTINATIONS.map(x=>x.id));
 type Type = typeof types[number];
-type Data = {type:Type;product:string;destination?:string};
+type Data = {type:Type;product:string;destination?:string;cta?:string;step?:string};
 type CountRow = {id:string;count:number|string};
 type Db = {prepare:(sql:string)=>{bind:(...values:unknown[])=>{run:()=>Promise<unknown>;all:()=>Promise<{results?:CountRow[]}>}}};
 type Env = {DB:Db};
 type Authorize = ()=>Promise<Response>;
 const emptyCounts = () => ({ views:0,productClicks:0,checkoutClicks:0,contactClicks:0,galleryClicks:0 });
-type CommercialType=Exclude<Type,'site_click'>;
+type CommercialType=Exclude<Type,'site_click'|'whatsapp_click'|'funnel_step'>;
 const labels:Record<CommercialType,keyof ReturnType<typeof emptyCounts>> = {
   view:'views',product_click:'productClicks',checkout_click:'checkoutClicks',
   contact_click:'contactClicks',gallery_click:'galleryClicks'
@@ -40,6 +42,11 @@ function validEvent(raw:unknown): raw is Data {
   const event=raw as Record<string,unknown>;
   if(typeof event.type!=='string' || !types.includes(event.type as Type))return false;
   if(typeof event.product!=='string')return false;
+  if(event.type==='whatsapp_click')return Object.keys(event).length===3 &&
+    validWhatsappEvent(event.product,event.cta);
+  if(event.type==='funnel_step')return Object.keys(event).length===3 &&
+    event.product==='diagnostico' && typeof event.step==='string' &&
+    (DIAGNOSTIC_STEPS as readonly string[]).includes(event.step);
   if(event.product==='home') {
     if(event.type==='view')return Object.keys(event).length===2;
     return event.type==='site_click' && Object.keys(event).length===3 &&
@@ -48,6 +55,7 @@ function validEvent(raw:unknown): raw is Data {
   if(Object.keys(event).length!==2)return false;
   if(event.product==='catalog')return event.type==='view';
   return allowed.has(event.product) && event.type!=='site_click';
+
 }
 export function summarizeMarketingAnalytics(
   rows:CountRow[],days:number,now:Date,
@@ -62,12 +70,31 @@ export function summarizeMarketingAnalytics(
   const home={views:0,clicks:0,destinations:HOME_DESTINATIONS.map(x=>({...x,clicks:0}))};
   const homeDaily=Array.from({length:days},(_,i)=>({date:shiftDay(today,i+1-days),views:0,clicks:0}));
   const homeDates=new Map(homeDaily.map(x=>[x.date,x]));
+  const whatsapp={total:0,byButton:Object.entries(WHATSAPP_CTA_ROUTES)
+    .flatMap(([page,ctas])=>ctas.map(cta=>({page,cta,clicks:0})))};
+  const whatsappDaily=Array.from({length:days},(_,i)=>({date:shiftDay(today,i+1-days),clicks:0}));
+  const whatsappDates=new Map(whatsappDaily.map(x=>[x.date,x]));
+  const diagnostic={total:0,stages:DIAGNOSTIC_STEPS.map(step=>({step,count:0}))};
+  const diagnosticDaily=Array.from({length:days},(_,i)=>({date:shiftDay(today,i+1-days),events:0}));
+  const diagnosticDates=new Map(diagnosticDaily.map(x=>[x.date,x]));
   for(const row of rows) {
-    const match=/^(\d{4}-\d{2}-\d{2}):(view|product_click|checkout_click|contact_click|gallery_click|site_click):([a-z0-9-]+)(?::([a-z0-9-]+))?$/.exec(row.id);
+    const match=/^(\d{4}-\d{2}-\d{2}):(view|product_click|checkout_click|contact_click|gallery_click|site_click|whatsapp_click|funnel_step):([a-z0-9-]+)(?::([a-z0-9-]+))?$/.exec(row.id);
     if(!match)continue;
     const type=match[2] as Type, product=match[3],destination=match[4];
     const value=Math.max(0,Math.floor(Number(row.count)||0));
     if(!value)continue;
+    if(type==='whatsapp_click' && destination) {
+      const row=whatsapp.byButton.find(x=>x.page===product&&x.cta===destination);
+      const day=whatsappDates.get(match[1]);
+      if(row && day){row.clicks+=value;whatsapp.total+=value;day.clicks+=value;}
+      continue;
+    }
+    if(type==='funnel_step' && product==='diagnostico' && destination) {
+      const row=diagnostic.stages.find(x=>x.step===destination);
+      const day=diagnosticDates.get(match[1]);
+      if(row&&day){row.count+=value;diagnostic.total+=value;day.events+=value;}
+      continue;
+    }
     if(product==='home') {
       const target=homeDates.get(match[1]);
       if(!target)continue;
@@ -89,7 +116,7 @@ export function summarizeMarketingAnalytics(
     else productCounts.get(product)![field]+=value;
   }
   return {
-    days,timezone:'America/Sao_Paulo',summary,catalog:catalogCounts,home,homeDaily,
+    days,timezone:'America/Sao_Paulo',summary,catalog:catalogCounts,home,homeDaily,whatsapp,whatsappDaily,diagnostic,diagnosticDaily,
     products:[...productCounts.values()].sort((a,b)=>b.productClicks-a.productClicks || b.checkoutClicks-a.checkoutClicks || a.name.localeCompare(b.name,'pt-BR')),
     daily,
     note:'Dados first-party: aberturas registradas não são pessoas únicas. Cliques em comprar não são vendas. Home, /links e páginas comerciais são conjuntos separados; não equivalem a todo o domínio.'
@@ -109,7 +136,9 @@ export async function handlePublicMarketingEvent(request:Request,env:Env,now=new
   if(!validEvent(event))return json({error:'Evento inválido.'},400);
   const approved=event as Data;
   const key=brazilDay(now)+':'+approved.type+':'+approved.product+
-    (approved.type==='site_click' ? ':'+approved.destination : '');
+    (approved.type==='site_click' ? ':'+approved.destination :
+     approved.type==='whatsapp_click' ? ':'+approved.cta :
+     approved.type==='funnel_step' ? ':'+approved.step : '');
   const date=now.toISOString();
   try {
     await env.DB.prepare(
