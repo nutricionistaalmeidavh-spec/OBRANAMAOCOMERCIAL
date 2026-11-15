@@ -3,6 +3,10 @@ import { defineSeoConfig } from './vendor/artisys-seo/config.mjs';
 import { productBelongsToCollection, withCanonicalCollections } from './catalog-collections.mjs';
 
 const catalog = withCanonicalCollections(JSON.parse(readFileSync(new URL('./public/sistemas/products.json', import.meta.url), 'utf8')));
+const canonicalSocialImage = (slug) => {
+  const picture = catalog.products.find((product) => product.slug === slug)?.media?.cover;
+  return picture?.src ? new URL(picture.src, 'https://artisys.dev').href : undefined;
+};
 const applicationCategory = {
   'Comércio': 'BusinessApplication',
   'Construção': 'BusinessApplication',
@@ -12,7 +16,7 @@ const applicationCategory = {
 };
 
 function productPublicUrl(product) {
-  if (product.pageMode === 'external') return product.externalHref;
+  if (product.pageMode === 'external') return new URL(product.externalHref, 'https://artisys.dev').href;
   if (product.pageMode === 'collection') {
     const collection = product.collections?.[0];
     return collection ? `https://artisys.dev/sistemas/${collection}/#${product.slug}` : 'https://artisys.dev/sistemas/';
@@ -45,6 +49,7 @@ const productPages = individualProducts.map((product) => {
   return {
     path: `/sistemas/${product.slug}`,
     canonical: url,
+    ...(canonicalSocialImage(product.slug) ? { image: canonicalSocialImage(product.slug) } : {}),
     title: product.seo.title,
     description: product.seo.description,
     schemaType: 'WebPage',
@@ -88,6 +93,7 @@ export const artisysSeoConfig = defineSeoConfig({
   pages: [
     {
       path: '/gestãoholerites',
+      ...(canonicalSocialImage('gestao-holerites') ? { image: canonicalSocialImage('gestao-holerites') } : {}),
       canonical: 'https://artisys.dev/gest%C3%A3oholerites/',
       title: 'ArtiSys Holerites | Folha de pagamento e recibos em PDF no Windows',
       description: 'ArtiSys Holerites: folha mensal, férias, 13º, rescisão e contracheques A4. Software desktop offline para Windows. Veja telas reais.',
@@ -106,6 +112,7 @@ export const artisysSeoConfig = defineSeoConfig({
     },
     {
       path: '/oficina',
+      ...(canonicalSocialImage('oficina') ? { image: canonicalSocialImage('oficina') } : {}),
       canonical: 'https://artisys.dev/oficina/',
       title: 'ArtiSys Oficina | Gestão de ordens, estoque e vendas no Windows',
       description: 'Organize ordens de serviço, clientes, veículos, estoque de peças, vendas e relatórios no ArtiSys Oficina. Conheça as telas reais do sistema.',
@@ -124,6 +131,7 @@ export const artisysSeoConfig = defineSeoConfig({
     },
     {
       path: '/wppprospector',
+      ...(canonicalSocialImage('wppprospector') ? { image: canonicalSocialImage('wppprospector') } : {}),
       canonical: 'https://artisys.dev/wppprospector/',
       title: 'CRM ArtiSys WppProspector | Leads, vendas e WhatsApp no mesmo lugar',
       description: 'Organize leads, oportunidades, propostas, tarefas e conversas no CRM ArtiSys WppProspector. Funciona sem WhatsApp ou IA obrigatórios. Conheça a licença vitalícia.',
@@ -183,9 +191,10 @@ export const artisysSeoConfig = defineSeoConfig({
     },
     {
       path: '/sistemas',
+      image: new URL('/wppprospector/media/hero-showcase-real.webp', 'https://artisys.dev').href,
       canonical: 'https://artisys.dev/sistemas/',
-      title: 'ArtiSys | Sistemas para empresas',
-      description: 'Conheça os sistemas ArtiSys para comércio, construção, agro, saúde e gestão financeira.',
+      title: 'Sistemas ArtiSys | Softwares para empresas',
+      description: 'Conheça os sistemas ArtiSys para comércio, construção, CRM, RH, saúde e financeiro. Veja telas reais e acesse a página de cada produto.',
       schemaType: 'CollectionPage',
       changeFrequency: 'weekly',
       priority: 0.9,
