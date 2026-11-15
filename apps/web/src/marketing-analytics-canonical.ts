@@ -8,6 +8,10 @@ type Marketing={
   days:number;timezone:string;summary:Counts;catalog:Counts;
   products:Array<{slug:string;name:string}&Counts>;
   daily:Array<{date:string}&Counts>;home:Home;homeDaily:Array<{date:string;views:number;clicks:number}>;
+  whatsapp:{total:number;byButton:Array<{page:string;cta:string;clicks:number}>};
+  whatsappDaily:Array<{date:string;clicks:number}>;
+  diagnostic:{total:number;stages:Array<{step:string;count:number}>};
+  diagnosticDaily:Array<{date:string;events:number}>;
 };
 type Links={
   days:number;timezone:string;views:number;clicks:number;interactionRate:number;
@@ -65,6 +69,32 @@ export function validateConsolidatedSources(marketing:Marketing,links:Links):{va
   if(marketing.home.views!==sum(marketing.homeDaily,'views'))issues.push('Home: aberturas divergentes');
   if(marketing.home.clicks!==sum(marketing.homeDaily,'clicks')||
       marketing.home.clicks!==sum(marketing.home.destinations,'clicks'))issues.push('Home: cliques divergentes');
+  if(!Array.isArray(marketing.whatsapp?.byButton)||!Array.isArray(marketing.whatsappDaily)||
+     !Array.isArray(marketing.diagnostic?.stages)||!Array.isArray(marketing.diagnosticDaily))
+    issues.push('WhatsApp ou funil: campos obrigatórios ausentes');
+  else {
+    fields(marketing.whatsapp,['total'],'WhatsApp',issues);
+    fields(marketing.diagnostic,['total'],'Diagnóstico',issues);
+    for(const row of marketing.whatsapp.byButton)fields(row,['clicks'],'CTA WhatsApp '+row.cta,issues);
+    for(const row of marketing.whatsappDaily)fields(row,['clicks'],'WhatsApp diário',issues);
+    for(const row of marketing.diagnostic.stages)fields(row,['count'],'Etapa diagnóstico '+row.step,issues);
+    for(const row of marketing.diagnosticDaily)fields(row,['events'],'Diagnóstico diário',issues);
+    if(marketing.whatsapp.total!==sum(marketing.whatsapp.byButton,'clicks')||
+       marketing.whatsapp.total!==sum(marketing.whatsappDaily,'clicks'))
+      issues.push('WhatsApp: totais por botão e dia divergentes');
+    if(marketing.diagnostic.total!==sum(marketing.diagnostic.stages,'count')||
+       marketing.diagnostic.total!==sum(marketing.diagnosticDaily,'events'))
+      issues.push('Diagnóstico: totais por etapa e dia divergentes');
+    if(!sameDay(marketing.whatsappDaily,marketing.days,'WhatsApp')||
+       !sameDay(marketing.diagnosticDaily,marketing.days,'Diagnóstico'))
+      issues.push('WhatsApp ou diagnóstico: série diária inválida');
+    for(let i=0;i<marketing.days;i++){
+      if(marketing.whatsappDaily[i]?.date!==marketing.daily[i]?.date||
+         marketing.diagnosticDaily[i]?.date!==marketing.daily[i]?.date){
+        issues.push('WhatsApp/diagnóstico: datas fora da janela canônica');break;
+      }
+    }
+  }
   if(links.views!==sum(links.daily,'views'))issues.push('Links: aberturas divergentes');
   if(links.clicks!==sum(links.daily,'clicks')||links.clicks!==sum(links.links,'clicks'))issues.push('Links: cliques divergentes');
   for(let i=0;i<marketing.days;i++){

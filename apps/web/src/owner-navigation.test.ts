@@ -42,7 +42,11 @@ async function mount(){
       products:[{slug:'pdv-artisys',name:'PDV ArtiSys',views:7,productClicks:5,checkoutClicks:3,contactClicks:1,galleryClicks:0}],
       daily:dates.map((date,i)=>({date,views:last(i)?14:0,productClicks:last(i)?5:0,checkoutClicks:last(i)?3:0,contactClicks:last(i)?1:0,galleryClicks:0})),
       home:{views:9,clicks:4,destinations:[{id:'sistemas',label:'Sistemas',clicks:4}]},
-      homeDaily:dates.map((date,i)=>({date,views:last(i)?9:0,clicks:last(i)?4:0}))
+      homeDaily:dates.map((date,i)=>({date,views:last(i)?9:0,clicks:last(i)?4:0})),
+      whatsapp:{total:1,byButton:[{page:'home',cta:'contato-projeto',clicks:1}]},
+      whatsappDaily:dates.map((date,i)=>({date,clicks:last(i)?1:0})),
+      diagnostic:{total:2,stages:[{step:'page_open',count:1},{step:'quick_open',count:1}]},
+      diagnosticDaily:dates.map((date,i)=>({date,events:last(i)?2:0}))
     }};
     if(path.startsWith('/api/owner/links-analytics'))return {data:{
       days:30,timezone:'America/Sao_Paulo',views:4,clicks:2,interactionRate:50,
@@ -125,6 +129,8 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.querySelector('[data-marketing-home]')?.textContent).toContain('9');
     expect(document.querySelector('[data-marketing-links]')?.textContent).toContain('ArtiSys Academy');
     expect(document.querySelector('[data-marketing-integrity]')?.textContent).toContain('Dados auditados');
+    expect(document.querySelector('[data-marketing-whatsapp]')?.textContent).toContain('contato projeto');
+    expect(document.querySelector('[data-marketing-funnel]')?.textContent).toContain('Formulários rápidos enviados');
     const body=document.body.innerHTML;
     expect(body).toContain('Publicar metadados');
     expect(body).not.toContain('confirmadas como vendas');

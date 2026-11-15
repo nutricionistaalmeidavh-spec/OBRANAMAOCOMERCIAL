@@ -52,6 +52,8 @@
     if (!anchor || !consentGranted()) return;
     let href;
     try { href = new URL(anchor.href,location.href); } catch { return; }
+    // WhatsApp is counted exclusively by the canonical per-CTA tracker.
+    if (['wa.me','api.whatsapp.com','web.whatsapp.com'].includes(href.hostname)) return;
     const base = href.origin + href.pathname;
     if (config.page === 'catalog') {
       const slug=destinationMap.get(base);
@@ -69,7 +71,7 @@
         (href.pathname.startsWith('/comprar') && href.hostname.endsWith('.workers.dev'))) {
       record('checkout_click',config.page);return;
     }
-    if (href.hostname==='wa.me' || href.hash==='#contato' ||
+    if (href.hash==='#contato' ||
         anchor.hasAttribute('data-crm-cta') || anchor.hasAttribute('data-product-cta')) {
       record('contact_click',config.page);return;
     }

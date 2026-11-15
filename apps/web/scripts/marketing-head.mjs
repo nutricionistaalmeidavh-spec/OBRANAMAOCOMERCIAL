@@ -48,7 +48,8 @@ export function instrumentMarketingHtml(html,route,options={}) {
   };
   const metadata=renderHeadTags(target.model);
   const script='<script type="application/json" id="artisys-marketing-analytics-config">'+safeJson(config)+'</script>\n'+
-    '<script defer src="/sistemas/marketing-analytics.js"></script>';
+    '<script defer src="/sistemas/marketing-analytics.js"></script>\n'+
+    '<script defer src="/sistemas/whatsapp-attribution.js"></script>';
   const updatedHead=oldHead+'\n'+metadata+'\n'+script+'\n';
   return html.slice(0,start)+updatedHead+html.slice(headClose.index);
 }
