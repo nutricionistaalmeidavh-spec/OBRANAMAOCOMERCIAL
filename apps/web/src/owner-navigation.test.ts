@@ -41,7 +41,7 @@ async function mount(){
       catalog:{views:7,productClicks:0,checkoutClicks:0,contactClicks:0,galleryClicks:0},
       products:[{slug:'pdv-artisys',name:'PDV ArtiSys',views:7,productClicks:5,checkoutClicks:3,contactClicks:1,galleryClicks:0}],
       daily:dates.map((date,i)=>({date,views:last(i)?14:0,productClicks:last(i)?5:0,checkoutClicks:last(i)?3:0,contactClicks:last(i)?1:0,galleryClicks:0})),
-      home:{views:9,clicks:4,destinations:[{id:'sistemas',label:'Sistemas',clicks:4},{id:'devkits',label:'DevKit Tools',clicks:0}]},
+      home:{views:9,clicks:4,destinations:[{id:'sistemas',label:'Sistemas',clicks:4}]},
       homeDaily:dates.map((date,i)=>({date,views:last(i)?9:0,clicks:last(i)?4:0}))
     }};
     if(path.startsWith('/api/owner/links-analytics'))return {data:{
