@@ -33,7 +33,7 @@ type Access=()=>Promise<Response>;
 export async function handleOwnerLeadsRequest(request:Request,env:Env,authorize:Access):Promise<Response|null>{
   const path=new URL(request.url).pathname;
   if(path!=='/api/owner/leads' && path!=='/api/owner/leads/status')return null;
-  if(path==='/api/owner/leads' && request.method!=='GET')return json({error:'Método não permitido.'},405);
+  if(path==='/api/owner/leads' && request.method!=='GET' && request.method!=='POST')return json({error:'Método não permitido.'},405);
   if(path==='/api/owner/leads/status' && request.method!=='PUT')return json({error:'Método não permitido.'},405);
   let role='';
   try {
@@ -42,6 +42,48 @@ export async function handleOwnerLeadsRequest(request:Request,env:Env,authorize:
     role=String((await access.json() as {role?:string}).role||'');
   }catch{return json({error:'Não foi possível validar a sessão.'},403)}
   if(role!=='owner')return json({error:'Acesso restrito ao proprietário da Central ArtiSys.'},403);
+  if(path==='/api/owner/leads' && request.method==='POST'){
+    const origin=request.headers.get('origin'),url=new URL(request.url);
+    if((origin&&origin!==url.origin)||request.headers.get('sec-fetch-site')==='cross-site')
+      return json({error:'Origem não autorizada.'},403);
+    if(!(request.headers.get('content-type')||'').startsWith('application/json'))
+      return json({error:'Formato inválido.'},415);
+    let raw:Record<string,unknown>;
+    try{
+      const body=await request.text();
+      if(body.length>2400)return json({error:'Requisição muito grande.'},413);
+      raw=JSON.parse(body);
+    }catch{return json({error:'JSON inválido.'},400)}
+    if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+       Object.keys(raw).some(k=>!['name','company','contact','goal'].includes(k)))
+      return json({error:'Dados inválidos.'},400);
+    const name=typeof raw.name==='string'?raw.name.trim():'';
+    const company=typeof raw.company==='string'?raw.company.trim():'';
+    const contact=typeof raw.contact==='string'?raw.contact.trim():'';
+    const goal=typeof raw.goal==='string'?raw.goal.trim():'';
+    if(name.length<2||name.length>120||company.length<2||company.length>140||
+       goal.length<15||goal.length>600||
+       [name,company,goal].some(x=>/[<>\\x00-\\x08]/.test(x)))
+      return json({error:'Informe nome, empresa e descrição válida do serviço.'},400);
+    let email='',whatsapp='';
+    if(/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(contact)&&contact.length<=180) email=contact.toLowerCase();
+    else {
+      const digits=contact.replace(/\\D/g,'');
+      if(digits.length===10||digits.length===11)whatsapp='55'+digits;
+      else if((digits.length===12||digits.length===13)&&digits.startsWith('55'))whatsapp=digits;
+    }
+    if(!email&&!whatsapp)return json({error:'Informe WhatsApp ou e-mail válido.'},400);
+    const now=new Date().toISOString(),id=crypto.randomUUID();
+    const record={name,company,email,whatsapp,goal,mode:'manual',status:'novo',
+      source:'whatsapp_manual',utmSource:'whatsapp_manual',
+      consent:false,receivedAt:now,version:2};
+    try{
+      await env.DB.prepare('INSERT INTO kv_records(collection,id,record_json,created_at,updated_at) VALUES(?,?,?,?,?)')
+        .bind(COLLECTION,id,JSON.stringify(record),now,now).run();
+      return json({ok:true,id,protocol:id.slice(0,8).toUpperCase(),status:'novo',mode:'manual',
+        note:'Contato registrado pelo proprietário, sem envio de mensagem e sem confirmar pagamento.'},201);
+    }catch{return json({error:'Não foi possível cadastrar o contato manual.'},503)}
+  }
   if(path==='/api/owner/leads/status'){
     const url=new URL(request.url), origin=request.headers.get('origin');
     if((origin&&origin!==url.origin)||request.headers.get('sec-fetch-site')==='cross-site')
@@ -103,14 +145,14 @@ export async function handleOwnerLeadsRequest(request:Request,env:Env,authorize:
           recebidoEm:norm(record.receivedAt||row.created_at,40),
           score,prioridade:priority,entregue:!!row.delivered_at,
           protocolo:row.id.slice(0,8).toUpperCase(),status,statusVersion:stage?.version||0,
-           mode:record.mode==='quick'?'quick':'full'
+           mode:record.mode==='quick'?'quick':record.mode==='manual'?'manual':'full'
         }];
       }catch{return []}
     });
     return json({leads,summary:{
       total:leads.length,alta:leads.filter(x=>x.prioridade==='Alta').length,
       tiktok:leads.filter(x=>x.origem.toLowerCase().includes('tiktok')).length,
-      pendenteIntegracao:leads.filter(x=>!x.entregue).length
+      pendenteIntegracao:leads.filter(x=>x.mode!=='manual'&&!x.entregue).length
     },limit:200});
   }catch{
     return json({error:'Não foi possível carregar os diagnósticos agora.'},503);
