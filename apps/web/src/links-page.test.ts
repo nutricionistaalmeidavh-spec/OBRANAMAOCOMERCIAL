@@ -22,7 +22,7 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
   it('leva aos destinos canônicos existentes e mantém os canais de contato', () => {
     for (const target of [
       'href="/"',
-      'href="/academy"',
+      'href="/sistemas/"',
       'href="https://www.tiktok.com/@artisysdev"',
       'https://wa.me/5516982338805?text='
     ]) {
@@ -33,17 +33,17 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(html).not.toContain('href="/devkits/catalogo/"');
   });
 
-  it('mantém a Academy e adiciona o Mercado Livre sem restaurar atalhos removidos', () => {
+  it('destaca vitrine de sistemas e mantém Mercado Livre sem restaurar atalhos removidos', () => {
     const destinations = html.split('<nav class="destinations"')[1]?.split('</nav>')[0] ?? '';
     const cardIds = [...destinations.matchAll(/class="link-card[^"]*"[^>]+data-link-id="([^"]+)"/g)].map(match => match[1]);
-    expect(cardIds).toEqual(['academy', 'mercado-livre']);
+    expect(cardIds).toEqual(['sistemas', 'mercado-livre']);
     expect(destinations).toContain('href="https://www.mercadolivre.com.br/pagina/artisys#from=share_eshop_hub_mobile"');
     expect(destinations).toMatch(/href="https:\/\/www\.mercadolivre\.com\.br\/pagina\/artisys[^\"]*" target="_blank" rel="noopener noreferrer" data-link-id="mercado-livre"/);
     expect(destinations).toContain('Loja ArtiSys no Mercado Livre');
-    expect(destinations).toContain('class="link-card card-feature" href="/academy" data-link-id="academy"');
-    expect(destinations).toContain('Aprenda. Desenvolva. Evolua.');
+    expect(destinations).toContain('class="link-card card-feature" href="/sistemas/" data-link-id="sistemas"');
+    expect(destinations).toContain('Sistemas ArtiSys');
     expect(destinations).not.toContain('01 — 04');
-    expect(html).not.toMatch(/data-link-id="(?:site|sistemas|devkits|whatsapp|obra-portal)"/);
+    expect(html).not.toMatch(/data-link-id="(?:site|devkits|whatsapp|obra-portal)"/);
     for (const removed of [
       'Explorar o site completo',
       'Conheça nossos sistemas',
@@ -55,7 +55,8 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
       expect(html).not.toContain(removed);
     }
     expect(html).not.toContain('class="secondary"');
-    expect((html.match(/data-link-id="academy"/g) ?? [])).toHaveLength(1);
+    expect((html.match(/data-link-id="academy"/g) ?? [])).toHaveLength(0);
+    expect((html.match(/data-link-id="sistemas"/g) ?? [])).toHaveLength(1);
     expect((html.match(/data-link-id="mercado-livre"/g) ?? [])).toHaveLength(1);
     expect(css).toMatch(/\.destinations\s*\{[^}]*gap:\s*14px/);
     expect(read('../public/links/links-motion.js')).toContain('destinationCards.forEach');
@@ -76,10 +77,10 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
     expect(html).not.toContain('Soluções, conhecimento e inovação em um só ecossistema.');
     expect(html).not.toContain('EXPLORE A ARTISYS');
 
-    const academy = html.split('data-link-id="academy"')[1]?.split('</a>')[0] ?? '';
-    expect(academy).toContain('ArtiSys Academy');
-    expect(academy).toContain('Aprenda. Desenvolva. Evolua.');
-    expect(academy).not.toContain('Trilhas, cursos e lista de espera.');
+    const systems = html.split('data-link-id="sistemas"')[1]?.split('</a>')[0] ?? '';
+    expect(systems).toContain('Sistemas ArtiSys');
+    expect(systems).toContain('Explore soluções prontas para sua operação.');
+    expect(systems).not.toContain('ArtiSys Academy');
     expect(css).toContain('backdrop-filter: blur(');
     expect(css).toContain('-webkit-backdrop-filter: blur(');
     expect(css).toContain('@supports not');
@@ -137,11 +138,13 @@ describe('Central ArtiSys /links — navegação pública independente', () => {
   it('registra apenas eventos agregados dos destinos, sem alterar hrefs ou exigir serviço externo', () => {
     const script = read('../public/links/links-analytics.js');
     expect(html).toContain('src="/links/links-analytics.js" defer');
-    for (const id of ['site-logo', 'site-principal', 'diagnostico', 'academy', 'mercado-livre', 'tiktok', 'whatsapp-social']) {
+    for (const id of ['site-logo', 'site-principal', 'diagnostico', 'sistemas', 'mercado-livre', 'tiktok', 'whatsapp-social']) {
       expect(html).toContain('data-link-id="' + id + '"');
       expect(script).toContain("'" + id + "'");
     }
     expect(script).toContain("record({ type: 'view' })");
+    expect(html).not.toContain('href="/academy"');
+    expect(html).toContain('Central ArtiSys | Sistemas e canais oficiais');
     expect(script).toContain('navigator.sendBeacon');
     expect(script).toContain("document.addEventListener('click'");
     expect(script).toContain("credentials: 'omit'");

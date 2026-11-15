@@ -151,8 +151,8 @@ export const artisysSeoConfig = defineSeoConfig({
     {
       path: '/links',
       canonical: 'https://artisys.dev/links/',
-      title: 'Central ArtiSys | Academy e canais oficiais',
-      description: 'Acesse a ArtiSys Academy e acompanhe nossos canais oficiais no TikTok e WhatsApp.',
+      title: 'Central ArtiSys | Sistemas e canais oficiais',
+      description: 'Explore os sistemas ArtiSys, faça um diagnóstico gratuito e encontre nossos canais oficiais no TikTok e WhatsApp.',
       schemaType: 'WebPage',
       changeFrequency: 'monthly',
       priority: 0.65

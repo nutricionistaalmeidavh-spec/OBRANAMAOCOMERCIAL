@@ -60,6 +60,19 @@ describe('Analytics da Central /links sem rastreamento pessoal', () => {
     expect(data.daily.at(-1)).toMatchObject({ date: '2026-11-07', views: 1, clicks: 3 });
     expect(data.daily).toHaveLength(7);
   });
+  it('rastreia o novo card Sistemas e mantém Academy no histórico existente', async () => {
+    const env = fakeEnv();
+    for (const linkId of ['sistemas','academy']) {
+      const accepted = await handlePublicLinksEvent(event({type:'click',linkId}),env as never,fixedNow);
+      expect(accepted?.status).toBe(204);
+    }
+    expect(env.counts.get('2026-11-07:click:sistemas')).toBe(1);
+    const reply = await handleOwnerLinksAnalytics(new Request(dashboardUrl),env as never,owner,fixedNow);
+    const data = await reply!.json() as any;
+    expect(data.links.find((link:any)=>link.id==='sistemas')).toMatchObject({label:'Sistemas ArtiSys',clicks:1});
+    expect(data.links.find((link:any)=>link.id==='academy')).toMatchObject({label:'ArtiSys Academy',clicks:1});
+    expect(data.clicks).toBe(2);
+  });
   it('registra o Mercado Livre como destino oficial sem armazenar URL ou dados pessoais', async () => {
     const env = fakeEnv();
     const recorded = await handlePublicLinksEvent(event({ type: 'click', linkId: 'mercado-livre' }), env as never, fixedNow);
