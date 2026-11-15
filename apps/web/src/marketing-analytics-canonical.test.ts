@@ -41,6 +41,8 @@ describe('Canonicidade do Analytics ArtiSys unificado',()=>{
     expect(validateConsolidatedSources(marketing,{...links,clicks:99}).valid).toBe(false);
     expect(validateConsolidatedSources(marketing,{...links,timezone:'UTC'}).valid).toBe(false);
     expect(validateConsolidatedSources({...marketing,home:{...marketing.home,views:31}},links).valid).toBe(false);
+    expect(validateConsolidatedSources(marketing,{...links,interactionRate:77}).valid).toBe(false);
+    expect(validateConsolidatedSources(marketing,{...links,daily:[...links.daily.slice(0,-1),{...links.daily.at(-1)!,clicks:-1}]}).valid).toBe(false);
   });
   it('diferencia abertura de clique, lead e venda em todas as legendas do painel',()=>{
     const page=readFileSync(new URL('./owner-marketing.ts',import.meta.url),'utf8');

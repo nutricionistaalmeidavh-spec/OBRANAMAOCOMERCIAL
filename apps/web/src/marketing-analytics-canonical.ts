@@ -21,9 +21,10 @@ const sum=(values:unknown[],key:string):number=>
     const value=(row as Record<string,unknown>)[key];
     return total+(count(value)?value as number:0);
   },0);
-function fields(obj:Record<string,unknown>|undefined,keys:string[],prefix:string,issues:string[]) {
-  if(!obj) {issues.push(prefix+': ausente');return;}
-  for(const key of keys)if(!count(obj[key]))issues.push(prefix+'.'+key+': contagem inválida');
+function fields(obj:unknown,keys:string[],prefix:string,issues:string[]) {
+  if(!obj || typeof obj!=='object'){issues.push(prefix+': ausente');return;}
+  const data=obj as Record<string,unknown>;
+  for(const key of keys)if(!count(data[key]))issues.push(prefix+'.'+key+': contagem inválida');
 }
 export function validateConsolidatedSources(marketing:Marketing,links:Links):{valid:boolean;issues:string[]} {
   const issues:string[]=[];
@@ -45,6 +46,15 @@ export function validateConsolidatedSources(marketing:Marketing,links:Links):{va
   fields(marketing.summary,keys,'summary',issues);
   fields(marketing.catalog,keys,'catalog',issues);
   for(const row of marketing.products)fields(row,keys,'produto '+row.slug,issues);
+  for(const row of marketing.daily)fields(row,keys,'dia comercial '+row.date,issues);
+  for(const row of marketing.homeDaily)fields(row,['views','clicks'],'dia home '+row.date,issues);
+  for(const row of links.daily)fields(row,['views','clicks'],'dia links '+row.date,issues);
+  for(const row of marketing.home.destinations)fields(row,['clicks'],'destino home '+row.id,issues);
+  for(const row of links.links)fields(row,['clicks'],'destino links '+row.id,issues);
+  const rate=links.views ? Math.round(links.clicks / links.views * 1000)/10 : 0;
+  if(!count(links.interactionRate) && !(typeof links.interactionRate==='number'&&links.interactionRate>=0))
+    issues.push('Links: taxa inválida');
+  else if(links.interactionRate!==rate)issues.push('Links: cliques por abertura divergentes');
   fields(marketing.home,['views','clicks'],'home',issues);
   fields(links,['views','clicks'],'links',issues);
   for(const key of keys){
