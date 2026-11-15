@@ -20,7 +20,7 @@
   const message = document.querySelector('#form-message');
   const title = document.querySelector('#step-title');
   const overline = document.querySelector('#step-overline');
-  const counter = document.querySelector('.wizard-time');
+  const counter = form.closest('.diagnostic-panel')?.querySelector('.wizard-time');
   const progress = document.querySelector('.progress-track');
   const bar = document.querySelector('#progress-value');
   const heading = ['Sobre sua empresa', 'Sua rotina e desafios', 'Sua infraestrutura', 'Integrações e contexto', 'Seus objetivos'];
@@ -225,7 +225,7 @@
       if (!response.ok || result.ok !== true) throw new Error(result.message || 'Não foi possível enviar. Tente novamente.');
       trackDiagnosticStep('full_submitted');
       form.hidden = true;
-      document.querySelector('.wizard-head').hidden = true;
+      form.closest('.diagnostic-panel').querySelector('.wizard-head').hidden = true;
       progress.hidden = true;
       document.querySelector('#protocol-number').textContent = result.protocol;
       const success = document.querySelector('#diagnostic-success');

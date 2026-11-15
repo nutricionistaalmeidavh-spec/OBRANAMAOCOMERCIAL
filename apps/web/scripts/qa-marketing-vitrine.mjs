@@ -98,6 +98,12 @@ try {
     await page.screenshot({path:join(output,'diagnostic-choices-'+width+'.png'),fullPage:true,animations:'disabled'});
     await page.locator('#quick-diagnostic-open').click();
     assert.ok(await page.locator('#quick-diagnostic-panel').isVisible(),'Quick form must open');
+    assert.equal((await page.locator('#quick-diagnostic-panel .wizard-time').innerText()).trim(),'4 campos',
+      'Quick four-field heading must not be modified by the five-step wizard');
+    await page.locator('#full-diagnostic-open').click();
+    assert.ok(await page.locator('#full-diagnostic-panel').isVisible(),'Optional legacy wizard must open');
+    await page.locator('#quick-diagnostic-open').click();
+    assert.ok(await page.locator('#quick-diagnostic-panel').isVisible(),'Quick path must reopen without data loss');
     assert.equal(await page.locator('#full-diagnostic-panel').isVisible(),false,'Full wizard must stay hidden');
     const quick=page.locator('#quick-diagnostic-form');
     assert.equal(await quick.locator('input[name],textarea[name]').filter({hasNot:page.locator('[name="website"]')}).count()>=4,true);
