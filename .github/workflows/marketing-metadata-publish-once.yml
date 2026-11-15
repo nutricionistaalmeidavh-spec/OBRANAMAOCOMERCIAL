@@ -1,0 +1,73 @@
+name: Publish ArtiSys Marketing SEO and Analytics Once
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/marketing-astro/**'
+      - '.github/workflows/marketing-metadata-publish-once.yml'
+permissions:
+  contents: read
+concurrency:
+  group: artisys-commercial-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: ${{ contains(github.event.head_commit.message, '[marketing-metadata-publish-once]') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require existing credentials
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Cloudflare deploy token unavailable"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Cloudflare account ID unavailable"; exit 1; }
+      - name: Install web dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify all metadata and anonymous analytics tests
+        run: npm run marketing:analytics:test
+      - name: Build Vite, Astro and head-only marketing metadata
+        run: npm run build
+      - name: Verify no changes to landing visual bodies
+        run: npm run marketing:metadata:verify
+      - name: Check Worker bundle without deploying
+        run: npx wrangler deploy --dry-run --config wrangler.ci.jsonc
+      - name: Publish existing Worker and static assets (no D1 migrations)
+        run: npx wrangler deploy --config wrangler.jsonc
+      - name: Verify live SEO metadata and owner-only analytics API
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const base='https://artisys.dev';
+          const pages=[
+            '/sistemas/','/wppprospector/','/oficina/','/gest%C3%A3oholerites/',
+            '/sistemas/pdv-artisys/','/sistemas/pdv-nexus/',
+            '/sistemas/obra-na-mao/','/sistemas/artisys-finance/','/sistemas/nutridesk/'
+          ];
+          for(const path of pages) {
+            let ready=false;
+            for(let n=0;n<12;n++) {
+              const res=await fetch(base+path+'?p4p6='+Date.now(),{cache:'no-store'});
+              const html=await res.text();
+              if(res.ok && html.includes('artisys-marketing-analytics-config') &&
+                 html.includes('/sistemas/marketing-analytics.js') &&
+                 html.includes('rel="canonical"')) {ready=true;break;}
+              await new Promise(resolve=>setTimeout(resolve,3500));
+            }
+            assert.ok(ready,'Public metadata not deployed: '+path);
+          }
+          const script=await fetch(base+'/sistemas/marketing-analytics.js',{cache:'no-store'});
+          assert.equal(script.status,200,'First-party analytics script unavailable');
+          const api=await fetch(base+'/api/owner/marketing-analytics?days=7',{cache:'no-store'});
+          assert.equal(api.status,403,'Unauthenticated analytics endpoint must be forbidden');
+          console.log('P4/P5/P6 production smoke passed: 9 pages, analytics script, owner gate.');
+          JS

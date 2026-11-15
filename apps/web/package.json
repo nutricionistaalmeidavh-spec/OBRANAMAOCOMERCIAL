@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm run catalog:generate && vite",
-    "build": "node scripts/write-build-meta.mjs && npm run catalog:verify && npm run seo:generate && node scripts/verify-canonical-collections.mjs && npm run seo:verify && npm run assets:verify && node scripts/verify-guia.mjs && npm run wpp:build && npm run wpp:verify && vite build && node scripts/build-marketing.mjs && node scripts/verify-marketing-build.mjs",
+    "build": "node scripts/write-build-meta.mjs && npm run catalog:verify && npm run seo:generate && node scripts/verify-canonical-collections.mjs && npm run seo:verify && npm run assets:verify && node scripts/verify-guia.mjs && npm run wpp:build && npm run wpp:verify && vite build && node scripts/build-marketing.mjs && node scripts/verify-marketing-build.mjs && node scripts/verify-marketing-metadata.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "catalog:generate": "node scripts/run-generate-product-pages.mjs",
@@ -41,7 +41,9 @@
     "wpp:verify": "node scripts/verify-wppprospector-experience.mjs",
     "marketing:build": "node scripts/build-marketing.mjs",
     "marketing:verify": "node scripts/verify-marketing-build.mjs",
-    "qa:marketing": "node scripts/qa-marketing-vitrine.mjs"
+    "qa:marketing": "node scripts/qa-marketing-vitrine.mjs",
+    "marketing:metadata:verify": "node scripts/verify-marketing-metadata.mjs",
+    "marketing:analytics:test": "vitest run cloudflare/marketing-analytics.test.ts src/marketing-p4-p6.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.5.0",
