@@ -3,17 +3,22 @@ type Lead={
   id:string;nome:string;empresa:string;email:string;whatsapp:string;
   setor:string;porte:string;objetivo:string;urgencia:string;origem:string;
   campanha:string;video:string;pontos:string[];recebidoEm:string;score:number;
-  prioridade:'Alta'|'Media'|'Baixa';entregue:boolean;protocolo:string;status:string;
+  prioridade:'Alta'|'Media'|'Baixa';entregue:boolean;protocolo:string;status:string;statusVersion:number;mode:'quick'|'full';
 };
 type Payload={
   leads:Lead[];
   summary:{total:number;alta:number;tiktok:number;pendenteIntegracao:number};
   limit:number
 };
-type OwnerApi={get:<T=any>(path:string)=>Promise<{data:T}>};
+type OwnerApi={get:<T=any>(path:string)=>Promise<{data:T}>;put:<T=any>(path:string,body:unknown)=>Promise<{data:T}>};
 const esc=(value:unknown)=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]!));
 const date=(value:string)=>{const d=new Date(value);return Number.isFinite(d.getTime())?d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}):'—'};
 const formatPriority=(value:string)=>value==='Alta'?'Alta':value==='Media'?'Média':'Baixa';
+const stages=[
+  ['novo','Novo lead'],['em_contato','Em contato'],['proposta','Proposta enviada'],
+  ['contratado','Contratação acordada'],['pago','Pagamento informado manualmente'],
+  ['em_execucao','Em execução'],['entregue','Entregue'],['perdido','Não avançou']
+] as const;
 export function ownerLeadsSection(){
   return `<section class="owner-section owner-leads-panel" data-owner-leads-panel>
     <div class="owner-section-head"><div>
@@ -33,13 +38,22 @@ function row(lead:Lead){
     <div class="owner-lead-head"><div><h3>${esc(lead.empresa||lead.nome)}</h3><small>${esc(lead.nome)} · ${esc(lead.setor||'Segmento não informado')}</small></div>
       <span class="owner-lead-priority priority-${pr}">${esc(formatPriority(lead.prioridade))} · ${esc(lead.score)}/100</span></div>
     <div class="owner-lead-meta"><span>${esc(lead.origem||'Formulário')}</span><span>${esc(date(lead.recebidoEm))}</span><span>Protocolo ${esc(lead.protocolo)}</span>
-      <span>${lead.entregue?'Recebido pela automação':'Aguardando confirmação da automação'}</span></div>
+      <span>${lead.entregue?'Recebido pela automação':'Aguardando confirmação da automação'}</span><span>${lead.mode==='quick'?'Avaliação rápida (4 campos)':'Diagnóstico completo'}</span></div>
     <p class="owner-lead-goal">${esc(lead.objetivo||'Objetivo não informado')}</p>
     <details class="owner-lead-detail"><summary>Ver diagnóstico e campanha</summary>
       <p><strong>Prazo:</strong> ${esc(lead.urgencia||'—')} · <strong>Equipe:</strong> ${esc(lead.porte||'—')}</p>
       <p><strong>Dificuldades:</strong> ${esc(lead.pontos.join(', ')||'Não informadas')}</p>
       <p><strong>Campanha:</strong> ${esc(lead.campanha||'Não identificada')} ${lead.video?'· Vídeo '+esc(lead.video):''}</p>
     </details>
+    <div class="owner-lead-stage" data-lead-stage-row data-id="${esc(lead.id)}" data-version="${Number(lead.statusVersion)||0}">
+      <label>Etapa comercial
+        <select data-lead-stage aria-label="Etapa comercial de ${esc(lead.empresa)}">
+          ${stages.map(([value,label])=>`<option value="${value}" ${value===lead.status?'selected':''}>${esc(label)}</option>`).join('')}
+        </select>
+      </label>
+      <button class="owner-secondary" type="button" data-lead-stage-save>Salvar etapa</button>
+      <p class="owner-lead-stage-status" data-lead-stage-message role="status" aria-live="polite"></p>
+    </div>
     <div class="owner-lead-actions">${wa}${mail}</div>
   </article>`;
 }
@@ -77,6 +91,25 @@ export async function bindOwnerLeads(api:OwnerApi){
     };
     search?.addEventListener('input',filter);
     priority?.addEventListener('change',filter);
+    host.addEventListener('click',async event=>{
+      const button=(event.target instanceof Element)?event.target.closest<HTMLButtonElement>('[data-lead-stage-save]'):null;
+      if(!button)return;
+      const item=button.closest<HTMLElement>('[data-lead-stage-row]');
+      const select=item?.querySelector<HTMLSelectElement>('[data-lead-stage]');
+      const status=item?.querySelector<HTMLElement>('[data-lead-stage-message]');
+      if(!item||!select||!status||button.disabled)return;
+      button.disabled=true;status.textContent='Salvando etapa…';
+      try{
+        const {data}=await api.put<{ok:boolean;version:number;status:string}>('/api/owner/leads/status',{
+          id:item.dataset.id,status:select.value,expectedVersion:Number(item.dataset.version||0)
+        });
+        if(!host.isConnected)return;
+        item.dataset.version=String(data.version);
+        status.textContent='Etapa salva. Informações financeiras são manuais, não comprovantes de pagamento.';
+      }catch(error){
+        status.textContent=(error as Error).message||'Não foi possível salvar. Atualize o painel.';
+      }finally{button.disabled=false;}
+    });
   }catch(error){
     if(!host.isConnected)return;
     host.textContent='';
