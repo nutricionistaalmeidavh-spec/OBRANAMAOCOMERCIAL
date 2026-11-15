@@ -258,6 +258,7 @@ export async function reconcilePendingDiagnosticLeads(env: any): Promise<{ sent:
   for (const row of result.results || []) {
     try {
       const record = JSON.parse(row.record_json) as Diagnostic;
+      if (record.mode === 'manual') continue; // Owner-entered WhatsApp leads are never auto-forwarded.
       if (!record.name || !(record.email || record.whatsapp) || !record.goal) continue;
       await forwardDiagnosticLeadToActivepieces(record,row.id.slice(0,8).toUpperCase(),env);
       await markDiagnosticDelivered(row.id,env);
