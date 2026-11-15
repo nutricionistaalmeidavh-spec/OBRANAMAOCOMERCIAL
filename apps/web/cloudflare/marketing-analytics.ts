@@ -7,7 +7,6 @@ const allowed = new Set((catalog.products as Array<{slug:string}>).map(p=>p.slug
 const types = ['view','product_click','checkout_click','contact_click','gallery_click','site_click'] as const;
 export const HOME_DESTINATIONS = [
   {id:'sistemas',label:'Sistemas'},
-  {id:'devkits',label:'DevKit Tools'},
   {id:'academy',label:'ArtiSys Academy'},
   {id:'links',label:'Central de links'},
   {id:'contato',label:'Contato'}
