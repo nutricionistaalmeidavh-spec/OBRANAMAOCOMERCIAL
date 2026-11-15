@@ -5,7 +5,6 @@
   const endpoint='/api/marketing/metrics';
   const routes=[
     {name:'sistemas',path:'/sistemas'},
-    {name:'devkits',path:'/devkits'},
     {name:'academy',path:'/academy'},
     {name:'links',path:'/links'}
   ];

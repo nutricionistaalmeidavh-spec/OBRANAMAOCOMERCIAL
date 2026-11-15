@@ -19,7 +19,7 @@ assert.match(transformed, /<script type="application\/ld\+json">/i);
 assert.match(transformed, /<meta name="viewport"/i);
 assert.doesNotMatch(transformed, /id="sistemas-catalogo"/i, 'home não deve inserir cards do catálogo durante o build');
 assert.doesNotMatch(transformed, /id="dos-videos"|id="servicos"/i, 'home não deve reexibir seções removidas');
-assert.match(transformed, /class="button secondary" href="\/sistemas\/"/i, 'home deve apresentar CTA de sistemas prontos');
+assert.match(transformed, /class="button primary" href="\/sistemas\/"/i, 'home deve apresentar CTA de sistemas prontos');
 assert.match(transformed, /href="\/sistemas\/"/i, 'home deve apontar para o catálogo público');
 
 const audit = auditSeoDocument({ html: transformed, expected: { canonical: model.canonical, index: true } });
@@ -84,22 +84,9 @@ assert.match(crmMotion, /IntersectionObserver/, 'animações progressivas obriga
 assert.match(crmMotion, /hero-art-image/, 'efeito de entrada deve trabalhar com a arte integrada');
 assert.match(crmMotion, /prefers-reduced-motion/, 'respeitar preferência do visitante');
 
-assert.match(sitemap, /<loc>https:\/\/artisys\.dev\/devkits\/<\/loc>/, 'página DevKit deve estar no sitemap');
-const devkitHtml = read('public/devkits/index.html');
-const devkitModel = buildPageSeo(artisysSeoConfig, '/devkits');
-const devkitAudit = auditSeoDocument({ html: devkitHtml, expected: { canonical: devkitModel.canonical, index: true } });
-assert.equal(devkitAudit.summary.critical, 0, 'página DevKit com falha SEO: ' + JSON.stringify(devkitAudit, null, 2));
-assert.match(devkitHtml, /DevKit Tool.s/, 'página DevKit precisa identificar a categoria');
-assert.match(transformed, /href="\/devkits\/"/i, 'landing deve levar à página DevKit');
-
-const devkitCatalog = JSON.parse(read('public/devkits/kits.json'));
-assert.equal(devkitCatalog.items.length, 63, 'página DevKit precisa manter 63 kits');
-assert.equal(new Set(devkitCatalog.items.map(x => x.category)).size, 10, 'categorias DevKit');
-assert.equal(devkitCatalog.items.filter(x => Number.isFinite(x.price)).length, 63, 'preços DevKit');
-assert.match(devkitHtml, /id="kit-grid"/, 'página DevKit deve conter catálogo');
-assert.match(devkitHtml, /Guia Open Source/, 'página DevKit deve conter guia');
-assert.doesNotMatch(devkitHtml, /github.com\/nutricionistaalmeidavh-spec\/DevKitTools|MATRIZ-KITS|\.zip|SHA-256/i);
-assert.ok(!sitemap.includes('<loc>https://artisys.dev/devkits/catalogo/</loc>'), 'sitemap não pode indexar URL antiga');
+assert.ok(!sitemap.includes('https://artisys.dev/devkits/'), 'DevKitTools deve ficar fora do sitemap');
+assert.doesNotMatch(transformed, /href="\/devkits\/"/i, 'home não deve promover DevKitTools');
+assert.doesNotMatch(read('public/sistemas/index.html'), /href="\/devkits\/"/i, 'catálogo não deve promover DevKitTools');
 const catalogIndex = read('public/sistemas/index.html');
 const catalogModel = buildPageSeo(artisysSeoConfig, '/sistemas');
 const catalogAudit = auditSeoDocument({ html: catalogIndex, expected: { canonical: catalogModel.canonical, index: true } });

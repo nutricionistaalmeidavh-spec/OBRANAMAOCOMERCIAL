@@ -28,9 +28,10 @@ describe('Canonicidade do Analytics ArtiSys unificado',()=>{
     expect(marketing.catalog.views).toBe(12);
     expect(marketing.products.find(x=>x.slug==='pdv-artisys')?.views).toBe(4);
     expect(marketing.home.views).toBe(30);
-    expect(marketing.home.clicks).toBe(12);
+    expect(marketing.home.clicks).toBe(8);
     expect(marketing.home.destinations.find(x=>x.id==='sistemas')?.clicks).toBe(8);
-    expect(marketing.homeDaily.at(-1)).toMatchObject({views:30,clicks:12});
+    expect(marketing.home.destinations.some(x=>x.id==='devkits')).toBe(false);
+    expect(marketing.homeDaily.at(-1)).toMatchObject({views:30,clicks:8});
     expect(links).toMatchObject({views:7,clicks:6});
     expect(validateConsolidatedSources(marketing,links)).toEqual({valid:true,issues:[]});
   });

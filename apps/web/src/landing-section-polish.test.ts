@@ -52,29 +52,17 @@ describe('ArtiSys public homepage — visual refinement and official links', () 
     expect(footer).toContain(`href="${whatsapp}"`);
     expect(footer).not.toContain('instagram.com');
     expect(footer).toContain('href="/academy"');
-    expect(footer).toContain('href="/devkits/"');
+    expect(footer).not.toContain('href="/devkits/"');
     expect(footer).toContain('href="#topo"');
     expect(polish).toContain('grid-column:1/-1;justify-content:flex-start;');
     expect(polish).toContain('Footer is typographic navigation, not a wall of CTA cards.');
     expect(polish).toContain('background:transparent;border:0;border-radius:0;');
   });
 
-  it('shows only the image-based DevKit panel, without a duplicated white marketing half', () => {
-    const section = part('<section class="devkit-feature devkit-feature--single container"', '</section>');
-    expect(section).toContain('class="devkit-workbench"');
-    expect(section).toContain('class="devkit-workbench-body"');
-    expect(section).toContain('id="devkit-title"');
-    expect(section).toContain('class="devkit-feature-illustration"');
-    expect(section).toContain('class="devkit-workbench-cta" href="/devkits/"');
-    expect(section).toContain('src="/images/devkit-tools-profissional.avif"');
-    expect(section.match(/class="devkit-module"/g)).toHaveLength(4);
-    expect(section).not.toContain('class="devkit-copy"');
-    expect(section).not.toContain('class="devkit-actions"');
-    expect(section).not.toContain('Comece pelo código');
-    expect(section).not.toContain('MÓDULOS REUTILIZÁVEIS · ARTISYS');
-    expect(polish).toContain('.devkit-feature--single{');
-    expect(polish).toContain('display:block;grid-template-columns:none');
-    expect(polish).toContain('.devkit-feature--single .devkit-workbench-main{');
+  it('retires the DevKitTools panel and all public kit links', () => {
+    expect(homepage).not.toContain('id="devkits"');
+    expect(homepage).not.toContain('href="/devkits/"');
+    expect(homepage).not.toContain('src="/images/devkit-tools-profissional.avif"');
   });
 
   it('does not change APIs, subscriptions, route dispatch or authenticated application styling', () => {
@@ -83,7 +71,6 @@ describe('ArtiSys public homepage — visual refinement and official links', () 
     expect(polish).toContain('@media(prefers-reduced-motion:reduce)');
     expect(polish).not.toMatch(/\/api\/|stripe|billing|\.app-shell|\.desktop-app/i);
     expect(homepage).toContain('class="nav-login" href="./sistema.html#portal"');
-    expect(homepage.indexOf('id="academy"')).toBeLessThan(homepage.indexOf('id="devkits"'));
-    expect(homepage.indexOf('id="devkits"')).toBeLessThan(homepage.indexOf('id="produtos"'));
+    expect(homepage.indexOf('id="academy"')).toBeLessThan(homepage.indexOf('id="produtos"'));
   });
 });

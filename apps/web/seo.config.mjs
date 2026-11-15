@@ -159,26 +159,11 @@ export const artisysSeoConfig = defineSeoConfig({
     },
     {
       path: '/',
-      title: 'ArtiSys | Academy, sistemas e DevKits para criar e operar',
-      description: 'Conheça a ArtiSys Academy, as trilhas práticas de IA, os sistemas prontos para empresas e os DevKit Tool’s para desenvolver.',
+      title: 'ArtiSys | Academy e sistemas para empresas',
+      description: 'Conheça a ArtiSys Academy e os sistemas prontos para empresas, com soluções comerciais e personalizadas.',
       schemaType: 'WebPage',
       changeFrequency: 'weekly',
       priority: 1
-    },
-    {
-      path: '/devkits',
-      canonical: 'https://artisys.dev/devkits/',
-      title: 'DevKit Tool’s ArtiSys | 63 kits e Guia Open Source',
-      description: 'Explore 63 DevKit Tool’s com preços, filtros e Guia Open Source com 82 projetos. Compra pelo WhatsApp ArtiSys.',
-      schemaType: 'CollectionPage',
-      changeFrequency: 'weekly',
-      priority: 0.9,
-      jsonLd: [{
-        '@context': 'https://schema.org',
-        '@type': 'ItemList',
-        name: 'DevKit Tool’s ArtiSys',
-        numberOfItems: 63
-      }]
     },
     {
       path: '/guia',

@@ -13,7 +13,7 @@ describe('ArtiSys systems catalog — editorial design parity', () => {
     expect(html).not.toContain('class="catalog-showcase"');
     expect(css).toContain('.collections-hub{');
     expect(html).toContain('class="breadcrumbs"');
-    expect(html).toContain('href="/devkits/"');
+    expect(html).not.toContain('href="/devkits/"');
     expect(html).toContain('href="/sistema.html#portal"');
     expect(html).toContain('class="skip-link" href="#catalogo"');
   });
