@@ -31,8 +31,8 @@ async function mount(){
     if(path==='/api/central/access')return {data:{role:'owner'}};
     if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
     if(path==='/api/owner/license-audit')return {data:{events:licenseEvents}};
-    if(path==='/api/owner/marketing-seo')return {data:{pages:[{slug:'catalog',name:'Vitrine de sistemas',category:'Catálogo',href:'https://artisys.dev/sistemas/',path:'/sistemas/',images:[]}]}};
     if(path==='/api/owner/marketing-seo'&&query?.slug)return {data:{page:{slug:'catalog',name:'Vitrine de sistemas',href:'https://artisys.dev/sistemas/',path:'/sistemas/',images:[],effective:{title:'Sistemas ArtiSys',description:'Conheça os softwares ArtiSys para empresas de todos os segmentos e organize suas operações com tecnologia.',ogTitle:'',ogDescription:'',image:''},version:0}}};
+    if(path==='/api/owner/marketing-seo')return {data:{pages:[{slug:'catalog',name:'Vitrine de sistemas',category:'Catálogo',href:'https://artisys.dev/sistemas/',path:'/sistemas/',images:[]}]}};
     if(path.startsWith('/api/owner/marketing-analytics'))return {data:{days:30,timezone:'America/Sao_Paulo',summary:{views:14,productClicks:5,checkoutClicks:3,contactClicks:1,galleryClicks:0},catalog:{views:7,productClicks:0,checkoutClicks:0,contactClicks:0,galleryClicks:0},products:[],daily:[]}};
     if(path.startsWith('/api/owner/links-analytics'))return {data:{days:30,timezone:'America/Sao_Paulo',views:4,clicks:2,interactionRate:50,links:[{id:'academy',label:'ArtiSys Academy',clicks:2}],daily:[{date:'2026-11-07',views:4,clicks:2}]}};
     if(path==='/api/owner/companies/c1')return {data:{company:companies[0]}};
