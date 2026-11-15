@@ -1,0 +1,82 @@
+import { describe, expect, it, vi } from 'vitest';
+import { loadCanonicalCatalog } from '../catalog-contract.mjs';
+import {
+  handlePublicMarketingEvent, handleOwnerMarketingAnalytics,
+  summarizeMarketingAnalytics
+} from './marketing-analytics';
+
+const fixedNow = new Date('2026-11-14T19:30:00.000Z');
+const endpoint = 'https://artisys.dev/api/marketing/metrics';
+const ownerEndpoint = 'https://artisys.dev/api/owner/marketing-analytics?days=7';
+const authOwner = async () => new Response(JSON.stringify({role:'owner'}),{status:200});
+const post = (value:unknown,headers:Record<string,string> = {}) => new Request(endpoint,{
+  method:'POST',headers:{origin:'https://artisys.dev','content-type':'text/plain;charset=UTF-8',...headers},body:JSON.stringify(value)
+});
+function env() {
+  const counts = new Map<string,number>();
+  const prepare = vi.fn((sql:string)=>({
+    bind: (...args:unknown[])=>({
+      run:async()=>{if(!sql.includes('ON CONFLICT')) throw Error('non atomic count');
+        const key=String(args[1]);counts.set(key,(counts.get(key)||0)+1);},
+      all:async()=>({results:[...counts].filter(([key])=>key>=String(args[1]) && key<String(args[2]))
+        .map(([id,count])=>({id,count}))})
+    })
+  }));
+  return {DB:{prepare},counts};
+}
+describe('P5: contadores canônicos e anônimos da vitrine ArtiSys',()=>{
+  it('não intercepta APIs existentes e rejeita origem cruzada', async()=>{
+    const db=env();
+    expect(await handlePublicMarketingEvent(new Request('https://artisys.dev/api/central/access'), db as never, fixedNow)).toBeNull();
+    expect((await handlePublicMarketingEvent(post({type:'view',product:'catalog'},{origin:'https://external.test'}),db as never,fixedNow))?.status).toBe(403);
+    expect(db.DB.prepare).not.toHaveBeenCalled();
+  });
+  it('rejeita email, UTM, URLs arbitrárias, IDs falsos e eventos inválidos',async()=>{
+    const db=env();
+    for(const payload of [
+      {type:'view',product:'catalog',email:'secret@example.test'},
+      {type:'view',product:'oficina-agricola'},
+      {type:'checkout_click',product:'catalog'},
+      {type:'checkout_click',product:'pdv-artisys',url:'https://example.com'},
+      {type:'unapproved',product:'wppprospector'},
+      {type:'gallery_click',product:'foo'},
+      {type:'view',product:'../../private'}
+    ]) expect((await handlePublicMarketingEvent(post(payload),db as never,fixedNow))?.status).toBe(400);
+    expect(db.DB.prepare).not.toHaveBeenCalled();
+  });
+  it('faz contagem diária sem IP, cookies ou dados de visitantes',async()=>{
+    const db=env();
+    const events=[
+      {type:'view',product:'catalog'}, {type:'view',product:'pdv-artisys'},
+      {type:'product_click',product:'pdv-artisys'}, {type:'checkout_click',product:'pdv-artisys'},
+      {type:'checkout_click',product:'pdv-artisys'},{type:'contact_click',product:'oficina'}
+    ];
+    for(const e of events) expect((await handlePublicMarketingEvent(post(e),db as never,fixedNow))?.status).toBe(204);
+    expect(db.counts.get('2026-11-14:checkout_click:pdv-artisys')).toBe(2);
+    expect(JSON.stringify([...db.counts])).not.toMatch(/@|cookie|utm|ip|useragent|referrer/i);
+    const response=await handleOwnerMarketingAnalytics(new Request(ownerEndpoint),db as never,authOwner,fixedNow);
+    expect(response?.status).toBe(200);
+    const body=await response!.json() as any;
+    expect(body.summary).toMatchObject({views:2,productClicks:1,checkoutClicks:2,contactClicks:1});
+    expect(body.products.find((p:any)=>p.slug==='pdv-artisys')).toMatchObject({views:1,productClicks:1,checkoutClicks:2});
+    expect(body.daily.at(-1).date).toBe('2026-11-14');
+    expect(body.confirmedSales).toBeUndefined();
+  });
+  it('nega consulta de analytics sem papel owner e sem sessão',async()=>{
+    for(const auth of [async()=>new Response('{}',{status:403}),async()=>new Response(JSON.stringify({role:'admin'}))]){
+      const db=env();
+      expect((await handleOwnerMarketingAnalytics(new Request(ownerEndpoint),db as never,auth,fixedNow))?.status).toBe(403);
+      expect(db.DB.prepare).not.toHaveBeenCalled();
+    }
+  });
+  it('não aceita períodos arbitrários',async()=>{
+    const db=env();
+    expect((await handleOwnerMarketingAnalytics(new Request('https://artisys.dev/api/owner/marketing-analytics?days=365'),db as never,authOwner,fixedNow))?.status).toBe(400);
+  });
+  it('não confunde intenção de compra com venda confirmada',()=>{
+    const result=summarizeMarketingAnalytics([{id:'2026-11-14:checkout_click:pdv-artisys',count:7}],7,fixedNow,loadCanonicalCatalog().products);
+    expect(result.summary.checkoutClicks).toBe(7);
+    expect(result).not.toHaveProperty('confirmedSales');
+    expect(result.products.find((x:any)=>x.slug==='pdv-artisys')?.checkoutClicks).toBe(7);
+  });
+});
