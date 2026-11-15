@@ -2,7 +2,7 @@
 type Lead={
   id:string;nome:string;empresa:string;email:string;whatsapp:string;
   setor:string;porte:string;objetivo:string;urgencia:string;origem:string;
-  campanha:string;video:string;pontos:string[];recebidoEm:string;score:number;
+  campanha:string;video:string;pontos:string[];recebidoEm:string;score:number|null;
   prioridade:'Alta'|'Media'|'Baixa'|'Não avaliada';entregue:boolean;protocolo:string;status:string;statusVersion:number;mode:'quick'|'full'|'manual';
 };
 type Payload={
