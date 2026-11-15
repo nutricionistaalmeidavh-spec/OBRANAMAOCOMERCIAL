@@ -7,23 +7,24 @@ describe('Diagnóstico via /links', () => {
   const js = read('../public/links/diagnostico/diagnostico.js');
   const css = read('../public/links/diagnostico/diagnostico.css');
   const attribution = read('../public/links/diagnostic-attribution.js');
-  it('tem acesso explícito na Central, preservando os cards Academy e Mercado Livre', () => {
+  it('tem acesso explícito na Central, preservando os cards Sistemas e Mercado Livre', () => {
     expect(links).toContain('href="/links/diagnostico/"');
     expect(links).toContain('data-link-id="diagnostico"');
     expect(links).toContain('src="/links/links-motion.js" defer');
     const destinations = links.split('<nav class="destinations"')[1]?.split('</nav>')[0] || '';
     const ids = [...destinations.matchAll(/class="link-card[^"]*"[^>]+data-link-id="([^"]+)"/g)].map(match => match[1]);
-    expect(ids).toEqual(['academy', 'mercado-livre']);
+    expect(ids).toEqual(['sistemas', 'mercado-livre']);
   });
-  it('mostra o formulário acima da Academy sem alterar canais ou motion', () => {
+  it('mostra o formulário acima da vitrine sem alterar canais ou motion', () => {
     const diagnosticIndex = links.indexOf('class="diagnostic-callout"');
-    const academyIndex = links.indexOf('data-link-id="academy"');
+    const systemsIndex = links.indexOf('data-link-id="sistemas"');
     const socialIndex = links.indexOf('class="social-nav"');
     expect(diagnosticIndex).toBeGreaterThan(0);
-    expect(academyIndex).toBeGreaterThan(diagnosticIndex);
-    expect(socialIndex).toBeGreaterThan(academyIndex);
+    expect(systemsIndex).toBeGreaterThan(diagnosticIndex);
+    expect(socialIndex).toBeGreaterThan(systemsIndex);
     expect((links.match(/data-link-id="diagnostico"/g) || [])).toHaveLength(1);
-    expect((links.match(/data-link-id="academy"/g) || [])).toHaveLength(1);
+    expect((links.match(/data-link-id="academy"/g) || [])).toHaveLength(0);
+    expect((links.match(/data-link-id="sistemas"/g) || [])).toHaveLength(1);
     const motions = read('../public/links/links-motion.js');
     expect(motions).toContain('reveal(".diagnostic-callout"');
     expect(motions.indexOf('reveal(".diagnostic-callout"')).toBeLessThan(motions.indexOf('destinationCards.forEach'));
