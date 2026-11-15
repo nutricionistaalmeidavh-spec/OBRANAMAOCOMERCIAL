@@ -85,8 +85,9 @@ try {
     assert.ok(await page.locator('#choice-title').isVisible(), 'Choice-first diagnosis must be visible: '+width);
     assert.equal(await page.locator('#full-diagnostic-panel').isVisible(),false,'Long form must be opt-in');
     assert.ok(telemetry.some(x=>x.type==='funnel_step'&&x.step==='page_open'),'Diagnosis view not tracked');
-    assert.ok(await page.locator('#whatsapp-start').getAttribute('href').then(x=>decodeURIComponent(x).includes('Origem ArtiSys: Diagnóstico Gratuito')),
-      'WhatsApp source and CTA label must be embedded in the outgoing message');
+    const whatsappHref=await page.locator('#whatsapp-start').getAttribute('href');
+    assert.ok(whatsappHref && decodeURIComponent(whatsappHref).includes('Origem ArtiSys: Diagnóstico Gratuito'),
+      'WhatsApp source and CTA label must be embedded, actual='+whatsappHref+' jsErrors='+JSON.stringify(errors));
     const wa=page.locator('#whatsapp-start');
     await wa.evaluate(a=>a.addEventListener('click',e=>e.preventDefault(),{once:true}));
     const waResponse=page.waitForResponse(x=>x.url().endsWith('/api/marketing/metrics')&&x.status()===204);
