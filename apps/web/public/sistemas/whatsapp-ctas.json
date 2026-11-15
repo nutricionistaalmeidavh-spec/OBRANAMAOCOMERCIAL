@@ -1,0 +1,15 @@
+{
+  "home": ["contato-projeto","footer-whatsapp"],
+  "wppprospector": ["nav-contato","licenca","hero-contato"],
+  "oficina": ["nav-contato","licenca"],
+  "gestao-holerites": ["nav-licenca","hero-aquisicao"],
+  "devkits": ["catalogo-kits","ajuda-kits"],
+  "links": ["social-whatsapp"],
+  "diagnostico": ["avaliacao-whatsapp","privacidade"],
+  "catalog": [],
+  "pdv-artisys": [],
+  "pdv-nexus": [],
+  "obra-na-mao": [],
+  "artisys-finance": [],
+  "nutridesk": []
+}
