@@ -135,6 +135,42 @@ export function validateDiagnosticPayload(raw: unknown): Validation {
   } };
 }
 
+type QuickDiagnostic = {
+  name:string; company:string; email:string; whatsapp:string; goal:string;
+  consent:true; utmSource:string; utmMedium:string; utmCampaign:string;
+  utmContent:string; utmTerm:string; videoTikTok:string; mode:'quick';
+};
+type QuickValidation={ok:true;value:QuickDiagnostic}|{ok:false;message:string};
+export function validateQuickDiagnosticPayload(raw:unknown):QuickValidation {
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))return {ok:false,message:'Informe os quatro campos da avaliação.'};
+  const input=raw as Record<string,unknown>;
+  const allowed=new Set(['kind','name','company','contact','goal','website','utm_source',
+    'utm_medium','utm_campaign','utm_content','utm_term','video_tiktok']);
+  if(input.kind!=='quick'||Object.keys(input).some(k=>!allowed.has(k)))return {ok:false,message:'Dados inválidos.'};
+  const name=str(input.name),company=str(input.company);
+  const rawContact=str(input.contact);
+  const goal=typeof input.goal==='string'?input.goal.trim():'';
+  let email='',whatsapp='';
+  if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawContact)&&rawContact.length<=180)
+    email=rawContact.toLowerCase();
+  else {
+    const digits=rawContact.replace(/\D/g,'');
+    if(digits.length===10||digits.length===11)whatsapp='55'+digits;
+    else if((digits.length===12||digits.length===13)&&digits.startsWith('55'))whatsapp=digits;
+  }
+  if(name.length<2||name.length>120||company.length<2||company.length>140)
+    return {ok:false,message:'Informe seu nome e o da empresa.'};
+  if(!email&&!whatsapp)return {ok:false,message:'Informe um e-mail ou WhatsApp válido para retorno.'};
+  if(goal.length<15||goal.length>600)
+    return {ok:false,message:'Descreva o desafio com pelo menos 15 e no máximo 600 caracteres.'};
+  if(input.website)return {ok:false,message:'Envio não aceito.'};
+  const campaign=(key:string)=>str(input[key]).slice(0,120);
+  return {ok:true,value:{name,company,email,whatsapp,goal,consent:true,mode:'quick',
+    utmSource:campaign('utm_source'),utmMedium:campaign('utm_medium'),
+    utmCampaign:campaign('utm_campaign'),utmContent:campaign('utm_content'),
+    utmTerm:campaign('utm_term'),videoTikTok:campaign('video_tiktok')}};
+}
+
 function respond(body: unknown, status: number, extra: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), { status, headers: {
     'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store',
@@ -158,7 +194,7 @@ type DiagnosticWebhookContext = { waitUntil(promise: Promise<unknown>): void };
 // D1 continua canônico; Activepieces recebe apenas dados mínimos para contato comercial.
 // Variáveis secretas ficam no Worker, nunca no JavaScript público nem no repositório.
 async function forwardDiagnosticLeadToActivepieces(
-  lead: Diagnostic, protocol: string, env: any
+  lead: Partial<Diagnostic> & Pick<Diagnostic,'name'|'company'|'email'|'whatsapp'|'goal'>, protocol: string, env: any
 ): Promise<void> {
   const endpoint = env.ACTIVEPIECES_LEADS_WEBHOOK_URL;
   const token = env.ACTIVEPIECES_LEADS_WEBHOOK_TOKEN;
@@ -222,7 +258,7 @@ export async function reconcilePendingDiagnosticLeads(env: any): Promise<{ sent:
   for (const row of result.results || []) {
     try {
       const record = JSON.parse(row.record_json) as Diagnostic;
-      if (!record.name || !record.email || !record.goal) continue;
+      if (!record.name || !(record.email || record.whatsapp) || !record.goal) continue;
       await forwardDiagnosticLeadToActivepieces(record,row.id.slice(0,8).toUpperCase(),env);
       await markDiagnosticDelivered(row.id,env);
       sent++;
@@ -257,13 +293,15 @@ export async function handlePublicDiagnostic(request: Request, env: any, ctx?: D
   if (raw && typeof raw === 'object' && !Array.isArray(raw) && (raw as Record<string, unknown>).website) {
     return respond({ ok: false, message: 'Envio não aceito.' }, 400);
   }
-  const result = validateDiagnosticPayload(raw);
-  if (result.ok === false) return respond({ ok: false, message: result.message }, 422);
+  const quick=raw&&typeof raw==='object'&&!Array.isArray(raw)&&
+    (raw as Record<string,unknown>).kind==='quick';
+  const result=quick?validateQuickDiagnosticPayload(raw):validateDiagnosticPayload(raw);
+  if(result.ok===false)return respond({ok:false,message:result.message},422);
   try {
     if (!await rateLimit(request, env)) return respond({ ok: false, message: 'Limite de envios atingido. Tente novamente amanhã.' }, 429);
     const id = crypto.randomUUID();
     const receivedAt = new Date().toISOString();
-    const record = { ...result.value, receivedAt, source: '/links/diagnostico/', status: 'novo', version: 2 };
+    const record = { ...result.value, receivedAt, source: '/links/diagnostico/', status: 'novo', version: 2, mode: quick?'quick':'full' };
     await env.DB.prepare('INSERT INTO kv_records(collection,id,record_json,created_at,updated_at) VALUES(?,?,?,?,?)')
       .bind(COLLECTION, id, JSON.stringify(record), receivedAt, receivedAt).run();
     // Falhas na integração não devem afetar protocolo, formulário ou dados já gravados.
