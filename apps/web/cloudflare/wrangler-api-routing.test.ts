@@ -31,11 +31,15 @@ describe('production Worker asset routing regression', () => {
     }
   });
 
-  it('keeps marketing routes asset-first and existing DevKit redirects on Worker', () => {
-    for (const path of ['/', '/index.html', '/sistema.html', '/sistemas/']) {
+  it('keeps private assets asset-first and adds Worker only for nine live SEO pages', () => {
+    for (const path of ['/', '/index.html', '/sistema.html', '/sistemas/marketplace-collection.js','/oficina/style.css','/wppprospector/media/kanban-real.webp']) {
       expect(invokesWorker(path), path).toBe(false);
     }
-    for (const path of ['/devkits/catalogo', '/devkits/catalogo/kits.json']) {
+    for (const path of [
+      '/sistemas/','/sistemas/pdv-artisys/','/sistemas/pdv-nexus/','/sistemas/obra-na-mao/',
+      '/sistemas/artisys-finance/','/sistemas/nutridesk/','/wppprospector/','/oficina/',
+      '/gest%C3%A3oholerites/','/devkits/catalogo', '/devkits/catalogo/kits.json'
+    ]) {
       expect(invokesWorker(path), path).toBe(true);
     }
   });
