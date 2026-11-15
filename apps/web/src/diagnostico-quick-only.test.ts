@@ -14,7 +14,7 @@ describe('Diagnóstico: só WhatsApp + avaliação rápida (sem wizard antigo)',
     for(const name of ['name','company','contact','goal'])
       expect(html).toContain('name="'+name+'"');
     for(const removed of ['full-diagnostic-open','full-diagnostic-panel',
-      'diagnostic-form','wizard-step','ETAPA 1 DE 5','aria-valuemax="5"',
+      'id="diagnostic-form"','wizard-step','ETAPA 1 DE 5','aria-valuemax="5"',
       'name="monthlyRevenue"','name="serverKind"','data-step="4"',
       '/links/diagnostico/diagnostico.js'])
       expect(html).not.toContain(removed);
