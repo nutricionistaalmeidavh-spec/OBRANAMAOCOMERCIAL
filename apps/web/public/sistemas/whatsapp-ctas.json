@@ -1,15 +1,55 @@
 {
-  "home": ["contato-projeto","footer-whatsapp"],
-  "wppprospector": ["nav-contato","licenca","hero-contato"],
-  "oficina": ["nav-contato","licenca"],
-  "gestao-holerites": ["nav-licenca","hero-aquisicao"],
-  "devkits": ["catalogo-kits","ajuda-kits"],
-  "links": ["social-whatsapp"],
-  "diagnostico": ["avaliacao-whatsapp","privacidade"],
-  "catalog": [],
-  "pdv-artisys": [],
-  "pdv-nexus": [],
-  "obra-na-mao": [],
-  "artisys-finance": [],
-  "nutridesk": []
+  "home": [
+    "contato-projeto",
+    "footer-whatsapp",
+    "outro-botao"
+  ],
+  "wppprospector": [
+    "nav-contato",
+    "licenca",
+    "hero-contato",
+    "outro-botao"
+  ],
+  "oficina": [
+    "nav-contato",
+    "licenca",
+    "outro-botao"
+  ],
+  "gestao-holerites": [
+    "nav-licenca",
+    "hero-aquisicao",
+    "outro-botao"
+  ],
+  "devkits": [
+    "catalogo-kits",
+    "ajuda-kits",
+    "outro-botao"
+  ],
+  "links": [
+    "social-whatsapp",
+    "outro-botao"
+  ],
+  "diagnostico": [
+    "avaliacao-whatsapp",
+    "privacidade",
+    "outro-botao"
+  ],
+  "catalog": [
+    "outro-botao"
+  ],
+  "pdv-artisys": [
+    "outro-botao"
+  ],
+  "pdv-nexus": [
+    "outro-botao"
+  ],
+  "obra-na-mao": [
+    "outro-botao"
+  ],
+  "artisys-finance": [
+    "outro-botao"
+  ],
+  "nutridesk": [
+    "outro-botao"
+  ]
 }
