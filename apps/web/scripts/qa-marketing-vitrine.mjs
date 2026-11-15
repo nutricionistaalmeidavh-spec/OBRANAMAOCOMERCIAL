@@ -115,6 +115,8 @@ try {
     const submitted=page.waitForResponse(x=>x.url().endsWith('/api/public/diagnostico')&&x.status()===201);
     await page.locator('#quick-submit').click();
     await submitted;
+    // A resposta HTTP 201 pode chegar antes de a UI finalizar o await response.json().
+    await page.locator('#quick-diagnostic-success').waitFor({state:'visible',timeout:7000});
     assert.ok(await page.locator('#quick-diagnostic-success').isVisible(),'Short form success after 201 only');
     assert.equal(await page.locator('#quick-protocol').textContent(),'QA123456');
     assert.ok(telemetry.some(x=>x.type==='funnel_step'&&x.step==='quick_submitted'),'Quick conversion stage missing');
