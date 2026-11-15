@@ -131,7 +131,10 @@ export async function handleOwnerLeadsRequest(request:Request,env:Env,authorize:
     const leads=(rows.results||[]).flatMap(row=>{
       try{
         const record=JSON.parse(row.record_json) as Record<string,any>;
-        const {score,priority}=scoreDiagnosticLead(record);
+        const ranking=scoreDiagnosticLead(record);
+        const scored=record.mode!=='quick'&&record.mode!=='manual';
+        const score=scored?ranking.score:null;
+        const priority=scored?ranking.priority:'Não avaliada';
         const stage=JSON.parse(row.progression_json||'null') as {status?:string;version?:number}|null;
         const status=stage?.status && (STAGES as readonly string[]).includes(stage.status) ? stage.status : 'novo';
         return [{
