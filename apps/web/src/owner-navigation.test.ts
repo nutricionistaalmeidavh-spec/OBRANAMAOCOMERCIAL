@@ -27,12 +27,12 @@ const licenseEvents=[
 async function mount(){
   document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
   client.hasSession.mockResolvedValue(true);
-  client.get.mockImplementation(async(path:string)=>{
+  client.get.mockImplementation(async(path:string,query?:Record<string,unknown>)=>{
     if(path==='/api/central/access')return {data:{role:'owner'}};
     if(path==='/api/owner/debora-overview')return {data:{overview:deboraOverview,clients:deboraClients}};
     if(path==='/api/owner/license-audit')return {data:{events:licenseEvents}};
     if(path==='/api/owner/marketing-seo')return {data:{pages:[{slug:'catalog',name:'Vitrine de sistemas',category:'Catálogo',href:'https://artisys.dev/sistemas/',path:'/sistemas/',images:[]}]}};
-    if(path.startsWith('/api/owner/marketing-seo?'))return {data:{page:{slug:'catalog',name:'Vitrine de sistemas',href:'https://artisys.dev/sistemas/',path:'/sistemas/',images:[],effective:{title:'Sistemas ArtiSys',description:'Conheça os softwares ArtiSys para empresas de todos os segmentos e organize suas operações com tecnologia.',ogTitle:'',ogDescription:'',image:''},version:0}}};
+    if(path==='/api/owner/marketing-seo'&&query?.slug)return {data:{page:{slug:'catalog',name:'Vitrine de sistemas',href:'https://artisys.dev/sistemas/',path:'/sistemas/',images:[],effective:{title:'Sistemas ArtiSys',description:'Conheça os softwares ArtiSys para empresas de todos os segmentos e organize suas operações com tecnologia.',ogTitle:'',ogDescription:'',image:''},version:0}}};
     if(path.startsWith('/api/owner/marketing-analytics'))return {data:{days:30,timezone:'America/Sao_Paulo',summary:{views:14,productClicks:5,checkoutClicks:3,contactClicks:1,galleryClicks:0},catalog:{views:7,productClicks:0,checkoutClicks:0,contactClicks:0,galleryClicks:0},products:[],daily:[]}};
     if(path.startsWith('/api/owner/links-analytics'))return {data:{days:30,timezone:'America/Sao_Paulo',views:4,clicks:2,interactionRate:50,links:[{id:'academy',label:'ArtiSys Academy',clicks:2}],daily:[{date:'2026-11-07',views:4,clicks:2}]}};
     if(path==='/api/owner/companies/c1')return {data:{company:companies[0]}};
@@ -92,6 +92,23 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.querySelector('[data-owner-links-panel]')).not.toBeNull();
     await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/links-analytics',{days:30}));
     expect(document.querySelector('[data-owner-links-content]')?.textContent).toContain('ArtiSys Academy');
+  });
+
+  it('opens Marketing e SEO with 9-page selection, analytics and editable live metadata',async()=>{
+    await mount();
+    clickView('marketing');
+    expect(document.querySelector('[data-owner-current="marketing"]')).not.toBeNull();
+    expect(document.querySelector('[data-owner-marketing-panel]')).not.toBeNull();
+    await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/marketing-seo'));
+    await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/marketing-analytics',{days:30}));
+    await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/owner/marketing-seo',{slug:'catalog'}));
+    const input=document.querySelector<HTMLInputElement>('[data-seo-title]');
+    await vi.waitFor(()=>expect(input?.value).toBe('Sistemas ArtiSys'));
+    expect(document.querySelector('[data-seo-preview-title]')?.textContent).toContain('Sistemas ArtiSys');
+    expect(document.querySelector('[data-owner-marketing-analytics]')?.textContent).toContain('Intenções de compra');
+    const body=document.body.innerHTML;
+    expect(body).toContain('Publicar metadados');
+    expect(body).not.toContain('confirmadas como vendas');
   });
 
   it('renders only lactation administration for an authorized Débora session',async()=>{
