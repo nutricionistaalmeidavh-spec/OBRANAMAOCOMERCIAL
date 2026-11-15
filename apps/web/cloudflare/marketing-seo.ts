@@ -157,7 +157,7 @@ export function updateSeoHead(html: string, changes: Changes) {
   if(!match) return html;
   let head=match[1];
   const keys=[['description','name'],['og:title','property'],['og:description','property'],
-    ['og:image','property'],['twitter:title','name'],['twitter:description','name'],['twitter:image','name']] as const;
+    ['og:image','property'],['twitter:title','name'],['twitter:description','name'],['twitter:image','name'],['twitter:card','name']] as const;
   head=head.replace(/<title\b[^>]*>[\s\S]*?<\/title>\s*/gi,'');
   head=head.replace(/<meta\b[^>]*>\s*/gi,tag=>{
     return keys.some(([key,attr])=>new RegExp('\\b'+attr+'\\s*=\\s*["\\\']'+key.replace(':','\\:')+'["\\\']','i').test(tag)) ? '' : tag;
@@ -168,13 +168,14 @@ export function updateSeoHead(html: string, changes: Changes) {
     '<meta property="og:title" content="'+escapeHtml(changes.ogTitle || changes.title)+'">',
     '<meta property="og:description" content="'+escapeHtml(changes.ogDescription || changes.description)+'">',
     '<meta name="twitter:title" content="'+escapeHtml(changes.ogTitle || changes.title)+'">',
-    '<meta name="twitter:description" content="'+escapeHtml(changes.ogDescription || changes.description)+'">'
+    '<meta name="twitter:description" content="'+escapeHtml(changes.ogDescription || changes.description)+'">',
+    '<meta name="twitter:card" content="'+(changes.image?'summary_large_image':'summary')+'">'
   ];
   if(changes.image){
     const src = new URL(changes.image, SITE).href;
     tags.push('<meta property="og:image" content="'+escapeHtml(src)+'">');
     tags.push('<meta name="twitter:image" content="'+escapeHtml(src)+'">');
-    tags.push('<meta name="twitter:card" content="summary_large_image">');
+
   }
   // Keep canonical, robots, structured data, assets, styles, and body untouched.
   const replacement='<head>'+head+'\n'+tags.join('\n')+'\n</head>';

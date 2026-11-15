@@ -89,6 +89,7 @@ describe('Marketing SEO owner dashboard backend',()=>{
     expect(published).toContain('/oficina/media/dashboard.webp');
     expect((published.match(/<title>/g)||[])).toHaveLength(1);
     expect((published.match(/name="description"/g)||[])).toHaveLength(1);
+    expect((published.match(/name="twitter:card"/g)||[])).toHaveLength(1);
     expect(published.slice(published.indexOf('<body'))).toBe(html.slice(html.indexOf('<body')));
     expect(published).toContain('application/ld+json');
     expect(publicResponse?.headers.get('cache-control')).toContain('no-store');
