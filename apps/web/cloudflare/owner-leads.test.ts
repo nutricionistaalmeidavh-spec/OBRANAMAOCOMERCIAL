@@ -17,6 +17,57 @@ function envFake(){
 }
 const owner=async()=>new Response(JSON.stringify({role:'owner'}),{status:200});
 
+describe('P2: registro de oportunidades WhatsApp sem formulário',()=>{
+  const url='https://artisys.dev/api/owner/leads';
+  const input={name:'Cliente QA',company:'Construtora Exemplo',contact:'(16) 99999-1234',
+    goal:'Preciso de um sistema sob medida para gestão da equipe de operações.'};
+  function mock() {
+    const prepare=vi.fn((sql:string)=>({
+      bind:vi.fn().mockReturnThis(),
+      run:vi.fn().mockResolvedValue({meta:{changes:1}}),
+      first:vi.fn().mockResolvedValue({id:'manual'})
+    }));
+    return {DB:{prepare}};
+  }
+  const auth=async()=>new Response(JSON.stringify({role:'owner'}),{status:200});
+  const post=(payload:unknown,origin='https://artisys.dev')=>new Request(url,{
+    method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(payload)
+  });
+  it('salva novo contato com origem manual, sem afirmar venda, envio ou consentimento',async()=>{
+    const env=mock();
+    const result=await handleOwnerLeadsRequest(post(input),env as never,auth);
+    expect(result?.status).toBe(201);
+    const json=await result!.json() as any;
+    expect(json).toMatchObject({ok:true,status:'novo',mode:'manual'});
+    expect(json.note).toContain('sem envio de mensagem');
+    expect(env.DB.prepare.mock.calls[0][0]).toContain('INSERT INTO kv_records');
+    const args=env.DB.prepare.mock.results[0].value.bind.mock.calls[0];
+    expect(args[0]).toBe('artisys_diagnostic_leads_v1');
+    const record=JSON.parse(String(args[2]));
+    expect(record).toMatchObject({company:'Construtora Exemplo',whatsapp:'5516999991234',email:'',
+      mode:'manual',source:'whatsapp_manual',consent:false});
+    expect(record).not.toHaveProperty('confirmedSale');
+  });
+  it('bloqueia outros papéis, origem cruzada, metadados extras e contato inválido',async()=>{
+    const other=mock();
+    const no=async()=>new Response(JSON.stringify({role:'debora'}),{status:200});
+    expect((await handleOwnerLeadsRequest(post(input),other as never,no))?.status).toBe(403);
+    for(const payload of [{...input,paymentValue:500},{...input,contact:'x'},{...input,goal:'curto'}]){
+      const env=mock();
+      expect((await handleOwnerLeadsRequest(post(payload),env as never,auth))?.status).toBe(400);
+      expect(env.DB.prepare).not.toHaveBeenCalled();
+    }
+    expect((await handleOwnerLeadsRequest(post(input,'https://evil.example'),mock() as never,auth))?.status).toBe(403);
+  });
+  it('lê manual e status na mesma fonte canônica com a quantidade correta de parâmetros SQL',async()=>{
+    const env=envFake();
+    const response=await handleOwnerLeadsRequest(new Request(url),env,auth);
+    expect(response?.status).toBe(200);
+    const statement=env.DB.prepare.mock.calls[0][0] as string;
+    expect(statement).toContain('progression.record_json AS progression_json');
+    expect((statement.match(/\\?/g)||[])).toHaveLength(3);
+  });
+});
 describe('P2: progresso comercial canônico registrado manualmente pelo proprietário',()=>{
   const leadId='aaaa1111-2222-4333-8444-555566667777';
   const make=(role='owner')=>{
