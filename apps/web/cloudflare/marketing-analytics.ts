@@ -6,7 +6,7 @@ import { validWhatsappEvent, WHATSAPP_CTA_ROUTES } from './whatsapp-attribution'
 const COLLECTION = 'artisys_marketing_daily_v1';
 const allowed = new Set((catalog.products as Array<{slug:string}>).map(p=>p.slug));
 const types = ['view','product_click','checkout_click','contact_click','gallery_click','site_click','whatsapp_click','funnel_step'] as const;
-export const DIAGNOSTIC_STEPS = ['page_open','quick_open','quick_started','quick_submitted','quick_error','full_open','full_step_1','full_step_2','full_step_3','full_step_4','full_submitted','full_error'] as const;
+export const DIAGNOSTIC_STEPS = ['page_open','quick_open','quick_started','quick_submitted','quick_error','full_open','full_step_1','full_step_2','full_step_3','full_step_4','full_step_5','full_submitted','full_error'] as const;
 export const HOME_DESTINATIONS = [
   {id:'sistemas',label:'Sistemas'},
   {id:'devkits',label:'DevKit Tools'},
