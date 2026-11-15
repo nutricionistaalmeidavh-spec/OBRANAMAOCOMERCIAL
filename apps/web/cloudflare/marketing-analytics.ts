@@ -4,9 +4,17 @@ import { brazilDay } from './links-analytics';
 /** Only daily aggregated counters in existing kv_records. No migrations, IP, UA or cookies. */
 const COLLECTION = 'artisys_marketing_daily_v1';
 const allowed = new Set((catalog.products as Array<{slug:string}>).map(p=>p.slug));
-const types = ['view','product_click','checkout_click','contact_click','gallery_click'] as const;
+const types = ['view','product_click','checkout_click','contact_click','gallery_click','site_click'] as const;
+export const HOME_DESTINATIONS = [
+  {id:'sistemas',label:'Sistemas'},
+  {id:'devkits',label:'DevKit Tools'},
+  {id:'academy',label:'ArtiSys Academy'},
+  {id:'links',label:'Central de links'},
+  {id:'contato',label:'Contato'}
+] as const;
+const destinations=new Set<string>(HOME_DESTINATIONS.map(x=>x.id));
 type Type = typeof types[number];
-type Data = {type:Type;product:string};
+type Data = {type:Type;product:string;destination?:string};
 type CountRow = {id:string;count:number|string};
 type Db = {prepare:(sql:string)=>{bind:(...values:unknown[])=>{run:()=>Promise<unknown>;all:()=>Promise<{results?:CountRow[]}>}}};
 type Env = {DB:Db};
@@ -14,7 +22,7 @@ type Authorize = ()=>Promise<Response>;
 const emptyCounts = () => ({ views:0,productClicks:0,checkoutClicks:0,contactClicks:0,galleryClicks:0 });
 const labels:Record<Type,keyof ReturnType<typeof emptyCounts>> = {
   view:'views',product_click:'productClicks',checkout_click:'checkoutClicks',
-  contact_click:'contactClicks',gallery_click:'galleryClicks'
+  contact_click:'contactClicks',gallery_click:'galleryClicks',site_click:'views'
 };
 function shiftDay(day:string,days:number) {
   const value=new Date(day+'T00:00:00Z');value.setUTCDate(value.getUTCDate()+days);
@@ -29,11 +37,16 @@ function json(body:unknown,status=200) {
 function validEvent(raw:unknown): raw is Data {
   if(!raw || typeof raw!=='object' || Array.isArray(raw)) return false;
   const event=raw as Record<string,unknown>;
-  if(Object.keys(event).length!==2 || !('type' in event) || !('product' in event)) return false;
-  if(typeof event.type!=='string' || !types.includes(event.type as Type)) return false;
-  if(typeof event.product!=='string' || !(allowed.has(event.product) || event.product==='catalog')) return false;
-  if(event.product==='catalog' && event.type!=='view') return false;
-  return true;
+  if(typeof event.type!=='string' || !types.includes(event.type as Type))return false;
+  if(typeof event.product!=='string')return false;
+  if(event.product==='home') {
+    if(event.type==='view')return Object.keys(event).length===2;
+    return event.type==='site_click' && Object.keys(event).length===3 &&
+      typeof event.destination==='string' && destinations.has(event.destination);
+  }
+  if(Object.keys(event).length!==2)return false;
+  if(event.product==='catalog')return event.type==='view';
+  return allowed.has(event.product) && event.type!=='site_click';
 }
 export function summarizeMarketingAnalytics(
   rows:CountRow[],days:number,now:Date,
@@ -45,13 +58,29 @@ export function summarizeMarketingAnalytics(
   const productCounts=new Map(products.map(p=>[p.slug,{slug:p.slug,name:p.name,...emptyCounts()}]));
   const catalogCounts=emptyCounts();
   const summary=emptyCounts();
+  const home={views:0,clicks:0,destinations:HOME_DESTINATIONS.map(x=>({...x,clicks:0}))};
+  const homeDaily=Array.from({length:days},(_,i)=>({date:shiftDay(today,i+1-days),views:0,clicks:0}));
+  const homeDates=new Map(homeDaily.map(x=>[x.date,x]));
   for(const row of rows) {
-    const match=/^(\d{4}-\d{2}-\d{2}):(view|product_click|checkout_click|contact_click|gallery_click):([a-z0-9-]+)$/.exec(row.id);
+    const match=/^(\d{4}-\d{2}-\d{2}):(view|product_click|checkout_click|contact_click|gallery_click|site_click):([a-z0-9-]+)(?::([a-z0-9-]+))?$/.exec(row.id);
     if(!match)continue;
-    const targetDay=dailyByDate.get(match[1]);if(!targetDay)continue;
-    const type=match[2] as Type, product=match[3];
+    const type=match[2] as Type, product=match[3],destination=match[4];
     const value=Math.max(0,Math.floor(Number(row.count)||0));
-    if(!value || (product!=='catalog' && !productCounts.has(product))) continue;
+    if(!value)continue;
+    if(product==='home') {
+      const target=homeDates.get(match[1]);
+      if(!target)continue;
+      if(type==='view'&&!destination){home.views+=value;target.views+=value;}
+      else if(type==='site_click'&&destination){
+        const item=home.destinations.find(x=>x.id===destination);
+        if(!item)continue;
+        item.clicks+=value;home.clicks+=value;target.clicks+=value;
+      }
+      continue;
+    }
+    const targetDay=dailyByDate.get(match[1]);
+    if(!targetDay || destination || !['view','product_click','checkout_click','contact_click','gallery_click'].includes(type))continue;
+    if(product!=='catalog' && !productCounts.has(product))continue;
     if(product==='catalog' && type!=='view')continue;
     const field=labels[type];
     targetDay[field]+=value;summary[field]+=value;
@@ -59,10 +88,10 @@ export function summarizeMarketingAnalytics(
     else productCounts.get(product)![field]+=value;
   }
   return {
-    days,timezone:'America/Sao_Paulo',summary,catalog:catalogCounts,
+    days,timezone:'America/Sao_Paulo',summary,catalog:catalogCounts,home,homeDaily,
     products:[...productCounts.values()].sort((a,b)=>b.productClicks-a.productClicks || b.checkoutClicks-a.checkoutClicks || a.name.localeCompare(b.name,'pt-BR')),
     daily,
-    note:'Cliques em comprar indicam intenção; não representam pedidos nem vendas confirmadas. Contadores anônimos sem identificadores pessoais.'
+    note:'Dados first-party: aberturas registradas não são pessoas únicas. Cliques em comprar não são vendas. Home, /links e páginas comerciais são conjuntos separados; não equivalem a todo o domínio.'
   };
 }
 export async function handlePublicMarketingEvent(request:Request,env:Env,now=new Date()): Promise<Response|null> {
@@ -78,7 +107,8 @@ export async function handlePublicMarketingEvent(request:Request,env:Env,now=new
   catch{return json({error:'Evento inválido.'},400);}
   if(!validEvent(event))return json({error:'Evento inválido.'},400);
   const approved=event as Data;
-  const key=brazilDay(now)+':'+approved.type+':'+approved.product;
+  const key=brazilDay(now)+':'+approved.type+':'+approved.product+
+    (approved.type==='site_click' ? ':'+approved.destination : '');
   const date=now.toISOString();
   try {
     await env.DB.prepare(
