@@ -277,7 +277,7 @@ describe('Central Artisys owner navigation',()=>{
 
     document.querySelector<HTMLButtonElement>('[data-owner-back]')!.click();
     expect(document.querySelector('[data-owner-current="overview"]')).not.toBeNull();
-    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(7);
+    expect(document.querySelectorAll('[data-owner-view]')).toHaveLength(8);
     expect(document.querySelectorAll('[data-owner-jump]')).toHaveLength(0);
     expect(document.querySelector('[data-owner-back]')).toBeNull();
     expect(document.getElementById('deboraLicenseForm')).toBeNull();
