@@ -73,15 +73,14 @@ describe('P5: contadores canônicos e anônimos da vitrine ArtiSys',()=>{
       {type:'view',product:'home'},
       {type:'view',product:'home'},
       {type:'site_click',product:'home',destination:'sistemas'},
-      {type:'site_click',product:'home',destination:'devkits'},
       {type:'view',product:'catalog'}
     ])expect((await handlePublicMarketingEvent(post(payload),db as never,fixedNow))?.status).toBe(204);
     const result=await handleOwnerMarketingAnalytics(new Request(ownerEndpoint),db as never,authOwner,fixedNow);
     const body=await result!.json() as any;
     expect(body.summary.views).toBe(1);
-    expect(body.home).toMatchObject({views:2,clicks:2});
+    expect(body.home).toMatchObject({views:2,clicks:1});
     expect(body.home.destinations.find((x:any)=>x.id==='sistemas').clicks).toBe(1);
-    expect(body.homeDaily.at(-1)).toMatchObject({views:2,clicks:2});
+    expect(body.homeDaily.at(-1)).toMatchObject({views:2,clicks:1});
     expect(db.counts.has('2026-11-14:site_click:home:sistemas')).toBe(true);
     expect(JSON.stringify([...db.counts])).not.toMatch(/cookie|@|utm|ip|referrer/i);
   });

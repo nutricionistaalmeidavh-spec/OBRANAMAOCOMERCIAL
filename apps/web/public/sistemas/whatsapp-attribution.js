@@ -1,10 +1,10 @@
 /* 100% first-party: one canonical WhatsApp click per activation. No cookies or personal identifiers. */
 (() => {
  'use strict';
- const ctas={"home":["contato-projeto","footer-whatsapp","outro-botao"],"wppprospector":["nav-contato","licenca","hero-contato","outro-botao"],"oficina":["nav-contato","licenca","outro-botao"],"gestao-holerites":["nav-licenca","hero-aquisicao","outro-botao"],"devkits":["catalogo-kits","ajuda-kits","outro-botao"],"links":["social-whatsapp","outro-botao"],"diagnostico":["avaliacao-whatsapp","privacidade","outro-botao"],"catalog":["outro-botao"],"pdv-artisys":["outro-botao"],"pdv-nexus":["outro-botao"],"obra-na-mao":["outro-botao"],"artisys-finance":["outro-botao"],"nutridesk":["outro-botao"]};
+ const ctas={"home":["contato-projeto","footer-whatsapp","outro-botao"],"wppprospector":["nav-contato","licenca","hero-contato","outro-botao"],"oficina":["nav-contato","licenca","outro-botao"],"gestao-holerites":["nav-licenca","hero-aquisicao","outro-botao"],"links":["social-whatsapp","outro-botao"],"diagnostico":["avaliacao-whatsapp","privacidade","outro-botao"],"catalog":["outro-botao"],"pdv-artisys":["outro-botao"],"pdv-nexus":["outro-botao"],"obra-na-mao":["outro-botao"],"artisys-finance":["outro-botao"],"nutridesk":["outro-botao"]};
  const labels={
  home:'Página inicial',wppprospector:'WppProspector',oficina:'ArtiSys Oficina',
- 'gestao-holerites':'Gestão de Holerites',devkits:'DevKit Tools',links:'Central de links',
+ 'gestao-holerites':'Gestão de Holerites',links:'Central de links',
  diagnostico:'Diagnóstico Gratuito',catalog:'Vitrine de sistemas',
  'pdv-artisys':'PDV ArtiSys','pdv-nexus':'PDV Nexus','obra-na-mao':'Obra na Mão',
  'artisys-finance':'ArtiSys Financeiro',nutridesk:'NutriDesk'

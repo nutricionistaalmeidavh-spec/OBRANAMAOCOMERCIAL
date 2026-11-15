@@ -9,7 +9,6 @@ const types = ['view','product_click','checkout_click','contact_click','gallery_
 export const DIAGNOSTIC_STEPS = ['page_open','quick_open','quick_started','quick_submitted','quick_error','full_open','full_step_1','full_step_2','full_step_3','full_step_4','full_step_5','full_submitted','full_error'] as const;
 export const HOME_DESTINATIONS = [
   {id:'sistemas',label:'Sistemas'},
-  {id:'devkits',label:'DevKit Tools'},
   {id:'academy',label:'ArtiSys Academy'},
   {id:'links',label:'Central de links'},
   {id:'contato',label:'Contato'}

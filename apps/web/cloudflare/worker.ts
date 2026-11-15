@@ -66,6 +66,15 @@ export default {
     else await task;
   },
   async fetch(request: Request, env: any, ctx?: { waitUntil(promise: Promise<unknown>): void }) {
+    // DevKitTools was retired: block all legacy URLs before SEO, static assets and application handlers.
+    const retiredPath = new URL(request.url).pathname;
+    if (/^\/(?:devkits|devkitools)(?:\/|$)/i.test(retiredPath)) {
+      return new Response('Conteúdo desativado.', {status:410, headers:{
+        'content-type':'text/plain; charset=utf-8',
+        'cache-control':'no-store',
+        'x-robots-tag':'noindex, nofollow, noarchive'
+      }});
+    }
     // Only approved public SEO HTML routes are handled; body and static assets stay unchanged.
     const liveSeo = await handlePublicMarketingSeo(request,env);
     if(liveSeo)return liveSeo;
