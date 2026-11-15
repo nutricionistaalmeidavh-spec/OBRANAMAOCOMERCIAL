@@ -10,9 +10,18 @@ const root = resolve(fileURLToPath(new URL('../dist/', import.meta.url)));
 const output = fileURLToPath(new URL('../qa-artifacts/marketing-storefront/', import.meta.url));
 const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8',
   '.webp':'image/webp', '.avif':'image/avif', '.png':'image/png', '.svg':'image/svg+xml', '.ico':'image/x-icon', '.woff2':'font/woff2' };
+const telemetry = [];
 const server = createServer(async (req, res) => {
   let url;
   try { url = new URL(req.url || '/', 'http://127.0.0.1'); } catch { res.writeHead(400).end(); return; }
+  // Local QA captures the first-party request; no metrics are sent to production.
+  if (url.pathname === '/api/marketing/metrics' && req.method === 'POST') {
+    let payload = '';
+    for await (const chunk of req) payload += String(chunk);
+    try { telemetry.push(JSON.parse(payload)); res.writeHead(204).end(); }
+    catch { res.writeHead(400).end('Invalid analytics event'); }
+    return;
+  }
   const path = decodeURIComponent(url.pathname + (url.pathname.endsWith('/') ? 'index.html' : ''));
   const target = resolve(root, '.' + path);
   if (!target.startsWith(root + sep)) { res.writeHead(403).end(); return; }
@@ -43,7 +52,11 @@ try {
     page.on('response',response=>{
       if(response.url().startsWith(base) && response.status()>=400) errors.push('HTTP '+response.status()+' '+response.url());
     });
+    const beforeViews = telemetry.length;
     await page.goto(base+'/sistemas/',{waitUntil:'networkidle'});
+    assert.ok(telemetry.slice(beforeViews).some(event => event.type === 'view' && event.product === 'catalog'),
+      'anonymous catalog page view not registered at '+width);
+
     assert.match(await page.title(),/Sistemas ArtiSys/);
     assert.equal(await page.locator('[data-catalog-item]').count(),expected, 'missing static cards at '+width);
     const h1 = await page.locator('h1').innerText();
@@ -53,6 +66,16 @@ try {
       assert.equal(await link.count(),1,'primary landing missing: '+product.slug);
       assert.equal(new URL(await link.getAttribute('href'),base).href, product.href);
     }
+    // One real click must be counted as catalog interest; prevent navigation in QA.
+    const cardLink = page.locator('[data-product="pdv-artisys"] a').first();
+    await cardLink.evaluate(anchor => anchor.addEventListener('click', event => event.preventDefault(), {once:true}));
+    const clickResponse = page.waitForResponse(response =>
+      response.url().endsWith('/api/marketing/metrics') && response.status() === 204
+    );
+    await cardLink.click();
+    await clickResponse;
+    assert.ok(telemetry.some(event => event.type === 'product_click' && event.product === 'pdv-artisys'),
+      'anonymous product click not registered at '+width);
     const hero = page.locator('.as-hero img').first();
     assert.equal(await hero.count(),1,'real screenshot hero missing');
     await hero.evaluate(img=>img.decode());
