@@ -10,7 +10,7 @@ type Marketing={
   daily:Array<{date:string}&Counts>;home:Home;homeDaily:Array<{date:string;views:number;clicks:number}>;
 };
 type Links={
-  days:number;timezone:string;views:number;clicks:number;
+  days:number;timezone:string;views:number;clicks:number;interactionRate:number;
   links:Array<{id:string;label:string;clicks:number}>;
   daily:Array<{date:string;views:number;clicks:number}>;
 };
