@@ -1,0 +1,58 @@
+name: Retirar DevKitTools da produção (execução pontual)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/retire-devkittools-deploy-once.yml'
+permissions:
+  contents: read
+jobs:
+  retire-devkittools:
+    name: Build, verify and publish DevKit retirement
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Validate existing tests and retirement guard
+        run: npm test
+      - name: Build public pages and canonical SEO
+        run: npm run build
+      - name: Publish current Worker + static pages with existing Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare production credentials unavailable: no deployment attempted"
+            exit 1
+          fi
+          npx wrangler deploy --config wrangler.jsonc
+      - name: Check retired routes return 410 and homepage no longer promotes kits
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 8
+          for route in /devkits/ /devkits/catalogo/ /devkitools/; do
+            status="$(curl -sSL --max-time 25 -o /dev/null -w '%{http_code}' "https://artisys.dev$route")"
+            if [ "$status" != 410 ]; then
+              echo "::error::Unexpected HTTP $status at $route; expected 410"
+              exit 1
+            fi
+          done
+          curl -fsSL --max-time 25 https://artisys.dev/ -o /tmp/artisys-home.html
+          if grep -Eiq 'DevKit Tool|href="/devkits/"|id="devkits"' /tmp/artisys-home.html; then
+            echo "::error::Retired DevKitTools promotion remains in production homepage"
+            exit 1
+          fi
+          echo "DevKitTools removed from production; canonical systems remain accessible."
