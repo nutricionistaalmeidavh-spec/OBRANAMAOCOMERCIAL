@@ -11,7 +11,11 @@ type Day={date:string;views:number;clicks:number};
 type Home={views:number;clicks:number;destinations:Array<{id:string;label:string;clicks:number}>};
 type Report = { days:number;timezone:string;summary:Summary; catalog:Summary;
   products:Array<{slug:string;name:string}&Summary>;
-  daily:Array<{date:string}&Summary>;home:Home;homeDaily:Day[];note?:string };
+  daily:Array<{date:string}&Summary>;home:Home;homeDaily:Day[];
+  whatsapp:{total:number;byButton:Array<{page:string;cta:string;clicks:number}>};
+  whatsappDaily:Array<{date:string;clicks:number}>;
+  diagnostic:{total:number;stages:Array<{step:string;count:number}>};
+  diagnosticDaily:Array<{date:string;events:number}>;note?:string };
 type LinksReport={days:number;timezone:string;views:number;clicks:number;interactionRate:number;
   links:Array<{id:string;label:string;clicks:number}>;daily:Day[];note?:string };
 type Api = {
@@ -41,6 +45,8 @@ export function ownerMarketingSection() {
     <div data-owner-marketing-analytics aria-live="polite" role="region" aria-label="Indicadores de marketing">
       <div data-marketing-home role="region" aria-label="Página inicial artisys.dev"><p role="status">Carregando página inicial…</p></div>
       <div data-marketing-links role="region" aria-label="Central de links"><p role="status">Carregando /links…</p></div>
+      <div data-marketing-whatsapp role="region" aria-label="Origem dos cliques no WhatsApp"><p role="status">Carregando cliques de WhatsApp…</p></div>
+      <div data-marketing-funnel role="region" aria-label="Etapas do Diagnóstico Gratuito"><p role="status">Carregando funil do diagnóstico…</p></div>
       <div data-marketing-commerce role="region" aria-label="Landing pages e vitrine"><p role="status">Carregando páginas comerciais…</p></div>
       <div data-marketing-integrity class="owner-marketing-note" role="status"></div>
     </div>
@@ -155,6 +161,48 @@ function linksView(data:LinksReport) {
     <p class="owner-marketing-note">Os dados de /links vêm da mesma tabela e API do painel “Visitas e cliques”. Não há duplicação de contadores.</p>`;
 }
 
+
+function whatsappView(data:Report) {
+  const w=data.whatsapp;
+  if(!w) return '<p role="alert">Métricas de WhatsApp ainda não disponíveis nesta versão do backend.</p>';
+  const visible=w.byButton.filter(x=>x.cta!=='outro-botao'||x.clicks>0).sort((a,b)=>b.clicks-a.clicks||a.page.localeCompare(b.page,'pt-BR'));
+  return `<div class="owner-marketing-source-heading"><div><h4>Origem dos contatos via WhatsApp</h4>
+    <p>Evento por página e botão, sem armazenar mensagens, telefones ou visitantes.</p></div></div>
+    ${sourceMetrics([['Cliques em WhatsApp',fmt(w.total),'Cliques no botão, não conversas iniciadas nem contratos']])}
+    <div class="owner-marketing-report"><h4>Quais botões foram usados</h4><div class="owner-marketing-tablewrap">
+    <table><thead><tr><th>Página</th><th>Botão</th><th>Cliques</th></tr></thead>
+    <tbody>${visible.map(x=>`<tr><th scope="row">${esc(x.page)}</th><td>${esc(x.cta.replaceAll('-',' '))}</td><td>${fmt(x.clicks)}</td></tr>`).join('')}</tbody>
+    </table></div></div>
+    <p class="owner-marketing-note">Um clique no WhatsApp de /links também permanece na métrica própria dessa página. Não somar as fontes. Mensagem enviada, proposta e pagamento devem ser confirmados no CRM.</p>`;
+}
+function diagnosticFunnelView(data:Report) {
+  const stages=data.diagnostic?.stages||[];
+  if(!stages.length)return '<p role="alert">Métricas do diagnóstico ainda não disponíveis nesta versão do backend.</p>';
+  const labels:Record<string,string>={
+    page_open:'Aberturas do diagnóstico',quick_open:'Escolheu avaliação rápida',
+    quick_started:'Começou a preencher',quick_submitted:'Avaliações rápidas enviadas',
+    quick_error:'Erros no envio rápido',full_open:'Abriu diagnóstico completo',
+    full_step_1:'Etapa 1 — empresa',full_step_2:'Etapa 2 — desafios',
+    full_step_3:'Etapa 3 — infraestrutura',full_step_4:'Etapa 4 — integrações',
+    full_step_5:'Etapa 5 — objetivos',full_submitted:'Diagnósticos completos enviados',
+    full_error:'Erros no envio completo'
+  };
+  const selected=stages.filter(x=>!x.step.startsWith('full_step_') && x.step!=='quick_error'&&x.step!=='full_error');
+  return `<div class="owner-marketing-source-heading"><div><h4>Diagnóstico Gratuito · funil de entrada</h4>
+    <p>Abertura, escolha, preenchimento e envio. Fonte: eventos anônimos, não pessoas únicas.</p></div>
+    <a href="/links/diagnostico/" target="_blank" rel="noopener noreferrer">Abrir diagnóstico</a></div>
+    ${sourceMetrics([
+      ['Aberturas do diagnóstico',fmt(stages.find(x=>x.step==='page_open')?.count||0),'Eventos desde a instrumentação'],
+      ['Formulários rápidos enviados',fmt(stages.find(x=>x.step==='quick_submitted')?.count||0),'Confirmados após resposta HTTP de sucesso'],
+      ['Formulários completos enviados',fmt(stages.find(x=>x.step==='full_submitted')?.count||0),'Confirmados após resposta HTTP de sucesso'],
+      ['Erros de envio',fmt((stages.find(x=>x.step==='quick_error')?.count||0)+(stages.find(x=>x.step==='full_error')?.count||0)),'Tentativas inválidas ou respostas de falha']
+    ])}
+    <div class="owner-marketing-report"><h4>Avanço por etapa</h4><div class="owner-marketing-tablewrap">
+    <table><thead><tr><th>Etapa</th><th>Eventos</th></tr></thead>
+    <tbody>${selected.map(x=>`<tr><th scope="row">${esc(labels[x.step]||x.step)}</th><td>${fmt(x.count)}</td></tr>`).join('')}</tbody>
+    </table></div></div>
+    <p class="owner-marketing-note">As etapas são contadas no navegador; um envio só é contabilizado após confirmação do servidor. Registro definitivo de lead: Central ArtiSys → Leads ArtiSys.</p>`;
+}
 function editorView(page:Page) {
   const data=page.effective||{title:'',description:'',ogTitle:'',ogDescription:'',image:''};
   const imageChoices=page.images || [];
@@ -226,10 +274,14 @@ export async function bindOwnerMarketing(api:Api) {
     const home=panel!.querySelector<HTMLElement>('[data-marketing-home]')!;
     const links=panel!.querySelector<HTMLElement>('[data-marketing-links]')!;
     const commerce=panel!.querySelector<HTMLElement>('[data-marketing-commerce]')!;
+    const whats=panel!.querySelector<HTMLElement>('[data-marketing-whatsapp]')!;
+    const funnel=panel!.querySelector<HTMLElement>('[data-marketing-funnel]')!;
     const integrity=panel!.querySelector<HTMLElement>('[data-marketing-integrity]')!;
     home.innerHTML='<p role="status">Consultando página inicial…</p>';
     links.innerHTML='<p role="status">Consultando /links…</p>';
     commerce.innerHTML='<p role="status">Consultando páginas comerciais…</p>';
+    whats.innerHTML='<p role="status">Consultando os botões de WhatsApp…</p>';
+    funnel.innerHTML='<p role="status">Consultando o funil de diagnóstico…</p>';
     integrity.textContent='';
     const period=Number(days!.value);
     const [marketingResult,linksResult]=await Promise.allSettled([
@@ -243,7 +295,7 @@ export async function bindOwnerMarketing(api:Api) {
       const check=validateConsolidatedSources(marketing,linkData);
       if(!check.valid) {
         const message='Inconsistência de canonicidade: '+check.issues.join('; ')+'. Indicadores ocultos até corrigir a origem.';
-        for(const section of [home,links,commerce])section.innerHTML='<p role="alert">'+esc(message)+'</p>';
+        for(const section of [home,links,commerce,whats,funnel])section.innerHTML='<p role="alert">'+esc(message)+'</p>';
         integrity.textContent='As fontes não foram somadas nem substituídas por zeros.';
         if(button)button.disabled=false;
         return;
@@ -255,9 +307,13 @@ export async function bindOwnerMarketing(api:Api) {
     if(marketing){
       home.innerHTML=homeView(marketing);
       commerce.innerHTML=analyticsView(marketing);
+      whats.innerHTML=whatsappView(marketing);
+      funnel.innerHTML=diagnosticFunnelView(marketing);
     } else {
       home.innerHTML='<p role="alert">Não foi possível carregar métricas da página inicial. Não substituímos dados ausentes por zero.</p>';
       commerce.innerHTML='<p role="alert">Não foi possível carregar métricas das landing pages. Tente atualizar.</p>';
+      whats.innerHTML='<p role="alert">Os eventos de WhatsApp estão indisponíveis. Não exibimos zero estimado.</p>';
+      funnel.innerHTML='<p role="alert">O funil do diagnóstico está indisponível. Não exibimos zero estimado.</p>';
     }
     if(linkData)links.innerHTML=linksView(linkData);
     else links.innerHTML='<p role="alert">Não foi possível carregar /links. Os dados do outro painel não foram copiados ou estimados.</p>';
