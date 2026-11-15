@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const landing = read('../index.html');
 const marketing = read('./artisys-marketing-2026.css');
-const devkits = read('../public/devkits/index.html');
 
 describe('public ArtiSys landing — conversion and access guardrails', () => {
   it('preserves Obra na Mão access in the header, independently of the mobile menu', () => {
@@ -19,22 +18,14 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(marketing).toContain('.nav-login-mobile{display:inline}');
   });
 
-  it('makes the catalog and the developer-kit destination discoverable', () => {
+  it('makes the systems catalog discoverable without promoting discontinued kits', () => {
     expect(landing).toContain('href="/sistemas/"');
-    expect(landing).toContain('href="/devkits/"');
-    expect(landing).toContain('id="devkit-title"');
+    expect(landing).not.toContain('href="/devkits/"');
+    expect(landing).not.toContain('id="devkit-title"');
     expect(landing).toContain('id="products-title"');
-    expect(landing).not.toContain('id="dos-videos"');
-    expect(landing).not.toContain('id="servicos"');
-    expect(landing).not.toContain('href="#dos-videos"');
-    expect(landing).not.toContain('href="#servicos"');
-    expect(landing).toContain('class="button secondary" href="/sistemas/"');
-    expect(landing).toContain('Conhecer sistemas prontos');
-    expect(landing).toContain('class="button primary" href="/devkits/"');
-    expect(landing).not.toContain('class="viral-preview-machine"');
-    expect(landing).not.toContain('class="viral-floating-product"');
-    expect(landing).not.toContain('class="viral-hero-visual"');
-    for (const slug of ['obra-na-mao', 'pdv-artisys', 'nutridesk']) {
+    expect(landing).toContain('class="button primary" href="/sistemas/"');
+    expect(landing).toContain('class="button secondary" href="#contato"');
+    for (const slug of ['obra-na-mao','pdv-artisys','nutridesk']) {
       expect(landing).toContain(`href="/sistemas/${slug}/"`);
     }
   });
@@ -61,17 +52,12 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(landing).toContain('href="./sistema.html#portal"');
   });
 
-  it('keeps the local DevKit illustration in its section without the old hero cards', () => {
-    const path = '/images/devkit-tools-profissional.avif';
-    expect(landing.match(new RegExp('src="' + path + '"', 'g'))).toHaveLength(1);
+  it('does not render retired kit imagery, links or duplicated hero cards', () => {
+    expect(landing).not.toContain('devkit-tools-profissional.avif');
+    expect(landing).not.toContain('class="devkit-feature-illustration"');
     expect(landing).not.toContain('class="viral-devkit-illustration"');
-    expect(landing).toContain('class="devkit-feature-illustration"');
-    const image = readFileSync(new URL('../public/images/devkit-tools-profissional.avif', import.meta.url));
-    expect(image.byteLength).toBeGreaterThan(1000);
-    expect(image.byteLength).toBeLessThan(20_000);
+    expect(landing).not.toContain('class="viral-preview-machine"');
     expect(landing).toContain('class="nav-login" href="./sistema.html#portal"');
-    expect(landing).not.toContain('class="viral-preview-console"');
-    expect(landing).toContain('class="devkit-module"');
   });
 
   it('keeps the MH Hidráulica case while removing the circled three-step marketing process', () => {
@@ -95,35 +81,18 @@ describe('public ArtiSys landing — conversion and access guardrails', () => {
     expect(landing).toContain('class="nav-login" href="./sistema.html#portal"');
   });
 
-  it('keeps developer-kit claims precise and sends visitors to a real catalog', () => {
-    for (const sku of ['DKT-DOC-005', 'DKT-DOC-008', 'DKT-PLAT-006', 'DKT-QUAL-005']) {
-      expect(landing).toContain(sku);
-    }
-    expect(devkits).not.toContain('github.com/nutricionistaalmeidavh-spec/DevKitTools');
-    expect(devkits).toContain('https://wa.me/5516982338805?text=');
-    expect(devkits).toContain('rel="canonical" href="https://artisys.dev/devkits/"');
-    expect(devkits).toContain('id="kit-grid"');
-    expect(devkits).toContain('Guia Open Source');
-    expect(devkits).toContain('href="https://github.com/rclone/rclone"');
-    expect(devkits).not.toContain('href="/devkits/catalogo/"');
-
+  it('keeps commercial systems routes without the discontinued DevKitTools showcase', () => {
+    expect(landing).not.toContain('DKT-DOC-005');
+    expect(landing).not.toContain('href="/devkits/"');
+    expect(landing).toContain('Sistemas prontos.<br><em>Para sua empresa.</em>');
+    expect(landing).toContain('Para sua empresa');
+    expect(landing).toContain('Projeto personalizado');
+    expect(landing).toContain('class="button primary" href="/sistemas/"');
+    expect(landing).toContain('class="button secondary" href="#contato"');
+    expect(landing).toContain('href="./sistema.html#portal"');
+    expect(landing).not.toContain('class="capabilities container"');
+    expect(read('./artisys-clarity-2026.css')).toContain('.hero.viral-hero .hero-actions{');
   });
-
- it('separa sistemas e kits em dois caminhos claros, preservando URLs e autenticação',()=>{
-   const clarity=read('./artisys-clarity-2026.css');
-   const entry=read('./artisys-landing.ts');
-   expect(landing).toContain('Sistemas prontos.<br><em>Kits para desenvolver.</em>');
-   expect(landing).toContain('Para quem desenvolve');
-   expect(landing).toContain('Para empresas');
-   expect(landing).toContain('class="button primary" href="/devkits/"');
-   expect(landing).toContain('class="button secondary" href="/sistemas/"');
-   expect(landing).toContain('href="./sistema.html#portal"');
-   expect(landing).not.toContain('class="capabilities container"');
-   expect(clarity).toContain('.hero.viral-hero .hero-actions{');
-   expect(clarity).toContain('.hero-route-copy{');
-   expect(entry).toContain("import './artisys-clarity-2026.css';");
-   expect(entry).toContain("import './artisys-editorial-violet.css';");
- });
  it('alterna superfícies claras e mantém os módulos autenticados isolados',()=>{
    const clarity=read('./artisys-clarity-2026.css');
    for(const token of [
