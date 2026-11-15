@@ -181,21 +181,16 @@ function diagnosticFunnelView(data:Report) {
   const labels:Record<string,string>={
     page_open:'Aberturas do diagnóstico',quick_open:'Escolheu avaliação rápida',
     quick_started:'Começou a preencher',quick_submitted:'Avaliações rápidas enviadas',
-    quick_error:'Erros no envio rápido',full_open:'Abriu diagnóstico completo',
-    full_step_1:'Etapa 1 — empresa',full_step_2:'Etapa 2 — desafios',
-    full_step_3:'Etapa 3 — infraestrutura',full_step_4:'Etapa 4 — integrações',
-    full_step_5:'Etapa 5 — objetivos',full_submitted:'Diagnósticos completos enviados',
-    full_error:'Erros no envio completo'
+    quick_error:'Erros na avaliação rápida'
   };
-  const selected=stages.filter(x=>!x.step.startsWith('full_step_') && x.step!=='quick_error'&&x.step!=='full_error');
-  return `<div class="owner-marketing-source-heading"><div><h4>Diagnóstico Gratuito · funil de entrada</h4>
+  const selected=stages.filter(x=>x.step!=='quick_error');
+  return `<div class="owner-marketing-source-heading"><div><h4>Avaliação Gratuita · funil de entrada</h4>
     <p>Abertura, escolha, preenchimento e envio. Fonte: eventos anônimos, não pessoas únicas.</p></div>
     <a href="/links/diagnostico/" target="_blank" rel="noopener noreferrer">Abrir diagnóstico</a></div>
     ${sourceMetrics([
       ['Aberturas do diagnóstico',fmt(stages.find(x=>x.step==='page_open')?.count||0),'Eventos desde a instrumentação'],
       ['Formulários rápidos enviados',fmt(stages.find(x=>x.step==='quick_submitted')?.count||0),'Confirmados após resposta HTTP de sucesso'],
-      ['Formulários completos enviados',fmt(stages.find(x=>x.step==='full_submitted')?.count||0),'Confirmados após resposta HTTP de sucesso'],
-      ['Erros de envio',fmt((stages.find(x=>x.step==='quick_error')?.count||0)+(stages.find(x=>x.step==='full_error')?.count||0)),'Tentativas inválidas ou respostas de falha']
+      ['Erros de envio',fmt(stages.find(x=>x.step==='quick_error')?.count||0),'Tentativas inválidas ou respostas de falha']
     ])}
     <div class="owner-marketing-report"><h4>Avanço por etapa</h4><div class="owner-marketing-tablewrap">
     <table><thead><tr><th>Etapa</th><th>Eventos</th></tr></thead>

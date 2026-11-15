@@ -4,9 +4,7 @@
  const form=document.getElementById('quick-diagnostic-form');
  const panel=document.getElementById('quick-diagnostic-panel');
  const chooser=document.getElementById('quick-diagnostic-open');
- const fullButton=document.getElementById('full-diagnostic-open');
- const fullPanel=document.getElementById('full-diagnostic-panel');
- if(!form||!panel||!chooser||!fullButton||!fullPanel)return;
+ if(!form||!panel||!chooser)return;
  const quickMessage=document.getElementById('quick-message');
  const submit=document.getElementById('quick-submit');
  const fields=['name','company','contact','goal'];
@@ -24,16 +22,10 @@
        referrerPolicy:'no-referrer'}).catch(()=>{});
    }catch{ /* Métricas nunca bloqueiam o contato. */ }
  }
- window.addEventListener('artisys-diagnostic-stage',e=>{
-   const step=e.detail?.step;
-   if(typeof step==='string')trackDiagnosticStep(step,step!=='full_error');
- });
  trackDiagnosticStep('page_open');
  function openQuick(){
    panel.hidden=false;
    chooser.setAttribute('aria-expanded','true');
-   fullPanel.hidden=true;
-   fullButton.setAttribute('aria-expanded','false');
    trackDiagnosticStep('quick_open');
    document.getElementById('quick-diagnostic-title')?.focus({preventScroll:true});
    panel.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
@@ -43,19 +35,6 @@
    panel.hidden=true;
    chooser.setAttribute('aria-expanded','false');
    chooser.focus();
- });
- let fullOpened=false;
- fullButton.addEventListener('click',()=>{
-   fullPanel.hidden=false;
-   panel.hidden=true;
-   chooser.setAttribute('aria-expanded','false');
-   fullButton.setAttribute('aria-expanded','true');
-   if(!fullOpened) {
-     fullOpened=true;
-     trackDiagnosticStep('full_open');
-     window.dispatchEvent(new CustomEvent('artisys-open-full'));
-   }
-   fullPanel.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
  });
  let started=false,sending=false;
  form.addEventListener('input',()=>{

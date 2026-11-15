@@ -83,7 +83,10 @@ try {
     page.on('pageerror',error=>errors.push(error.message));
     await page.goto(base+'/links/diagnostico/',{waitUntil:'networkidle'});
     assert.ok(await page.locator('#choice-title').isVisible(), 'Choice-first diagnosis must be visible: '+width);
-    assert.equal(await page.locator('#full-diagnostic-panel').isVisible(),false,'Long form must be opt-in');
+    assert.equal(await page.locator('#full-diagnostic-open').count(),0,'No legacy wizard CTA');
+    assert.equal(await page.locator('#full-diagnostic-panel').count(),0,'No legacy wizard markup');
+    assert.equal(await page.locator('#diagnostic-form').count(),0,'No legacy five-step form');
+    assert.equal(await page.locator('form').count(),1,'Only quick form remains');
     assert.ok(telemetry.some(x=>x.type==='funnel_step'&&x.step==='page_open'),'Diagnosis view not tracked');
     const whatsappHref=await page.locator('#whatsapp-start').getAttribute('href');
     const whatsappMessage=whatsappHref ? new URL(whatsappHref).searchParams.get('text') : '';
@@ -99,12 +102,7 @@ try {
     await page.locator('#quick-diagnostic-open').click();
     assert.ok(await page.locator('#quick-diagnostic-panel').isVisible(),'Quick form must open');
     assert.equal((await page.locator('#quick-diagnostic-panel .wizard-time').innerText()).trim(),'4 campos',
-      'Quick four-field heading must not be modified by the five-step wizard');
-    await page.locator('#full-diagnostic-open').click();
-    assert.ok(await page.locator('#full-diagnostic-panel').isVisible(),'Optional legacy wizard must open');
-    await page.locator('#quick-diagnostic-open').click();
-    assert.ok(await page.locator('#quick-diagnostic-panel').isVisible(),'Quick path must reopen without data loss');
-    assert.equal(await page.locator('#full-diagnostic-panel').isVisible(),false,'Full wizard must stay hidden');
+      'Quick four-field heading must stay canonical');
     const quick=page.locator('#quick-diagnostic-form');
     assert.equal(await quick.locator('input[name],textarea[name]').filter({hasNot:page.locator('[name="website"]')}).count()>=4,true);
     await page.screenshot({path:join(output,'diagnostic-quick-'+width+'.png'),fullPage:true,animations:'disabled'});
