@@ -27,6 +27,7 @@ const { title, description, canonical='https://artisys.dev/sistemas/', preview=t
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/png" href="/icons/artisys-favicon-32.png" />
     <title>{title}</title>
+    <slot name="seo" />
   </head>
   <body>
     <a class="as-skip" href="#conteudo">Pular para o conteúdo</a>
