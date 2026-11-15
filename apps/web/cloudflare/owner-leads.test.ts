@@ -17,6 +17,48 @@ function envFake(){
 }
 const owner=async()=>new Response(JSON.stringify({role:'owner'}),{status:200});
 
+describe('P2: progresso comercial canônico registrado manualmente pelo proprietário',()=>{
+  const leadId='aaaa1111-2222-4333-8444-555566667777';
+  const make=(role='owner')=>{
+    const db={
+      prepare:vi.fn((sql:string)=>({
+        bind:vi.fn().mockReturnThis(),
+        first:vi.fn().mockResolvedValue({id:leadId}),
+        run:vi.fn().mockResolvedValue({meta:{changes:1}})
+      }))
+    };
+    const auth=async()=>new Response(JSON.stringify({role}),{status:200});
+    return {db,auth};
+  };
+  const change=(body:unknown,origin='https://artisys.dev')=>new Request(url+'/status',{
+    method:'PUT',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)
+  });
+  it('rejeita perfis que não são owner, payloads extras e origem cruzada',async()=>{
+    const {db,auth}=make('debora');
+    expect((await handleOwnerLeadsRequest(change({id:leadId,status:'pago',expectedVersion:0}),{DB:db} as never,auth))?.status).toBe(403);
+    expect(db.prepare).not.toHaveBeenCalled();
+    const yes=make();
+    expect((await handleOwnerLeadsRequest(change({id:leadId,status:'pago',expectedVersion:0,paidAmount:100}),{DB:yes.db} as never,yes.auth))?.status).toBe(400);
+    expect((await handleOwnerLeadsRequest(change({id:leadId,status:'pago',expectedVersion:0},'https://evil.example'),{DB:yes.db} as never,yes.auth))?.status).toBe(403);
+    expect(yes.db.prepare).not.toHaveBeenCalled();
+  });
+  it('registra status versão 1 em collection separada, sem afirmar conciliação financeira',async()=>{
+    const {db,auth}=make();
+    const res=await handleOwnerLeadsRequest(change({id:leadId,status:'em_contato',expectedVersion:0}),{DB:db} as never,auth);
+    expect(res?.status).toBe(200);
+    const body=await res!.json() as any;
+    expect(body).toMatchObject({ok:true,version:1,status:'em_contato',manual:true});
+    expect(body).not.toHaveProperty('confirmedSale');
+    expect(db.prepare).toHaveBeenCalledTimes(2);
+    expect(db.prepare.mock.calls[1][0]).toContain('artisys');
+  });
+  it('não infere o pagamento por clique: apenas marcação manual pode alterar etapa',async()=>{
+    const {db,auth}=make();
+    const res=await handleOwnerLeadsRequest(change({id:leadId,status:'pago',expectedVersion:0}),{DB:db} as never,auth);
+    const body=await res!.json() as any;
+    expect(body.note).toContain('não confirma pagamento no gateway');
+  });
+});
 describe('owner-only diagnostics in the existing Central ArtiSys',()=>{
   it('does not capture unrelated routes',async()=>{
     expect(await handleOwnerLeadsRequest(new Request('https://artisys.dev/api/other'),envFake(),owner)).toBeNull();
