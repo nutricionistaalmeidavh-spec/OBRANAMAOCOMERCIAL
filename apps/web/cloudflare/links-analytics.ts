@@ -4,7 +4,8 @@ const LINK_LABELS: Record<string, string> = {
   'site-logo': 'Site principal · logotipo',
   'site-principal': 'Site principal · topo',
   'diagnostico': 'Diagnóstico gratuito',
-  'academy': 'ArtiSys Academy',
+  'academy': 'ArtiSys Academy', // Historical aggregate remains visible in owner analytics.
+  'sistemas': 'Sistemas ArtiSys',
   'mercado-livre': 'Mercado Livre',
   'tiktok': 'TikTok',
   'whatsapp-social': 'WhatsApp'
