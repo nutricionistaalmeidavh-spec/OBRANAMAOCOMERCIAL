@@ -12,6 +12,7 @@ import { handlePublicDiagnostic, reconcilePendingDiagnosticLeads } from './publi
 import { handleOwnerLeadsRequest } from './owner-leads';
 import { handlePublicLinksEvent, handleOwnerLinksAnalytics } from './links-analytics';
 import { handlePublicMarketingEvent, handleOwnerMarketingAnalytics } from './marketing-analytics';
+import { handleOwnerMarketingSeo, handlePublicMarketingSeo } from './marketing-seo';
 import { handleDevkitLegacyRedirect } from './devkit-canonical-redirect';
 import { router } from './sdk';
 
@@ -65,6 +66,9 @@ export default {
     else await task;
   },
   async fetch(request: Request, env: any, ctx?: { waitUntil(promise: Promise<unknown>): void }) {
+    // Only approved public SEO HTML routes are handled; body and static assets stay unchanged.
+    const liveSeo = await handlePublicMarketingSeo(request,env);
+    if(liveSeo)return liveSeo;
     const devkitRedirect = handleDevkitLegacyRedirect(request);
     if (devkitRedirect) return devkitRedirect;
     const publicDownload=await handlePublicDownload(request);
@@ -91,6 +95,11 @@ export default {
       return handler.fetch(new Request(check.toString(),{method:'GET',headers:request.headers}),env);
     });
     if(marketingAnalytics)return marketingAnalytics;
+    const marketingSeo=await handleOwnerMarketingSeo(request,env,()=>{
+      const check=new URL('/api/central/access',request.url);
+      return handler.fetch(new Request(check.toString(),{method:'GET',headers:request.headers}),env);
+    });
+    if(marketingSeo)return marketingSeo;
     await ensureBillingSchema(env);
     await ensureReservedLifetimeLicense(env);
     const licensing=await handleProductLicenseInternal(request,env);

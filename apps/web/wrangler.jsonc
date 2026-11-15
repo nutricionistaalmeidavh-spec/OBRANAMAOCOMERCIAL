@@ -17,7 +17,9 @@
     ]
   },
   "send_email": [
-    { "name": "EMAIL" }
+    {
+      "name": "EMAIL"
+    }
   ],
   "services": [
     {
@@ -32,7 +34,18 @@
     "run_worker_first": [
       "/api/*",
       "/devkits/catalogo",
-      "/devkits/catalogo/*"
+      "/devkits/catalogo/*",
+      "/sistemas/",
+      "/sistemas/index.html",
+      "/sistemas/pdv-artisys/",
+      "/sistemas/pdv-nexus/",
+      "/sistemas/obra-na-mao/",
+      "/sistemas/artisys-finance/",
+      "/sistemas/nutridesk/",
+      "/wppprospector/",
+      "/oficina/",
+      "/gest%C3%A3oholerites/",
+      "/gestãoholerites/"
     ]
   },
   "d1_databases": [
