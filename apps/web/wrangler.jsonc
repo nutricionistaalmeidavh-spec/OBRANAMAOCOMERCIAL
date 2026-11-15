@@ -35,8 +35,6 @@
       "/api/*",
       "/devkits*",
       "/devkitools*",
-      "/devkits/catalogo",
-      "/devkits/catalogo/*",
       "/sistemas/",
       "/sistemas/index.html",
       "/sistemas/pdv-artisys/",
