@@ -34,3 +34,15 @@
 .owner-lead-stage button{min-height:42px}
 .owner-lead-stage-status{flex-basis:100%;min-height:0;color:#596781;font-size:.78rem;margin:0}
 @media(max-width:600px){.owner-lead-stage button{flex:1}}
+
+.owner-manual-lead{border:1px solid #dcd6ed;border-radius:15px;background:#f8f6fe;padding:16px;margin:0 0 14px}
+.owner-manual-lead summary{cursor:pointer;color:#513294;font-weight:760;font-size:.91rem}
+.owner-manual-lead p{color:#6b6785;font-size:.79rem;line-height:1.55}
+.owner-manual-lead form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+.owner-manual-lead form label{display:grid;gap:7px;font-size:.8rem;font-weight:680;color:#35405b}
+.owner-manual-lead form label:last-of-type{grid-column:1/-1}
+.owner-manual-lead :is(input,textarea){width:100%;min-width:0;border:1px solid #ccc7dd;background:white;color:#1e273a;border-radius:9px;padding:10px 12px;line-height:1.4}
+.owner-manual-lead form button{justify-self:start}
+[data-manual-lead-message]{color:#53627a;font-size:.8rem;line-height:1.4;margin:8px 0}
+.priority-nao-avaliada{background:#eef1f5;color:#65738c;border-color:#dbe2ea}
+@media(max-width:650px){.owner-manual-lead form{grid-template-columns:1fr}}
