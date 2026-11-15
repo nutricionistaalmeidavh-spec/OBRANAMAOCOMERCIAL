@@ -130,7 +130,7 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.querySelector('[data-marketing-links]')?.textContent).toContain('ArtiSys Academy');
     expect(document.querySelector('[data-marketing-integrity]')?.textContent).toContain('Dados auditados');
     expect(document.querySelector('[data-marketing-whatsapp]')?.textContent).toContain('contato projeto');
-    expect(document.querySelector('[data-marketing-funnel]')?.textContent).toContain('Avaliações rápidas enviadas');
+    expect(document.querySelector('[data-marketing-funnel]')?.textContent).toContain('Formulários rápidos enviados');
     const body=document.body.innerHTML;
     expect(body).toContain('Publicar metadados');
     expect(body).not.toContain('confirmadas como vendas');

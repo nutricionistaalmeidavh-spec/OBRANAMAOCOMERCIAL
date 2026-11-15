@@ -78,7 +78,7 @@ export function summarizeMarketingAnalytics(
   const diagnosticDaily=Array.from({length:days},(_,i)=>({date:shiftDay(today,i+1-days),events:0}));
   const diagnosticDates=new Map(diagnosticDaily.map(x=>[x.date,x]));
   for(const row of rows) {
-    const match=/^(\d{4}-\d{2}-\d{2}):(view|product_click|checkout_click|contact_click|gallery_click|site_click|whatsapp_click|funnel_step):([a-z0-9-]+)(?::([a-z0-9-]+))?$/.exec(row.id);
+    const match=/^(\d{4}-\d{2}-\d{2}):(view|product_click|checkout_click|contact_click|gallery_click|site_click|whatsapp_click|funnel_step):([a-z0-9-]+)(?::([a-z0-9_-]+))?$/.exec(row.id);
     if(!match)continue;
     const type=match[2] as Type, product=match[3],destination=match[4];
     const value=Math.max(0,Math.floor(Number(row.count)||0));
