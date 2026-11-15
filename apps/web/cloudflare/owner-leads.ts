@@ -78,9 +78,12 @@ export async function handleOwnerLeadsRequest(request:Request,env:Env,authorize:
   }
   try{
     const rows=await env.DB.prepare(`SELECT lead.id,lead.record_json,lead.created_at,
-      json_extract(delivery.record_json,'$.deliveredAt') AS delivered_at
+      json_extract(delivery.record_json,'$.deliveredAt') AS delivered_at,
+      progression.record_json AS progression_json
       FROM kv_records lead LEFT JOIN kv_records delivery
         ON delivery.collection=? AND delivery.id=lead.id
+      LEFT JOIN kv_records progression
+        ON progression.collection=? AND progression.id=lead.id
       WHERE lead.collection=? ORDER BY lead.created_at DESC LIMIT 200`)
       .bind(DELIVERY_COLLECTION,STAGE_COLLECTION,COLLECTION).all<{id:string;record_json:string;created_at:string;delivered_at?:string|null;progression_json?:string|null}>();
     const leads=(rows.results||[]).flatMap(row=>{
