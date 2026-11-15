@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { overlayMarketingAssets } from './integrate-marketing-astro.mjs';
+import { instrumentMarketingDist } from './marketing-head.mjs';
 
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const astroRoot = resolve(webRoot, '../marketing-astro');
@@ -20,4 +21,5 @@ const result = overlayMarketingAssets({
   productionDir: resolve(webRoot, 'dist'),
   astroDir: resolve(astroRoot, 'dist-preview')
 });
-console.log('ArtiSys Marketing integrated:', result);
+const instrumented=instrumentMarketingDist(resolve(webRoot,'dist'));
+console.log('ArtiSys Marketing integrated:', result, 'metadata pages:', instrumented.join(', '));
