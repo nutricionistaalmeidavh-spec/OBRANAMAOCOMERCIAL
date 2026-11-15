@@ -16,6 +16,10 @@ describe('production Worker asset routing regression', () => {
   it('sends all auth and license APIs to the Worker before SPA assets', () => {
     expect(config.assets.not_found_handling).toBe('single-page-application');
     expect(config.assets.run_worker_first).toContain('/api/*');
+    expect(config.assets.run_worker_first).toContain('/devkits*');
+    expect(config.assets.run_worker_first).toContain('/devkitools*');
+    expect(config.assets.run_worker_first).not.toContain('/devkits/catalogo');
+    expect(config.assets.run_worker_first).not.toContain('/devkits/catalogo/*');
     for (const path of [
       '/api/auth/config',
       '/api/auth/google-credential',
