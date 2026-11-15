@@ -50,7 +50,7 @@ describe('P2: progresso comercial canônico registrado manualmente pelo propriet
     expect(body).toMatchObject({ok:true,version:1,status:'em_contato',manual:true});
     expect(body).not.toHaveProperty('confirmedSale');
     expect(db.prepare).toHaveBeenCalledTimes(2);
-    expect(db.prepare.mock.calls[1][0]).toContain('artisys');
+    expect(db.prepare.mock.calls[1][0]).toContain('ON CONFLICT');
   });
   it('não infere o pagamento por clique: apenas marcação manual pode alterar etapa',async()=>{
     const {db,auth}=make();
