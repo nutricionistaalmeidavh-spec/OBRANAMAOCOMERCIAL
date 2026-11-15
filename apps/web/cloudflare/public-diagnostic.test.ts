@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { handlePublicDiagnostic, validateDiagnosticPayload, reconcilePendingDiagnosticLeads } from './public-diagnostic';
+import { handlePublicDiagnostic, validateDiagnosticPayload, validateQuickDiagnosticPayload, reconcilePendingDiagnosticLeads } from './public-diagnostic';
 
 const payload = () => ({
   name: 'Ana Souza', company: 'Oficina Exemplo', email: 'ana@exemplo.com', whatsapp: '16999998888',
@@ -23,6 +23,45 @@ function envFake() {
   return { env, queries };
 }
 
+describe('Avaliação rápida P0 no mesmo backend de leads',()=>{
+  it('aceita quatro campos com contato email ou WhatsApp, sem faturamento ou infraestrutura',()=>{
+    const valid={kind:'quick',name:'Maria Souza',company:'Loja Exemplo',contact:'maria@exemplo.com',
+      goal:'Preciso automatizar meus pedidos e acompanhar minha equipe de vendas.'};
+    const a=validateQuickDiagnosticPayload(valid);
+    expect(a.ok).toBe(true);
+    if(a.ok)expect(a.value).toMatchObject({name:'Maria Souza',email:'maria@exemplo.com',whatsapp:'',mode:'quick'});
+    const b=validateQuickDiagnosticPayload({...valid,contact:'(16) 99999-1234'});
+    expect(b.ok).toBe(true);
+    if(b.ok)expect(b.value.whatsapp).toBe('5516999991234');
+  });
+  it('não grava dados inválidos e mantém captcha honeypot',async()=>{
+    const value={kind:'quick',name:'Maria Souza',company:'Loja Exemplo',contact:'maria@exemplo.com',
+      goal:'Preciso automatizar meus pedidos e acompanhar minha equipe de vendas.'};
+    const db=envFake();
+    const invalid=await handlePublicDiagnostic(req({...value,contact:'xyz'}),db.env);
+    expect(invalid?.status).toBe(422);
+    const bot=await handlePublicDiagnostic(req({...value,website:'site de robo'}),db.env);
+    expect(bot?.status).toBe(400);
+    expect(db.queries).toHaveLength(0);
+  });
+  it('confirma protocolo somente após registrar o lead na coleção canônica',async()=>{
+    const db=envFake();
+    const value={kind:'quick',name:'Maria Souza',company:'Loja Exemplo',contact:'maria@exemplo.com',
+      goal:'Preciso automatizar meus pedidos e acompanhar minha equipe de vendas.'};
+    const response=await handlePublicDiagnostic(req(value),db.env);
+    expect(response?.status).toBe(201);
+    const body=await response!.json() as any;
+    expect(body.ok).toBe(true);
+    expect(body.protocol).toHaveLength(8);
+    const insert=db.queries.find(x=>x.query.includes('INSERT INTO kv_records'));
+    expect(insert?.args[0]).toBe('artisys_diagnostic_leads_v1');
+    const stored=JSON.parse(String(insert?.args[2]));
+    expect(stored.mode).toBe('quick');
+    expect(stored.goal).toBe(value.goal);
+    expect(stored).not.toHaveProperty('softwareSpend');
+    expect(stored).not.toHaveProperty('serverKind');
+  });
+});
 describe('Diagnóstico público ArtiSys', () => {
   it('valida requisitos antes de gravar e sanitiza entradas', () => {
     const result = validateDiagnosticPayload({ ...payload(), name: '  Ana Souza  ', email: ' ANA@EXEMPLO.COM ' });
