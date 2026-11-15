@@ -1,83 +1,65 @@
-import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
-const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
-describe('Diagnóstico via /links', () => {
-  const links = read('../public/links/index.html');
-  const html = read('../public/links/diagnostico/index.html');
-  const js = read('../public/links/diagnostico/diagnostico.js');
-  const css = read('../public/links/diagnostico/diagnostico.css');
-  const attribution = read('../public/links/diagnostic-attribution.js');
-  it('tem acesso explícito na Central, preservando os cards Sistemas e Mercado Livre', () => {
-    expect(links).toContain('href="/links/diagnostico/"');
-    expect(links).toContain('data-link-id="diagnostico"');
-    expect(links).toContain('src="/links/links-motion.js" defer');
-    const destinations = links.split('<nav class="destinations"')[1]?.split('</nav>')[0] || '';
-    const ids = [...destinations.matchAll(/class="link-card[^"]*"[^>]+data-link-id="([^"]+)"/g)].map(match => match[1]);
-    expect(ids).toEqual(['sistemas', 'mercado-livre']);
-  });
-  it('mostra o formulário acima da vitrine sem alterar canais ou motion', () => {
-    const diagnosticIndex = links.indexOf('class="diagnostic-callout"');
-    const systemsIndex = links.indexOf('data-link-id="sistemas"');
-    const socialIndex = links.indexOf('class="social-nav"');
-    expect(diagnosticIndex).toBeGreaterThan(0);
-    expect(systemsIndex).toBeGreaterThan(diagnosticIndex);
-    expect(socialIndex).toBeGreaterThan(systemsIndex);
-    expect((links.match(/data-link-id="diagnostico"/g) || [])).toHaveLength(1);
-    expect((links.match(/data-link-id="academy"/g) || [])).toHaveLength(0);
-    expect((links.match(/data-link-id="sistemas"/g) || [])).toHaveLength(1);
-    const motions = read('../public/links/links-motion.js');
-    expect(motions).toContain('reveal(".diagnostic-callout"');
-    expect(motions.indexOf('reveal(".diagnostic-callout"')).toBeLessThan(motions.indexOf('destinationCards.forEach'));
-    expect(motions).toContain('destinationCards.forEach((link, index) => reveal(link');
-    expect(motions).toContain('prefers-reduced-motion: reduce');
-  });
-  it('preserva parâmetros UTM/vídeo do TikTok ao atravessar a Central ArtiSys', () => {
-    expect(links).toContain('src="/links/diagnostic-attribution.js" defer');
-    expect(attribution).toContain('data-link-id="diagnostico"');
-    expect(attribution).toContain("destination.searchParams.set(key, value.slice(0,120))");
-    for(const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','video_tiktok'])
-      expect(js).toContain(key);
-  });
-  it('tem formulário acessível em etapas com contato, problema e consentimento', () => {
-    for (const field of ['name','company','email','sector','teamSize','painPoints','goal','weeklyHours','urgency']) {
-      expect(html).toContain(field);
-    }
-    expect(html).not.toContain('name="consent"');
-    expect(html).toContain('Ao enviar seu diagnóstico, você solicita');
-    expect(html).toContain('exclusão das informações');
-    expect((html.match(/class="wizard-step"/g) || [])).toHaveLength(5);
-    for (const attribute of ['serverKind','serverProvider','serverAdmin','workDevices','offlineNeed','usersCount','integrations','integrationOther','softwareSpend','monthlyRevenue','sensitiveData']) {
-      expect(html).toContain(`name="${attribute}"`);
-    }
-    expect(html).toContain('aria-valuemax="5"');
-    expect(html).toContain('data-step="4"');
-    expect(js).toContain("syncServer()");
-    expect(js).toContain("syncIntegrations(null)");
-    expect(js).toContain("data.workDevices = fields.getAll('workDevices')");
-    expect(js).toContain("data.integrations = fields.getAll('integrations')");
-    expect(js).toContain("data.sensitiveData = fields.getAll('sensitiveData')");
-    expect(css).toContain('.conditional-field[hidden]');
-    expect(html).toContain('name="currentSystems"');
-    for (const tool of ['planilhas', 'whatsapp', 'pdv', 'erp', 'crm', 'tarefas-projetos', 'sistema-proprio', 'outros', 'nenhum']) {
-      expect(html).toContain(`name="currentSystems" value="${tool}"`);
-    }
-    expect(html).toContain('type="checkbox" name="currentSystems"');
-    expect(html).toContain('id="current-systems-other"');
-    for (const key of ['pdv', 'erp', 'crm', 'tarefas-projetos', 'sistema-proprio']) {
-      expect(html).toContain(`data-system-name-for="${key}"`);
-      expect(html).toContain(`name="systemName_${key}"`);
-    }
-    expect(js).toContain("data.currentSystemNames = Object.fromEntries");
-    expect(js).toContain("nameInput.required = selected");
-    expect(css).toContain('.system-name-field[hidden]');
-    expect(js).toContain("fields.getAll('currentSystems')");
-    expect(js).toContain("changed.value === 'nenhum'");
-    expect(css).toContain('border-radius: 50%');
-    expect(html).toContain('aria-live="polite"');
-    expect(html).toContain('name="viewport"');
-    expect(html).not.toContain('GEMINI_API_KEY');
-    expect(js).toContain('/api/public/diagnostico');
-    expect(js).toContain('response.ok');
-    expect(css).toContain('@media (max-width: 640px)');
-  });
+import {readFileSync} from 'node:fs';
+import {describe,expect,it} from 'vitest';
+const read=(p:string)=>readFileSync(new URL(p,import.meta.url),'utf8');
+describe('Central ArtiSys /links e Diagnóstico Gratuito atual',()=>{
+ const links=read('../public/links/index.html');
+ const html=read('../public/links/diagnostico/index.html');
+ const js=read('../public/links/diagnostico/quick-diagnostic.js');
+ const css=read('../public/links/diagnostico/diagnostico.css');
+ const attribution=read('../public/links/diagnostic-attribution.js');
+ it('mantém diagnóstico, vitrine de sistemas e Mercado Livre na Central',()=>{
+   expect(links).toContain('href="/links/diagnostico/"');
+   expect(links).toContain('data-link-id="diagnostico"');
+   const nav=links.split('<nav class="destinations"')[1]?.split('</nav>')[0]||'';
+   const ids=[...nav.matchAll(/class="link-card[^"]*"[^>]+data-link-id="([^"]+)"/g)].map(x=>x[1]);
+   expect(ids).toEqual(['sistemas','mercado-livre']);
+   expect((links.match(/data-link-id="diagnostico"/g)||[])).toHaveLength(1);
+ });
+ it('preserva destaque, motion e canais da Central sem apresentar formulário antigo',()=>{
+   const diagnosticIndex=links.indexOf('class="diagnostic-callout"');
+   const systemsIndex=links.indexOf('data-link-id="sistemas"');
+   const socialIndex=links.indexOf('class="social-nav"');
+   expect(diagnosticIndex).toBeGreaterThan(0);
+   expect(systemsIndex).toBeGreaterThan(diagnosticIndex);
+   expect(socialIndex).toBeGreaterThan(systemsIndex);
+   const motion=read('../public/links/links-motion.js');
+   expect(motion).toContain('reveal(".diagnostic-callout"');
+   expect(motion).toContain('destinationCards.forEach');
+   expect(motion).toContain('prefers-reduced-motion: reduce');
+ });
+ it('transfere a origem do TikTok e UTM para o único formulário rápido',()=>{
+   expect(links).toContain('src="/links/diagnostic-attribution.js" defer');
+   expect(attribution).toContain('data-link-id="diagnostico"');
+   expect(attribution).toContain('destination.searchParams.set(key, value.slice(0,120))');
+   for(const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','video_tiktok'])
+     expect(js).toContain(key);
+ });
+ it('exibe os dois caminhos e somente quatro campos sem ressuscitar perguntas antigas',()=>{
+   expect(html).toContain('Sua empresa perde tempo com tarefas que poderiam ser automatizadas?');
+   expect(html).toContain('Conversar pelo WhatsApp');
+   expect(html).toContain('Solicitar avaliação rápida');
+   expect(html).toContain('id="quick-diagnostic-form"');
+   for(const name of ['name','company','contact','goal'])
+     expect(html).toContain('name="'+name+'"');
+   for(const removed of ['id="diagnostic-form"','id="full-diagnostic-panel"',
+     'id="full-diagnostic-open"','class="wizard-step"','aria-valuemax="5"',
+     'name="serverKind"','name="monthlyRevenue"','name="teamSize"','name="sector"'])
+     expect(html).not.toContain(removed);
+   expect((html.match(/<form\b/g)||[])).toHaveLength(1);
+   expect(html).toContain('id="quick-diagnostic-success"');
+   expect(html).toContain('aria-live="polite"');
+   expect(html).toContain('name="viewport"');
+   expect(html).not.toContain('GEMINI_API_KEY');
+ });
+ it('envia avaliação rápida para D1 e mantém feedback sem assinaturas externas',()=>{
+   expect(js).toContain('/api/public/diagnostico');
+   expect(js).toContain("type:'funnel_step'");
+   expect(js).toContain('quick_submitted');
+   expect(js).toContain('response.ok');
+   expect(js).not.toContain('full_step_');
+   expect(css).toContain('@media (max-width: 640px)');
+   expect(css).toContain('prefers-reduced-motion:reduce');
+   expect(css).not.toContain('.wizard-step');
+   expect(css).not.toContain('.diagnostic-complete-toggle');
+ });
 });
