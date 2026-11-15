@@ -33,8 +33,22 @@ async function mount(){
     if(path==='/api/owner/license-audit')return {data:{events:licenseEvents}};
     if(path==='/api/owner/marketing-seo'&&query?.slug)return {data:{page:{slug:'catalog',name:'Vitrine de sistemas',href:'https://artisys.dev/sistemas/',path:'/sistemas/',images:[],effective:{title:'Sistemas ArtiSys',description:'Conheça os softwares ArtiSys para empresas de todos os segmentos e organize suas operações com tecnologia.',ogTitle:'',ogDescription:'',image:''},version:0}}};
     if(path==='/api/owner/marketing-seo')return {data:{pages:[{slug:'catalog',name:'Vitrine de sistemas',category:'Catálogo',href:'https://artisys.dev/sistemas/',path:'/sistemas/',images:[]}]}};
-    if(path.startsWith('/api/owner/marketing-analytics'))return {data:{days:30,timezone:'America/Sao_Paulo',summary:{views:14,productClicks:5,checkoutClicks:3,contactClicks:1,galleryClicks:0},catalog:{views:7,productClicks:0,checkoutClicks:0,contactClicks:0,galleryClicks:0},products:[],daily:[]}};
-    if(path.startsWith('/api/owner/links-analytics'))return {data:{days:30,timezone:'America/Sao_Paulo',views:4,clicks:2,interactionRate:50,links:[{id:'academy',label:'ArtiSys Academy',clicks:2}],daily:[{date:'2026-11-07',views:4,clicks:2}]}};
+    const dates=Array.from({length:30},(_,i)=>new Date(Date.UTC(2026,9,17+i)).toISOString().slice(0,10));
+    const last=i=>i===29;
+    if(path.startsWith('/api/owner/marketing-analytics'))return {data:{
+      days:30,timezone:'America/Sao_Paulo',
+      summary:{views:14,productClicks:5,checkoutClicks:3,contactClicks:1,galleryClicks:0},
+      catalog:{views:7,productClicks:0,checkoutClicks:0,contactClicks:0,galleryClicks:0},
+      products:[{slug:'pdv-artisys',name:'PDV ArtiSys',views:7,productClicks:5,checkoutClicks:3,contactClicks:1,galleryClicks:0}],
+      daily:dates.map((date,i)=>({date,views:last(i)?14:0,productClicks:last(i)?5:0,checkoutClicks:last(i)?3:0,contactClicks:last(i)?1:0,galleryClicks:0})),
+      home:{views:9,clicks:4,destinations:[{id:'sistemas',label:'Sistemas',clicks:4},{id:'devkits',label:'DevKit Tools',clicks:0}]},
+      homeDaily:dates.map((date,i)=>({date,views:last(i)?9:0,clicks:last(i)?4:0}))
+    }};
+    if(path.startsWith('/api/owner/links-analytics'))return {data:{
+      days:30,timezone:'America/Sao_Paulo',views:4,clicks:2,interactionRate:50,
+      links:[{id:'academy',label:'ArtiSys Academy',clicks:2}],
+      daily:dates.map((date,i)=>({date,views:last(i)?4:0,clicks:last(i)?2:0}))
+    }};
     if(path==='/api/owner/companies/c1')return {data:{company:companies[0]}};
     return {data:{companies}};
   });
@@ -105,12 +119,29 @@ describe('Central Artisys owner navigation',()=>{
     const input=document.querySelector<HTMLInputElement>('[data-seo-title]');
     await vi.waitFor(()=>expect(input?.value).toBe('Sistemas ArtiSys'));
     expect(document.querySelector('[data-seo-preview-title]')?.textContent).toContain('Sistemas ArtiSys');
-    expect(document.querySelector('[data-owner-marketing-analytics]')?.textContent).toContain('Intenções de compra');
+    await vi.waitFor(()=>expect(document.querySelector('[data-marketing-home]')?.textContent).toContain('Página inicial'));
+    await vi.waitFor(()=>expect(document.querySelector('[data-marketing-links]')?.textContent).toContain('Central de links'));
+    expect(document.querySelector('[data-marketing-commerce]')?.textContent).toContain('Intenções de compra');
+    expect(document.querySelector('[data-marketing-home]')?.textContent).toContain('9');
+    expect(document.querySelector('[data-marketing-links]')?.textContent).toContain('ArtiSys Academy');
+    expect(document.querySelector('[data-marketing-integrity]')?.textContent).toContain('Dados auditados');
     const body=document.body.innerHTML;
     expect(body).toContain('Publicar metadados');
     expect(body).not.toContain('confirmadas como vendas');
   });
 
+  it('does not display failed links source as zero and still shows commercial metrics',async()=>{
+    await mount();
+    const previous=client.get.getMockImplementation()!;
+    client.get.mockImplementation(async(path:string,query?:Record<string,unknown>)=>{
+      if(path.startsWith('/api/owner/links-analytics'))throw new Error('Offline links');
+      return previous(path,query);
+    });
+    clickView('marketing');
+    await vi.waitFor(()=>expect(document.querySelector('[data-marketing-links]')?.textContent).toContain('Não foi possível carregar /links'));
+    expect(document.querySelector('[data-marketing-commerce]')?.textContent).toContain('Intenções de compra');
+    expect(document.querySelector('[data-marketing-integrity]')?.textContent).toContain('Uma fonte');
+  });
   it('renders only lactation administration for an authorized Débora session',async()=>{
     document.body.innerHTML='<nav class="nav"></nav><header class="top"></header><main id="content"></main>';
     client.hasSession.mockResolvedValue(true);

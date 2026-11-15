@@ -40,6 +40,29 @@ const browser = await chromium.launch({headless:true});
 const expected = loadCanonicalCatalog().products.length;
 
 try {
+  // Validate homepage first-party events with the same local endpoint: no production counters are touched.
+  const homeContext=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+  const homePage=await homeContext.newPage();
+  const homeViewed=homePage.waitForResponse(response=>
+    response.url()===base+'/api/marketing/metrics'&&response.status()===204
+  );
+  await homePage.goto(base+'/',{waitUntil:'domcontentloaded'});
+  await homeViewed;
+  assert.ok(telemetry.some(event=>event.type==='view'&&event.product==='home'),
+    'Homepage must emit only its canonical view:home event');
+  const homeLink=homePage.locator('a.button.secondary[href="/sistemas/"]').first();
+  assert.equal(await homeLink.count()>0,true,'Home must link to canonical systems collection');
+  await homeLink.evaluate(anchor=>anchor.addEventListener('click',event=>event.preventDefault(),{once:true}));
+  const homeClick=homePage.waitForResponse(response=>
+    response.url()===base+'/api/marketing/metrics'&&response.status()===204
+  );
+  await homeLink.click();
+  await homeClick;
+  assert.ok(telemetry.some(event=>event.type==='site_click'&&event.product==='home'&&event.destination==='sistemas'),
+    'Homepage click must be counted as home -> sistemas, not as catalog/product view');
+  await homeContext.close();
+  console.log('Home analytics QA OK: anonymous pageview and classified outbound click (no double counting)');
+
   for (const width of [320,390,768,1440]) {
     const context = await browser.newContext({
       viewport:{width,height:900},

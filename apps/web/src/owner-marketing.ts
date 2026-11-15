@@ -1,3 +1,4 @@
+import { validateConsolidatedSources } from './marketing-analytics-canonical';
 /** Proprietary-free owner experience for all ArtiSys marketing pages. */
 type Page = {
   slug:string; name:string; category:string; path:string; href:string; images:string[];
@@ -6,9 +7,13 @@ type Page = {
   original?:Record<string,string>; effective?:{title:string;description:string;ogTitle:string;ogDescription:string;image:string};
 };
 type Summary = {views:number;productClicks:number;checkoutClicks:number;contactClicks:number;galleryClicks:number};
+type Day={date:string;views:number;clicks:number};
+type Home={views:number;clicks:number;destinations:Array<{id:string;label:string;clicks:number}>};
 type Report = { days:number;timezone:string;summary:Summary; catalog:Summary;
   products:Array<{slug:string;name:string}&Summary>;
-  daily:Array<{date:string}&Summary>;note?:string };
+  daily:Array<{date:string}&Summary>;home:Home;homeDaily:Day[];note?:string };
+type LinksReport={days:number;timezone:string;views:number;clicks:number;interactionRate:number;
+  links:Array<{id:string;label:string;clicks:number}>;daily:Day[];note?:string };
 type Api = {
   get:<T=any>(path:string,query?:Record<string,unknown>)=>Promise<{data:T}>;
   put:<T=any>(path:string,body?:unknown)=>Promise<{data:T}>;
@@ -26,7 +31,7 @@ export function ownerMarketingSection() {
     </div><a class="owner-secondary" href="/sistemas/" target="_blank" rel="noopener noreferrer">Abrir vitrine</a></div>
 
     <div class="owner-marketing-heading">
-      <div><h3>Analytics comercial</h3><p>Visualizações, interesse e intenção de compra — sem identificar visitantes.</p></div>
+      <div><h3>Audiência e resultados por origem</h3><p>Dados separados de artisys.dev, /links e sistemas, sem identificar visitantes.</p></div>
       <div class="owner-marketing-actions"><label>Período
         <select data-marketing-days aria-label="Período de analytics">
           <option value="7">7 dias</option><option value="30" selected>30 dias</option><option value="90">90 dias</option>
@@ -34,7 +39,10 @@ export function ownerMarketingSection() {
         <button class="owner-secondary" data-marketing-refresh type="button">Atualizar</button></div>
     </div>
     <div data-owner-marketing-analytics aria-live="polite" role="region" aria-label="Indicadores de marketing">
-      <p role="status">Carregando métricas comerciais…</p>
+      <div data-marketing-home role="region" aria-label="Página inicial artisys.dev"><p role="status">Carregando página inicial…</p></div>
+      <div data-marketing-links role="region" aria-label="Central de links"><p role="status">Carregando /links…</p></div>
+      <div data-marketing-commerce role="region" aria-label="Landing pages e vitrine"><p role="status">Carregando páginas comerciais…</p></div>
+      <div data-marketing-integrity class="owner-marketing-note" role="status"></div>
     </div>
     <div class="owner-marketing-separator" aria-hidden="true"></div>
     <div class="owner-marketing-heading">
@@ -72,13 +80,14 @@ function chart(data:Report) {
 function analyticsView(data:Report) {
   const total=data.summary||{views:0,productClicks:0,checkoutClicks:0,contactClicks:0,galleryClicks:0};
   const values=[
-    ['Aberturas',fmt(total.views),'Carregamentos registrados'],
-    ['Visitas aos sistemas',fmt(total.productClicks),'Cliques da vitrine'],
-    ['Intenções de compra',fmt(total.checkoutClicks),'Cliques em checkout, não vendas'],
-    ['Contatos',fmt(total.contactClicks),'Cliques de contato']
+    ['Aberturas comerciais',fmt(total.views),'Vitrine e landing pages; não são visitantes únicos'],
+    ['Cliques da vitrine',fmt(total.productClicks),'Acessos aos produtos via catálogo'],
+    ['Intenções de compra',fmt(total.checkoutClicks),'Cliques para comprar; não representam vendas'],
+    ['Contatos',fmt(total.contactClicks),'Cliques de contato nas landing pages']
   ];
   const rank=(data.products||[]).slice().sort((a,b)=>b.productClicks-a.productClicks||b.checkoutClicks-a.checkoutClicks);
-  return `<div class="owner-marketing-metrics">${values.map(([name,value,detail])=>`<div class="owner-marketing-metric"><span>${esc(name)}</span><strong>${esc(value)}</strong><small>${esc(detail)}</small></div>`).join('')}</div>
+  return `<div class="owner-marketing-source-heading"><div><h4>Vitrine e landing pages</h4><p>Origem: /api/owner/marketing-analytics · somente páginas comerciais.</p></div><a href="/sistemas/" target="_blank" rel="noopener noreferrer">Abrir vitrine</a></div>
+    <div class="owner-marketing-metrics">${values.map(([name,value,detail])=>`<div class="owner-marketing-metric"><span>${esc(name)}</span><strong>${esc(value)}</strong><small>${esc(detail)}</small></div>`).join('')}</div>
     <div class="owner-marketing-report"><h4>Movimento diário</h4>${chart(data)}
       <p class="owner-marketing-legend"><span><i class="owner-marketing-keyview"></i>Aberturas</span><span><i class="owner-marketing-keyclick"></i>Cliques na vitrine</span></p>
     </div>
@@ -87,7 +96,63 @@ function analyticsView(data:Report) {
         <tbody>${rank.map(p=>`<tr><th scope="row">${esc(p.name)}</th><td>${fmt(p.views)}</td><td>${fmt(p.productClicks)}</td><td>${fmt(p.checkoutClicks)}</td><td>${fmt(p.contactClicks)}</td></tr>`).join('')}</tbody>
       </table></div>
     </div>
-    <p class="owner-marketing-note">Métricas anônimas desde a ativação. Intenção de compra não representa pedido pago ou venda confirmada. Nenhuma licença ou sistema é modificado por este painel.</p>`;
+    <p class="owner-marketing-note">As aberturas são carregamentos registrados, não visitantes únicos. Cliques não representam vendas ou leads confirmados. O total comercial não inclui a home nem /links.</p>`;
+}
+
+
+function simplifiedChart(rows:Day[],days:number,label:string) {
+  const peak=Math.max(1,...rows.flatMap(x=>[x.views,x.clicks]));
+  const bar=(n:number)=>n===0?0:Math.max(3,Math.round(n/peak*110));
+  return `<div class="owner-marketing-chart-scroll"><div class="owner-marketing-chart" role="img" aria-label="${esc(label)}: aberturas e cliques por dia, período de ${days} dias">
+    ${rows.map(day=>`<div class="owner-marketing-day" title="${esc(day.date)}: ${fmt(day.views)} aberturas e ${fmt(day.clicks)} cliques">
+      <div class="owner-marketing-day-bars">
+        <i class="owner-marketing-viewbar" style="height:${bar(day.views)}px"></i>
+        <i class="owner-marketing-clickbar" style="height:${bar(day.clicks)}px"></i>
+      </div><small>${esc(day.date.slice(8,10))}</small></div>`).join('')}
+    </div></div><p class="owner-marketing-legend"><span><i class="owner-marketing-keyview"></i>Aberturas</span><span><i class="owner-marketing-keyclick"></i>Cliques</span></p>`;
+}
+function sourceMetrics(values:Array<[string,string,string]>) {
+  return `<div class="owner-marketing-metrics">${values.map(([name,value,detail])=>
+    `<div class="owner-marketing-metric"><span>${esc(name)}</span><strong>${esc(value)}</strong><small>${esc(detail)}</small></div>`
+  ).join('')}</div>`;
+}
+function homeView(data:Report) {
+  const home=data.home;
+  const top=home.destinations.slice().sort((a,b)=>b.clicks-a.clicks);
+  return `<div class="owner-marketing-source-heading"><div><h4>Página inicial · artisys.dev</h4>
+    <p>Fonte: eventos first-party da página inicial. Não corresponde ao tráfego de todo o domínio.</p></div>
+    <a href="/" target="_blank" rel="noopener noreferrer">Abrir home</a></div>
+    ${sourceMetrics([
+      ['Aberturas da home',fmt(home.views),'Carregamentos registrados; não são visitantes únicos'],
+      ['Cliques na home',fmt(home.clicks),'Cliques para seções e páginas da ArtiSys'],
+      ['Cliques por abertura',home.views?fmt(Math.round(home.clicks/home.views*1000)/10)+'%':'—','Pode superar 100%; não é conversão de usuários'],
+      ['Destino mais clicado',top[0]?.clicks?top[0].label:'—',top[0]?.clicks?fmt(top[0].clicks)+' cliques':'Sem cliques registrados']
+    ])}
+    <div class="owner-marketing-report"><h4>Movimento da página inicial</h4>
+      ${simplifiedChart(data.homeDaily,data.days,'Página inicial')}</div>
+    <div class="owner-marketing-report"><h4>Cliques por destino · home</h4>
+      <div class="owner-marketing-tablewrap"><table><thead><tr><th>Destino</th><th>Cliques</th><th>Participação</th></tr></thead>
+        <tbody>${top.map(x=>`<tr><th scope="row">${esc(x.label)}</th><td>${fmt(x.clicks)}</td><td>${home.clicks?fmt(Math.round(x.clicks/home.clicks*1000)/10)+'%':'—'}</td></tr>`).join('')}</tbody>
+      </table></div></div>`;
+}
+function linksView(data:LinksReport) {
+  const top=data.links.slice().sort((a,b)=>b.clicks-a.clicks);
+  return `<div class="owner-marketing-source-heading"><div><h4>Central de links · /links/</h4>
+    <p>Fonte canônica existente: /api/owner/links-analytics; sem replicação de dados.</p></div>
+    <a href="/links/" target="_blank" rel="noopener noreferrer">Abrir /links</a></div>
+    ${sourceMetrics([
+      ['Aberturas de /links',fmt(data.views),'Carregamentos registrados; não são visitantes únicos'],
+      ['Cliques em /links',fmt(data.clicks),'Todos os destinos rastreados em /links'],
+      ['Cliques por abertura',data.views?fmt(data.interactionRate)+'%':'—','Pode superar 100%; não é taxa de conversão'],
+      ['Destino mais clicado',top[0]?.clicks?top[0].label:'—',top[0]?.clicks?fmt(top[0].clicks)+' cliques':'Sem cliques registrados']
+    ])}
+    <div class="owner-marketing-report"><h4>Movimento diário de /links</h4>
+      ${simplifiedChart(data.daily,data.days,'Central de links')}</div>
+    <div class="owner-marketing-report"><h4>Cliques por destino · /links</h4>
+      <div class="owner-marketing-tablewrap"><table><thead><tr><th>Destino</th><th>Cliques</th><th>Participação</th></tr></thead>
+        <tbody>${top.map(x=>`<tr><th scope="row">${esc(x.label)}</th><td>${fmt(x.clicks)}</td><td>${data.clicks?fmt(Math.round(x.clicks/data.clicks*1000)/10)+'%':'—'}</td></tr>`).join('')}</tbody>
+      </table></div></div>
+    <p class="owner-marketing-note">Os dados de /links vêm da mesma tabela e API do painel “Visitas e cliques”. Não há duplicação de contadores.</p>`;
 }
 
 function editorView(page:Page) {
@@ -153,16 +218,50 @@ export async function bindOwnerMarketing(api:Api) {
   let requestId=0;
   const current=()=>panel.isConnected;
 
+  let metricsVersion=0;
   async function loadMetrics() {
+    const version=++metricsVersion;
     const button=refresh;
     if(button)button.disabled=true;
-    metrics!.innerHTML='<p role="status">Consultando analytics…</p>';
-    try {
-      const {data}=await api.get<Report>('/api/owner/marketing-analytics',{days:Number(days!.value)});
-      if(current())metrics!.innerHTML=analyticsView(data);
-    } catch(err) {
-      if(current())metrics!.innerHTML='<p role="alert">Não foi possível carregar as métricas. Verifique sua sessão ou tente novamente.</p>';
-    } finally {if(button&&current())button.disabled=false;}
+    const home=panel!.querySelector<HTMLElement>('[data-marketing-home]')!;
+    const links=panel!.querySelector<HTMLElement>('[data-marketing-links]')!;
+    const commerce=panel!.querySelector<HTMLElement>('[data-marketing-commerce]')!;
+    const integrity=panel!.querySelector<HTMLElement>('[data-marketing-integrity]')!;
+    home.innerHTML='<p role="status">Consultando página inicial…</p>';
+    links.innerHTML='<p role="status">Consultando /links…</p>';
+    commerce.innerHTML='<p role="status">Consultando páginas comerciais…</p>';
+    integrity.textContent='';
+    const period=Number(days!.value);
+    const [marketingResult,linksResult]=await Promise.allSettled([
+      api.get<Report>('/api/owner/marketing-analytics',{days:period}),
+      api.get<LinksReport>('/api/owner/links-analytics',{days:period})
+    ]);
+    if(!current()||version!==metricsVersion)return;
+    const marketing=marketingResult.status==='fulfilled'?marketingResult.value.data:null;
+    const linkData=linksResult.status==='fulfilled'?linksResult.value.data:null;
+    if(marketing&&linkData) {
+      const check=validateConsolidatedSources(marketing,linkData);
+      if(!check.valid) {
+        const message='Inconsistência de canonicidade: '+check.issues.join('; ')+'. Indicadores ocultos até corrigir a origem.';
+        for(const section of [home,links,commerce])section.innerHTML='<p role="alert">'+esc(message)+'</p>';
+        integrity.textContent='As fontes não foram somadas nem substituídas por zeros.';
+        if(button)button.disabled=false;
+        return;
+      }
+      integrity.textContent='Dados auditados: datas, totais, ranking e séries conferem nas duas fontes. Fuso: Brasília. Sem união indevida de sessões.';
+    } else {
+      integrity.textContent='Uma fonte de métricas está indisponível; as outras permanecem separadas. Não foi feita soma parcial.';
+    }
+    if(marketing){
+      home.innerHTML=homeView(marketing);
+      commerce.innerHTML=analyticsView(marketing);
+    } else {
+      home.innerHTML='<p role="alert">Não foi possível carregar métricas da página inicial. Não substituímos dados ausentes por zero.</p>';
+      commerce.innerHTML='<p role="alert">Não foi possível carregar métricas das landing pages. Tente atualizar.</p>';
+    }
+    if(linkData)links.innerHTML=linksView(linkData);
+    else links.innerHTML='<p role="alert">Não foi possível carregar /links. Os dados do outro painel não foram copiados ou estimados.</p>';
+    if(button)button.disabled=false;
   }
   function preview(form:HTMLFormElement) {
     const values=new FormData(form);

@@ -40,7 +40,12 @@ describe('P5: contadores canônicos e anônimos da vitrine ArtiSys',()=>{
       {type:'checkout_click',product:'pdv-artisys',url:'https://example.com'},
       {type:'unapproved',product:'wppprospector'},
       {type:'gallery_click',product:'foo'},
-      {type:'view',product:'../../private'}
+      {type:'view',product:'../../private'},
+      {type:'site_click',product:'pdv-artisys',destination:'sistemas'},
+      {type:'site_click',product:'home',destination:'evil'},
+      {type:'view',product:'home',destination:'links'},
+      {type:'checkout_click',product:'home'},
+      {type:'site_click',product:'home',destination:'sistemas',email:'x@y.tld'}
     ]) expect((await handlePublicMarketingEvent(post(payload),db as never,fixedNow))?.status).toBe(400);
     expect(db.DB.prepare).not.toHaveBeenCalled();
   });
@@ -61,6 +66,24 @@ describe('P5: contadores canônicos e anônimos da vitrine ArtiSys',()=>{
     expect(body.products.find((p:any)=>p.slug==='pdv-artisys')).toMatchObject({views:1,productClicks:1,checkoutClicks:2});
     expect(body.daily.at(-1).date).toBe('2026-11-14');
     expect(body.confirmedSales).toBeUndefined();
+  });
+  it('mantém home separada do catálogo e registra apenas cliques a destinos permitidos',async()=>{
+    const db=env();
+    for(const payload of [
+      {type:'view',product:'home'},
+      {type:'view',product:'home'},
+      {type:'site_click',product:'home',destination:'sistemas'},
+      {type:'site_click',product:'home',destination:'devkits'},
+      {type:'view',product:'catalog'}
+    ])expect((await handlePublicMarketingEvent(post(payload),db as never,fixedNow))?.status).toBe(204);
+    const result=await handleOwnerMarketingAnalytics(new Request(ownerEndpoint),db as never,authOwner,fixedNow);
+    const body=await result!.json() as any;
+    expect(body.summary.views).toBe(1);
+    expect(body.home).toMatchObject({views:2,clicks:2});
+    expect(body.home.destinations.find((x:any)=>x.id==='sistemas').clicks).toBe(1);
+    expect(body.homeDaily.at(-1)).toMatchObject({views:2,clicks:2});
+    expect(db.counts.has('2026-11-14:site_click:home:sistemas')).toBe(true);
+    expect(JSON.stringify([...db.counts])).not.toMatch(/cookie|@|utm|ip|referrer/i);
   });
   it('nega consulta de analytics sem papel owner e sem sessão',async()=>{
     for(const auth of [async()=>new Response('{}',{status:403}),async()=>new Response(JSON.stringify({role:'admin'}))]){
