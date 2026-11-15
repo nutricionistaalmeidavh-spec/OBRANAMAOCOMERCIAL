@@ -85,6 +85,36 @@ describe('P5: contadores canônicos e anônimos da vitrine ArtiSys',()=>{
     expect(db.counts.has('2026-11-14:site_click:home:sistemas')).toBe(true);
     expect(JSON.stringify([...db.counts])).not.toMatch(/cookie|@|utm|ip|referrer/i);
   });
+  it('identifica a origem de cada botão WhatsApp sem contar como visita ou contato duplicado',async()=>{
+    const db=env();
+    for(const e of [
+      {type:'whatsapp_click',product:'home',cta:'contato-projeto'},
+      {type:'whatsapp_click',product:'home',cta:'footer-whatsapp'},
+      {type:'whatsapp_click',product:'wppprospector',cta:'nav-contato'},
+      {type:'funnel_step',product:'diagnostico',step:'page_open'},
+      {type:'funnel_step',product:'diagnostico',step:'quick_open'},
+      {type:'funnel_step',product:'diagnostico',step:'quick_submitted'}
+    ])expect((await handlePublicMarketingEvent(post(e),db as never,fixedNow))?.status).toBe(204);
+    const body=await (await handleOwnerMarketingAnalytics(new Request(ownerEndpoint),db as never,authOwner,fixedNow))!.json() as any;
+    expect(body.whatsapp.total).toBe(3);
+    expect(body.whatsapp.byButton.find((x:any)=>x.page==='home'&&x.cta==='contato-projeto')?.clicks).toBe(1);
+    expect(body.diagnostic.stages.find((x:any)=>x.step==='quick_submitted')?.count).toBe(1);
+    expect(body.summary.contactClicks).toBe(0);
+    expect(body.summary.views).toBe(0);
+    expect(db.counts.has('2026-11-14:whatsapp_click:home:contato-projeto')).toBe(true);
+    expect(db.counts.has('2026-11-14:funnel_step:diagnostico:quick_submitted')).toBe(true);
+  });
+  it('rejeita CTA ou etapa não permitidos e payloads com texto de mensagem/telefone',async()=>{
+    const db=env();
+    for(const payload of [
+      {type:'whatsapp_click',product:'home',cta:'fake'},
+      {type:'whatsapp_click',product:'unknown',cta:'outro-botao'},
+      {type:'whatsapp_click',product:'home',cta:'contato-projeto',phone:'55169'},
+      {type:'funnel_step',product:'diagnostico',step:'quick_unknown'},
+      {type:'funnel_step',product:'diagnostico',step:'quick_submitted',email:'a@example.com'}
+    ])expect((await handlePublicMarketingEvent(post(payload),db as never,fixedNow))?.status).toBe(400);
+    expect(db.counts.size).toBe(0);
+  });
   it('nega consulta de analytics sem papel owner e sem sessão',async()=>{
     for(const auth of [async()=>new Response('{}',{status:403}),async()=>new Response(JSON.stringify({role:'admin'}))]){
       const db=env();
