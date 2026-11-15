@@ -39,7 +39,7 @@ describe('P2 — WhatsApp com atribuição por página e botão',()=>{
     expect(WHATSAPP_CTA_ROUTES.home.length).toBeGreaterThanOrEqual(2);
     expect(WHATSAPP_CTA_ROUTES.wppprospector.length).toBeGreaterThanOrEqual(3);
     expect(identifyWhatsappCta('/api/owner','wa.me','a')).toBeNull();
-    expect(identifyWhatsappCta('/','wa.me','a')?.page).toBe('home');
+    expect(identifyWhatsappCta('/','wa.me','contato-projeto')?.page).toBe('home');
   });
   it('preserva páginas individuais e inclui script de atribuição apenas via head',()=>{
     const code=read('../scripts/marketing-head.mjs');

@@ -69,7 +69,7 @@
         (href.pathname.startsWith('/comprar') && href.hostname.endsWith('.workers.dev'))) {
       record('checkout_click',config.page);return;
     }
-    if (href.hostname==='wa.me' || href.hash==='#contato' ||
+    if (href.hash==='#contato' ||
         anchor.hasAttribute('data-crm-cta') || anchor.hasAttribute('data-product-cta')) {
       record('contact_click',config.page);return;
     }

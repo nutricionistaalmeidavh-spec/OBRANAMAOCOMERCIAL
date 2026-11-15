@@ -32,7 +32,7 @@
     let href;
     try{href=new URL(anchor.href,location.href)}catch{return}
     let destination='';
-    if(href.hash==='#contato' || href.hostname==='wa.me')destination='contato';
+    if(href.hash==='#contato')destination='contato';
     else if(href.origin===location.origin) {
       const path=href.pathname.replace(/\/$/,'');
       const matched=routes.find(r=>path===r.path || path.startsWith(r.path+'/'));
