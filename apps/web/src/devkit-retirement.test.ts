@@ -4,7 +4,7 @@ const read=(path:string)=>readFileSync(new URL(path,import.meta.url),'utf8');
 describe('DevKitTools retired from public ArtiSys',()=>{
  it('does not promote the discontinued catalogue in public pages',()=>{
   for(const path of ['../index.html','../public/sistemas/index.html','../public/guia/index.html']){
-   expect(read(path)).not.toMatch(/href=["']\\/devkits\\/?["']/i);
+   expect(read(path)).not.toContain('href="/devkits/"');
    expect(read(path)).not.toMatch(/DevKit Tool.s|id=["']devkits["']/i);
   }
  });
@@ -15,7 +15,7 @@ describe('DevKitTools retired from public ArtiSys',()=>{
  });
  it('returns 410 from the runtime if the edge-only block is ever removed',()=>{
   const worker=read('../cloudflare/worker.ts');
-  expect(worker).toMatch(/\/devkits\/|\/devkitools\//);
+  expect(worker).toContain('devkits|devkitools');
   expect(worker).toContain('410');
   expect(worker).toContain('noindex');
  });
