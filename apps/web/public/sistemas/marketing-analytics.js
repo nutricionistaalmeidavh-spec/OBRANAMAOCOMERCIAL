@@ -52,6 +52,8 @@
     if (!anchor || !consentGranted()) return;
     let href;
     try { href = new URL(anchor.href,location.href); } catch { return; }
+    // WhatsApp is counted exclusively by the canonical per-CTA tracker.
+    if (['wa.me','api.whatsapp.com','web.whatsapp.com'].includes(href.hostname)) return;
     const base = href.origin + href.pathname;
     if (config.page === 'catalog') {
       const slug=destinationMap.get(base);

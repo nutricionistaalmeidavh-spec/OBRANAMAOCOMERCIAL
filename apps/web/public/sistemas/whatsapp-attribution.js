@@ -66,6 +66,7 @@
    if(!(t instanceof Element))return;
    const a=t.closest('a[href]');
    if(!a||!isWhatsApp(a))return;
+   if(document.body?.dataset?.analyticsConsent==='pending'||document.body?.dataset?.analyticsConsent==='denied')return;
    const cta=prepare(a);
    if(cta)record(cta);
  },{capture:true});

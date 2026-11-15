@@ -44,7 +44,7 @@ describe('P2 — WhatsApp com atribuição por página e botão',()=>{
   it('preserva páginas individuais e inclui script de atribuição apenas via head',()=>{
     const code=read('../scripts/marketing-head.mjs');
     expect(code).toContain('whatsapp-attribution.js');
-    expect(read('../public/sistemas/marketing-analytics.js')).toContain("href.hostname==='wa.me'");
+    expect(read('../public/sistemas/marketing-analytics.js')).toContain("if (['wa.me','api.whatsapp.com','web.whatsapp.com'].includes(href.hostname)) return;");
     const tracker=read('../public/sistemas/whatsapp-attribution.js');
     expect(tracker).toContain('whatsapp_click');
     expect(tracker).toContain('data-wa-cta');
