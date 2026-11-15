@@ -50,7 +50,7 @@ try {
   await homeViewed;
   assert.ok(telemetry.some(event=>event.type==='view'&&event.product==='home'),
     'Homepage must emit only its canonical view:home event');
-  const homeLink=homePage.locator('a[href="/sistemas/"]').first();
+  const homeLink=homePage.locator('a.button.secondary[href="/sistemas/"]').first();
   assert.equal(await homeLink.count()>0,true,'Home must link to canonical systems collection');
   await homeLink.evaluate(anchor=>anchor.addEventListener('click',event=>event.preventDefault(),{once:true}));
   const homeClick=homePage.waitForResponse(response=>
