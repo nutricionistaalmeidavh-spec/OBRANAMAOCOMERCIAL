@@ -63,12 +63,12 @@ export async function handleOwnerLeadsRequest(request:Request,env:Env,authorize:
     const goal=typeof raw.goal==='string'?raw.goal.trim():'';
     if(name.length<2||name.length>120||company.length<2||company.length>140||
        goal.length<15||goal.length>600||
-       [name,company,goal].some(x=>/[<>\\x00-\\x08]/.test(x)))
+       [name,company,goal].some(x=>/[<>\x00-\x08]/.test(x)))
       return json({error:'Informe nome, empresa e descrição válida do serviço.'},400);
     let email='',whatsapp='';
-    if(/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(contact)&&contact.length<=180) email=contact.toLowerCase();
+    if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)&&contact.length<=180) email=contact.toLowerCase();
     else {
-      const digits=contact.replace(/\\D/g,'');
+      const digits=contact.replace(/\D/g,'');
       if(digits.length===10||digits.length===11)whatsapp='55'+digits;
       else if((digits.length===12||digits.length===13)&&digits.startsWith('55'))whatsapp=digits;
     }
