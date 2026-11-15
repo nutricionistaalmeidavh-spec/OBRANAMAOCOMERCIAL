@@ -12,6 +12,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/artisys-favicon-32.png">
   <link rel="stylesheet" href="/links/links.css">
   <link rel="stylesheet" href="/links/diagnostico/diagnostico.css">
+  <script src="/sistemas/whatsapp-attribution.js" defer></script>
+  <script src="/links/diagnostico/quick-diagnostic.js" defer></script>
   <script src="/links/diagnostico/diagnostico.js" defer></script>
 </head>
 <body>
@@ -26,11 +28,49 @@
     <main id="conteudo" class="diagnostic-main">
       <section class="diagnostic-intro" aria-labelledby="diagnostic-title">
         <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> AVALIAÇÃO GRATUITA / ARTISYS</p>
-        <h1 id="diagnostic-title">O que sua empresa pode <em>fazer melhor?</em></h1>
-        <p>Conte um pouco sobre sua operação. Vamos identificar oportunidades de melhoria e avaliar quais tipos de sistemas fazem sentido para você.</p>
-        <div class="diagnostic-facts"><span>Respostas em poucos minutos</span><span>Sem compromisso</span><span>Sem precisar conhecer tecnologia</span></div>
+        <h1 id="diagnostic-title">Sua empresa perde tempo com tarefas que poderiam ser automatizadas?</h1>
+        <p>Conte qual é o seu maior desafio. A ArtiSys avalia sua necessidade e indica possíveis caminhos para simplificar sua operação.</p>
+        <div class="diagnostic-facts"><span>Avaliação inicial gratuita</span><span>Sem compromisso</span><span>Sem precisar conhecer tecnologia</span></div>
       </section>
-      <section class="diagnostic-panel" aria-label="Formulário de diagnóstico empresarial">
+      <section class="diagnostic-choices" aria-labelledby="choice-title">
+        <p class="choices-overline">COMECE PELA SUA NECESSIDADE</p>
+        <h2 id="choice-title">Escolha como prefere começar</h2>
+        <div class="diagnostic-choice-list">
+          <a class="diagnostic-choice" id="whatsapp-start" data-wa-cta="avaliacao-whatsapp" href="https://wa.me/5516982338805?text=Ol%C3%A1%21%20Gostaria%20de%20conversar%20com%20a%20ArtiSys%20sobre%20um%20problema%20na%20minha%20empresa." target="_blank" rel="noopener noreferrer">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a9 9 0 0 1-13.2 8L3 21l1.5-5A9 9 0 1 1 21 11.5Z"/><path d="m8.8 9 2.2 4 3.9 2.1 1.5-1.4"/></svg>
+            <span><strong>Conversar pelo WhatsApp</strong><small>Para quem já sabe do que precisa</small></span><span class="choice-arrow" aria-hidden="true">↗</span>
+          </a>
+          <button class="diagnostic-choice" id="quick-diagnostic-open" type="button" aria-controls="quick-diagnostic-panel" aria-expanded="false">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M9 10h6M9 14h6"/></svg>
+            <span><strong>Solicitar avaliação rápida</strong><small>Quatro campos para apresentar seu desafio</small></span><span class="choice-arrow" aria-hidden="true">→</span>
+          </button>
+        </div>
+        <p class="diagnostic-trust">Sem mensalidade ou compromisso de contratação. Seu contato será utilizado apenas para responder à solicitação.</p>
+      </section>
+      <section class="quick-diagnostic-panel" id="quick-diagnostic-panel" hidden aria-labelledby="quick-diagnostic-title">
+        <div class="wizard-head"><div><p class="wizard-overline">AVALIAÇÃO RÁPIDA</p><h2 id="quick-diagnostic-title" tabindex="-1">Conte o que precisa melhorar</h2></div><span class="wizard-time">4 campos</span></div>
+        <p class="step-description">Não precisa conhecer servidores, integrações nem faturamento. Basta explicar o principal problema.</p>
+        <form id="quick-diagnostic-form" novalidate>
+          <div class="field-grid">
+            <div class="field"><label for="quick-name">Seu nome</label><input id="quick-name" name="name" autocomplete="name" type="text" minlength="2" maxlength="120" required placeholder="Como podemos chamar você?"></div>
+            <div class="field"><label for="quick-company">Nome da empresa</label><input id="quick-company" name="company" autocomplete="organization" type="text" minlength="2" maxlength="140" required placeholder="Nome do seu negócio"></div>
+          </div>
+          <div class="field"><label for="quick-contact">WhatsApp ou e-mail para resposta</label><input id="quick-contact" name="contact" type="text" maxlength="180" required placeholder="(16) 99999-9999 ou email@empresa.com" autocomplete="on"><p class="field-help">Informe apenas um contato. Não enviaremos mensagens de marketing sem autorização.</p></div>
+          <div class="field"><label for="quick-goal">Qual desafio você gostaria de resolver?</label><textarea id="quick-goal" name="goal" required minlength="15" maxlength="600" rows="4" placeholder="Ex.: tenho dificuldade para organizar os pedidos dos clientes e acompanhar a equipe."></textarea></div>
+          <div class="website-check" aria-hidden="true"><label for="quick-website">Não preencher</label><input id="quick-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+          <p class="quick-privacy">Ao enviar, você solicita uma resposta da ArtiSys pelo contato informado. Não inclua senhas, documentos pessoais ou dados sensíveis.</p>
+          <p id="quick-message" class="form-message" role="status" aria-live="polite"></p>
+          <div class="wizard-actions"><button type="button" class="button-back" id="quick-back">Voltar às opções</button><button type="submit" class="button-next" id="quick-submit">Enviar avaliação rápida <span aria-hidden="true">→</span></button></div>
+        </form>
+        <div class="diagnostic-success" id="quick-diagnostic-success" hidden role="status" aria-live="polite">
+          <span class="success-icon" aria-hidden="true">✓</span><h2 tabindex="-1">Solicitação recebida!</h2>
+          <p>Recebemos o seu desafio. A equipe ArtiSys poderá responder pelo contato informado.</p>
+          <p class="protocol">Protocolo: <strong id="quick-protocol"></strong></p>
+          <a href="/links/" class="button-next success-return">Voltar à Central ArtiSys →</a>
+        </div>
+      </section>
+      <section class="diagnostic-complete-toggle"><p>Quer detalhar melhor sua operação?</p><button type="button" id="full-diagnostic-open" aria-controls="full-diagnostic-panel" aria-expanded="false">Preencher diagnóstico completo (opcional) <span aria-hidden="true">↓</span></button></section>
+      <section class="diagnostic-panel" id="full-diagnostic-panel" aria-label="Formulário de diagnóstico empresarial" hidden>
         <div class="wizard-head">
           <div><p id="step-overline" class="wizard-overline">ETAPA 1 DE 5</p><h2 id="step-title">Sobre sua empresa</h2></div>
           <span class="wizard-time" aria-hidden="true">01 / 05</span>
