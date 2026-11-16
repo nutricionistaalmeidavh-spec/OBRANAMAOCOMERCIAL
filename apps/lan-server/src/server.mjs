@@ -545,8 +545,12 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         authorizeAction(context,{domain:'operation',action:'create'})
         authorizeAction(context,{domain:'finance',action:'edit'})
         const input = await readJson(request)
-        // The authorized local company is authoritative; callers cannot override it.
-        const scope = { ...(input.scope||{}), companyId:context.companyId }
+        // Cloud company ID is a UUID/string; the SQLite local company ID is numeric.
+        // Verify the authorized cloud tenant without replacing the local foreign key.
+        const scope = input.scope && typeof input.scope === 'object' && !Array.isArray(input.scope) ? input.scope : {}
+        if (!context.companyId || String(scope.remoteCompanyId || '') !== String(context.companyId)) {
+          return sendJson(response,403,{error:'tenant_mismatch',message:'Obra não vinculada à empresa autorizada neste servidor.'})
+        }
         return sendJson(response,200,mobileRdoImport.apply({scope,report:input.report}))
       }
 
