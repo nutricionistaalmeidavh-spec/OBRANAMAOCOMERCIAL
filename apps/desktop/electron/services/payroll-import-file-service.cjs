@@ -112,8 +112,9 @@ class PayrollImportFileService {
     assertSpreadsheetInput(filePath)
     const workbook=await readWorkbook(filePath)
     const token=crypto.randomUUID()
-    const sheets=workbook.SheetNames.map(name=>{
-      const rows=sheetRows(workbook.getWorksheet(name))
+    const sheets=workbook.worksheets.map(worksheet=>{
+      const name=worksheet.name
+      const rows=sheetRows(worksheet)
       const headerIndex=findHeaderIndex(rows)
       const headers=(rows[headerIndex]||[]).map((item,index)=>String(item||`Coluna ${index+1}`).trim())
       const suggestedMapping=detectMapping(headers)
