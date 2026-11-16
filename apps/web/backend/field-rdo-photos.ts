@@ -35,13 +35,20 @@ async function metadata(projectId:string,id:string){
   .bind(collection(projectId),id).first<{record_json:string}>()
  return row?json(row.record_json):null
 }
-export async function uploadFieldPhoto({companyId,projectId,date,mimeType,data,userId}:{companyId:string;projectId:string;date:string;mimeType:string;data:string;userId:string}){
+export async function uploadFieldPhoto({companyId,projectId,date,mimeType,data,userId,clientId}:{companyId:string;projectId:string;date:string;mimeType:string;data:string;userId:string;clientId?:string}){
  if(!validDate(String(date))||!allowedMimes.has(String(mimeType)))throw new Error('Data ou formato da foto inválidos.')
  const bytes=decodeBase64(data),actual=actualMime(bytes)
  if(actual!==mimeType)throw new Error('O conteúdo da imagem não corresponde ao formato informado.')
- const bucket=requireBucket(),id=crypto.randomUUID(),now=new Date().toISOString()
+ const bucket=requireBucket(),id=clientId?String(clientId).toLowerCase():crypto.randomUUID(),now=new Date().toISOString()
+ if(!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(id))throw new Error('Identificador de upload inválido.')
  const key=`field-rdo/${safe(companyId)}/${safe(projectId)}/${date}/${id}`
  const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes as BufferSource))).map(n=>n.toString(16).padStart(2,'0')).join('')
+ const prior=record(await metadata(projectId,id))
+ if(prior.id){
+  if(prior.date!==date||prior.contentType!==actual||prior.sha256!==digest)throw new Error('Identificador de foto reutilizado com outro conteúdo.')
+  const {key:ignored,uploadedBy:internal,...publicPhoto}=prior
+  return publicPhoto
+ }
  const receipt={id,date,contentType:actual,sizeBytes:bytes.byteLength,sha256:digest,uploadedAt:now,uploadedBy:String(userId||''),key}
  const count=await runtimeEnv().DB.prepare("SELECT COUNT(*) AS n FROM kv_records WHERE collection=? AND json_extract(record_json,'$.date')=?")
   .bind(collection(projectId),date).first<{n:number}>()
