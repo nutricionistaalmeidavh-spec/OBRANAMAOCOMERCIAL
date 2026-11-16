@@ -102,15 +102,26 @@ function createReceivedNotesService(db) {
     const groups=db.prepare(aggregates+joins+where+
       " GROUP BY i.frente_id,i.subfrente_id ORDER BY etapa_nome,subetapa_nome").all(start||'',...params)
 
-    const budgetWhere=['obra_id=?','deleted_at IS NULL']
+    const budgetWhere=['b.obra_id=?','b.deleted_at IS NULL']
     const budgetArgs=[obraId]
-    if(stageId){budgetWhere.push('frente_id=?');budgetArgs.push(stageId)}
-    const budget=db.prepare("SELECT frente_id,COALESCE(SUM(CAST(ROUND(quantidade*valor_unitario_centavos,0) AS INTEGER)),0) AS orcamento_centavos "+
-      "FROM itens_orcamentarios WHERE "+budgetWhere.join(' AND ')+" GROUP BY frente_id").all(...budgetArgs)
-
-    // A single supplier or substage is only part of a stage, and cannot
-    // be compared to the budget of that entire stage as if it were the whole.
-    const comparable=!supplierId&&!substageId
+    if(stageId){budgetWhere.push('b.frente_id=?');budgetArgs.push(stageId)}
+    if(substageId){budgetWhere.push('b.subfrente_id=?');budgetArgs.push(substageId)}
+    const amountSql='COALESCE(SUM(CAST(ROUND(b.quantidade*b.valor_unitario_centavos,0) AS INTEGER)),0)'
+    const budgetFrom=' FROM itens_orcamentarios b'
+    const budgetWhereSql=' WHERE '+budgetWhere.join(' AND ')
+    const budget=db.prepare('SELECT b.frente_id,'+amountSql+' AS orcamento_centavos'+budgetFrom+budgetWhereSql+
+      ' GROUP BY b.frente_id').all(...budgetArgs)
+    const detailedBudget=db.prepare("SELECT b.frente_id,b.subfrente_id,"+
+      "COALESCE(e.nome,'Sem etapa') AS etapa_nome,COALESCE(s.nome,'Sem subetapa') AS subetapa_nome,"+
+      amountSql+' AS orcamento_centavos'+budgetFrom+
+      ' LEFT JOIN frentes_obra e ON e.id=b.frente_id'+
+      ' LEFT JOIN subfrentes_obra s ON s.id=b.subfrente_id'+budgetWhereSql+
+      ' GROUP BY b.frente_id,b.subfrente_id').all(...budgetArgs)
+    // Older budget rows have no substage. Do not infer any subdivision for them.
+    const allocatedStageBudget=substageId ? Number(db.prepare(
+      'SELECT COUNT(*) AS quantidade FROM itens_orcamentarios WHERE obra_id=? AND frente_id=? AND subfrente_id IS NOT NULL AND deleted_at IS NULL'
+    ).get(obraId,stageId).quantidade)>0 : false
+    const comparable=!supplierId&&(!substageId||allocatedStageBudget)
     const byStage=new Map()
     const stageKey=id=>id===null?'sem_etapa':String(id)
     for(const entry of groups) {
@@ -141,14 +152,31 @@ function createReceivedNotesService(db) {
           :item.orcamento_centavos===0&&item.documentado_ate_fim_centavos>0?'sem_previsao'
           :diff>0?'acima_do_orcamento':'dentro_do_orcamento'}
     }).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
-    const subetapas=groups.map(entry=>({
+    const keyForSub=(stage,sub)=>stageKey(stage)+':'+stageKey(sub)
+    const bySub=new Map(groups.map(entry=>[keyForSub(entry.frente_id,entry.subfrente_id),{
       frente_id:entry.frente_id,subfrente_id:entry.subfrente_id,
       etapa_nome:entry.etapa_nome,subetapa_nome:entry.subetapa_nome,
-      quantidade_itens:Number(entry.itens_quantidade),
-      orcamento_centavos:null, // orçamento por subetapa ainda não existe no esquema canônico
+      quantidade_itens:Number(entry.itens_quantidade),orcamento_centavos:null,
       documentado_ate_fim_centavos:Number(entry.documentado_ate_fim_centavos),
       documentado_periodo_centavos:Number(entry.documentado_periodo_centavos)
-    }))
+    }]))
+    for(const b of detailedBudget) {
+      const key=keyForSub(b.frente_id,b.subfrente_id)
+      if(!bySub.has(key)&&!supplierId) bySub.set(key,{
+        frente_id:b.frente_id,subfrente_id:b.subfrente_id,
+        etapa_nome:b.etapa_nome,subetapa_nome:b.subetapa_nome,
+        quantidade_itens:0,orcamento_centavos:null,
+        documentado_ate_fim_centavos:0,documentado_periodo_centavos:0
+      })
+      if(bySub.has(key))bySub.get(key).orcamento_centavos=Number(b.orcamento_centavos)
+    }
+    const subetapas=[...bySub.values()].map(entry=>{
+      const isComparable=comparable && entry.orcamento_centavos!==null
+      const diff=isComparable?entry.documentado_ate_fim_centavos-entry.orcamento_centavos:null
+      return {...entry,desvio_centavos:diff,alerta:!isComparable?'sem_previsao_especifica':
+        entry.orcamento_centavos===0&&entry.documentado_ate_fim_centavos>0?'sem_previsao':
+        diff>0?'acima_do_orcamento':'dentro_do_orcamento'}
+    }).sort((a,b)=>a.etapa_nome.localeCompare(b.etapa_nome,'pt-BR')||a.subetapa_nome.localeCompare(b.subetapa_nome,'pt-BR'))
     const periodConditions=[...conditions],periodParams=[...params]
     if(start){periodConditions.push('n.emissao>=?');periodParams.push(start)}
     const periodWhere=' WHERE '+periodConditions.join(' AND ')
