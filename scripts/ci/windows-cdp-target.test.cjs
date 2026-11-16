@@ -18,6 +18,19 @@ test('body readiness probe cannot crash when renderer document is not yet mounte
  assert.equal(evaluate({body:{innerText:'    Obra na Mão   '}}),'Obra na Mão')
 })
 
-test('never selects a non-page target as the renderer',()=>{
- assert.throws(()=>selectRendererTarget([{type:'other',webSocketDebuggerUrl:'ws://other',url:'about:blank'}]),/página|renderer/i)
+test('connects to the Electron main-process debugger when there is no page target',()=>{
+ const targets=[{type:'node',url:'file:///app.asar/main.cjs',webSocketDebuggerUrl:'ws://electron-main'}]
+ assert.equal(selectRendererTarget(targets).webSocketDebuggerUrl,'ws://electron-main')
+})
+
+test('only accepts debugger targets with a websocket endpoint',()=>{
+ assert.throws(()=>selectRendererTarget([{type:'other',url:'about:blank'}]),/CDP|debugger/i)
+})
+
+test('prefers application page when both Electron main and renderer are available',()=>{
+ const targets=[
+  {type:'node',url:'file:///app.asar/main.cjs',webSocketDebuggerUrl:'ws://electron-main'},
+  {type:'page',url:'file:///app.asar/index.html',webSocketDebuggerUrl:'ws://renderer'}
+ ]
+ assert.equal(selectRendererTarget(targets).webSocketDebuggerUrl,'ws://renderer')
 })
