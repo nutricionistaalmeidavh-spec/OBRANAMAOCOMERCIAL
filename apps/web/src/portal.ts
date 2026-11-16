@@ -122,7 +122,7 @@ async function renderPhonePortal(p:Participant){
   let cards=card('universidade','Universidade','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱','colaborador'),meta=`${p.jobRole||'Colaborador'} · acesso por celular`;
   try{
     const token=localStorage.getItem(SESSION)||'',b=(await api.post('/api/phone/bootstrap',{token})).data as Bootstrap;
-    if(b.access?.modules?.includes('obra360'))cards=card('obra','Obra360','Dias, frentes, equipe, presença e rotina de campo.','./obra.html#obra','⌂','encarregado')+cards;
+    if(b.access?.modules?.includes('obra360'))cards=card('obra','Obra360','Dias, etapas, equipe, presença e rotina de campo.','./obra.html#obra','⌂','encarregado')+cards;
     meta=b.company?.name||'Empresa';
   }catch{}
   portalShell(p.name,meta,cards)
@@ -144,7 +144,7 @@ async function renderCorporatePortal(){
     if(shouldRouteCorporateToPlans(b)){location.hash='#planos';await import('./billing').then(module=>module.mountBillingRoute());return}
     const systems=pa?.systems;let cards='';
     if(systems?.gestao?.enabled&&b.role==='admin'&&!b.needsClaim&&b.access?.modules?.some(module=>['rh','dre','contracts','procurement','measurements','documents'].includes(module)))cards+=card('gestao','Gestão','RH, documentos, contratos, compras, medições e visão administrativa.','./gestao.html#gestao','▥',systems.gestao.role);
-    if(systems?.obra360?.enabled&&!b.needsClaim)cards+=card('obra','Obra360','Dias, frentes, equipe, tarefas, RDO e rotina de campo.','./obra.html#obra','⌂',systems.obra360.role);
+    if(systems?.obra360?.enabled&&!b.needsClaim)cards+=card('obra','Obra360','Dias, etapas, equipe, tarefas, RDO e rotina de campo.','./obra.html#obra','⌂',systems.obra360.role);
     if(systems?.universidade?.enabled)cards+=card('universidade','Universidade','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱',systems.universidade.role);
     if(b.platformRole==='superadmin'||b.isOwner)cards+=card('acessos','Central Artisys','Empresas clientes, licenças e ativações independentes.','./index.html#owner','◇','superadmin');
     if(b.needsClaim)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
