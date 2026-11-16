@@ -23,6 +23,7 @@ export const LAN_SERVER_VERSION = '0.4.0'
 
 const MAX_BODY_BYTES = 1024 * 1024
 const MAX_DOCUMENT_BODY_BYTES = 36 * 1024 * 1024
+const MAX_FIELD_RDO_BODY_BYTES = 48 * 1024 * 1024
 const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
 const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|locais_obra|frentes_obra|subfrentes_obra|checklist_frente_itens|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|medicoes|medicao_itens|medicao_mapa_itens|fornecedores|categorias_financeiras|contas|pagamentos_conta|solicitacoes_compra|cotacoes_compra|pedidos_compra|pedido_compra_itens|recebimentos_materiais|movimentacoes_estoque|contratos_obra|contrato_aditivos|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis|fontes_documentais|arquivos|documentos|medicao_anexos|contrato_anexos|pedido_compra_anexos|documentos_editaveis|modelos_documento_rh|empresa_documentos_admissionais|cargo_epi_kits)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
@@ -558,7 +559,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const context = await authenticateLanRequest(request,security)
         authorizeAction(context,{domain:'operation',action:'create'})
         authorizeAction(context,{domain:'finance',action:'edit'})
-        const input = await readJson(request)
+        const input = await readJson(request, MAX_FIELD_RDO_BODY_BYTES)
         // Cloud company ID is a UUID/string; the SQLite local company ID is numeric.
         // Verify the authorized cloud tenant without replacing the local foreign key.
         const scope = input.scope && typeof input.scope === 'object' && !Array.isArray(input.scope) ? input.scope : {}
