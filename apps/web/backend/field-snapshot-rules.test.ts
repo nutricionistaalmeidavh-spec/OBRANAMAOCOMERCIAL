@@ -30,6 +30,14 @@ describe('Foreman field-only snapshot',()=>{
    submitted.employees[0].cpf='999'
    expect(()=>restrictForemanSnapshot(submitted,original)).toThrow(/colaborador|autorizad/i)
  })
+ it('cannot forge attendance or compensation balances through the full snapshot',()=>{
+   const original=canonical(), submitted=structuredClone(original)
+   submitted.employees[0].attendance='absent'
+   expect(()=>restrictForemanSnapshot(submitted,original)).toThrow(/colaborador|autorizad/i)
+   submitted.employees[0].attendance='unmarked'
+   submitted.employees[0].compensationDays=99
+   expect(()=>restrictForemanSnapshot(submitted,original)).toThrow(/colaborador|autorizad/i)
+ })
  it('cannot alter project, settings, or desktop bridge',()=>{
    const original=canonical(),submitted=structuredClone(original)
    submitted.project.name='Outra obra'
