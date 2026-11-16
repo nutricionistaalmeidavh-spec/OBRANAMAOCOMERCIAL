@@ -131,7 +131,7 @@ function rowErrors(area, row, map, db, companyId) {
     aditivos: ['contrato','descricao'], medicoes: ['obra'], ponto: ['funcionario'],
     documentos: ['titulo'], estoque: ['obra','descricao']
   }[area] || []
-  const errors = mandatory.filter((field) => !String(value(row, map, field) ?? '').trim()).map((field) => 'Campo obrigatório: ' + field)
+  const errors = mandatory.filter((field) => !String(value(row, map, field) ?? '').trim()).map((field) => 'Preencha o campo obrigatório "' + field.replace(/_/g, ' ') + '".')
   if (area === 'financeiro' && money(value(row, map, 'valor')) <= 0) errors.push('Valor financeiro deve ser maior que zero.')
   if (area === 'aditivos' && String(value(row, map, 'contrato') || '').trim()) {
     const number = String(value(row, map, 'contrato')).trim()
@@ -318,7 +318,7 @@ class UniversalImportService {
         if (area === 'funcionarios') {
           const cpf = String(value(item.row, map, 'cpf') || '').replace(/\D/g, '')
           if (cpf.length === 11) {
-            const collision = this.db.db.prepare('SELECT nome FROM funcionarios WHERE empresa_id=? AND replace(replace(cpf, ".", ""), "-", "")=? LIMIT 1').get(company.id, cpf)
+            const collision = this.db.db.prepare(`SELECT nome FROM funcionarios WHERE empresa_id=? AND replace(replace(cpf, '.', ''), '-', '')=? LIMIT 1`).get(company.id, cpf)
             if (collision?.nome && norm(collision.nome) !== norm(name)) errors.push('CPF já pertence a outro funcionário nesta empresa. Revise o nome e CPF.')
           }
         }
@@ -326,7 +326,10 @@ class UniversalImportService {
       return { ...item, errors, warnings }
     })
     const invalidEntries = reviewed.filter((item) => item.errors.length > 0)
-    const alreadyImported = Boolean(this.db.db.prepare("SELECT id FROM importacoes WHERE hash=? AND aba=? AND status='concluida'").get(pending.hash, `universal:${sheet.name}`))
+    const alreadyImported = Boolean(this.db.db.prepare(`SELECT id FROM importacoes
+      WHERE hash=? AND aba=? AND status='concluida'
+      AND (json_extract(CASE WHEN json_valid(resumo) THEN resumo ELSE '{}' END, '$.empresa_id') IS NULL
+        OR json_extract(resumo, '$.empresa_id')=?)`).get(pending.hash, `universal:${sheet.name}`, company.id))
     const pageSize = Math.min(100, Math.max(1, Number.isInteger(Number(options.pageSize)) ? Number(options.pageSize) : 25))
     const pages = Math.max(1, Math.ceil(reviewed.length / pageSize))
     const page = Math.min(pages, Math.max(1, Number.isInteger(Number(options.page)) ? Number(options.page) : 1))
@@ -356,7 +359,10 @@ class UniversalImportService {
     const area = preview.area
     const map = preview.mapping
     return this.db.db.transaction(() => {
-      if (this.db.db.prepare("SELECT id FROM importacoes WHERE hash=? AND aba=? AND status='concluida'").get(pending.hash, `universal:${sheet.name}`)) throw new Error('Esta aba ja foi importada.')
+      if (this.db.db.prepare(`SELECT id FROM importacoes
+        WHERE hash=? AND aba=? AND status='concluida'
+        AND (json_extract(CASE WHEN json_valid(resumo) THEN resumo ELSE '{}' END, '$.empresa_id') IS NULL
+          OR json_extract(resumo, '$.empresa_id')=?)`).get(pending.hash, `universal:${sheet.name}`, company.id)) throw new Error('Esta aba já foi importada nesta empresa.')
       const company = selectedCompany(this.db.db, options.companyId)
       const imported = this.db.save('importacoes', { arquivo: pending.filePath, hash: pending.hash, aba: `universal:${sheet.name}`, status: 'processando', resumo: '{}' })
       let created = 0
@@ -469,7 +475,7 @@ class UniversalImportService {
           raw.run(imported.id, area === 'financeiro' ? competence(value(row, map, 'competencia')) : null, `${sheet.name}!${index + sheet.headerIndex + 2}`, area, String(value(row, map, 'descricao') || value(row, map, 'nome') || value(row, map, 'titulo') || ''), money(value(row, map, 'valor')), JSON.stringify(row), area, entity.id, 'importado')
         }
       }
-      this.db.db.prepare("UPDATE importacoes SET status='concluida',resumo=?,concluida_em=CURRENT_TIMESTAMP WHERE id=?").run(JSON.stringify({ area, linhas: count, cadastros_criados: created }), imported.id)
+      this.db.db.prepare("UPDATE importacoes SET status='concluida',resumo=?,concluida_em=CURRENT_TIMESTAMP WHERE id=?").run(JSON.stringify({ area, empresa_id: company.id, linhas: count, cadastros_criados: created }), imported.id)
       this.pending.delete(token)
       return { importacao_id: imported.id, area, imported: count, created }
     })()
