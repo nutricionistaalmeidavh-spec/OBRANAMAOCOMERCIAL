@@ -23,7 +23,7 @@ export function createFieldSync(options: { key: string; storage: Storage; baseli
     const merged: Record<string, unknown> = {};
     const keys = new Set([...Object.keys(baseline), ...Object.keys(remote), ...Object.keys(draft)]);
     for (const key of keys) {
-      const next = mergeThreeWay(baseline[key], remote[key], draft[key]);
+      const next = key === '_remote' ? { ok: true as const, value: remote[key] } : mergeThreeWay(baseline[key], remote[key], draft[key]);
       if (!next.ok) return { ok: false };
       if (next.value !== undefined) merged[key] = next.value;
     }
