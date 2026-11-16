@@ -154,6 +154,144 @@ function openRdoMaterials(){
   finally{busy=false}
  });
 }
+function rdoProjectId(){return String(window.multiuserContext?.bootstrap?.membership?.projectId||window.multiuserContext?.bootstrap?.project?.id||'')}
+async function rdoPhotoQueue(date){
+ try{
+  const db=await openDb(),tx=db.transaction('rdo_photo_queue','readonly'),req=tx.objectStore('rdo_photo_queue').getAll();
+  const rows=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)});
+  db.close();return rows.filter(row=>row.projectId===rdoProjectId()&&(!date||row.date===date))
+ }catch{return []}
+}
+async function photoQueuePut(row){
+ const db=await openDb(),tx=db.transaction('rdo_photo_queue','readwrite');
+ tx.objectStore('rdo_photo_queue').put(row,row.key);
+ await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
+ db.close()
+}
+async function photoQueueDelete(key){
+ const db=await openDb(),tx=db.transaction('rdo_photo_queue','readwrite');
+ tx.objectStore('rdo_photo_queue').delete(key);
+ await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
+ db.close()
+}
+async function photoBlob(file){
+ if(!file||!String(file.type).startsWith('image/'))throw new Error('Selecione uma fotografia válida.')
+ let image,src=null
+ try{image=await createImageBitmap(file)}
+ catch{
+  src=URL.createObjectURL(file);
+  const picture=new Image();picture.src=src;
+  await picture.decode();image=picture
+ }
+ try{
+  const originalWidth=image.width||image.naturalWidth,originalHeight=image.height||image.naturalHeight;
+  if(!originalWidth||!originalHeight)throw new Error('Não foi possível ler a imagem selecionada.')
+  let maxEdge=1400,quality=.76,blob=null;
+  for(let attempt=0;attempt<6;attempt++){
+   const scale=Math.min(1,maxEdge/Math.max(originalWidth,originalHeight))
+   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(originalWidth*scale));canvas.height=Math.max(1,Math.round(originalHeight*scale))
+   canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height)
+   blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality))
+   if(blob&&blob.size<=480000)return blob
+   maxEdge=Math.round(maxEdge*.8);quality=Math.max(.42,quality*.85)
+  }
+  throw new Error('Não foi possível comprimir a foto para menos de 500 KB.')
+ }finally{image?.close?.();if(src)URL.revokeObjectURL(src)}
+}
+async function photoBase64(blob){
+ return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=()=>reject(r.error);r.readAsDataURL(blob)})
+}
+async function flushRdoPhotos(date){
+ const queued=await rdoPhotoQueue(date);let uploaded=0;
+ if(!navigator.onLine||!window.mobileRdoUploadPhoto)return {uploaded,pending:queued.length};
+ for(const row of queued){
+  const day=state.days?.[row.date];if(!day)continue;
+  const image=await window.mobileRdoUploadPhoto({
+   date:row.date,mimeType:row.blob.type,data:await photoBase64(row.blob),clientId:row.id
+  });
+  day.photos=day.photos||[];
+  if(!day.photos.some(item=>item.id===image.id))day.photos.push(image)
+  day.photosReviewed=false;day.photosReviewedFingerprint=null;
+  await save();
+  await photoQueueDelete(row.key);uploaded++
+ }
+ return {uploaded,pending:(await rdoPhotoQueue(date)).length}
+}
+async function openRdoPhotos(){
+ const day=getDay(selectedDate,true);day.photos=day.photos||[];
+ let uploadError='';
+ try{await flushRdoPhotos(day.date)}catch(e){uploadError=e?.message||'Envio das fotos pendente.'}
+ const queued=await rdoPhotoQueue(day.date),closed=day.rdoStatus==='ready_for_desktop';
+ const photos=day.photos.map(photo=>`<div class="card" style="margin-top:8px"><div class="row">
+ <div><strong>Foto do RDO</strong><div class="meta">${esc(photo.uploadedAt?new Date(photo.uploadedAt).toLocaleString('pt-BR'):'Arquivo enviado')} · ${Math.round(Number(photo.sizeBytes||0)/1024)} KB</div></div>
+ <button type="button" class="linkbtn show-rdo-photo" data-id="${esc(photo.id)}">Visualizar</button>
+ ${closed?'':`<button type="button" class="linkbtn delete-rdo-photo" data-id="${esc(photo.id)}">Excluir</button>`}</div></div>`).join('');
+ const pending=queued.map(photo=>`<div class="card notice"><b>!</b><div><strong>Foto aguardando envio</strong><div class="meta">${esc(photo.createdAt)} · armazenada neste aparelho</div></div>
+ <button type="button" class="linkbtn delete-queued-photo" data-key="${esc(photo.key)}">Excluir</button></div>`).join('');
+ sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Fotos · ${dateBR(day.date)}</h2>
+ <div class="meta">Evidências fotográficas do Diário de Obra</div></div><button type="button" class="close">×</button></div>
+ <div class="card"><strong>${day.photos.length} evidência(s) anexada(s)</strong>
+ <div class="meta">Fotos opcionais. Quando configurada, a armazenagem R2 usa uma infraestrutura separada do servidor próprio. O RDO funciona sem ela.</div>
+ ${photos||'<p class="meta">Nenhuma foto registrada.</p>'}</div>
+ ${pending}
+ <div class="form">
+ <label>Fotografar ou escolher imagem<input id="rdoPhotoInput" type="file" accept="image/*" capture="environment" ${closed?'disabled':''}></label>
+ </div>
+ <button type="button" id="sendQueuedRdoPhotos" class="linkbtn" style="width:100%">Enviar fotos pendentes (${queued.length})</button>
+ <button type="button" id="confirmRdoPhotos" class="btn" style="width:100%" ${queued.length||closed?'disabled':''}>${day.photos.length?'Conferir evidências':'Confirmar dia sem fotos'}</button>
+ ${closed?'<p class="meta">Para alterar fotos de um RDO enviado, reabra-o primeiro.</p>':''}
+ <div id="rdoPhotoError" role="alert" class="meta">${esc(uploadError)}</div><div id="rdoPhotoPreview"></div></div>`;
+ document.dispatchEvent(new CustomEvent('field:sheet-rendered'));sheet.showModal();
+ const errorBox=sheet.querySelector('#rdoPhotoError'),showError=e=>{errorBox.textContent=e?.message||'Não foi possível concluir a operação.'};
+ sheet.querySelector('.close').addEventListener('click',()=>sheet.close());
+ const refresh=()=>{sheet.close();renderDay();void openRdoPhotos()};
+ sheet.querySelector('#rdoPhotoInput').addEventListener('change',async event=>{
+  const file=event.target.files?.[0];if(!file)return;
+  event.target.disabled=true;
+  try{
+   const projectId=rdoProjectId();if(!projectId)throw new Error('Obra não identificada. Entre novamente.')
+   const blob=await photoBlob(file),id=crypto.randomUUID(),key=projectId+':'+day.date+':'+id;
+   await photoQueuePut({projectId,date:day.date,id,key,blob,createdAt:new Date().toISOString()});
+   day.photosReviewed=false;day.photosReviewedFingerprint=null;
+   await save();
+   try{await flushRdoPhotos(day.date)}catch(e){showError(e)}
+   refresh()
+  }catch(e){showError(e);event.target.disabled=false}
+ });
+ sheet.querySelector('#sendQueuedRdoPhotos').addEventListener('click',async event=>{
+  event.target.disabled=true;try{await flushRdoPhotos(day.date);refresh()}catch(e){showError(e);event.target.disabled=false}
+ });
+ sheet.querySelectorAll('.delete-queued-photo').forEach(button=>button.addEventListener('click',async()=>{
+  try{await photoQueueDelete(button.dataset.key);refresh()}catch(e){showError(e)}
+ }));
+ sheet.querySelectorAll('.show-rdo-photo').forEach(button=>button.addEventListener('click',async()=>{
+  try{
+   if(!window.mobileRdoViewPhoto)throw new Error('Visualização de foto indisponível neste acesso.')
+   const photo=await window.mobileRdoViewPhoto(button.dataset.id);
+   const container=sheet.querySelector('#rdoPhotoPreview');container.textContent='';
+   const img=document.createElement('img');img.alt='Evidência do Diário de Obra';img.style.cssText='width:100%;height:auto;border-radius:12px;margin-top:12px';
+   img.src='data:'+photo.contentType+';base64,'+photo.data;container.append(img)
+  }catch(e){showError(e)}
+ }));
+ sheet.querySelectorAll('.delete-rdo-photo').forEach(button=>button.addEventListener('click',async()=>{
+  button.disabled=true;
+  try{
+   if(!window.mobileRdoDeletePhoto)throw new Error('Exclusão indisponível.')
+   await window.mobileRdoDeletePhoto(day.date,button.dataset.id);
+   day.photos=day.photos.filter(p=>p.id!==button.dataset.id);day.photosReviewed=false;day.photosReviewedFingerprint=null;
+   await save();refresh()
+  }catch(e){showError(e);button.disabled=false}
+ }));
+ sheet.querySelector('#confirmRdoPhotos').addEventListener('click',async event=>{
+  event.target.disabled=true;
+  try{
+   if((await rdoPhotoQueue(day.date)).length)throw new Error('Ainda existem fotos aguardando envio. Reenvie ou remova antes de conferir.')
+   day.photosReviewed=true;day.photosReviewedFingerprint=rdoPhotosFingerprint(day);
+   await save();sheet.close();renderDay();show('Fotos e observações conferidas para o RDO.')
+  }catch(e){showError(e);event.target.disabled=false}
+ });
+}
+window.addEventListener('online',()=>{if(state?.days?.[selectedDate])void flushRdoPhotos(selectedDate).then(result=>{if(result.uploaded)renderDay()}).catch(()=>{})});
 function openRdoReview(){
  const day=getDay(selectedDate,true),d=rdoDraftFor(day),missing=[];
  if(!d.attendanceMarked)missing.push('Conferir presença/faltas');
