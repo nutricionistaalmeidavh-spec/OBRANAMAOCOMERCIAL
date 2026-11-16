@@ -1,0 +1,154 @@
+name: Publish verified Obra na Mão Desktop v2.1.7 once
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-desktop-v2.1.7-once.yml'
+      - 'apps/desktop/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-desktop-v2.1.7-once.yml'
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: obra-na-mao-desktop-v2.1.7-publish-once
+  cancel-in-progress: false
+env:
+  VERSION: '2.1.7'
+  ARTIFACT: obra-na-mao-desktop-v2.1.7-verified-windows
+jobs:
+  verified-build:
+    name: Build exact Windows Desktop candidate
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Verify release version and freeze
+        shell: pwsh
+        run: |
+          $pkg = Get-Content apps/desktop/package.json | ConvertFrom-Json
+          if ($pkg.version -ne $env:VERSION) { throw "Expected $env:VERSION but got $($pkg.version)" }
+          $ci = Get-Content .github/workflows/commercial-desktop-ci.yml -Raw
+          if ($ci -notmatch "DESKTOP_AUTO_RELEASE_ENABLED: 'false'") { throw 'Auto release freeze changed' }
+      - name: Install dependencies
+        working-directory: apps/desktop
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Lint and test
+        working-directory: apps/desktop
+        run: |
+          npm run lint
+          npm test
+      - name: Test Server compatibility
+        run: npm --prefix apps/lan-server test
+      - name: Build Windows installer
+        working-directory: apps/desktop
+        run: npm run dist
+      - name: Verify installer and updater SHA512
+        shell: pwsh
+        run: |
+          $release = 'apps/desktop/release'
+          $exe = "$release/Obra-na-Mao-Desktop-Setup-$env:VERSION.exe"
+          $blockmap = "$exe.blockmap"
+          $metadata = "$release/latest.yml"
+          foreach ($file in @($exe,$blockmap,$metadata)) { if (!(Test-Path $file)) { throw "Missing $file" } }
+          if ((Get-Item $exe).Length -lt 100000000) { throw 'Installer unexpectedly small' }
+          $yaml = Get-Content $metadata -Raw
+          if (!$yaml.Contains("version: $env:VERSION")) { throw 'Updater version mismatch' }
+          if (!$yaml.Contains("Obra-na-Mao-Desktop-Setup-$env:VERSION.exe")) { throw 'Updater filename mismatch' }
+          $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $exe))
+          $hash = [Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData($bytes))
+          if (!$yaml.Contains($hash)) { throw 'Updater SHA512 mismatch' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT }}
+          path: |
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.7.exe
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.7.exe.blockmap
+            apps/desktop/release/latest.yml
+          if-no-files-found: error
+          retention-days: 90
+  install-over:
+    name: Upgrade preserving files - ${{ matrix.scenario }}
+    needs: verified-build
+    runs-on: windows-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [inside-canonical, inside-nested, inside-stale, broken-share, external-canonical]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT }}
+          path: ${{ runner.temp }}/obra-fixed-release
+      - name: Real installed upgrade regression
+        shell: pwsh
+        env:
+          CI_UPDATE_VERSION: '2.1.7'
+        run: ./scripts/ci/windows-install-over.ps1 -Scenario '${{ matrix.scenario }}' -Release "$env:RUNNER_TEMP/obra-fixed-release" -TargetVersion '2.1.7'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-v2.1.7-install-over-${{ matrix.scenario }}
+          path: ${{ runner.temp }}/obra-install-over/evidence/
+          if-no-files-found: warn
+          retention-days: 30
+  publish:
+    name: Publish only after five upgrades pass
+    needs: [verified-build, install-over]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-desktop-v2.1.7]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT }}
+          path: verified
+      - name: Publish immutable Windows installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="desktop-commercial-v$VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release already exists. Refusing to overwrite binary."
+            exit 1
+          fi
+          test -s "verified/Obra-na-Mao-Desktop-Setup-$VERSION.exe"
+          test -s "verified/Obra-na-Mao-Desktop-Setup-$VERSION.exe.blockmap"
+          test -s verified/latest.yml
+          sha256sum "verified/Obra-na-Mao-Desktop-Setup-$VERSION.exe" > SHA256SUMS.txt
+          gh release create "$tag" \
+            "verified/Obra-na-Mao-Desktop-Setup-$VERSION.exe" \
+            "verified/Obra-na-Mao-Desktop-Setup-$VERSION.exe.blockmap" \
+            verified/latest.yml SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Obra na Mão Desktop Comercial v$VERSION" \
+            --notes "Atualização Windows com servidor próprio seguro, dados canônicos, sincronização remota via um Desktop coordenador com Cloudflare/D1 e proteção contra fallback SQLite local. Regressões de CI e cinco cenários reais de instalação sobre versão anterior aprovados. O servidor permanece independente; para sincronizar continuamente com o PWA, o Desktop coordenador precisa ficar ligado e conectado." \
+            --latest
+      - name: Verify released installer checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir downloaded
+          gh release download "desktop-commercial-v$VERSION" --repo "$GITHUB_REPOSITORY" --dir downloaded --pattern "Obra-na-Mao-Desktop-Setup-$VERSION.exe"
+          (cd downloaded && sha256sum -c ../SHA256SUMS.txt)

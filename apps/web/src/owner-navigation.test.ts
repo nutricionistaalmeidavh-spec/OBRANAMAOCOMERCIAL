@@ -368,6 +368,26 @@ describe('Central Artisys owner navigation',()=>{
     await vi.waitFor(()=>expect(client.put).toHaveBeenCalledWith('/api/owner/companies/c1',expect.objectContaining({status:'active',plan:'manual',maxUsers:15,maxProjects:6,maxDevices:3})));
   });
 
+  it('permite habilitar Servidor próprio avançado em uma licença já criada, sem gerar nova licença',async()=>{
+    await mount()
+    clickView('clients');
+    (document.querySelector('[data-company="c1"]') as HTMLButtonElement).click()
+    await vi.waitFor(()=>expect(document.getElementById('licenseForm')).not.toBeNull())
+    const form=document.getElementById('licenseForm') as HTMLFormElement
+    const advanced=form.elements.namedItem('advancedServer') as HTMLInputElement
+    expect(advanced).not.toBeNull()
+    expect(advanced.checked).toBe(false)
+    expect(document.body.textContent).toContain('Editar módulos, canais e servidor')
+    advanced.checked=true
+    client.put.mockResolvedValue({data:{ok:true}})
+    form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))
+    await vi.waitFor(()=>expect(client.put).toHaveBeenCalledWith('/api/owner/companies/c1',expect.objectContaining({
+      advancedServer:true,plan:'manual',maxUsers:12,maxProjects:6,maxDevices:3
+    })))
+    expect(client.post).not.toHaveBeenCalledWith('/api/owner/companies',expect.anything())
+    expect(document.getElementById('licenseResult')?.textContent).toContain('Licença atualizada')
+  })
+
   it('manages a device independently without changing the company license',async()=>{
     await mount();
     clickView('clients');

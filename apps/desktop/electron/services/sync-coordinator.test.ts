@@ -163,3 +163,84 @@ it('sincroniza somente bridges centrais anunciadas e aplica edição PWA na font
   expect(centralTask.titulo).toBe('Editada no PWA')
   expect(f.database.get('tarefas_obra', f.task.id).titulo).toBe('Instalar tubo')
 })
+
+
+it('remote só inicia a sincronização se o mesmo Desktop reivindicar o coordenador na Cloud', async () => {
+  const f=fixture()
+  const centralRows=[{id:83,obra_id:601,titulo:'Tarefa remota',status:'aberta'}]
+  const dataProvider={
+    storage:{state:()=>({mode:'server',operationalMode:'remote',serverId:'server-remote-01'})},
+    runtimeState:()=>({source:'remote',paused:false,pauseReason:null}),
+    resolveScope:vi.fn(async()=>({companyId:501,workId:601,companyName:'Empresa própria',workName:'Obra remota'})),
+    syncCapabilities:vi.fn(async()=>({modules:['core','operation'],bridgeEntities:['tarefas_obra']})),
+    listBridge:vi.fn(async()=>centralRows),
+    getBridge:vi.fn(async (_entity:string,id:number)=>centralRows.find(row=>row.id===id)||null),
+    applyRemote:vi.fn(async (_entity:string,id:number,payload:any)=>{Object.assign(centralRows.find(row=>row.id===id)!,payload);return true}),
+    summary:vi.fn(async()=>({modules:{}})),
+    obligations:vi.fn(async()=>[])
+  }
+  const claim=vi.fn(async()=>({owner:true,deviceId:'device-a',serverId:'server-remote-01'}))
+  Object.assign(f.online,{claimRemoteSyncOwner:claim})
+  f.session.access.modules=['obra360']
+  f.sync=new SyncCoordinator({database:f.database,online:f.online,dataProvider,now:()=>Date.parse('2026-11-15T22:00:00Z')})
+  await f.sync.configure({companyId:501,workId:601})
+  await f.sync.run()
+  expect(claim).toHaveBeenCalledTimes(2)
+  expect(claim).toHaveBeenCalledWith('server-remote-01')
+  expect(f.online.syncPush).toHaveBeenCalled()
+  expect(f.online.syncPush.mock.calls.flatMap((call:any[])=>call[0]).some((change:any)=>change.localId===83&&change.payload.titulo==='Tarefa remota')).toBe(true)
+})
+
+it('remote recusa coordenador diferente sem capturar ou publicar cópia local', async () => {
+  const f=fixture()
+  const dataProvider={
+    storage:{state:()=>({mode:'server',operationalMode:'remote',serverId:'server-remote-01'})},
+    runtimeState:()=>({source:'remote',paused:false,pauseReason:null}),
+    resolveScope:vi.fn(async()=>({companyId:501,workId:601,companyName:'Empresa própria',workName:'Obra remota'})),
+    syncCapabilities:vi.fn(async()=>({modules:['core'],bridgeEntities:['tarefas_obra']})),
+    listBridge:vi.fn(async()=>[{id:88,obra_id:601,titulo:'Não publicar'}]),
+    getBridge:vi.fn(),
+    applyRemote:vi.fn(),
+    summary:vi.fn(),
+    obligations:vi.fn()
+  }
+  f.online.claimRemoteSyncOwner=vi.fn(async()=>{throw new Error('Outro Desktop está designado coordenador desta obra.')})
+  f.sync=new SyncCoordinator({database:f.database,online:f.online,dataProvider})
+  await expect(f.sync.configure({companyId:501,workId:601})).rejects.toThrow(/Outro Desktop/)
+  expect(dataProvider.resolveScope).toHaveBeenCalledTimes(1)
+  expect(dataProvider.listBridge).not.toHaveBeenCalled()
+  expect(f.online.syncPush).not.toHaveBeenCalled()
+})
+
+
+it('remote nunca envia fila anterior de SQLite local ou de outro serverId',async()=>{
+ const f=fixture()
+ await f.sync.configure({companyId:f.company.id,workId:f.work.id})
+ const prior=f.sync.binding()
+ const priorScopeKey=f.sync.key(prior.scope)
+ const cloudClaim=vi.fn(async()=>({owner:true,deviceId:'device-a',serverId:'server-remote-01'}))
+ f.online.claimRemoteSyncOwner=cloudClaim
+ let serverId='server-remote-01'
+ const rows=[{id:701,obra_id:601,titulo:'Somente servidor remoto',status:'aberta'}]
+ const dataProvider={
+  storage:{state:()=>({mode:'server',operationalMode:'remote',serverId})},
+  runtimeState:()=>({source:'remote',paused:false,pauseReason:null}),
+  resolveScope:vi.fn(async()=>({companyId:f.company.id,workId:f.work.id,companyName:'Empresa',workName:'Obra'})),
+  syncCapabilities:vi.fn(async()=>({modules:['core','operation'],bridgeEntities:['tarefas_obra']})),
+  listBridge:vi.fn(async()=>rows),
+  getBridge:vi.fn(async(_entity:string,id:number)=>rows.find(r=>r.id===id)||null),
+  applyRemote:vi.fn(),
+  summary:vi.fn(),obligations:vi.fn()
+ }
+ const remoteSync=new SyncCoordinator({database:f.database,online:f.online,dataProvider})
+ f.sync=remoteSync
+ await expect(remoteSync.run()).rejects.toThrow(/reconfirme o vínculo/)
+ expect(f.online.syncPush).not.toHaveBeenCalled()
+ await remoteSync.configure({companyId:f.company.id,workId:f.work.id})
+ expect(remoteSync.binding().scope).toMatchObject({storageMode:'remote',serverId:'server-remote-01'})
+ expect(remoteSync.key(remoteSync.binding().scope)).not.toBe(priorScopeKey)
+ serverId='server-remote-02'
+ expect(remoteSync.state()).toMatchObject({paused:true,source:'remote'})
+ await expect(remoteSync.run()).rejects.toThrow(/reconfirme o vínculo/)
+ expect(f.online.syncPush).not.toHaveBeenCalled()
+})

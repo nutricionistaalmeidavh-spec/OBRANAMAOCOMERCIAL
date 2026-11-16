@@ -368,6 +368,14 @@ class OnlineService {
     return this.request('/api/desktop/field/rdo/ack', { deviceToken: this.requireToken(), ...input })
   }
 
+  async claimRemoteSyncOwner(serverId) {
+    const value = String(serverId || '').trim()
+    if (!value) throw new Error('Identidade do servidor remoto não está disponível.')
+    const result = await this.request('/api/desktop/sync/remote-owner', { deviceToken: this.requireToken(), serverId: value })
+    if (result?.owner !== true) throw new Error('Este computador não é o coordenador de sincronização remota autorizado.')
+    return result
+  }
+
   async syncPull(sinceRevision = 0) {
     return this.request('/api/desktop/sync/pull', { deviceToken: this.requireToken(), sinceRevision })
   }

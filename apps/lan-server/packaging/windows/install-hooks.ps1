@@ -74,12 +74,14 @@ function Remove-ProductFirewall {
   }
 }
 
-function Wait-ServerReady([int]$ConfiguredPort) {
+function Wait-ServerReady([int]$ConfiguredPort, [string]$ConfiguredHost) {
+  $probeHost = $ConfiguredHost
+  if (-not $probeHost -or $probeHost -eq '0.0.0.0') { $probeHost = '127.0.0.1' }
   $deadline = (Get-Date).AddSeconds($ReadyTimeoutSeconds)
   $lastError = $null
   while ((Get-Date) -lt $deadline) {
     try {
-      $response = Invoke-RestMethod -Uri "http://127.0.0.1:$ConfiguredPort/ready" -Method Get -TimeoutSec 2
+      $response = Invoke-RestMethod -Uri "http://$($probeHost):$ConfiguredPort/ready" -Method Get -TimeoutSec 2
       if ($response.ready -eq $true) { return }
     } catch {
       $lastError = $_
@@ -107,7 +109,7 @@ try {
       Write-HookLog 'starting service'
       & $serviceControl -Action Start -PackageDir $InstallDir -ProgramDataRoot $ProgramDataRoot -ConfigPath $ConfigPath
       if ($LASTEXITCODE -ne 0) { throw 'Failed to start ObraNaMaoServer.' }
-      Wait-ServerReady $configuredPort
+      Wait-ServerReady $configuredPort $configuredHost
       Write-HookLog 'ready'
     }
     'Uninstall' {

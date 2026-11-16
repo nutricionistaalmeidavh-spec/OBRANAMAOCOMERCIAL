@@ -55,14 +55,26 @@ describe('OperationalSyncDataProvider', () => {
     expect(f.lanClient.list).not.toHaveBeenCalled()
   })
 
-  it('lan-client e remote ficam pausados e não acessam fonte local ou LAN para sincronização', async () => {
-    for (const mode of ['lan-client', 'remote']) {
-      const f = fixture(mode)
-      expect(f.provider.runtimeState().paused).toBe(true)
-      expect(f.provider.runtimeState().pauseReason).toMatch(/PC principal|remoto/i)
-      await expect(f.provider.resolveScope({ companyId: 1, workId: 2 })).rejects.toThrow(/pausada/i)
-      expect(f.local.resolveScope).not.toHaveBeenCalled()
-      expect(f.lanClient.get).not.toHaveBeenCalled()
-    }
+  it('lan-client nunca cria um segundo coordenador ou sincroniza no SQLite local', async () => {
+    const f = fixture('lan-client')
+    expect(f.provider.runtimeState().paused).toBe(true)
+    expect(f.provider.runtimeState().pauseReason).toMatch(/PC principal/i)
+    await expect(f.provider.resolveScope({ companyId: 1, workId: 2 })).rejects.toThrow(/pausada/i)
+    expect(f.local.resolveScope).not.toHaveBeenCalled()
+    expect(f.lanClient.get).not.toHaveBeenCalled()
+  })
+
+  it('remote disponibiliza a fonte central ao coordenador validado pela Cloud', async () => {
+    const f = fixture('remote')
+    expect(f.provider.runtimeState()).toEqual({source:'remote',paused:false,pauseReason:null})
+    await expect(f.provider.resolveScope({companyId:10,workId:20})).resolves.toMatchObject({companyId:10,workId:20,companyName:'Empresa central'})
+    expect(f.local.resolveScope).not.toHaveBeenCalled()
+    expect(f.lanClient.get).toHaveBeenCalledTimes(2)
+  })
+
+  it('remote não cai no SQLite local caso a bridge central ainda não esteja habilitada', async () => {
+    const f = fixture('remote')
+    await expect(f.provider.listBridge('rdos',{workId:20})).rejects.toThrow('Fonte central ainda não suporta este módulo.')
+    expect(f.local.listBridge).not.toHaveBeenCalled()
   })
 })
