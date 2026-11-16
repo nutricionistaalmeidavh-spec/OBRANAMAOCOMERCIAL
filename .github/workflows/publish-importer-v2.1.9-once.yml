@@ -123,18 +123,21 @@ jobs:
         with:
           name: importer-windows-2.1.9
           path: ${{ runner.temp }}/importer-windows-2.1.9
-      - name: Install and update real Desktop preserving SQLite and documents
+      - name: Prepare dependencies for IPC QA
+        if: matrix.scenario == 'inside-canonical'
+        shell: pwsh
+        run: npm --prefix apps/desktop install --workspaces=false --no-audit --no-fund
+      - name: Install, upgrade, then test the still-running Electron process
         shell: pwsh
         env:
           CI_UPDATE_VERSION: '2.1.9'
         run: |
           ./scripts/ci/windows-install-over.ps1 -Scenario '${{ matrix.scenario }}' -Release "$env:RUNNER_TEMP/importer-windows-2.1.9" -TargetVersion '2.1.9'
-      - name: Test actual installed Electron importer through IPC and SQLite
-        if: matrix.scenario == 'inside-canonical'
-        shell: pwsh
-        run: |
-          npm --prefix apps/desktop install --workspaces=false --no-audit --no-fund
-          node scripts/ci/windows-importer-installed-qa.cjs "$env:RUNNER_TEMP/obra-install-over/evidence" 9224 9232
+          if ($LASTEXITCODE -ne 0) { throw 'Real installer QA failed.' }
+          if ('${{ matrix.scenario }}' -eq 'inside-canonical') {
+            node scripts/ci/windows-importer-installed-qa.cjs "$env:RUNNER_TEMP/obra-install-over/evidence" 9224 9232
+            if ($LASTEXITCODE -ne 0) { throw 'Installed importer IPC QA failed.' }
+          }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
