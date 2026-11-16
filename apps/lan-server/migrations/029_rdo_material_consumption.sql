@@ -53,3 +53,17 @@ CREATE TABLE IF NOT EXISTS field_rdo_links (
   PRIMARY KEY (remote_project_id, day)
 );
 CREATE INDEX IF NOT EXISTS idx_field_rdo_links_rdo ON field_rdo_links(rdo_id);
+
+-- Self-hosted photographic evidence tied to the operational RDO.
+-- Keeping a local binary copy avoids R2 becoming a required runtime dependency.
+CREATE TABLE IF NOT EXISTS field_rdo_evidencias (
+  rdo_id INTEGER NOT NULL REFERENCES rdos(id) ON DELETE RESTRICT,
+  photo_id TEXT NOT NULL,
+  mime_type TEXT NOT NULL CHECK(mime_type IN ('image/jpeg','image/png','image/webp')),
+  sha256 TEXT NOT NULL,
+  bytes BLOB NOT NULL,
+  uploaded_at TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (rdo_id,photo_id)
+);
+CREATE INDEX IF NOT EXISTS idx_field_rdo_evidencias_rdo ON field_rdo_evidencias(rdo_id);
