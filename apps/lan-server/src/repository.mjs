@@ -34,6 +34,8 @@ const TABLE_FIELDS = {
   modelos_documento_rh: new Set(['chave','nome','conteudo_html','ativo','arquivo_origem']),
   empresa_documentos_admissionais: new Set(['empresa_id','documento_key','ativo','obrigatorio','modelo_id','titulo_customizado','configuracao_json']),
   cargo_epi_kits: new Set(['empresa_id','cargo_id','epi_id','quantidade_texto','ativo']),
+  notas_recebidas: new Set(['empresa_id','obra_id','fornecedor_id','numero','serie','emissao','data_recebimento','valor_total_centavos','pedido_compra_id','conta_id','documento_id','observacoes','request_id']),
+  nota_recebida_itens: new Set(['nota_id','frente_id','subfrente_id','pedido_item_id','descricao','unidade','quantidade','valor_unitario_centavos','valor_total_centavos']),
   fornecedores: new Set(['empresa_id', 'nome', 'documento', 'telefone', 'email', 'observacoes']),
   categorias_financeiras: new Set(['nome', 'natureza', 'grupo_dre', 'ativa']),
   contas: new Set(['tipo', 'empresa_id', 'obra_id', 'frente_id', 'etapa_id', 'fornecedor_id', 'cliente_id', 'categoria_id', 'medicao_id', 'solicitacao_compra_id', 'pedido_compra_id', 'contrato_id', 'descricao', 'competencia', 'emissao', 'vencimento', 'valor_bruto_centavos', 'retencoes_centavos', 'descontos_centavos', 'valor_centavos', 'forma_pagamento', 'status', 'data_efetiva', 'recorrencia', 'parcela_atual', 'total_parcelas', 'origem_tipo', 'origem_id', 'observacoes']),
