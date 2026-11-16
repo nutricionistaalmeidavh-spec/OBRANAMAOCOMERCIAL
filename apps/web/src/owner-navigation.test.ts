@@ -370,7 +370,7 @@ describe('Central Artisys owner navigation',()=>{
 
   it('permite habilitar Servidor próprio avançado em uma licença já criada, sem gerar nova licença',async()=>{
     await mount()
-    clickView('clients')
+    clickView('clients');
     (document.querySelector('[data-company="c1"]') as HTMLButtonElement).click()
     await vi.waitFor(()=>expect(document.getElementById('licenseForm')).not.toBeNull())
     const form=document.getElementById('licenseForm') as HTMLFormElement
