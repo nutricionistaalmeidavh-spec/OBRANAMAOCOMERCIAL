@@ -260,6 +260,7 @@ export const handler=router({
     if(!session.access.modules.includes('obra360'))return error('Módulo Obra360 indisponível para sincronização.',403);
     const topology=await getCompanyStorageTopology(session.device.companyId);
     if(topology.mode!=='remote'||!topology.serverId)return error('A empresa ainda não possui uma topologia de servidor próprio remoto ativa.',409);
+    if(String(body.serverId||'').trim()!==String(topology.serverId))return error('Identidade do servidor não corresponde ao servidor próprio da empresa.',409);
     const result=await remoteSyncOwners().acquire({
       companyId:session.device.companyId,projectId:session.device.projectId,
       serverId:String(topology.serverId),deviceId:String(session.device.id)
