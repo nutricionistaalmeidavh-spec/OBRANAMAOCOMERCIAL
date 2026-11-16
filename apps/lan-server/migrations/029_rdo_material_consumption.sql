@@ -1,0 +1,40 @@
+-- Consumo operacional do RDO: estado atual + trilha imutável das movimentações.
+-- Nenhum saldo paralelo: movimentacoes_estoque continua sendo a única fonte de estoque.
+CREATE TABLE IF NOT EXISTS rdo_material_linhas (
+  rdo_id INTEGER NOT NULL REFERENCES rdos(id) ON DELETE RESTRICT,
+  linha_id TEXT NOT NULL,
+  frente_id INTEGER REFERENCES frentes_obra(id),
+  descricao TEXT NOT NULL,
+  unidade TEXT NOT NULL,
+  quantidade REAL NOT NULL CHECK(quantidade > 0),
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (rdo_id, linha_id)
+);
+CREATE INDEX IF NOT EXISTS idx_rdo_material_linhas_rdo ON rdo_material_linhas(rdo_id);
+
+CREATE TABLE IF NOT EXISTS rdo_material_revisoes (
+  rdo_id INTEGER PRIMARY KEY REFERENCES rdos(id) ON DELETE RESTRICT,
+  revisao INTEGER NOT NULL DEFAULT 0 CHECK(revisao >= 0),
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS rdo_material_requisicoes (
+  request_id TEXT PRIMARY KEY,
+  rdo_id INTEGER NOT NULL REFERENCES rdos(id) ON DELETE RESTRICT,
+  revisao INTEGER NOT NULL,
+  payload_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_rdo_material_requests_rdo ON rdo_material_requisicoes(rdo_id);
+
+CREATE TABLE IF NOT EXISTS rdo_material_efeitos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  rdo_id INTEGER NOT NULL REFERENCES rdos(id) ON DELETE RESTRICT,
+  request_id TEXT NOT NULL REFERENCES rdo_material_requisicoes(request_id),
+  movimentacao_id INTEGER NOT NULL UNIQUE REFERENCES movimentacoes_estoque(id) ON DELETE RESTRICT,
+  descricao TEXT NOT NULL,
+  unidade TEXT NOT NULL,
+  delta_quantidade REAL NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_rdo_material_efeitos_rdo ON rdo_material_efeitos(rdo_id);
