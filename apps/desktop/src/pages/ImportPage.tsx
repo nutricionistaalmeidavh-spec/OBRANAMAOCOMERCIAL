@@ -43,8 +43,10 @@ export default function ImportPage() {
       if (!selected.sheets?.length) throw new Error('Não encontramos uma aba com dados. Confira o arquivo selecionado.')
       setFile(selected); setResult(null); setMapping({})
       const first = selected.sheets.find((item:any)=>item.rows>0) || selected.sheets[0]
+      const scores = Object.values(first.scores || {}).map(Number).sort((a,b)=>b-a)
+      const unambiguous = (scores[0] || 0) > 0 && (scores[0] || 0) > (scores[1] || 0)
       setSheet(first.name)
-      setArea(first.scores?.[first.area] > 0 ? first.area : '')
+      setArea(unambiguous ? first.area : '')
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
   }
@@ -155,7 +157,14 @@ export default function ImportPage() {
               <Button disabled={!companyId} onClick={choose}>Escolher arquivo</Button>
               {!companyId && <p className="notice">Escolha a empresa de destino acima antes de importar.</p>}
             </div>
-            <div className="card-body"><Button variant="secondary" icon={<Download size={16}/>} onClick={downloadTemplate}>Baixar modelo de planilha</Button></div>
+            <div className="card-body" style={{display:'flex',gap:12,alignItems:'end',flexWrap:'wrap'}}>
+              <Field label="Modelo para qual área?">
+                <select value={area || 'financeiro'} onChange={(event)=>setArea(event.target.value)}>
+                  {Object.entries(labels).map(([key,label])=><option key={key} value={key}>{String(label)}</option>)}
+                </select>
+              </Field>
+              <Button variant="secondary" icon={<Download size={16}/>} onClick={downloadTemplate}>Baixar modelo de planilha</Button>
+            </div>
           </Card>
       : preview ? <LegacyPreview preview={preview} commit={legacyCommit}/>
       : <Card style={{marginTop:14}}><Empty title="Pronto para importar o modelo 2026" description="O assistente legado continua disponível para a planilha de despesas atual." action={<Button onClick={legacyChoose}>Selecionar arquivo</Button>}/></Card>}
@@ -178,7 +187,7 @@ function UniversalSetup({file,sheet,area,mapping,mappingSource,setSheet,setArea,
         <option value="">Selecione o destino dos dados</option>
         {Object.entries(labels).map(([key,label])=><option key={key} value={key}>{String(label)}</option>)}
       </select></Field>
-      <Field label="Detecção automática"><div className="locked-value">{selectedSheet?.scores?.[selectedSheet.area] > 0 ? labels[selectedSheet.area] : 'Não foi possível identificar — escolha a área'}</div></Field>
+      <Field label="Detecção automática"><div className="locked-value">{area ? (labels[selectedSheet?.area] || 'Área selecionada manualmente') : 'Inconclusiva — escolha a área acima'}</div></Field>
     </div>
     <div className="card-body">
       <h3>Mapeamento de colunas</h3>
