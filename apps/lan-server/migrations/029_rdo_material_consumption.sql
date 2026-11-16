@@ -38,3 +38,15 @@ CREATE TABLE IF NOT EXISTS rdo_material_efeitos (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_rdo_material_efeitos_rdo ON rdo_material_efeitos(rdo_id);
+
+-- One canonical operational RDO per Web project/day; retry-safe after interruptions.
+CREATE TABLE IF NOT EXISTS field_rdo_links (
+  remote_project_id TEXT NOT NULL,
+  day TEXT NOT NULL,
+  rdo_id INTEGER NOT NULL UNIQUE REFERENCES rdos(id) ON DELETE RESTRICT,
+  last_fingerprint TEXT,
+  last_material_revision INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (remote_project_id, day)
+);
+CREATE INDEX IF NOT EXISTS idx_field_rdo_links_rdo ON field_rdo_links(rdo_id);
