@@ -1,7 +1,7 @@
 const asRecord=(value:unknown):Record<string,any>=>value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,any>:{}
 const asList=(value:unknown):Array<Record<string,any>>=>Array.isArray(value)?value.map(asRecord):[]
 const same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b)
-const editableDay=new Set(['assignments','events','note','plans','sessions','rdoStatus','rdoDraft','rdoClosedFingerprint','materials','materialsReviewed'])
+const editableDay=new Set(['assignments','events','note','plans','sessions','rdoStatus','rdoDraft','rdoClosedFingerprint','materials','materialsReviewed','photos','photosReviewed','photosReviewedFingerprint','occurrencesReviewed','occurrencesReviewedFingerprint','rdoSubmissionId','rdoIntegration'])
 const editableEmployee=new Set(['frontKey'])
 
 /** Preserves server-owned administration, attendance, licensing and bridge data. */
