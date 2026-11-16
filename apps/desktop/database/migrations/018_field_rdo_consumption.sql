@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS field_rdo_evidencias (
   sha256 TEXT NOT NULL,
   bytes BLOB NOT NULL,
   uploaded_at TEXT,
+  active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (rdo_id,photo_id)
 );
