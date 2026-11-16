@@ -2,7 +2,7 @@ const asRecord=(value:unknown):Record<string,any>=>value&&typeof value==='object
 const asList=(value:unknown):Array<Record<string,any>>=>Array.isArray(value)?value.map(asRecord):[]
 const same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b)
 const editableDay=new Set(['assignments','events','note','plans','sessions','rdoStatus','rdoDraft','rdoClosedFingerprint','materials','materialsReviewed'])
-const editableEmployee=new Set(['frontKey','attendance','compensationDays'])
+const editableEmployee=new Set(['frontKey'])
 
 /** Preserves server-owned administration, attendance, licensing and bridge data. */
 export function restrictForemanSnapshot(input:Record<string,any>,current:Record<string,any>):Record<string,any>{
