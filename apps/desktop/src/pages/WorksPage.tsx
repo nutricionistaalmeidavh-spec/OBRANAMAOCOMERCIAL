@@ -60,6 +60,7 @@ export default function WorksPage() {
     setModal(false)
     setSelectedId(String(saved.id))
     works.reload()
+    if (!form.id) navigate('/frentes?obra='+saved.id+'&novaEtapa=1')
   }
 
   const openQuickRegistry = (kind: QuickRegistryKind) => {
@@ -175,7 +176,7 @@ export default function WorksPage() {
         </Card>
       </div>
       <div className="work-cards" style={{ marginTop: 16 }}>
-        <OperationCard icon={<BriefcaseBusiness size={22}/>} title="Frentes de serviço" text="Especialidades, subfrentes e checklist por pavimento ou geral." metric={`${frontCount} frentes`} detail={`${selectedOverview?.frentes?.filter((front: any) => front.status === 'ativa').length || 0} ativas`} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Esta área está sendo preparada para uso compartilhado. Finalize a configuração em Configurações.':undefined} onClick={() => navigate(`/frentes?obra=${selectedId}`)}/>
+        <OperationCard icon={<BriefcaseBusiness size={22}/>} title="Etapas e subetapas" text="Organize os serviços da obra em etapas, subetapas e checklists." metric={`${frontCount} etapas`} detail={`${selectedOverview?.frentes?.filter((front: any) => front.status === 'ativa').length || 0} ativas`} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Esta área está sendo preparada para uso compartilhado. Finalize a configuração em Configurações.':undefined} onClick={() => navigate(`/frentes?obra=${selectedId}`)}/>
         <OperationCard icon={<CalendarClock size={22}/>} title="Planejamento" text="Etapas, Curva S, previsto x realizado e caixa por obra." metric={`${stageCount} etapas`} detail={selectedOverview?.cronograma?.[0] ? `Próxima: ${selectedOverview.cronograma[0].nome}` : 'Sem etapas'} disabled={!selectedId||!moduleActive('planning')} disabledReason={serverMode&&!moduleActive('planning')?'Esta área está sendo preparada para uso compartilhado. Finalize a configuração em Configurações.':undefined} onClick={() => navigate(`/planejamento?obra=${selectedId}`)}/>
         <OperationCard icon={<NotebookPen size={22}/>} title="Diário de obra" text="RDOs, equipe, equipamentos, ocorrências, anexos e pendências." metric={`${rdoCount} RDOs`} detail={pendingCount ? `${pendingCount} pendências abertas` : 'Sem pendências'} disabled={!selectedId||!moduleActive('operation')} disabledReason={serverMode&&!moduleActive('operation')?'Esta área está sendo preparada para uso compartilhado. Finalize a configuração em Configurações.':undefined} onClick={() => navigate(`/rdo?obra=${selectedId}`)}/>
         <OperationCard icon={<HardHat size={22}/>} title="Obra 360" text="Resumo financeiro e operacional da obra." metric={overviewAvailable('medicoes')?brl(selectedOverview?.medido_centavos || 0):'—'} detail={selectedOverview?.serverPartial?'Resumo disponível':'Medições da obra'} disabled={!selectedId||!moduleActive('core')} disabledReason={serverMode&&!moduleActive('core')?'Esta área está sendo preparada para uso compartilhado. Finalize a configuração em Configurações.':undefined} onClick={() => navigate(`/obras/${selectedId}`)}/>
