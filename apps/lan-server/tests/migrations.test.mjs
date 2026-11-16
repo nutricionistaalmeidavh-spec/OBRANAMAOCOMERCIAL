@@ -43,11 +43,11 @@ test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', 
   const first = applyLanMigrations(repository.connection(), migrationsDir)
   const second = applyLanMigrations(repository.connection(), migrationsDir)
 
-  assert.equal(first.version, 30)
+  assert.equal(first.version, 31)
   assert.equal(second.version, first.version)
   assert.deepEqual(first.applied, [2, 3, 4, 5, 6, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31])
   assert.deepEqual(second.applied, [])
-  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 30)
+  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 31)
   for (const table of migratedTables) {
     assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name=?").get(table).n, 1)
   }
