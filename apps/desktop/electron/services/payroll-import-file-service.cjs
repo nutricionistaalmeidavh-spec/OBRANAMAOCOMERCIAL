@@ -71,6 +71,7 @@ function scoreMapping(map){
 }
 function findHeaderIndex(rows){
   return rows.slice(0,20).reduce((best,row,index)=>{
+    if(!Array.isArray(row)||!row.some(value=>String(value??'').trim()!==''))return best
     const map=detectMapping(row.map(value=>String(value||'')))
     const score=scoreMapping(map)
     return score>best.score?{index,score}:best
@@ -112,18 +113,21 @@ class PayrollImportFileService {
     assertSpreadsheetInput(filePath)
     const workbook=await readWorkbook(filePath)
     const token=crypto.randomUUID()
-    const sheets=workbook.SheetNames.map(name=>{
-      const rows=sheetRows(workbook.getWorksheet(name))
+    const sheets=workbook.worksheets.flatMap(worksheet=>{
+      const rows=sheetRows(worksheet)
+      if(!rows.some(row=>Array.isArray(row)&&row.some(value=>String(value??'').trim()!=='')))return []
       const headerIndex=findHeaderIndex(rows)
-      const headers=(rows[headerIndex]||[]).map((item,index)=>String(item||`Coluna ${index+1}`).trim())
+      const headers=(rows[headerIndex]||[]).map((item,index)=>String(item||('Coluna '+(index+1))).trim())
+      if(!headers.length)return []
       const suggestedMapping=detectMapping(headers)
-      return {
-        name,headerIndex,headers,
-        rows:Math.max(0,rows.length-headerIndex-1),
+      return [{
+        name:worksheet.name,headerIndex,headers,
+        rows:rows.slice(headerIndex+1).filter(row=>Array.isArray(row)&&row.some(value=>String(value??'').trim()!=='')).length,
         templateScore:TEMPLATE_HEADERS.filter(header=>headers.some(item=>norm(item)===norm(header))).length,
         suggestedMapping
-      }
+      }]
     })
+    if(!sheets.length)throw new Error('A planilha não contém nenhuma aba com cabeçalhos preenchidos. Confira o arquivo e tente novamente.')
     const hash=crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')
     this.pending.set(token,{filePath,hash,workbook,sheets})
     return {token,file:path.basename(filePath),hash,sheets}
