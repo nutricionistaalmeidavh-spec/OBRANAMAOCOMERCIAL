@@ -163,6 +163,22 @@ class LanDataClient {
     return this.request('POST', '/api/v1/measurements/save', { body: payload })
   }
 
+  async receivedNotesList(obraId) {
+    return this.request('GET','/api/v1/received-notes',{query:{obra_id:Number(obraId)}})
+  }
+  async receivedNotesGet(id) {
+    return this.request('GET','/api/v1/received-notes/'+Number(id))
+  }
+  async receivedNotesSummary(obraId) {
+    return this.request('GET','/api/v1/received-notes/summary',{query:{obra_id:Number(obraId)}})
+  }
+  async receivedNotesCreate(payload) {
+    return this.request('POST','/api/v1/received-notes',{body:payload})
+  }
+  async receivedNotesAttach(id,documentId) {
+    return this.request('POST','/api/v1/received-notes/'+Number(id)+'/attach',{body:{documento_id:Number(documentId)}})
+  }
+
   async procurementSummary(obraId) {
     return this.request('GET', '/api/v1/procurement/summary', { query: { obra_id: Number(obraId) } })
   }
