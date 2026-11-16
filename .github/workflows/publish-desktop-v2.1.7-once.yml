@@ -1,14 +1,7 @@
 name: Publish verified Obra na Mão Desktop v2.1.7 once
+# Historical v2.1.7 is already immutable and published; do not gate newer releases.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/publish-desktop-v2.1.7-once.yml'
-      - 'apps/desktop/**'
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/publish-desktop-v2.1.7-once.yml'
+  workflow_dispatch:
 permissions:
   contents: read
   actions: read
