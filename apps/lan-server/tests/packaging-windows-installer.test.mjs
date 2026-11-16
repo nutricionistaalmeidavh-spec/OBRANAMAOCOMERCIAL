@@ -129,3 +129,11 @@ test('Windows build bootstraps pinned Inno Setup with checksum verification', ()
   assert.match(build, /ISCC\.exe/i)
   assert.match(build, /installer\.iss/i)
 })
+
+test('Windows readiness follows the configured WireGuard binding on reinstall', () => {
+  const hooks = read('install-hooks.ps1')
+  assert.match(hooks, /function Wait-ServerReady\(\[int\]\$ConfiguredPort,\s*\[string\]\$ConfiguredHost\)/)
+  assert.match(hooks, /\$probeHost\s*=\s*\$ConfiguredHost/)
+  assert.match(hooks, /\$probeHost\s*=\s*'127\.0\.0\.1'/)
+  assert.match(hooks, /Wait-ServerReady\s+\$configuredPort\s+\$configuredHost/)
+})
