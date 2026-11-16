@@ -98,7 +98,7 @@ try{
     await shot('07-rdo-photo-uploaded');
     await page.locator('#confirmRdoPhotos').click();
     await page.locator('#reviewRdo').click();await page.locator('#prepareRdo').waitFor({state:'visible'});
-    await shot('08-rdo-five-step-review');await page.locator('#prepareRdo').click();
+    await shot('08-rdo-five-step-review');const rdoSaved=nextSnapshotSync();await page.locator('#prepareRdo').click();await waitForSnapshotSync('RDO closure with photos and materials',rdoSaved);
     await page.getByText('Pendente de integração').first().waitFor({state:'visible'});
     const result=state.days[today];
     if(result?.materials?.[0]?.material_id!=='mat_aaaaaaaaaaaaaaaaaaaaaaaa'||result.materials[0].frente_id!==1||result.materials[0].servico!=='afaq')
