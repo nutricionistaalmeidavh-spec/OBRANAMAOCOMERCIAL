@@ -60,3 +60,16 @@ test('default Linux uninstall removes service and runtime but preserves config a
   assert.doesNotMatch(uninstall, /rm\s+-rf\s+["']?\/var\/lib\/obra-na-mao/i)
   assert.doesNotMatch(uninstall, /--purge/i)
 })
+
+
+test('Linux installation includes browser setup wizard without installing paid services', () => {
+  const build = read('build.sh')
+  const install = read('install.sh')
+  const configure = read('configure-server.sh')
+  assert.match(build, /config-wizard\.mjs/)
+  assert.match(build, /config-wizard\.html/)
+  assert.match(build, /configure-server\.sh/)
+  assert.match(install, /configure-server\.sh/)
+  assert.match(configure, /runtime\/node/)
+  assert.doesNotMatch(configure, /\b(curl|wget|npm)\b/)
+})

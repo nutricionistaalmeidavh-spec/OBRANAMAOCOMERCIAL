@@ -22,6 +22,9 @@ WizardStyle=modern
 UninstallDisplayName=Obra na Mão Server
 DisableProgramGroupPage=yes
 
+[Icons]
+Name: "{autoprograms}\Obra na Mão Server\Configurar servidor"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\platform\configure-server.ps1"""; WorkingDir: "{app}\platform"
+
 [Tasks]
 Name: "lanaccess"; Description: "Permitir acesso de outros computadores desta rede local"; Flags: unchecked
 

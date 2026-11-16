@@ -73,7 +73,7 @@ trap cleanup_staging EXIT
 cp -a "$PACKAGE_DIR/." "$STAGING/"
 chown -R root:root "$STAGING"
 chmod -R go-w "$STAGING"
-chmod 0755 "$STAGING/runtime/node" "$STAGING/platform/install.sh" "$STAGING/platform/uninstall.sh"
+chmod 0755 "$STAGING/runtime/node" "$STAGING/platform/install.sh" "$STAGING/platform/uninstall.sh" "$STAGING/platform/configure-server.sh"
 rm -rf "$INSTALL_ROOT"
 mv "$STAGING" "$INSTALL_ROOT"
 trap - EXIT
@@ -106,3 +106,5 @@ if [[ "$READY" -ne 1 ]]; then
 fi
 
 printf 'Obra na Mão Server instalado e ready em %s:%s.\n' "$READY_HOST" "$PORT"
+
+printf '%s\n' 'Configurar servidor: sudo /opt/obra-na-mao/server/platform/configure-server.sh'
