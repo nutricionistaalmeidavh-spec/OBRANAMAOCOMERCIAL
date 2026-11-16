@@ -38,6 +38,9 @@ declare global {
     multiuserRefreshReceipts?: ()=>Promise<Record<string,unknown>>;
     mobileRdoReceipts?: Record<string,any>;
     mobileRdoCatalog?: {schemaVersion:number;workId:number;version:string;materials:Array<any>;fronts:Array<any>;services:Array<any>}|null;
+    mobileRdoUploadPhoto?: (data:{date:string;mimeType:string;data:string})=>Promise<any>;
+    mobileRdoViewPhoto?: (id:string)=>Promise<any>;
+    mobileRdoDeletePhoto?: (date:string,id:string)=>Promise<any>;
     multiuserRefreshCatalog?: ()=>Promise<any>;
     mobileBridgeUpdate?: (payload:Record<string,unknown>)=>Promise<any>;
     mobileResolveConflict?: (conflictId:string,resolution:'accept_desktop'|'keep_mobile')=>Promise<any>;
@@ -67,7 +70,7 @@ type AppMode='auto'|'obra'|'gestao';
 const routeMode=():AppMode=>location.hash.startsWith('#gestao')?'gestao':location.hash.startsWith('#obra')?'obra':'auto';
 function setProjectIdentity(b?:Bootstrap){const title=document.querySelector('.top h1') as HTMLElement|null;if(title)title.textContent=b?.project?.name||'Obra';document.title=b?.project?.name?`FluxoDRE Campo · ${b.project.name}`:'FluxoDRE Campo'}
 
-function openDb():Promise<IDBDatabase>{return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('kv'))r.result.createObjectStore('kv')};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
+function openDb():Promise<IDBDatabase>{return new Promise((ok,no)=>{const r=indexedDB.open(DB,2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('kv'))r.result.createObjectStore('kv');if(!r.result.objectStoreNames.contains('rdo_photo_queue'))r.result.createObjectStore('rdo_photo_queue')};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
 async function readLocalState():Promise<ProjectState|null>{try{const db=await openDb(),tx=db.transaction('kv','readonly'),r=tx.objectStore('kv').get('state');return await new Promise((ok,no)=>{r.onsuccess=()=>ok((r.result as ProjectState)||null);r.onerror=()=>no(r.error)})}catch{return null}}
 async function writeLocalState(value:ProjectState){try{const db=await openDb(),tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(structuredClone(value),'state')}catch{localStorage.setItem(DB,JSON.stringify(value))}}
 
@@ -90,6 +93,9 @@ const phoneMode=()=>!auth.isSignedIn()&&!!phoneToken();
 async function fieldProject(){return phoneMode()?api.post('/api/phone/project',{token:phoneToken(),date:localISODate()}):api.get('/api/project',{date:localISODate()})}
 async function fieldRdoReceipts(){return phoneMode()?api.post('/api/phone/field/rdo/receipts',{token:phoneToken()}):api.get('/api/field/rdo/receipts')}
 async function fieldRdoCatalog(){return phoneMode()?api.post('/api/phone/field/rdo/catalog',{token:phoneToken()}):api.get('/api/field/rdo/catalog')}
+async function fieldRdoPhotoUpload(value:{date:string;mimeType:string;data:string}){return phoneMode()?api.post('/api/phone/field/rdo/photos/upload',{token:phoneToken(),...value}):api.post('/api/field/rdo/photos/upload',value)}
+async function fieldRdoPhotoView(id:string){return phoneMode()?api.post('/api/phone/field/rdo/photos/view',{token:phoneToken(),id}):api.get('/api/field/rdo/photos',{id})}
+async function fieldRdoPhotoDelete(date:string,id:string){return phoneMode()?api.post('/api/phone/field/rdo/photos/delete',{token:phoneToken(),date,id}):api.post('/api/field/rdo/photos/delete',{date,id})}
 async function fieldAttendance(employeeId:string,status:string){return phoneMode()?api.post('/api/phone/attendance',{token:phoneToken(),date:localISODate(),employeeId,status}):api.post('/api/attendance',{date:localISODate(),employeeId,status})}
 async function fieldBridgeUpdate(payload:Record<string,unknown>){return phoneMode()?api.post('/api/phone/mobile/bridge/update',{token:phoneToken(),...payload}):api.post('/api/mobile/bridge/update',payload)}
 async function signOutCurrent(){fieldSync?.dispose();fieldSync=undefined;roleLifecycleUnsubscribe?.();roleLifecycleUnsubscribe=null;window.clearTimeout(syncTimer);localStorage.removeItem(PHONE_SESSION);if(auth.isSignedIn())await auth.signOut()}
@@ -155,7 +161,7 @@ function configureSharedContext(role:Role,b:Bootstrap,state?:ProjectState){
   const key=syncScope(b);
   fieldSync=(role==='admin'||role==='foreman')&&key?createFieldSync({key,storage:localStorage,baseline:state,
     readRemote:async()=>((await fieldProject()).data as {state:ProjectState}).state,
-    send:next=>api.put('/api/project/state',{state:next}),
+    send:next=>phoneMode()?api.post('/api/phone/project/state',{token:phoneToken(),state:next}):api.put('/api/project/state',{state:next}),
     status:value=>{
       const ctx=window.multiuserContext;if(ctx){ctx.pendingSync=value==='idle'?0:1;ctx.online=navigator.onLine;if(value==='idle')ctx.lastSyncedAt=new Date().toISOString()}
       setHeader(role,navigator.onLine,value==='saving'?'syncing':value==='idle'?'idle':'pending');
@@ -165,7 +171,11 @@ function configureSharedContext(role:Role,b:Bootstrap,state?:ProjectState){
       if(value==='conflict'){const download=document.createElement('button');download.type='button';download.textContent='Baixar meu rascunho';download.onclick=()=>{const blob=new Blob([JSON.stringify(fieldSync?.read(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='rascunho-obra.json';a.click();URL.revokeObjectURL(url)};status.append(download)}
     }}):undefined;
   window.multiuserSync=async(next)=>{if(!['admin','foreman'].includes(role))throw new Error('Seu perfil não permite alterar o diário.');if(!fieldSync)throw new Error('Não foi possível identificar a empresa e a obra para salvar com segurança.');fieldSync.save(next);window.clearTimeout(syncTimer);syncTimer=window.setTimeout(()=>void fieldSync?.flush(),650)};
-  window.multiuserLoadDay=async(date)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw new Error('Data inválida.');const res=phoneMode()?await api.post('/api/phone/project/day',{token:phoneToken(),date}):await api.get('/api/project/day',{date});return ((res.data as {day?:Record<string,unknown>|null}).day||null)};window.multiuserAttendance=async(employeeId,status)=>{const res=await fieldAttendance(employeeId,status);return res.data as {day:Record<string,unknown>;employee:Record<string,unknown>}};window.multiuserReloadProject=async()=>{const res=await fieldProject(),next=(res.data as {state:ProjectState}).state;await writeLocalState(next);if(window.multiuserContext)window.multiuserContext.projectState=next;return next};window.mobileBridgeUpdate=async(payload)=>{const res=await fieldBridgeUpdate(payload as Record<string,unknown>);return res.data};window.multiuserRefreshReceipts=async()=>{const result=await fieldRdoReceipts();const receipts=(result.data as {receipts?:Record<string,unknown>}).receipts||{};window.mobileRdoReceipts=receipts;return receipts};window.multiuserRefreshCatalog=async()=>{
+  window.multiuserLoadDay=async(date)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw new Error('Data inválida.');const res=phoneMode()?await api.post('/api/phone/project/day',{token:phoneToken(),date}):await api.get('/api/project/day',{date});return ((res.data as {day?:Record<string,unknown>|null}).day||null)};window.multiuserAttendance=async(employeeId,status)=>{const res=await fieldAttendance(employeeId,status);return res.data as {day:Record<string,unknown>;employee:Record<string,unknown>}};window.multiuserReloadProject=async()=>{const res=await fieldProject(),next=(res.data as {state:ProjectState}).state;await writeLocalState(next);if(window.multiuserContext)window.multiuserContext.projectState=next;return next};window.mobileBridgeUpdate=async(payload)=>{const res=await fieldBridgeUpdate(payload as Record<string,unknown>);return res.data};window.multiuserRefreshReceipts=async()=>{const result=await fieldRdoReceipts();const receipts=(result.data as {receipts?:Record<string,unknown>}).receipts||{};window.mobileRdoReceipts=receipts;return receipts};
+  window.mobileRdoUploadPhoto=async(payload)=>((await fieldRdoPhotoUpload(payload)).data as {photo:any}).photo;
+  window.mobileRdoViewPhoto=async(id)=>((await fieldRdoPhotoView(id)).data as {photo:any}).photo;
+  window.mobileRdoDeletePhoto=async(date,id)=>((await fieldRdoPhotoDelete(date,id)).data as {ok:boolean});
+  window.multiuserRefreshCatalog=async()=>{
     const projectId=String(window.multiuserContext?.bootstrap?.membership?.projectId||window.multiuserContext?.bootstrap?.project?.id||'');
     if(!projectId)throw new Error('Obra não identificada para atualizar catálogo.')
     const cacheKey='obra-rdo-catalog:'+projectId;
