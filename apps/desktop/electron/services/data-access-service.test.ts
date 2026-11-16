@@ -158,15 +158,17 @@ describe('DataAccessService', () => {
     expect(remote.save).not.toHaveBeenCalled()
   })
 
-  it('remote continua modelado mas não é tratado como transporte pronto', async () => {
+  it('remote roteia os cadastros central-active exclusivamente ao servidor HTTPS', async () => {
     const { DataAccessService } = require('./data-access-service.cjs')
     const db = { list: vi.fn(() => [{ id: 41 }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
     const storage = { state: vi.fn(() => ({ mode: 'server', operationalMode: 'remote', baseUrl: 'https://server.example' })) }
     const remote = { list: vi.fn(async () => [{ id: 99 }]), get: vi.fn(), save: vi.fn(), remove: vi.fn() }
-    const service = new DataAccessService({ db, storage, remote })
+    const moduleStorage = { state: vi.fn(() => ({ state: 'central-active' })) }
+    const service = new DataAccessService({ db, storage, remote, moduleStorage })
 
-    expect(await service.list('empresas', {})).toEqual([{ id: 41 }])
-    expect(remote.list).not.toHaveBeenCalled()
+    expect(await service.list('empresas', {})).toEqual([{ id: 99 }])
+    expect(remote.list).toHaveBeenCalledWith('empresas', {})
+    expect(db.list).not.toHaveBeenCalled()
   })
 
   it('bloqueia finance migration-required em modo servidor sem fallback', async () => {
