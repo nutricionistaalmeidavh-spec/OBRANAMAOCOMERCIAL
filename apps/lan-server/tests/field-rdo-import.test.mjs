@@ -14,7 +14,7 @@ function fixture(){
  return {repository,company,work,importer:new FieldRdoImport({repository})}
 }
 function report(quantity=12,fingerprint='fingerprint-1'){
- return {date:'2026-11-15',fingerprint,report:{date:'2026-11-15',note:'Instaladas prumadas',sessions:[{service:'AF/AQ',floor:4,result:'completed'}],events:[],materialsReviewed:true,materials:[{id:'item-1',descricao:'Tubo PVC 25 mm',unidade:'m',quantidade}]}}
+ return {date:'2026-11-15',fingerprint,report:{date:'2026-11-15',note:'Instaladas prumadas',sessions:[{service:'AF/AQ',floor:4,result:'completed'}],events:[],materialsReviewed:true,materials:[{id:'item-1',descricao:'Tubo PVC 25 mm',unidade:'m',quantidade:quantity}]}}
 }
 const scope=f=>({companyId:f.company.id,workId:f.work.id,remoteProjectId:'project-qa'})
 function balance(f){return Number(f.repository.connection().prepare("SELECT SUM(CASE WHEN tipo='saida' THEN -quantidade ELSE quantidade END) AS balance FROM movimentacoes_estoque WHERE obra_id=?").get(f.work.id).balance)}
