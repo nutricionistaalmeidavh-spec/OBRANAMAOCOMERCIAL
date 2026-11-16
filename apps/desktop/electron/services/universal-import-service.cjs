@@ -98,12 +98,12 @@ function competence(value) {
 function detect(headers) {
   return Object.fromEntries(Object.entries(AREAS).map(([area, definition]) => [
     area,
-    definition.fields.reduce((score, field) => score + ((ALIASES[field] || []).some((alias) => headers.some((header) => norm(header) === norm(alias))) ? 1 : 0), 0)
+    definition.fields.reduce((score, field) => score + ([field, ...(ALIASES[field] || [])].some((alias) => headers.some((header) => norm(header) === norm(alias))) ? 1 : 0), 0)
   ]))
 }
 function mapping(headers, area) {
   const values = {}
-  for (const field of AREAS[area].fields) values[field] = headers.find((header) => (ALIASES[field] || []).some((alias) => norm(header) === norm(alias))) || ''
+  for (const field of AREAS[area].fields) values[field] = headers.find((header) => norm(header) === norm(field)) || headers.find((header) => (ALIASES[field] || []).some((alias) => norm(header) === norm(alias))) || ''
   return values
 }
 function value(row, map, field) { return map[field] ? row[map[field]] : undefined }
@@ -144,6 +144,111 @@ function rowErrors(area, row, map, db, companyId) {
 class UniversalImportService {
   constructor({ db }) { this.db = db; this.pending = new Map() }
 
+  mappingKey(companyId, area, headers) {
+    selectedCompany(this.db.db, companyId)
+    if (!AREAS[area]) throw new Error('Área de importação inválida.')
+    if (!Array.isArray(headers) || !headers.length || headers.length > 300) throw new Error('Cabeçalhos inválidos.')
+    const signature = crypto.createHash('sha256').update(JSON.stringify(headers.map(norm).sort())).digest('hex')
+    return `universal-import-mapping:v1:${Number(companyId)}:${area}:${signature}`
+  }
+
+  getSavedMapping({ companyId, area, headers }) {
+    const key = this.mappingKey(companyId, area, headers)
+    const saved = this.db.db.prepare('SELECT valor FROM configuracoes WHERE chave=?').get(key)
+    if (!saved?.valor) return null
+    try {
+      const parsed = JSON.parse(saved.valor)
+      return this.validateMapping(area, headers, parsed)
+    } catch { return null }
+  }
+
+  validateMapping(area, headers, candidate) {
+    if (!AREAS[area]) throw new Error('Área de importação inválida.')
+    const result = {}
+    for (const field of AREAS[area].fields) {
+      const column = candidate?.[field] || ''
+      if (typeof column !== 'string' || (column && !headers.includes(column))) {
+        throw new Error(`Coluna de origem inválida para ${field}. Escolha uma coluna real da planilha.`)
+      }
+      result[field] = column
+    }
+    const chosen = Object.values(result).filter(Boolean)
+    if (new Set(chosen).size !== chosen.length) throw new Error('Uma mesma coluna não pode preencher dois campos. Revise o mapeamento.')
+    return result
+  }
+
+  async saveMapping({ companyId, area, headers, mapping: selected }) {
+    const key = this.mappingKey(companyId, area, headers)
+    const validated = this.validateMapping(area, headers, selected)
+    this.db.db.prepare(`INSERT INTO configuracoes(chave, valor, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(chave) DO UPDATE SET valor=excluded.valor, updated_at=CURRENT_TIMESTAMP`)
+      .run(key, JSON.stringify(validated))
+    return { saved: true }
+  }
+
+  async saveTemplate(area = 'financeiro') {
+    if (!AREAS[area]) throw new Error('Área de importação inválida.')
+    const picked = await dialog.showSaveDialog({
+      title: 'Salvar modelo para importação — Obra na Mão',
+      defaultPath: `Modelo-Obra-na-Mao-${area}.xlsx`,
+      filters: [{ name: 'Planilha Excel', extensions: ['xlsx'] }]
+    })
+    if (picked.canceled || !picked.filePath) return null
+    const ExcelJS = require('exceljs')
+    const workbook = new ExcelJS.Workbook()
+    const tab = workbook.addWorksheet(AREAS[area].label, { views: [{ state: 'frozen', ySplit: 1 }] })
+    const fields = AREAS[area].fields
+    const mandatory = new Set(required(area))
+    tab.addRow(fields)
+    const header = tab.getRow(1)
+    header.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+    header.height = 28
+    header.eachCell((cell, index) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: mandatory.has(fields[index - 1]) ? 'FF116F6A' : 'FF17354C' } }
+      cell.alignment = { vertical: 'middle' }
+    })
+    tab.columns = fields.map(field => ({ key: field, width: Math.max(17, Math.min(30, field.length + 7)) }))
+    const guide = workbook.addWorksheet('INSTRUCOES')
+    ;[
+      ['Obra na Mão — modelo de importação'],
+      [`Área: ${AREAS[area].label}`],
+      ['Preencha uma linha por registro e mantenha a primeira linha da aba de dados.'],
+      ['Cabeçalhos verdes identificam campos obrigatórios.'],
+      ['Datas: DD/MM/AAAA. Valores: apenas números, sem R$.'],
+      ['Abra Importar planilha > Importador universal; escolha a empresa e confira a prévia antes de confirmar.'],
+      ['Dados só serão gravados após confirmação da prévia.']
+    ].forEach(row => guide.addRow(row))
+    guide.getColumn(1).width = 110
+    await workbook.xlsx.writeFile(picked.filePath)
+    return { path: picked.filePath, area }
+  }
+
+  async exportIssues(token, options) {
+    const report = await this.preview(token, options)
+    const problems = (report.issues || [])
+    if (!report.invalid && !report.missing.length && !report.alreadyImported) throw new Error('Nenhuma divergência encontrada para exportar.')
+    const picked = await dialog.showSaveDialog({
+      title: 'Salvar relatório de erros da importação',
+      defaultPath: 'Erros-importacao-Obra-na-Mao.csv',
+      filters: [{ name: 'Arquivo CSV', extensions: ['csv'] }]
+    })
+    if (picked.canceled || !picked.filePath) return null
+    const cell = (raw) => {
+      let str = String(raw ?? '')
+      if (/^[\s]*[=+@\-]/.test(str)) str = "'" + str // protege Excel contra CSV formula injection
+      return '"' + str.replace(/"/g, '""') + '"'
+    }
+    const entries = [
+      ['Aba', 'Linha', 'Problema'],
+      ...report.missing.map(field => [options.sheet, 'Cabeçalho', `Campo obrigatório sem coluna: ${field}`]),
+      ...(report.alreadyImported ? [[options.sheet, 'Arquivo', 'Esta aba deste arquivo já foi importada anteriormente.']] : []),
+      ...problems.map(item => [options.sheet, String(item.line), item.errors.join('; ')])
+    ]
+    const csv = '\uFEFF' + entries.map(row => row.map(cell).join(';')).join('\r\n') + '\r\n'
+    await fs.promises.writeFile(picked.filePath, csv, 'utf8')
+    return { path: picked.filePath, count: entries.length - 1 }
+  }
+
   async choose() {
     const picked = await dialog.showOpenDialog({ title: 'Selecionar planilha ou CSV', properties: ['openFile'], filters: [{ name: 'Planilhas', extensions: ['xlsx','xlsm','csv'] }] })
     if (picked.canceled) return null
@@ -177,13 +282,25 @@ class UniversalImportService {
     const sheet = pending.sheets.find((item) => item.name === options.sheet)
     if (!sheet) throw new Error('Aba não encontrada.')
     const area = AREAS[options.area] ? options.area : sheet.area
-    const map = { ...mapping(sheet.headers, area), ...(options.mapping || {}) }
-    if (options.mappingOnly === true) return { mapping: map }
+    const savedMapping = this.getSavedMapping({ companyId: company.id, area, headers: sheet.headers })
+    const map = this.validateMapping(area, sheet.headers, { ...mapping(sheet.headers, area), ...(savedMapping || {}), ...(options.mapping || {}) })
+    if (options.mappingOnly === true) return { mapping: map, mappingSource: savedMapping ? 'saved' : 'suggested' }
     const entries = rowsAsObjects(sheetRows(pending.workbook.getWorksheet(sheet.name)), sheet.headerIndex)
       .map((row, index) => ({ row, line: index + sheet.headerIndex + 2 }))
       .filter((item) => Object.values(item.row).some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ''))
-    const reviewed = entries.map((item) => ({ ...item, errors: rowErrors(area, item.row, map, this.db.db, company.id) }))
+    const uniqueRows = new Map()
+    let duplicates = 0
+    const reviewed = entries.map((item) => {
+      const errors = rowErrors(area, item.row, map, this.db.db, company.id)
+      const signature = crypto.createHash('sha256').update(JSON.stringify(Object.values(item.row).map(cell => String(cell ?? '').trim()))).digest('hex')
+      if (uniqueRows.has(signature)) {
+        errors.push(`Registro repetido na linha ${uniqueRows.get(signature)}. Remova a duplicata antes de importar.`)
+        duplicates++
+      } else uniqueRows.set(signature, item.line)
+      return { ...item, errors }
+    })
     const invalidEntries = reviewed.filter((item) => item.errors.length > 0)
+    const alreadyImported = Boolean(this.db.db.prepare("SELECT id FROM importacoes WHERE hash=? AND aba=? AND status='concluida'").get(pending.hash, `universal:${sheet.name}`))
     const pageSize = Math.min(100, Math.max(1, Number.isInteger(Number(options.pageSize)) ? Number(options.pageSize) : 25))
     const pages = Math.max(1, Math.ceil(reviewed.length / pageSize))
     const page = Math.min(pages, Math.max(1, Number.isInteger(Number(options.page)) ? Number(options.page) : 1))
@@ -192,7 +309,7 @@ class UniversalImportService {
       area, label: AREAS[area].label, companyId: company.id, companyName: company.nome_fantasia || company.razao_social,
       headers: sheet.headers, mapping: map,
       rows: slice.map((item) => item.row), rowNumbers: slice.map((item) => item.line), rowErrors: slice.map((item) => item.errors),
-      total: reviewed.length, importable: reviewed.length - invalidEntries.length, invalid: invalidEntries.length,
+      total: reviewed.length, importable: reviewed.length - invalidEntries.length, invalid: invalidEntries.length, duplicates, alreadyImported,
       issues: invalidEntries.slice(0, 20).map((item) => ({ line: item.line, errors: item.errors })),
       page, pageSize, pages,
       missing: required(area).filter((field) => !map[field]),
@@ -207,6 +324,7 @@ class UniversalImportService {
     if (preview.missing.length) throw new Error('Mapeie os campos obrigatórios: ' + preview.missing.join(', ') + '.')
     if (!preview.total) throw new Error('A aba não contém linhas para importar.')
     if (preview.invalid) throw new Error('Existem ' + preview.invalid + ' linha(s) inválida(s). Corrija os dados antes de importar.')
+    if (preview.alreadyImported) throw new Error('Esta aba deste arquivo já foi importada anteriormente.')
     const sheet = pending.sheets.find((item) => item.name === options.sheet)
     const rows = rowsAsObjects(sheetRows(pending.workbook.getWorksheet(sheet.name)), sheet.headerIndex)
     const area = preview.area
