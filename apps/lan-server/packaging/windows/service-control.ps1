@@ -71,7 +71,10 @@ switch ($Action) {
   'Stop' {
     if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) { Invoke-Wrapper 'stop' }
   }
-  'Restart' { Invoke-Wrapper 'restart' }
+  'Restart' {
+    Set-ServiceEnvironment
+    Invoke-Wrapper 'restart'
+  }
   'Uninstall' {
     if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) {
       try { Invoke-Wrapper 'stop' } catch { Write-Warning $_ }
