@@ -86,10 +86,13 @@ systemctl enable --now obra-na-mao-server.service
 
 PORT="$(sed -n 's/^OBRA_NA_MAO_SERVER_PORT=//p' "$CONFIG_PATH" | tail -n 1 | tr -d '[:space:]')"
 PORT="${PORT:-4732}"
+READY_HOST="$(sed -n 's/^OBRA_NA_MAO_SERVER_HOST=//p' "$CONFIG_PATH" | tail -n 1 | tr -d '[:space:]')"
+READY_HOST="${READY_HOST:-127.0.0.1}"
+if [[ "$READY_HOST" == "0.0.0.0" ]]; then READY_HOST="127.0.0.1"; fi
 DEADLINE=$((SECONDS + READY_TIMEOUT_SECONDS))
 READY=0
 while (( SECONDS < DEADLINE )); do
-  if OBRA_READY_URL="http://127.0.0.1:${PORT}/ready" "$INSTALL_ROOT/runtime/node" --input-type=module -e 'try { const r = await fetch(process.env.OBRA_READY_URL); const body = await r.json(); process.exit(r.ok && body?.ready === true ? 0 : 1) } catch { process.exit(1) }'; then
+  if OBRA_READY_URL="http://${READY_HOST}:${PORT}/ready" "$INSTALL_ROOT/runtime/node" --input-type=module -e 'try { const r = await fetch(process.env.OBRA_READY_URL); const body = await r.json(); process.exit(r.ok && body?.ready === true ? 0 : 1) } catch { process.exit(1) }'; then
     READY=1
     break
   fi
@@ -102,4 +105,4 @@ if [[ "$READY" -ne 1 ]]; then
   exit 1
 fi
 
-printf 'Obra na Mão Server instalado e ready em 127.0.0.1:%s.\n' "$PORT"
+printf 'Obra na Mão Server instalado e ready em %s:%s.\n' "$READY_HOST" "$PORT"
