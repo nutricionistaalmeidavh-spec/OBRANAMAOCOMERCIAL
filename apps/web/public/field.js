@@ -91,43 +91,66 @@ function rdoClosure(day){
  </div></section>`;
 }
 function openRdoMaterials(){
- const day=getDay(selectedDate,true);day.materials=day.materials||[];
- const entries=day.materials.map(row=>`<div class="card" style="margin-top:8px"><div class="row">
- <div><strong>${esc(row.descricao)}</strong><div class="meta">${esc(String(row.quantidade))} ${esc(row.unidade)}</div></div>
+ const day=getDay(selectedDate,true),catalog=window.mobileRdoCatalog,materials=catalog?.materials||[],fronts=catalog?.fronts||[],services=catalog?.services||[];
+ const entries=(day.materials||[]).map(row=>`<div class="card" style="margin-top:8px"><div class="row">
+ <div><strong>${esc(row.descricao)}</strong><div class="meta">${esc(String(row.quantidade))} ${esc(row.unidade)} · ${row.frente_id?'Frente '+esc(row.frente_id):'Geral da obra'} · ${esc(row.servico||'Serviço não informado')}</div></div>
  <button type="button" class="linkbtn remove-material" data-id="${esc(row.id)}">Remover</button></div></div>`).join('');
- sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Materiais · ${dateBR(day.date)}</h2><div class="meta">Informe o que foi realmente utilizado nesta obra.</div></div><button class="close" type="button">×</button></div>
- <div class="card"><strong>Registro do dia</strong><p class="meta">A conferência aqui não reduz o estoque automaticamente. A baixa deve ser confirmada na fonte operacional.</p>
- ${entries||'<p class="meta">Nenhum material informado.</p>'}</div>
+ const materialOptions=materials.map(m=>`<option value="${esc(m.id)}">${esc(m.descricao)} · ${esc(m.unidade)} (saldo ${esc(m.saldo)})</option>`).join('');
+ const frontOptions=fronts.map(f=>`<option value="${f.id}">${esc(f.nome)}</option>`).join('');
+ const serviceOptions=[
+  ...Object.entries(SERVICES).map(([key,value])=>`<option value="${esc(key)}">${esc(value[0])}</option>`),
+  ...services.map(s=>`<option value="etapa:${s.id}">${esc(s.nome)}</option>`)
+ ].join('');
+ sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Materiais · ${dateBR(day.date)}</h2>
+ <div class="meta">Consumo real por obra, frente e serviço, vinculado ao estoque canônico.</div></div><button type="button" class="close">×</button></div>
+ <div class="card"><strong>Materiais deste dia</strong><div class="meta">${day.materialsReviewed?'Conferidos':'Conferência pendente'} · O saldo será atualizado somente após confirmação no Desktop.</div>${entries||'<p class="meta">Nenhum consumo registrado.</p>'}</div>
+ <div class="card"><div class="row"><div><strong>Catálogo da obra</strong><div class="meta">${materials.length} material(is) do estoque operacional${catalog?.updatedAt?' · '+esc(new Date(catalog.updatedAt).toLocaleDateString('pt-BR')):''}</div></div>
+ <button type="button" id="refreshRdoCatalog" class="linkbtn">Atualizar</button></div>
+ ${!materials.length?'<p class="meta">Cadastre uma entrada de material no estoque do Desktop e sincronize. Não será criado um estoque paralelo no celular.</p>':''}</div>
  <div class="form">
- <label>Material <input id="rdoMaterialName" type="text" maxlength="250" placeholder="Ex.: Tubo PVC 25 mm"></label>
- <label>Unidade <select id="rdoMaterialUnit"><option value="un">Unidade</option><option value="m">Metro</option><option value="m2">m²</option><option value="m3">m³</option><option value="kg">Quilo</option><option value="l">Litro</option></select></label>
- <label>Quantidade <input id="rdoMaterialQuantity" type="text" inputmode="decimal" placeholder="Ex.: 12,5"></label>
+ <label>Material do estoque<select id="rdoMaterialSelect" ${materials.length?'':'disabled'}><option value="">Selecione o material</option>${materialOptions}</select></label>
+ <label>Frente de serviço<select id="rdoMaterialFront"><option value="">Geral da obra</option>${frontOptions}</select></label>
+ <label>Serviço executado<select id="rdoMaterialService"><option value="">Selecione o serviço</option>${serviceOptions}</select></label>
+ <label>Quantidade consumida <input id="rdoMaterialQuantity" type="text" inputmode="decimal" placeholder="Ex.: 12,5"></label>
  </div>
- <button type="button" id="addRdoMaterial" class="btn" style="width:100%">Adicionar material</button>
- <button type="button" id="confirmRdoMaterials" class="linkbtn" style="width:100%;margin-top:12px">${day.materials.length?'Conferir materiais do dia':'Confirmar que não houve consumo'}</button>
+ <button type="button" id="addRdoMaterial" class="btn" style="width:100%" ${materials.length?'':'disabled'}>Adicionar consumo</button>
+ <button type="button" id="confirmRdoMaterials" class="linkbtn" style="width:100%;margin-top:12px">${day.materials?.length?'Conferir consumo do dia':'Confirmar que não houve consumo'}</button>
  <div id="rdoMaterialError" class="meta" role="alert"></div></div>`;
  document.dispatchEvent(new CustomEvent('field:sheet-rendered'));sheet.showModal();
- const close=()=>sheet.close(),showError=e=>{sheet.querySelector('#rdoMaterialError').textContent=e?.message||'Não foi possível salvar. Os dados foram preservados.'};
- sheet.querySelector('.close').addEventListener('click',close);
- let busy=false;
- const submit=async(fn)=>{
-  if(busy)return;busy=true;
-  const buttons=[...sheet.querySelectorAll('button')];buttons.forEach(button=>button.disabled=true);
+ const errorBox=sheet.querySelector('#rdoMaterialError'),showError=e=>{errorBox.textContent=e?.message||'Não foi possível salvar. Os dados permanecem no aparelho.'};
+ sheet.querySelector('.close').addEventListener('click',()=>sheet.close());
+ let busy=false;const submit=async(fn)=>{
+  if(busy)return;busy=true;const buttons=[...sheet.querySelectorAll('button')];buttons.forEach(button=>button.disabled=true);
   try{await fn();sheet.close();renderDay();openRdoMaterials()}
   catch(e){showError(e);buttons.forEach(button=>button.disabled=false)}
   finally{busy=false}
  };
+ sheet.querySelector('#refreshRdoCatalog').addEventListener('click',()=>submit(async()=>{
+  if(!window.multiuserRefreshCatalog)throw new Error('Atualização do catálogo indisponível nesta versão.')
+  await window.multiuserRefreshCatalog()
+ }));
  sheet.querySelector('#addRdoMaterial').addEventListener('click',()=>submit(async()=>{
-  const row=materialLine({id:crypto.randomUUID(),descricao:sheet.querySelector('#rdoMaterialName').value,unidade:sheet.querySelector('#rdoMaterialUnit').value,quantidade:sheet.querySelector('#rdoMaterialQuantity').value});
-  day.materials.push(row);day.materialsReviewed=false;await save();
+  const materialId=sheet.querySelector('#rdoMaterialSelect').value,chosen=materials.find(m=>m.id===materialId)
+  if(!chosen)throw new Error('Selecione um material do catálogo do estoque.')
+  const service=sheet.querySelector('#rdoMaterialService').value
+  if(!service)throw new Error('Associe o consumo a um serviço executado.')
+  const line=materialLine({
+   id:crypto.randomUUID(),material_id:chosen.id,descricao:chosen.descricao,unidade:chosen.unidade,
+   quantidade:sheet.querySelector('#rdoMaterialQuantity').value,
+   frente_id:sheet.querySelector('#rdoMaterialFront').value||null,servico:service
+  })
+  day.materials=day.materials||[];day.materials.push(line);day.materialsReviewed=false;await save()
  }));
  sheet.querySelectorAll('.remove-material').forEach(button=>button.addEventListener('click',()=>submit(async()=>{
-  day.materials=day.materials.filter(row=>row.id!==button.dataset.id);day.materialsReviewed=false;await save();
+  day.materials=day.materials.filter(row=>row.id!==button.dataset.id);day.materialsReviewed=false;await save()
  })));
  sheet.querySelector('#confirmRdoMaterials').addEventListener('click',async()=>{
   if(busy)return;busy=true;const button=sheet.querySelector('#confirmRdoMaterials');button.disabled=true;
-  try{day.materialsReviewed=true;await save();sheet.close();renderDay();show('Materiais conferidos neste aparelho. Baixa de estoque ainda pendente de integração.')}
-  catch(e){day.materialsReviewed=false;showError(e);button.disabled=false}
+  try{
+   if(day.materials.some(row=>!row.material_id||!row.servico))throw new Error('Revise os materiais antigos e vincule cada consumo ao catálogo e ao serviço.')
+   day.materialsReviewed=true;await save();sheet.close();renderDay();
+   show('Materiais conferidos. A baixa ocorrerá após integração confirmada.')
+  }catch(e){day.materialsReviewed=false;showError(e);button.disabled=false}
   finally{busy=false}
  });
 }
