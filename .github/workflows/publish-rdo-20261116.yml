@@ -1,0 +1,387 @@
+name: Publish Obra na Mão RDO Desktop 2.1.8 and Server 0.4.1
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-rdo-20261116.yml'
+      - 'apps/desktop/package.json'
+      - 'apps/desktop/package-lock.json'
+      - 'apps/lan-server/package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: obranamao-rdo-20261116-release
+  cancel-in-progress: false
+
+env:
+  DESKTOP_VERSION: '2.1.8'
+  SERVER_VERSION: '0.4.1'
+
+jobs:
+  validate:
+    name: Verify version, tests and source build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Verify immutable version and auto-release freeze
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./apps/desktop/package.json').version")" = "$DESKTOP_VERSION"
+          test "$(node -p "require('./apps/lan-server/package.json').version")" = "$SERVER_VERSION"
+          test "$(node -p "require('./apps/desktop/package-lock.json').version")" = "$DESKTOP_VERSION"
+          grep -F "DESKTOP_AUTO_RELEASE_ENABLED: 'false'" .github/workflows/commercial-desktop-ci.yml
+      - name: Verify LAN contracts and packaging
+        run: |
+          npm --prefix apps/lan-server test
+          npm --prefix apps/lan-server run packaging:test
+          node --test scripts/ci/windows-cdp-target.test.cjs
+      - name: Desktop dependencies, lint and unit tests
+        working-directory: apps/desktop
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run lint
+          npm test
+          npm run build
+
+  desktop-windows:
+    name: Build verified Desktop Windows 2.1.8
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install, validate and build
+        working-directory: apps/desktop
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run lint
+          npm test
+          npm run dist
+      - name: Verify updater SHA512 and installer size
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir='apps/desktop/release'
+          $exe="$dir/Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe"
+          $block="$exe.blockmap"
+          $manifest="$dir/latest.yml"
+          foreach($file in @($exe,$block,$manifest)){if(-not(Test-Path $file)){throw "Missing $file"}}
+          if((Get-Item $exe).Length -lt 100000000){throw 'Suspiciously small Desktop installer'}
+          $content=Get-Content $manifest -Raw
+          $sha=[Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData([IO.File]::ReadAllBytes((Resolve-Path $exe))))
+          if(-not $content.Contains("version: $env:DESKTOP_VERSION") -or -not $content.Contains($sha)){throw 'Invalid latest.yml version or SHA512'}
+          if(-not $content.Contains("Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe")){throw 'Wrong updater filename'}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rdo-desktop-windows-2.1.8
+          path: |
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.8.exe
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.8.exe.blockmap
+            apps/desktop/release/latest.yml
+          if-no-files-found: error
+          retention-days: 30
+
+  desktop-upgrade:
+    name: Prove in-place Windows upgrade - ${{ matrix.scenario }}
+    needs: desktop-windows
+    runs-on: windows-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [inside-canonical, inside-nested, inside-stale, broken-share, external-canonical]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v4
+        with:
+          name: rdo-desktop-windows-2.1.8
+          path: ${{ runner.temp }}/rdo-desktop-2.1.8
+      - name: Test real CDP target regression
+        run: node --test scripts/ci/windows-cdp-target.test.cjs
+      - name: Test installed update, original documents and SQLite
+        shell: pwsh
+        env:
+          CI_UPDATE_VERSION: '2.1.8'
+        run: ./scripts/ci/windows-install-over.ps1 -Scenario '${{ matrix.scenario }}' -Release "$env:RUNNER_TEMP/rdo-desktop-2.1.8" -TargetVersion '2.1.8'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rdo-upgrade-${{ matrix.scenario }}
+          path: ${{ runner.temp }}/obra-install-over/evidence/
+          if-no-files-found: warn
+
+  macos:
+    name: Package native macOS ${{ matrix.label }}
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            os: macos-15
+            label: Apple-Silicon
+          - arch: x64
+            os: macos-15-intel
+            label: Intel
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Verify host architecture
+        run: |
+          test "$(uname -m)" = "$(${{ "${{ matrix.arch }}" = arm64 }} && echo arm64 || echo x86_64)"
+      - name: Install and test
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run lint
+          npm test
+          npm run build
+          npx electron-builder install-app-deps
+      - name: Build native DMG
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+          LABEL: ${{ matrix.label }}
+        run: |
+          set -euo pipefail
+          OUT="release/Obra-na-Mao-Desktop-v$DESKTOP_VERSION-macOS-$LABEL.dmg"
+          if ${{ "$ARCH" == x64 }}; then
+            npx electron-builder --mac --x64 --dir --publish never
+            APP=$(find release/mac -maxdepth 1 -type d -name '*.app' -print -quit)
+            test -n "$APP"
+            mkdir -p release/dmg-staging
+            ditto "$APP" "release/dmg-staging/$(basename "$APP")"
+            ln -s /Applications release/dmg-staging/Applications
+            hdiutil create -format UDZO -fs HFS+ -volname 'Obra na Mão Desktop' -srcfolder release/dmg-staging "$OUT"
+          else
+            npx electron-builder --mac dmg --arm64 --publish never
+            GENERATED=$(find release -maxdepth 1 -name '*.dmg' -type f -print -quit)
+            test -n "$GENERATED"
+            if ${{ "$GENERATED" != "$OUT" }}; then mv "$GENERATED" "$OUT"; fi
+          fi
+          hdiutil verify "$OUT"
+          test -s "$OUT"
+          shasum -a 256 "$OUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rdo-macos-${{ matrix.arch }}
+          path: apps/desktop/release/Obra-na-Mao-Desktop-v2.1.8-macOS-*.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+  server-windows:
+    name: Package and smoke Windows Server 0.4.1
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Test server and packaging
+        run: |
+          npm --prefix apps/lan-server test
+          npm --prefix apps/lan-server run packaging:test
+      - name: Build Windows Server installer
+        shell: pwsh
+        run: ./apps/lan-server/packaging/windows/build.ps1 -BuildInstaller
+      - name: Smoke installation and preserve persistent identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $installer="apps/lan-server/dist/installer/Obra-na-Mao-Server-Setup-$env:SERVER_VERSION-x64.exe"
+          if(!(Test-Path $installer)){throw 'Windows server installer missing'}
+          if((Get-Item $installer).Length -lt 5000000){throw 'Invalid server installer size'}
+          $target=Join-Path $env:ProgramData 'ArtiSys\Obra na Mão Server'
+          $proc=Start-Process $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru -Wait
+          if($proc.ExitCode -ne 0){throw "Server installation failed: $($proc.ExitCode)"}
+          $ready=$null
+          for($i=0;$i -lt 120;$i++){
+            try{$ready=Invoke-RestMethod http://127.0.0.1:4732/ready -TimeoutSec 2;if($ready.ready -and $ready.identity.serverId){break}}catch{}
+            Start-Sleep -Milliseconds 500
+          }
+          if(!$ready.ready -or !$ready.identity.serverId){throw 'Server not ready after installation'}
+          $firstId=$ready.identity.serverId
+          $sentinel=Join-Path $target 'ci-persistent-sentinel'
+          Set-Content $sentinel 'preserved'
+          $proc=Start-Process $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -PassThru -Wait
+          if($proc.ExitCode -ne 0 -or !(Test-Path $sentinel)){throw 'Server reinstall lost data'}
+          $again=$null
+          for($i=0;$i -lt 120;$i++){
+            try{$again=Invoke-RestMethod http://127.0.0.1:4732/ready -TimeoutSec 2;if($again.ready){break}}catch{}
+            Start-Sleep -Milliseconds 500
+          }
+          if($again.identity.serverId -ne $firstId){throw 'Server identity changed on reinstall'}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rdo-server-windows-0.4.1
+          path: apps/lan-server/dist/installer/Obra-na-Mao-Server-Setup-0.4.1-x64.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  server-linux:
+    name: Package and smoke Linux Server 0.4.1
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Verify contracts
+        run: |
+          npm --prefix apps/lan-server test
+          npm --prefix apps/lan-server run packaging:test
+          bash -n apps/lan-server/packaging/linux/build.sh
+      - name: Build Linux Server
+        run: bash apps/lan-server/packaging/linux/build.sh
+      - name: Verify Linux installer and systemd
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "apps/lan-server/dist/Obra-na-Mao-Server-$SERVER_VERSION-linux-x64.tar.gz"
+          sudo env PACKAGE_DIR="$PWD/apps/lan-server/dist/server-linux-x64" READY_TIMEOUT_SECONDS=60 bash apps/lan-server/packaging/linux/install.sh
+          sudo systemctl is-active --quiet obra-na-mao-server
+          curl -fsS http://127.0.0.1:4732/ready | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const o=JSON.parse(s);if(!o.ready||!o.identity?.serverId)process.exit(1)})"
+          sudo bash apps/lan-server/packaging/linux/uninstall.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rdo-server-linux-0.4.1
+          path: apps/lan-server/dist/Obra-na-Mao-Server-0.4.1-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish 3 immutable releases after all validations pass
+    needs: [desktop-upgrade, macos, server-windows, server-linux]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release-rdo-20261116]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: rdo-desktop-windows-2.1.8
+          path: dist/windows
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: rdo-macos-*
+          path: dist/mac
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: rdo-server-windows-0.4.1
+          path: dist/server
+      - uses: actions/download-artifact@v4
+        with:
+          name: rdo-server-linux-0.4.1
+          path: dist/server
+      - name: Verify all binary assets and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "dist/windows/Obra-na-Mao-Desktop-Setup-$DESKTOP_VERSION.exe"
+          test -s "dist/windows/Obra-na-Mao-Desktop-Setup-$DESKTOP_VERSION.exe.blockmap"
+          test -s dist/windows/latest.yml
+          test -s "dist/mac/Obra-na-Mao-Desktop-v$DESKTOP_VERSION-macOS-Apple-Silicon.dmg"
+          test -s "dist/mac/Obra-na-Mao-Desktop-v$DESKTOP_VERSION-macOS-Intel.dmg"
+          test -s "dist/server/Obra-na-Mao-Server-Setup-$SERVER_VERSION-x64.exe"
+          test -s "dist/server/Obra-na-Mao-Server-$SERVER_VERSION-linux-x64.tar.gz"
+          test "$(stat -c%s "dist/windows/Obra-na-Mao-Desktop-Setup-$DESKTOP_VERSION.exe")" -gt 100000000
+          test "$(stat -c%s "dist/server/Obra-na-Mao-Server-Setup-$SERVER_VERSION-x64.exe")" -gt 5000000
+          test "$(stat -c%s "dist/server/Obra-na-Mao-Server-$SERVER_VERSION-linux-x64.tar.gz")" -gt 5000000
+          (cd dist/windows && sha256sum Obra-na-Mao-Desktop-Setup-* > SHA256SUMS.txt)
+          (cd dist/mac && sha256sum *.dmg > SHA256SUMS.txt)
+          (cd dist/server && sha256sum Obra-na-Mao-Server-* > SHA256SUMS.txt)
+      - name: Publish once, never overwrite an existing version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          win="desktop-commercial-v$DESKTOP_VERSION"
+          mac="desktop-commercial-macos-v$DESKTOP_VERSION"
+          server="obra-na-mao-server-v$SERVER_VERSION"
+          for tag in "$win" "$mac" "$server"; do
+            if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "::error::Release $tag already exists. Refusing to overwrite published binaries."
+              exit 1
+            fi
+          done
+          cat > desktop-notes.md <<'NOTES'
+          Obra na Mão Desktop Comercial v2.1.8 — Diário de Obra P0/P1/P2.
+          - Fechamento em cinco seções, fotos e ocorrências revisadas.
+          - Materiais por obra, frente e serviço, com baixa canônica transacional e controle de revisão.
+          - Sincronização Desktop/PWA e armazenamento das evidências no SQLite, com conferência SHA-256.
+          - Preservação de documentos e banco SQLite verificada em cinco cenários reais de atualização Windows.
+          - Para modo servidor próprio, atualize também o Obra na Mão Server para 0.4.1.
+          O núcleo continua independente de serviços pagos; hospedagem em nuvem é opcional.
+          NOTES
+          cat > mac-notes.md <<'NOTES'
+          Obra na Mão Desktop v2.1.8 macOS — Apple Silicon e Intel.
+          Inclui Diário de Obra P0/P1/P2, catálogo de materiais, fotos e melhorias de sincronização.
+          DMGs distribuídos sem assinatura/notarização Apple; o sistema pode solicitar autorização manual.
+          A atualização automática Windows continua na release Desktop Comercial.
+          NOTES
+          cat > server-notes.md <<'NOTES'
+          Obra na Mão Server v0.4.1 — Windows x64 e Linux x64.
+          Inclui importação do RDO canônico, baixa de materiais por obra/frente/serviço e recepção de evidências.
+          Núcleo self-hosted sem dependência obrigatória de serviço pago. Acesso remoto exige HTTPS/VPN configurado externamente.
+          Atualize com backup e preserve a pasta de dados/configuração.
+          NOTES
+          gh release create "$server" dist/server/Obra-na-Mao-Server-* dist/server/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Obra na Mão Server v$SERVER_VERSION — Windows e Linux" --notes-file server-notes.md --latest=false
+          gh release create "$mac" dist/mac/*.dmg dist/mac/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Obra na Mão Desktop macOS v$DESKTOP_VERSION" --notes-file mac-notes.md --latest=false
+          gh release create "$win" dist/windows/Obra-na-Mao-Desktop-Setup-* dist/windows/latest.yml dist/windows/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Obra na Mão Desktop Comercial v$DESKTOP_VERSION" --notes-file desktop-notes.md --latest
+      - name: Verify releases and published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tag in "desktop-commercial-v$DESKTOP_VERSION" "desktop-commercial-macos-v$DESKTOP_VERSION" "obra-na-mao-server-v$SERVER_VERSION"; do
+            gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,tagName,assets
+          done
+          mkdir -p verified
+          gh release download "desktop-commercial-v$DESKTOP_VERSION" --repo "$GITHUB_REPOSITORY" --dir verified --pattern "Obra-na-Mao-Desktop-Setup-$DESKTOP_VERSION.exe"
+          cp dist/windows/SHA256SUMS.txt verified/
+          (cd verified && sha256sum -c SHA256SUMS.txt)
