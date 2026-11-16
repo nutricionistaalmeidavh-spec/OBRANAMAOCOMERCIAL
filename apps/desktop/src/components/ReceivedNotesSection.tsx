@@ -25,7 +25,6 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
   const notes=useAsync(()=>obraId?window.fluxoDre.compras.notas.list(obraId):Promise.resolve([]),[obraId])
   const summary=useAsync(()=>obraId?window.fluxoDre.compras.notas.summary(obraId):Promise.resolve({etapas:[],total_centavos:0}),[obraId])
 
-  const selectedOrder=orders.data?.find((item:any)=>String(item.id)===String(form?.pedido_compra_id||''))
   const amount=useMemo(()=>(form?.itens||[]).reduce((sum,item)=>sum+Number(item.quantidade||0)*toCents(item.valor_unitario||'0'),0),[form])
   function itemChange(index:number,patch:Partial<NoteItem>){
     setForm(current=>{
