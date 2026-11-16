@@ -329,7 +329,7 @@ class UniversalImportService {
     const alreadyImported = Boolean(this.db.db.prepare(`SELECT id FROM importacoes
       WHERE hash=? AND aba=? AND status='concluida'
       AND (json_extract(CASE WHEN json_valid(resumo) THEN resumo ELSE '{}' END, '$.empresa_id') IS NULL
-        OR json_extract(resumo, '$.empresa_id')=?)`).get(pending.hash, `universal:${sheet.name}`, company.id))
+        OR json_extract(CASE WHEN json_valid(resumo) THEN resumo ELSE '{}' END, '$.empresa_id')=?)`).get(pending.hash, `universal:${sheet.name}`, company.id))
     const pageSize = Math.min(100, Math.max(1, Number.isInteger(Number(options.pageSize)) ? Number(options.pageSize) : 25))
     const pages = Math.max(1, Math.ceil(reviewed.length / pageSize))
     const page = Math.min(pages, Math.max(1, Number.isInteger(Number(options.page)) ? Number(options.page) : 1))
@@ -359,11 +359,11 @@ class UniversalImportService {
     const area = preview.area
     const map = preview.mapping
     return this.db.db.transaction(() => {
+      const company = selectedCompany(this.db.db, options.companyId)
       if (this.db.db.prepare(`SELECT id FROM importacoes
         WHERE hash=? AND aba=? AND status='concluida'
         AND (json_extract(CASE WHEN json_valid(resumo) THEN resumo ELSE '{}' END, '$.empresa_id') IS NULL
-          OR json_extract(resumo, '$.empresa_id')=?)`).get(pending.hash, `universal:${sheet.name}`, company.id)) throw new Error('Esta aba já foi importada nesta empresa.')
-      const company = selectedCompany(this.db.db, options.companyId)
+          OR json_extract(CASE WHEN json_valid(resumo) THEN resumo ELSE '{}' END, '$.empresa_id')=?)`).get(pending.hash, `universal:${sheet.name}`, company.id)) throw new Error('Esta aba já foi importada nesta empresa.')
       const imported = this.db.save('importacoes', { arquivo: pending.filePath, hash: pending.hash, aba: `universal:${sheet.name}`, status: 'processando', resumo: '{}' })
       let created = 0
       let count = 0
