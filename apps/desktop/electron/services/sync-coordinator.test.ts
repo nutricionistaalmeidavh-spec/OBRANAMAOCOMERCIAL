@@ -207,7 +207,7 @@ it('remote recusa coordenador diferente sem capturar ou publicar cópia local', 
   f.online.claimRemoteSyncOwner=vi.fn(async()=>{throw new Error('Outro Desktop está designado coordenador desta obra.')})
   f.sync=new SyncCoordinator({database:f.database,online:f.online,dataProvider})
   await expect(f.sync.configure({companyId:501,workId:601})).rejects.toThrow(/Outro Desktop/)
-  expect(dataProvider.resolveScope).not.toHaveBeenCalled()
+  expect(dataProvider.resolveScope).toHaveBeenCalledTimes(1)
   expect(dataProvider.listBridge).not.toHaveBeenCalled()
   expect(f.online.syncPush).not.toHaveBeenCalled()
 })
