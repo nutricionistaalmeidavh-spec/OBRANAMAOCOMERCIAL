@@ -19,7 +19,7 @@ describe('Obra360 continuity UX contract',()=>{
     expect(field).toContain('Operação da obra')
     expect(field).toContain('Origem: computador')
     expect(field).toContain('Tarefas')
-    expect(field).toContain('Frentes')
+    expect(field).toContain('Etapa')
     expect(field).toContain('RDOs')
   })
 
