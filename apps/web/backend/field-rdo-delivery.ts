@@ -25,7 +25,8 @@ export async function pendingFieldRdos(projectId:string):Promise<FieldRdoDeliver
    WHERE d.collection GLOB ?
      AND json_extract(d.record_json,'$.day.rdoStatus')='ready_for_desktop'
      AND json_extract(d.record_json,'$.day.materialsReviewed')=1
-   ORDER BY d.updated_at ASC LIMIT 200`
+     AND (ack.record_json IS NULL OR json_extract(ack.record_json,'$.fingerprint')<>json_extract(d.record_json,'$.day.rdoClosedFingerprint') OR json_extract(ack.record_json,'$.status')<>'applied')
+   ORDER BY d.updated_at ASC LIMIT 50`
   const query=await runtimeEnv().DB.prepare(sql).bind(ackCollection,prefix.length+1,prefix+'*').all<{source:string;receipt:string|null;source_collection:string}>()
   const reports:FieldRdoDelivery[]=[]
   for(const row of query.results||[]){
