@@ -44,7 +44,7 @@ class DataAccessService {
   transportReady() {
     const state = this.storage.state()
     const operationalMode = state.operationalMode || (state.mode === 'server' ? 'lan-client' : 'local')
-    return state.mode === 'server' && ['lan-client', 'lan-host'].includes(operationalMode)
+    return state.mode === 'server' && ['lan-client', 'lan-host', 'remote'].includes(operationalMode)
   }
 
   moduleForTable(table) {
