@@ -134,4 +134,17 @@ describe('P2: relatórios gerenciais com fonte canônica de notas recebidas',()=
     }finally{f.close()}
   })
 
+  it('rejeita orçamento ligado à subetapa de outra etapa ou obra, sem afetar registros existentes',()=>{
+    const f=fixture()
+    try {
+      expect(()=>f.db.save('itens_orcamentarios',{
+        obra_id:f.work.id,frente_id:f.second.id,subfrente_id:f.sub.id,
+        descricao:'Vínculo incompatível',unidade:'un',
+        quantidade:1,valor_unitario_centavos:1000,tipo:'material'
+      })).toThrow(/Subetapa/)
+      expect(f.service.report({obra_id:f.work.id}).indicadores.orcamento_total_centavos).toBe(13000)
+      expect(f.db.db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
+    }finally{f.close()}
+  })
+
 })
