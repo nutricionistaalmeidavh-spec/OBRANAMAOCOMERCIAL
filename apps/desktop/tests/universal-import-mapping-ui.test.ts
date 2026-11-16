@@ -18,3 +18,30 @@ describe('mapeamento manual do importador universal', () => {
     expect(page).toContain('value={mapping[field] ||')
   })
 })
+
+describe('assistente de importação P0-P2', () => {
+  it('permite abrir arquivos arrastados e baixar modelos diretamente no Desktop', () => {
+    expect(page).toContain('onDrop={dropFile}')
+    expect(page).toContain('importadorUniversal.dropped(selected)')
+    expect(page).toContain('importadorUniversal.template(area')
+    expect(page).toContain('Baixar modelo de planilha')
+  })
+
+  it('solicita escolha explícita da área quando a detecção é ambígua', () => {
+    expect(page).toContain('const unambiguous')
+    expect(page).toContain("setArea(unambiguous ? first.area : '')")
+    expect(page).toContain('Selecione o destino dos dados')
+  })
+
+  it('apresenta resultado de duplicidade e permite exportar todos os erros', () => {
+    expect(page).toContain('preview.duplicates')
+    expect(page).toContain('preview.alreadyImported')
+    expect(page).toContain('importadorUniversal.exportIssues')
+    expect(page).toContain('Baixar relatório completo de erros')
+  })
+
+  it('salva perfis na empresa e mostra quando foram restaurados', () => {
+    expect(page).toContain('importadorUniversal.saveMapping')
+    expect(page).toContain("mappingSource==='saved'")
+  })
+})
