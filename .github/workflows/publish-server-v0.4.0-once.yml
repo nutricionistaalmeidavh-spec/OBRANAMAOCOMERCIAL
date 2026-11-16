@@ -139,7 +139,7 @@ jobs:
           test -s "candidate/linux/Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz"
           test "$(stat -c%s "candidate/windows/Obra-na-Mao-Server-Setup-$VERSION-x64.exe")" -gt 5000000
           test "$(stat -c%s "candidate/linux/Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz")" -gt 5000000
-          tar -tzf "candidate/linux/Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz" | grep -q 'platform/install.sh'
+          tar -tzf "candidate/linux/Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz" | grep 'platform/install.sh' >/dev/null
           cp "candidate/windows/Obra-na-Mao-Server-Setup-$VERSION-x64.exe" .
           cp "candidate/linux/Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz" .
           sha256sum "Obra-na-Mao-Server-Setup-$VERSION-x64.exe" "Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz" > SHA256SUMS.txt
