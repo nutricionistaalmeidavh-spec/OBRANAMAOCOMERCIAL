@@ -72,3 +72,16 @@ test('Windows service restart reloads server.env before restarting', () => {
   assert.match(restart, /\bInvoke-Wrapper\s+'restart'/)
   assert.ok(restart.indexOf('Set-ServiceEnvironment') < restart.indexOf("Invoke-Wrapper 'restart'"))
 })
+
+
+test('Windows Server installer bundles and opens the local wizard without env edits', () => {
+  const inno = read('installer.iss')
+  const build = read('build.ps1')
+  const shortcut = read('configure-server.ps1')
+  assert.match(inno, /\[Icons\][\s\S]*Configurar servidor/i)
+  assert.match(inno, /skipifsilent/i)
+  assert.match(build, /config-wizard\.mjs/)
+  assert.match(build, /config-wizard\.html/)
+  assert.match(shortcut, /RunAs/i)
+  assert.match(shortcut, /--open/)
+})
