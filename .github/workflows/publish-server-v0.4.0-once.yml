@@ -26,6 +26,7 @@ env:
   WINDOWS_ARTIFACT_ID: '14189977400'
   LINUX_ARTIFACT_ID: '14190155415'
 
+# The PR must revalidate against the current main after remote/PWA integration.
 jobs:
   validate-server:
     name: Validate exact server source and published-candidate provenance
