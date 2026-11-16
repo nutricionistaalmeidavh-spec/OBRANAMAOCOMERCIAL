@@ -20,11 +20,11 @@ concurrency:
 
 env:
   VERSION: '0.4.0'
-  SOURCE_BASE_SHA: eca949d4af3a20ca3c09e7544d1e82d97067df36
-  VERIFIED_RUN: '43463111579'
-  VERIFIED_HEAD_SHA: 1e50cd7bfab5e5443f32f88e4e9aa662f53cdb69
-  WINDOWS_ARTIFACT_ID: '14056468959'
-  LINUX_ARTIFACT_ID: '14055704845'
+  SOURCE_BASE_SHA: 102e557ea52ef44b1f98c092dbf7772a5b3d9e73
+  VERIFIED_RUN: '43784669318'
+  VERIFIED_HEAD_SHA: 102e557ea52ef44b1f98c092dbf7772a5b3d9e73
+  WINDOWS_ARTIFACT_ID: '14189977400'
+  LINUX_ARTIFACT_ID: '14190155415'
 
 jobs:
   validate-server:
@@ -122,13 +122,13 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: Obra-na-Mao-Server-Windows-x64
-          run-id: 43463111579
+          run-id: 43784669318
           github-token: ${{ github.token }}
           path: candidate/windows
       - uses: actions/download-artifact@v4
         with:
           name: Obra-na-Mao-Server-Linux-x64
-          run-id: 43463111579
+          run-id: 43784669318
           github-token: ${{ github.token }}
           path: candidate/linux
       - name: Verify installer structure and generate checksums
@@ -163,7 +163,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Obra na Mão Server v$VERSION — Windows e Linux" \
             --latest=false \
-            --notes "Pacote self-hosted Obra na Mão Server v$VERSION (serviço headless Windows e Linux). Artefatos imutáveis provenientes do Server Platform CI aprovado (run $VERIFIED_RUN), com os fontes do servidor conferidos contra a main e regressões de conectividade Desktop, migração, autorização e PWA executadas nesta release. Configuração pelo arquivo server.env e assistente do Desktop; a interface Web/PWA permanece conectada à Cloudflare/D1. Implantação remota exige rede segura WireGuard ou HTTPS/Caddy e licença Advanced Server. Este pacote NÃO substitui o instalador Desktop nem habilita automaticamente acesso remoto. Instalação de produção deve passar por pareamento, migração, backup e teste local."
+            --notes "Pacote self-hosted Obra na Mão Server v$VERSION (serviço headless Windows e Linux). Artefatos imutáveis provenientes do Server Platform CI aprovado (run $VERIFIED_RUN), com os fontes do servidor conferidos contra a main e regressões de conectividade Desktop v2.1.7, migração, autorização e PWA executadas nesta release. Configuração pelo arquivo server.env e assistente do Desktop; a interface Web/PWA permanece conectada à Cloudflare/D1. Implantação remota exige rede segura WireGuard ou HTTPS/Caddy e licença Advanced Server. Este pacote NÃO substitui o instalador Desktop nem habilita automaticamente acesso remoto. Instalação de produção deve passar por pareamento, migração, backup e teste local."
           gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,assets,tagName,isDraft,isPrerelease
       - name: Verify checksums of released binaries
         shell: bash
