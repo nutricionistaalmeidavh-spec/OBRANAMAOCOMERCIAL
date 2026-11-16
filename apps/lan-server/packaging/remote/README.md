@@ -2,6 +2,18 @@
 
 F25/F26 usam o mesmo Server Core, banco, API, autenticação, permissões, pairing, concorrência e sync das topologias LAN. O que muda é somente endereço, transporte, timeout e discovery.
 
+## Configuração amigável (Windows e Linux)
+
+O instalador inclui um assistente local do **Obra na Mão Server**. Para o cliente que já possui HTTPS e proxy configurados, **não edite manualmente server.env**:
+
+- **Windows Server:** abrir **Configurar Obra na Mão Server** no Menu Iniciar ou selecionar **Abrir configurador** no final da instalação.
+- **Linux headless:** abrir uma sessão SSH com encaminhamento local `ssh -L 4734:127.0.0.1:4734 usuario@servidor`, executar `sudo obra-na-mao-configurar` e abrir o link individual exibido no navegador do administrador.
+- Na tela, informar o **endereço HTTPS já disponibilizado** e a **porta interna** (padrão: 4732). O assistente atualiza apenas os campos de rede, reinicia o serviço e preserva dados, backups e demais configurações.
+- Para o primeiro vínculo, clicar em **Gerar código inicial** e informar o código no Desktop em **Configurações do sistema → Acesso remoto avançado — servidor próprio**.
+- Usar **Verificar endereço** para testar a rota HTTPS existente. Se a URL não apontar para o serviço, o cliente deve solicitar à sua TI o encaminhamento para a porta interna escolhida.
+
+O configurador só escuta em `127.0.0.1:4734`, com código de sessão temporário, e não é publicado via proxy. Não cria VPN, DNS, domínio, certificado ou regras de firewall. Esses componentes pertencem à infraestrutura entregue pelo cliente. Os perfis manuais abaixo são referência avançada.
+
 ## Perfil A — HTTPS + reverse proxy
 
 Use quando o Desktop acessará um nome público, por exemplo `https://servidor.empresa.com`.

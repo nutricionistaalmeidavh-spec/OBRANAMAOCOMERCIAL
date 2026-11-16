@@ -78,6 +78,9 @@ rm -rf "$INSTALL_ROOT"
 mv "$STAGING" "$INSTALL_ROOT"
 trap - EXIT
 
+# Local-only browser-based configuration. No public management port.
+install -m 0755 "$INSTALL_ROOT/platform/configure-server.sh" /usr/local/bin/obra-na-mao-configurar
+
 cp "$INSTALL_ROOT/platform/obra-na-mao-server.service" "$UNIT_PATH"
 chown root:root "$UNIT_PATH"
 chmod 0644 "$UNIT_PATH"
@@ -106,3 +109,4 @@ if [[ "$READY" -ne 1 ]]; then
 fi
 
 printf 'Obra na Mão Server instalado e ready em %s:%s.\n' "$READY_HOST" "$PORT"
+printf 'Para abrir o assistente de configuração, execute: sudo obra-na-mao-configurar\n'

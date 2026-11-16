@@ -14,6 +14,7 @@ if systemctl list-unit-files --type=service 2>/dev/null | grep -q "^$SERVICE_NAM
 fi
 rm -f "$UNIT_PATH"
 rm -rf "/opt/obra-na-mao/server"
+rm -f /usr/local/bin/obra-na-mao-configurar
 systemctl daemon-reload
 
 printf '%s\n' 'Obra na Mão Server removido. Configuração e dados em /etc/obra-na-mao e /var/lib/obra-na-mao foram preservados.'

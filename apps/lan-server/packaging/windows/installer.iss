@@ -29,6 +29,12 @@ Name: "lanaccess"; Description: "Permitir acesso de outros computadores desta re
 Source: "{#PackageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#PackageDir}\platform\preinstall-stop.ps1"; Flags: dontcopy
 
+[Icons]
+Name: "{group}\Configurar Obra na Mão Server"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\platform\configure-server.ps1"""; WorkingDir: "{app}\platform"
+
+[Run]
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\platform\configure-server.ps1"""; WorkingDir: "{app}\platform"; Description: "Abrir configurador do servidor"; Flags: postinstall nowait skipifsilent
+
 [UninstallRun]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File install-hooks.ps1 -Action Uninstall -InstallDir ""{app}"" -ProgramDataRoot ""{commonappdata}\ArtiSys\Obra na Mão Server"""; WorkingDir: "{app}\platform"; Flags: runhidden waituntilterminated; RunOnceId: "ObraNaMaoServerUninstall"
 
