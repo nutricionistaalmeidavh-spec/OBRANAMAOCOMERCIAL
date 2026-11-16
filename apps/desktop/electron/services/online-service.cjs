@@ -354,6 +354,12 @@ class OnlineService {
     return this.state()
   }
 
+  async claimRemoteSyncOwner() {
+    const result = await this.request('/api/desktop/sync/remote-owner', { deviceToken: this.requireToken() })
+    if (result?.owner !== true) throw new Error('Este computador não é o coordenador de sincronização remota autorizado.')
+    return result
+  }
+
   async syncPull(sinceRevision = 0) {
     return this.request('/api/desktop/sync/pull', { deviceToken: this.requireToken(), sinceRevision })
   }
