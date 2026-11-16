@@ -78,3 +78,32 @@ test('servidor próprio: exige autenticação e módulo financeiro autorizado',a
     assert.equal(f.repository.connection().prepare('SELECT COUNT(*) n FROM notas_recebidas').get().n,0)
   }finally{await f.close()}
 })
+
+test('P2 API de relatórios mantém valores canônicos por etapa, filtro de emissão e histórico paginado',async()=>{
+  const f=await fixture()
+  try{
+    f.repository.save('itens_orcamentarios',{
+      obra_id:f.work.id,frente_id:f.stage.id,descricao:'Orçamento fictício',
+      unidade:'un',quantidade:2,valor_unitario_centavos:3000,tipo:'material'
+    })
+    const endpoint=f.base+'/api/v1/received-notes'
+    const body=input(f)
+    body.itens[0].valor_unitario_centavos=1500
+    body.itens[1].valor_unitario_centavos=2500
+    const saved=await fetch(endpoint,{method:'POST',headers:headers(),body:JSON.stringify(body)})
+    assert.equal(saved.status,201)
+    const report=await fetch(endpoint+'/report?obra_id='+f.work.id+'&data_inicio=2026-11-01&data_fim=2026-11-30&limit=1',{headers:headers()})
+    assert.equal(report.status,200,await report.clone().text())
+    const payload=await report.json()
+    assert.equal(payload.indicadores.orcamento_total_centavos,6000)
+    assert.equal(payload.indicadores.documentado_periodo_centavos,5500)
+    assert.equal(payload.indicadores.documentado_ate_fim_centavos,5500)
+    assert.equal(payload.etapas[0].alerta,'dentro_do_orcamento')
+    assert.equal(payload.subetapas.find(item=>item.subfrente_id===f.substage.id).documentado_periodo_centavos,3000)
+    assert.equal(payload.historico_total,2)
+    assert.equal(payload.historico.length,1)
+    assert.equal(payload.paginacao.has_more,true)
+    assert.equal((await fetch(endpoint+'/report?obra_id='+f.work.id+'&limit=1000',{headers:headers()})).status,400)
+    assert.equal((await fetch(endpoint+'/report?obra_id='+f.work.id)).status,401)
+  }finally{await f.close()}
+})
