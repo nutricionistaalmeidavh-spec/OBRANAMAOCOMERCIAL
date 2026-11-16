@@ -259,17 +259,28 @@ class UniversalImportService {
     assertSpreadsheetInput(filePath)
     const workbook = await readWorkbook(filePath)
     const token = crypto.randomUUID()
-    const sheets = workbook.SheetNames.map((name) => {
-      const rows = sheetRows(workbook.getWorksheet(name))
-      const headerIndex = rows.slice(0, 20).reduce((best, row, index) => {
-        const score = Object.values(detect(row)).reduce((sum, item) => sum + item, 0)
-        return score > best.score ? { index, score } : best
-      }, { index: 0, score: -1 }).index
-      const headers = rows[headerIndex].map((item, index) => String(item || `Coluna ${index + 1}`).trim())
+    // ExcelJS exposes worksheets (not SheetNames, which belongs to a different library).
+    const sheets = workbook.worksheets.flatMap((worksheet) => {
+      const rows = sheetRows(worksheet)
+      const candidates = rows.slice(0, 20).map((row, index) => ({
+        index,
+        score: Array.isArray(row) && row.some((cell) => String(cell ?? '').trim() !== '')
+          ? Object.values(detect(row)).reduce((sum, item) => sum + item, 0)
+          : -1
+      })).filter((item) => item.score >= 0)
+      if (!candidates.length) return [] // Ignore empty tabs, including formatted-only tabs.
+      const headerIndex = candidates.reduce((best, item) => item.score > best.score ? item : best, { index: 0, score: -1 }).index
+      const headers = (rows[headerIndex] || []).map((item, index) => String(item || ('Coluna ' + (index + 1))).trim())
       const scores = detect(headers)
-      const area = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0]
-      return { name, headers, headerIndex, rows: Math.max(0, rows.length - headerIndex - 1), scores, area, sample: rows.slice(headerIndex + 1, headerIndex + 6) }
+      const area = Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0] || ''
+      const dataRows = rows.slice(headerIndex + 1).filter((row) =>
+        Array.isArray(row) && row.some((cell) => String(cell ?? '').trim() !== '')
+      ).length
+      return [{ name: worksheet.name, headers, headerIndex, rows: dataRows, scores, area }]
     })
+    if (!sheets.length) {
+      throw new Error('A planilha não contém nenhuma aba com cabeçalhos preenchidos. Confira o arquivo e tente novamente.')
+    }
     const hash = crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')
     this.pending.set(token, { filePath, hash, workbook, sheets })
     return { token, file: path.basename(filePath), hash, sheets: sheets.map(({ name, headers, headerIndex, rows, scores, area }) => ({ name, headers, headerIndex, rows, scores, area })) }
