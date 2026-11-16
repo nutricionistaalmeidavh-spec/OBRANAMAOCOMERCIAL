@@ -109,7 +109,7 @@ describe('P2: relatórios gerenciais com fonte canônica de notas recebidas',()=
       expect(()=>f.service.report({obra_id:f.work.id,frente_id:999})).toThrow(/etapa/i)
       expect(()=>f.service.report({obra_id:f.work.id,frente_id:f.second.id,subfrente_id:f.sub.id})).toThrow(/subetapa/i)
       expect(()=>f.service.report({obra_id:f.work.id,limit:1000})).toThrow(/limit/i)
-      expect(()=>f.service.report({obra_id:f.other.id}).historico_total).toBe(1)
+      expect(f.service.report({obra_id:f.other.id}).historico_total).toBe(1)
     } finally { f.close() }
   })
   it('compara a subetapa somente quando o item orçamentário tiver vínculo explícito com ela',()=>{
