@@ -115,6 +115,32 @@ function required(area) {
   })[area] || ['descricao']
 }
 
+
+function selectedCompany(db, companyId) {
+  const id = Number(companyId)
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('Selecione uma empresa antes de importar.')
+  const company = db.prepare("SELECT * FROM empresas WHERE id=? AND deleted_at IS NULL AND status!='inativa'").get(id)
+  if (!company) throw new Error('Empresa selecionada não encontrada ou inativa.')
+  return company
+}
+
+function rowErrors(area, row, map, db, companyId) {
+  const mandatory = {
+    financeiro: ['descricao'], obras: ['nome'], orcamento: ['obra','descricao'],
+    funcionarios: ['nome'], compras: ['obra','descricao'], contratos: ['obra','descricao'],
+    aditivos: ['contrato','descricao'], medicoes: ['obra'], ponto: ['funcionario'],
+    documentos: ['titulo'], estoque: ['obra','descricao']
+  }[area] || []
+  const errors = mandatory.filter((field) => !String(value(row, map, field) ?? '').trim()).map((field) => 'Campo obrigatório: ' + field)
+  if (area === 'financeiro' && money(value(row, map, 'valor')) <= 0) errors.push('Valor financeiro deve ser maior que zero.')
+  if (area === 'aditivos' && String(value(row, map, 'contrato') || '').trim()) {
+    const number = String(value(row, map, 'contrato')).trim()
+    const linked = db.prepare("SELECT c.id FROM contratos_obra c JOIN obras o ON o.id=c.obra_id WHERE lower(COALESCE(c.numero,c.descricao))=lower(?) AND c.deleted_at IS NULL AND o.empresa_id=? LIMIT 1").get(number, companyId)
+    if (!linked) errors.push('Contrato não encontrado na empresa selecionada.')
+  }
+  return errors
+}
+
 class UniversalImportService {
   constructor({ db }) { this.db = db; this.pending = new Map() }
 
@@ -144,38 +170,62 @@ class UniversalImportService {
     return { token, file: path.basename(filePath), hash, sheets: sheets.map(({ name, headers, headerIndex, rows, scores, area }) => ({ name, headers, headerIndex, rows, scores, area })) }
   }
 
-  async preview(token, options) {
+  async preview(token, options = {}) {
     const pending = this.pending.get(token)
-    if (!pending) throw new Error('A selecao expirou. Escolha o arquivo novamente.')
+    if (!pending) throw new Error('A seleção expirou. Escolha o arquivo novamente.')
+    const company = selectedCompany(this.db.db, options.companyId)
     const sheet = pending.sheets.find((item) => item.name === options.sheet)
-    if (!sheet) throw new Error('Aba nao encontrada.')
+    if (!sheet) throw new Error('Aba não encontrada.')
     const area = AREAS[options.area] ? options.area : sheet.area
     const map = { ...mapping(sheet.headers, area), ...(options.mapping || {}) }
-    const rows = rowsAsObjects(sheetRows(pending.workbook.getWorksheet(sheet.name)), sheet.headerIndex).slice(0, 200)
-    const valid = rows.filter((row) => Object.values(row).some(Boolean))
-    return { area, label: AREAS[area].label, headers: sheet.headers, mapping: map, rows: valid.slice(0, 12), total: valid.length, missing: required(area).filter((field) => !map[field]), createMissing: ['categoria','obra','frente','fornecedor','cliente','cargo','funcionario','contrato'].filter((field) => map[field]) }
+    if (options.mappingOnly === true) return { mapping: map }
+    const entries = rowsAsObjects(sheetRows(pending.workbook.getWorksheet(sheet.name)), sheet.headerIndex)
+      .map((row, index) => ({ row, line: index + sheet.headerIndex + 2 }))
+      .filter((item) => Object.values(item.row).some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ''))
+    const reviewed = entries.map((item) => ({ ...item, errors: rowErrors(area, item.row, map, this.db.db, company.id) }))
+    const invalidEntries = reviewed.filter((item) => item.errors.length > 0)
+    const pageSize = Math.min(100, Math.max(1, Number.isInteger(Number(options.pageSize)) ? Number(options.pageSize) : 25))
+    const pages = Math.max(1, Math.ceil(reviewed.length / pageSize))
+    const page = Math.min(pages, Math.max(1, Number.isInteger(Number(options.page)) ? Number(options.page) : 1))
+    const slice = reviewed.slice((page - 1) * pageSize, page * pageSize)
+    return {
+      area, label: AREAS[area].label, companyId: company.id, companyName: company.nome_fantasia || company.razao_social,
+      headers: sheet.headers, mapping: map,
+      rows: slice.map((item) => item.row), rowNumbers: slice.map((item) => item.line), rowErrors: slice.map((item) => item.errors),
+      total: reviewed.length, importable: reviewed.length - invalidEntries.length, invalid: invalidEntries.length,
+      issues: invalidEntries.slice(0, 20).map((item) => ({ line: item.line, errors: item.errors })),
+      page, pageSize, pages,
+      missing: required(area).filter((field) => !map[field]),
+      createMissing: ['categoria','obra','frente','fornecedor','cliente','cargo','funcionario','contrato'].filter((field) => map[field])
+    }
   }
 
   async commit(token, options) {
     const pending = this.pending.get(token)
     if (!pending) throw new Error('A selecao expirou. Escolha o arquivo novamente.')
     const preview = await this.preview(token, options)
-    if (preview.missing.length) throw new Error(`Mapeie os campos obrigatorios: ${preview.missing.join(', ')}.`)
+    if (preview.missing.length) throw new Error('Mapeie os campos obrigatórios: ' + preview.missing.join(', ') + '.')
+    if (!preview.total) throw new Error('A aba não contém linhas para importar.')
+    if (preview.invalid) throw new Error('Existem ' + preview.invalid + ' linha(s) inválida(s). Corrija os dados antes de importar.')
     const sheet = pending.sheets.find((item) => item.name === options.sheet)
     const rows = rowsAsObjects(sheetRows(pending.workbook.getWorksheet(sheet.name)), sheet.headerIndex)
     const area = preview.area
     const map = preview.mapping
     return this.db.db.transaction(() => {
       if (this.db.db.prepare("SELECT id FROM importacoes WHERE hash=? AND aba=? AND status='concluida'").get(pending.hash, `universal:${sheet.name}`)) throw new Error('Esta aba ja foi importada.')
-      let company = this.db.db.prepare('SELECT * FROM empresas WHERE deleted_at IS NULL ORDER BY id LIMIT 1').get()
-      if (!company) company = this.db.save('empresas', { razao_social: 'Empresa importada', nome_fantasia: 'Empresa importada', status: 'ativa' })
+      const company = selectedCompany(this.db.db, options.companyId)
       const imported = this.db.save('importacoes', { arquivo: pending.filePath, hash: pending.hash, aba: `universal:${sheet.name}`, status: 'processando', resumo: '{}' })
       let created = 0
       let count = 0
       const raw = this.db.db.prepare('INSERT INTO importacao_linhas(importacao_id,competencia,celula,tipo,nome_origem,valor_centavos,dados_brutos,entidade_tipo,entidade_id,status) VALUES (?,?,?,?,?,?,?,?,?,?)')
       const findOrCreate = (table, column, name, data) => {
         if (!name) return null
-        let item = this.db.db.prepare(`SELECT * FROM ${table} WHERE lower(${column})=lower(?)${table === 'obras' || table === 'fornecedores' || table === 'clientes' ? ' AND deleted_at IS NULL' : ''}`).get(String(name).trim())
+        const scoped = table === 'obras' || table === 'funcionarios'
+        const onlyActive = table === 'obras' || table === 'fornecedores' || table === 'clientes'
+        const sql = 'SELECT * FROM ' + table + ' WHERE lower(' + column + ')=lower(?)'
+          + (scoped ? ' AND empresa_id=?' : '') + (onlyActive ? ' AND deleted_at IS NULL' : '')
+        const args = scoped ? [String(name).trim(), company.id] : [String(name).trim()]
+        let item = this.db.db.prepare(sql).get(...args)
         if (!item) { item = this.db.save(table, data); created++ }
         return item
       }
@@ -187,7 +237,7 @@ class UniversalImportService {
         if (!item) { item = this.db.save('frentes_obra', { obra_id: work.id, nome: text, status: 'ativa' }); created++ }
         return item
       }
-      const contractByNumber = (number) => this.db.db.prepare('SELECT * FROM contratos_obra WHERE lower(COALESCE(numero,descricao))=lower(?) AND deleted_at IS NULL ORDER BY id DESC LIMIT 1').get(String(number || '').trim())
+      const contractByNumber = (number) => this.db.db.prepare("SELECT c.* FROM contratos_obra c JOIN obras o ON o.id=c.obra_id WHERE lower(COALESCE(c.numero,c.descricao))=lower(?) AND c.deleted_at IS NULL AND o.empresa_id=? ORDER BY c.id DESC LIMIT 1").get(String(number || '').trim(), company.id)
 
       for (let index = 0; index < rows.length; index++) {
         const row = rows[index]
