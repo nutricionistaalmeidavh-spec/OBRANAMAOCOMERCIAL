@@ -12,9 +12,11 @@ describe('propriedade da sincronizacao central', () => {
     expect(settings).toContain('Este computador continua usando os dados do servidor da empresa')
   })
 
-  it('mantem Web/PWA como parte incluida e independente da fonte operacional', () => {
+  it('explica que o PWA mantém acesso Cloud, mas o modo remote exige Desktop coordenador online', () => {
     expect(settings).toContain('Web/PWA continua incluído')
-    expect(settings).toContain('não depende de este computador ser o coordenador')
+    expect(settings).toContain("state?.source === 'remote'")
+    expect(settings).toContain('Somente o Desktop autorizado para esta obra')
+    expect(settings).toContain('Enquanto estiver desligado, o PWA conserva sua operação Cloudflare/D1')
   })
 
   it('tipa source e pauseReason sem remover o contrato existente', () => {
