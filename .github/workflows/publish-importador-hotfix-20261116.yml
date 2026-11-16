@@ -1,9 +1,5 @@
 name: Publish Obra na Mao Desktop Importador Hotfix 2.1.9
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'apps/desktop/**'
   push:
     branches: [main]
     paths:
