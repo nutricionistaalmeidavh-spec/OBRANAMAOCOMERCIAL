@@ -49,6 +49,7 @@ export class FieldRdoImport {
       if(oldLink.last_rdo_hash&&oldLink.last_rdo_hash!==contentHash(rdo))throw new Error('O RDO foi alterado no Desktop após a última integração. Revise antes de importar novamente.')
       if(['fechado','finalizado'].includes(rdo.status))throw new Error('Reabra o RDO canônico antes de atualizar o consumo.')
       rdo=this.repository.save('rdos',{id:rdo.id,atividades:fields.activities,observacoes:fields.notes})
+      this.db.prepare('UPDATE field_rdo_links SET last_rdo_hash=? WHERE remote_project_id=? AND day=?').run(contentHash(rdo),remoteProjectId,date)
     }else{
       const existing=this.db.prepare('SELECT id FROM rdos WHERE obra_id=? AND data=? AND deleted_at IS NULL').get(workId,date)
       if(existing)throw new Error('Já existe RDO manual nesta obra e data. Vincule-o após conferência para evitar duplicações.')
