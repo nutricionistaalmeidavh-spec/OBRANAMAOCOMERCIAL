@@ -14,7 +14,7 @@ function security(modules=['finance','obra360']){
   return {
     serverState(){return {claimed:true,companyId:'tenant-test'}},
     deviceByTokenHash(value){return value===hash(TOKEN)?{id:'device-test',memberId:'member-test',status:'active'}:null},
-    member(id){return id==='member-test'?{memberId:id,role:'admin',modules,channels:['desktop'],status:'active'}:null},
+    member(id){return id==='member-test'?{memberId:id,role:'foreman',modules,channels:['desktop'],status:'active'}:null},
     touchDevice(){}
   }
 }
