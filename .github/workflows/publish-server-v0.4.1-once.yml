@@ -1,0 +1,236 @@
+name: Publish verified Obra na Mão Server v0.4.1 once
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-server-v0.4.1-once.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-server-v0.4.1-once.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: obra-na-mao-server-v0.4.1-publish-once
+  cancel-in-progress: false
+
+env:
+  VERSION: '0.4.1'
+
+jobs:
+  validate:
+    name: Validate merged Server, Desktop and PWA contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Validate version and Server contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const p=require('./apps/lan-server/package.json'); if(p.version!==process.env.VERSION) process.exit(1)"
+          npm --prefix apps/lan-server test
+          npm --prefix apps/lan-server run packaging:test
+          bash -n apps/lan-server/packaging/linux/build.sh
+          bash -n apps/lan-server/packaging/linux/install.sh
+          bash -n apps/lan-server/packaging/linux/configure-server.sh
+      - name: Install Desktop test dependencies
+        working-directory: apps/desktop
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Validate Desktop remote, auth, migration and sync
+        working-directory: apps/desktop
+        run: >-
+          npx vitest run
+          electron/services/f24-auth-lifecycle.test.ts
+          electron/services/server-reconnect-service.test.ts
+          electron/services/f25-remote-transport.test.ts
+          tests/storage-online-contract.test.ts
+          electron/services/storage-online-compatibility.test.ts
+          electron/services/sync-coordinator.test.ts
+          electron/services/lan-sync-data-provider.test.ts
+          electron/services/remote-crud-routing.test.ts
+          electron/services/central-planning-sync.test.ts
+          tests/f29-f30-server-wizard.test.ts
+          tests/storage-server-migration-ui.test.ts
+      - name: Install Web/PWA test dependencies
+        working-directory: apps/web
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Validate Cloudflare/D1 PWA bridge
+        working-directory: apps/web
+        run: >-
+          npx vitest run
+          backend/p3-workflows.test.ts
+          backend/lan-server-permissions-snapshot.test.ts
+          backend/remote-sync-owner.test.ts
+          src/owner-navigation.test.ts
+
+  windows:
+    name: Build, install and smoke Windows Server
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Build Windows x64 installer from integrated source
+        shell: pwsh
+        run: ./apps/lan-server/packaging/windows/build.ps1 -BuildInstaller
+      - name: Smoke installation, readiness, server identity and configurator
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Join-Path $PWD "apps/lan-server/dist/installer/Obra-na-Mao-Server-Setup-$env:VERSION-x64.exe"
+          $installed = Join-Path ${env:ProgramFiles} 'ArtiSys\Obra na Mão Server'
+          if (!(Test-Path $installer)) { throw 'Windows installer missing.' }
+          function Wait-Ready {
+            $deadline = (Get-Date).AddSeconds(50)
+            while ((Get-Date) -lt $deadline) {
+              try {
+                $r = Invoke-RestMethod -Uri 'http://127.0.0.1:4732/ready' -TimeoutSec 2
+                if ($r.ready -eq $true -and $r.identity.serverId) { return $r }
+              } catch {}
+              Start-Sleep -Milliseconds 350
+            }
+            throw 'Windows Server failed readiness.'
+          }
+          $firstProcess = Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -PassThru
+          if ($firstProcess.ExitCode -ne 0) { throw "Windows installation failed: $($firstProcess.ExitCode)" }
+          $first = Wait-Ready
+          if (!(Test-Path (Join-Path $installed 'platform\config-wizard.mjs'))) { throw 'Web configurator missing from installer.' }
+          if (!(Test-Path (Join-Path $installed 'platform\configure-server.ps1'))) { throw 'Windows configurator launcher missing.' }
+          $secondProcess = Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART') -Wait -PassThru
+          if ($secondProcess.ExitCode -ne 0) { throw "Windows reinstall failed: $($secondProcess.ExitCode)" }
+          $second = Wait-Ready
+          if ($first.identity.serverId -ne $second.identity.serverId) { throw 'Windows reinstall changed server identity.' }
+          Write-Host "Server installation and reinstall passed: $($first.identity.serverId)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-release-0.4.1-windows
+          path: apps/lan-server/dist/installer/Obra-na-Mao-Server-Setup-0.4.1-x64.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  linux:
+    name: Build, install and smoke Linux Server
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Build Linux x64 package from integrated source
+        run: bash apps/lan-server/packaging/linux/build.sh
+      - name: Smoke installation, readiness, server identity and configurator
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_dir="$PWD/apps/lan-server/dist/server-linux-x64"
+          sudo env PACKAGE_DIR="$package_dir" READY_TIMEOUT_SECONDS=60 bash apps/lan-server/packaging/linux/install.sh
+          sudo systemctl is-active --quiet obra-na-mao-server.service
+          sudo test -f /opt/obra-na-mao/server/platform/config-wizard.mjs
+          sudo test -x /opt/obra-na-mao/server/platform/configure-server.sh
+          read_id() {
+            node --input-type=module -e "const r=await fetch('http://127.0.0.1:4732/ready');const j=await r.json();if(!r.ok||j.ready!==true||!j.identity?.serverId)process.exit(1);process.stdout.write(j.identity.serverId)"
+          }
+          id_before="$(read_id)"
+          sudo env PACKAGE_DIR="$package_dir" READY_TIMEOUT_SECONDS=60 bash apps/lan-server/packaging/linux/install.sh
+          id_after="$(read_id)"
+          test "$id_before" = "$id_after"
+          tar -tzf "apps/lan-server/dist/Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz" | grep 'platform/config-wizard.mjs' >/dev/null
+          echo "Linux install/reinstall passed: $id_before"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-release-0.4.1-linux
+          path: apps/lan-server/dist/Obra-na-Mao-Server-0.4.1-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish and verify Server v0.4.1 release once
+    needs: [validate, windows, linux]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-server-v0.4.1]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-release-0.4.1-windows
+          path: artifacts/windows
+      - uses: actions/download-artifact@v4
+        with:
+          name: server-release-0.4.1-linux
+          path: artifacts/linux
+      - name: Verify installers and calculate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          win="Obra-na-Mao-Server-Setup-$VERSION-x64.exe"
+          lin="Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz"
+          test -s "artifacts/windows/$win"
+          test -s "artifacts/linux/$lin"
+          test "$(stat -c%s "artifacts/windows/$win")" -gt 5000000
+          test "$(stat -c%s "artifacts/linux/$lin")" -gt 5000000
+          tar -tzf "artifacts/linux/$lin" | grep 'platform/config-wizard.mjs' >/dev/null
+          tar -tzf "artifacts/linux/$lin" | grep 'platform/configure-server.sh' >/dev/null
+          cp "artifacts/windows/$win" .
+          cp "artifacts/linux/$lin" .
+          sha256sum "$win" "$lin" > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+      - name: Create release only if tag is absent
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="obra-na-mao-server-v$VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $tag already exists; refusing to overwrite immutable binaries."
+            exit 1
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::Tag $tag already exists; refusing to repoint it."
+            exit 1
+          fi
+          gh release create "$tag" \
+            "Obra-na-Mao-Server-Setup-$VERSION-x64.exe" \
+            "Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz" \
+            SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Obra na Mão Server v$VERSION — Configurador Windows e Linux" \
+            --latest=false \
+            --notes "Obra na Mão Server v$VERSION self-hosted, Windows x64 e Linux x64. Inclui configurador local via navegador (somente loopback + sessão temporária). Windows: Menu Iniciar > Obra na Mão Server > Configurar servidor. Linux: sudo /opt/obra-na-mao/server/platform/configure-server.sh; em servidor sem interface gráfica use SSH -L 4734:127.0.0.1:4734. Informe domínio HTTPS já providenciado pelo cliente e porta interna; salvar, reiniciar com rollback, testar HTTPS e gerar código inicial de vínculo, sem editar server.env. O Desktop continua responsável por conectar, parear e migrar. DNS, HTTPS/proxy, VPN, firewall e certificados são responsabilidades da infraestrutura do cliente; nenhuma dependência paga é exigida. A integração PWA/Cloudflare/D1 permanece; não substitui o instalador Desktop nem publica o servidor diretamente na WAN. Instalar e homologar em ambiente real antes de usar em produção."
+      - name: Download release and verify published checksums
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p verified
+          gh release download "obra-na-mao-server-v$VERSION" --repo "$GITHUB_REPOSITORY" --dir verified --pattern 'Obra-na-Mao-Server-*'
+          cp SHA256SUMS.txt verified/
+          (cd verified && sha256sum -c SHA256SUMS.txt)
+          gh release view "obra-na-mao-server-v$VERSION" --repo "$GITHUB_REPOSITORY" --json url,assets,tagName,isDraft,isPrerelease
