@@ -1,12 +1,7 @@
 name: Publish Obra na Mão RDO Desktop 2.1.8 and Server 0.4.1
+# Releases 2.1.8 and 0.4.1 were already published immutably.
+# Keep the original build recipe for audit; never rebuild it on unrelated main pushes.
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/publish-rdo-20261116.yml'
-      - 'apps/desktop/package.json'
-      - 'apps/desktop/package-lock.json'
-      - 'apps/lan-server/package.json'
   workflow_dispatch:
 
 permissions:
