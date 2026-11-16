@@ -3,6 +3,7 @@ import path from 'node:path'
 import test from 'node:test'
 import { LanRepository } from '../src/repository.mjs'
 import { RdoMaterialConsumption } from '../src/rdo-material-consumption.mjs'
+import { FieldRdoCatalog } from '../src/field-rdo-catalog.mjs'
 
 const migrationsDir = path.resolve(import.meta.dirname, '../migrations')
 function fixture() {
@@ -70,4 +71,41 @@ test('consumo precisa pertencer à mesma obra do RDO', () => {
     assert.throws(() => f.service.save({ ...payload(f, 2, 'rdo-material-2', 0), items: [item(otherFront, 2)] }), /frente|obra/i)
     assert.equal(balance(f), 40)
   } finally { f.repository.close() }
+})
+
+test('catálogo vem do estoque canônico e usa ID determinístico por obra/material/unidade',()=>{
+ const f=fixture()
+ try{
+  const catalog=new FieldRdoCatalog({repository:f.repository}).list({companyId:f.company.id,workId:f.work.id})
+  assert.equal(catalog.materials.length,1)
+  assert.equal(catalog.materials[0].saldo,40)
+  assert.ok(catalog.materials[0].id.startsWith('mat_'))
+  assert.deepEqual(new FieldRdoCatalog({repository:f.repository}).list({companyId:f.company.id,workId:f.work.id}).materials,catalog.materials)
+ }finally{f.repository.close()}
+})
+
+test('rejeita material_id forjado e preserva saldo',()=>{
+ const f=fixture()
+ try{
+  const values=payload(f,12,'catalog-forged',0)
+  values.items[0].material_id='mat_fake'
+  assert.throws(()=>f.service.save(values),/identificador.*material|catálogo/i)
+  assert.equal(balance(f),40)
+ }finally{f.repository.close()}
+})
+
+test('trocar consumo de frente não cria consumo líquido duplicado',()=>{
+ const f=fixture()
+ try{
+  const front2=f.repository.save('frentes_obra',{obra_id:f.work.id,nome:'Esgoto'})
+  f.service.save(payload(f,12,'front-1',0))
+  const moved=payload(f,12,'front-2',1)
+  moved.items[0].frente_id=front2.id
+  moved.items[0].servico='esgoto'
+  f.service.save(moved)
+  assert.equal(balance(f),28)
+  assert.equal(f.repository.connection().prepare("SELECT COALESCE(SUM(CASE WHEN tipo='saida' THEN -quantidade ELSE quantidade END),0) n FROM movimentacoes_estoque WHERE frente_id=?").get(f.front.id).n,0)
+  assert.equal(f.repository.connection().prepare("SELECT COALESCE(SUM(CASE WHEN tipo='saida' THEN -quantidade ELSE quantidade END),0) n FROM movimentacoes_estoque WHERE frente_id=?").get(front2.id).n,-12)
+  assert.equal(f.service.list(f.rdo.id).items[0].servico,'esgoto')
+ }finally{f.repository.close()}
 })
