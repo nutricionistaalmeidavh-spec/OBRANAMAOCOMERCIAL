@@ -53,12 +53,14 @@ export default function SyncSettings() {
   const company = companies.data?.find(item => String(item.id) === companyId)
   const work = choices.find(item => String(item.id) === workId)
   const lanClient = state?.source === 'lan-client'
+  const remoteCoordinator = state?.source === 'remote'
   return <>
     <Card className="setting-card setting-card-feature" id="sync-settings">
       <h3>Sincronização da obra</h3>
       <p>Escolha qual obra deste computador deve continuar disponível também no Obra360. As demais obras permanecem separadas.</p>
       <p><strong>Celular e Desktop trabalham sobre a mesma obra.</strong> Depois do vínculo, as alterações são conciliadas automaticamente quando houver conexão.</p>
-      <details><summary>Como funciona entre computadores</summary><p><strong>Web/PWA continua incluído</strong> e não depende de este computador ser o coordenador da sincronização.</p></details>
+      <details><summary>Como funciona entre computadores</summary><p><strong>Web/PWA continua incluído.</strong> {remoteCoordinator ? "No modo servidor próprio, este Desktop autorizado precisa permanecer ligado e conectado para manter a sincronização entre o servidor central e o PWA. Enquanto estiver desligado, o PWA conserva sua operação Cloudflare/D1, mas as alterações aguardam a próxima sincronização." : "Na rede local, a sincronização central é responsabilidade do PC principal."}</p></details>
+      {remoteCoordinator && <p role="status"><strong>Coordenador do servidor próprio.</strong> Somente o Desktop autorizado para esta obra pode enviar e receber alterações do PWA. A troca do coordenador exige migração assistida.</p>}
       {lanClient && <p role="status"><strong>A sincronização central é responsabilidade do PC principal.</strong> Este computador continua usando os dados do servidor da empresa e acompanha o estado online, mas não executa push/pull central diretamente.</p>}
       <div className="form-grid">
         <Field label="Empresa local"><select value={companyId} disabled={busy || lanClient} onChange={event => { setCompanyId(event.target.value); setWorkId('') }}><option value="">Selecione...</option>{companies.data?.map(item => <option key={item.id} value={item.id}>{item.razao_social || item.nome_fantasia}</option>)}</select></Field>
