@@ -114,7 +114,19 @@ contextBridge.exposeInMainWorld('fluxoDre', {
   ponto: { receiptPolicy: () => call('time:receipt-policy'), saveReceiptPolicy: (data) => call('time:save-receipt-policy', data), get: (data) => call('time:get', data), autoFill: (data) => call('time:auto-fill', data), save: (data) => call('time:save', data), generate: (data) => call('time:generate', data), generateAll: (data) => call('time:generate-all', data) },
   catalogo: { list: () => call('catalog:list'), saveCargo: (data) => call('catalog:save-cargo', data), saveCompensationPolicy: (data) => call('catalog:save-compensation-policy', data), saveBenefit: (data) => call('catalog:save-benefit', data), saveLink: (data) => call('catalog:save-link', data), deactivate: (type,id) => call('catalog:deactivate', { type,id }) },
   importacoes: { ...entity('importacoes'), preview: () => call('imports:preview'), commit: (token) => call('imports:commit', { token }) },
-  importadorUniversal: { choose: () => call('universal-import:choose'), preview: (token, options) => call('universal-import:preview', { token, options }), commit: (token, options) => call('universal-import:commit', { token, options }) },
+  importadorUniversal: {
+    choose: () => call('universal-import:choose'),
+    dropped: (file) => {
+      const filePath = webUtils.getPathForFile(file)
+      if (!filePath) throw new Error('Selecione um arquivo local válido.')
+      return call('universal-import:dropped', { filePath })
+    },
+    template: (area) => call('universal-import:template', { area }),
+    exportIssues: (token, options) => call('universal-import:export-issues', { token, options }),
+    saveMapping: (options) => call('universal-import:save-mapping', options),
+    preview: (token, options) => call('universal-import:preview', { token, options }),
+    commit: (token, options) => call('universal-import:commit', { token, options })
+  },
   relatorios: { dashboard: (filters) => call('dashboard:get', filters), dre: (filters) => call('dre:get', filters) },
   online: {
     passwordAuth: (input) => call('online:password-auth', input),
