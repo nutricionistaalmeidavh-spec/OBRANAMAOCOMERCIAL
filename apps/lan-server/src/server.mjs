@@ -603,7 +603,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, measurements.save(body))
       }
 
-      if (url.pathname === '/api/v1/received-notes' || url.pathname === '/api/v1/received-notes/summary' || /^\/api\/v1\/received-notes\/\d+(?:\/attach)?$/.test(url.pathname)) {
+      if (url.pathname === '/api/v1/received-notes' || url.pathname === '/api/v1/received-notes/summary' || url.pathname === '/api/v1/received-notes/report' || /^\/api\/v1\/received-notes\/\d+(?:\/attach)?$/.test(url.pathname)) {
         if (!receivedNotes) return sendJson(response,503,{error:'notes_unavailable',message:'Arquivo de notas recebidas indisponível.'})
         const context=await authenticateLanRequest(request,security)
         const isWrite=request.method==='POST'
@@ -615,6 +615,12 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
           if (request.method==='GET') return sendJson(response,200,receivedNotes.list(Number(url.searchParams.get('obra_id'))))
           if (request.method==='POST') return sendJson(response,201,receivedNotes.create(await readJson(request)))
           return methodNotAllowed(response,['GET','POST'])
+        }
+        if (url.pathname==='/api/v1/received-notes/report') {
+          if (request.method!=='GET') return methodNotAllowed(response,['GET'])
+          const query=Object.fromEntries(['obra_id','data_inicio','data_fim','frente_id','subfrente_id','fornecedor_id','limit','offset']
+            .filter(key=>url.searchParams.has(key)).map(key=>[key,url.searchParams.get(key)]))
+          return sendJson(response,200,receivedNotes.report(query))
         }
         if (url.pathname==='/api/v1/received-notes/summary') {
           if (request.method!=='GET') return methodNotAllowed(response,['GET'])
