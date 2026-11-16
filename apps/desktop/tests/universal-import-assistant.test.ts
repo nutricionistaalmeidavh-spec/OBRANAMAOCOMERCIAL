@@ -1,16 +1,17 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, resolve } from 'node:path'
+import { dirname, resolve, join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it, vi } from 'vitest'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const originalRequire = createRequire(import.meta.url)
-function createService(rows: any[][], headers = ['descricao', 'valor']) {
+function createService(rows: any[][], headers = ['descricao', 'valor'], outputPath?: string) {
   const source = readFileSync(resolve(here, '../electron/services/universal-import-service.cjs'), 'utf8')
   const mod = { exports: {} as any }
   const fakeRequire = (id: string): any => {
-    if (id === 'electron') return { dialog: { showSaveDialog: vi.fn() } }
+    if (id === 'electron') return { dialog: { showSaveDialog: vi.fn(async () => ({ canceled: false, filePath: outputPath })) } }
     if (id === './spreadsheet-guard.cjs') return { assertSpreadsheetInput: () => {} }
     if (id === './spreadsheet-reader.cjs') return {
       sheetRows: (s: any) => s.rows,
@@ -84,6 +85,32 @@ describe('assistente universal P0 P1 P2', () => {
     const profile = service.getSavedMapping({ companyId: 7, area: 'financeiro', headers: ['Montante', 'Despesa'] })
     expect(profile?.descricao).toBe('Despesa')
     expect(profile?.valor).toBe('Montante')
+  })
+
+  it('gera realmente um Excel com campos exigidos e salva um relatório CSV completo', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'obra-import-'))
+    try {
+      const templatePath = join(dir, 'modelo.xlsx')
+      const fixture = createService([], ['descricao', 'valor'], templatePath)
+      const output = await fixture.service.saveTemplate('financeiro')
+      expect(output?.path).toBe(templatePath)
+      const ExcelJS = originalRequire('exceljs')
+      const book = new ExcelJS.Workbook()
+      await book.xlsx.readFile(templatePath)
+      expect(book.getWorksheet('Financeiro')?.getRow(1).getCell(1).value).toBe('descricao')
+      expect(book.getWorksheet('Financeiro')?.getRow(1).getCell(2).value).toBe('valor')
+      expect(book.getWorksheet('INSTRUCOES')).toBeTruthy()
+
+      const reportPath = join(dir, 'erros.csv')
+      const report = createService(Array.from({ length: 37 }, (_, index) => ['Conta ' + index, 0]), ['descricao', 'valor'], reportPath)
+      const csv = await report.service.exportIssues('token', { sheet: 'Dados', area: 'financeiro', companyId: 7 })
+      expect(csv?.count).toBe(37)
+      const lines = readFileSync(reportPath, 'utf8').trim().split(/\r?\n/)
+      expect(lines).toHaveLength(38)
+      expect(lines[0]).toContain('Problema')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   it('permite gerar modelo e relatório de erros pelo serviço do desktop', () => {
