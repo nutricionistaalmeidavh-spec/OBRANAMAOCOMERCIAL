@@ -34,6 +34,7 @@ declare global {
     multiuserInjectAdminSettings?: ()=>void;
     multiuserOpenUsers?: ()=>void;
     multiuserReloadProject?: ()=>Promise<ProjectState>;
+    multiuserLoadDay?: (date:string)=>Promise<Record<string,unknown>|null>;
     mobileBridgeUpdate?: (payload:Record<string,unknown>)=>Promise<any>;
     mobileResolveConflict?: (conflictId:string,resolution:'accept_desktop'|'keep_mobile')=>Promise<any>;
     mobileReadOnlySummary?: any;
@@ -146,19 +147,19 @@ function configureSharedContext(role:Role,b:Bootstrap,state?:ProjectState){
   fieldSync?.dispose();window.clearTimeout(syncTimer);
   window.multiuserContext={role,bootstrap:b,projectState:state,online:navigator.onLine,pendingSync:0};
   const key=syncScope(b);
-  fieldSync=role==='admin'&&key?createFieldSync({key,storage:localStorage,baseline:state,
+  fieldSync=(role==='admin'||role==='foreman')&&key?createFieldSync({key,storage:localStorage,baseline:state,
     readRemote:async()=>((await fieldProject()).data as {state:ProjectState}).state,
     send:next=>api.put('/api/project/state',{state:next}),
     status:value=>{
       const ctx=window.multiuserContext;if(ctx){ctx.pendingSync=value==='idle'?0:1;ctx.online=navigator.onLine;if(value==='idle')ctx.lastSyncedAt=new Date().toISOString()}
       setHeader(role,navigator.onLine,value==='saving'?'syncing':value==='idle'?'idle':'pending');
       let status=document.getElementById('fieldSyncStatus');if(!status){status=document.createElement('div');status.id='fieldSyncStatus';status.className='field-sync-status';status.setAttribute('role','status');document.querySelector('.top')?.after(status)}
-      status.textContent=value==='conflict'?'Há um conflito de edição. Sua versão continua preservada neste aparelho até você revisar.':value==='pending'?'Salvo neste aparelho · aguardando conexão para enviar.':value==='saving'?'Salvando alterações…':'Salvo na obra · o Desktop receberá as alterações automaticamente.';
+      status.textContent=value==='conflict'?'Há um conflito de edição. O rascunho permanece neste aparelho para revisão.':value==='pending'?'Salvo neste aparelho · envio para a Web pendente.':value==='saving'?'Enviando alterações para a Web…':'Salvo na Web. A integração com o Desktop é confirmada separadamente.';
       if(value==='pending'){const retry=document.createElement('button');retry.type='button';retry.textContent='Tentar enviar';retry.onclick=()=>void fieldSync?.flush();status.append(retry)}
       if(value==='conflict'){const download=document.createElement('button');download.type='button';download.textContent='Baixar meu rascunho';download.onclick=()=>{const blob=new Blob([JSON.stringify(fieldSync?.read(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='rascunho-obra.json';a.click();URL.revokeObjectURL(url)};status.append(download)}
     }}):undefined;
-  window.multiuserSync=async(next)=>{if(role!=='admin')return;if(!fieldSync)throw new Error('Não foi possível identificar a empresa e a obra para salvar com segurança.');fieldSync.save(next);window.clearTimeout(syncTimer);syncTimer=window.setTimeout(()=>void fieldSync?.flush(),650)};
-  window.multiuserAttendance=async(employeeId,status)=>{const res=await fieldAttendance(employeeId,status);return res.data as {day:Record<string,unknown>;employee:Record<string,unknown>}};window.multiuserReloadProject=async()=>{const res=await fieldProject(),next=(res.data as {state:ProjectState}).state;await writeLocalState(next);if(window.multiuserContext)window.multiuserContext.projectState=next;return next};window.mobileBridgeUpdate=async(payload)=>{const res=await fieldBridgeUpdate(payload as Record<string,unknown>);return res.data};window.mobileResolveConflict=async(conflictId,resolution)=>{const res=await api.post('/api/mobile/sync/conflicts/resolve',{conflictId,resolution});try{window.mobileSyncConflicts=((await api.get('/api/mobile/sync/conflicts')).data as {conflicts:any[]}).conflicts||[]}catch{}return res.data};window.mobileManagementHtml=(summary,access)=>managementHtml(summary,access);window.multiuserInjectAdminSettings=injectAdminSettings;window.multiuserOpenUsers=openUsers}
+  window.multiuserSync=async(next)=>{if(!['admin','foreman'].includes(role))throw new Error('Seu perfil não permite alterar o diário.');if(!fieldSync)throw new Error('Não foi possível identificar a empresa e a obra para salvar com segurança.');fieldSync.save(next);window.clearTimeout(syncTimer);syncTimer=window.setTimeout(()=>void fieldSync?.flush(),650)};
+  window.multiuserLoadDay=async(date)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw new Error('Data inválida.');const res=phoneMode()?await api.post('/api/phone/project/day',{token:phoneToken(),date}):await api.get('/api/project/day',{date});return ((res.data as {day?:Record<string,unknown>|null}).day||null)};window.multiuserAttendance=async(employeeId,status)=>{const res=await fieldAttendance(employeeId,status);return res.data as {day:Record<string,unknown>;employee:Record<string,unknown>}};window.multiuserReloadProject=async()=>{const res=await fieldProject(),next=(res.data as {state:ProjectState}).state;await writeLocalState(next);if(window.multiuserContext)window.multiuserContext.projectState=next;return next};window.mobileBridgeUpdate=async(payload)=>{const res=await fieldBridgeUpdate(payload as Record<string,unknown>);return res.data};window.mobileResolveConflict=async(conflictId,resolution)=>{const res=await api.post('/api/mobile/sync/conflicts/resolve',{conflictId,resolution});try{window.mobileSyncConflicts=((await api.get('/api/mobile/sync/conflicts')).data as {conflicts:any[]}).conflicts||[]}catch{}return res.data};window.mobileManagementHtml=(summary,access)=>managementHtml(summary,access);window.multiuserInjectAdminSettings=injectAdminSettings;window.multiuserOpenUsers=openUsers}
 
 function activateRoleUI(role:Role){
   const apply=()=>{
@@ -167,7 +168,7 @@ function activateRoleUI(role:Role){
       if(h)window.multiuserInjectAdminSettings?.();
       return;
     }
-    document.querySelectorAll('[data-screen="settings"],[data-screen="more"],[data-screen="issues"],[data-screen="management"],#newPlan,#newSession,[data-field-action],#saveDayNote,.plan-delete,.plan-start,#compensate,.session-actions').forEach(el=>(el as HTMLElement).style.display='none');
+    document.querySelectorAll('[data-screen="settings"],[data-screen="management"],#governancePermissionsBtn').forEach(el=>(el as HTMLElement).style.display='none');
     document.querySelectorAll('.front-select').forEach(el=>{(el as HTMLSelectElement).disabled=true});
     const note=document.getElementById('dayNote') as HTMLTextAreaElement|null;if(note)note.disabled=true;
     const dlg=document.getElementById('sheet');if(dlg){dlg.querySelectorAll('input[type="checkbox"]').forEach(el=>{(el as HTMLInputElement).disabled=true});const complete=dlg.querySelector('#complete') as HTMLElement|null;if(complete)complete.style.display='none'}
