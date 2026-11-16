@@ -14,7 +14,8 @@ describe('mapeamento manual do importador universal', () => {
 
   it('lista as colunas da aba selecionada como opções do mapeamento', () => {
     expect(page).toContain('file.sheets.find')
-    expect(page).toContain('selectedSheet.headers.map')
+    expect(page).toContain('Array.isArray(selectedSheet?.headers)')
+    expect(page).toContain('headers.map')
     expect(page).toContain('value={mapping[field] ||')
   })
 })
