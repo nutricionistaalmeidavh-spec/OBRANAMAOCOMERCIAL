@@ -172,7 +172,7 @@ export const handler=router({
     if('response'in gate)return gate.response;
     try{return json({photo:await uploadFieldPhoto({companyId:gate.phoneAccess.companyId,
       projectId:gate.phoneAccess.projectId,date:String(body.date||''),mimeType:String(body.mimeType||''),
-      data:String(body.data||''),userId:String(gate.participant.id)})})}
+      data:String(body.data||''),clientId:String(body.clientId||''),userId:String(gate.participant.id)})})}
     catch(e){return error((e as Error).message,400)}
   }],
   'POST /api/phone/field/rdo/photos/view':[async(ctx)=>{
@@ -364,7 +364,7 @@ export const handler=router({
     const body=asRecord(ctx.body);
     try{return json({photo:await uploadFieldPhoto({companyId:gate.member!.companyId,
       projectId:gate.member!.projectId,date:String(body.date||''),mimeType:String(body.mimeType||''),
-      data:String(body.data||''),userId:ctx.user!.userId})})}
+      data:String(body.data||''),clientId:String(body.clientId||''),userId:ctx.user!.userId})})}
     catch(e){return error((e as Error).message,400)}
   }],
   'GET /api/field/rdo/photos':[...secured,async(ctx)=>{
