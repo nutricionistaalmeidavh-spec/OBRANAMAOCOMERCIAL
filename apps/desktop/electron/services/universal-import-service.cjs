@@ -224,7 +224,7 @@ class UniversalImportService {
   }
 
   async exportIssues(token, options) {
-    const report = await this.preview(token, options)
+    const report = await this.preview(token, { ...options, allIssues: true })
     const problems = (report.issues || [])
     if (!report.invalid && !report.missing.length && !report.alreadyImported) throw new Error('Nenhuma divergência encontrada para exportar.')
     const picked = await dialog.showSaveDialog({
@@ -289,15 +289,41 @@ class UniversalImportService {
       .map((row, index) => ({ row, line: index + sheet.headerIndex + 2 }))
       .filter((item) => Object.values(item.row).some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ''))
     const uniqueRows = new Map()
+    const existingLookup = new Map()
     let duplicates = 0
+    let existingRecords = 0
     const reviewed = entries.map((item) => {
       const errors = rowErrors(area, item.row, map, this.db.db, company.id)
+      const warnings = []
       const signature = crypto.createHash('sha256').update(JSON.stringify(Object.values(item.row).map(cell => String(cell ?? '').trim()))).digest('hex')
       if (uniqueRows.has(signature)) {
         errors.push(`Registro repetido na linha ${uniqueRows.get(signature)}. Remova a duplicata antes de importar.`)
         duplicates++
       } else uniqueRows.set(signature, item.line)
-      return { ...item, errors }
+      if (!errors.length && (area === 'obras' || area === 'funcionarios')) {
+        const name = String(value(item.row, map, 'nome') || '').trim()
+        if (name) {
+          const cacheKey = area + ':' + norm(name)
+          if (!existingLookup.has(cacheKey)) {
+            const sql = area === 'obras'
+              ? 'SELECT id FROM obras WHERE empresa_id=? AND lower(nome)=lower(?) AND deleted_at IS NULL LIMIT 1'
+              : 'SELECT id FROM funcionarios WHERE empresa_id=? AND lower(nome)=lower(?) LIMIT 1'
+            existingLookup.set(cacheKey, Boolean(this.db.db.prepare(sql).get(company.id, name)))
+          }
+          if (existingLookup.get(cacheKey)) {
+            warnings.push('Cadastro já existe nesta empresa e será reutilizado; os dados atuais não serão sobrescritos.')
+            existingRecords++
+          }
+        }
+        if (area === 'funcionarios') {
+          const cpf = String(value(item.row, map, 'cpf') || '').replace(/\D/g, '')
+          if (cpf.length === 11) {
+            const collision = this.db.db.prepare('SELECT nome FROM funcionarios WHERE empresa_id=? AND replace(replace(cpf, ".", ""), "-", "")=? LIMIT 1').get(company.id, cpf)
+            if (collision?.nome && norm(collision.nome) !== norm(name)) errors.push('CPF já pertence a outro funcionário nesta empresa. Revise o nome e CPF.')
+          }
+        }
+      }
+      return { ...item, errors, warnings }
     })
     const invalidEntries = reviewed.filter((item) => item.errors.length > 0)
     const alreadyImported = Boolean(this.db.db.prepare("SELECT id FROM importacoes WHERE hash=? AND aba=? AND status='concluida'").get(pending.hash, `universal:${sheet.name}`))
@@ -308,9 +334,9 @@ class UniversalImportService {
     return {
       area, label: AREAS[area].label, companyId: company.id, companyName: company.nome_fantasia || company.razao_social,
       headers: sheet.headers, mapping: map,
-      rows: slice.map((item) => item.row), rowNumbers: slice.map((item) => item.line), rowErrors: slice.map((item) => item.errors),
-      total: reviewed.length, importable: reviewed.length - invalidEntries.length, invalid: invalidEntries.length, duplicates, alreadyImported,
-      issues: invalidEntries.slice(0, 20).map((item) => ({ line: item.line, errors: item.errors })),
+      rows: slice.map((item) => item.row), rowNumbers: slice.map((item) => item.line), rowErrors: slice.map((item) => item.errors), rowWarnings: slice.map((item) => item.warnings),
+      total: reviewed.length, importable: reviewed.length - invalidEntries.length, invalid: invalidEntries.length, duplicates, existingRecords, alreadyImported,
+      issues: (options.allIssues === true ? invalidEntries : invalidEntries.slice(0, 20)).map((item) => ({ line: item.line, errors: item.errors })),
       page, pageSize, pages,
       missing: required(area).filter((field) => !map[field]),
       createMissing: ['categoria','obra','frente','fornecedor','cliente','cargo','funcionario','contrato'].filter((field) => map[field])
