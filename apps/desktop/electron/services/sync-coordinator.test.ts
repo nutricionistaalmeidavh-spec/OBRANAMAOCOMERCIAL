@@ -169,6 +169,7 @@ it('remote só inicia a sincronização se o mesmo Desktop reivindicar o coorden
   const f=fixture()
   const centralRows=[{id:83,obra_id:601,titulo:'Tarefa remota',status:'aberta'}]
   const dataProvider={
+    storage:{state:()=>({mode:'server',operationalMode:'remote',serverId:'server-remote-01'})},
     runtimeState:()=>({source:'remote',paused:false,pauseReason:null}),
     resolveScope:vi.fn(async()=>({companyId:501,workId:601,companyName:'Empresa própria',workName:'Obra remota'})),
     syncCapabilities:vi.fn(async()=>({modules:['core','operation'],bridgeEntities:['tarefas_obra']})),
@@ -185,6 +186,7 @@ it('remote só inicia a sincronização se o mesmo Desktop reivindicar o coorden
   await f.sync.configure({companyId:501,workId:601})
   await f.sync.run()
   expect(claim).toHaveBeenCalledTimes(2)
+  expect(claim).toHaveBeenCalledWith('server-remote-01')
   expect(f.online.syncPush).toHaveBeenCalled()
   expect(f.online.syncPush.mock.calls.flatMap((call:any[])=>call[0]).some((change:any)=>change.localId===83&&change.payload.titulo==='Tarefa remota')).toBe(true)
 })
@@ -192,6 +194,7 @@ it('remote só inicia a sincronização se o mesmo Desktop reivindicar o coorden
 it('remote recusa coordenador diferente sem capturar ou publicar cópia local', async () => {
   const f=fixture()
   const dataProvider={
+    storage:{state:()=>({mode:'server',operationalMode:'remote',serverId:'server-remote-01'})},
     runtimeState:()=>({source:'remote',paused:false,pauseReason:null}),
     resolveScope:vi.fn(async()=>({companyId:501,workId:601,companyName:'Empresa própria',workName:'Obra remota'})),
     syncCapabilities:vi.fn(async()=>({modules:['core'],bridgeEntities:['tarefas_obra']})),
