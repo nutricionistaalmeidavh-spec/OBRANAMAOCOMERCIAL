@@ -313,13 +313,15 @@ function openRdoReview(){
  if(!d.attendanceMarked)missing.push('Conferir presença/faltas');
  if(!d.finishedSessions)missing.push('Concluir apontamento de produção');
  if(d.openSessions)missing.push('Finalizar '+d.openSessions+' apontamento(s) em aberto');
- if(!d.materialsReviewed)missing.push('Conferir materiais utilizados');
+ if(!d.materialsReviewed)missing.push('Conferir materiais utilizados');if(!d.occurrencesReviewed)missing.push('Conferir ocorrências do dia');if(!d.photosReviewed)missing.push('Revisar fotos ou confirmar que o dia não teve fotos');
  sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Revisão · ${dateBR(day.date)}</h2><div class="meta">Confira as informações antes de enviar para integração.</div></div><button class="close" type="button">×</button></div>
  <div class="metrics"><div class="metric"><span>Equipe</span><strong>${d.presentCount} / ${d.absentCount}</strong><div class="meta">presentes / faltas</div></div>
  <div class="metric"><span>Homem-hora</span><strong>${d.manHours.toFixed(2)}</strong></div></div>
  <div class="card"><strong>Produção</strong><div class="meta">${d.finishedSessions} sessão(ões) concluída(s)</div></div>
  <div class="card"><strong>Materiais</strong><div class="meta">${d.materialsCount} item(ns) · ${d.materialsReviewed?'Conferidos':'Conferência pendente'}</div>
  <button type="button" id="goRdoMaterials" class="linkbtn">Revisar materiais</button></div>
+ <div class="card"><strong>Fotos e evidências</strong><div class="meta">${d.photosCount} foto(s) · ${d.photosReviewed?'Conferidas':'Revisão pendente'}</div>
+ <button type="button" id="goRdoPhotos" class="linkbtn">Revisar evidências</button></div>
  <div class="card"><strong>Ocorrências e pendências</strong><div class="meta">${d.events.length} ocorrência(s) · ${d.openIssues.length} pendência(s)</div>${day.note?`<p>${esc(day.note)}</p>`:''}</div>
  ${missing.length?`<div class="card notice"><b>!</b><div><strong>Itens a conferir</strong><div class="meta">${missing.map(esc).join(' · ')}</div></div></div>`:'<div class="card notice"><b>✓</b><div><strong>Dados essenciais conferidos</strong><div class="meta">O RDO pode ser preparado para integração. Isso não confirma recebimento pelo Desktop nem baixa de estoque.</div></div></div>'}
  <button id="prepareRdo" class="btn" style="width:100%">${d.ready?'Preparar RDO para integração':'Salvar rascunho do RDO'}</button>
@@ -327,9 +329,11 @@ function openRdoReview(){
  document.dispatchEvent(new CustomEvent('field:sheet-rendered'));sheet.showModal();
  sheet.querySelector('.close').addEventListener('click',()=>sheet.close());
  sheet.querySelector('#goRdoMaterials').addEventListener('click',()=>{sheet.close();openRdoMaterials()});
+ sheet.querySelector('#goRdoPhotos').addEventListener('click',()=>{sheet.close();void openRdoPhotos()});
  sheet.querySelector('#prepareRdo').addEventListener('click',async()=>{
   const button=sheet.querySelector('#prepareRdo');if(button.disabled)return;button.disabled=true;
   const oldStatus=day.rdoStatus,oldFingerprint=day.rdoClosedFingerprint;
+  if(day.rdoDraft.ready&&!day.rdoSubmissionId)day.rdoSubmissionId=crypto.randomUUID();
   day.rdoDraft=rdoDraftFor(day);day.rdoStatus=day.rdoDraft.ready?'ready_for_desktop':'draft';
   day.rdoClosedFingerprint=day.rdoDraft.ready?rdoSourceFingerprint(day):null;
   try{await save();sheet.close();renderDay();show(day.rdoStatus==='ready_for_desktop'?'RDO preparado. Envio e integração ainda pendentes de confirmação.':'Rascunho salvo neste aparelho.')}
