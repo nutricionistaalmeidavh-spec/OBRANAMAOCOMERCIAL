@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS field_rdo_links (
   day TEXT NOT NULL,
   rdo_id INTEGER NOT NULL UNIQUE REFERENCES rdos(id) ON DELETE RESTRICT,
   last_fingerprint TEXT,
+  last_rdo_hash TEXT,
   last_material_revision INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (remote_project_id, day)
