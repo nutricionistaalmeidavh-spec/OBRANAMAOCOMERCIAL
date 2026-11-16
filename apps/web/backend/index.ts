@@ -2,6 +2,7 @@ import { createCompanyRoutes } from './owner-companies';
 import { restrictForemanSnapshot } from './field-snapshot-rules';
 import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts } from './field-rdo-delivery';
 import { getFieldRdoCatalog, publishFieldRdoCatalog } from './field-rdo-catalog-cloud';
+import { uploadFieldPhoto, readFieldPhoto, removeFieldPhoto } from './field-rdo-photos';
 import { centralRoleForEmail, requireCentralAccess } from './central-access';
 import { validateDesktopChange } from '../../../packages/contracts/src/desktop-sync';
 import { router, json, error, requireAuth, withScopes, requireAdminEmailAllowlist, db, runtimeEnv } from '../cloudflare/sdk';
@@ -166,6 +167,28 @@ export const handler=router({
   ...PLATFORM_ACCESS_ROUTES,
   'POST /api/phone/bootstrap':[async(ctx)=>{const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));if('response'in gate)return gate.response;const project=await getProject(gate.phoneAccess.projectId),company=await getCompany(gate.phoneAccess.companyId),meta=await getMeta(gate.phoneAccess.projectId);if(!project||!company)return error('Obra vinculada não encontrada.',404);return json({needsClaim:false,isOwner:false,platformRole:'user',role:'foreman',membership:{projectId:gate.phoneAccess.projectId,companyId:gate.phoneAccess.companyId,employeeId:gate.phoneAccess.employeeId,name:gate.phoneAccess.name,role:'foreman'},project,company,access:gate.access,license:gate.access,projectInitialized:!!meta,phoneAccess:{systems:gate.phoneAccess.systems,employeeId:gate.phoneAccess.employeeId}})}],
   'POST /api/phone/project':[async(ctx)=>{const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));if('response'in gate)return gate.response;const requested=String(body.date||new Date().toISOString().slice(0,10));await carryForwardActiveAssignments(gate.phoneAccess.projectId,requested,gate.participant.id);const state=await assembleState(gate.phoneAccess.projectId,requested);if(!state)return error('Obra ainda não inicializada.',404);return json({state,role:'foreman',access:gate.access})}],
+  'POST /api/phone/field/rdo/photos/upload':[async(ctx)=>{
+    const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));
+    if('response'in gate)return gate.response;
+    try{return json({photo:await uploadFieldPhoto({companyId:gate.phoneAccess.companyId,
+      projectId:gate.phoneAccess.projectId,date:String(body.date||''),mimeType:String(body.mimeType||''),
+      data:String(body.data||''),userId:String(gate.participant.id)})})}
+    catch(e){return error((e as Error).message,400)}
+  }],
+  'POST /api/phone/field/rdo/photos/view':[async(ctx)=>{
+    const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));
+    if('response'in gate)return gate.response;
+    try{return json({photo:await readFieldPhoto(gate.phoneAccess.projectId,String(body.id||''))})}
+    catch(e){return error((e as Error).message,404)}
+  }],
+  'POST /api/phone/field/rdo/photos/delete':[async(ctx)=>{
+    const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));
+    if('response'in gate)return gate.response;
+    const day=asRecord(await getDay(gate.phoneAccess.projectId,String(body.date||'')));
+    if(day.rdoStatus==='ready_for_desktop')return error('Reabra o RDO antes de excluir uma foto.',409);
+    try{return json(await removeFieldPhoto(gate.phoneAccess.projectId,String(body.id||''),String(body.date||'')))}
+    catch(e){return error((e as Error).message,400)}
+  }],
   'POST /api/phone/field/rdo/catalog':[async(ctx)=>{
     const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));
     if('response'in gate)return gate.response;
@@ -317,6 +340,29 @@ export const handler=router({
     }
     const revision=await saveSnapshot(gate.member!.projectId,snapshot,ctx.user!.userId);
     return json({ok:true,revision})
+  }],
+  'POST /api/field/rdo/photos/upload':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const body=asRecord(ctx.body);
+    try{return json({photo:await uploadFieldPhoto({companyId:gate.member!.companyId,
+      projectId:gate.member!.projectId,date:String(body.date||''),mimeType:String(body.mimeType||''),
+      data:String(body.data||''),userId:ctx.user!.userId})})}
+    catch(e){return error((e as Error).message,400)}
+  }],
+  'GET /api/field/rdo/photos':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    try{return json({photo:await readFieldPhoto(gate.member!.projectId,String(ctx.query.id||''))})}
+    catch(e){return error((e as Error).message,404)}
+  }],
+  'POST /api/field/rdo/photos/delete':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const body=asRecord(ctx.body),day=asRecord(await getDay(gate.member!.projectId,String(body.date||'')));
+    if(day.rdoStatus==='ready_for_desktop')return error('Reabra o RDO antes de excluir uma foto.',409);
+    try{return json(await removeFieldPhoto(gate.member!.projectId,String(body.id||''),String(body.date||'')))}
+    catch(e){return error((e as Error).message,400)}
   }],
   'GET /api/field/rdo/catalog':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
