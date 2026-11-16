@@ -82,6 +82,16 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
       notes.reload()
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível anexar o arquivo.')}
   }
+  async function openAttachment(documentId:number) {
+    setError('')
+    try {
+      const document=await window.fluxoDre.documentos.get(documentId)
+      if (!document?.arquivo_id) throw new Error('O documento não possui arquivo anexado.')
+      const file=await window.fluxoDre.arquivos.get(Number(document.arquivo_id))
+      if (!file?.caminho) throw new Error('O arquivo deste documento não foi encontrado.')
+      await window.fluxoDre.documentos.open(file.caminho)
+    } catch(e) { setError(e instanceof Error ? e.message : 'Não foi possível abrir o documento.') }
+  }
   return <Card style={{marginTop:14}}>
     <div className="card-header">
       <div><h2>Notas recebidas</h2><span>Organize documentos e itens por etapa e subetapa — sem emitir notas</span></div>
@@ -95,7 +105,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
         <td><strong>{item.numero}</strong><small>Série {item.serie||'—'}</small></td>
         <td>{item.fornecedor_nome}</td><td>{brDate(item.emissao)}</td>
         <td>{item.quantidade_itens}</td><td>{brl(item.valor_total_centavos)}</td>
-        <td>{item.documento_id?'Arquivado':<Button variant="secondary" onClick={()=>attach(item.id)}>Anexar</Button>}</td>
+        <td>{item.documento_id?<Button variant="secondary" onClick={()=>openAttachment(item.documento_id)}>Abrir documento</Button>:<Button variant="secondary" onClick={()=>attach(item.id)}>Anexar</Button>}</td>
       </tr>)}</tbody>
     </table></div>:<Empty title={obraId?'Nenhuma nota recebida':'Selecione uma obra'} description="Cadastre notas de fornecedores com seus produtos, quantidades e valores. Um documento pode ser anexado depois." action={obraId?<Button onClick={open}>Cadastrar primeira nota</Button>:undefined}/>}
     {!!summary.data?.etapas?.length&&<div className="card-body">
@@ -112,7 +122,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
           <Field label="Série"><input value={form?.serie||''} onChange={e=>setForm({...form!,serie:e.target.value})}/></Field>
           <Field label="Emissão" required><input required type="date" value={form?.emissao||''} onChange={e=>setForm({...form!,emissao:e.target.value})}/></Field>
           <Field label="Recebimento"><input type="date" value={form?.data_recebimento||''} onChange={e=>setForm({...form!,data_recebimento:e.target.value})}/></Field>
-          <Field label="Vincular pedido existente"><select value={form?.pedido_compra_id||''} onChange={e=>setForm({...form!,pedido_compra_id:e.target.value})}><option value="">Nenhum — não criar pedido</option>{orders.data?.filter((item:any)=>!item.fornecedor_id||String(item.fornecedor_id)===form?.fornecedor_id).map((item:any)=><option key={item.id} value={item.id}>{item.numero||'#'+item.id} — {item.descricao}</option>)}</select></Field>
+          <Field label="Vincular pedido existente"><select value={form?.pedido_compra_id||''} onChange={e=>setForm({...form!,pedido_compra_id:e.target.value,itens:form!.itens.map(item=>({...item,pedido_item_id:''}))})}><option value="">Nenhum — não criar pedido</option>{orders.data?.filter((item:any)=>!item.fornecedor_id||String(item.fornecedor_id)===form?.fornecedor_id).map((item:any)=><option key={item.id} value={item.id}>{item.numero||'#'+item.id} — {item.descricao}</option>)}</select></Field>
           <Field label="Vincular conta existente"><select value={form?.conta_id||''} onChange={e=>setForm({...form!,conta_id:e.target.value})}><option value="">Nenhuma — não gerar conta</option>{accounts.data?.filter((item:any)=>!item.fornecedor_id||String(item.fornecedor_id)===form?.fornecedor_id).map((item:any)=><option key={item.id} value={item.id}>{item.descricao} — {brl(item.valor_centavos)}</option>)}</select></Field>
           <div className="field-wide">
             <h3>Itens e classificação</h3>
