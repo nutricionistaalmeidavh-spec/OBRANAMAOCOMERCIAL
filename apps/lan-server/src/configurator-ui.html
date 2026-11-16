@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Configurar servidor — Obra na Mão</title>
+  <style>
+    :root { font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; color: #17253a; background: #f3f5f9; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    .top { background: #fff; border-bottom: 1px solid #e4e8f0; padding: 20px max(22px,calc((100vw - 950px)/2)); display:flex; align-items:center; gap: 12px; }
+    .brand { width: 38px; height: 38px; border-radius: 11px; background: #253b69; display:grid; place-items:center; color:#fff; font-weight:800; }
+    .top strong { display:block; letter-spacing:-.025em; font-size:16px; }
+    .top span { font-size:12px; color:#65718a; }
+    main { max-width:950px; margin: 32px auto; padding: 0 22px 40px; }
+    .eyebrow { font-size:11px; letter-spacing:.13em; font-weight:750; color:#68758e; text-transform:uppercase; }
+    h1 { font-size:clamp(26px,4vw,36px); margin:8px 0 10px; letter-spacing:-.045em; }
+    .intro { max-width:660px; color: #52627c; line-height:1.65; margin:0 0 28px; }
+    .layout {display:grid; grid-template-columns:minmax(0,1.35fr) minmax(270px,.85fr); gap:20px;align-items:start}
+    .panel { background:#fff; border:1px solid #e0e5ef; border-radius:16px; padding:26px; box-shadow:0 12px 32px rgba(18,31,55,.03); }
+    h2 { font-size:18px; letter-spacing:-.025em; margin:0 0 8px; }
+    p { line-height:1.55; }
+    .muted { color:#64718a; font-size:13px; margin:0 0 20px; }
+    label { display:block; margin: 18px 0 7px; font-size:13px; font-weight:650; }
+    input { width:100%; background: #fbfcfe; border:1px solid #ccd5e2; padding:13px 14px; font:inherit; font-size:15px; border-radius:10px; color:#15243b; }
+    input:focus {outline:3px solid #dae4f7;border-color:#5272ad}
+    small { display:block; color:#65748e; line-height:1.6; margin-top:7px; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:22px; }
+    button { border:1px solid #253b69; background:#253b69; color:#fff; border-radius:10px; font:inherit; font-weight:650; font-size:14px; padding:12px 17px; cursor:pointer; }
+    button.secondary { background:#fff; color:#253b69; }
+    button:disabled {opacity:.6;cursor:wait}
+    button:hover:not(:disabled) {filter:brightness(.95)}
+    .info {display:flex; gap:10px; border-radius:10px; border:1px solid #dfe6f2; padding:13px; background:#f8faff; color:#42546f; font-size:13px; line-height:1.55}
+    .info b {color:#253b69}
+    .step {display:flex;align-items:flex-start;gap:12px;margin:20px 0;}
+    .step .num {width:28px;height:28px;border:1px solid #d7ddeb;flex-shrink:0;border-radius:50%;display:grid;place-items:center;font-size:12px;color:#314d81;font-weight:700}
+    .step strong {font-size:13px;display:block;margin:3px 0 4px}
+    .step span {display:block;color:#65738b;font-size:12px;line-height:1.55}
+    .status { padding: 12px 14px; border-radius:10px; background:#eef5fd; color:#24466d; font-size:13px; margin-top:20px; line-height:1.6; white-space:pre-wrap;overflow-wrap:anywhere; }
+    .status.error { background:#fff0ee; color:#a63232; }
+    .status.success { background:#eef8f0; color:#216c42; }
+    .codebox { margin-top:15px; padding:14px; border-radius:10px; background:#f3f5f9; display:none; }
+    .codebox strong {font-family:ui-monospace,monospace;letter-spacing:1.8px;font-size:22px;}
+    .codebox span {display:block;color:#64718a;font-size:12px;margin-top:6px;}
+    footer {font-size:12px;color:#8290a4;margin-top:25px}
+    @media(max-width:740px){.layout{grid-template-columns:1fr}.panel{padding:20px}.top{padding:16px 20px}main{margin-top:24px}}
+  </style>
+</head>
+<body>
+<header class="top"><div class="brand">O</div><div><strong>Obra na Mão Server</strong><span>Configuração do servidor próprio</span></div></header>
+<main>
+  <div class="eyebrow">Assistente de configuração</div>
+  <h1>Seu servidor, sem configurações complicadas.</h1>
+  <p class="intro">Informe o endereço que sua equipe de TI já disponibilizou e a porta interna do Obra na Mão. O sistema salva a configuração e reinicia o serviço automaticamente.</p>
+  <div class="layout">
+    <section class="panel" aria-label="Configurações do servidor">
+      <h2>Dados de conexão</h2>
+      <p class="muted">Nenhuma configuração de VPN, domínio ou certificado será feita aqui.</p>
+      <form id="settings">
+        <label for="url">Endereço HTTPS do cliente</label>
+        <input id="url" name="publicUrl" type="url" inputmode="url" required spellcheck="false" autocomplete="off" placeholder="https://obras.suaempresa.com">
+        <small>Use o link HTTPS que já aponta (ou apontará) para este serviço.</small>
+        <label for="port">Porta interna do Obra na Mão</label>
+        <input id="port" name="port" type="number" required min="1" max="65535" value="4732">
+        <small>Normalmente, não precisa alterar a porta padrão 4732. A TI deve encaminhar o HTTPS para esta porta interna.</small>
+        <div class="actions">
+          <button type="submit" id="save">Salvar e reiniciar</button>
+          <button type="button" class="secondary" id="verify">Verificar endereço</button>
+        </div>
+      </form>
+      <div class="status" id="status" role="status" aria-live="polite">Lendo a configuração atual...</div>
+    </section>
+    <aside class="panel" aria-label="Vinculação à empresa">
+      <h2>Vincular à empresa</h2>
+      <p class="muted">Após instalar o servidor, use um código temporário para associá-lo ao Obra na Mão Desktop.</p>
+      <div class="step"><div class="num">1</div><div><strong>Salve a conexão</strong><span>O serviço é reiniciado com a porta e o endereço informados.</span></div></div>
+      <div class="step"><div class="num">2</div><div><strong>Gere o código</strong><span>O código é criado somente para um servidor ainda não vinculado.</span></div></div>
+      <div class="step"><div class="num">3</div><div><strong>Conclua no Desktop</strong><span>Em Configurações do sistema, selecione “Acesso remoto avançado — servidor próprio”.</span></div></div>
+      <button type="button" class="secondary" id="claim">Gerar código inicial</button>
+      <div class="codebox" id="codebox"><strong id="code"></strong><span>Uso inicial: copie e informe no Desktop. Não compartilhe publicamente.</span></div>
+      <div class="info" style="margin-top:22px"><span aria-hidden="true">&#128274;</span><div><b>Área privada</b><br>Este configurador funciona apenas na interface local do servidor. Não é publicado no endereço HTTPS da empresa.</div></div>
+    </aside>
+  </div>
+  <footer>Obra na Mão · ArtiSys · Configurador local do servidor próprio</footer>
+</main>
+<script>
+(() => {
+  const token = new URLSearchParams(location.search).get('token') || '';
+  const el = id => document.getElementById(id);
+  const form = el('settings');
+  const setStatus = (message, type='') => { const status=el('status'); status.textContent=message;status.className='status '+type; };
+  const settings = () => ({ publicUrl:el('url').value.trim(),port:Number(el('port').value) });
+  const buttons = [el('save'),el('verify'),el('claim')];
+  async function api(endpoint, body) {
+    const options = {headers:{'x-setup-token':token},cache:'no-store'};
+    if (body !== undefined) {options.method='POST';options.headers['content-type']='application/json';options.body=JSON.stringify(body);}
+    const res=await fetch(endpoint,options);
+    const data=await res.json();
+    if(!res.ok)throw Error(data.error||'Não foi possível concluir esta etapa.');
+    return data;
+  }
+  async function doAction(work) {
+    buttons.forEach(b=>b.disabled=true);
+    try {await work();} catch (error) {setStatus(error.message||'Erro inesperado.','error');}
+    finally {buttons.forEach(b=>b.disabled=false);}
+  }
+  api('/api/status').then(data => {
+    if(data.publicUrl)el('url').value=data.publicUrl;
+    el('port').value=data.port;
+    setStatus(data.mode==='remote'?'Servidor configurado. Você pode verificar o endereço ou alterar a configuração.':'Servidor instalado. Configure o endereço HTTPS para habilitar o modo remoto.');
+  }).catch(error=>setStatus(error.message,'error'));
+  form.addEventListener('submit', event=>{event.preventDefault();doAction(async()=>{
+    setStatus('Salvando e reiniciando o serviço...');
+    await api('/api/save',settings());
+    setStatus('Configuração salva e serviço reiniciado. Você já pode gerar o código inicial e conectar pelo Desktop.','success');
+  });});
+  el('verify').addEventListener('click',()=>doAction(async()=>{
+    setStatus('Verificando o endereço HTTPS fornecido pela empresa...');
+    const result=await api('/api/verify',{publicUrl:settings().publicUrl});
+    setStatus('Endereço verificado. Obra na Mão Server encontrado: '+result.serverId,'success');
+  }));
+  el('claim').addEventListener('click',()=>doAction(async()=>{
+    const result=await api('/api/claim-code',{});
+    el('code').textContent=result.code;
+    el('codebox').style.display='block';
+    setStatus('Código de vinculação gerado. O código anterior, se existia, não é mais válido.','success');
+  }));
+})();
+</script>
+</body>
+</html>
