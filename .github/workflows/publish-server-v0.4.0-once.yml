@@ -1,0 +1,179 @@
+name: Publish verified Obra na Mão Server v0.4.0 once
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-server-v0.4.0-once.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-server-v0.4.0-once.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: obra-na-mao-server-v0.4.0-publish-once
+  cancel-in-progress: false
+
+env:
+  VERSION: '0.4.0'
+  SOURCE_BASE_SHA: eca949d4af3a20ca3c09e7544d1e82d97067df36
+  VERIFIED_RUN: '43463111579'
+  VERIFIED_HEAD_SHA: 1e50cd7bfab5e5443f32f88e4e9aa662f53cdb69
+  WINDOWS_ARTIFACT_ID: '14056468959'
+  LINUX_ARTIFACT_ID: '14055704845'
+
+jobs:
+  validate-server:
+    name: Validate exact server source and published-candidate provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Ensure server sources still match verified candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code "$SOURCE_BASE_SHA" HEAD -- apps/lan-server packages .nvmrc
+          node -e "const p=require('./apps/lan-server/package.json');if(p.version!==process.env.VERSION)process.exit(1)"
+      - name: Verify successful Windows/Linux build and unexpired binaries
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$VERIFIED_RUN" --jq .conclusion)" = success
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$VERIFIED_RUN" --jq .head_sha)" = "$VERIFIED_HEAD_SHA"
+          for id in "$WINDOWS_ARTIFACT_ID" "$LINUX_ARTIFACT_ID"; do
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id" --jq .expired)" = false
+          done
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$WINDOWS_ARTIFACT_ID" --jq .name)" = Obra-na-Mao-Server-Windows-x64
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$LINUX_ARTIFACT_ID" --jq .name)" = Obra-na-Mao-Server-Linux-x64
+      - name: Test current main server contracts and all package regression tests
+        run: |
+          npm --prefix apps/lan-server test
+          npm --prefix apps/lan-server run packaging:test
+
+  validate-desktop:
+    name: Validate current main Desktop remote, auth, migration, and sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm install --workspaces=false --no-audit --no-fund
+      - name: Validate Desktop compatibility on exact current main
+        run: >
+          npx vitest run
+          electron/services/f24-auth-lifecycle.test.ts
+          electron/services/server-reconnect-service.test.ts
+          electron/services/f25-remote-transport.test.ts
+          tests/storage-online-contract.test.ts
+          electron/services/storage-online-compatibility.test.ts
+          electron/services/sync-coordinator.test.ts
+          electron/services/central-planning-sync.test.ts
+          tests/f29-f30-server-wizard.test.ts
+          tests/storage-server-migration-ui.test.ts
+
+  validate-web:
+    name: Validate current main Cloudflare/D1 PWA bridge
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm install --workspaces=false --no-audit --no-fund
+      - name: Validate PWA-Desktop server bridge
+        run: npx vitest run backend/p3-workflows.test.ts backend/lan-server-permissions-snapshot.test.ts
+
+  publish:
+    name: Publish immutable Windows and Linux server release
+    needs: [validate-server, validate-desktop, validate-web]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-server-v0.4.0]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Obra-na-Mao-Server-Windows-x64
+          run-id: 43463111579
+          github-token: ${{ github.token }}
+          path: candidate/windows
+      - uses: actions/download-artifact@v4
+        with:
+          name: Obra-na-Mao-Server-Linux-x64
+          run-id: 43463111579
+          github-token: ${{ github.token }}
+          path: candidate/linux
+      - name: Verify installer structure and generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "candidate/windows/Obra-na-Mao-Server-Setup-$VERSION-x64.exe"
+          test -s "candidate/linux/Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz"
+          test "$(stat -c%s "candidate/windows/Obra-na-Mao-Server-Setup-$VERSION-x64.exe")" -gt 5000000
+          test "$(stat -c%s "candidate/linux/Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz")" -gt 5000000
+          tar -tzf "candidate/linux/Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz" | grep -q 'platform/install.sh'
+          cp "candidate/windows/Obra-na-Mao-Server-Setup-$VERSION-x64.exe" .
+          cp "candidate/linux/Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz" .
+          sha256sum "Obra-na-Mao-Server-Setup-$VERSION-x64.exe" "Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Create official release only if tag is still absent
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="obra-na-mao-server-v$VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::A release do Server ja existe. Nao sobrescrever binarios publicados."
+            exit 1
+          fi
+          gh release create "$tag" \
+            "Obra-na-Mao-Server-Setup-$VERSION-x64.exe" \
+            "Obra-na-Mao-Server-$VERSION-linux-x64.tar.gz" \
+            SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Obra na Mão Server v$VERSION — Windows e Linux" \
+            --notes "Pacote self-hosted Obra na Mão Server v$VERSION (serviço headless Windows e Linux). Artefatos imutáveis provenientes do Server Platform CI aprovado (run $VERIFIED_RUN), com os fontes do servidor conferidos contra a main e regressões de conectividade Desktop, migração, autorização e PWA executadas nesta release. Configuração pelo arquivo server.env e assistente do Desktop; a interface Web/PWA permanece conectada à Cloudflare/D1. Implantação remota exige rede segura WireGuard ou HTTPS/Caddy e licença Advanced Server. Este pacote NÃO substitui o instalador Desktop nem habilita automaticamente acesso remoto. Instalação de produção deve passar por pareamento, migração, backup e teste local."
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,assets,tagName,isDraft,isPrerelease
+      - name: Verify checksums of released binaries
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p verified
+          gh release download "obra-na-mao-server-v$VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir verified \
+            --pattern "Obra-na-Mao-Server-*"
+          cp SHA256SUMS.txt verified/
+          (cd verified && sha256sum -c SHA256SUMS.txt)
