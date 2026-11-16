@@ -113,7 +113,36 @@ export default function ImportPage() {
     {error && <div className="notice" style={{marginTop:12}}>{error}</div>}
   </>
 }
-function UniversalSetup({file,sheet,area,mapping,setSheet,setArea,setMapping,onPreview}:any){return <Card style={{marginTop:14}}><div className="card-header"><div><h2>{file.file}</h2><p>Escolha a aba e confirme o destino sugerido.</p></div><Button onClick={onPreview}>Gerar prévia</Button></div><div className="modal-body form-grid form-grid-3"><Field label="Aba"><select value={sheet} onChange={(e)=>setSheet(e.target.value)}>{file.sheets.map((item:any)=><option key={item.name} value={item.name}>{item.name} · {item.rows} linhas</option>)}</select></Field><Field label="Área de destino"><select value={area} onChange={(e)=>setArea(e.target.value)}>{Object.entries(labels).map(([key,label])=><option key={key} value={key}>{String(label)}</option>)}</select></Field><Field label="Detecção"><div className="locked-value">{labels[file.sheets.find((item:any)=>item.name===sheet)?.area] || 'Sem sugestão'}</div></Field></div><div className="card-body"><div className="notice">A prévia usa o mapeamento sugerido. Você poderá ajustar cada coluna antes de confirmar.</div></div></Card>}
+function UniversalSetup({file,sheet,area,mapping,setSheet,setArea,setMapping,onPreview}:any){
+  const selectedSheet=file.sheets.find((item:any)=>item.name===sheet)
+  return <Card style={{marginTop:14}}>
+    <div className="card-header">
+      <div><h2>{file.file}</h2><p>Escolha a aba, confirme o destino e associe as colunas da planilha.</p></div>
+      <Button onClick={onPreview}>Gerar prévia</Button>
+    </div>
+    <div className="modal-body form-grid form-grid-3">
+      <Field label="Aba"><select value={sheet} onChange={(event)=>setSheet(event.target.value)}>
+        {file.sheets.map((item:any)=><option key={item.name} value={item.name}>{item.name} · {item.rows} linhas</option>)}
+      </select></Field>
+      <Field label="Área de destino"><select value={area} onChange={(event)=>setArea(event.target.value)}>
+        {Object.entries(labels).map(([key,label])=><option key={key} value={key}>{String(label)}</option>)}
+      </select></Field>
+      <Field label="Detecção"><div className="locked-value">{labels[selectedSheet?.area] || 'Sem sugestão'}</div></Field>
+    </div>
+    <div className="card-body">
+      <h3>Mapeamento de colunas</h3>
+      <p>Para cada campo do sistema, selecione a coluna correspondente na sua planilha. Campos obrigatórios não mapeados serão apontados na prévia.</p>
+      <div className="form-grid form-grid-3">
+        {Object.entries(mapping).map(([field])=><Field key={field} label={field.replaceAll('_',' ')}>
+          <select aria-label={`Coluna de origem para ${field}`} value={mapping[field] || ''} onChange={(event)=>setMapping({ ...mapping, [field]: event.target.value })}>
+            <option value="">Coluna de origem: não mapear</option>
+            {selectedSheet.headers.map((header:string)=><option key={header} value={header}>{header}</option>)}
+          </select>
+        </Field>)}
+      </div>
+    </div>
+  </Card>
+}
 function UniversalPreview({preview,mapping,onCommit,onPage}:any){
   const headers=Object.values(mapping).filter(Boolean).slice(0,6) as string[]
   const blocked=preview.missing.length>0 || preview.invalid>0 || preview.total===0
