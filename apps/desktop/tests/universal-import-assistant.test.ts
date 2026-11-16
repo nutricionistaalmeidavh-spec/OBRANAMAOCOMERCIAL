@@ -69,6 +69,23 @@ describe('assistente universal P0 P1 P2', () => {
     await expect(service.commit('token', { sheet: 'Dados', area: 'financeiro', companyId: 7, mapping: { descricao: 'inexistente', valor: 'valor' } })).rejects.toThrow()
   })
 
+  it('retorna todas as divergências para o CSV, sem cortar após 20 linhas', async () => {
+    const { service } = createService(Array.from({ length: 37 }, (_, index) => ['Conta ' + index, 0]))
+    const partial = await service.preview('token', { sheet: 'Dados', area: 'financeiro', companyId: 7 })
+    const complete = await service.preview('token', { sheet: 'Dados', area: 'financeiro', companyId: 7, allIssues: true })
+    expect(partial.issues).toHaveLength(20)
+    expect(complete.issues).toHaveLength(37)
+    expect(complete.invalid).toBe(37)
+  })
+
+  it('reaproveita perfil quando as colunas são reordenadas sem alterar o escopo da empresa', async () => {
+    const { service } = createService([], ['Despesa', 'Montante'])
+    await service.saveMapping({ companyId: 7, area: 'financeiro', headers: ['Despesa', 'Montante'], mapping: { descricao: 'Despesa', valor: 'Montante' } })
+    const profile = service.getSavedMapping({ companyId: 7, area: 'financeiro', headers: ['Montante', 'Despesa'] })
+    expect(profile?.descricao).toBe('Despesa')
+    expect(profile?.valor).toBe('Montante')
+  })
+
   it('permite gerar modelo e relatório de erros pelo serviço do desktop', () => {
     const { service } = createService([['Despesa', 0]])
     expect(typeof service.saveTemplate).toBe('function')
