@@ -162,6 +162,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "Obra na Mão Server v$VERSION — Windows e Linux" \
+            --latest=false \
             --notes "Pacote self-hosted Obra na Mão Server v$VERSION (serviço headless Windows e Linux). Artefatos imutáveis provenientes do Server Platform CI aprovado (run $VERIFIED_RUN), com os fontes do servidor conferidos contra a main e regressões de conectividade Desktop, migração, autorização e PWA executadas nesta release. Configuração pelo arquivo server.env e assistente do Desktop; a interface Web/PWA permanece conectada à Cloudflare/D1. Implantação remota exige rede segura WireGuard ou HTTPS/Caddy e licença Advanced Server. Este pacote NÃO substitui o instalador Desktop nem habilita automaticamente acesso remoto. Instalação de produção deve passar por pareamento, migração, backup e teste local."
           gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,assets,tagName,isDraft,isPrerelease
       - name: Verify checksums of released binaries
