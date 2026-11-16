@@ -331,6 +331,21 @@ export const handler=router({
     if(!session.access.modules.includes('rdo')&&!session.access.modules.includes('obra360'))return error('Módulo de diário não autorizado.',403);
     return json({reports:await pendingFieldRdos(session.device.projectId)})
   }],
+  'POST /api/desktop/field/rdo/photo':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
+    const ownerError=await remoteSyncOwnerError(session);if(ownerError)return ownerError;
+    if(!session.access.modules.includes('rdo')&&!session.access.modules.includes('obra360'))
+      return error('Evidências do diário não autorizadas.',403);
+    const date=String(body.date||''),photoId=String(body.id||''),sha=String(body.sha256||'');
+    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||!photoId||!sha)return error('Identidade da evidência inválida.',400);
+    const day=asRecord(await getDay(session.device.projectId,date));
+    if(day.rdoStatus!=='ready_for_desktop')return error('Diário ainda não preparado para integração.',409);
+    const linked=asArray(day.photos).map(asRecord).find(p=>String(p.id||'')===photoId&&String(p.sha256||'')===sha);
+    if(!linked)return error('A foto não pertence a esta revisão do RDO.',403);
+    try{return json({photo:await readFieldPhoto(session.device.projectId,photoId)})}
+    catch(e){return error((e as Error).message||'Evidência indisponível.',404)}
+  }],
   'POST /api/desktop/field/rdo/ack':[async(ctx)=>{
     const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
     if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
