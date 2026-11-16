@@ -59,3 +59,11 @@ test('Linux packaging never mutates firewall state', () => {
     assert.doesNotMatch(content, /\b(ufw|iptables|nft|firewall-cmd)\b/i)
   }
 })
+
+test('Linux readiness follows the configured WireGuard binding on reinstall', () => {
+  const install = read('install.sh')
+  assert.match(install, /OBRA_NA_MAO_SERVER_HOST=/)
+  assert.match(install, /READY_HOST/)
+  assert.match(install, /READY_HOST="127\.0\.0\.1"/)
+  assert.match(install, /OBRA_READY_URL="http:\/\/\$\{READY_HOST\}:\$\{PORT\}\/ready"/)
+})
