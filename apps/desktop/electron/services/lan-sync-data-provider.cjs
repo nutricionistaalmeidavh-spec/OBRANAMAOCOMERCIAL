@@ -1,8 +1,7 @@
 const { LocalSyncDataProvider, BRIDGE } = require('./sync-data-provider.cjs')
 
 const PAUSE_REASONS = {
-  'lan-client': 'A sincronização central é responsabilidade do PC principal.',
-  remote: 'A sincronização por servidor remoto ainda não está disponível nesta etapa.'
+  'lan-client': 'A sincronização central é responsabilidade do PC principal.'
 }
 
 function syncSourceQuery(scope = {}, modules = []) {
@@ -111,14 +110,14 @@ class OperationalSyncDataProvider {
     const state = this.storage.state()
     const mode = state.operationalMode || (state.mode === 'server' ? 'lan-client' : 'local')
     if (mode === 'local') return { source: 'local', paused: false, pauseReason: null }
-    if (mode === 'lan-host') return { source: 'lan-host', paused: false, pauseReason: null }
+    if (mode === 'lan-host' || mode === 'remote') return { source: mode, paused: false, pauseReason: null }
     return { source: mode, paused: true, pauseReason: PAUSE_REASONS[mode] || 'Sincronização pausada para esta fonte operacional.' }
   }
 
   activeProvider() {
     const runtime = this.runtimeState()
     if (runtime.paused) throw new Error(`Sincronização pausada: ${runtime.pauseReason}`)
-    if (runtime.source === 'lan-host') return this.lanProvider
+    if (runtime.source === 'lan-host' || runtime.source === 'remote') return this.lanProvider
     if (!this.localProvider) throw new Error('Fonte local de sincronização indisponível.')
     return this.localProvider
   }
@@ -126,7 +125,7 @@ class OperationalSyncDataProvider {
   async syncCapabilities() {
     const runtime = this.runtimeState()
     if (runtime.paused) throw new Error(`Sincronização pausada: ${runtime.pauseReason}`)
-    if (runtime.source !== 'lan-host') return null
+    if (runtime.source !== 'lan-host' && runtime.source !== 'remote') return null
     return this.lanProvider.capabilities()
   }
 
