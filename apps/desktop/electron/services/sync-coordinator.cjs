@@ -103,6 +103,11 @@ class SyncCoordinator {
  async syncFieldRdos(scope,generation){
   if(typeof this.dataProvider.applyFieldRdo!=='function'||typeof this.online.fieldRdoPending!=='function'||typeof this.online.fieldRdoAck!=='function')return
   this.assertScope(scope,generation)
+  if(typeof this.dataProvider.fieldRdoCatalog==='function'&&typeof this.online.fieldRdoCatalogPublish==='function'){
+   const catalog=await resolved(this.dataProvider.fieldRdoCatalog(scope))
+   this.assertScope(scope,generation)
+   if(catalog?.schemaVersion===1)await this.online.fieldRdoCatalogPublish(catalog)
+  }
   const pending=await this.online.fieldRdoPending()
   if(!Array.isArray(pending?.reports)||!pending.reports.length)return
   for(const report of pending.reports){
