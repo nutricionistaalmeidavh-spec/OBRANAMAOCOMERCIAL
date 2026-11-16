@@ -79,6 +79,12 @@ class ProcurementSourceService {
     if (state==='central-active') return this.lanClient.receivedNotesSummary(obraId)
     return this.blocked()
   }
+  async receivedCostsReport(filters) {
+    const state=this.state()
+    if(state==='local'||state==='migration-required')return this.notes.report(filters)
+    if(state==='central-active')return this.lanClient.receivedNotesReport(filters)
+    return this.blocked()
+  }
   async createReceivedNote(payload) {
     const state=this.state()
     if (state==='local'||state==='migration-required') return this.notes.create(payload)

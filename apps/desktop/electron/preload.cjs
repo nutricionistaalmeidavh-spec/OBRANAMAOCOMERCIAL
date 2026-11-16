@@ -112,6 +112,7 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     list: obra_id => call('received-notes:list', { obra_id }),
     get: id => call('received-notes:get', { id }),
     summary: obra_id => call('received-notes:summary', { obra_id }),
+    report: filters => call('received-notes:report', filters),
     create: data => call('received-notes:create', data),
     attach: (id, documento_id) => call('received-notes:attach', { id, documento_id })
   }, cotacoes: entity('cotacoes_compra'), pedidos: entity('pedidos_compra'), itens: entity('pedido_compra_itens'), recebimentos: entity('recebimentos_materiais'), estoque: entity('movimentacoes_estoque'), summary: (obra_id) => call('procurement:summary', { obra_id }), createOrder: (data) => call('procurement:create-order', data), receiveMaterial: (data) => call('procurement:receive-material', data), moveStock: (data) => call('procurement:move-stock', data) }, contratos: { ...entity('contratos_obra'), aditivos: entity('contrato_aditivos'), create: (data) => call('contracts:create', data), addendum: (data) => call('contracts:addendum', data) }, frentes: entity('frentes_obra'), subfrentes: entity('subfrentes_obra'), checklistFrente: entity('checklist_frente_itens'),

@@ -20,7 +20,7 @@ const TABLE_FIELDS = {
   rdo_anexos: new Set(['rdo_id', 'frente_id', 'documento_id', 'legenda']),
   etapas_obra: new Set(['obra_id', 'frente_id', 'nome', 'ordem', 'status']),
   cronograma_etapas: new Set(['obra_id', 'etapa_id', 'frente_id', 'nome', 'responsavel', 'previsto_inicio', 'previsto_fim', 'percentual_previsto', 'percentual_realizado', 'custo_planejado_centavos', 'custo_realizado_centavos', 'status', 'observacoes']),
-  itens_orcamentarios: new Set(['obra_id', 'etapa_id', 'frente_id', 'fonte_documental_id', 'codigo', 'descricao', 'unidade', 'quantidade', 'valor_unitario_centavos', 'tipo', 'observacoes', 'atualizado_em']),
+  itens_orcamentarios: new Set(['obra_id', 'etapa_id', 'frente_id', 'subfrente_id', 'fonte_documental_id', 'codigo', 'descricao', 'unidade', 'quantidade', 'valor_unitario_centavos', 'tipo', 'observacoes', 'atualizado_em']),
   medicoes: new Set(['obra_id', 'frente_id', 'contrato_id', 'numero', 'competencia', 'data', 'periodo_inicio', 'periodo_fim', 'status', 'descricao', 'retencoes_centavos', 'descontos_centavos', 'valor_bruto_centavos', 'valor_liquido_centavos', 'request_id', 'observacoes']),
   medicao_itens: new Set(['medicao_id', 'item_orcamentario_id', 'etapa_id', 'descricao', 'unidade', 'quantidade_total', 'quantidade_periodo', 'quantidade_acumulada', 'valor_periodo_centavos', 'justificativa_excesso']),
   medicao_mapa_itens: new Set(['obra_id', 'medicao_id', 'competencia', 'local_nome', 'servico_nome', 'valor_periodo_centavos', 'percentual_contrato', 'origem_arquivo', 'origem_aba', 'origem_celula']),
