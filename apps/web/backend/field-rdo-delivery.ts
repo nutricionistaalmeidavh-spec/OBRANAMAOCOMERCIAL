@@ -11,7 +11,7 @@ const validDate=(value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)
 
 export type FieldRdoDelivery={
   date:string;fingerprint:string;
-  report:{date:string;note:string;events:unknown[];sessions:unknown[];attendance:unknown;materials:unknown[];materialsReviewed:boolean}
+  report:{date:string;note:string;events:unknown[];sessions:unknown[];attendance:unknown;materials:unknown[];materialsReviewed:boolean;photos:Array<{id:string;sha256:string;contentType:string;uploadedAt:string}>}
 }
 
 /** Read persistent canonical day snapshots; acknowledgements are separate transport receipts. */
@@ -37,7 +37,12 @@ export async function pendingFieldRdos(projectId:string):Promise<FieldRdoDeliver
     reports.push({date,fingerprint,report:{
       date,note:String(day.note||'').slice(0,20000),events:list(day.events).slice(0,200),
       sessions:list(day.sessions).slice(0,200),attendance:record(day.attendance),
-      materials:list(day.materials).slice(0,200),materialsReviewed:true
+      materials:list(day.materials).slice(0,200),materialsReviewed:true,
+      photos:list(day.photos).slice(0,60).map(photo=>{
+        const row=record(photo);
+        return{id:String(row.id||''),sha256:String(row.sha256||''),contentType:String(row.contentType||''),
+          uploadedAt:String(row.uploadedAt||'')}
+      })
     }})
     if(reports.length>=50)break
   }
