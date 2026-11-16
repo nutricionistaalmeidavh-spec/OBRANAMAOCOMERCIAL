@@ -1,4 +1,5 @@
 import { FilePlus, Plus, Trash2 } from 'lucide-react'
+import ReceivedCostsReport from './ReceivedCostsReport'
 import { FormEvent, useMemo, useState } from 'react'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal } from './ui'
 import { useAsync } from '../hooks/useAsync'
@@ -15,6 +16,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
   const [error,setError]=useState('')
   const [notice,setNotice]=useState('')
   const [pendingAttachment,setPendingAttachment]=useState<number|null>(null)
+  const [reportRevision,setReportRevision]=useState(0)
   const works=useAsync(()=>obraId?window.fluxoDre.obras.list():Promise.resolve([]),[obraId])
   const work=works.data?.find((item:any)=>Number(item.id)===obraId)
   const suppliers=useAsync(()=>window.fluxoDre.fornecedores.list(),[])
@@ -62,6 +64,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
       setNotice('Nota '+created.numero+' arquivada com '+created.itens.length+' item(ns). Nenhum pagamento ou movimento de estoque foi criado.')
       notes.reload()
       summary.reload()
+      setReportRevision(value=>value+1)
       setPendingAttachment(created.id)
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível salvar a nota.')}
     finally{setSaving(false)}
@@ -92,7 +95,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
       await window.fluxoDre.documentos.open(file.caminho)
     } catch(e) { setError(e instanceof Error ? e.message : 'Não foi possível abrir o documento.') }
   }
-  return <Card style={{marginTop:14}}>
+  return <><Card style={{marginTop:14}}>
     <div className="card-header">
       <div><h2>Notas recebidas</h2><span>Organize documentos e itens por etapa e subetapa — sem emitir notas</span></div>
       <Button icon={<Plus size={15}/>} disabled={!obraId} onClick={open}>Cadastrar nota recebida</Button>
@@ -158,4 +161,6 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
       </form>
     </Modal>
   </Card>
+  <ReceivedCostsReport obraId={obraId} revision={reportRevision}/>
+  </>
 }
