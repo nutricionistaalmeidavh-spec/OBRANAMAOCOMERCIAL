@@ -166,6 +166,16 @@ class LocalSyncDataProvider {
     return this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND obra_id=?`).get(Number(localId), scope.workId) || null
   }
 
+  async fieldRdoCatalog(scope) {
+    const packaged = path.join(process.resourcesPath || '', 'lan-server', 'src', 'field-rdo-catalog.mjs')
+    const local = path.resolve(__dirname, '../../../lan-server/src/field-rdo-catalog.mjs')
+    const file = fs.existsSync(packaged) ? packaged : local
+    if(!fs.existsSync(file))throw new Error('Catálogo do RDO não encontrado na instalação.')
+    const { FieldRdoCatalog } = await import(pathToFileURL(file).href)
+    const adapter={get:(table,id)=>this.database.get(table,id),connection:()=>this.database.db}
+    return new FieldRdoCatalog({repository:adapter}).list({companyId:scope.companyId,workId:scope.workId})
+  }
+
   async applyFieldRdo(scope, report) {
     const FieldRdoImport = await loadFieldRdoImporter()
     const adapter = {
