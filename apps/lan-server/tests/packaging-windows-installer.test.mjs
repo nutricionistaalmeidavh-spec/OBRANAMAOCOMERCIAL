@@ -22,7 +22,7 @@ test('Inno installer is x64, stops the service before replacement and checks pos
   assert.match(iss, /function\s+GetCustomSetupExitCode\s*(?:\(\s*\))?\s*:\s*Integer/is)
   assert.match(iss, /PostInstallExitCode/is)
   assert.match(iss, /UninstallRun/is)
-  assert.doesNotMatch(iss, /^\[Run\]/m)
+  // Optional setup UI is allowed after installation; the lifecycle hooks stay in Pascal code.\n  assert.match(iss, /^\[Run\]/m)\n  assert.match(iss, /configure-server\\.ps1[\s\S]*Flags:\s*postinstall\s+nowait\s+skipifsilent/i)
   assert.doesNotMatch(iss, /-Command\s+\".*Stop-Service/is)
   assert.doesNotMatch(iss, /(DelTree|Remove-Item)[^\n]*ProgramData/i)
 
