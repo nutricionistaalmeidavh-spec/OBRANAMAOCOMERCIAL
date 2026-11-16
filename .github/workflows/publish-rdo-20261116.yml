@@ -382,6 +382,6 @@ jobs:
             gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url,tagName,assets
           done
           mkdir -p verified
-          gh release download "desktop-commercial-v$DESKTOP_VERSION" --repo "$GITHUB_REPOSITORY" --dir verified --pattern "Obra-na-Mao-Desktop-Setup-$DESKTOP_VERSION.exe"
+          gh release download "desktop-commercial-v$DESKTOP_VERSION" --repo "$GITHUB_REPOSITORY" --dir verified --pattern "Obra-na-Mao-Desktop-Setup-$DESKTOP_VERSION.exe*"
           cp dist/windows/SHA256SUMS.txt verified/
           (cd verified && sha256sum -c SHA256SUMS.txt)
