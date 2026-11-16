@@ -8,6 +8,7 @@ import { FinanceService } from './finance-service.mjs'
 import { MeasurementService } from './measurement-service.mjs'
 import { ProcurementService } from './procurement-service.mjs'
 import { RdoMaterialConsumption } from './rdo-material-consumption.mjs'
+import { FieldRdoImport } from './field-rdo-import.mjs'
 import { ContractsService } from './contracts-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
@@ -303,6 +304,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const measurements = measurementService || (compoundDomainReady ? new MeasurementService({ repository }) : null)
   const procurement = procurementService || (compoundDomainReady ? new ProcurementService({ repository }) : null)
   const rdoMaterials = compoundDomainReady ? new RdoMaterialConsumption({ repository }) : null
+  const mobileRdoImport = compoundDomainReady ? new FieldRdoImport({ repository }) : null
   const contracts = contractsService || (compoundDomainReady ? new ContractsService({ repository }) : null)
   const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
@@ -534,6 +536,18 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const body = await readJson(request)
         authorizeAction(context, { domain: 'operation', action: body.id ? 'edit' : 'create' })
         return sendJson(response, 201, field.saveDailyReport(body))
+      }
+
+      if (url.pathname === '/api/v1/field/rdo/import-mobile') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!mobileRdoImport) return sendJson(response, 503, { error:'mobile_rdo_unavailable',message:'Importação do RDO indisponível.' })
+        const context = await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'operation',action:'create'})
+        authorizeAction(context,{domain:'finance',action:'edit'})
+        const input = await readJson(request)
+        // The authorized local company is authoritative; callers cannot override it.
+        const scope = { ...(input.scope||{}), companyId:context.companyId }
+        return sendJson(response,200,mobileRdoImport.apply({scope,report:input.report}))
       }
 
       if (url.pathname === '/api/v1/field/rdo/materials') {
