@@ -11,7 +11,8 @@ const alertText=(state:string)=>({
   acima_do_orcamento:'Notas acima do orçamento',
   sem_previsao:'Sem orçamento cadastrado',
   dentro_do_orcamento:'Dentro da referência',
-  comparacao_indisponivel:'Comparação indisponível'
+  comparacao_indisponivel:'Comparação indisponível',
+  sem_previsao_especifica:'Sem orçamento específico'
 } as Record<string,string>)[state]||'—'
 
 /** Report on recorded RECEIVED invoices only, not payments, cash flow or stock consumption. */
@@ -79,8 +80,8 @@ export default function ReceivedCostsReport({obraId,revision=0}:{obraId:number|n
           <div className="metric"><span>Orçamento total das etapas</span><strong>{money(result.indicadores.orcamento_total_centavos)}</strong></div>
         </div>
         {!result.indicadores.comparavel&&<p role="status" style={{fontSize:13,marginTop:12,color:'#64748b'}}>
-          A comparação com o orçamento foi desabilitada porque o filtro de fornecedor ou subetapa representa apenas parte dos serviços.
-          O orçamento existente não é distribuído artificialmente entre subetapas.
+          A comparação com o orçamento foi desabilitada: o filtro seleciona parte dos serviços sem previsão específica comparável,
+          ou está restrito a um fornecedor. Não há rateio automático do orçamento entre subetapas.
         </p>}
         <h3 style={{marginTop:18}}>Planejado x documentado por etapa</h3>
         {result.etapas.length?<div className="table-wrap"><table className="data-table">
@@ -95,12 +96,12 @@ export default function ReceivedCostsReport({obraId,revision=0}:{obraId:number|n
           </tr>)}</tbody>
         </table></div>:<Empty title="Nenhuma etapa com dados" description="Cadastre itens orçamentários ou notas recebidas para obter o comparativo."/>}
         <h3 style={{marginTop:18}}>Valores documentados por subetapa</h3>
-        <p style={{fontSize:12,color:'#64748b'}}>Subetapas não possuem orçamento próprio no cadastro atual. Esta tabela apresenta apenas valores das notas.</p>
+        <p style={{fontSize:12,color:'#64748b'}}>O orçamento da subetapa aparece somente quando há itens orçamentários vinculados diretamente a ela. Orçamentos antigos sem subetapa permanecem na etapa.</p>
         {result.subetapas.length?<div className="table-wrap"><table className="data-table">
-          <thead><tr><th>Etapa</th><th>Subetapa</th><th>Itens</th><th>Acumulado</th><th>No período</th></tr></thead>
+          <thead><tr><th>Etapa</th><th>Subetapa</th><th>Itens</th><th>Orçado</th><th>Acumulado</th><th>No período</th><th>Diferença</th><th>Leitura</th></tr></thead>
           <tbody>{result.subetapas.map((item:any)=><tr key={String(item.frente_id??'geral')+':'+String(item.subfrente_id??'geral')}>
-            <td>{item.etapa_nome}</td><td>{item.subetapa_nome}</td><td>{item.quantidade_itens}</td>
-            <td>{money(item.documentado_ate_fim_centavos)}</td><td>{money(item.documentado_periodo_centavos)}</td>
+            <td>{item.etapa_nome}</td><td>{item.subetapa_nome}</td><td>{item.quantidade_itens}</td><td>{result.indicadores.comparavel?money(item.orcamento_centavos):'—'}</td>
+            <td>{money(item.documentado_ate_fim_centavos)}</td><td>{money(item.documentado_periodo_centavos)}</td><td>{money(item.desvio_centavos)}</td><td>{alertText(item.alerta)}</td>
           </tr>)}</tbody>
         </table></div>:<Empty title="Sem itens documentados" description="Não há itens de notas recebidas com essa classificação."/>}
         <h3 style={{marginTop:18}}>Histórico dos itens de notas recebidas</h3>
