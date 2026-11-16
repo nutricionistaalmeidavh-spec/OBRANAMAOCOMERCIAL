@@ -38,7 +38,7 @@ declare global {
     multiuserRefreshReceipts?: ()=>Promise<Record<string,unknown>>;
     mobileRdoReceipts?: Record<string,any>;
     mobileRdoCatalog?: {schemaVersion:number;workId:number;version:string;materials:Array<any>;fronts:Array<any>;services:Array<any>}|null;
-    mobileRdoUploadPhoto?: (data:{date:string;mimeType:string;data:string})=>Promise<any>;
+    mobileRdoUploadPhoto?: (data:{date:string;mimeType:string;data:string;clientId?:string})=>Promise<any>;
     mobileRdoViewPhoto?: (id:string)=>Promise<any>;
     mobileRdoDeletePhoto?: (date:string,id:string)=>Promise<any>;
     multiuserRefreshCatalog?: ()=>Promise<any>;
@@ -93,7 +93,7 @@ const phoneMode=()=>!auth.isSignedIn()&&!!phoneToken();
 async function fieldProject(){return phoneMode()?api.post('/api/phone/project',{token:phoneToken(),date:localISODate()}):api.get('/api/project',{date:localISODate()})}
 async function fieldRdoReceipts(){return phoneMode()?api.post('/api/phone/field/rdo/receipts',{token:phoneToken()}):api.get('/api/field/rdo/receipts')}
 async function fieldRdoCatalog(){return phoneMode()?api.post('/api/phone/field/rdo/catalog',{token:phoneToken()}):api.get('/api/field/rdo/catalog')}
-async function fieldRdoPhotoUpload(value:{date:string;mimeType:string;data:string}){return phoneMode()?api.post('/api/phone/field/rdo/photos/upload',{token:phoneToken(),...value}):api.post('/api/field/rdo/photos/upload',value)}
+async function fieldRdoPhotoUpload(value:{date:string;mimeType:string;data:string;clientId?:string}){return phoneMode()?api.post('/api/phone/field/rdo/photos/upload',{token:phoneToken(),...value}):api.post('/api/field/rdo/photos/upload',value)}
 async function fieldRdoPhotoView(id:string){return phoneMode()?api.post('/api/phone/field/rdo/photos/view',{token:phoneToken(),id}):api.get('/api/field/rdo/photos',{id})}
 async function fieldRdoPhotoDelete(date:string,id:string){return phoneMode()?api.post('/api/phone/field/rdo/photos/delete',{token:phoneToken(),date,id}):api.post('/api/field/rdo/photos/delete',{date,id})}
 async function fieldAttendance(employeeId:string,status:string){return phoneMode()?api.post('/api/phone/attendance',{token:phoneToken(),date:localISODate(),employeeId,status}):api.post('/api/attendance',{date:localISODate(),employeeId,status})}
