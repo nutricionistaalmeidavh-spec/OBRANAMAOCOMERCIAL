@@ -3,6 +3,8 @@
 CREATE TABLE IF NOT EXISTS rdo_material_linhas (
   rdo_id INTEGER NOT NULL REFERENCES rdos(id) ON DELETE RESTRICT,
   linha_id TEXT NOT NULL,
+  material_id TEXT,
+  servico TEXT,
   frente_id INTEGER REFERENCES frentes_obra(id),
   descricao TEXT NOT NULL,
   unidade TEXT NOT NULL,
