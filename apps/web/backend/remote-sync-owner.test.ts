@@ -1,4 +1,5 @@
-import { DatabaseSync } from 'node:sqlite'
+import { createRequire } from 'node:module'
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite')
 import { describe, expect, it } from 'vitest'
 import { createRemoteSyncOwnerService } from './remote-sync-owner'
 
