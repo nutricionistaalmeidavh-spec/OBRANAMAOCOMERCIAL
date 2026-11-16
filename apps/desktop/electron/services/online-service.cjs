@@ -364,6 +364,12 @@ class OnlineService {
     return this.request('/api/desktop/field/rdo/pending', { deviceToken: this.requireToken() })
   }
 
+  async fieldRdoPhoto({date,id,sha256}) {
+    return this.request('/api/desktop/field/rdo/photo', {
+      deviceToken:this.requireToken(),date,id,sha256
+    },30000)
+  }
+
   async fieldRdoAck(input) {
     return this.request('/api/desktop/field/rdo/ack', { deviceToken: this.requireToken(), ...input })
   }
