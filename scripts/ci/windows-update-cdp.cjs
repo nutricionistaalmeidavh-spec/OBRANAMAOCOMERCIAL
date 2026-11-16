@@ -1,6 +1,7 @@
 // Diagnostic-only CDP driver. Runs against a disposable GitHub Windows runner.
 const fs = require('node:fs');
 const path = require('node:path');
+const {selectRendererTarget,readableBodyExpression}=require('./windows-cdp-target.cjs');
 const http = require('node:http');
 const { setTimeout: delay } = require('node:timers/promises');
 const [mode, folder, rendererPort='9222'] = process.argv.slice(2);
@@ -22,7 +23,7 @@ if (mode === 'serve') {
       for (let attempt=0;attempt<60;attempt++) {
         try {
           const list = await (await fetch(`http://127.0.0.1:${port}/json/list`,{signal:AbortSignal.timeout(5000)})).json();
-          const target = list.find(x=>x.type==='page') || list[0];
+          const target = selectRendererTarget(list);
           if (!target?.webSocketDebuggerUrl) throw Error('No CDP target');
           const socket = new WebSocket(target.webSocketDebuggerUrl);
           await new Promise((resolve,reject)=>{socket.addEventListener('open',resolve,{once:true});socket.addEventListener('error',reject,{once:true});});
@@ -55,12 +56,14 @@ if (mode === 'serve') {
     }
     if (mode === 'snapshot') {
       const renderer = await connect(Number(rendererPort));
-      for(let attempt=0;attempt<40;attempt++) {
-        const text=await renderer.evaluate(`document.body.innerText.trim()`);
-        if(text&&!/^Carregando (interface|acesso)/i.test(text))break;
-        await delay(250);
+      let ready=false;
+      for(let attempt=0;attempt<80;attempt++) {
+        const text=await renderer.evaluate(readableBodyExpression());
+        if(text&&!/^Carregando (interface|acesso)/i.test(text)){ready=true;break;}
+        await delay(500);
       }
-      const data = await renderer.evaluate(`(async()=>{const details=document.querySelector('details');if(details)details.open=true;return {text:document.body.innerText,details:details?.textContent||null,bootstrap:window.fluxoDre?await window.fluxoDre.app.bootstrap().catch(e=>({error:e.message})):null,documentRoot:window.fluxoDre?.documentos?.rootStatus?await window.fluxoDre.documentos.rootStatus().catch(e=>({error:e.message})):null,companies:window.fluxoDre?.empresas?.list?await window.fluxoDre.empresas.list().catch(e=>({error:e.message})):null}})()`);
+      if(!ready)throw Error('Renderer Electron não exibiu conteúdo verificável após abertura da instalação.');
+      const data = await renderer.evaluate(`(async()=>{const details=document.querySelector('details');if(details)details.open=true;return {text:document.body?.innerText||'',details:details?.textContent||null,bootstrap:window.fluxoDre?await window.fluxoDre.app.bootstrap().catch(e=>({error:e.message})):null,documentRoot:window.fluxoDre?.documentos?.rootStatus?await window.fluxoDre.documentos.rootStatus().catch(e=>({error:e.message})):null,companies:window.fluxoDre?.empresas?.list?await window.fluxoDre.empresas.list().catch(e=>({error:e.message})):null}})()`);
       fs.writeFileSync(path.join(folder,'snapshot.json'),JSON.stringify(data,null,2));
       await renderer.screenshot(path.join(folder,'screenshot.png'));renderer.close();return;
     }

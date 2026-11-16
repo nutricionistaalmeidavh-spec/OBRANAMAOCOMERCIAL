@@ -1,3 +1,4 @@
+import {materialLine,materialReviewSummary,rdoSourceFingerprint,reconcileRdoStatus} from '/field-rdo-utils.js';
 const S={not_started:'Não iniciado',released:'Liberado',in_progress:'Em execução',inspection:'Verificação',completed:'Concluído',blocked:'Bloqueado'};
 const SERVICES={corte:['Corte',2,3],fixacao:['Fixação',2,1/3],chumbamento:['Chumbamento',2,1],afaq:['AF/AQ',4,5],esgoto:['Esgoto aéreo',1,5],dreno:['Dreno',2,1]};
 const EMP=[];
@@ -21,8 +22,8 @@ function makeFloor(number){return{number,stages:Object.keys(SERVICES).map(servic
 function seededDay(){return{date:BASE_DATE,presentCount:0,absentCount:0,attendance:{},assignments:[],events:[],note:'',plans:[],sessions:[]}}
 function fresh(){const day=seededDay();return{version:6,project:{name:'Nova obra',customer:'',startFloor:0,targetFloor:1},settings:{averageWeeklyAbsences:0,unassignedAbsencesToday:0,unassignedCompensationDays:0,marginalEfficiency:.7,defaultWorkStart:'07:30'},today:structuredClone(day),days:{[BASE_DATE]:structuredClone(day)},checklistTemplates:defaultTemplates(),employees:[],issues:[],history:[],floors:FLOOR_NUMBERS.map(makeFloor)}}
 function migrate(v){if(!v)return fresh();if((v.version||1)<2){const seed=fresh();v.settings={...v.settings,unassignedAbsencesToday:1};v.today=seed.today;v.history=v.history||[];if(!v.history.some(h=>h.id==='afaq-10-20260818'))v.history.push({id:'afaq-10-20260818',service:'afaq',floor:10,date:BASE_DATE,time:'12:00',label:'AF/AQ 10º concluído às 12:00'});const af=v.floors?.find(f=>f.number===11)?.stages.find(s=>s.service==='afaq');if(af)af.status='in_progress';const esg=v.floors?.find(f=>f.number===12)?.stages.find(s=>s.service==='esgoto');if(esg)esg.status='in_progress';v.version=2}if((v.version||2)<3){const existing=new Map((v.floors||[]).map(f=>[f.number,f]));v.floors=FLOOR_NUMBERS.map(n=>existing.get(n)||makeFloor(n));v.project={...v.project,startFloor:-2,targetFloor:25};v.employees=(v.employees||[]).map(e=>({...e,frontKey:e.frontKey||''}));v.version=3}if((v.version||3)<4){const oldDay=v.today||seededDay();v.days=v.days||{[oldDay.date||BASE_DATE]:{...oldDay,note:oldDay.note||'',plans:oldDay.plans||[]}};Object.values(v.days).forEach(d=>{d.note=d.note||'';d.plans=d.plans||[];d.assignments=d.assignments||[];d.events=d.events||[]});v.checklistTemplates=v.checklistTemplates||defaultTemplates();v.version=4}if((v.version||4)<5){v.settings={...v.settings,defaultWorkStart:v.settings?.defaultWorkStart||'07:30'};Object.values(v.days||{}).forEach(d=>{d.sessions=d.sessions||[]});if(v.today)v.today.sessions=v.today.sessions||[];v.version=5}if((v.version||5)<6){Object.values(v.days||{}).forEach(d=>{d.rdoStatus=d.rdoStatus||'draft';d.rdoDraft=d.rdoDraft||null});if(v.today){v.today.rdoStatus=v.today.rdoStatus||'draft';v.today.rdoDraft=v.today.rdoDraft||null}v.version=6}return v}
-const DB='fluxodre-campo-standalone';function openDb(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}async function load(){try{const db=await openDb();const tx=db.transaction('kv','readonly'),r=tx.objectStore('kv').get('state');const v=await new Promise((ok,no)=>{r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});return migrate(v||fresh())}catch{try{return migrate(JSON.parse(localStorage.getItem(DB)))}catch{return fresh()}}}async function save(){refreshRdoDrafts();try{const db=await openDb();const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(structuredClone(state),'state');await new Promise((ok,no)=>{tx.oncomplete=ok;tx.onerror=()=>no(tx.error);tx.onabort=()=>no(tx.error)})}catch{localStorage.setItem(DB,JSON.stringify(state))}if(window.multiuserContext?.role==='admin'&&window.multiuserSync)await window.multiuserSync(structuredClone(state))}
-function getDay(date,create=false){let d=state.days?.[date];if(!d&&create){state.days=state.days||{};d={date,presentCount:0,absentCount:0,attendance:{},assignments:[],events:[],note:'',plans:[],sessions:[],rdoStatus:'draft',rdoDraft:null};state.days[date]=d}if(d){d.sessions=d.sessions||[];d.assignments=d.assignments||[];d.events=d.events||[];d.plans=d.plans||[];d.attendance=d.attendance||{};if(d.presentCount==null)d.presentCount=Object.values(d.attendance).filter(v=>v==='present').length;if(d.absentCount==null)d.absentCount=Object.values(d.attendance).filter(v=>v==='absent').length}return d||{date,presentCount:0,absentCount:0,attendance:{},assignments:[],events:[],note:'',plans:[],sessions:[],rdoStatus:'draft',rdoDraft:null}}
+const DB='fluxodre-campo-standalone';function openDb(){return new Promise((ok,no)=>{const r=indexedDB.open(DB,2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('kv'))r.result.createObjectStore('kv');if(!r.result.objectStoreNames.contains('rdo_photo_queue'))r.result.createObjectStore('rdo_photo_queue')};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}async function load(){try{const db=await openDb();const tx=db.transaction('kv','readonly'),r=tx.objectStore('kv').get('state');const v=await new Promise((ok,no)=>{r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});return migrate(v||fresh())}catch{try{return migrate(JSON.parse(localStorage.getItem(DB)))}catch{return fresh()}}}async function save(){refreshRdoDrafts();try{const db=await openDb();const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(structuredClone(state),'state');await new Promise((ok,no)=>{tx.oncomplete=ok;tx.onerror=()=>no(tx.error);tx.onabort=()=>no(tx.error)})}catch{localStorage.setItem(DB,JSON.stringify(state))}if(['admin','foreman'].includes(window.multiuserContext?.role)&&window.multiuserSync)await window.multiuserSync(structuredClone(state))}
+function getDay(date,create=false){let d=state.days?.[date];if(!d&&create){state.days=state.days||{};d={date,presentCount:0,absentCount:0,attendance:{},assignments:[],events:[],note:'',plans:[],sessions:[],materials:[],materialsReviewed:false,photos:[],photosReviewed:false,occurrencesReviewed:false,rdoStatus:'draft',rdoDraft:null};state.days[date]=d}if(d){d.sessions=d.sessions||[];d.materials=d.materials||[];d.materialsReviewed=d.materialsReviewed===true;d.photos=d.photos||[];d.photosReviewed=d.photosReviewed===true;d.occurrencesReviewed=d.occurrencesReviewed===true;d.assignments=d.assignments||[];d.events=d.events||[];d.plans=d.plans||[];d.attendance=d.attendance||{};if(d.presentCount==null)d.presentCount=Object.values(d.attendance).filter(v=>v==='present').length;if(d.absentCount==null)d.absentCount=Object.values(d.attendance).filter(v=>v==='absent').length}return d||{date,presentCount:0,absentCount:0,attendance:{},assignments:[],events:[],note:'',plans:[],sessions:[],materials:[],materialsReviewed:false,photos:[],photosReviewed:false,occurrencesReviewed:false,rdoStatus:'draft',rdoDraft:null}}
 function show(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(show.t);show.t=setTimeout(()=>toast.classList.remove('show'),2200)}
 function metaTag(stage){if(stage.status==='completed')return['Concluído','completed'];if(stage.status==='blocked')return['Bloqueado','blocked'];if(stage.status==='in_progress')return['Em execução','progress'];if(stage.status==='released')return['Liberado','released'];if(stage.targetDate&&stage.targetDate<localISODate())return['Meta vencida','overdue'];return[S[stage.status],'']}
 function progress(floor){const n=floor.stages.reduce((a,s)=>a+(s.status==='completed'?1:(s.status==='in_progress'||s.status==='inspection')?0.5:s.status==='released'?0.15:0),0);return Math.round(n/floor.stages.length*100)}
@@ -30,7 +31,7 @@ function nav(){document.querySelectorAll('.nav button').forEach(b=>b.classList.t
 function stageStatus(service,floor){return state.floors?.find(f=>f.number===floor)?.stages.find(s=>s.service===service)?.status||null}
 function assignmentStatus(a){return a?.status||stageStatus(a.service,a.floor)||'not_started'}
 function isActiveAssignment(a){const status=assignmentStatus(a);return status==='in_progress'||status==='released'}
-function assignmentKey(a){return`${a.service}:${Number(a.floor)}`}function activeAssignmentsBefore(date){const open=new Map();Object.keys(state.days||{}).filter(k=>k<date).sort().forEach(k=>{const d=state.days[k]||{};(d.assignments||[]).forEach(a=>{const key=assignmentKey(a);if(isActiveAssignment(a))open.set(key,{...a});else open.delete(key)})});return[...open.values()]}function ensureDayContinuity(date){const d=getDay(date,true),existing=new Set((d.assignments||[]).map(assignmentKey));let changed=false;for(const a of activeAssignmentsBefore(date)){const key=assignmentKey(a);if(existing.has(key))continue;d.assignments.push({...a,status:a.status==='released'?'released':'in_progress',note:a.note?`${a.note} · Continuidade automática`:'Continuidade automática'});existing.add(key);changed=true}if(changed)void save();return d}function attendanceStatus(e,day){return day.attendance?.[e.id]||'unmarked'}function upsertDayAssignment(date,service,floor,status,note='',crewOverride=null){const d=getDay(date,true),key=`${service}:${floor}`;let a=(d.assignments||[]).find(x=>assignmentKey(x)===key);const crew=crewOverride??linkedCount(service,floor);if(a){a.status=status;a.crew=crew;if(note)a.note=note}else{a={service,label:SERVICES[service]?.[0]||service,floor,crew,status,note};d.assignments.push(a)}return a}function advanceFront(service,floor,date){const currentFloor=state.floors.find(f=>f.number===floor),currentStage=currentFloor?.stages.find(s=>s.service===service),oldKey=`${service}:${floor}`,crew=state.employees.filter(e=>e.frontKey===oldKey);if(currentStage)currentStage.status='completed';upsertDayAssignment(date,service,floor,'completed','Etapa concluída',crew.length);const nextFloor=state.floors.filter(f=>f.number>floor).sort((a,b)=>a.number-b.number).find(f=>{const st=f.stages.find(s=>s.service===service);return st&&st.status!=='completed'});if(!nextFloor){crew.forEach(e=>e.frontKey='');return null}const nextStage=nextFloor.stages.find(s=>s.service===service);if(!nextStage||nextStage.status==='blocked'){crew.forEach(e=>e.frontKey='');return null}const nextStatus=crew.length?'in_progress':'released',nextKey=`${service}:${nextFloor.number}`;nextStage.status=nextStatus;crew.forEach(e=>e.frontKey=nextKey);upsertDayAssignment(date,service,nextFloor.number,nextStatus,`Continuação automática após ${floorLabel(floor)}`,crew.length);return{nextFloor:nextFloor.number,crewCount:crew.length,status:nextStatus}}function currentWorkDay(){const today=ensureDayContinuity(localISODate());return today.assignments.length?today:getDay(BASE_DATE,false)}
+function assignmentKey(a){return`${a.service}:${Number(a.floor)}`}function activeAssignmentsBefore(date){const open=new Map();Object.keys(state.days||{}).filter(k=>k<date).sort().forEach(k=>{const d=state.days[k]||{};(d.assignments||[]).forEach(a=>{const key=assignmentKey(a);if(isActiveAssignment(a))open.set(key,{...a});else open.delete(key)})});return[...open.values()]}function ensureDayContinuity(date){if(date!==localISODate())return getDay(date,true);const d=getDay(date,true),existing=new Set((d.assignments||[]).map(assignmentKey));let changed=false;for(const a of activeAssignmentsBefore(date)){const key=assignmentKey(a);if(existing.has(key))continue;d.assignments.push({...a,status:a.status==='released'?'released':'in_progress',note:a.note?`${a.note} · Continuidade automática`:'Continuidade automática'});existing.add(key);changed=true}if(changed)void save();return d}function attendanceStatus(e,day){return day.attendance?.[e.id]||'unmarked'}function upsertDayAssignment(date,service,floor,status,note='',crewOverride=null){const d=getDay(date,true),key=`${service}:${floor}`;let a=(d.assignments||[]).find(x=>assignmentKey(x)===key);const crew=crewOverride??linkedCount(service,floor);if(a){a.status=status;a.crew=crew;if(note)a.note=note}else{a={service,label:SERVICES[service]?.[0]||service,floor,crew,status,note};d.assignments.push(a)}return a}function advanceFront(service,floor,date){const currentFloor=state.floors.find(f=>f.number===floor),currentStage=currentFloor?.stages.find(s=>s.service===service),oldKey=`${service}:${floor}`,crew=state.employees.filter(e=>e.frontKey===oldKey);if(currentStage)currentStage.status='completed';upsertDayAssignment(date,service,floor,'completed','Etapa concluída',crew.length);const nextFloor=state.floors.filter(f=>f.number>floor).sort((a,b)=>a.number-b.number).find(f=>{const st=f.stages.find(s=>s.service===service);return st&&st.status!=='completed'});if(!nextFloor){crew.forEach(e=>e.frontKey='');return null}const nextStage=nextFloor.stages.find(s=>s.service===service);if(!nextStage||nextStage.status==='blocked'){crew.forEach(e=>e.frontKey='');return null}const nextStatus=crew.length?'in_progress':'released',nextKey=`${service}:${nextFloor.number}`;nextStage.status=nextStatus;crew.forEach(e=>e.frontKey=nextKey);upsertDayAssignment(date,service,nextFloor.number,nextStatus,`Continuação automática após ${floorLabel(floor)}`,crew.length);return{nextFloor:nextFloor.number,crewCount:crew.length,status:nextStatus}}function currentWorkDay(){const today=ensureDayContinuity(localISODate());return today.assignments.length?today:getDay(BASE_DATE,false)}
 function frontOptions(){const map=new Map();(currentWorkDay().assignments||[]).filter(a=>isActiveAssignment(a,currentWorkDay().date)).forEach(a=>map.set(`${a.service}:${a.floor}`,{key:`${a.service}:${a.floor}`,service:a.service,floor:a.floor,label:a.label}));(state.floors||[]).forEach(f=>f.stages.filter(s=>s.status==='in_progress'||s.status==='released').forEach(s=>map.set(`${s.service}:${f.number}`,{key:`${s.service}:${f.number}`,service:s.service,floor:f.number,label:s.label})));return[...map.values()].sort((a,b)=>a.floor-b.floor||a.label.localeCompare(b.label))}
 function linkedCount(service,floor){const key=`${service}:${floor}`;return state.employees.filter(e=>e.frontKey===key).length}
 function nowTime(){return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',hour12:false})}
@@ -48,7 +49,297 @@ function sessionStateLabel(v){return{running:'Em execução',paused:'Pausado',fi
 function sessionTone(v){return v==='finished'?'completed':v==='paused'?'released':'progress'}
 function getSession(day,id){return(day.sessions||[]).find(s=>s.id===id)}
 function allSessions(){return Object.values(state.days||{}).flatMap(d=>d.sessions||[])}
-function productivityByService(){const groups={};for(const s of allSessions().filter(x=>x.state==='finished')){const g=groups[s.service]||(groups[s.service]={service:s.service,sessions:0,minutes:0,manHours:0,completed:0});g.sessions++;g.minutes+=sessionMinutes(s);g.manHours+=sessionManHours(s);if(s.result==='completed')g.completed++}return Object.values(groups)}function rdoDraftFor(day){const sessions=day.sessions||[],finished=sessions.filter(s=>s.state==='finished'),open=sessions.filter(s=>s.state!=='finished'),present=Number(day.presentCount||0),absent=Number(day.absentCount||0),attendanceMarked=present+absent,manHours=finished.reduce((sum,s)=>sum+sessionManHours(s),0),completed=finished.filter(s=>s.result==='completed').length,plans=day.plans||[],assignments=day.assignments||[],events=day.events||[],issues=(state.issues||[]).filter(i=>i.status==='open'),checks=[attendanceMarked>0,plans.length>0||assignments.length>0,finished.length>0,open.length===0],completeness=Math.round(checks.filter(Boolean).length/checks.length*100);return{date:day.date,presentCount:present,absentCount:absent,attendanceMarked,plansCount:plans.length,assignmentsCount:assignments.length,sessionsCount:sessions.length,finishedSessions:finished.length,openSessions:open.length,completedResults:completed,productiveMinutes:finished.reduce((sum,s)=>sum+sessionMinutes(s),0),manHours:Number(manHours.toFixed(2)),note:day.note||'',events:events.map(e=>({time:e.time,label:e.label})),openIssues:issues.map(i=>({id:i.id,title:i.title,type:i.type,floor:i.floor,service:i.service,external:!!i.external})),completeness,ready:attendanceMarked>0&&finished.length>0&&open.length===0,generatedAt:new Date().toISOString()}}function refreshRdoDrafts(){Object.values(state.days||{}).forEach(day=>{day.rdoDraft=rdoDraftFor(day);day.rdoStatus=day.rdoStatus||'draft'})}function rdoClosure(day){const d=rdoDraftFor(day),status=day.rdoStatus==='ready_for_desktop'?'Fechado para integração':d.ready?'Pronto para fechar':'Em preenchimento',tone=day.rdoStatus==='ready_for_desktop'?'completed':d.ready?'released':'progress';return`<section class="section"><div class="section-head"><div><h2>Fechamento do dia</h2><p>O RDO é montado automaticamente com presença, produção, eventos e pendências.</p></div></div><div class="card rdo-card"><div class="row"><div><strong>RDO automático</strong><div class="meta">${d.finishedSessions} apontamento(s) concluído(s) · ${d.manHours.toFixed(2)} HH · ${d.openSessions} em aberto</div></div><span class="badge ${tone}">${status}</span></div><div class="rdo-progress"><i style="width:${d.completeness}%"></i></div><div class="meta">${d.completeness}% dos dados operacionais essenciais disponíveis.</div><button id="reviewRdo" class="linkbtn small-btn">Revisar e fechar RDO</button></div></section>`}function openRdoReview(){const day=getDay(selectedDate,true),d=rdoDraftFor(day),missing=[];if(!d.attendanceMarked)missing.push('presença/faltas');if(!d.finishedSessions)missing.push('apontamento de produção concluído');if(d.openSessions)missing.push(`${d.openSessions} apontamento(s) ainda aberto(s)`);(sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Fechamento · ${dateBR(day.date)}</h2><div class="meta">Revisão automática do dia antes do fechamento.</div></div><button class="close">×</button></div><div class="metrics"><div class="metric"><span>Equipe</span><strong>${d.presentCount} / ${d.absentCount}</strong><div class="meta">presentes / faltas</div></div><div class="metric"><span>Homem-hora</span><strong>${d.manHours.toFixed(2)}</strong></div></div><div class="card"><strong>Produção</strong><div class="meta">${d.finishedSessions} sessão(ões) concluída(s) · ${d.completedResults} conclusão(ões) física(s)</div></div><div class="card"><strong>Ocorrências e pendências</strong><div class="meta">${d.events.length} movimentação(ões) · ${d.openIssues.length} pendência(s) aberta(s)</div>${day.note?`<p>${esc(day.note)}</p>`:''}</div>${missing.length?`<div class="card notice"><b>!</b><div><strong>Ainda falta conferir</strong><div class="meta">${missing.map(esc).join(' · ')}</div></div></div>`:'<div class="card notice"><b>✓</b><div><strong>Dados essenciais completos</strong><div class="meta">O RDO está pronto para ser fechado. O computador receberá esta atualização automaticamente.</div></div></div>'}<button id="prepareRdo" class="btn" style="width:100%">${d.ready?'Fechar RDO':'Salvar rascunho'}</button></div>`, document.dispatchEvent(new CustomEvent('field:sheet-rendered')));sheet.showModal();sheet.querySelector('.close').addEventListener('click',()=>sheet.close());$('#prepareRdo').addEventListener('click',async()=>{day.rdoDraft=rdoDraftFor(day);day.rdoStatus=day.rdoDraft.ready?'ready_for_desktop':'draft';await save();sheet.close();renderDay();show(day.rdoStatus==='ready_for_desktop'?'RDO fechado na obra. O computador receberá automaticamente.':'Rascunho do RDO salvo. Complete os itens pendentes.')})}
+function productivityByService(){const groups={};for(const s of allSessions().filter(x=>x.state==='finished')){const g=groups[s.service]||(groups[s.service]={service:s.service,sessions:0,minutes:0,manHours:0,completed:0});g.sessions++;g.minutes+=sessionMinutes(s);g.manHours+=sessionManHours(s);if(s.result==='completed')g.completed++}return Object.values(groups)}function rdoOccurrencesFingerprint(day){return JSON.stringify({events:day.events||[],note:day.note||'',issues:(state.issues||[]).filter(i=>i.status==='open').map(i=>({id:i.id,title:i.title,status:i.status}))})}
+function rdoPhotosFingerprint(day){return JSON.stringify(day.photos||[])}
+function rdoDraftFor(day){
+ const sessions=day.sessions||[],finished=sessions.filter(s=>s.state==='finished'),open=sessions.filter(s=>s.state!=='finished'),
+ present=Number(day.presentCount||0),absent=Number(day.absentCount||0),attendanceMarked=present+absent,
+ manHours=finished.reduce((sum,s)=>sum+sessionManHours(s),0),completed=finished.filter(s=>s.result==='completed').length,
+ plans=day.plans||[],assignments=day.assignments||[],events=day.events||[],
+ issues=(state.issues||[]).filter(i=>i.status==='open'),materials=materialReviewSummary(day),
+ occurrencesReviewed=day.occurrencesReviewed===true&&day.occurrencesReviewedFingerprint===rdoOccurrencesFingerprint(day),
+ photosReviewed=day.photosReviewed===true&&day.photosReviewedFingerprint===rdoPhotosFingerprint(day),
+ checks=[attendanceMarked>0,finished.length>0&&open.length===0,materials.ready,occurrencesReviewed,photosReviewed],
+ completeness=Math.round(checks.filter(Boolean).length/checks.length*100);
+ return {
+  date:day.date,presentCount:present,absentCount:absent,attendanceMarked,
+  plansCount:plans.length,assignmentsCount:assignments.length,sessionsCount:sessions.length,
+  finishedSessions:finished.length,openSessions:open.length,completedResults:completed,
+  productiveMinutes:finished.reduce((sum,s)=>sum+sessionMinutes(s),0),manHours:Number(manHours.toFixed(2)),
+  note:day.note||'',events:events.map(e=>({time:e.time,label:e.label})),
+  openIssues:issues.map(i=>({id:i.id,title:i.title,type:i.type,floor:i.floor,service:i.service,external:!!i.external})),
+  materialsCount:materials.count,materialsReviewed:materials.ready,
+  photosCount:(day.photos||[]).length,photosReviewed,occurrencesReviewed,
+  completeness,ready:checks.every(Boolean),generatedAt:new Date().toISOString()
+ }
+}
+function refreshRdoDrafts(){Object.values(state.days||{}).forEach(day=>{Object.assign(day,reconcileRdoStatus(day));day.rdoDraft=rdoDraftFor(day);day.rdoStatus=day.rdoStatus||'draft'})}
+function rdoClosure(day){
+ const d=rdoDraftFor(day),queued=day.rdoStatus==='ready_for_desktop',
+ receipt=window.mobileRdoReceipts?.[day.date],
+ confirmed=queued&&receipt?.status==='applied'&&receipt.fingerprint===day.rdoClosedFingerprint,
+ status=confirmed?'Confirmado pelo Desktop':queued?'Pendente de integração':d.ready?'Pronto para enviar':'Em preenchimento',
+ tone=confirmed?'completed':queued||d.ready?'released':'progress',
+ items=[
+  {title:'Equipe e presença',detail:d.attendanceMarked+' colaborador(es) conferido(s)',done:d.attendanceMarked>0,button:'goRdoTeam',label:'Ver'},
+  {title:'Produção executada',detail:d.finishedSessions+' apontamento(s) concluído(s) · '+d.openSessions+' aberto(s)',done:d.finishedSessions>0&&d.openSessions===0,button:'goRdoProduction',label:'Ver'},
+  {title:'Materiais utilizados',detail:d.materialsCount+' item(ns) · '+(d.materialsReviewed?'conferidos':'aguardando conferência'),done:d.materialsReviewed,button:'openRdoMaterials',label:'Registrar'},
+  {title:'Ocorrências',detail:d.events.length+' ocorrência(s) · '+d.openIssues.length+' pendência(s)',done:d.occurrencesReviewed,button:'confirmRdoOccurrences',label:d.occurrencesReviewed?'Conferido':'Conferir'},
+  {title:'Fotos e observações',detail:d.photosCount+' foto(s) anexada(s)',done:d.photosReviewed,button:'openRdoPhotos',label:'Revisar'}
+ ],
+ completed=items.filter(item=>item.done).length;
+ return `<section class="section"><div class="section-head"><div><h2>Diário de Obra</h2>
+ <p>Registre o que ocorreu, confira os materiais e finalize o dia.</p></div></div>
+ <div class="card rdo-card rdo-checklist">
+ <div class="row rdo-checklist-heading"><div><strong>Fechamento do dia</strong><div class="meta">${completed} de 5 seções revisadas</div></div>
+ <span class="badge ${tone}">${status}</span></div>
+ <div class="rdo-progress"><i style="width:${completed/5*100}%"></i></div>
+ <div class="rdo-steps">${items.map((item,index)=>`<div class="rdo-step ${item.done?'is-done':'is-pending'}">
+ <span class="rdo-step-icon" aria-hidden="true">${index+1}</span><div class="rdo-step-body"><strong>${esc(item.title)}</strong><div class="meta">${esc(item.detail)}</div></div>
+ <span class="rdo-step-state" aria-label="${item.done?'Concluído':'Pendente'}">${item.done?'✓':'!'}</span>
+ <button type="button" id="${item.button}" class="linkbtn">${item.label}</button></div>`).join('')}</div>
+ <div class="rdo-checklist-actions">
+ <button id="reviewRdo" class="btn small-btn">${queued?'Conferir envio':'Revisar e concluir RDO'}</button>
+ ${queued?'<button type="button" id="reopenRdo" class="linkbtn">Reabrir para alterações</button>':''}
+ </div>
+ ${confirmed?'<div class="meta">Integração confirmada pelo servidor operacional · RDO nº '+esc(receipt.localRdoId)+'.</div>':
+ queued?'<div class="meta">O fechamento está salvo na Web. A confirmação de estoque e RDO será enviada pelo Desktop.</div><button type="button" id="refreshRdoStatus" class="linkbtn small-btn">Verificar integração</button>':''}
+ </div></section>`;
+}
+function openRdoMaterials(){
+ const day=getDay(selectedDate,true),catalog=window.mobileRdoCatalog,materials=catalog?.materials||[],fronts=catalog?.fronts||[],services=catalog?.services||[];
+ const entries=(day.materials||[]).map(row=>`<div class="card" style="margin-top:8px"><div class="row">
+ <div><strong>${esc(row.descricao)}</strong><div class="meta">${esc(String(row.quantidade))} ${esc(row.unidade)} · ${row.frente_id?'Frente '+esc(row.frente_id):'Geral da obra'} · ${esc(row.servico||'Serviço não informado')}</div></div>
+ <button type="button" class="linkbtn remove-material" data-id="${esc(row.id)}">Remover</button></div></div>`).join('');
+ const materialOptions=materials.map(m=>`<option value="${esc(m.id)}">${esc(m.descricao)} · ${esc(m.unidade)} (saldo ${esc(m.saldo)})</option>`).join('');
+ const frontOptions=fronts.map(f=>`<option value="${f.id}">${esc(f.nome)}</option>`).join('');
+ const serviceOptions=[
+  ...Object.entries(SERVICES).map(([key,value])=>`<option value="${esc(key)}">${esc(value[0])}</option>`),
+  ...services.map(s=>`<option value="etapa:${s.id}">${esc(s.nome)}</option>`)
+ ].join('');
+ sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Materiais · ${dateBR(day.date)}</h2>
+ <div class="meta">Consumo real por obra, frente e serviço, vinculado ao estoque canônico.</div></div><button type="button" class="close">×</button></div>
+ <div class="card"><strong>Materiais deste dia</strong><div class="meta">${day.materialsReviewed?'Conferidos':'Conferência pendente'} · O saldo será atualizado somente após confirmação no Desktop.</div>${entries||'<p class="meta">Nenhum consumo registrado.</p>'}</div>
+ <div class="card"><div class="row"><div><strong>Catálogo da obra</strong><div class="meta">${materials.length} material(is) do estoque operacional${catalog?.updatedAt?' · '+esc(new Date(catalog.updatedAt).toLocaleDateString('pt-BR')):''}</div></div>
+ <button type="button" id="refreshRdoCatalog" class="linkbtn">Atualizar</button></div>
+ ${!materials.length?'<p class="meta">Cadastre uma entrada de material no estoque do Desktop e sincronize. Não será criado um estoque paralelo no celular.</p>':''}</div>
+ <div class="form">
+ <label>Material do estoque<select id="rdoMaterialSelect" ${materials.length?'':'disabled'}><option value="">Selecione o material</option>${materialOptions}</select></label>
+ <label>Frente de serviço<select id="rdoMaterialFront"><option value="">Geral da obra</option>${frontOptions}</select></label>
+ <label>Serviço executado<select id="rdoMaterialService"><option value="">Selecione o serviço</option>${serviceOptions}</select></label>
+ <label>Quantidade consumida <input id="rdoMaterialQuantity" type="text" inputmode="decimal" placeholder="Ex.: 12,5"></label>
+ </div>
+ <button type="button" id="addRdoMaterial" class="btn" style="width:100%" ${materials.length?'':'disabled'}>Adicionar consumo</button>
+ <button type="button" id="confirmRdoMaterials" class="linkbtn" style="width:100%;margin-top:12px">${day.materials?.length?'Conferir consumo do dia':'Confirmar que não houve consumo'}</button>
+ <div id="rdoMaterialError" class="meta" role="alert"></div></div>`;
+ document.dispatchEvent(new CustomEvent('field:sheet-rendered'));sheet.showModal();
+ const errorBox=sheet.querySelector('#rdoMaterialError'),showError=e=>{errorBox.textContent=e?.message||'Não foi possível salvar. Os dados permanecem no aparelho.'};
+ sheet.querySelector('.close').addEventListener('click',()=>sheet.close());
+ let busy=false;const submit=async(fn)=>{
+  if(busy)return;busy=true;const buttons=[...sheet.querySelectorAll('button')];buttons.forEach(button=>button.disabled=true);
+  try{await fn();sheet.close();renderDay();openRdoMaterials()}
+  catch(e){showError(e);buttons.forEach(button=>button.disabled=false)}
+  finally{busy=false}
+ };
+ sheet.querySelector('#refreshRdoCatalog').addEventListener('click',()=>submit(async()=>{
+  if(!window.multiuserRefreshCatalog)throw new Error('Atualização do catálogo indisponível nesta versão.')
+  await window.multiuserRefreshCatalog()
+ }));
+ sheet.querySelector('#addRdoMaterial').addEventListener('click',()=>submit(async()=>{
+  const materialId=sheet.querySelector('#rdoMaterialSelect').value,chosen=materials.find(m=>m.id===materialId)
+  if(!chosen)throw new Error('Selecione um material do catálogo do estoque.')
+  const service=sheet.querySelector('#rdoMaterialService').value
+  if(!service)throw new Error('Associe o consumo a um serviço executado.')
+  const line=materialLine({
+   id:crypto.randomUUID(),material_id:chosen.id,descricao:chosen.descricao,unidade:chosen.unidade,
+   quantidade:sheet.querySelector('#rdoMaterialQuantity').value,
+   frente_id:sheet.querySelector('#rdoMaterialFront').value||null,servico:service
+  })
+  day.materials=day.materials||[];day.materials.push(line);day.materialsReviewed=false;await save()
+ }));
+ sheet.querySelectorAll('.remove-material').forEach(button=>button.addEventListener('click',()=>submit(async()=>{
+  day.materials=day.materials.filter(row=>row.id!==button.dataset.id);day.materialsReviewed=false;await save()
+ })));
+ sheet.querySelector('#confirmRdoMaterials').addEventListener('click',async()=>{
+  if(busy)return;busy=true;const button=sheet.querySelector('#confirmRdoMaterials');button.disabled=true;
+  try{
+   if(day.materials.some(row=>!row.material_id||!row.servico))throw new Error('Revise os materiais antigos e vincule cada consumo ao catálogo e ao serviço.')
+   day.materialsReviewed=true;await save();sheet.close();renderDay();
+   show('Materiais conferidos. A baixa ocorrerá após integração confirmada.')
+  }catch(e){day.materialsReviewed=false;showError(e);button.disabled=false}
+  finally{busy=false}
+ });
+}
+function rdoProjectId(){return String(window.multiuserContext?.bootstrap?.membership?.projectId||window.multiuserContext?.bootstrap?.project?.id||'')}
+async function rdoPhotoQueue(date){
+ try{
+  const db=await openDb(),tx=db.transaction('rdo_photo_queue','readonly'),req=tx.objectStore('rdo_photo_queue').getAll();
+  const rows=await new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)});
+  db.close();return rows.filter(row=>row.projectId===rdoProjectId()&&(!date||row.date===date))
+ }catch{return []}
+}
+async function photoQueuePut(row){
+ const db=await openDb(),tx=db.transaction('rdo_photo_queue','readwrite');
+ tx.objectStore('rdo_photo_queue').put(row,row.key);
+ await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
+ db.close()
+}
+async function photoQueueDelete(key){
+ const db=await openDb(),tx=db.transaction('rdo_photo_queue','readwrite');
+ tx.objectStore('rdo_photo_queue').delete(key);
+ await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)});
+ db.close()
+}
+async function photoBlob(file){
+ if(!file||!String(file.type).startsWith('image/'))throw new Error('Selecione uma fotografia válida.')
+ let image,src=null
+ try{image=await createImageBitmap(file)}
+ catch{
+  src=URL.createObjectURL(file);
+  const picture=new Image();picture.src=src;
+  await picture.decode();image=picture
+ }
+ try{
+  const originalWidth=image.width||image.naturalWidth,originalHeight=image.height||image.naturalHeight;
+  if(!originalWidth||!originalHeight)throw new Error('Não foi possível ler a imagem selecionada.')
+  let maxEdge=1400,quality=.76,blob=null;
+  for(let attempt=0;attempt<6;attempt++){
+   const scale=Math.min(1,maxEdge/Math.max(originalWidth,originalHeight))
+   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(originalWidth*scale));canvas.height=Math.max(1,Math.round(originalHeight*scale))
+   canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height)
+   blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality))
+   if(blob&&blob.size<=480000)return blob
+   maxEdge=Math.round(maxEdge*.8);quality=Math.max(.42,quality*.85)
+  }
+  throw new Error('Não foi possível comprimir a foto para menos de 500 KB.')
+ }finally{image?.close?.();if(src)URL.revokeObjectURL(src)}
+}
+async function photoBase64(blob){
+ return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=()=>reject(r.error);r.readAsDataURL(blob)})
+}
+async function flushRdoPhotos(date){
+ const queued=await rdoPhotoQueue(date);let uploaded=0;
+ if(!navigator.onLine||!window.mobileRdoUploadPhoto)return {uploaded,pending:queued.length};
+ for(const row of queued){
+  const day=state.days?.[row.date];if(!day)continue;
+  const image=await window.mobileRdoUploadPhoto({
+   date:row.date,mimeType:row.blob.type,data:await photoBase64(row.blob),clientId:row.id
+  });
+  day.photos=day.photos||[];
+  if(!day.photos.some(item=>item.id===image.id))day.photos.push(image)
+  day.photosReviewed=false;day.photosReviewedFingerprint=null;
+  await save();
+  await photoQueueDelete(row.key);uploaded++
+ }
+ return {uploaded,pending:(await rdoPhotoQueue(date)).length}
+}
+async function openRdoPhotos(){
+ const day=getDay(selectedDate,true);day.photos=day.photos||[];
+ let uploadError='';
+ try{await flushRdoPhotos(day.date)}catch(e){uploadError=e?.message||'Envio das fotos pendente.'}
+ const queued=await rdoPhotoQueue(day.date),closed=day.rdoStatus==='ready_for_desktop';
+ const photos=day.photos.map(photo=>`<div class="card" style="margin-top:8px"><div class="row">
+ <div><strong>Foto do RDO</strong><div class="meta">${esc(photo.uploadedAt?new Date(photo.uploadedAt).toLocaleString('pt-BR'):'Arquivo enviado')} · ${Math.round(Number(photo.sizeBytes||0)/1024)} KB</div></div>
+ <button type="button" class="linkbtn show-rdo-photo" data-id="${esc(photo.id)}">Visualizar</button>
+ ${closed?'':`<button type="button" class="linkbtn delete-rdo-photo" data-id="${esc(photo.id)}">Excluir</button>`}</div></div>`).join('');
+ const pending=queued.map(photo=>`<div class="card notice"><b>!</b><div><strong>Foto aguardando envio</strong><div class="meta">${esc(photo.createdAt)} · armazenada neste aparelho</div></div>
+ <button type="button" class="linkbtn delete-queued-photo" data-key="${esc(photo.key)}">Excluir</button></div>`).join('');
+ sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Fotos · ${dateBR(day.date)}</h2>
+ <div class="meta">Evidências fotográficas do Diário de Obra</div></div><button type="button" class="close">×</button></div>
+ <div class="card"><strong>${day.photos.length} evidência(s) anexada(s)</strong>
+ <div class="meta">Fotos opcionais. Quando configurada, a armazenagem R2 usa uma infraestrutura separada do servidor próprio. O RDO funciona sem ela.</div>
+ ${photos||'<p class="meta">Nenhuma foto registrada.</p>'}</div>
+ ${pending}
+ <div class="form">
+ <label>Fotografar ou escolher imagem<input id="rdoPhotoInput" type="file" accept="image/*" capture="environment" ${closed?'disabled':''}></label>
+ </div>
+ <button type="button" id="sendQueuedRdoPhotos" class="linkbtn" style="width:100%">Enviar fotos pendentes (${queued.length})</button>
+ <button type="button" id="confirmRdoPhotos" class="btn" style="width:100%" ${queued.length||closed?'disabled':''}>${day.photos.length?'Conferir evidências':'Confirmar dia sem fotos'}</button>
+ ${closed?'<p class="meta">Para alterar fotos de um RDO enviado, reabra-o primeiro.</p>':''}
+ <div id="rdoPhotoError" role="alert" class="meta">${esc(uploadError)}</div><div id="rdoPhotoPreview"></div></div>`;
+ document.dispatchEvent(new CustomEvent('field:sheet-rendered'));sheet.showModal();
+ const errorBox=sheet.querySelector('#rdoPhotoError'),showError=e=>{errorBox.textContent=e?.message||'Não foi possível concluir a operação.'};
+ sheet.querySelector('.close').addEventListener('click',()=>sheet.close());
+ const refresh=()=>{sheet.close();renderDay();void openRdoPhotos()};
+ sheet.querySelector('#rdoPhotoInput').addEventListener('change',async event=>{
+  const file=event.target.files?.[0];if(!file)return;
+  event.target.disabled=true;
+  try{
+   const projectId=rdoProjectId();if(!projectId)throw new Error('Obra não identificada. Entre novamente.')
+   const blob=await photoBlob(file),id=crypto.randomUUID(),key=projectId+':'+day.date+':'+id;
+   await photoQueuePut({projectId,date:day.date,id,key,blob,createdAt:new Date().toISOString()});
+   day.photosReviewed=false;day.photosReviewedFingerprint=null;
+   await save();
+   try{await flushRdoPhotos(day.date)}catch(e){showError(e)}
+   refresh()
+  }catch(e){showError(e);event.target.disabled=false}
+ });
+ sheet.querySelector('#sendQueuedRdoPhotos').addEventListener('click',async event=>{
+  event.target.disabled=true;try{await flushRdoPhotos(day.date);refresh()}catch(e){showError(e);event.target.disabled=false}
+ });
+ sheet.querySelectorAll('.delete-queued-photo').forEach(button=>button.addEventListener('click',async()=>{
+  try{await photoQueueDelete(button.dataset.key);refresh()}catch(e){showError(e)}
+ }));
+ sheet.querySelectorAll('.show-rdo-photo').forEach(button=>button.addEventListener('click',async()=>{
+  try{
+   if(!window.mobileRdoViewPhoto)throw new Error('Visualização de foto indisponível neste acesso.')
+   const photo=await window.mobileRdoViewPhoto(button.dataset.id);
+   const container=sheet.querySelector('#rdoPhotoPreview');container.textContent='';
+   const img=document.createElement('img');img.alt='Evidência do Diário de Obra';img.style.cssText='width:100%;height:auto;border-radius:12px;margin-top:12px';
+   img.src='data:'+photo.contentType+';base64,'+photo.data;container.append(img)
+  }catch(e){showError(e)}
+ }));
+ sheet.querySelectorAll('.delete-rdo-photo').forEach(button=>button.addEventListener('click',async()=>{
+  button.disabled=true;
+  try{
+   if(!window.mobileRdoDeletePhoto)throw new Error('Exclusão indisponível.')
+   await window.mobileRdoDeletePhoto(day.date,button.dataset.id);
+   day.photos=day.photos.filter(p=>p.id!==button.dataset.id);day.photosReviewed=false;day.photosReviewedFingerprint=null;
+   await save();refresh()
+  }catch(e){showError(e);button.disabled=false}
+ }));
+ sheet.querySelector('#confirmRdoPhotos').addEventListener('click',async event=>{
+  event.target.disabled=true;
+  try{
+   if((await rdoPhotoQueue(day.date)).length)throw new Error('Ainda existem fotos aguardando envio. Reenvie ou remova antes de conferir.')
+   day.photosReviewed=true;day.photosReviewedFingerprint=rdoPhotosFingerprint(day);
+   await save();sheet.close();renderDay();show('Fotos e observações conferidas para o RDO.')
+  }catch(e){showError(e);event.target.disabled=false}
+ });
+}
+window.addEventListener('online',()=>{if(state?.days?.[selectedDate])void flushRdoPhotos(selectedDate).then(result=>{if(result.uploaded)renderDay()}).catch(()=>{})});
+function openRdoReview(){
+ const day=getDay(selectedDate,true),d=rdoDraftFor(day),missing=[];
+ if(!d.attendanceMarked)missing.push('Conferir presença/faltas');
+ if(!d.finishedSessions)missing.push('Concluir apontamento de produção');
+ if(d.openSessions)missing.push('Finalizar '+d.openSessions+' apontamento(s) em aberto');
+ if(!d.materialsReviewed)missing.push('Conferir materiais utilizados');if(!d.occurrencesReviewed)missing.push('Conferir ocorrências do dia');if(!d.photosReviewed)missing.push('Revisar fotos ou confirmar que o dia não teve fotos');
+ sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Revisão · ${dateBR(day.date)}</h2><div class="meta">Confira as informações antes de enviar para integração.</div></div><button class="close" type="button">×</button></div>
+ <div class="metrics"><div class="metric"><span>Equipe</span><strong>${d.presentCount} / ${d.absentCount}</strong><div class="meta">presentes / faltas</div></div>
+ <div class="metric"><span>Homem-hora</span><strong>${d.manHours.toFixed(2)}</strong></div></div>
+ <div class="card"><strong>Produção</strong><div class="meta">${d.finishedSessions} sessão(ões) concluída(s)</div></div>
+ <div class="card"><strong>Materiais</strong><div class="meta">${d.materialsCount} item(ns) · ${d.materialsReviewed?'Conferidos':'Conferência pendente'}</div>
+ <button type="button" id="goRdoMaterials" class="linkbtn">Revisar materiais</button></div>
+ <div class="card"><strong>Fotos e evidências</strong><div class="meta">${d.photosCount} foto(s) · ${d.photosReviewed?'Conferidas':'Revisão pendente'}</div>
+ <button type="button" id="goRdoPhotos" class="linkbtn">Revisar evidências</button></div>
+ <div class="card"><strong>Ocorrências e pendências</strong><div class="meta">${d.events.length} ocorrência(s) · ${d.openIssues.length} pendência(s)</div>${day.note?`<p>${esc(day.note)}</p>`:''}</div>
+ ${missing.length?`<div class="card notice"><b>!</b><div><strong>Itens a conferir</strong><div class="meta">${missing.map(esc).join(' · ')}</div></div></div>`:'<div class="card notice"><b>✓</b><div><strong>Dados essenciais conferidos</strong><div class="meta">O RDO pode ser preparado para integração. Isso não confirma recebimento pelo Desktop nem baixa de estoque.</div></div></div>'}
+ <button id="prepareRdo" class="btn" style="width:100%">${d.ready?'Preparar RDO para integração':'Salvar rascunho do RDO'}</button>
+ <div id="rdoSubmitError" class="meta" role="alert"></div></div>`;
+ document.dispatchEvent(new CustomEvent('field:sheet-rendered'));sheet.showModal();
+ sheet.querySelector('.close').addEventListener('click',()=>sheet.close());
+ sheet.querySelector('#goRdoMaterials').addEventListener('click',()=>{sheet.close();openRdoMaterials()});
+ sheet.querySelector('#goRdoPhotos').addEventListener('click',()=>{sheet.close();void openRdoPhotos()});
+ sheet.querySelector('#prepareRdo').addEventListener('click',async()=>{
+  const button=sheet.querySelector('#prepareRdo');if(button.disabled)return;button.disabled=true;
+  const oldStatus=day.rdoStatus,oldFingerprint=day.rdoClosedFingerprint;
+  if(day.rdoDraft.ready&&!day.rdoSubmissionId)day.rdoSubmissionId=crypto.randomUUID();
+  day.rdoDraft=rdoDraftFor(day);day.rdoStatus=day.rdoDraft.ready?'ready_for_desktop':'draft';
+  day.rdoClosedFingerprint=day.rdoDraft.ready?rdoSourceFingerprint(day):null;
+  try{await save();sheet.close();renderDay();show(day.rdoStatus==='ready_for_desktop'?'RDO preparado. Envio e integração ainda pendentes de confirmação.':'Rascunho salvo neste aparelho.')}
+  catch(e){day.rdoStatus=oldStatus;day.rdoClosedFingerprint=oldFingerprint;sheet.querySelector('#rdoSubmitError').textContent=e?.message||'Falha ao salvar RDO.';button.disabled=false}
+ });
+}
 function sessionEmployeeMinutes(session){const totals={};for(const seg of session.segments||[]){const start=timeMinutes(seg.start),end=timeMinutes(seg.end);if(start===null||end===null||end<start)continue;const events=[...(session.crewEvents||[])].filter(e=>{const t=timeMinutes(e.time);return t!==null&&t>start&&t<end}).sort((a,b)=>timeMinutes(a.time)-timeMinutes(b.time));let cursor=start,ids=crewAt(session,seg.start);const add=(until)=>{for(const id of ids)totals[id]=(totals[id]||0)+(until-cursor);cursor=until};for(const event of events){const t=timeMinutes(event.time);add(t);ids=event.employeeIds}add(end)}return totals}function employeeStats(id,daysBack=30){const cutoff=shiftDate(localISODate(),-(daysBack-1));let minutes=0,sessions=0,completed=0;for(const s of allSessions().filter(x=>x.state==='finished'&&x.date>=cutoff)){const byEmployee=sessionEmployeeMinutes(s),worked=Number(byEmployee[id]||0);if(!worked)continue;minutes+=worked;sessions++;if(s.result==='completed')completed++}return{hours:minutes/60,sessions,completed}}function plannedActualByService(daysBack=7){const cutoff=shiftDate(localISODate(),-(daysBack-1)),rows={};for(const [date,day] of Object.entries(state.days||{})){if(date<cutoff||date>localISODate())continue;for(const p of day.plans||[]){const r=rows[p.service]||(rows[p.service]={service:p.service,planned:0,executed:0,finished:0,completed:0,manHours:0});r.planned++;if((day.sessions||[]).some(s=>s.state==='finished'&&s.service===p.service&&Number(s.floor)===Number(p.floor)))r.executed++}for(const s of day.sessions||[]){if(s.state!=='finished')continue;const r=rows[s.service]||(rows[s.service]={service:s.service,planned:0,executed:0,finished:0,completed:0,manHours:0});r.finished++;r.manHours+=sessionManHours(s);if(s.result==='completed')r.completed++}}return Object.values(rows)}function completionDate(service,floor){return(state.history||[]).filter(h=>h.service===service&&Number(h.floor)===Number(floor)&&h.date).map(h=>h.date).sort().at(-1)||null}function scheduleHealth(service){let onTime=0,late=0,overdue=0,due=0;for(const f of state.floors||[]){const st=f.stages?.find(s=>s.service===service);if(!st?.targetDate||f.number<0)continue;due++;if(st.status==='completed'){const done=completionDate(service,f.number);if(done&&done<=st.targetDate)onTime++;else if(done)late++}else if(st.targetDate<localISODate())overdue++}return{onTime,late,overdue,due}}function serviceForecast(group){if(!group?.completed||!group.manHours)return null;const open=(state.floors||[]).filter(f=>f.number>=0).filter(f=>{const s=f.stages?.find(x=>x.service===group.service);return s&&s.status!=='completed'&&s.status!=='blocked'}).length,activeCrew=Math.max(1,state.employees.filter(e=>String(e.frontKey||'').startsWith(`${group.service}:`)).length),mhPerCompletion=group.manHours/group.completed;return{open,activeCrew,mhPerCompletion,days:open*mhPerCompletion/(activeCrew*8)}}function employeeChecks(selected=[]){const set=new Set(selected);return`<div class="crew-grid">${state.employees.map(e=>`<label class="crew-choice"><input type="checkbox" value="${e.id}" ${set.has(e.id)?'checked':''}><span>${esc(e.name)}</span></label>`).join('')}</div>`}
 function sessionCard(s){const minutes=sessionMinutes(s),crew=(s.crewEvents?.[0]?.employeeIds||[]).map(employeeName),changes=(s.crewEvents||[]).slice(1),range=(s.segments||[]).map(x=>`${x.start}–${x.end||'...'}`).join(' · ');return`<div class="card session-card" data-session="${s.id}"><div class="row"><div><div class="title">${esc(SERVICES[s.service]?.[0]||s.service)} · ${floorLabel(Number(s.floor))}</div><div class="meta">${range||'Sem horário'} · ${minutes?`${formatMinutes(minutes)} produtivas`:'em curso'}</div><div class="meta">Equipe inicial: ${crew.map(esc).join(', ')||'não informada'}${s.corrected?' · Horários corrigidos':''}</div>${changes.map(e=>`<div class="meta">Equipe atualizada ${esc(e.time)} · ${e.employeeIds.map(employeeName).map(esc).join(', ')||'sem equipe'}</div>`).join('')}${s.result?`<div class="meta">Resultado físico: ${sessionResultLabel(s.result)}${s.note?` · ${esc(s.note)}`:''}</div>`:''}</div><span class="badge ${sessionTone(s.state)}">${sessionStateLabel(s.state)}</span></div><div class="session-actions">${s.state==='running'?'<button class="linkbtn session-pause">Pausar</button>':''}${s.state==='paused'?'<button class="linkbtn session-resume">Retomar</button>':''}${s.state!=='finished'?'<button class="btn session-finish">Concluir</button><button class="linkbtn session-crew">Atualizar equipe</button>':''}<button class="linkbtn session-edit">Editar horários</button><button class="linkbtn session-details">Detalhes</button></div></div>`}
 function bindSessionCards(){document.querySelectorAll('.session-card').forEach(card=>{const id=card.dataset.session;card.querySelector('.session-pause')?.addEventListener('click',()=>pauseSession(id));card.querySelector('.session-resume')?.addEventListener('click',()=>resumeSession(id));card.querySelector('.session-finish')?.addEventListener('click',()=>openFinishSession(id));card.querySelector('.session-crew')?.addEventListener('click',()=>openCrewUpdate(id));card.querySelector('.session-edit')?.addEventListener('click',()=>openEditTimes(id));card.querySelector('.session-details')?.addEventListener('click',()=>openSessionDetails(id))})}
@@ -60,8 +351,40 @@ function openCrewUpdate(id){const d=getDay(selectedDate,true),s=getSession(d,id)
 function openEditTimes(id){const d=getDay(selectedDate,true),s=getSession(d,id);if(!s)return;(sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Editar horários</h2><div class="meta">A alteração ficará marcada como correção manual.</div></div><button class="close">×</button></div><div id="segmentEditor">${(s.segments||[]).map((seg,i)=>`<div class="segment-row" data-index="${i}"><label>Início<input class="seg-start" type="time" value="${seg.start}"></label><label>Fim<input class="seg-end" type="time" value="${seg.end||''}"></label></div>`).join('')}</div><button class="linkbtn" id="addSegment">+ Adicionar período</button><button class="btn" id="saveTimes">Salvar horários</button></div>`, document.dispatchEvent(new CustomEvent('field:sheet-rendered')));sheet.showModal();sheet.querySelector('.close').addEventListener('click',()=>sheet.close());$('#addSegment').addEventListener('click',()=>{$('#segmentEditor').insertAdjacentHTML('beforeend','<div class="segment-row"><label>Início<input class="seg-start" type="time"></label><label>Fim<input class="seg-end" type="time"></label></div>')});$('#saveTimes').addEventListener('click',async()=>{const segments=[...sheet.querySelectorAll('.segment-row')].map(r=>({start:r.querySelector('.seg-start').value,end:r.querySelector('.seg-end').value||null}));let prevEnd=null;for(const seg of segments){const a=timeMinutes(seg.start),b=seg.end?timeMinutes(seg.end):null;if(a===null||b===null||b<a||(prevEnd!==null&&a<prevEnd))return show('Revise a ordem dos horários.');prevEnd=b}s.segments=segments;s.corrected=true;if(s.state==='running'&&!segments.some(x=>!x.end))s.state='paused';s.updatedAt=new Date().toISOString();await save();sheet.close();renderDay();show('Horários corrigidos.')})}
 function openSessionDetails(id){const d=getDay(selectedDate,false),s=getSession(d,id);if(!s)return;const minutes=sessionMinutes(s),man=sessionManHours(s),events=(s.crewEvents||[]).map((e,i)=>`<div class="timeline-item"><strong>${i?'Equipe atualizada':'Equipe inicial'} · ${esc(e.time)}</strong><div class="meta">${e.employeeIds.map(employeeName).map(esc).join(', ')}</div></div>`).join('');(sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>${SERVICES[s.service][0]} · ${floorLabel(s.floor)}</h2><div class="meta">${dateBR(s.date)}</div></div><button class="close">×</button></div><div class="metrics"><div class="metric"><span>Tempo produtivo</span><strong>${formatMinutes(minutes)}</strong></div><div class="metric"><span>Homem-hora</span><strong>${man.toFixed(2)}</strong></div></div><div class="session-timeline">${events}</div>${s.corrected?'<div class="card notice"><b>i</b><div><strong>Horários corrigidos</strong><div class="meta">Existe ajuste manual neste apontamento.</div></div></div>':''}${s.result?`<div class="card"><strong>Resultado físico</strong><div class="meta">${sessionResultLabel(s.result)}</div></div>`:''}</div>`, document.dispatchEvent(new CustomEvent('field:sheet-rendered')));sheet.showModal();sheet.querySelector('.close').addEventListener('click',()=>sheet.close())}
 function renderDateNav(){return`<div class="date-nav premium-date-nav"><button id="prevDay" aria-label="Dia anterior">‹</button><label class="date-picker-shell"><span>${dateLong(selectedDate)}</span><input id="dayPicker" type="date" value="${selectedDate}" aria-label="Selecionar data"></label><button id="nextDay" aria-label="Próximo dia">›</button><button id="todayBtn" class="today-btn">Hoje</button></div>`}
-function bindDateNav(){$('#prevDay').addEventListener('click',()=>{selectedDate=shiftDate(selectedDate,-1);renderDay()});$('#nextDay').addEventListener('click',()=>{selectedDate=shiftDate(selectedDate,1);renderDay()});$('#dayPicker').addEventListener('change',e=>{if(e.target.value){selectedDate=e.target.value;renderDay()}});$('#todayBtn').addEventListener('click',()=>{selectedDate=localISODate();renderDay()})}
-function renderDay(){const day=ensureDayContinuity(selectedDate),assignments=day.assignments||[],sessions=day.sessions||[],active=assignments.filter(a=>isActiveAssignment(a)),isSeed=day.date===BASE_DATE,kind=selectedDate===localISODate()?'Hoje':selectedDate<localISODate()?'Histórico':'Planejamento';(content.innerHTML=`<section class="hero field-hero day-hero"><a class="hero-back" href="./index.html#portal" aria-label="Voltar ao painel geral">←</a><div class="day-hero-copy"><small>${kind} · ${esc(state.project?.name||'Obra')}</small><div class="date">${dateTitle(selectedDate)}</div></div><div class="stats"><div class="stat stat-present"><strong>${day.presentCount??'—'}</strong><span>presentes</span></div><div class="stat stat-absent"><strong>${day.absentCount??'—'}</strong><span>faltas</span></div><div class="stat stat-front"><strong>${sessions.filter(s=>s.state==='running'||s.state==='paused').length||active.length}</strong><span>frentes ativas</span></div></div></section>${renderDateNav()}<div class="quick-actions premium-quick-actions"><button type="button" class="quick-action" data-field-action="newSession"><strong>Iniciar apontamento</strong><span>Registrar produção e horário</span></button><button type="button" class="quick-action" data-field-action="reviewRdo"><strong>Revisar e fechar RDO</strong><span>Conferir fechamento do dia</span></button><button type="button" class="quick-action" data-screen="team"><span class="quick-action-glyph qa-team">◎</span><span class="quick-action-copy"><strong>Equipe</strong><span>Vincular funcionários às frentes</span></span></button><button type="button" class="quick-action" data-screen="issues"><span class="quick-action-glyph qa-issues">✓</span><span class="quick-action-copy"><strong>Pendências</strong><span>Qualidade e bloqueios</span></span></button><button type="button" class="quick-action" data-screen="more"><span class="quick-action-glyph qa-plan">↗</span><span class="quick-action-copy"><strong>Planejamento</strong><span>Produtividade e previsão</span></span></button><button type="button" class="quick-action" data-screen="settings"><span class="quick-action-glyph qa-settings">⚙</span><span class="quick-action-copy"><strong>Configurações</strong><span>Checklists e horários</span></span></button></div><button type="button" class="day-next" data-screen="more"><span class="day-next-icon">⌁</span><span><strong>Próximas ações</strong><small>${active.length?`${active.length} frente(s) ativa(s) para acompanhar hoje.`:'Nenhuma ação pendente para hoje.'}</small></span><b>Ver todas</b></button><section class="section"><div class="section-head"><div><h2>Nota do dia</h2><p>Use para registrar ocorrências, decisões ou lembretes desta data.</p></div></div><div class="card"><textarea id="dayNote" class="day-note" placeholder="Escreva uma nota para ${dateBR(selectedDate)}">${esc(day.note||'')}</textarea><button id="saveDayNote" class="btn small-btn">Salvar nota</button></div></section><section class="section"><div class="section-head"><div><h2>Planejamento do dia</h2><p>O que deveria acontecer em ${dateBR(selectedDate)}.</p></div><button id="newPlan" class="linkbtn">+ Planejar</button></div>${(day.plans||[]).map(planCard).join('')||'<div class="empty card">Nenhum planejamento cadastrado para esta data.</div>'}</section><section class="section"><div class="section-head"><div><h2>Apontamentos de produção</h2><p>Executado: tempo, equipe e resultado físico ficam separados.</p></div><button id="newSession" class="btn">+ Novo apontamento</button></div>${sessions.map(sessionCard).join('')||'<div class="empty card">Nenhum apontamento real nesta data.</div>'}</section>${assignments.length?`<section class="section"><div class="section-head"><div><h2>Produção registrada anteriormente</h2><p>${isSeed?'Registro legado preservado; o status real do pavimento prevalece.':'Histórico anterior desta data.'}</p></div></div>${assignments.map(a=>workCard(a,day.date)).join('')}</section>`:''}${(day.events||[]).length?`<section class="section"><div class="section-head"><div><h2>Movimentações</h2><p>Eventos registrados nesta data.</p></div></div>${day.events.map(e=>`<div class="card"><strong>${esc(e.time)}</strong><div class="meta">${esc(e.label)}</div></div>`).join('')}</section>`:''}${selectedDate<=localISODate()?rdoClosure(day):''}`, document.dispatchEvent(new CustomEvent('field:rendered')));bindDateNav();bindStages();bindSessionCards();$('#reviewRdo')?.addEventListener('click',openRdoReview);$('#saveDayNote').addEventListener('click',async()=>{const d=getDay(selectedDate,true);d.note=$('#dayNote').value.trim();await save();show('Nota do dia salva.')});$('#newPlan').addEventListener('click',openPlan);$('#newSession').addEventListener('click',()=>openNewSession());document.querySelectorAll('.plan-delete').forEach(b=>b.addEventListener('click',async()=>{const d=getDay(selectedDate,true);d.plans=d.plans.filter(p=>p.id!==b.dataset.id);await save();renderDay();show('Planejamento removido.')}));document.querySelectorAll('.plan-start').forEach(b=>b.addEventListener('click',()=>{const d=getDay(selectedDate,false),p=(d.plans||[]).find(x=>x.id===b.dataset.id);if(p)openNewSession({service:p.service,floor:p.floor})}))}
+async function selectDay(date){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return show('Data de diário inválida.');
+ const stored=state.days?.[date],known=(state._remote?.dayKeys||[]).includes(date);
+ if(!stored&&window.multiuserLoadDay){
+  try{
+   const saved=await window.multiuserLoadDay(date);
+   if(saved){state.days=state.days||{};state.days[date]=saved}
+   else if(known)return show('O diário existe no histórico, mas não pôde ser recuperado. Tente novamente.');
+  }catch(e){return show(e?.message||'Não foi possível consultar o histórico.')}
+ }else if(!stored&&known)return show('Consulte o histórico online antes de editar este dia.');
+ selectedDate=date;renderDay();
+}
+function bindDateNav(){
+ $('#prevDay').addEventListener('click',()=>void selectDay(shiftDate(selectedDate,-1)));
+ $('#nextDay').addEventListener('click',()=>void selectDay(shiftDate(selectedDate,1)));
+ $('#dayPicker').addEventListener('change',e=>{if(e.target.value)void selectDay(e.target.value)});
+ $('#todayBtn').addEventListener('click',()=>void selectDay(localISODate()))
+}
+function renderDay(){const day=ensureDayContinuity(selectedDate),assignments=day.assignments||[],sessions=day.sessions||[],active=assignments.filter(a=>isActiveAssignment(a)),isSeed=day.date===BASE_DATE,kind=selectedDate===localISODate()?'Hoje':selectedDate<localISODate()?'Histórico':'Planejamento';(content.innerHTML=`<section class="hero field-hero day-hero"><a class="hero-back" href="./index.html#portal" aria-label="Voltar ao painel geral">←</a><div class="day-hero-copy"><small>${kind} · ${esc(state.project?.name||'Obra')}</small><div class="date">${dateTitle(selectedDate)}</div></div><div class="stats"><div class="stat stat-present"><strong>${day.presentCount??'—'}</strong><span>presentes</span></div><div class="stat stat-absent"><strong>${day.absentCount??'—'}</strong><span>faltas</span></div><div class="stat stat-front"><strong>${sessions.filter(s=>s.state==='running'||s.state==='paused').length||active.length}</strong><span>frentes ativas</span></div></div></section>${renderDateNav()}<div class="quick-actions premium-quick-actions"><button type="button" class="quick-action" data-field-action="newSession"><strong>Iniciar apontamento</strong><span>Registrar produção e horário</span></button><button type="button" class="quick-action" data-field-action="reviewRdo"><strong>Revisar e fechar RDO</strong><span>Conferir fechamento do dia</span></button><button type="button" class="quick-action" data-screen="team"><span class="quick-action-glyph qa-team">◎</span><span class="quick-action-copy"><strong>Equipe</strong><span>Vincular funcionários às frentes</span></span></button><button type="button" class="quick-action" data-screen="issues"><span class="quick-action-glyph qa-issues">✓</span><span class="quick-action-copy"><strong>Pendências</strong><span>Qualidade e bloqueios</span></span></button><button type="button" class="quick-action" data-screen="more"><span class="quick-action-glyph qa-plan">↗</span><span class="quick-action-copy"><strong>Planejamento</strong><span>Produtividade e previsão</span></span></button><button type="button" class="quick-action" data-screen="settings"><span class="quick-action-glyph qa-settings">⚙</span><span class="quick-action-copy"><strong>Configurações</strong><span>Checklists e horários</span></span></button></div><button type="button" class="day-next" data-screen="more"><span class="day-next-icon">⌁</span><span><strong>Próximas ações</strong><small>${active.length?`${active.length} frente(s) ativa(s) para acompanhar hoje.`:'Nenhuma ação pendente para hoje.'}</small></span><b>Ver todas</b></button><section class="section"><div class="section-head"><div><h2>Nota do dia</h2><p>Use para registrar ocorrências, decisões ou lembretes desta data.</p></div></div><div class="card"><textarea id="dayNote" class="day-note" placeholder="Escreva uma nota para ${dateBR(selectedDate)}">${esc(day.note||'')}</textarea><button id="saveDayNote" class="btn small-btn">Salvar nota</button></div></section><section class="section"><div class="section-head"><div><h2>Planejamento do dia</h2><p>O que deveria acontecer em ${dateBR(selectedDate)}.</p></div><button id="newPlan" class="linkbtn">+ Planejar</button></div>${(day.plans||[]).map(planCard).join('')||'<div class="empty card">Nenhum planejamento cadastrado para esta data.</div>'}</section><section class="section"><div class="section-head"><div><h2>Apontamentos de produção</h2><p>Executado: tempo, equipe e resultado físico ficam separados.</p></div><button id="newSession" class="btn">+ Novo apontamento</button></div>${sessions.map(sessionCard).join('')||'<div class="empty card">Nenhum apontamento real nesta data.</div>'}</section>${assignments.length?`<section class="section"><div class="section-head"><div><h2>Produção registrada anteriormente</h2><p>${isSeed?'Registro legado preservado; o status real do pavimento prevalece.':'Histórico anterior desta data.'}</p></div></div>${assignments.map(a=>workCard(a,day.date)).join('')}</section>`:''}${(day.events||[]).length?`<section class="section"><div class="section-head"><div><h2>Movimentações</h2><p>Eventos registrados nesta data.</p></div></div>${day.events.map(e=>`<div class="card"><strong>${esc(e.time)}</strong><div class="meta">${esc(e.label)}</div></div>`).join('')}</section>`:''}${selectedDate<=localISODate()?rdoClosure(day):''}`, document.dispatchEvent(new CustomEvent('field:rendered')));bindDateNav();bindStages();bindSessionCards();$('#reviewRdo')?.addEventListener('click',openRdoReview);$('#openRdoMaterials')?.addEventListener('click',openRdoMaterials);
+$('#openRdoPhotos')?.addEventListener('click',()=>void openRdoPhotos());
+$('#confirmRdoOccurrences')?.addEventListener('click',async()=>{
+ const day=getDay(selectedDate,true);
+ day.occurrencesReviewed=true;day.occurrencesReviewedFingerprint=rdoOccurrencesFingerprint(day);
+ try{await save();renderDay();show('Ocorrências conferidas para o fechamento.')}
+ catch(e){show(e?.message||'Falha ao salvar revisão das ocorrências.')}
+});
+$('#goRdoTeam')?.addEventListener('click',()=>{screen='team';render()});
+$('#goRdoProduction')?.addEventListener('click',()=>{document.querySelector('.section.session-section')?.scrollIntoView({behavior:'smooth'});});
+$('#reopenRdo')?.addEventListener('click',async()=>{
+ const day=getDay(selectedDate,true);const previous={rdoStatus:day.rdoStatus,rdoClosedFingerprint:day.rdoClosedFingerprint,rdoSubmissionId:day.rdoSubmissionId};
+ day.rdoStatus='draft';day.rdoClosedFingerprint=null;day.rdoSubmissionId=crypto.randomUUID();
+ try{await save();renderDay();show('RDO reaberto. Será criada uma nova revisão ao fechar novamente.')}
+ catch(e){Object.assign(day,previous);show(e?.message||'Falha ao reabrir o RDO.')}
+});$('#refreshRdoStatus')?.addEventListener('click',async()=>{try{await window.multiuserRefreshReceipts?.();renderDay()}catch(e){show(e?.message||'Não foi possível atualizar a situação.')}});$('#saveDayNote').addEventListener('click',async()=>{const d=getDay(selectedDate,true);d.note=$('#dayNote').value.trim();await save();show('Nota do dia salva.')});$('#newPlan').addEventListener('click',openPlan);$('#newSession').addEventListener('click',()=>openNewSession());document.querySelectorAll('.plan-delete').forEach(b=>b.addEventListener('click',async()=>{const d=getDay(selectedDate,true);d.plans=d.plans.filter(p=>p.id!==b.dataset.id);await save();renderDay();show('Planejamento removido.')}));document.querySelectorAll('.plan-start').forEach(b=>b.addEventListener('click',()=>{const d=getDay(selectedDate,false),p=(d.plans||[]).find(x=>x.id===b.dataset.id);if(p)openNewSession({service:p.service,floor:p.floor})}))}
 function planCard(p){return`<div class="card plan-card"><div><strong>${esc(SERVICES[p.service]?.[0]||p.service)} · ${floorLabel(Number(p.floor))}</strong><div class="meta">${p.crew} ${Number(p.crew)===1?'pessoa':'pessoas'}${p.note?` · ${esc(p.note)}`:''}</div></div><div class="plan-actions"><button class="linkbtn plan-start" data-id="${p.id}">Iniciar</button><button class="plan-delete" data-id="${p.id}" aria-label="Remover planejamento">×</button></div></div>`}
 function openPlan(){(sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Planejar ${dateBR(selectedDate)}</h2><div class="meta">Defina a frente prevista para este dia.</div></div><button class="close">×</button></div><div class="form"><label>Serviço<select id="pservice">${Object.entries(SERVICES).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')}</select></label><label>Pavimento<select id="pfloor">${state.floors.map(f=>`<option value="${f.number}">${floorLabel(f.number)}</option>`).join('')}</select></label><label>Pessoas<input id="pcrew" type="number" min="1" max="30" value="1"></label><label>Início<input id="pstart" type="time" value="${state.settings.defaultWorkStart||'07:30'}"></label><div><div class="form-label">Funcionários atribuídos</div><div id="planEmployees">${employeeChecks()}</div></div><label>Observação<textarea id="pnote" placeholder="Ex.: continuar distribuição"></textarea></label></div><button class="btn" id="savePlan">Salvar planejamento</button></div>`, document.dispatchEvent(new CustomEvent('field:sheet-rendered')));sheet.showModal();sheet.querySelector('.close').addEventListener('click',()=>sheet.close());$('#savePlan').addEventListener('click',async()=>{const crew=Math.max(1,Number($('#pcrew').value)||1),d=getDay(selectedDate,true);d.plans.push({id:crypto.randomUUID(),service:$('#pservice').value,floor:Number($('#pfloor').value),crew,startTime:$('#pstart').value||state.settings.defaultWorkStart||'07:30',employeeIds:[...sheet.querySelectorAll('#planEmployees input:checked')].map(i=>i.value),note:$('#pnote').value.trim()});await save();sheet.close();renderDay();show('Planejamento salvo.')})}
 function workCard(s,date=BASE_DATE){const linked=state.floors.some(f=>f.number===s.floor),status=assignmentStatus(s,date),count=linkedCount(s.service,s.floor);let tag='Trabalhado',tone='progress';if(status==='completed'){tag='Concluído';tone='completed'}else if(status==='in_progress'){tag='Em execução';tone='progress'}else if(status==='released'){tag='Liberado';tone='released'}const body=`<div class="row"><div><div class="title">${esc(s.label)} · ${floorLabel(s.floor)}</div><div class="meta">${s.crew} ${s.crew===1?'pessoa':'pessoas'} · ${esc(s.note||'')}</div><div class="meta">${count} funcionário(s) vinculados nominalmente</div></div><span class="badge ${tone}">${tag}</span></div>`;return linked?`<button class="card work stage-open" data-floor="${s.floor}" data-service="${s.service}">${body}</button>`:`<div class="card work">${body}</div>`}

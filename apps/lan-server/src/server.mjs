@@ -7,6 +7,9 @@ import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
 import { MeasurementService } from './measurement-service.mjs'
 import { ProcurementService } from './procurement-service.mjs'
+import { RdoMaterialConsumption } from './rdo-material-consumption.mjs'
+import { FieldRdoImport } from './field-rdo-import.mjs'
+import { FieldRdoCatalog } from './field-rdo-catalog.mjs'
 import { ContractsService } from './contracts-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
@@ -20,6 +23,7 @@ export const LAN_SERVER_VERSION = '0.4.0'
 
 const MAX_BODY_BYTES = 1024 * 1024
 const MAX_DOCUMENT_BODY_BYTES = 36 * 1024 * 1024
+const MAX_FIELD_RDO_BODY_BYTES = 48 * 1024 * 1024
 const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
 const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|locais_obra|frentes_obra|subfrentes_obra|checklist_frente_itens|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|medicoes|medicao_itens|medicao_mapa_itens|fornecedores|categorias_financeiras|contas|pagamentos_conta|solicitacoes_compra|cotacoes_compra|pedidos_compra|pedido_compra_itens|recebimentos_materiais|movimentacoes_estoque|contratos_obra|contrato_aditivos|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis|fontes_documentais|arquivos|documentos|medicao_anexos|contrato_anexos|pedido_compra_anexos|documentos_editaveis|modelos_documento_rh|empresa_documentos_admissionais|cargo_epi_kits)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
@@ -301,6 +305,9 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const compoundDomainReady = !!repositoryDb && typeof repositoryDb.prepare === 'function' && typeof repositoryDb.exec === 'function'
   const measurements = measurementService || (compoundDomainReady ? new MeasurementService({ repository }) : null)
   const procurement = procurementService || (compoundDomainReady ? new ProcurementService({ repository }) : null)
+  const rdoMaterials = compoundDomainReady ? new RdoMaterialConsumption({ repository }) : null
+  const mobileRdoImport = compoundDomainReady ? new FieldRdoImport({ repository }) : null
+  const rdoCatalog = compoundDomainReady ? new FieldRdoCatalog({ repository }) : null
   const contracts = contractsService || (compoundDomainReady ? new ContractsService({ repository }) : null)
   const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
@@ -532,6 +539,47 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const body = await readJson(request)
         authorizeAction(context, { domain: 'operation', action: body.id ? 'edit' : 'create' })
         return sendJson(response, 201, field.saveDailyReport(body))
+      }
+
+      if (url.pathname === '/api/v1/field/rdo/catalog') {
+        if(request.method!=='GET')return methodNotAllowed(response,['GET'])
+        const context=await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'operation',action:'view'})
+        if(!rdoCatalog)return sendJson(response,503,{error:'catalog_unavailable'})
+        if(!context.companyId || String(url.searchParams.get('remote_company_id')||'')!==String(context.companyId))
+          return sendJson(response,403,{error:'tenant_mismatch'})
+        const work=repository.get('obras',Number(url.searchParams.get('obra_id')))
+        if(!work||work.deleted_at)return sendJson(response,404,{error:'work_not_found'})
+        return sendJson(response,200,rdoCatalog.list({companyId:work.empresa_id,workId:work.id}))
+      }
+
+      if (url.pathname === '/api/v1/field/rdo/import-mobile') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!mobileRdoImport) return sendJson(response, 503, { error:'mobile_rdo_unavailable',message:'Importação do RDO indisponível.' })
+        const context = await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'operation',action:'create'})
+        authorizeAction(context,{domain:'finance',action:'edit'})
+        const input = await readJson(request, MAX_FIELD_RDO_BODY_BYTES)
+        // Cloud company ID is a UUID/string; the SQLite local company ID is numeric.
+        // Verify the authorized cloud tenant without replacing the local foreign key.
+        const scope = input.scope && typeof input.scope === 'object' && !Array.isArray(input.scope) ? input.scope : {}
+        if (!context.companyId || String(scope.remoteCompanyId || '') !== String(context.companyId)) {
+          return sendJson(response,403,{error:'tenant_mismatch',message:'Obra não vinculada à empresa autorizada neste servidor.'})
+        }
+        return sendJson(response,200,mobileRdoImport.apply({scope,report:input.report}))
+      }
+
+      if (url.pathname === '/api/v1/field/rdo/materials') {
+        if (!['GET','POST'].includes(request.method)) return methodNotAllowed(response, ['GET','POST'])
+        if (!rdoMaterials) return sendJson(response, 503, { error:'materials_unavailable', message:'Materiais do RDO indisponíveis.' })
+        const context = await authenticateLanRequest(request, security)
+        if (request.method === 'GET') {
+          authorizeAction(context, { domain:'operation', action:'view' })
+          return sendJson(response, 200, rdoMaterials.list(Number(url.searchParams.get('rdo_id'))))
+        }
+        authorizeAction(context, { domain:'operation', action:'edit' })
+        authorizeAction(context, { domain:'finance', action:'edit' })
+        return sendJson(response, 200, rdoMaterials.save(await readJson(request)))
       }
 
       if (url.pathname === '/api/v1/planning/overview') {

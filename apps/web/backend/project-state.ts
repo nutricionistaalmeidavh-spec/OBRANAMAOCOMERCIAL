@@ -44,13 +44,14 @@ async function saveSnapshotParts(projectId:string,snapshot:Record<string,unknown
   for(const[date,value]of Object.entries(days))await saveDay(projectId,date,record(value),actor);
 }
 
-export async function saveSnapshot(projectId:string,snapshot:Record<string,unknown>,actor:string){
+export async function saveSnapshot(projectId:string,snapshot:Record<string,unknown>,actor:string,{allowUnversioned=false}:{allowUnversioned?:boolean}={}){
   const current=await getMeta(projectId),expectedRaw=record(snapshot._remote).revision,hasExpected=expectedRaw!==undefined&&expectedRaw!==null,expectedRevision=Number(expectedRaw),revision=(current?.revision||0)+1,days=record(snapshot.days),dayKeys=Array.from(new Set([...(current?.dayKeys||[]),...Object.keys(days)])).sort();
   const stateMeta:Record<string,unknown>={};
   for(const[k,v]of Object.entries(snapshot))if(k!=='floors'&&k!=='days'&&k!=='desktopBridge'&&k!=='_remote')stateMeta[k]=v;
   stateMeta.desktopBridge=current?.state?.desktopBridge||{};
   stateMeta.version=Math.max(Number(stateMeta.version||0),PROJECT_STATE_VERSION);
   const next:ProjectMetaRecord={state:stateMeta,dayKeys,revision,updatedAt:now(),updatedBy:actor};
+  if(current&&!hasExpected&&!allowUnversioned)throw new SnapshotRevisionConflict();
   if(current&&hasExpected){
     if(!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw new SnapshotRevisionConflict();
     const clean={...next} as Record<string,unknown>;delete clean.id;
@@ -63,9 +64,10 @@ export async function saveSnapshot(projectId:string,snapshot:Record<string,unkno
   return revision;
 }
 
-export async function assembleState(projectId:string){
+export async function assembleState(projectId:string,requestedDate?:string){
   const meta=await getMeta(projectId);if(!meta)return null;
-  const floors=(await getFloors(projectId)).map(item=>item.floor),keys=meta.dayKeys||[],dates=keys.length<=31?keys:keys.slice(-31),days:Record<string,unknown>={};
+  const floors=(await getFloors(projectId)).map(item=>item.floor),keys=meta.dayKeys||[],dates=keys.length<=31?[...keys]:keys.slice(-31),days:Record<string,unknown>={};
+  if(requestedDate&&/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)&&keys.includes(requestedDate)&&!dates.includes(requestedDate))dates.push(requestedDate);
   for(const date of dates){const day=await getDay(projectId,date);if(day)days[date]=day}
   return{...meta.state,floors,days,_remote:{revision:meta.revision,dayKeys:keys,updatedAt:meta.updatedAt,schemaVersion:PROJECT_STATE_VERSION}};
 }

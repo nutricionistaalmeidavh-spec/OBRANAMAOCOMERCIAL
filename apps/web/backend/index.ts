@@ -1,4 +1,8 @@
 import { createCompanyRoutes } from './owner-companies';
+import { restrictForemanSnapshot } from './field-snapshot-rules';
+import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts } from './field-rdo-delivery';
+import { getFieldRdoCatalog, publishFieldRdoCatalog } from './field-rdo-catalog-cloud';
+import { uploadFieldPhoto, readFieldPhoto, removeFieldPhoto } from './field-rdo-photos';
 import { centralRoleForEmail, requireCentralAccess } from './central-access';
 import { validateDesktopChange } from '../../../packages/contracts/src/desktop-sync';
 import { router, json, error, requireAuth, withScopes, requireAdminEmailAllowlist, db, runtimeEnv } from '../cloudflare/sdk';
@@ -179,7 +183,64 @@ export const handler=router({
   ...EDUCATION_PRACTICE_ROUTES,
   ...PLATFORM_ACCESS_ROUTES,
   'POST /api/phone/bootstrap':[async(ctx)=>{const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));if('response'in gate)return gate.response;const project=await getProject(gate.phoneAccess.projectId),company=await getCompany(gate.phoneAccess.companyId),meta=await getMeta(gate.phoneAccess.projectId);if(!project||!company)return error('Obra vinculada não encontrada.',404);return json({needsClaim:false,isOwner:false,platformRole:'user',role:'foreman',membership:{projectId:gate.phoneAccess.projectId,companyId:gate.phoneAccess.companyId,employeeId:gate.phoneAccess.employeeId,name:gate.phoneAccess.name,role:'foreman'},project,company,access:gate.access,license:gate.access,projectInitialized:!!meta,phoneAccess:{systems:gate.phoneAccess.systems,employeeId:gate.phoneAccess.employeeId}})}],
-  'POST /api/phone/project':[async(ctx)=>{const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));if('response'in gate)return gate.response;const requested=String(body.date||new Date().toISOString().slice(0,10));await carryForwardActiveAssignments(gate.phoneAccess.projectId,requested,gate.participant.id);const state=await assembleState(gate.phoneAccess.projectId);if(!state)return error('Obra ainda não inicializada.',404);return json({state,role:'foreman',access:gate.access})}],
+  'POST /api/phone/project':[async(ctx)=>{const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));if('response'in gate)return gate.response;const requested=String(body.date||new Date().toISOString().slice(0,10));await carryForwardActiveAssignments(gate.phoneAccess.projectId,requested,gate.participant.id);const state=await assembleState(gate.phoneAccess.projectId,requested);if(!state)return error('Obra ainda não inicializada.',404);return json({state,role:'foreman',access:gate.access})}],
+  'POST /api/phone/field/rdo/photos/upload':[async(ctx)=>{
+    const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));
+    if('response'in gate)return gate.response;
+    try{return json({photo:await uploadFieldPhoto({companyId:gate.phoneAccess.companyId,
+      projectId:gate.phoneAccess.projectId,date:String(body.date||''),mimeType:String(body.mimeType||''),
+      data:String(body.data||''),clientId:String(body.clientId||''),userId:String(gate.participant.id)})})}
+    catch(e){return error((e as Error).message,400)}
+  }],
+  'POST /api/phone/field/rdo/photos/view':[async(ctx)=>{
+    const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));
+    if('response'in gate)return gate.response;
+    try{return json({photo:await readFieldPhoto(gate.phoneAccess.projectId,String(body.id||''))})}
+    catch(e){return error((e as Error).message,404)}
+  }],
+  'POST /api/phone/field/rdo/photos/delete':[async(ctx)=>{
+    const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));
+    if('response'in gate)return gate.response;
+    const day=asRecord(await getDay(gate.phoneAccess.projectId,String(body.date||'')));
+    if(day.rdoStatus==='ready_for_desktop')return error('Reabra o RDO antes de excluir uma foto.',409);
+    try{return json(await removeFieldPhoto(gate.phoneAccess.projectId,String(body.id||''),String(body.date||'')))}
+    catch(e){return error((e as Error).message,400)}
+  }],
+  'POST /api/phone/field/rdo/catalog':[async(ctx)=>{
+    const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));
+    if('response'in gate)return gate.response;
+    return json({catalog:await getFieldRdoCatalog(gate.phoneAccess.projectId)})
+  }],
+  'POST /api/phone/field/rdo/receipts':[async(ctx)=>{
+    const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));
+    if('response'in gate)return gate.response;
+    return json({receipts:await fieldRdoReceipts(gate.phoneAccess.projectId)})
+  }],
+  'POST /api/phone/project/state':[async(ctx)=>{
+    const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));
+    if('response'in gate)return gate.response;
+    const input=asRecord(body.state);
+    if(!input.project)return error('Estado do RDO inválido.',400);
+    const dates=Object.keys(asRecord(input.days));
+    if(dates.length>40)return error('Envie no máximo 40 dias por atualização.',400);
+    const latest=await assembleState(gate.phoneAccess.projectId,dates.at(-1));
+    if(!latest)return error('Obra não inicializada.',404);
+    let snapshot:Record<string,unknown>;
+    try{snapshot=restrictForemanSnapshot(input,latest)}
+    catch(e){return error((e as Error).message,403)}
+    try{
+      const revision=await saveSnapshot(gate.phoneAccess.projectId,snapshot,String(gate.participant.id));
+      return json({ok:true,revision})
+    }catch(e){return error((e as Error).message||'Conflito de edição do RDO.',409)}
+  }],
+  'POST /api/phone/project/day':[async(ctx)=>{
+    const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));
+    if('response'in gate)return gate.response;
+    const date=String(body.date||'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return error('Data de diário inválida.',400);
+    const day=await getDay(gate.phoneAccess.projectId,date);
+    return json({date,day:day||null,exists:!!day})
+  }],
   'POST /api/phone/attendance':[async(ctx)=>{const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));if('response'in gate)return gate.response;const date=String(body.date||''),employeeId=String(body.employeeId||''),status=String(body.status||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!employeeId||!['present','absent','unmarked'].includes(status))return error('Apontamento de presença inválido.',400);const meta=await getMeta(gate.phoneAccess.projectId);if(!meta)return error('Obra não inicializada.',409);const employees=asArray(meta.state.employees).map(e=>({...asRecord(e)})),employee=employees.find(e=>String(e.id)===employeeId);if(!employee)return error('Funcionário não encontrado.',404);const day=asRecord((await getDay(gate.phoneAccess.projectId,date))||{date,presentCount:0,absentCount:0,assignments:[],events:[],note:'',plans:[],sessions:[]}),attendance={...asRecord(day.attendance)},previous=String(attendance[employeeId]||'unmarked');attendance[employeeId]=status;day.attendance=attendance;day.presentCount=Object.values(attendance).filter(v=>v==='present').length;day.absentCount=Object.values(attendance).filter(v=>v==='absent').length;let comp=Number(employee.compensationDays||0);if(previous!=='absent'&&status==='absent')comp++;if(previous==='absent'&&status!=='absent')comp=Math.max(0,comp-1);employee.compensationDays=comp;employee.attendance=status;meta.state.employees=employees;const dayKeys=Array.from(new Set([...(meta.dayKeys||[]),date])).sort();await persistMeta(gate.phoneAccess.projectId,{...meta,state:meta.state,dayKeys,revision:meta.revision+1,updatedAt:now(),updatedBy:gate.participant.id});await saveDay(gate.phoneAccess.projectId,date,day,gate.participant.id);await writePlatformAudit({action:'attendance_changed',actorUserId:gate.participant.id,companyId:gate.phoneAccess.companyId,projectId:gate.phoneAccess.projectId,entity:'employee',entityId:employeeId,source:'phone-field',metadata:{date,status}});return json({day,employee})}],
   'POST /api/phone/mobile/bridge/update':[async(ctx)=>{const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));if('response'in gate)return gate.response;try{const result=await updateMobileBridge(gate.phoneAccess.projectId,body,gate.participant.id);await writePlatformAudit({action:'desktop_bridge_mobile_update',actorUserId:gate.participant.id,companyId:gate.phoneAccess.companyId,projectId:gate.phoneAccess.projectId,entity:String(body.entity||'mobile'),source:'phone-field',metadata:{localId:Number(body.localId||0),revision:result.revision}});return json(result)}catch(e){return error((e as Error).message||'Não foi possível atualizar o item.',409)}}],
   'GET /api/desktop/bootstrap':[...secured,async(ctx)=>{const isOwner=norm(ctx.user!.email)===ownerEmail(),member=isOwner?await ensureOwnerMembership(ctx.user!):await resolveMembership(ctx.user!);if(!member){const lic=await licenseByEmail(ctx.user!.email||''),authorized=isOwner||!!lic?.channels.includes('desktop');return json({needsClaim:true,authorized,isOwner,platformRole:isOwner?'superadmin':'user',license:entitlements(lic),user:{userId:ctx.user!.userId,email:ctx.user!.email,name:ctx.user!.name}})}const access=await memberEntitlements(member),platform=await ensurePlatformAccessForMember({email:member.email||ctx.user!.email||'',name:member.name||ctx.user!.name,companyId:member.companyId,projectId:member.projectId,employeeId:member.employeeId,role:member.role,modules:access.modules,isSuperadmin:isOwner||member.canonicalOwner===true});if(!access.channels.includes('desktop'))return error('Sua conta não possui acesso Desktop.',403);const project=await getProject(member.projectId),company=await getCompany(member.companyId),meta=await getMeta(member.projectId),storageTopology=await getCompanyStorageTopology(member.companyId);try{assertDesktopAdmission(storageTopology,{isPrincipal:!!company&&(String(company.createdBy||'')===ctx.user!.userId||norm(String(company.principalEmail||''))===norm(ctx.user!.email)),otherActiveDevices:0})}catch(e){return error((e as Error).message,409)}const desktopStorage=member.desktopStorage??(storageTopology.mode!=='local-single'?desktopBindingForMember(storageTopology,access.channels):null);return json({needsClaim:false,isOwner,platformRole:platform.platformRole,platformAccess:platformAccessView(platform),role:member.role,membership:member,project,company,license:access,access,storageTopology,desktopStorage,projectInitialized:!!meta})}],
@@ -254,6 +315,48 @@ export const handler=router({
   'POST /api/desktop/storage/topology':[async(ctx)=>{const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));if(!session||session.member?.role!=='admin'||!session.device.companyId)return error('Apenas Admin pode alterar a forma de uso dos computadores.',403);const mode=String(body.mode||''),serverId=String(body.serverId||'').trim()||undefined,validateOnly=body.validateOnly===true;if(mode==='local-single'){const devices=(await db.list<Device>('devices',{limit:100})).items.filter(d=>d.companyId===session.device.companyId&&d.status==='active'&&d.id!==session.device.id);if(devices.length)return error(`Existem ${devices.length} outro(s) computador(es) ativo(s). Revogue-os antes de voltar para uso somente neste computador.`,409)}try{const candidate={mode:mode as any,serverId,updatedByDeviceId:session.device.id};const current=await getCompanyStorageTopology(session.device.companyId);assertAdvancedServerEntitlement(candidate,session.access.advancedServer===true,current);if(validateOnly)return json({ok:true,current,candidate});const topology=await setCompanyStorageTopology(session.device.companyId,candidate);return json({storageTopology:topology})}catch(e){return error((e as Error).message,/adicional de licença/.test((e as Error).message)?403:400)}}],
   'POST /api/desktop/devices':[async(ctx)=>{const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''));if(!session||session.member?.role!=='admin'||!session.device.companyId)return error('Apenas Admin pode gerenciar computadores.',403);const {items}=await db.list<Device>('devices',{limit:100});return json({devices:items.filter(d=>d.companyId===session.device.companyId).map(d=>({id:d.id,name:d.name,platform:d.platform,email:d.email,status:d.status,lastSeenAt:d.lastSeenAt,installationId:d.installationId}))})}],
   'POST /api/desktop/devices/revoke':[async(ctx)=>{const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));if(!session||session.member?.role!=='admin'||!session.device.companyId)return error('Apenas Admin pode revogar computadores.',403);const targetId=String(body.deviceId||''),[target]=await db.get<Device>('devices',[targetId]);if(!target||target.companyId!==session.device.companyId)return error('Computador não encontrado nesta empresa.',404);await db.update('devices',[{id:targetId,record:{...target,status:'revoked',updatedAt:now()} as unknown as Record<string,unknown>}]);return json({ok:true})}],
+  'POST /api/desktop/field/rdo/catalog/publish':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
+    const ownerError=await remoteSyncOwnerError(session);if(ownerError)return ownerError;
+    if(!session.access.modules.includes('rdo')&&!session.access.modules.includes('obra360'))
+      return error('Catálogo não autorizado para este Desktop.',403);
+    try{return json({catalog:await publishFieldRdoCatalog(session.device.projectId,session.device.id,body.catalog)})}
+    catch(e){return error((e as Error).message,400)}
+  }],
+  'POST /api/desktop/field/rdo/pending':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
+    const ownerError=await remoteSyncOwnerError(session);if(ownerError)return ownerError;
+    if(!session.access.modules.includes('rdo')&&!session.access.modules.includes('obra360'))return error('Módulo de diário não autorizado.',403);
+    return json({reports:await pendingFieldRdos(session.device.projectId)})
+  }],
+  'POST /api/desktop/field/rdo/photo':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
+    const ownerError=await remoteSyncOwnerError(session);if(ownerError)return ownerError;
+    if(!session.access.modules.includes('rdo')&&!session.access.modules.includes('obra360'))
+      return error('Evidências do diário não autorizadas.',403);
+    const date=String(body.date||''),photoId=String(body.id||''),sha=String(body.sha256||'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!photoId||!sha)return error('Identidade da evidência inválida.',400);
+    const day=asRecord(await getDay(session.device.projectId,date));
+    if(day.rdoStatus!=='ready_for_desktop')return error('Diário ainda não preparado para integração.',409);
+    const linked=asArray(day.photos).map(asRecord).find(p=>String(p.id||'')===photoId&&String(p.sha256||'')===sha);
+    if(!linked)return error('A foto não pertence a esta revisão do RDO.',403);
+    try{return json({photo:await readFieldPhoto(session.device.projectId,photoId)})}
+    catch(e){return error((e as Error).message||'Evidência indisponível.',404)}
+  }],
+  'POST /api/desktop/field/rdo/ack':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
+    const ownerError=await remoteSyncOwnerError(session);if(ownerError)return ownerError;
+    if(!session.access.modules.includes('rdo')&&!session.access.modules.includes('obra360'))return error('Módulo de diário não autorizado.',403);
+    try{
+      const receipt=await confirmFieldRdo(session.device.projectId,body,session.device.id);
+      await writePlatformAudit({action:'FIELD_RDO_IMPORTED',actorUserId:session.device.userId,actorEmail:session.device.email,companyId:session.device.companyId,projectId:session.device.projectId,entity:'rdos',entityId:String(receipt.localRdoId),source:'desktop',metadata:{date:receipt.date,deviceId:session.device.id,materialRevision:receipt.materialRevision}});
+      return json({ok:true,receipt})
+    }catch(e){return error((e as Error).message||'Não foi possível confirmar a integração do diário.',409)}
+  }],
   'POST /api/desktop/sync/remote-owner':[async(ctx)=>{
     const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
     if(!session||!session.device.companyId||!session.device.projectId||session.member?.role!=='admin')return error('Somente o administrador Desktop autorizado pode vincular o coordenador remoto.',403);
@@ -284,9 +387,67 @@ export const handler=router({
   'GET /api/owner/devices':[...ownerSecured,async()=>{const {items}=await db.list<Device>('devices',{limit:100});return json({devices:items.map(d=>({id:d.id,name:d.name,platform:d.platform,email:d.email,companyId:d.companyId,status:d.status,lastSeenAt:d.lastSeenAt,installationId:d.installationId}))})}],
   'PUT /api/owner/devices/:id':[...ownerSecured,async(ctx)=>{const [device]=await db.get<Device>('devices',[ctx.params.id]);if(!device)return error('Computador não encontrado.',404);const status=String(asRecord(ctx.body).status)==='active'?'active':'revoked';await db.update('devices',[{id:ctx.params.id,record:{...device,status,updatedAt:now()} as unknown as Record<string,unknown>}]);return json({ok:true,status})}],
   'POST /api/access/claim':[...secured,async(ctx)=>{const current=await resolveMembership(ctx.user!);if(current)return json({role:current.role,membership:current});const body=asRecord(ctx.body),code=String(body.code||'').trim().toUpperCase();if(!/^[A-Z0-9]{8}$/.test(code))return error('Código de acesso inválido.',400);const table=inviteTable(code),{items}=await db.list<Record<string,unknown>>(table,{limit:1}),ref=items[0];if(!ref)return error('Código de acesso inválido ou já utilizado.',404);const projectId=String(ref.projectId||''),memberId=String(ref.projectMemberId||'');const [member]=await db.get<Member>(membersTable(projectId),[memberId]);if(!member||member.joinCode!==code)return error('Convite não encontrado.',404);if(member.status==='revoked')return error('Este convite foi revogado pelo administrador.',403);if(member.userId&&member.userId!==ctx.user!.userId)return error('Este convite já foi utilizado.',409);const oldEmail=member.email,email=norm(ctx.user!.email),stamp=now(),next:Member={...member,email,userId:ctx.user!.userId,name:ctx.user!.name||member.name,joinCode:undefined,claimedAt:stamp,updatedAt:stamp};await db.update(membersTable(projectId),[{id:memberId,record:next as unknown as Record<string,unknown>}]);const oldAccess=await findAccess(oldEmail),oldIds=oldAccess.filter(a=>a.projectId===projectId).map(a=>a.id);if(oldIds.length)await db.delete(accessTable(oldEmail),oldIds);const actual=await findAccess(email),same=actual.find(a=>a.projectId===projectId),accessRecord={...next,projectMemberId:memberId} as unknown as Record<string,unknown>;if(same)await db.update(accessTable(email),[{id:same.id,record:accessRecord}]);else await db.add(accessTable(email),[accessRecord]);await db.delete(table,[ref.id]);await audit(next,ctx.user!,'access_code_claimed',{role:next.role,employeeId:next.employeeId});return json({role:next.role,membership:{...next,id:memberId}})}],
-  'GET /api/project':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin','foreman'], 'mobile','obra360');if(gate.response)return gate.response;const requested=String(ctx.query.date||new Date().toISOString().slice(0,10));await carryForwardActiveAssignments(gate.member!.projectId,requested,ctx.user!.userId);const state=await assembleState(gate.member!.projectId);if(!state)return error('Obra ainda não inicializada.',404);return json({state,role:gate.member!.role,access:gate.access})}],
-  'POST /api/project/import':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const body=asRecord(ctx.body),snapshot=asRecord(body.state);if(!snapshot.project||!Array.isArray(snapshot.floors)||!Array.isArray(snapshot.employees))return error('Snapshot local inválido.',400);const revision=await saveSnapshot(gate.member!.projectId,snapshot,ctx.user!.userId);await audit(gate.member!,ctx.user!,'local_snapshot_imported',{revision});return json({ok:true,revision})}],
-  'PUT /api/project/state':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const body=asRecord(ctx.body),snapshot=asRecord(body.state);if(!snapshot.project)return error('Estado inválido.',400);const revision=await saveSnapshot(gate.member!.projectId,snapshot,ctx.user!.userId);return json({ok:true,revision})}],
+  'GET /api/project':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin','foreman'], 'mobile','obra360');if(gate.response)return gate.response;const requested=String(ctx.query.date||new Date().toISOString().slice(0,10));await carryForwardActiveAssignments(gate.member!.projectId,requested,ctx.user!.userId);const state=await assembleState(gate.member!.projectId,requested);if(!state)return error('Obra ainda não inicializada.',404);return json({state,role:gate.member!.role,access:gate.access})}],
+  'POST /api/project/import':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const body=asRecord(ctx.body),snapshot=asRecord(body.state);if(!snapshot.project||!Array.isArray(snapshot.floors)||!Array.isArray(snapshot.employees))return error('Snapshot local inválido.',400);const revision=await saveSnapshot(gate.member!.projectId,snapshot,ctx.user!.userId,{allowUnversioned:true});await audit(gate.member!,ctx.user!,'local_snapshot_imported',{revision});return json({ok:true,revision})}],
+  'PUT /api/project/state':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const input=asRecord(asRecord(ctx.body).state);
+    if(!input.project)return error('Estado inválido.',400);
+    let snapshot=input;
+    if(gate.member!.role==='foreman'){
+      const matrix=gate.member!.permissions?normalizePermissions(gate.member!.permissions):roleTemplate('foreman');
+      if(!matrix.operation.includes('edit'))return error('O encarregado não possui permissão para editar o RDO.',403);
+      const dates=Object.keys(asRecord(input.days));
+      if(dates.length>40)return error('Envie no máximo 40 dias por atualização.',400);
+      const latest=await assembleState(gate.member!.projectId,dates.at(-1));
+      if(!latest)return error('Obra não inicializada.',404);
+      try{snapshot=restrictForemanSnapshot(input,latest)}catch(e){return error((e as Error).message,403)}
+    }
+    const revision=await saveSnapshot(gate.member!.projectId,snapshot,ctx.user!.userId);
+    return json({ok:true,revision})
+  }],
+  'POST /api/field/rdo/photos/upload':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const body=asRecord(ctx.body);
+    try{return json({photo:await uploadFieldPhoto({companyId:gate.member!.companyId,
+      projectId:gate.member!.projectId,date:String(body.date||''),mimeType:String(body.mimeType||''),
+      data:String(body.data||''),clientId:String(body.clientId||''),userId:ctx.user!.userId})})}
+    catch(e){return error((e as Error).message,400)}
+  }],
+  'GET /api/field/rdo/photos':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    try{return json({photo:await readFieldPhoto(gate.member!.projectId,String(ctx.query.id||''))})}
+    catch(e){return error((e as Error).message,404)}
+  }],
+  'POST /api/field/rdo/photos/delete':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const body=asRecord(ctx.body),day=asRecord(await getDay(gate.member!.projectId,String(body.date||'')));
+    if(day.rdoStatus==='ready_for_desktop')return error('Reabra o RDO antes de excluir uma foto.',409);
+    try{return json(await removeFieldPhoto(gate.member!.projectId,String(body.id||''),String(body.date||'')))}
+    catch(e){return error((e as Error).message,400)}
+  }],
+  'GET /api/field/rdo/catalog':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    return json({catalog:await getFieldRdoCatalog(gate.member!.projectId)})
+  }],
+  'GET /api/field/rdo/receipts':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    return json({receipts:await fieldRdoReceipts(gate.member!.projectId)})
+  }],
+  'GET /api/project/day':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const date=String(ctx.query.date||'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return error('Data de diário inválida.',400);
+    const day=await getDay(gate.member!.projectId,date);
+    return json({date,day:day||null,exists:!!day})
+  }],
   'GET /api/members':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const topology=await getCompanyStorageTopology(gate.member!.companyId),{items}=await db.list<Member>(membersTable(gate.member!.projectId),{limit:100});const members=items.map(m=>{const modules=m.modules||defaultModules(m.role),channels=m.channels||defaultChannels(m.role),effective=effectivePermissions({role:m.role,customPermissions:m.permissions,modules,channels,companyModules:gate.access!.modules,companyChannels:gate.access!.channels});return{id:m.id,email:m.email,name:m.name,role:m.role,employeeId:m.employeeId,userId:m.userId,joinCode:m.joinCode,status:m.status||'active',modules,channels,desktopStorage:m.desktopStorage??null,permissions:m.permissions??null,effectivePermissions:effective,permissionsRevision:permissionsRevision(effective)}});return json({members,companyAccess:gate.access,storageTopology:topology})}],
   'POST /api/members':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const body=asRecord(ctx.body),email=norm(String(body.email||'')),role=String(body.role||'') as Role,employeeId=body.employeeId?String(body.employeeId):undefined,requestedModules=asArray(body.modules).map(String).filter(x=>MODULES.includes(x)),requestedChannels=asArray(body.channels).map(String).filter(x=>CHANNELS.includes(x));if(!/^\S+@\S+\.\S+$/.test(email))return error('Email inválido.',400);if(!ROLES.includes(role))return error('Papel inválido.',400);if(role==='employee'&&!employeeId)return error('Funcionário precisa estar vinculado a um cadastro da equipe.',400);if(employeeId){const meta=await getMeta(gate.member!.projectId),employees=asArray(meta?.state.employees);if(!employees.some(e=>String(asRecord(e).id)===employeeId))return error('Funcionário não pertence a esta obra.',400)}const {items:currentMembers}=await db.list<Member>(membersTable(gate.member!.projectId),{limit:100}),existing=currentMembers.find(m=>norm(m.email)===email);try{if(existing)assertAdministrativeTransition({target:existing,nextRole:role,activeAdminCount:currentMembers.filter(m=>m.role==='admin'&&m.status!=='revoked').length})}catch(e){return error((e as Error).message,409)}const topology=await getCompanyStorageTopology(gate.member!.companyId),modules=requestedModules.length?requestedModules:intersect(gate.access!.modules,defaultModules(role));let channels=requestedChannels.length?requestedChannels:intersect(gate.access!.channels,defaultChannels(role));if(topology.mode==='local-single'){if(requestedChannels.includes('desktop'))return error('Esta empresa usa somente este computador. Configure “Vários computadores” antes de liberar Desktop para colaboradores.',409);channels=channels.filter(channel=>channel!=='desktop')}const hasPermissions=Object.prototype.hasOwnProperty.call(body,'permissions'),permissionInput=hasPermissions?body.permissions:existing?.permissions;let validated;try{validated=validatePermissionAdministration({role,modules,channels,permissions:permissionInput??roleTemplate(role),companyModules:gate.access!.modules,companyChannels:gate.access!.channels})}catch(e){return error((e as Error).message,400)}if(!validated.channels.length)return error('Selecione ao menos um canal permitido pela licença.',400);let desktopStorage:DesktopStorageBinding|null=null;try{desktopStorage=desktopBindingForMember(topology,validated.channels)}catch(e){return error((e as Error).message,409)}const before=existing?{role:existing.role,modules:existing.modules||defaultModules(existing.role),channels:existing.channels||defaultChannels(existing.role),permissions:existing.permissions}:null,permissions=hasPermissions?validated.storedPermissions:existing?.permissions,member=await upsertMember(gate.member!.projectId,gate.member!.companyId,{email,role,employeeId,modules:validated.modules,channels:validated.channels,permissions,desktopStorage}),effective=effectivePermissions({role:member.role,customPermissions:member.permissions,modules:member.modules||defaultModules(member.role),channels:member.channels||defaultChannels(member.role),companyModules:gate.access!.modules,companyChannels:gate.access!.channels}),revision=permissionsRevision(effective),diff=permissionChangeSummary(before||{role:member.role,modules:[],channels:[],permissions:undefined},member);await audit(gate.member!,ctx.user!,'member_permissions_updated',{targetMemberId:member.id,targetEmail:email,diff,storageTopology:topology,desktopStorage});return json({member:{id:member.id,email:member.email,role:member.role,employeeId:member.employeeId,userId:member.userId,joinCode:member.joinCode,status:member.status||'active',modules:member.modules,channels:member.channels,desktopStorage:member.desktopStorage??null,permissions:member.permissions??null,effectivePermissions:effective,permissionsRevision:revision},storageTopology:topology})}],
   'PUT /api/members/:id/status':[...secured,async(ctx)=>{

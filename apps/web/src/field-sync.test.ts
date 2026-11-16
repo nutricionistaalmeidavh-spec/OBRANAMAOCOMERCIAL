@@ -47,3 +47,18 @@ it('renders and focuses only permitted management deep-link targets',()=>{
  focusManagementSection(root,'#gestao/documents');expect(document.activeElement?.id).toBe('management-documents');
  expect(root.querySelector('#management-measurements')).toBeNull();focusManagementSection(root,'#gestao/measurements');expect(document.activeElement?.id).toBe('management-documents');
 });
+
+it('keeps authoritative remote revision when saving a stale local RDO draft',async()=>{
+  const baseline={_remote:{revision:1},days:{'2026-11-15':{note:'original'}}};
+  let remote=structuredClone(baseline);
+  const send=vi.fn(async(next:any)=>{if(next._remote.revision!==remote._remote.revision)throw new Error('stale');remote=structuredClone({...next,_remote:{revision:remote._remote.revision+1}})});
+  const sync=setup({baseline,readRemote:async()=>structuredClone(remote),send});
+  sync.save({_remote:{revision:1},days:{'2026-11-15':{note:'primeira'}}});
+  await sync.flush();
+  expect(remote._remote.revision).toBe(2);
+  sync.save({_remote:{revision:1},days:{'2026-11-15':{note:'segunda'}}});
+  await sync.flush();
+  expect(send).toHaveBeenCalledTimes(2);
+  expect(remote.days['2026-11-15'].note).toBe('segunda');
+  expect(sync.read()).toBeNull();
+});

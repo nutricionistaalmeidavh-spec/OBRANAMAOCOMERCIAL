@@ -95,6 +95,8 @@ jobs:
         with:
           name: ${{ env.ARTIFACT }}
           path: ${{ runner.temp }}/obra-fixed-release
+      - name: Unit test installed-app CDP renderer selection
+        run: node --test scripts/ci/windows-cdp-target.test.cjs
       - name: Real installed upgrade regression
         shell: pwsh
         env:
