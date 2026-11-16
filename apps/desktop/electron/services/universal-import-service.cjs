@@ -178,6 +178,7 @@ class UniversalImportService {
     if (!sheet) throw new Error('Aba não encontrada.')
     const area = AREAS[options.area] ? options.area : sheet.area
     const map = { ...mapping(sheet.headers, area), ...(options.mapping || {}) }
+    if (options.mappingOnly === true) return { mapping: map }
     const entries = rowsAsObjects(sheetRows(pending.workbook.getWorksheet(sheet.name)), sheet.headerIndex)
       .map((row, index) => ({ row, line: index + sheet.headerIndex + 2 }))
       .filter((item) => Object.values(item.row).some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ''))
