@@ -9,7 +9,14 @@ export function materialLine(input={}){
   const quantidade=Math.round(number(input.quantidade)*1e6)/1e6;
   if(!descricao||descricao.length>250||!unidade||unidade.length>24)throw new Error('Informe o material e a unidade.');
   if(!Number.isFinite(quantidade)||quantidade<=0||quantidade>1e9)throw new Error('Informe uma quantidade válida, maior que zero.');
-  return {id,descricao,unidade,quantidade,...(input.frente_id?{frente_id:input.frente_id}:{})};
+  const material_id=text(input.material_id),servico=text(input.servico);
+  if(material_id&&!/^mat_[a-f0-9]{24}$/.test(material_id))throw new Error('Material não vinculado ao catálogo da obra.');
+  if(servico.length>120)throw new Error('Serviço excede o limite de identificação.');
+  return {id,descricao,unidade,quantidade,
+    ...(material_id?{material_id}:{}),
+    ...(servico?{servico}:{}),
+    ...(input.frente_id?{frente_id:Number(input.frente_id)}:{})
+  };
 }
 
 export function materialReviewSummary(day={}){
@@ -31,7 +38,10 @@ export function rdoSourceFingerprint(day={}){
     events:array(day.events),
     note:day.note||'',
     materials:array(day.materials),
-    materialsReviewed:day.materialsReviewed===true
+    materialsReviewed:day.materialsReviewed===true,
+    occurrencesReviewed:day.occurrencesReviewed===true,
+    photosReviewed:day.photosReviewed===true,
+    photos:array(day.photos).map(p=>({id:p.id,sha256:p.sha256,date:p.date,uploadedAt:p.uploadedAt}))
   });
 }
 
