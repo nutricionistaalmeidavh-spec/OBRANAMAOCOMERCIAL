@@ -1,6 +1,7 @@
 import { createCompanyRoutes } from './owner-companies';
 import { restrictForemanSnapshot } from './field-snapshot-rules';
 import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts } from './field-rdo-delivery';
+import { getFieldRdoCatalog, publishFieldRdoCatalog } from './field-rdo-catalog-cloud';
 import { centralRoleForEmail, requireCentralAccess } from './central-access';
 import { validateDesktopChange } from '../../../packages/contracts/src/desktop-sync';
 import { router, json, error, requireAuth, withScopes, requireAdminEmailAllowlist, db, runtimeEnv } from '../cloudflare/sdk';
@@ -165,6 +166,11 @@ export const handler=router({
   ...PLATFORM_ACCESS_ROUTES,
   'POST /api/phone/bootstrap':[async(ctx)=>{const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));if('response'in gate)return gate.response;const project=await getProject(gate.phoneAccess.projectId),company=await getCompany(gate.phoneAccess.companyId),meta=await getMeta(gate.phoneAccess.projectId);if(!project||!company)return error('Obra vinculada não encontrada.',404);return json({needsClaim:false,isOwner:false,platformRole:'user',role:'foreman',membership:{projectId:gate.phoneAccess.projectId,companyId:gate.phoneAccess.companyId,employeeId:gate.phoneAccess.employeeId,name:gate.phoneAccess.name,role:'foreman'},project,company,access:gate.access,license:gate.access,projectInitialized:!!meta,phoneAccess:{systems:gate.phoneAccess.systems,employeeId:gate.phoneAccess.employeeId}})}],
   'POST /api/phone/project':[async(ctx)=>{const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));if('response'in gate)return gate.response;const requested=String(body.date||new Date().toISOString().slice(0,10));await carryForwardActiveAssignments(gate.phoneAccess.projectId,requested,gate.participant.id);const state=await assembleState(gate.phoneAccess.projectId,requested);if(!state)return error('Obra ainda não inicializada.',404);return json({state,role:'foreman',access:gate.access})}],
+  'POST /api/phone/field/rdo/catalog':[async(ctx)=>{
+    const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));
+    if('response'in gate)return gate.response;
+    return json({catalog:await getFieldRdoCatalog(gate.phoneAccess.projectId)})
+  }],
   'POST /api/phone/field/rdo/receipts':[async(ctx)=>{
     const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));
     if('response'in gate)return gate.response;
@@ -252,6 +258,14 @@ export const handler=router({
   'POST /api/desktop/storage/topology':[async(ctx)=>{const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));if(!session||session.member?.role!=='admin'||!session.device.companyId)return error('Apenas Admin pode alterar a forma de uso dos computadores.',403);const mode=String(body.mode||''),serverId=String(body.serverId||'').trim()||undefined,validateOnly=body.validateOnly===true;if(mode==='local-single'){const devices=(await db.list<Device>('devices',{limit:100})).items.filter(d=>d.companyId===session.device.companyId&&d.status==='active'&&d.id!==session.device.id);if(devices.length)return error(`Existem ${devices.length} outro(s) computador(es) ativo(s). Revogue-os antes de voltar para uso somente neste computador.`,409)}try{const candidate={mode:mode as any,serverId,updatedByDeviceId:session.device.id};const current=await getCompanyStorageTopology(session.device.companyId);assertAdvancedServerEntitlement(candidate,session.access.advancedServer===true,current);if(validateOnly)return json({ok:true,current,candidate});const topology=await setCompanyStorageTopology(session.device.companyId,candidate);return json({storageTopology:topology})}catch(e){return error((e as Error).message,/adicional de licença/.test((e as Error).message)?403:400)}}],
   'POST /api/desktop/devices':[async(ctx)=>{const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''));if(!session||session.member?.role!=='admin'||!session.device.companyId)return error('Apenas Admin pode gerenciar computadores.',403);const {items}=await db.list<Device>('devices',{limit:100});return json({devices:items.filter(d=>d.companyId===session.device.companyId).map(d=>({id:d.id,name:d.name,platform:d.platform,email:d.email,status:d.status,lastSeenAt:d.lastSeenAt,installationId:d.installationId}))})}],
   'POST /api/desktop/devices/revoke':[async(ctx)=>{const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));if(!session||session.member?.role!=='admin'||!session.device.companyId)return error('Apenas Admin pode revogar computadores.',403);const targetId=String(body.deviceId||''),[target]=await db.get<Device>('devices',[targetId]);if(!target||target.companyId!==session.device.companyId)return error('Computador não encontrado nesta empresa.',404);await db.update('devices',[{id:targetId,record:{...target,status:'revoked',updatedAt:now()} as unknown as Record<string,unknown>}]);return json({ok:true})}],
+  'POST /api/desktop/field/rdo/catalog/publish':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
+    if(!session.access.modules.includes('rdo')&&!session.access.modules.includes('obra360'))
+      return error('Catálogo não autorizado para este Desktop.',403);
+    try{return json({catalog:await publishFieldRdoCatalog(session.device.projectId,session.device.id,body.catalog)})}
+    catch(e){return error((e as Error).message,400)}
+  }],
   'POST /api/desktop/field/rdo/pending':[async(ctx)=>{
     const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
     if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
@@ -303,6 +317,11 @@ export const handler=router({
     }
     const revision=await saveSnapshot(gate.member!.projectId,snapshot,ctx.user!.userId);
     return json({ok:true,revision})
+  }],
+  'GET /api/field/rdo/catalog':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    return json({catalog:await getFieldRdoCatalog(gate.member!.projectId)})
   }],
   'GET /api/field/rdo/receipts':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
