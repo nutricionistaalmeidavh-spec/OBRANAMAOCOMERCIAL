@@ -64,3 +64,11 @@ test('service control preserves ProgramData and grants only persistent paths to 
   assert.doesNotMatch(script, /Remove-Item[^\n]*ProgramData/i)
   assert.doesNotMatch(script, /LocalSystem/i)
 })
+
+test('Windows service restart reloads server.env before restarting', () => {
+  const script = read('service-control.ps1')
+  const restart = script.match(/'Restart'\s*\{([\s\S]*?)\n\s*\}/)?.[1] || ''
+  assert.match(restart, /\bSet-ServiceEnvironment\b/)
+  assert.match(restart, /\bInvoke-Wrapper\s+'restart'/)
+  assert.ok(restart.indexOf('Set-ServiceEnvironment') < restart.indexOf("Invoke-Wrapper 'restart'"))
+})
