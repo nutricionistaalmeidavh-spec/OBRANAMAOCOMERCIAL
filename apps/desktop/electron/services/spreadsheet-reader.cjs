@@ -32,7 +32,7 @@ function sheetRows(sheet) {
 
 function rowsAsObjects(rows, headerIndex) {
   const headers = rows[headerIndex] || []
-  return rows.slice(headerIndex + 1).map((row) => Object.fromEntries(headers.map((header, index) => [String(header || `Coluna ${index + 1}`).trim(), row[index] ?? ''])))
+  return rows.slice(headerIndex + 1).map((row) => Object.fromEntries(headers.map((header, index) => [String(header || `Coluna ${index + 1}`).trim(), row?.[index] ?? ''])))
 }
 
 function encodeCell({ r, c }) {
