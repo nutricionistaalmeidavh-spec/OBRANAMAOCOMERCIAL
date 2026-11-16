@@ -87,6 +87,8 @@ jobs:
           tests/storage-online-contract.test.ts
           electron/services/storage-online-compatibility.test.ts
           electron/services/sync-coordinator.test.ts
+          electron/services/lan-sync-data-provider.test.ts
+          electron/services/remote-crud-routing.test.ts
           electron/services/central-planning-sync.test.ts
           tests/f29-f30-server-wizard.test.ts
           tests/storage-server-migration-ui.test.ts
@@ -107,7 +109,7 @@ jobs:
           node-version-file: .nvmrc
       - run: npm install --workspaces=false --no-audit --no-fund
       - name: Validate PWA-Desktop server bridge
-        run: npx vitest run backend/p3-workflows.test.ts backend/lan-server-permissions-snapshot.test.ts
+        run: npx vitest run backend/p3-workflows.test.ts backend/lan-server-permissions-snapshot.test.ts backend/remote-sync-owner.test.ts src/owner-navigation.test.ts
 
   publish:
     name: Publish immutable Windows and Linux server release
