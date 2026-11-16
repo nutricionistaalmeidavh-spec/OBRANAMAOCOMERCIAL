@@ -41,6 +41,9 @@ export function rdoSourceFingerprint(day={}){
     materialsReviewed:day.materialsReviewed===true,
     occurrencesReviewed:day.occurrencesReviewed===true,
     photosReviewed:day.photosReviewed===true,
+    photosReviewedFingerprint:day.photosReviewedFingerprint||'',
+    occurrencesReviewedFingerprint:day.occurrencesReviewedFingerprint||'',
+    rdoSubmissionId:day.rdoSubmissionId||'',
     photos:array(day.photos).map(p=>({id:p.id,sha256:p.sha256,date:p.date,uploadedAt:p.uploadedAt}))
   });
 }
