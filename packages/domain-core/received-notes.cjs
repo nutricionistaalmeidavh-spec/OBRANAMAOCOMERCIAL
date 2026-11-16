@@ -56,6 +56,127 @@ function createReceivedNotesService(db) {
     }
     return { total_centavos:grouped.reduce((s,x)=>s+Number(x.valor_centavos),0), etapas:[...byStage.values()], subetapas:grouped }
   }
+  // P2: orçamento da etapa versus valores documentados em notas recebidas.
+  // Notas não significam pagamentos realizados ou materiais consumidos.
+  const report = (filters={}) => {
+    const obraId=positiveId(filters.obra_id,'Obra')
+    const obra=row('obras',obraId,'Obra')
+    const start=filters.data_inicio ? date(filters.data_inicio,'Data inicial') : null
+    const end=filters.data_fim ? date(filters.data_fim,'Data final') : null
+    if (start&&end&&start>end) throw new Error('O período inicial não pode ser posterior ao final.')
+    const stageId=optionalId(filters.frente_id,'Etapa')
+    const substageId=optionalId(filters.subfrente_id,'Subetapa')
+    const supplierId=optionalId(filters.fornecedor_id,'Fornecedor')
+    if (stageId) sameWork('frentes_obra',stageId,obraId,'Etapa')
+    if (substageId) {
+      if (!stageId) throw new Error('Selecione a etapa antes da subetapa.')
+      const sub=sameWork('subfrentes_obra',substageId,obraId,'Subetapa')
+      if (Number(sub.frente_id)!==stageId) throw new Error('A subetapa não pertence à etapa selecionada.')
+    }
+    if (supplierId) {
+      const supplier=row('fornecedores',supplierId,'Fornecedor')
+      if (supplier.empresa_id!==null&&Number(supplier.empresa_id)!==Number(obra.empresa_id))
+        throw new Error('Fornecedor deve pertencer à empresa da obra.')
+    }
+    const limit=filters.limit===undefined?25:Number(filters.limit)
+    const offset=filters.offset===undefined?0:Number(filters.offset)
+    if (!Number.isSafeInteger(limit)||limit<1||limit>100) throw new Error('limit deve ficar entre 1 e 100.')
+    if (!Number.isSafeInteger(offset)||offset<0||offset>1000000) throw new Error('offset inválido.')
+
+    // Never join accounts, payments, orders or stock into these totals.
+    const conditions=['n.obra_id=?','n.deleted_at IS NULL']
+    const params=[obraId]
+    if(end){conditions.push('n.emissao<=?');params.push(end)}
+    if(stageId){conditions.push('i.frente_id=?');params.push(stageId)}
+    if(substageId){conditions.push('i.subfrente_id=?');params.push(substageId)}
+    if(supplierId){conditions.push('n.fornecedor_id=?');params.push(supplierId)}
+    const joins=" FROM nota_recebida_itens i JOIN notas_recebidas n ON n.id=i.nota_id "+
+      "LEFT JOIN frentes_obra e ON e.id=i.frente_id "+
+      "LEFT JOIN subfrentes_obra s ON s.id=i.subfrente_id "+
+      "JOIN fornecedores f ON f.id=n.fornecedor_id"
+    const where=" WHERE "+conditions.join(" AND ")
+    const aggregates="SELECT i.frente_id,i.subfrente_id,COALESCE(e.nome,'Sem etapa') AS etapa_nome,"+
+      "COALESCE(s.nome,'Sem subetapa') AS subetapa_nome,COUNT(*) AS itens_quantidade,"+
+      "SUM(i.valor_total_centavos) AS documentado_ate_fim_centavos,"+
+      "SUM(CASE WHEN n.emissao>=? THEN i.valor_total_centavos ELSE 0 END) AS documentado_periodo_centavos"
+    const groups=db.prepare(aggregates+joins+where+
+      " GROUP BY i.frente_id,i.subfrente_id ORDER BY etapa_nome,subetapa_nome").all(start||'',...params)
+
+    const budgetWhere=['obra_id=?','deleted_at IS NULL']
+    const budgetArgs=[obraId]
+    if(stageId){budgetWhere.push('frente_id=?');budgetArgs.push(stageId)}
+    const budget=db.prepare("SELECT frente_id,COALESCE(SUM(CAST(ROUND(quantidade*valor_unitario_centavos,0) AS INTEGER)),0) AS orcamento_centavos "+
+      "FROM itens_orcamentarios WHERE "+budgetWhere.join(' AND ')+" GROUP BY frente_id").all(...budgetArgs)
+
+    // A single supplier or substage is only part of a stage, and cannot
+    // be compared to the budget of that entire stage as if it were the whole.
+    const comparable=!supplierId&&!substageId
+    const byStage=new Map()
+    const stageKey=id=>id===null?'sem_etapa':String(id)
+    for(const entry of groups) {
+      const key=stageKey(entry.frente_id)
+      if(!byStage.has(key)) byStage.set(key,{
+        frente_id:entry.frente_id,nome:entry.etapa_nome,
+        orcamento_centavos:0,documentado_ate_fim_centavos:0,documentado_periodo_centavos:0
+      })
+      const item=byStage.get(key)
+      item.documentado_ate_fim_centavos+=Number(entry.documentado_ate_fim_centavos)
+      item.documentado_periodo_centavos+=Number(entry.documentado_periodo_centavos)
+    }
+    for(const b of budget) {
+      const key=stageKey(b.frente_id)
+      if(!byStage.has(key)&&comparable) {
+        const stage=b.frente_id===null?null:db.prepare('SELECT nome FROM frentes_obra WHERE id=?').get(b.frente_id)
+        byStage.set(key,{frente_id:b.frente_id,nome:stage?.nome||'Sem etapa',
+          orcamento_centavos:0,documentado_ate_fim_centavos:0,documentado_periodo_centavos:0})
+      }
+      if(byStage.has(key))byStage.get(key).orcamento_centavos=Number(b.orcamento_centavos)
+    }
+    const etapas=[...byStage.values()].map(item=>{
+      const diff=comparable?item.documentado_ate_fim_centavos-item.orcamento_centavos:null
+      return {...item,desvio_centavos:diff,
+        percentual_documentado:item.orcamento_centavos>0&&comparable
+          ?Math.round(item.documentado_ate_fim_centavos*10000/item.orcamento_centavos)/100:null,
+        alerta:!comparable?'comparacao_indisponivel'
+          :item.orcamento_centavos===0&&item.documentado_ate_fim_centavos>0?'sem_previsao'
+          :diff>0?'acima_do_orcamento':'dentro_do_orcamento'}
+    }).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
+    const subetapas=groups.map(entry=>({
+      frente_id:entry.frente_id,subfrente_id:entry.subfrente_id,
+      etapa_nome:entry.etapa_nome,subetapa_nome:entry.subetapa_nome,
+      quantidade_itens:Number(entry.itens_quantidade),
+      orcamento_centavos:null, // orçamento por subetapa ainda não existe no esquema canônico
+      documentado_ate_fim_centavos:Number(entry.documentado_ate_fim_centavos),
+      documentado_periodo_centavos:Number(entry.documentado_periodo_centavos)
+    }))
+    const periodConditions=[...conditions],periodParams=[...params]
+    if(start){periodConditions.push('n.emissao>=?');periodParams.push(start)}
+    const periodWhere=' WHERE '+periodConditions.join(' AND ')
+    const total=Number(db.prepare('SELECT COUNT(*) AS quantidade '+joins+periodWhere).get(...periodParams).quantidade)
+    const historyQuery="SELECT i.id AS item_id,n.id AS nota_id,n.numero,n.serie,n.emissao,"+
+      "f.nome AS fornecedor_nome,n.fornecedor_id,n.documento_id,n.pedido_compra_id,n.conta_id,"+
+      "i.frente_id,i.subfrente_id,COALESCE(e.nome,'Sem etapa') AS etapa_nome,"+
+      "COALESCE(s.nome,'Sem subetapa') AS subetapa_nome,i.descricao,i.unidade,i.quantidade,"+
+      "i.valor_unitario_centavos,i.valor_total_centavos"
+    const historico=db.prepare(historyQuery+joins+periodWhere+
+      ' ORDER BY n.emissao DESC,n.id DESC,i.id DESC LIMIT ? OFFSET ?').all(...periodParams,limit,offset)
+
+    return {
+      escopo:{obra_id:obraId,obra_nome:obra.nome,data_inicio:start,data_fim:end,
+        frente_id:stageId,subfrente_id:substageId,fornecedor_id:supplierId},
+      base_comparacao:'orcamento_total_vs_notas_ate_data_final',
+      indicador_periodo:'data_emissao_nota',
+      indicadores:{
+        orcamento_total_centavos:comparable?budget.reduce((s,b)=>s+Number(b.orcamento_centavos),0):null,
+        documentado_ate_fim_centavos:subetapas.reduce((s,i)=>s+i.documentado_ate_fim_centavos,0),
+        documentado_periodo_centavos:subetapas.reduce((s,i)=>s+i.documentado_periodo_centavos,0),
+        comparavel:comparable
+      },
+      etapas,subetapas,historico,historico_total:total,
+      paginacao:{limit,offset,has_more:offset+historico.length<total}
+    }
+  }
+
   const create = payload => {
     const work=row('obras',payload?.obra_id,'Obra')
     const obraId=Number(work.id)
@@ -138,6 +259,6 @@ function createReceivedNotesService(db) {
     if (!nota.documento_id) db.prepare('UPDATE notas_recebidas SET documento_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(document.id,nota.id)
     return read(nota.id)
   }
-  return { create,list,read,summary,attach }
+  return { create,list,read,summary,report,attach }
 }
 module.exports={createReceivedNotesService}
