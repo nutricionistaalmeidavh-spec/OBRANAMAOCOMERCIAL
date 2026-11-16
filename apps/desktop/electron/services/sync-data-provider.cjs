@@ -1,3 +1,18 @@
+const path = require('node:path')
+const { pathToFileURL } = require('node:url')
+const fs = require('node:fs')
+let fieldRdoImporter = null
+async function loadFieldRdoImporter() {
+  if (fieldRdoImporter) return fieldRdoImporter
+  const packaged = path.join(process.resourcesPath || '', 'lan-server', 'src', 'field-rdo-import.mjs')
+  const local = path.resolve(__dirname, '../../../lan-server/src/field-rdo-import.mjs')
+  const file = fs.existsSync(packaged) ? packaged : local
+  if (!fs.existsSync(file)) throw new Error('Importador canônico de RDO não foi incluído na instalação.')
+  const { FieldRdoImport } = await import(pathToFileURL(file).href)
+  fieldRdoImporter = FieldRdoImport
+  return FieldRdoImport
+}
+
 const BRIDGE = { frentes_obra: 'fronts', tarefas_obra: 'tasks', rdos: 'rdos', cronograma_etapas: 'schedule' }
 const EDITABLE = {
   frentes_obra: ['status', 'observacoes'],
@@ -149,6 +164,16 @@ class LocalSyncDataProvider {
   getBridge(entity, localId, scope) {
     if (!Object.hasOwn(BRIDGE, entity)) return null
     return this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND obra_id=?`).get(Number(localId), scope.workId) || null
+  }
+
+  async applyFieldRdo(scope, report) {
+    const FieldRdoImport = await loadFieldRdoImporter()
+    const adapter = {
+      connection: () => this.database.db,
+      get: (table, id) => this.database.get(table, id),
+      save: (table, value) => this.database.save(table, value)
+    }
+    return new FieldRdoImport({repository:adapter}).apply({scope,report})
   }
 
   summary(scope, allowed) {
