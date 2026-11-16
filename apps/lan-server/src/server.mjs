@@ -7,6 +7,7 @@ import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
 import { MeasurementService } from './measurement-service.mjs'
 import { ProcurementService } from './procurement-service.mjs'
+import { RdoMaterialConsumption } from './rdo-material-consumption.mjs'
 import { ContractsService } from './contracts-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
@@ -301,6 +302,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const compoundDomainReady = !!repositoryDb && typeof repositoryDb.prepare === 'function' && typeof repositoryDb.exec === 'function'
   const measurements = measurementService || (compoundDomainReady ? new MeasurementService({ repository }) : null)
   const procurement = procurementService || (compoundDomainReady ? new ProcurementService({ repository }) : null)
+  const rdoMaterials = compoundDomainReady ? new RdoMaterialConsumption({ repository }) : null
   const contracts = contractsService || (compoundDomainReady ? new ContractsService({ repository }) : null)
   const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
@@ -532,6 +534,19 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const body = await readJson(request)
         authorizeAction(context, { domain: 'operation', action: body.id ? 'edit' : 'create' })
         return sendJson(response, 201, field.saveDailyReport(body))
+      }
+
+      if (url.pathname === '/api/v1/field/rdo/materials') {
+        if (!['GET','POST'].includes(request.method)) return methodNotAllowed(response, ['GET','POST'])
+        if (!rdoMaterials) return sendJson(response, 503, { error:'materials_unavailable', message:'Materiais do RDO indisponíveis.' })
+        const context = await authenticateLanRequest(request, security)
+        if (request.method === 'GET') {
+          authorizeAction(context, { domain:'operation', action:'view' })
+          return sendJson(response, 200, rdoMaterials.list(Number(url.searchParams.get('rdo_id'))))
+        }
+        authorizeAction(context, { domain:'operation', action:'edit' })
+        authorizeAction(context, { domain:'finance', action:'edit' })
+        return sendJson(response, 200, rdoMaterials.save(await readJson(request)))
       }
 
       if (url.pathname === '/api/v1/planning/overview') {
