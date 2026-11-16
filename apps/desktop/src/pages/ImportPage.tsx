@@ -218,6 +218,7 @@ function UniversalPreview({preview,mapping,onCommit,onPage,onExportIssues}:any){
         <div className="notice">A confirmação processa todas as {preview.total} linhas conferidas, não apenas as exibidas nesta página.</div>
         {preview.missing.length>0 && <div className="notice">Campos obrigatórios sem mapeamento: {preview.missing.join(', ')}.</div>}
         {preview.invalid>0 && <div className="notice"><AlertTriangle size={16}/> {preview.invalid} linha(s) precisam de revisão. Corrija o arquivo e selecione-o novamente.</div>}
+        {preview.existingRecords>0 && <div className="notice">{preview.existingRecords} cadastro(s) já existem na empresa e serão reutilizados sem sobrescrever os dados atuais.</div>}
         {preview.alreadyImported && <div className="notice">Este mesmo arquivo e aba já foram importados. Para evitar duplicatas, a confirmação está bloqueada.</div>}
         {(preview.invalid>0 || preview.missing.length>0 || preview.alreadyImported) && <div className="toolbar" style={{marginTop:10}}><Button variant="secondary" icon={<Download size={16}/>} onClick={onExportIssues}>Baixar relatório completo de erros (CSV)</Button></div>}
         {preview.issues?.length>0 && <div className="notice">Primeiras divergências: {preview.issues.map((issue:any) => 'linha '+issue.line+': '+issue.errors.join(', ')).join('; ')}</div>}
@@ -228,7 +229,7 @@ function UniversalPreview({preview,mapping,onCommit,onPage,onExportIssues}:any){
           <tbody>{preview.rows.map((row:any,index:number)=><tr key={preview.rowNumbers[index]}>
             <td>{preview.rowNumbers[index]}</td>
             {headers.map((header)=><td key={header}>{String(row[header]??'')}</td>)}
-            <td>{preview.rowErrors[index]?.length ? preview.rowErrors[index].join('; ') : 'Apta'}</td>
+            <td>{preview.rowErrors[index]?.length ? preview.rowErrors[index].join('; ') : preview.rowWarnings?.[index]?.length ? preview.rowWarnings[index].join('; ') : 'Apta'}</td>
           </tr>)}</tbody>
         </table>
       </div>
