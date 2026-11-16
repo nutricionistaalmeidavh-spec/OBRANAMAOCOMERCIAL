@@ -259,13 +259,14 @@ class UniversalImportService {
     assertSpreadsheetInput(filePath)
     const workbook = await readWorkbook(filePath)
     const token = crypto.randomUUID()
-    const sheets = workbook.SheetNames.map((name) => {
-      const rows = sheetRows(workbook.getWorksheet(name))
+    const sheets = workbook.worksheets.map((worksheet) => {
+      const name = worksheet.name
+      const rows = sheetRows(worksheet)
       const headerIndex = rows.slice(0, 20).reduce((best, row, index) => {
-        const score = Object.values(detect(row)).reduce((sum, item) => sum + item, 0)
+        const score = Object.values(detect(row || [])).reduce((sum, item) => sum + item, 0)
         return score > best.score ? { index, score } : best
       }, { index: 0, score: -1 }).index
-      const headers = rows[headerIndex].map((item, index) => String(item || `Coluna ${index + 1}`).trim())
+      const headers = (rows[headerIndex] || []).map((item, index) => String(item || `Coluna ${index + 1}`).trim())
       const scores = detect(headers)
       const area = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0]
       return { name, headers, headerIndex, rows: Math.max(0, rows.length - headerIndex - 1), scores, area, sample: rows.slice(headerIndex + 1, headerIndex + 6) }

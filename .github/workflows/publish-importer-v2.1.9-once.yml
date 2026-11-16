@@ -1,0 +1,271 @@
+name: Desktop importer 2.1.9 - verified install and release
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-importer-v2.1.9-once.yml'
+      - 'apps/desktop/**'
+      - 'scripts/ci/windows-importer-installed-qa.cjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-importer-v2.1.9-once.yml'
+      - 'apps/desktop/package.json'
+      - 'apps/desktop/package-lock.json'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: obra-importer-v2.1.9-${{ github.event_name }}
+  cancel-in-progress: false
+
+env:
+  DESKTOP_VERSION: '2.1.9'
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+jobs:
+  validate:
+    name: Validate source, existing services and release freeze
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Verify only the Desktop version was bumped
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./apps/desktop/package.json').version")" = "$DESKTOP_VERSION"
+          test "$(node -p "require('./apps/desktop/package-lock.json').version")" = "$DESKTOP_VERSION"
+          test "$(node -p "require('./apps/desktop/package-lock.json').packages[''].version")" = "$DESKTOP_VERSION"
+          grep -F "DESKTOP_AUTO_RELEASE_ENABLED: 'false'" .github/workflows/commercial-desktop-ci.yml
+          node --check scripts/ci/windows-importer-installed-qa.cjs
+      - name: Check Desktop and LAN contracts
+        run: |
+          npm --prefix apps/lan-server test
+          node --test scripts/ci/windows-cdp-target.test.cjs
+      - name: Validate import services, TS, full tests and render build
+        working-directory: apps/desktop
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run lint
+          npm test
+          npm run build
+
+  windows:
+    name: Package verified Windows Desktop 2.1.9
+    runs-on: windows-latest
+    needs: validate
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Validate and create NSIS installer
+        working-directory: apps/desktop
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run lint
+          npm test
+          npm run dist
+      - name: Verify updater and installer integrity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='apps/desktop/release'
+          $exe="$base/Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe"
+          $block="$exe.blockmap"
+          $latest="$base/latest.yml"
+          foreach($file in @($exe,$block,$latest)){if(!(Test-Path $file)){throw "Missing $file"}}
+          if((Get-Item $exe).Length -lt 100000000){throw 'Installer too small'}
+          $manifest=Get-Content $latest -Raw
+          $sha=[Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData([IO.File]::ReadAllBytes((Resolve-Path $exe))))
+          if(!$manifest.Contains("version: $env:DESKTOP_VERSION") -or !$manifest.Contains($sha)){throw 'Invalid latest.yml SHA512'}
+          if(!$manifest.Contains("Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe")){throw 'Incorrect updater path'}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: importer-windows-2.1.9
+          path: |
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.9.exe
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.9.exe.blockmap
+            apps/desktop/release/latest.yml
+          if-no-files-found: error
+          retention-days: 30
+
+  windows-installed:
+    name: Actual Windows upgrade and importer E2E - ${{ matrix.scenario }}
+    runs-on: windows-latest
+    needs: windows
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [inside-canonical, inside-nested, inside-stale, broken-share, external-canonical]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v4
+        with:
+          name: importer-windows-2.1.9
+          path: ${{ runner.temp }}/importer-windows-2.1.9
+      - name: Prepare dependencies for IPC QA
+        if: matrix.scenario == 'inside-canonical'
+        shell: pwsh
+        run: npm --prefix apps/desktop install --workspaces=false --no-audit --no-fund
+      - name: Install, upgrade, then test the still-running Electron process
+        shell: pwsh
+        env:
+          CI_UPDATE_VERSION: '2.1.9'
+        run: |
+          ./scripts/ci/windows-install-over.ps1 -Scenario '${{ matrix.scenario }}' -Release "$env:RUNNER_TEMP/importer-windows-2.1.9" -TargetVersion '2.1.9'
+          if ($LASTEXITCODE -ne 0) { throw 'Real installer QA failed.' }
+          if ('${{ matrix.scenario }}' -eq 'inside-canonical') {
+            node scripts/ci/windows-importer-installed-qa.cjs "$env:RUNNER_TEMP/obra-install-over/evidence" 9224 9232
+            if ($LASTEXITCODE -ne 0) { throw 'Installed importer IPC QA failed.' }
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: importer-installed-${{ matrix.scenario }}
+          path: ${{ runner.temp }}/obra-install-over/evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
+  macos:
+    name: Package native macOS 2.1.9 - ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    needs: validate
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            os: macos-15
+            label: Apple-Silicon
+          - arch: x64
+            os: macos-15-intel
+            label: Intel
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Verify host architecture
+        shell: bash
+        run: |
+          test "$(uname -m)" = "$([[ "${{ matrix.arch }}" = arm64 ]] && echo arm64 || echo x86_64)"
+      - name: Lint, test, build, rebuild native module
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run lint
+          npm test
+          npm run build
+          npx electron-builder install-app-deps
+      - name: Create native DMG and verify
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+          LABEL: ${{ matrix.label }}
+        run: |
+          set -euo pipefail
+          OUT="release/Obra-na-Mao-Desktop-v$DESKTOP_VERSION-macOS-$LABEL.dmg"
+          if [[ "$ARCH" == x64 ]]; then
+            npx electron-builder --mac --x64 --dir --publish never
+            APP=$(find release/mac -maxdepth 1 -type d -name '*.app' -print -quit)
+            test -n "$APP"
+            mkdir -p release/dmg-staging
+            ditto "$APP" "release/dmg-staging/$(basename "$APP")"
+            ln -s /Applications release/dmg-staging/Applications
+            hdiutil create -format UDZO -fs HFS+ -volname 'Obra na Mão Desktop' -srcfolder release/dmg-staging "$OUT"
+          else
+            npx electron-builder --mac dmg --arm64 --publish never
+            GENERATED=$(find release -maxdepth 1 -name '*.dmg' -type f -print -quit)
+            test -n "$GENERATED"
+            if [[ "$GENERATED" != "$OUT" ]]; then mv "$GENERATED" "$OUT"; fi
+          fi
+          hdiutil verify "$OUT"
+          test -s "$OUT"
+          shasum -a 256 "$OUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: importer-macos-${{ matrix.arch }}
+          path: apps/desktop/release/Obra-na-Mao-Desktop-v2.1.9-macOS-*.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish immutable Desktop 2.1.9 only after installed QA passes
+    needs: [windows-installed, macos]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-importer-v2.1.9]')
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: importer-windows-2.1.9
+          path: dist/windows
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: importer-macos-*
+          path: dist/macos
+          merge-multiple: true
+      - name: Verify both versions, all four artifacts and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/windows/Obra-na-Mao-Desktop-Setup-2.1.9.exe
+          test -s dist/windows/Obra-na-Mao-Desktop-Setup-2.1.9.exe.blockmap
+          test -s dist/windows/latest.yml
+          test -s dist/macos/Obra-na-Mao-Desktop-v2.1.9-macOS-Apple-Silicon.dmg
+          test -s dist/macos/Obra-na-Mao-Desktop-v2.1.9-macOS-Intel.dmg
+          node -e "const fs=require('fs'),crypto=require('crypto');const f='dist/windows/Obra-na-Mao-Desktop-Setup-2.1.9.exe';const m=fs.readFileSync('dist/windows/latest.yml','utf8');const h=crypto.createHash('sha512').update(fs.readFileSync(f)).digest('base64');if(!m.includes('version: 2.1.9')||!m.includes(h)||!m.includes('Obra-na-Mao-Desktop-Setup-2.1.9.exe'))process.exit(1)"
+          (cd dist/windows && sha256sum Obra-na-Mao-Desktop-Setup-2.1.9.exe* latest.yml > SHA256SUMS.txt)
+          (cd dist/macos && sha256sum *.dmg > SHA256SUMS.txt)
+      - name: Publish only new tags, no clobber and keep Windows latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          WINDOWS_TAG="desktop-commercial-v$DESKTOP_VERSION"
+          MAC_TAG="desktop-commercial-macos-v$DESKTOP_VERSION"
+          if gh release view "$WINDOWS_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Windows tag exists, refusing overwrite";exit 1
+          fi
+          if gh release view "$MAC_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::macOS tag exists, refusing overwrite";exit 1
+          fi
+          gh release create "$WINDOWS_TAG" dist/windows/* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
+            --title "Obra na Mão Desktop Comercial v$DESKTOP_VERSION" \
+            --notes "Importador universal P0-P2: mapeamento visual, XLSX por área, drag-and-drop, detecção e duplicidades, relatório CSV e perfis canônicos por empresa. CI Windows/macOS, smoke instalado com transações SQLite e 5 cenários de atualização aprovados. Sem alterações na configuração de auto-release."
+          gh release create "$MAC_TAG" dist/macos/* \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest=false \
+            --title "Obra na Mão Desktop macOS v$DESKTOP_VERSION" \
+            --notes "Instaladores Apple Silicon e Intel validados. Sem notarização Apple. Feed Windows preservado."
+          gh release view "$WINDOWS_TAG" --repo "$GITHUB_REPOSITORY" --json url,tagName,assets
+          gh release view "$MAC_TAG" --repo "$GITHUB_REPOSITORY" --json url,tagName,assets
