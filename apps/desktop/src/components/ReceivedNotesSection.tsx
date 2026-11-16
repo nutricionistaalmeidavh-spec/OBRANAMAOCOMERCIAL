@@ -22,6 +22,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
   const substages=useAsync(()=>obraId?window.fluxoDre.subfrentes.list({obra_id:obraId}):Promise.resolve([]),[obraId])
   const orders=useAsync(()=>obraId?window.fluxoDre.compras.pedidos.list({obra_id:obraId}):Promise.resolve([]),[obraId])
   const accounts=useAsync(()=>obraId?window.fluxoDre.contas.list({obra_id:obraId,tipo:'pagar'}):Promise.resolve([]),[obraId])
+  const selectedOrderItems=useAsync(()=>form?.pedido_compra_id?window.fluxoDre.compras.itens.list({pedido_compra_id:Number(form.pedido_compra_id)}):Promise.resolve([]),[form?.pedido_compra_id])
   const notes=useAsync(()=>obraId?window.fluxoDre.compras.notas.list(obraId):Promise.resolve([]),[obraId])
   const summary=useAsync(()=>obraId?window.fluxoDre.compras.notas.summary(obraId):Promise.resolve({etapas:[],total_centavos:0}),[obraId])
 
@@ -98,9 +99,10 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
       </tr>)}</tbody>
     </table></div>:<Empty title={obraId?'Nenhuma nota recebida':'Selecione uma obra'} description="Cadastre notas de fornecedores com seus produtos, quantidades e valores. Um documento pode ser anexado depois." action={obraId?<Button onClick={open}>Cadastrar primeira nota</Button>:undefined}/>}
     {!!summary.data?.etapas?.length&&<div className="card-body">
-      <h3>Valores das notas por etapa</h3>
+      <h3>Valores documentados por etapa e subetapa</h3>
       <p style={{fontSize:12,color:'#647084'}}>Valores documentados nas notas recebidas, não despesas pagas nem materiais consumidos.</p>
-      <div className="stage-list">{summary.data.etapas.map((item:any)=><div key={String(item.frente_id??'geral')}><div><strong>{item.nome}</strong></div><strong>{brl(item.valor_centavos)}</strong></div>)}</div>
+      <div className="stage-list">{summary.data.etapas.map((item:any)=><div key={String(item.frente_id??'geral')}><div><strong>Etapa: {item.nome}</strong></div><strong>{brl(item.valor_centavos)}</strong></div>)}</div>
+      <div className="stage-list">{summary.data.subetapas?.map((item:any)=><div key={String(item.frente_id??'geral')+':'+String(item.subfrente_id??'geral')}><div><strong>{item.etapa_nome} / {item.subetapa_nome}</strong><span>{item.quantidade_itens} item(ns) de notas recebidas</span></div><span>{brl(item.valor_centavos)}</span></div>)}</div>
     </div>}
     <Modal open={!!form} title="Cadastrar nota recebida" onClose={()=>!saving&&setForm(null)} size="lg">
       <form onSubmit={submit}>
@@ -118,6 +120,16 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
             {form?.itens.map((item,index)=><div key={index} style={{border:'1px solid #d7dce5',borderRadius:9,padding:12,marginBottom:10}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}><strong>Item {index+1}</strong><button className="icon-button" type="button" title="Remover item" aria-label={'Remover item '+(index+1)} disabled={form.itens.length===1} onClick={()=>setForm(current=>current?{...current,itens:current.itens.filter((_,i)=>i!==index)}:null)}><Trash2 size={15}/></button></div>
               <div className="form-grid">
+                {!!form?.pedido_compra_id && <Field label="Item do pedido já cadastrado" wide><select value={item.pedido_item_id} onChange={e=>{
+                  const selected=selectedOrderItems.data?.find((value:any)=>String(value.id)===e.target.value)
+                  if (!selected) return itemChange(index,{pedido_item_id:''})
+                  const qty=Number(selected.quantidade_pedida||1)
+                  itemChange(index,{
+                    pedido_item_id:e.target.value,descricao:selected.descricao||item.descricao,
+                    unidade:selected.unidade||item.unidade,quantidade:String(qty),
+                    valor_unitario:(Number(selected.valor_centavos||0)/Math.max(qty,0.001)/100).toFixed(2).replace('.',',')
+                  })
+                }}><option value="">Sem vínculo com item do pedido</option>{selectedOrderItems.data?.map((orderItem:any)=><option value={orderItem.id} key={orderItem.id}>{orderItem.descricao} — {orderItem.quantidade_pedida} {orderItem.unidade}</option>)}</select></Field>}
                 <Field label="Descrição" required wide><input required value={item.descricao} onChange={e=>itemChange(index,{descricao:e.target.value})}/></Field>
                 <Field label="Quantidade" required><input required type="number" min="0.001" step="0.001" value={item.quantidade} onChange={e=>itemChange(index,{quantidade:e.target.value})}/></Field>
                 <Field label="Unidade"><input value={item.unidade} onChange={e=>itemChange(index,{unidade:e.target.value})}/></Field>
