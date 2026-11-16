@@ -607,6 +607,9 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (!receivedNotes) return sendJson(response,503,{error:'notes_unavailable',message:'Arquivo de notas recebidas indisponível.'})
         const context=await authenticateLanRequest(request,security)
         const isWrite=request.method==='POST'
+        const financeModules=Array.isArray(context.member?.modules)?context.member.modules:[]
+        const hasFinance=context.member?.role==='admin'||financeModules.includes('finance')||(!isWrite&&financeModules.includes('dre'))
+        if(!hasFinance) return sendJson(response,403,{error:'forbidden',message:'Acesso ao módulo Financeiro não autorizado.'})
         authorizeAction(context,{domain:'finance',action:isWrite?'create':'view'})
         if (url.pathname==='/api/v1/received-notes') {
           if (request.method==='GET') return sendJson(response,200,receivedNotes.list(Number(url.searchParams.get('obra_id'))))
