@@ -1,0 +1,55 @@
+name: Verify immutable Obra na Mão RDO release downloads
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-rdo-release-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-published-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify Windows Desktop 2.1.8 complete assets and auto-update SHA512
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p published/windows
+          gh release download desktop-commercial-v2.1.8 --repo "$GITHUB_REPOSITORY" --dir published/windows --pattern 'Obra-na-Mao-Desktop-Setup-2.1.8.exe*'
+          gh release download desktop-commercial-v2.1.8 --repo "$GITHUB_REPOSITORY" --dir published/windows --pattern latest.yml
+          gh release download desktop-commercial-v2.1.8 --repo "$GITHUB_REPOSITORY" --dir published/windows --pattern SHA256SUMS.txt
+          test -s published/windows/Obra-na-Mao-Desktop-Setup-2.1.8.exe
+          test -s published/windows/Obra-na-Mao-Desktop-Setup-2.1.8.exe.blockmap
+          (cd published/windows && sha256sum -c SHA256SUMS.txt)
+          actual="$(openssl dgst -sha512 -binary published/windows/Obra-na-Mao-Desktop-Setup-2.1.8.exe | base64 -w0)"
+          grep -F "version: 2.1.8" published/windows/latest.yml
+          grep -F "$actual" published/windows/latest.yml
+      - name: Verify macOS Apple Silicon and Intel downloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p published/macos
+          gh release download desktop-commercial-macos-v2.1.8 --repo "$GITHUB_REPOSITORY" --dir published/macos
+          (cd published/macos && sha256sum -c SHA256SUMS.txt)
+          test -s published/macos/Obra-na-Mao-Desktop-v2.1.8-macOS-Apple-Silicon.dmg
+          test -s published/macos/Obra-na-Mao-Desktop-v2.1.8-macOS-Intel.dmg
+      - name: Verify Server 0.4.1 original RDO release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p published/server-041
+          gh release download obra-na-mao-server-v0.4.1 --repo "$GITHUB_REPOSITORY" --dir published/server-041
+          (cd published/server-041 && sha256sum -c SHA256SUMS.txt)
+      - name: Verify newer Server 0.4.2 GUI-configurator release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p published/server-042
+          gh release download obra-na-mao-server-v0.4.2 --repo "$GITHUB_REPOSITORY" --dir published/server-042
+          (cd published/server-042 && sha256sum -c SHA256SUMS.txt)
