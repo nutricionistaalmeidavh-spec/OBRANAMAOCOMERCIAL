@@ -1,0 +1,61 @@
+name: Verify published Obra na Mao Desktop 2.1.9 artifacts
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-desktop-importador-2.1.9.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-desktop-importador-2.1.9.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify official releases and downloaded SHA256
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Inspect official release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          WIN=desktop-commercial-v2.1.9
+          MAC=desktop-commercial-macos-v2.1.9
+          gh release view "$WIN" --repo "$REPO" --json assets -q '.assets[].name' > windows-assets.txt
+          gh release view "$MAC" --repo "$REPO" --json assets -q '.assets[].name' > mac-assets.txt
+          for asset in \
+            Obra-na-Mao-Desktop-Setup-2.1.9.exe \
+            Obra-na-Mao-Desktop-Setup-2.1.9.exe.blockmap \
+            latest.yml SHA256SUMS.txt; do
+            grep -Fx "$asset" windows-assets.txt
+          done
+          for asset in \
+            Obra-na-Mao-Desktop-v2.1.9-macOS-Apple-Silicon.dmg \
+            Obra-na-Mao-Desktop-v2.1.9-macOS-Intel.dmg \
+            SHA256SUMS.txt; do
+            grep -Fx "$asset" mac-assets.txt
+          done
+      - name: Download updater binaries and check both SHA256 sums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p checked
+          gh release download desktop-commercial-v2.1.9 \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir checked \
+            --pattern 'Obra-na-Mao-Desktop-Setup-2.1.9.*' \
+            --pattern 'SHA256SUMS.txt' \
+            --pattern 'latest.yml'
+          test -s checked/Obra-na-Mao-Desktop-Setup-2.1.9.exe
+          test -s checked/Obra-na-Mao-Desktop-Setup-2.1.9.exe.blockmap
+          grep -F 'version: 2.1.9' checked/latest.yml
+          (cd checked && sha256sum -c SHA256SUMS.txt)
