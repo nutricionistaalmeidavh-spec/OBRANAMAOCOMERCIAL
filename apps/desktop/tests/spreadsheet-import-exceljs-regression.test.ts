@@ -65,9 +65,10 @@ describe('regressão da leitura ExcelJS no importador', () => {
       const importer = loadService('universal-import-service.cjs', 'UniversalImportService', adapter)
       const analyzed = await importer.analyze(file)
       expect(analyzed.sheets).toHaveLength(1)
-      expect(analyzed.sheets[0].name).toBe('Dados')
+      const expectedSheet = extension === 'csv' ? 'sheet1' : 'Dados'
+      expect(analyzed.sheets[0].name).toBe(expectedSheet)
       expect(analyzed.sheets[0].headers).toEqual(['descricao', 'valor'])
-      const options = { sheet: 'Dados', area: 'financeiro', companyId: 7 }
+      const options = { sheet: expectedSheet, area: 'financeiro', companyId: 7 }
       const onlyMapping = await importer.preview(analyzed.token, { ...options, mappingOnly: true })
       expect(onlyMapping.mapping.descricao).toBe('descricao')
       expect(onlyMapping.mapping.valor).toBe('valor')
