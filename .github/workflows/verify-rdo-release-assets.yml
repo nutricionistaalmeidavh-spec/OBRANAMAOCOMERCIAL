@@ -1,0 +1,84 @@
+name: Verify published Obra na Mão 2.1.8 / 0.4.1 release assets
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-rdo-release-assets.yml'
+      - '.github/workflows/publish-rdo-20261116.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-rdo-release-assets.yml'
+      - '.github/workflows/publish-rdo-20261116.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify published files - ${{ matrix.kind }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kind: windows
+            tag: desktop-commercial-v2.1.8
+          - kind: macos
+            tag: desktop-commercial-macos-v2.1.8
+          - kind: server
+            tag: obra-na-mao-server-v0.4.1
+    steps:
+      - name: Download published immutable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TAG: ${{ matrix.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p verified
+          gh release view "$TAG" --repo "$REPOSITORY" --json tagName,isDraft,isPrerelease,assets
+          gh release download "$TAG" --repo "$REPOSITORY" --dir verified
+      - name: Verify all published SHA256 checksums
+        working-directory: verified
+        run: |
+          set -euo pipefail
+          test -s SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+      - name: Validate platform-specific installer artifacts
+        env:
+          KIND: ${{ matrix.kind }}
+        working-directory: verified
+        run: |
+          set -euo pipefail
+          case "$KIND" in
+            windows)
+              test -s Obra-na-Mao-Desktop-Setup-2.1.8.exe
+              test -s Obra-na-Mao-Desktop-Setup-2.1.8.exe.blockmap
+              test -s latest.yml
+              grep -F 'version: 2.1.8' latest.yml
+              node - <<'NODE'
+          const fs=require('node:fs'),crypto=require('node:crypto')
+          const filename='Obra-na-Mao-Desktop-Setup-2.1.8.exe'
+          const manifest=fs.readFileSync('latest.yml','utf8')
+          const sha512=crypto.createHash('sha512').update(fs.readFileSync(filename)).digest('base64')
+          if(!manifest.includes(sha512)||!manifest.includes(filename))throw Error('Windows updater SHA512 or filename mismatch')
+          NODE
+              ;;
+            macos)
+              test -s Obra-na-Mao-Desktop-v2.1.8-macOS-Apple-Silicon.dmg
+              test -s Obra-na-Mao-Desktop-v2.1.8-macOS-Intel.dmg
+              ;;
+            server)
+              test -s Obra-na-Mao-Server-Setup-0.4.1-x64.exe
+              test -s Obra-na-Mao-Server-0.4.1-linux-x64.tar.gz
+              tar -tzf Obra-na-Mao-Server-0.4.1-linux-x64.tar.gz | grep -F 'platform/install.sh'
+              ;;
+            *)
+              echo "::error::Unknown release platform $KIND"
+              exit 1
+              ;;
+          esac
