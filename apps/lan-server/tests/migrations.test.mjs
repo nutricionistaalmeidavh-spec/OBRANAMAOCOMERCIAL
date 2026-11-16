@@ -18,7 +18,7 @@ const migratedTables = [
   'notas_recebidas', 'nota_recebida_itens', 'importacoes', 'importacao_linhas', 'rdo_material_linhas', 'rdo_material_revisoes', 'rdo_material_requisicoes', 'rdo_material_efeitos'
 ]
 
-test('upgrade 28 preserva lotes e mappings anteriores e admite Documentos', () => {
+test('upgrade 30 preserva lotes e mappings anteriores e inclui notas recebidas', () => {
   const repository=new LanRepository({filename:':memory:'})
   const db=repository.connection()
   try {
