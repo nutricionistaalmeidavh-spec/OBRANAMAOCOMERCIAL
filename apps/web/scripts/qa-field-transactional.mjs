@@ -45,6 +45,17 @@ try{
       if(pathname==='/api/bootstrap')return json({needsClaim:false,isOwner:true,role:'admin',platformRole:'superadmin',projectInitialized:true,user:{userId:'qa-owner',email:'qa.owner@example.test',name:'QA Owner'},company:{id:'company-qa',name:'Empresa QA'},project:{id:'project-qa',name:'Obra QA Integrada',customer:'Cliente QA'},membership:{companyId:'company-qa',projectId:'project-qa',email:'qa.owner@example.test',role:'admin'},access:{licenseId:'owner',modules:['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'],channels:['desktop','mobile'],status:'active'}});
       if(pathname==='/api/project'&&request.method()==='GET')return json({state});
       if(pathname==='/api/project/state'&&request.method()==='PUT'){state=structuredClone(body.state);return json({ok:true,state});}
+      if(pathname==='/api/field/rdo/catalog')return json({catalog:{
+        schemaVersion:1,workId:8,version:'qa-stock-1',updatedAt:'2026-11-15T13:00:00Z',
+        materials:[{id:'mat_aaaaaaaaaaaaaaaaaaaaaaaa',descricao:'Tubo PVC 25 mm',unidade:'m',saldo:40}],
+        fronts:[{id:1,nome:'Frente hidráulica'}],services:[{id:3,nome:'Água fria',frente_id:1}]
+      }});
+      if(pathname==='/api/field/rdo/receipts'){
+        const day=state.days[today],applied=day?.rdoStatus==='ready_for_desktop'&&day?.rdoClosedFingerprint;
+        return json({receipts:applied&&body.confirm===true?{[today]:{status:'applied',fingerprint:day.rdoClosedFingerprint,localRdoId:35,materialRevision:1}}:{}})
+      }
+      if(pathname==='/api/field/rdo/photos/upload'&&request.method()==='POST')
+        return json({photo:{id:body.clientId,date:body.date,contentType:'image/jpeg',sizeBytes:450,sha256:'a'.repeat(64),uploadedAt:'2026-11-15T13:00:00Z'}});
       if(pathname==='/api/mobile/summary')return json({summary:{generatedAt:new Date().toISOString(),scope:{period:'Histórico da obra · caixa'},modules:{rdo:{open:1},documents:{expiring30d:0},dre:{competenceRevenue:12000000,competenceExpense:8500000,competenceResult:3500000,revenue:10500000,expense:7200000,result:3300000}}}});
       if(pathname==='/api/mobile/sync/conflicts')return json({conflicts:[]});
       if(pathname==='/api/attendance'&&request.method()==='POST'){
@@ -71,7 +82,30 @@ try{
 
     await page.locator('[data-screen="team"]').first().click();await page.locator('h2').filter({hasText:'Equipe'}).first().waitFor({state:'visible'});const attendanceSync=nextSnapshotSync();await page.locator('.att[data-id="emp-1"]').click();await page.locator('.att[data-id="emp-1"]').filter({hasText:'Presente'}).waitFor({state:'visible'});await waitForSnapshotSync('authoritative attendance reconciliation',attendanceSync);await shot('05-team-attendance');
 
-    await page.locator('[data-screen="today"]').first().click();await page.locator('#reviewRdo').click();await page.locator('#prepareRdo').waitFor({state:'visible'});await shot('06-rdo-review');await page.locator('#prepareRdo').click();
+    await page.locator('[data-screen="today"]').first().click();
+    await page.locator('#openRdoMaterials').click();await page.locator('#rdoMaterialSelect').selectOption('mat_aaaaaaaaaaaaaaaaaaaaaaaa');
+    await page.locator('#rdoMaterialFront').selectOption('1');
+    await page.locator('#rdoMaterialService').selectOption('afaq');
+    await page.locator('#rdoMaterialQuantity').fill('2,5');
+    await page.locator('#addRdoMaterial').click();await page.locator('.remove-material').waitFor({state:'visible'});
+    await shot('06-material-canonical');
+    await page.locator('#confirmRdoMaterials').click();
+    await page.locator('#confirmRdoOccurrences').click();
+    await page.locator('#openRdoPhotos').click();
+    const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==','base64');
+    await page.locator('#rdoPhotoInput').setInputFiles({name:'obra-evidencia.png',mimeType:'image/png',buffer:png});
+    await page.locator('.show-rdo-photo').waitFor({state:'visible'});
+    await shot('07-rdo-photo-uploaded');
+    await page.locator('#confirmRdoPhotos').click();
+    await page.locator('#reviewRdo').click();await page.locator('#prepareRdo').waitFor({state:'visible'});
+    await shot('08-rdo-five-step-review');const rdoSaved=nextSnapshotSync();await page.locator('#prepareRdo').click();await waitForSnapshotSync('RDO closure with photos and materials',rdoSaved);
+    await page.getByText('Pendente de integração').first().waitFor({state:'visible'});
+    const result=state.days[today];
+    if(result?.materials?.[0]?.material_id!=='mat_aaaaaaaaaaaaaaaaaaaaaaaa'||result.materials[0].frente_id!==1||result.materials[0].servico!=='afaq')
+      throw new Error('Field material did not persist with canonical stock, front, and service');
+    if(result?.rdoStatus!=='ready_for_desktop'||result?.photos?.length!==1)
+      throw new Error('RDO was not prepared with recorded photo evidence');
+    await shot('09-rdo-pending-not-confirmed');
 
     await page.locator('[data-screen="issues"]').first().click();await page.locator('#newIssue').click();await page.locator('#itype').selectOption('blocked');await page.locator('#ititle').fill('Material pendente QA');await page.locator('#ireason').fill('Aguardando material de teste');const issueSync=nextSnapshotSync();await page.locator('#saveIssue').click();await page.getByText('Material pendente QA').waitFor({state:'visible'});await waitForSnapshotSync('issue creation',issueSync);await shot('07-issue-created');
 
@@ -81,6 +115,8 @@ try{
 
     await page.goto(`${base}/gestao.html#gestao/dre`,{waitUntil:'domcontentloaded'});await page.locator('#management-dre').waitFor({state:'visible'});await page.getByText('Despesas · Competência',{exact:true}).waitFor({state:'visible'});await page.getByText('Despesas · Caixa realizado',{exact:true}).waitFor({state:'visible'});await shot('10-management-dre-basis');
 
+    const rdoRequests=requests.filter(item=>item.pathname==='/api/field/rdo/photos/upload');
+    if(rdoRequests.length!==1||!rdoRequests[0].body.clientId)throw new Error('Photo upload was not proven via authorized backend route');
     const required=[['PUT','/api/project/state'],['POST','/api/attendance'],['POST','/api/members'],['POST','/api/mobile/bridge/update']];for(const [method,pathname] of required)if(!requests.some(item=>item.method===method&&item.pathname===pathname))throw new Error(`${viewport.name}: missing ${method} ${pathname}`);
     const snapshotWrites=requests.filter(item=>item.method==='PUT'&&item.pathname==='/api/project/state');if(snapshotWrites.length<5)throw new Error(`${viewport.name}: expected at least 5 snapshot autosync writes, received ${snapshotWrites.length}`);
     if(requests.some(item=>item.pathname.startsWith('/api/owner/licenses')||item.pathname.startsWith('/api/owner/companies')))throw new Error(`${viewport.name}: field QA must not mutate commercial licensing`);

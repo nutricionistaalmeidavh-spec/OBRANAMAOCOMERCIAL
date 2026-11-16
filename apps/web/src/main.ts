@@ -34,6 +34,14 @@ declare global {
     multiuserInjectAdminSettings?: ()=>void;
     multiuserOpenUsers?: ()=>void;
     multiuserReloadProject?: ()=>Promise<ProjectState>;
+    multiuserLoadDay?: (date:string)=>Promise<Record<string,unknown>|null>;
+    multiuserRefreshReceipts?: ()=>Promise<Record<string,unknown>>;
+    mobileRdoReceipts?: Record<string,any>;
+    mobileRdoCatalog?: {schemaVersion:number;workId:number;version:string;materials:Array<any>;fronts:Array<any>;services:Array<any>}|null;
+    mobileRdoUploadPhoto?: (data:{date:string;mimeType:string;data:string;clientId?:string})=>Promise<any>;
+    mobileRdoViewPhoto?: (id:string)=>Promise<any>;
+    mobileRdoDeletePhoto?: (date:string,id:string)=>Promise<any>;
+    multiuserRefreshCatalog?: ()=>Promise<any>;
     mobileBridgeUpdate?: (payload:Record<string,unknown>)=>Promise<any>;
     mobileResolveConflict?: (conflictId:string,resolution:'accept_desktop'|'keep_mobile')=>Promise<any>;
     mobileReadOnlySummary?: any;
@@ -62,7 +70,7 @@ type AppMode='auto'|'obra'|'gestao';
 const routeMode=():AppMode=>location.hash.startsWith('#gestao')?'gestao':location.hash.startsWith('#obra')?'obra':'auto';
 function setProjectIdentity(b?:Bootstrap){const title=document.querySelector('.top h1') as HTMLElement|null;if(title)title.textContent=b?.project?.name||'Obra';document.title=b?.project?.name?`FluxoDRE Campo · ${b.project.name}`:'FluxoDRE Campo'}
 
-function openDb():Promise<IDBDatabase>{return new Promise((ok,no)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('kv'))r.result.createObjectStore('kv')};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
+function openDb():Promise<IDBDatabase>{return new Promise((ok,no)=>{const r=indexedDB.open(DB,2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('kv'))r.result.createObjectStore('kv');if(!r.result.objectStoreNames.contains('rdo_photo_queue'))r.result.createObjectStore('rdo_photo_queue')};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
 async function readLocalState():Promise<ProjectState|null>{try{const db=await openDb(),tx=db.transaction('kv','readonly'),r=tx.objectStore('kv').get('state');return await new Promise((ok,no)=>{r.onsuccess=()=>ok((r.result as ProjectState)||null);r.onerror=()=>no(r.error)})}catch{return null}}
 async function writeLocalState(value:ProjectState){try{const db=await openDb(),tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(structuredClone(value),'state')}catch{localStorage.setItem(DB,JSON.stringify(value))}}
 
@@ -83,6 +91,11 @@ const PHONE_SESSION='obn-edu-session';
 const phoneToken=()=>localStorage.getItem(PHONE_SESSION)||'';
 const phoneMode=()=>!auth.isSignedIn()&&!!phoneToken();
 async function fieldProject(){return phoneMode()?api.post('/api/phone/project',{token:phoneToken(),date:localISODate()}):api.get('/api/project',{date:localISODate()})}
+async function fieldRdoReceipts(){return phoneMode()?api.post('/api/phone/field/rdo/receipts',{token:phoneToken()}):api.get('/api/field/rdo/receipts')}
+async function fieldRdoCatalog(){return phoneMode()?api.post('/api/phone/field/rdo/catalog',{token:phoneToken()}):api.get('/api/field/rdo/catalog')}
+async function fieldRdoPhotoUpload(value:{date:string;mimeType:string;data:string;clientId?:string}){return phoneMode()?api.post('/api/phone/field/rdo/photos/upload',{token:phoneToken(),...value}):api.post('/api/field/rdo/photos/upload',value)}
+async function fieldRdoPhotoView(id:string){return phoneMode()?api.post('/api/phone/field/rdo/photos/view',{token:phoneToken(),id}):api.get('/api/field/rdo/photos',{id})}
+async function fieldRdoPhotoDelete(date:string,id:string){return phoneMode()?api.post('/api/phone/field/rdo/photos/delete',{token:phoneToken(),date,id}):api.post('/api/field/rdo/photos/delete',{date,id})}
 async function fieldAttendance(employeeId:string,status:string){return phoneMode()?api.post('/api/phone/attendance',{token:phoneToken(),date:localISODate(),employeeId,status}):api.post('/api/attendance',{date:localISODate(),employeeId,status})}
 async function fieldBridgeUpdate(payload:Record<string,unknown>){return phoneMode()?api.post('/api/phone/mobile/bridge/update',{token:phoneToken(),...payload}):api.post('/api/mobile/bridge/update',payload)}
 async function signOutCurrent(){fieldSync?.dispose();fieldSync=undefined;roleLifecycleUnsubscribe?.();roleLifecycleUnsubscribe=null;window.clearTimeout(syncTimer);localStorage.removeItem(PHONE_SESSION);if(auth.isSignedIn())await auth.signOut()}
@@ -146,19 +159,31 @@ function configureSharedContext(role:Role,b:Bootstrap,state?:ProjectState){
   fieldSync?.dispose();window.clearTimeout(syncTimer);
   window.multiuserContext={role,bootstrap:b,projectState:state,online:navigator.onLine,pendingSync:0};
   const key=syncScope(b);
-  fieldSync=role==='admin'&&key?createFieldSync({key,storage:localStorage,baseline:state,
+  fieldSync=(role==='admin'||role==='foreman')&&key?createFieldSync({key,storage:localStorage,baseline:state,
     readRemote:async()=>((await fieldProject()).data as {state:ProjectState}).state,
-    send:next=>api.put('/api/project/state',{state:next}),
+    send:next=>phoneMode()?api.post('/api/phone/project/state',{token:phoneToken(),state:next}):api.put('/api/project/state',{state:next}),
     status:value=>{
       const ctx=window.multiuserContext;if(ctx){ctx.pendingSync=value==='idle'?0:1;ctx.online=navigator.onLine;if(value==='idle')ctx.lastSyncedAt=new Date().toISOString()}
       setHeader(role,navigator.onLine,value==='saving'?'syncing':value==='idle'?'idle':'pending');
       let status=document.getElementById('fieldSyncStatus');if(!status){status=document.createElement('div');status.id='fieldSyncStatus';status.className='field-sync-status';status.setAttribute('role','status');document.querySelector('.top')?.after(status)}
-      status.textContent=value==='conflict'?'Há um conflito de edição. Sua versão continua preservada neste aparelho até você revisar.':value==='pending'?'Salvo neste aparelho · aguardando conexão para enviar.':value==='saving'?'Salvando alterações…':'Salvo na obra · o Desktop receberá as alterações automaticamente.';
+      status.textContent=value==='conflict'?'Há um conflito de edição. O rascunho permanece neste aparelho para revisão.':value==='pending'?'Salvo neste aparelho · aguardando conexão para enviar à obra online.':value==='saving'?'Enviando alterações para a Web…':'Salvo na obra online. A integração com o Desktop é confirmada separadamente.';
       if(value==='pending'){const retry=document.createElement('button');retry.type='button';retry.textContent='Tentar enviar';retry.onclick=()=>void fieldSync?.flush();status.append(retry)}
       if(value==='conflict'){const download=document.createElement('button');download.type='button';download.textContent='Baixar meu rascunho';download.onclick=()=>{const blob=new Blob([JSON.stringify(fieldSync?.read(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='rascunho-obra.json';a.click();URL.revokeObjectURL(url)};status.append(download)}
     }}):undefined;
-  window.multiuserSync=async(next)=>{if(role!=='admin')return;if(!fieldSync)throw new Error('Não foi possível identificar a empresa e a obra para salvar com segurança.');fieldSync.save(next);window.clearTimeout(syncTimer);syncTimer=window.setTimeout(()=>void fieldSync?.flush(),650)};
-  window.multiuserAttendance=async(employeeId,status)=>{const res=await fieldAttendance(employeeId,status);return res.data as {day:Record<string,unknown>;employee:Record<string,unknown>}};window.multiuserReloadProject=async()=>{const res=await fieldProject(),next=(res.data as {state:ProjectState}).state;await writeLocalState(next);if(window.multiuserContext)window.multiuserContext.projectState=next;return next};window.mobileBridgeUpdate=async(payload)=>{const res=await fieldBridgeUpdate(payload as Record<string,unknown>);return res.data};window.mobileResolveConflict=async(conflictId,resolution)=>{const res=await api.post('/api/mobile/sync/conflicts/resolve',{conflictId,resolution});try{window.mobileSyncConflicts=((await api.get('/api/mobile/sync/conflicts')).data as {conflicts:any[]}).conflicts||[]}catch{}return res.data};window.mobileManagementHtml=(summary,access)=>managementHtml(summary,access);window.multiuserInjectAdminSettings=injectAdminSettings;window.multiuserOpenUsers=openUsers}
+  window.multiuserSync=async(next)=>{if(!['admin','foreman'].includes(role))throw new Error('Seu perfil não permite alterar o diário.');if(!fieldSync)throw new Error('Não foi possível identificar a empresa e a obra para salvar com segurança.');fieldSync.save(next);window.clearTimeout(syncTimer);syncTimer=window.setTimeout(()=>void fieldSync?.flush(),650)};
+  window.multiuserLoadDay=async(date)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw new Error('Data inválida.');const res=phoneMode()?await api.post('/api/phone/project/day',{token:phoneToken(),date}):await api.get('/api/project/day',{date});return ((res.data as {day?:Record<string,unknown>|null}).day||null)};window.multiuserAttendance=async(employeeId,status)=>{const res=await fieldAttendance(employeeId,status);return res.data as {day:Record<string,unknown>;employee:Record<string,unknown>}};window.multiuserReloadProject=async()=>{const res=await fieldProject(),next=(res.data as {state:ProjectState}).state;await writeLocalState(next);if(window.multiuserContext)window.multiuserContext.projectState=next;return next};window.mobileBridgeUpdate=async(payload)=>{const res=await fieldBridgeUpdate(payload as Record<string,unknown>);return res.data};window.multiuserRefreshReceipts=async()=>{const result=await fieldRdoReceipts();const receipts=(result.data as {receipts?:Record<string,unknown>}).receipts||{};window.mobileRdoReceipts=receipts;return receipts};
+  window.mobileRdoUploadPhoto=async(payload)=>((await fieldRdoPhotoUpload(payload)).data as {photo:any}).photo;
+  window.mobileRdoViewPhoto=async(id)=>((await fieldRdoPhotoView(id)).data as {photo:any}).photo;
+  window.mobileRdoDeletePhoto=async(date,id)=>((await fieldRdoPhotoDelete(date,id)).data as {ok:boolean});
+  window.multiuserRefreshCatalog=async()=>{
+    const projectId=String(window.multiuserContext?.bootstrap?.membership?.projectId||window.multiuserContext?.bootstrap?.project?.id||'');
+    if(!projectId)throw new Error('Obra não identificada para atualizar catálogo.')
+    const cacheKey='obra-rdo-catalog:'+projectId;
+    const result=await fieldRdoCatalog(),catalog=(result.data as {catalog?:any}).catalog||null;
+    window.mobileRdoCatalog=catalog;
+    if(catalog)localStorage.setItem(cacheKey,JSON.stringify(catalog));
+    return catalog;
+  };window.mobileResolveConflict=async(conflictId,resolution)=>{const res=await api.post('/api/mobile/sync/conflicts/resolve',{conflictId,resolution});try{window.mobileSyncConflicts=((await api.get('/api/mobile/sync/conflicts')).data as {conflicts:any[]}).conflicts||[]}catch{}return res.data};window.mobileManagementHtml=(summary,access)=>managementHtml(summary,access);window.multiuserInjectAdminSettings=injectAdminSettings;window.multiuserOpenUsers=openUsers}
 
 function activateRoleUI(role:Role){
   const apply=()=>{
@@ -167,7 +192,7 @@ function activateRoleUI(role:Role){
       if(h)window.multiuserInjectAdminSettings?.();
       return;
     }
-    document.querySelectorAll('[data-screen="settings"],[data-screen="more"],[data-screen="issues"],[data-screen="management"],#newPlan,#newSession,[data-field-action],#saveDayNote,.plan-delete,.plan-start,#compensate,.session-actions').forEach(el=>(el as HTMLElement).style.display='none');
+    document.querySelectorAll('[data-screen="settings"],[data-screen="management"],#governancePermissionsBtn').forEach(el=>(el as HTMLElement).style.display='none');
     document.querySelectorAll('.front-select').forEach(el=>{(el as HTMLSelectElement).disabled=true});
     const note=document.getElementById('dayNote') as HTMLTextAreaElement|null;if(note)note.disabled=true;
     const dlg=document.getElementById('sheet');if(dlg){dlg.querySelectorAll('input[type="checkbox"]').forEach(el=>{(el as HTMLInputElement).disabled=true});const complete=dlg.querySelector('#complete') as HTMLElement|null;if(complete)complete.style.display='none'}
@@ -176,7 +201,12 @@ function activateRoleUI(role:Role){
   document.addEventListener('click',e=>{if(role==='admin')return;const t=e.target as Element|null;if(!t)return;const forbidden=t.closest('[data-screen="settings"],[data-screen="more"],[data-screen="issues"],[data-screen="management"],#newPlan,#newSession,[data-field-action],.plan-delete,.plan-start,#compensate,.session-actions');if(forbidden){e.preventDefault();e.stopImmediatePropagation();showStandalone('Acesso não permitido para este perfil.')}},true);
 }
 
-async function loadSharedApp(b:Bootstrap){document.body.classList.add('field-shell-active');const role=b.role as Role;const response=await fieldProject();const remote=(response.data as {state:ProjectState}).state;configureSharedContext(role,b,remote);const pending=fieldSync?.read();await writeLocalState((pending?.state||remote) as ProjectState);if(pending)void fieldSync?.flush();window.mobileReadOnlySummary=null;window.mobileSyncConflicts=[];if(role==='admin'){try{window.mobileReadOnlySummary=((await api.get('/api/mobile/summary')).data as {summary:any}).summary}catch{}try{window.mobileSyncConflicts=((await api.get('/api/mobile/sync/conflicts')).data as {conflicts:any[]}).conflicts||[]}catch{}}setHeader(role,true,pending?'pending':'idle');nav().style.display='grid';activateRoleUI(role);const fieldModule='/field.js?v=20260903-premium-1';await import(/* @vite-ignore */ fieldModule)}
+async function loadSharedApp(b:Bootstrap){document.body.classList.add('field-shell-active');const role=b.role as Role;const response=await fieldProject();const remote=(response.data as {state:ProjectState}).state;configureSharedContext(role,b,remote);const pending=fieldSync?.read();await writeLocalState((pending?.state||remote) as ProjectState);if(pending)void fieldSync?.flush();window.mobileReadOnlySummary=null;window.mobileSyncConflicts=[];window.mobileRdoReceipts={};
+  const catalogProject=String(b.membership?.projectId||b.project?.id||'');
+  window.mobileRdoCatalog=null;
+  try{if(catalogProject)window.mobileRdoCatalog=JSON.parse(localStorage.getItem('obra-rdo-catalog:'+catalogProject)||'null')}catch{}
+  try{await window.multiuserRefreshReceipts?.()}catch{}
+  try{await window.multiuserRefreshCatalog?.()}catch{}if(role==='admin'){try{window.mobileReadOnlySummary=((await api.get('/api/mobile/summary')).data as {summary:any}).summary}catch{}try{window.mobileSyncConflicts=((await api.get('/api/mobile/sync/conflicts')).data as {conflicts:any[]}).conflicts||[]}catch{}}setHeader(role,true,pending?'pending':'idle');nav().style.display='grid';activateRoleUI(role);const fieldModule='/field.js?v=20260903-premium-1';await import(/* @vite-ignore */ fieldModule)}
 async function loadManagementOnly(b:Bootstrap){document.body.classList.add('field-shell-active');nav().style.display='none';if(b.role!=='admin'){setHeader(b.role,true);(root().innerHTML=messageCard('Sem operação mobile','Seu perfil não possui Obra360 e os painéis administrativos móveis são exclusivos do Admin.'), document.dispatchEvent(new CustomEvent('field:rendered')));return}setHeader('admin',true);try{const data=(await api.get('/api/mobile/summary')).data as {summary:any};renderManagementDashboard(root(),data.summary||{},b.access||{},'Gestão')}catch(e){(root().innerHTML=messageCard('Gestão mobile',apiError(e)), document.dispatchEvent(new CustomEvent('field:rendered')))}}
 
 function injectAdminSettings(){if(window.multiuserContext?.role!=='admin')return;const content=root();if(document.getElementById('multiuserAdminCard'))return;const section=document.createElement('section'),owner=activeBootstrap?.isOwner===true;section.id='multiuserAdminCard';section.className='card settings-card';section.innerHTML=`<div class="section-head"><div><strong>Usuários</strong><p>Administre quem acessa esta obra e o que cada perfil pode fazer.</p></div></div><button id="openUsersBtn" class="btn">Gerenciar usuários</button><div class="meta">Admin: tudo · Encarregado: operação e presença · Funcionário: somente suas tarefas.</div>${owner?'<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:16px"><strong>Comercial FLUXODRE</strong><div class="meta">Área exclusiva do proprietário para vendas e licenças.</div><button id="openOwnerPortalBtn" class="linkbtn" style="width:100%;margin-top:10px">Central Artisys · Empresas clientes</button></div>':''}`;content.appendChild(section);section.querySelector('#openUsersBtn')?.addEventListener('click',openUsers);section.querySelector('#openOwnerPortalBtn')?.addEventListener('click',openOwnerPortal)}

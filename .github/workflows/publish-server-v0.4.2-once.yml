@@ -1,25 +1,25 @@
-name: Publish verified Obra na Mão Server v0.4.1 once
+name: Publish verified Obra na Mão Server v0.4.2 once
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - '.github/workflows/publish-server-v0.4.1-once.yml'
+      - '.github/workflows/publish-server-v0.4.2-once.yml'
   push:
     branches: [main]
     paths:
-      - '.github/workflows/publish-server-v0.4.1-once.yml'
+      - '.github/workflows/publish-server-v0.4.2-once.yml'
 
 permissions:
   contents: read
   actions: read
 
 concurrency:
-  group: obra-na-mao-server-v0.4.1-publish-once
+  group: obra-na-mao-server-v0.4.2-publish-once
   cancel-in-progress: false
 
 env:
-  VERSION: '0.4.1'
+  VERSION: '0.4.2'
 
 jobs:
   validate:
@@ -118,8 +118,8 @@ jobs:
           Write-Host "Server installation and reinstall passed: $($first.identity.serverId)"
       - uses: actions/upload-artifact@v4
         with:
-          name: server-release-0.4.1-windows
-          path: apps/lan-server/dist/installer/Obra-na-Mao-Server-Setup-0.4.1-x64.exe
+          name: server-release-0.4.2-windows
+          path: apps/lan-server/dist/installer/Obra-na-Mao-Server-Setup-0.4.2-x64.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -157,15 +157,15 @@ jobs:
           echo "Linux install/reinstall passed: $id_before"
       - uses: actions/upload-artifact@v4
         with:
-          name: server-release-0.4.1-linux
-          path: apps/lan-server/dist/Obra-na-Mao-Server-0.4.1-linux-x64.tar.gz
+          name: server-release-0.4.2-linux
+          path: apps/lan-server/dist/Obra-na-Mao-Server-0.4.2-linux-x64.tar.gz
           if-no-files-found: error
           retention-days: 30
 
   publish:
-    name: Publish and verify Server v0.4.1 release once
+    name: Publish and verify Server v0.4.2 release once
     needs: [validate, windows, linux]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-server-v0.4.1]')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-server-v0.4.2]')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -177,11 +177,11 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
-          name: server-release-0.4.1-windows
+          name: server-release-0.4.2-windows
           path: artifacts/windows
       - uses: actions/download-artifact@v4
         with:
-          name: server-release-0.4.1-linux
+          name: server-release-0.4.2-linux
           path: artifacts/linux
       - name: Verify installers and calculate checksums
         shell: bash

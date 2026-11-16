@@ -107,4 +107,4 @@ fi
 
 printf 'Obra na Mão Server instalado e ready em %s:%s.\n' "$READY_HOST" "$PORT"
 
-printf '%s\n' 'Configure sem editar server.env: sudo /opt/obra-na-mao/server/platform/configure-server.sh'
+printf '%s\n' 'Configurar servidor: sudo /opt/obra-na-mao/server/platform/configure-server.sh'

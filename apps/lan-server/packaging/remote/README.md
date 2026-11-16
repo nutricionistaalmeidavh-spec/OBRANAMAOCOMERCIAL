@@ -34,10 +34,10 @@ O Obra na Mão bloqueia `remote + HTTP` em endereço público. HTTP remoto só �
 - Nenhum provedor pago é obrigatório.
 
 
-## Configuração pela interface local (v0.4.1)
+## Configuração pela interface local (v0.4.2)
 
 Depois de instalar o Server, use **Configurar servidor** no menu Iniciar (Windows) ou
-execute \`sudo /opt/obra-na-mao/server/platform/configure-server.sh\` (Linux).
+execute `sudo /opt/obra-na-mao/server/platform/configure-server.sh` (Linux).
 O configurador inicia um painel temporário em **127.0.0.1:4734** por até 30 minutos,
 protegido por token. Nunca exponha esta porta à internet.
 
@@ -47,9 +47,9 @@ reinicia o serviço, verifica a saúde e restaura a configuração anterior se h
 Também verifica a URL HTTPS e gera o código inicial de vinculação para o Desktop.
 
 Em Linux administrado por SSH, crie um túnel local:
-\`ssh -L 4734:127.0.0.1:4734 usuario@servidor\`.
+`ssh -L 4734:127.0.0.1:4734 usuario@servidor`.
 Abra no navegador o endereço completo com token mostrado no terminal do servidor.
 
 A configuração de DNS, VPN, proxy, firewall e certificados permanece sob responsabilidade
 da infraestrutura da empresa; o instalador não cria nem configura esses serviços.
-Não é necessário editar manualmente o \`server.env\`.
+Não é necessário editar manualmente o `server.env`.

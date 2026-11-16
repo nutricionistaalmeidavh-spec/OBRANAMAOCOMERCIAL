@@ -23,7 +23,7 @@ export function createFieldSync(options: { key: string; storage: Storage; baseli
     const merged: Record<string, unknown> = {};
     const keys = new Set([...Object.keys(baseline), ...Object.keys(remote), ...Object.keys(draft)]);
     for (const key of keys) {
-      const next = mergeThreeWay(baseline[key], remote[key], draft[key]);
+      const next = key === '_remote' ? { ok: true as const, value: remote[key] } : mergeThreeWay(baseline[key], remote[key], draft[key]);
       if (!next.ok) return { ok: false };
       if (next.value !== undefined) merged[key] = next.value;
     }
@@ -47,9 +47,14 @@ export function createFieldSync(options: { key: string; storage: Storage; baseli
           if (disposed) return;
           const merged = mergeThreeWay(draft.base, remote, draft.state);
           if (!merged.ok) { options.status('conflict'); return; }
-          if (!same(remote, merged.value)) await options.send(merged.value);
+          // The transport CAS revision belongs exclusively to the server.
+          // The early fast-path of mergeThreeWay (remote===baseline) may return
+          // the draft directly, therefore normalize _remote even on that path.
+          const next = plainObject(merged.value) && plainObject(remote) && '_remote' in remote
+            ? { ...merged.value, _remote: remote._remote } : merged.value;
+          if (!same(remote, next)) await options.send(next);
           if (disposed) return;
-          base = same(remote, merged.value) ? remote : await options.readRemote();
+          base = same(remote, next) ? remote : await options.readRemote();
           if (disposed) return;
           const latest = read();
           if (latest && !same(latest, draft)) {

@@ -354,6 +354,26 @@ class OnlineService {
     return this.state()
   }
 
+  async fieldRdoCatalogPublish(catalog) {
+    return this.request('/api/desktop/field/rdo/catalog/publish', {
+      deviceToken:this.requireToken(),catalog
+    })
+  }
+
+  async fieldRdoPending() {
+    return this.request('/api/desktop/field/rdo/pending', { deviceToken: this.requireToken() })
+  }
+
+  async fieldRdoPhoto({date,id,sha256}) {
+    return this.request('/api/desktop/field/rdo/photo', {
+      deviceToken:this.requireToken(),date,id,sha256
+    },30000)
+  }
+
+  async fieldRdoAck(input) {
+    return this.request('/api/desktop/field/rdo/ack', { deviceToken: this.requireToken(), ...input })
+  }
+
   async claimRemoteSyncOwner(serverId) {
     const value = String(serverId || '').trim()
     if (!value) throw new Error('Identidade do servidor remoto não está disponível.')

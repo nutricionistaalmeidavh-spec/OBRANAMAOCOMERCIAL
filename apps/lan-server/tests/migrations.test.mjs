@@ -15,7 +15,7 @@ const migratedTables = [
   'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis',
   'module_migrations', 'module_migration_records', 'record_revisions',
   'fontes_documentais', 'arquivos', 'documentos', 'medicao_anexos', 'contrato_anexos', 'pedido_compra_anexos', 'documentos_editaveis', 'modelos_documento_rh', 'empresa_documentos_admissionais', 'cargo_epi_kits',
-  'importacoes', 'importacao_linhas'
+  'importacoes', 'importacao_linhas', 'rdo_material_linhas', 'rdo_material_revisoes', 'rdo_material_requisicoes', 'rdo_material_efeitos'
 ]
 
 test('upgrade 28 preserva lotes e mappings anteriores e admite Documentos', () => {
@@ -26,7 +26,7 @@ test('upgrade 28 preserva lotes e mappings anteriores e admite Documentos', () =
     db.exec('PRAGMA user_version=27')
     db.prepare('INSERT INTO module_migrations(migration_id,module,source_fingerprint,expected_counts_json,status,created_at) VALUES(?,?,?,?,?,?)').run('rh-original','rh','source','{}','committed','2026-10-06')
     db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_at) VALUES(?,?,?,?,?,?)').run('rh-original','funcionarios','100','funcionarios',10,'2026-10-06')
-    assert.deepEqual(applyLanMigrations(db,migrationsDir).applied,[28])
+    assert.deepEqual(applyLanMigrations(db,migrationsDir).applied,[28,29])
     assert.equal(db.prepare('SELECT status FROM module_migrations WHERE migration_id=?').get('rh-original').status,'committed')
     assert.equal(db.prepare('SELECT target_id FROM module_migration_records WHERE migration_id=?').get('rh-original').target_id,10)
     db.prepare('INSERT INTO module_migrations(migration_id,module,source_fingerprint,expected_counts_json,created_at) VALUES(?,?,?,?,?)').run('docs','documents','source','{}','2026-10-06')
@@ -43,11 +43,11 @@ test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', 
   const first = applyLanMigrations(repository.connection(), migrationsDir)
   const second = applyLanMigrations(repository.connection(), migrationsDir)
 
-  assert.equal(first.version, 28)
+  assert.equal(first.version, 29)
   assert.equal(second.version, first.version)
-  assert.deepEqual(first.applied, [2, 3, 4, 5, 6, 20, 21, 22, 23, 24, 25, 26, 27, 28])
+  assert.deepEqual(first.applied, [2, 3, 4, 5, 6, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29])
   assert.deepEqual(second.applied, [])
-  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 28)
+  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 29)
   for (const table of migratedTables) {
     assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name=?").get(table).n, 1)
   }
