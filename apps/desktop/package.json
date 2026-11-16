@@ -1,6 +1,6 @@
 {
   "name": "obra-na-mao-desktop-commercial",
-  "version": "2.1.8",
+  "version": "2.1.9",
   "description": "Obra na Mão Desktop — edição comercial independente",
   "author": "Fluxo DRE",
   "main": "electron/updater-main.cjs",
@@ -18,13 +18,37 @@
     "appId": "br.com.obranamao.comercial.desktop",
     "productName": "Obra na Mão Desktop",
     "npmRebuild": false,
-    "directories": {"output": "release"},
-    "files": ["dist/**/*","electron/**/*","database/**/*","package.json"],
-    "extraResources": [
-      {"from":"../lan-server","to":"lan-server","filter":["src/**/*","migrations/**/*","package.json"]},
-      {"from":"../../packages/domain-core","to":"domain-core","filter":["index.cjs","package.json"]}
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "database/**/*",
+      "package.json"
     ],
-    "asarUnpack": ["node_modules/better-sqlite3/**/*"],
+    "extraResources": [
+      {
+        "from": "../lan-server",
+        "to": "lan-server",
+        "filter": [
+          "src/**/*",
+          "migrations/**/*",
+          "package.json"
+        ]
+      },
+      {
+        "from": "../../packages/domain-core",
+        "to": "domain-core",
+        "filter": [
+          "index.cjs",
+          "package.json"
+        ]
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**/*"
+    ],
     "publish": [
       {
         "provider": "github",
@@ -33,9 +57,24 @@
         "releaseType": "release"
       }
     ],
-    "mac": {"icon": "electron/assets/icon.icns"},
-    "win": {"icon": "electron/assets/icon.ico","target": ["nsis"],"artifactName": "Obra-na-Mao-Desktop-Setup-${version}.${ext}"},
-    "nsis": {"include":"build/preserve-data.nsh","oneClick": false,"allowToChangeInstallationDirectory": true,"createDesktopShortcut": true,"createStartMenuShortcut": true,"shortcutName": "Obra na Mão Desktop"},
+    "mac": {
+      "icon": "electron/assets/icon.icns"
+    },
+    "win": {
+      "icon": "electron/assets/icon.ico",
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "Obra-na-Mao-Desktop-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "include": "build/preserve-data.nsh",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Obra na Mão Desktop"
+    },
     "electronVersion": "43.4.1"
   },
   "dependencies": {

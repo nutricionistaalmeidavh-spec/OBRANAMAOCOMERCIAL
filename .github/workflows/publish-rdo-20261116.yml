@@ -23,6 +23,8 @@ env:
 
 jobs:
   validate:
+    # Esta workflow é imutável para a release 2.1.8; não executar em hotfixes posteriores.
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[release-rdo-20261116]')
     name: Verify version, tests and source build
     runs-on: ubuntu-latest
     timeout-minutes: 35

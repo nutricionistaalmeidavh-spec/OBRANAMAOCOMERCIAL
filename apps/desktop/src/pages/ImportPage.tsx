@@ -174,6 +174,7 @@ export default function ImportPage() {
 }
 function UniversalSetup({file,sheet,area,mapping,mappingSource,setSheet,setArea,setMapping,onPreview,onSaveMapping,onTemplate}:any){
   const selectedSheet=file.sheets.find((item:any)=>item.name===sheet)
+  const headers = Array.isArray(selectedSheet?.headers) ? selectedSheet.headers : []
   return <Card style={{marginTop:14}}>
     <div className="card-header">
       <div><h2>{file.file}</h2><p>Escolha a aba, confirme o destino e associe as colunas da planilha.</p></div>
@@ -197,7 +198,7 @@ function UniversalSetup({file,sheet,area,mapping,mappingSource,setSheet,setArea,
         {Object.entries(mapping).map(([field])=><Field key={field} label={field.replaceAll('_',' ')}>
           <select aria-label={`Coluna de origem para ${field}`} value={mapping[field] || ''} onChange={(event)=>setMapping({ ...mapping, [field]: event.target.value })}>
             <option value="">Coluna de origem: não mapear</option>
-            {selectedSheet.headers.map((header:string)=><option key={header} value={header}>{header}</option>)}
+            {headers.map((header:string)=><option key={header} value={header}>{header}</option>)}
           </select>
         </Field>)}
       </div>
