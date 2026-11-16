@@ -51,7 +51,9 @@
         "recebimentos_materiais",
         "movimentacoes_estoque",
         "contratos_obra",
-        "contrato_aditivos"
+        "contrato_aditivos",
+        "notas_recebidas",
+        "nota_recebida_itens"
       ]
     },
     "rh": {
