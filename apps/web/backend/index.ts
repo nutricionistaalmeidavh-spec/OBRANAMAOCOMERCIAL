@@ -338,7 +338,7 @@ export const handler=router({
     if(!session.access.modules.includes('rdo')&&!session.access.modules.includes('obra360'))
       return error('Evidências do diário não autorizadas.',403);
     const date=String(body.date||''),photoId=String(body.id||''),sha=String(body.sha256||'');
-    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||!photoId||!sha)return error('Identidade da evidência inválida.',400);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!photoId||!sha)return error('Identidade da evidência inválida.',400);
     const day=asRecord(await getDay(session.device.projectId,date));
     if(day.rdoStatus!=='ready_for_desktop')return error('Diário ainda não preparado para integração.',409);
     const linked=asArray(day.photos).map(asRecord).find(p=>String(p.id||'')===photoId&&String(p.sha256||'')===sha);
