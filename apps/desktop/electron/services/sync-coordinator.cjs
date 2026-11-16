@@ -121,7 +121,21 @@ class SyncCoordinator {
   for(const report of pending.reports){
    this.assertScope(scope,generation)
    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(report.date||''))||!report.fingerprint)throw new Error('RDO mobile recebido sem identidade verificável.')
-   const imported=await resolved(this.dataProvider.applyFieldRdo(scope,report))
+   const photos=Array.isArray(report.report?.photos)?report.report.photos:[]
+   if(photos.length>60)throw new Error('Evidências fotográficas do RDO excederam o limite.')
+   const verifiedPhotos=[]
+   for(const p of photos){
+    this.assertScope(scope,generation)
+    if(typeof this.online.fieldRdoPhoto!=='function')throw new Error('Desktop não possui transporte autenticado de fotos.')
+    if(!p?.id||!p?.sha256)throw new Error('Foto do RDO sem identidade ou SHA256.')
+    const result=await this.online.fieldRdoPhoto({date:report.date,id:p.id,sha256:p.sha256})
+    if(result?.photo?.id!==p.id||result.photo.contentType!==p.contentType||!result.photo.data)
+     throw new Error('Servidor não retornou a fotografia canônica solicitada.')
+    verifiedPhotos.push({...p,data:result.photo.data})
+   }
+   const complete={...report,report:{...report.report,photos:verifiedPhotos}}
+   this.assertScope(scope,generation)
+   const imported=await resolved(this.dataProvider.applyFieldRdo(scope,complete))
    this.assertScope(scope,generation)
    if(!Number.isSafeInteger(Number(imported?.localRdoId))||Number(imported?.localRdoId)<1)throw new Error('Fonte operacional não confirmou o RDO canônico.')
    if(!Number.isSafeInteger(Number(imported?.materialRevision)))throw new Error('Fonte operacional não confirmou a revisão do estoque.')
