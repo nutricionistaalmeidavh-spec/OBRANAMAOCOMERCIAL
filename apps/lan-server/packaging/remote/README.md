@@ -32,3 +32,24 @@ O Obra na Mão bloqueia `remote + HTTP` em endereço público. HTTP remoto só �
 - WireGuard: permitir somente a porta UDP configurada do WireGuard pela WAN; o serviço 4732 fica acessível somente pela interface privada/VPN.
 - O instalador Linux não altera firewall automaticamente.
 - Nenhum provedor pago é obrigatório.
+
+
+## Configuração pela interface local (v0.4.1)
+
+Depois de instalar o Server, use **Configurar servidor** no menu Iniciar (Windows) ou
+execute \`sudo /opt/obra-na-mao/server/platform/configure-server.sh\` (Linux).
+O configurador inicia um painel temporário em **127.0.0.1:4734** por até 30 minutos,
+protegido por token. Nunca exponha esta porta à internet.
+
+Informe o endereço HTTPS já entregue pelo responsável pela infraestrutura do cliente
+e a porta interna (4732 por padrão). A interface salva internamente a configuração,
+reinicia o serviço, verifica a saúde e restaura a configuração anterior se houver falha.
+Também verifica a URL HTTPS e gera o código inicial de vinculação para o Desktop.
+
+Em Linux administrado por SSH, crie um túnel local:
+\`ssh -L 4734:127.0.0.1:4734 usuario@servidor\`.
+Abra no navegador o endereço completo com token mostrado no terminal do servidor.
+
+A configuração de DNS, VPN, proxy, firewall e certificados permanece sob responsabilidade
+da infraestrutura da empresa; o instalador não cria nem configura esses serviços.
+Não é necessário editar manualmente o \`server.env\`.
