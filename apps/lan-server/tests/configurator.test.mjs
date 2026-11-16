@@ -56,7 +56,7 @@ test('writes config atomically without modifying existing persistent fields', ()
     const result = fs.readFileSync(file, 'utf8')
     assert.match(result, /OBRA_NA_MAO_SERVER_PORT=4900/)
     assert.match(result, /OBRA_NA_MAO_SERVER_BACKUP_RETENTION=7/)
-    assert.equal(fs.statSync(file).mode & 0o777, 0o600)
+    if (process.platform !== 'win32') assert.equal(fs.statSync(file).mode & 0o777, 0o600)
     assert.deepEqual(fs.readdirSync(tmp), ['server.env'])
   } finally { fs.rmSync(tmp, { recursive: true, force: true }) }
 })
