@@ -112,4 +112,26 @@ describe('P2: relatórios gerenciais com fonte canônica de notas recebidas',()=
       expect(()=>f.service.report({obra_id:f.other.id}).historico_total).toBe(1)
     } finally { f.close() }
   })
+  it('compara a subetapa somente quando o item orçamentário tiver vínculo explícito com ela',()=>{
+    const f=fixture()
+    try {
+      f.db.save('itens_orcamentarios',{
+        obra_id:f.work.id,frente_id:f.front.id,subfrente_id:f.sub.id,
+        descricao:'Orçamento específico da prumada',unidade:'un',
+        quantidade:2,valor_unitario_centavos:1000,tipo:'material'
+      })
+      const bySub=f.service.report({obra_id:f.work.id,frente_id:f.front.id,subfrente_id:f.sub.id})
+      expect(bySub.indicadores).toMatchObject({
+        comparavel:true,orcamento_total_centavos:2000,
+        documentado_ate_fim_centavos:8000
+      })
+      expect(bySub.subetapas[0]).toMatchObject({
+        orcamento_centavos:2000,desvio_centavos:6000,alerta:'acima_do_orcamento'
+      })
+      const stage=f.service.report({obra_id:f.work.id,frente_id:f.front.id})
+      expect(stage.indicadores.orcamento_total_centavos).toBe(10000)
+      expect(stage.etapas[0].desvio_centavos).toBe(-500)
+    }finally{f.close()}
+  })
+
 })
