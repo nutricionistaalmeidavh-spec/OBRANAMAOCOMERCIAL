@@ -172,6 +172,9 @@ class LanDataClient {
   async receivedNotesSummary(obraId) {
     return this.request('GET','/api/v1/received-notes/summary',{query:{obra_id:Number(obraId)}})
   }
+  async receivedNotesReport(filters) {
+    return this.request('GET','/api/v1/received-notes/report',{query:filters})
+  }
   async receivedNotesCreate(payload) {
     return this.request('POST','/api/v1/received-notes',{body:payload})
   }
