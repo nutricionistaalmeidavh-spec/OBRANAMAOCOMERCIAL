@@ -354,6 +354,14 @@ class OnlineService {
     return this.state()
   }
 
+  async fieldRdoPending() {
+    return this.request('/api/desktop/field/rdo/pending', { deviceToken: this.requireToken() })
+  }
+
+  async fieldRdoAck(input) {
+    return this.request('/api/desktop/field/rdo/ack', { deviceToken: this.requireToken(), ...input })
+  }
+
   async syncPull(sinceRevision = 0) {
     return this.request('/api/desktop/sync/pull', { deviceToken: this.requireToken(), sinceRevision })
   }
