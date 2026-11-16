@@ -9,6 +9,7 @@ import { MeasurementService } from './measurement-service.mjs'
 import { ProcurementService } from './procurement-service.mjs'
 import { RdoMaterialConsumption } from './rdo-material-consumption.mjs'
 import { FieldRdoImport } from './field-rdo-import.mjs'
+import { FieldRdoCatalog } from './field-rdo-catalog.mjs'
 import { ContractsService } from './contracts-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
@@ -305,6 +306,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const procurement = procurementService || (compoundDomainReady ? new ProcurementService({ repository }) : null)
   const rdoMaterials = compoundDomainReady ? new RdoMaterialConsumption({ repository }) : null
   const mobileRdoImport = compoundDomainReady ? new FieldRdoImport({ repository }) : null
+  const rdoCatalog = compoundDomainReady ? new FieldRdoCatalog({ repository }) : null
   const contracts = contractsService || (compoundDomainReady ? new ContractsService({ repository }) : null)
   const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
@@ -536,6 +538,18 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const body = await readJson(request)
         authorizeAction(context, { domain: 'operation', action: body.id ? 'edit' : 'create' })
         return sendJson(response, 201, field.saveDailyReport(body))
+      }
+
+      if (url.pathname === '/api/v1/field/rdo/catalog') {
+        if(request.method!=='GET')return methodNotAllowed(response,['GET'])
+        const context=await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'operation',action:'view'})
+        if(!rdoCatalog)return sendJson(response,503,{error:'catalog_unavailable'})
+        if(!context.companyId || String(url.searchParams.get('remote_company_id')||'')!==String(context.companyId))
+          return sendJson(response,403,{error:'tenant_mismatch'})
+        const work=repository.get('obras',Number(url.searchParams.get('obra_id')))
+        if(!work||work.deleted_at)return sendJson(response,404,{error:'work_not_found'})
+        return sendJson(response,200,rdoCatalog.list({companyId:work.empresa_id,workId:work.id}))
       }
 
       if (url.pathname === '/api/v1/field/rdo/import-mobile') {
