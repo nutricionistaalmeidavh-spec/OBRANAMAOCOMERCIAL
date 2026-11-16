@@ -199,6 +199,23 @@ export const handler=router({
     if('response'in gate)return gate.response;
     return json({receipts:await fieldRdoReceipts(gate.phoneAccess.projectId)})
   }],
+  'POST /api/phone/project/state':[async(ctx)=>{
+    const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));
+    if('response'in gate)return gate.response;
+    const input=asRecord(body.state);
+    if(!input.project)return error('Estado do RDO inválido.',400);
+    const dates=Object.keys(asRecord(input.days));
+    if(dates.length>40)return error('Envie no máximo 40 dias por atualização.',400);
+    const latest=await assembleState(gate.phoneAccess.projectId,dates.at(-1));
+    if(!latest)return error('Obra não inicializada.',404);
+    let snapshot:Record<string,unknown>;
+    try{snapshot=restrictForemanSnapshot(input,latest)}
+    catch(e){return error((e as Error).message,403)}
+    try{
+      const revision=await saveSnapshot(gate.phoneAccess.projectId,snapshot,String(gate.participant.id));
+      return json({ok:true,revision})
+    }catch(e){return error((e as Error).message||'Conflito de edição do RDO.',409)}
+  }],
   'POST /api/phone/project/day':[async(ctx)=>{
     const body=asRecord(ctx.body),gate=await requirePhoneField(String(body.token||''));
     if('response'in gate)return gate.response;
