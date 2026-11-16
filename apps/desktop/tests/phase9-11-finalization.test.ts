@@ -23,10 +23,12 @@ describe('phases 9-11 final release contract',()=>{
     expect(workflow).toContain('windows-latest')
   })
 
-  it('builds a distinct v2.1.6 installer with default auto-publication disabled',()=>{
+  it('builds a commercial 2.1.x installer without silently enabling auto-publication',()=>{
     const pkg=JSON.parse(read('apps/desktop/package.json'))
     const ci=read('.github/workflows/commercial-desktop-ci.yml')
-    expect(pkg.version).toBe('2.1.6')
+    const parts=String(pkg.version).split('.').map(Number)
+    expect(parts.slice(0,2)).toEqual([2,1])
+    expect(parts[2]).toBeGreaterThanOrEqual(7)
     expect(pkg.scripts.dist).toContain('--publish never')
     expect(ci).toContain("DESKTOP_AUTO_RELEASE_ENABLED: 'false'")
     expect(ci).toContain("env.DESKTOP_AUTO_RELEASE_ENABLED == 'true'")
