@@ -31,7 +31,7 @@ export const COMMERCIAL_PLANS:CommercialPlan[]=[
 
 const TIER_FEATURES:Record<CommercialPlan['tier'],string[]>={
   essencial:[
-    'Gestão de obras, frentes e tarefas',
+    'Gestão de obras, etapas e tarefas',
     'Cronograma operacional',
     'RDO e operação de campo',
     'Documentos da obra',

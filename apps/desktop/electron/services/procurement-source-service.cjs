@@ -1,8 +1,9 @@
 const { randomUUID: defaultRandomUUID } = require('node:crypto')
 
 class ProcurementSourceService {
-  constructor({ local, lanClient, moduleStorage, randomUUID = defaultRandomUUID }) {
+  constructor({ local, lanClient, moduleStorage, notes, randomUUID = defaultRandomUUID }) {
     this.local = local
+    this.notes = notes
     this.lanClient = lanClient
     this.moduleStorage = moduleStorage
     this.randomUUID = randomUUID
@@ -60,6 +61,37 @@ class ProcurementSourceService {
     if (state !== 'central-active') return this.blocked()
     return this.central('stock', payload, requestId => this.lanClient.procurementMoveStock({ ...payload, requestId }))
   }
+  async listReceivedNotes(obraId) {
+    const state=this.state()
+    if (state==='local'||state==='migration-required') return this.notes.list(obraId)
+    if (state==='central-active') return this.lanClient.receivedNotesList(obraId)
+    return this.blocked()
+  }
+  async getReceivedNote(id) {
+    const state=this.state()
+    if (state==='local'||state==='migration-required') return this.notes.read(id)
+    if (state==='central-active') return this.lanClient.receivedNotesGet(id)
+    return this.blocked()
+  }
+  async receivedNotesSummary(obraId) {
+    const state=this.state()
+    if (state==='local'||state==='migration-required') return this.notes.summary(obraId)
+    if (state==='central-active') return this.lanClient.receivedNotesSummary(obraId)
+    return this.blocked()
+  }
+  async createReceivedNote(payload) {
+    const state=this.state()
+    if (state==='local'||state==='migration-required') return this.notes.create(payload)
+    if (state!=='central-active') return this.blocked()
+    return this.central('received-note',payload,requestId=>this.lanClient.receivedNotesCreate({...payload,requestId}))
+  }
+  async attachReceivedNote(id,documentId) {
+    const state=this.state()
+    if (state==='local'||state==='migration-required') return this.notes.attach(id,documentId)
+    if (state==='central-active') return this.lanClient.receivedNotesAttach(id,documentId)
+    return this.blocked()
+  }
+
 }
 
 module.exports = { ProcurementSourceService }

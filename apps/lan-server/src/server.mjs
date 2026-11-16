@@ -7,6 +7,8 @@ import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
 import { MeasurementService } from './measurement-service.mjs'
 import { ProcurementService } from './procurement-service.mjs'
+import domainCore from './domain-core.cjs'
+const { createReceivedNotesService } = domainCore
 import { RdoMaterialConsumption } from './rdo-material-consumption.mjs'
 import { FieldRdoImport } from './field-rdo-import.mjs'
 import { FieldRdoCatalog } from './field-rdo-catalog.mjs'
@@ -305,6 +307,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const compoundDomainReady = !!repositoryDb && typeof repositoryDb.prepare === 'function' && typeof repositoryDb.exec === 'function'
   const measurements = measurementService || (compoundDomainReady ? new MeasurementService({ repository }) : null)
   const procurement = procurementService || (compoundDomainReady ? new ProcurementService({ repository }) : null)
+  const receivedNotes = compoundDomainReady ? createReceivedNotesService(repositoryDb) : null
   const rdoMaterials = compoundDomainReady ? new RdoMaterialConsumption({ repository }) : null
   const mobileRdoImport = compoundDomainReady ? new FieldRdoImport({ repository }) : null
   const rdoCatalog = compoundDomainReady ? new FieldRdoCatalog({ repository }) : null
@@ -598,6 +601,34 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const body = await readJson(request)
         authorizeAction(context, { domain:'planning', action:body.id ? 'edit' : 'create' })
         return sendJson(response, 200, measurements.save(body))
+      }
+
+      if (url.pathname === '/api/v1/received-notes' || url.pathname === '/api/v1/received-notes/summary' || /^\/api\/v1\/received-notes\/\d+(?:\/attach)?$/.test(url.pathname)) {
+        if (!receivedNotes) return sendJson(response,503,{error:'notes_unavailable',message:'Arquivo de notas recebidas indisponível.'})
+        const context=await authenticateLanRequest(request,security)
+        const isWrite=request.method==='POST'
+        const financeModules=Array.isArray(context.member?.modules)?context.member.modules:[]
+        const hasFinance=context.member?.role==='admin'||financeModules.includes('finance')||(!isWrite&&financeModules.includes('dre'))
+        if(!hasFinance) return sendJson(response,403,{error:'forbidden',message:'Acesso ao módulo Financeiro não autorizado.'})
+        authorizeAction(context,{domain:'finance',action:isWrite?'create':'view'})
+        if (url.pathname==='/api/v1/received-notes') {
+          if (request.method==='GET') return sendJson(response,200,receivedNotes.list(Number(url.searchParams.get('obra_id'))))
+          if (request.method==='POST') return sendJson(response,201,receivedNotes.create(await readJson(request)))
+          return methodNotAllowed(response,['GET','POST'])
+        }
+        if (url.pathname==='/api/v1/received-notes/summary') {
+          if (request.method!=='GET') return methodNotAllowed(response,['GET'])
+          return sendJson(response,200,receivedNotes.summary(Number(url.searchParams.get('obra_id'))))
+        }
+        const parts=url.pathname.split('/')
+        const id=Number(parts[4])
+        if (parts[5]==='attach') {
+          if (request.method!=='POST') return methodNotAllowed(response,['POST'])
+          const body=await readJson(request)
+          return sendJson(response,200,receivedNotes.attach(id,body.documento_id))
+        }
+        if (request.method!=='GET') return methodNotAllowed(response,['GET'])
+        return sendJson(response,200,receivedNotes.read(id))
       }
 
       if (url.pathname === '/api/v1/procurement/summary') {

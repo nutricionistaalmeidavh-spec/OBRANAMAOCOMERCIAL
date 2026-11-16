@@ -853,6 +853,7 @@ function createPayrollImportEngine(adapter) {
 }
 
 module.exports = {
+  createReceivedNotesService: require('./received-notes.cjs').createReceivedNotesService,
   PAYROLL_OVERVIEW_COLUMNS,
   PAYROLL_IMPORT_DEFINITIONS,
   createPayrollImportEngine,

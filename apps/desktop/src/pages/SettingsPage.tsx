@@ -83,7 +83,7 @@ export default function SettingsPage(){
     </SettingsGroup>
 
     <SettingsGroup title="Preferências" description="Ajustes que mudam a experiência de uso sem alterar os dados da empresa.">
-      <Card className="setting-card setting-card-compact"><HardHat size={21}/><div className="setting-card-copy"><h3>Edição do produto</h3><p>{boot.data?.product?.edition==='empreiteira'?'Empreiteira: medições como receita e margem por frente.':'Construtora: foco em custo, contratado, pago e saldo por frente.'}</p></div><div className="setting-actions"><Button variant={boot.data?.product?.edition==='construtora'?'primary':'secondary'} onClick={()=>action(()=>window.fluxoDre.product.setEdition('construtora'),'Edição Construtora aplicada.')}>Construtora</Button><Button variant={boot.data?.product?.edition==='empreiteira'?'primary':'secondary'} onClick={()=>action(()=>window.fluxoDre.product.setEdition('empreiteira'),'Edição Empreiteira aplicada.')}>Empreiteira</Button></div></Card>
+      <Card className="setting-card setting-card-compact"><HardHat size={21}/><div className="setting-card-copy"><h3>Edição do produto</h3><p>{boot.data?.product?.edition==='empreiteira'?'Empreiteira: medições como receita e margem por etapa.':'Construtora: foco em custo, contratado, pago e saldo por etapa.'}</p></div><div className="setting-actions"><Button variant={boot.data?.product?.edition==='construtora'?'primary':'secondary'} onClick={()=>action(()=>window.fluxoDre.product.setEdition('construtora'),'Edição Construtora aplicada.')}>Construtora</Button><Button variant={boot.data?.product?.edition==='empreiteira'?'primary':'secondary'} onClick={()=>action(()=>window.fluxoDre.product.setEdition('empreiteira'),'Edição Empreiteira aplicada.')}>Empreiteira</Button></div></Card>
       <Card className="setting-card setting-card-compact"><PanelsTopLeft size={21}/><div className="setting-card-copy"><h3>Layout da interface</h3><p>{boot.data?.layout==='classic'?'Visual clássico com a navegação original.':'Command Center com navegação compacta e foco operacional.'}</p></div><div className="setting-actions"><Button variant={boot.data?.layout!=='classic'?'primary':'secondary'} onClick={()=>changeLayout('command-center')}>Command Center</Button><Button variant={boot.data?.layout==='classic'?'primary':'secondary'} onClick={()=>changeLayout('classic')}>Clássico</Button></div></Card>
     </SettingsGroup>
 
@@ -94,7 +94,7 @@ export default function SettingsPage(){
         <div className="settings-support-content">
           <div className="support-tool-row">
             <div><strong>Dados de demonstração</strong><p>Cria uma obra fictícia para treinamento e validação. Use somente quando você quiser adicionar dados de teste ao ambiente atual.</p></div>
-            <Button variant="secondary" onClick={()=>action(()=>window.fluxoDre.demo.seed(),'Dados fictícios carregados. Abra Obras, Frentes ou Medições para visualizar.')}>Carregar demo</Button>
+            <Button variant="secondary" onClick={()=>action(()=>window.fluxoDre.demo.seed(),'Dados fictícios carregados. Abra Obras, Etapas ou Medições para visualizar.')}>Carregar demo</Button>
           </div>
           <div className="support-facts">
             <div><small>Versão</small><strong>{boot.data?.version||'1.0.0'}</strong></div>

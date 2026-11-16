@@ -2,7 +2,7 @@
   "id": "./obra360-pwa",
   "name": "Obra360 · Obra na Mão",
   "short_name": "Obra360",
-  "description": "Rotina de campo, frentes, equipe, tarefas e RDO.",
+  "description": "Rotina de campo, etapas, equipe, tarefas e RDO.",
   "start_url": "./obra.html#obra",
   "scope": "./",
   "display": "standalone",

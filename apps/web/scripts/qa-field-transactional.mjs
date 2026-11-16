@@ -70,7 +70,9 @@ try{
     });
     const shot=async name=>{const file=`${viewport.name}-${name}.png`;screenshots.push(file);await page.screenshot({path:path.join(outDir,file),fullPage:true})};
     const waitForSnapshotSync=async(label,promise)=>{try{return await promise}catch(error){const syncText=await page.locator('#fieldSyncStatus').textContent().catch(()=>null);throw new Error(`${viewport.name}: ${label} did not autosync through PUT /api/project/state${syncText?` (${syncText.trim()})`:''}; ${error instanceof Error?error.message:String(error)}`)}};
-    const nextSnapshotSync=()=>page.waitForRequest(request=>request.method()==='PUT'&&new URL(request.url()).pathname==='/api/project/state',{timeout:7000});
+    // Synchronization is only complete after the mocked server acknowledges and saves the snapshot.
+    // waitForRequest fires before the request handler updates `state`, causing false negatives.
+    const nextSnapshotSync=()=>page.waitForResponse(response=>response.request().method()==='PUT'&&new URL(response.url()).pathname==='/api/project/state'&&response.ok(),{timeout:7000});
 
     await page.goto(`${base}/obra.html#obra`,{waitUntil:'domcontentloaded'});await page.locator('#newPlan').waitFor({state:'visible'});
     if(!(await page.title()).includes('Obra QA Integrada'))throw new Error(`${viewport.name}: project identity was not loaded from remote bootstrap`);await page.getByText('Fixture QA').waitFor({state:'visible'});await shot('01-day-remote-state');

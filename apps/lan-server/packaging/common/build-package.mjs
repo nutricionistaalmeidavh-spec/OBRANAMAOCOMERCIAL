@@ -52,6 +52,7 @@ export function buildServerPackage({ repoRoot, outputDir, platform, arch, commit
 
   copyDirectory(path.join(serverRoot, 'src'), path.join(target, 'app', 'src'))
   fs.copyFileSync(path.join(root, 'packages', 'domain-core', 'index.cjs'), path.join(target, 'app', 'src', 'domain-core.cjs'))
+  fs.copyFileSync(path.join(root, 'packages', 'domain-core', 'received-notes.cjs'), path.join(target, 'app', 'src', 'received-notes.cjs'))
   copyDirectory(path.join(serverRoot, 'migrations'), path.join(target, 'app', 'migrations'))
   const remoteAssets = path.join(serverRoot, 'packaging', 'remote')
   if (fs.existsSync(remoteAssets)) copyDirectory(remoteAssets, path.join(target, 'remote'))

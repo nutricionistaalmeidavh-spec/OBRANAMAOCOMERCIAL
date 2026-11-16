@@ -8,7 +8,7 @@ const read=(file:string)=>fs.readFileSync(path.join(root,file),'utf8')
 describe('Fases 8–10 — fechamento do produto e arquitetura',()=>{
   it('F8 mantém Obra 360 como centro de decisão, não como espelho da topologia',()=>{
     const page=read('src/pages/WorkDetailPage.tsx')
-    for(const section of ['Próximas ações','Resultado por frente','Pendências abertas','Documentos recentes','Contratos recentes','Compras recentes','RDOs recentes']) expect(page).toContain(section)
+    for(const section of ['Próximas ações','Resultado por etapa','Pendências abertas','Documentos recentes','Contratos recentes','Compras recentes','RDOs recentes']) expect(page).toContain(section)
     for(const action of ['/tarefas?obra=','/planejamento?obra=','/documentos?obra=','/contratos?obra=','/compras?obra=','/rdo?obra=']) expect(page).toContain(action)
     expect(page).not.toContain('fonte canônica')
     expect(page).not.toContain('central-active')

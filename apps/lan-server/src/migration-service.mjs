@@ -2,7 +2,7 @@ const MODULE_TABLES = Object.freeze({
   core: ['empresas', 'clientes', 'obras'],
   operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
   planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
-  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos'],
+  finance: ['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos', 'notas_recebidas', 'nota_recebida_itens'],
   rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'importacoes', 'importacao_linhas', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'],
   documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais']
 })
@@ -28,6 +28,8 @@ const REF_MAP = Object.freeze({
   medicao_mapa_itens: { obra_id: 'obras', medicao_id: 'medicoes' },
   fornecedores: { empresa_id: 'empresas' },
   contas: { empresa_id: 'empresas', obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', fornecedor_id: 'fornecedores', cliente_id: 'clientes', categoria_id: 'categorias_financeiras', medicao_id: 'medicoes', solicitacao_compra_id: { table: 'solicitacoes_compra', deferred: true }, pedido_compra_id: { table: 'pedidos_compra', deferred: true }, contrato_id: { table: 'contratos_obra', deferred: true } },
+  notas_recebidas: { empresa_id:'empresas', obra_id:'obras', fornecedor_id:'fornecedores', pedido_compra_id:'pedidos_compra', conta_id:'contas', documento_id:{table:'documentos',deferred:true} },
+  nota_recebida_itens: { nota_id:'notas_recebidas', frente_id:'frentes_obra', subfrente_id:'subfrentes_obra', pedido_item_id:'pedido_compra_itens' },
   pagamentos_conta: { conta_id: 'contas' },
   solicitacoes_compra: { obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', cotacao_escolhida_id: { table: 'cotacoes_compra', deferred: true } },
   cotacoes_compra: { solicitacao_id: 'solicitacoes_compra', fornecedor_id: 'fornecedores' },
