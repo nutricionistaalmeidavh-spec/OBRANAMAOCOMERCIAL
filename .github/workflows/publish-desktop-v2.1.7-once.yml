@@ -39,7 +39,7 @@ jobs:
           if ($ci -notmatch "DESKTOP_AUTO_RELEASE_ENABLED: 'false'") { throw 'Auto release freeze changed' }
       - name: Install dependencies
         working-directory: apps/desktop
-        run: npm ci --no-audit --no-fund
+        run: npm install --workspaces=false --no-audit --no-fund
       - name: Lint and test
         working-directory: apps/desktop
         run: |
