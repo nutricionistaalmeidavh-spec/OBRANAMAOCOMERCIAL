@@ -59,7 +59,7 @@ export const COMMAND_NAVIGATION_GROUPS:NavigationGroup[]=[
   {label:'Obras',items:[
     {to:ROUTES.works,label:'Obras',icon:HardHat},
     {to:ROUTES.registries,label:'Clientes e empresas',icon:Building2},
-    {to:ROUTES.fronts,label:'Frentes de servico',icon:ClipboardCheck},
+    {to:ROUTES.fronts,label:'Etapas e subetapas',icon:ClipboardCheck},
     {to:ROUTES.planning,label:'Planejamento',icon:CalendarClock},
     {to:ROUTES.dailyReport,label:'Diario de obra',icon:ClipboardList},
     {to:ROUTES.tasks,label:'Tarefas',icon:ClipboardList},
@@ -121,7 +121,7 @@ const ROUTE_META:Record<string,{section:string;label:string}>={
   [ROUTES.contracts]:{section:'Financeiro',label:'Contratos e aditivos'},
   [ROUTES.registries]:{section:'Obras',label:'Clientes e empresas'},
   [ROUTES.works]:{section:'Obras',label:'Obras'},
-  [ROUTES.fronts]:{section:'Obras',label:'Frentes de servico'},
+  [ROUTES.fronts]:{section:'Obras',label:'Etapas e subetapas'},
   [ROUTES.planning]:{section:'Obras',label:'Planejamento'},
   [ROUTES.dailyReport]:{section:'Obras',label:'Diario de obra'},
   [ROUTES.tasks]:{section:'Obras',label:'Tarefas'},
