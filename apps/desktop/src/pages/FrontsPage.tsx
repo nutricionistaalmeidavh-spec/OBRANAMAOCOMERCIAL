@@ -32,11 +32,8 @@ export default function FrontsPage() {
 
   useEffect(() => {
     if (!fronts.data?.length) return
-    const stillExists = fronts.data.some((item: any) => String(item.id) === selectedFront)
-    if (!stillExists) {
-      setSelectedFront(String(fronts.data[0].id))
-      setSelectedSub('')
-    }
+    // Não sobrescrever uma etapa recém-criada enquanto o carregamento assíncrono ainda contém a lista anterior.
+    if (!selectedFront) setSelectedFront(String(fronts.data[0].id))
   }, [fronts.data, selectedFront])
 
   async function submitFront(event: FormEvent) {
