@@ -62,7 +62,7 @@ function rdoClosure(day){
  <div class="card" style="margin-top:12px">
  <div class="row"><div><strong>Materiais utilizados</strong><div class="meta">${d.materialsCount} item(ns) · ${d.materialsReviewed?'Conferido':'Aguardando conferência'}</div></div>
  <button type="button" id="openRdoMaterials" class="linkbtn">Registrar</button></div></div>
- <button id="reviewRdo" class="btn small-btn">${isQueued?'Revisar envio':'Revisar fechamento do RDO'}</button>
+ <button id="reviewRdo" class="btn small-btn">${isQueued?'Revisar envio':'Conferir RDO do dia'}</button>
  ${isQueued?'<div class="meta">Salvo para integração; a confirmação no servidor Desktop ainda está pendente.</div>':''}
  </div></section>`;
 }
