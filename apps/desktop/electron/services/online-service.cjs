@@ -354,6 +354,12 @@ class OnlineService {
     return this.state()
   }
 
+  async fieldRdoCatalogPublish(catalog) {
+    return this.request('/api/desktop/field/rdo/catalog/publish', {
+      deviceToken:this.requireToken(),catalog
+    })
+  }
+
   async fieldRdoPending() {
     return this.request('/api/desktop/field/rdo/pending', { deviceToken: this.requireToken() })
   }
