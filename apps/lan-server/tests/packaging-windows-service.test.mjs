@@ -79,7 +79,7 @@ test('Windows Server installer bundles and opens the local wizard without env ed
   const build = read('build.ps1')
   const shortcut = read('configure-server.ps1')
   assert.match(inno, /\[Icons\][\s\S]*Configurar servidor/i)
-  assert.match(inno, /skipifsilent/i)
+  assert.doesNotMatch(inno, /^\[Run\]/m)
   assert.match(build, /config-wizard\.mjs/)
   assert.match(build, /config-wizard\.html/)
   assert.match(shortcut, /RunAs/i)
