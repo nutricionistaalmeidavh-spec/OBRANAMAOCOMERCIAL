@@ -103,7 +103,7 @@ class ModuleStorageStateService {
   financeLocalRecordCount() {
     const tables = [
       'fornecedores','contas','pagamentos_conta','solicitacoes_compra','cotacoes_compra','pedidos_compra',
-      'pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos'
+      'pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos','notas_recebidas','nota_recebida_itens'
     ]
     return tables.reduce((total, table) => total + this.countActive(table), 0) + this.customFinanceCategoryCount()
   }
