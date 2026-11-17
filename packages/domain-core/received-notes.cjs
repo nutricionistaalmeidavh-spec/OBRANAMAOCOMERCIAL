@@ -258,17 +258,42 @@ function createReceivedNotesService(db) {
         if(!account.frente_id)unmapped+=residual
       }
     }
-    const details=[...groups.values()].sort((a,b)=>a.etapa_nome.localeCompare(b.etapa_nome,'pt-BR')||a.subetapa_nome.localeCompare(b.subetapa_nome,'pt-BR'))
+    // Budgets exist at stage scope and, optionally, directly at substage scope.
+    // Never pro-rate stage-only budgets into individual substages.
+    const budgets=db.prepare("SELECT frente_id,subfrente_id,SUM(CAST(ROUND(quantidade*valor_unitario_centavos,0) AS INTEGER)) AS orcamento_centavos FROM itens_orcamentarios WHERE obra_id=? AND deleted_at IS NULL GROUP BY frente_id,subfrente_id").all(obraId)
+    const budgetKeys=new Set()
+    for(const budget of budgets){
+      const key=keyFor(budget.frente_id,budget.subfrente_id)
+      add(budget.frente_id,budget.subfrente_id,0,'notas_centavos')
+      const group=groups.get(key)
+      group.orcamento_centavos=Number(budget.orcamento_centavos)
+      budgetKeys.add(key)
+    }
+    const details=[...groups.values()].map(item=>{
+      const hasBudget=budgetKeys.has(keyFor(item.frente_id,item.subfrente_id))
+      const budget=hasBudget?item.orcamento_centavos:null
+      const diff=hasBudget?item.custos_registrados_centavos-budget:null
+      return {...item,orcamento_centavos:budget,desvio_centavos:diff,
+        alerta:!hasBudget?'sem_orcamento_especifico':diff>0?'acima_do_orcamento':'dentro_do_orcamento'}
+    }).sort((a,b)=>a.etapa_nome.localeCompare(b.etapa_nome,'pt-BR')||a.subetapa_nome.localeCompare(b.subetapa_nome,'pt-BR'))
     const stages=new Map()
     for(const item of details){
       const key=item.frente_id??'none'
-      if(!stages.has(key))stages.set(key,{frente_id:item.frente_id,nome:item.etapa_nome,custos_registrados_centavos:0,contas_centavos:0,notas_centavos:0})
+      if(!stages.has(key))stages.set(key,{frente_id:item.frente_id,nome:item.etapa_nome,
+        custos_registrados_centavos:0,contas_centavos:0,notas_centavos:0,orcamento_centavos:0})
       const stage=stages.get(key)
       for(const field of ['custos_registrados_centavos','contas_centavos','notas_centavos'])stage[field]+=item[field]
+      stage.orcamento_centavos+=item.orcamento_centavos??0
     }
+    for(const stage of stages.values()){
+      stage.desvio_centavos=stage.custos_registrados_centavos-stage.orcamento_centavos
+      stage.alerta=stage.orcamento_centavos===0&&stage.custos_registrados_centavos>0?'sem_orcamento':stage.desvio_centavos>0?'acima_do_orcamento':'dentro_do_orcamento'
+    }
+    const totalBudget=budgets.reduce((sum,item)=>sum+Number(item.orcamento_centavos||0),0)
+    const totalRegistered=details.reduce((sum,item)=>sum+item.custos_registrados_centavos,0)
     return {escopo:{obra_id:obraId},descricao:'Contas a pagar registradas e notas recebidas sem duplicação quando as notas estão vinculadas às contas; notas sem vínculo não são conciliadas automaticamente. Não representa valores pagos ou consumo de estoque.',
       totais:{contas_centavos:accountTotal,notas_centavos:invoiceTotal,notas_sem_conta:unlinkedNotes.size,notas_sem_conta_centavos:unlinkedNoteTotal,
-        custos_registrados_centavos:details.reduce((sum,item)=>sum+item.custos_registrados_centavos,0),
+        custos_registrados_centavos:totalRegistered,orcamento_centavos:totalBudget,desvio_centavos:totalRegistered-totalBudget,
         contas_sem_etapa:missing,contas_sem_subetapa:missingSub,custos_sem_etapa_centavos:unmapped},
       etapas:[...stages.values()],subetapas:details,conciliacoes}
   }
