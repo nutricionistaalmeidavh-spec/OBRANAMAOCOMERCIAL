@@ -53,6 +53,25 @@ describe('Gestão Web P0 - transações no navegador',()=>{
       patch:{titulo:'Revisar rede hidráulica'}
     });
   });
+  it('permite editar subetapa mantendo vínculo com a etapa do Desktop',async()=>{
+    const data=overview();
+    data.items.push({entity:'subfrentes_obra',localId:38,sourceDeviceId:'desktop-1',revision:7,desktopRevision:22,payload:{nome:'Prumadas',frente_id:11,escopo:'Torre A',status:'ativa'}} as any);
+    client.get.mockResolvedValue({data});
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    root.querySelector<HTMLButtonElement>('[data-p0-tab="subfrentes_obra"]')!.click();
+    expect(root.textContent).toContain('Prumadas');
+    expect(root.textContent).toContain('Etapa: Hidráulica');
+    root.querySelector<HTMLButtonElement>('[data-p0-edit="0"]')!.click();
+    root.querySelector<HTMLInputElement>('input[name="escopo"]')!.value='Torre B';
+    expect(root.querySelector('input[name="frente_id"]')).toBeNull();
+    root.querySelector<HTMLFormElement>('#p0EditForm')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledOnce());
+    expect(client.post).toHaveBeenCalledWith('/api/web/p0/edit',{
+      entity:'subfrentes_obra',localId:38,sourceDeviceId:'desktop-1',
+      expectedRevision:7,expectedDesktopRevision:22,patch:{escopo:'Torre B'}
+    });
+  });
   it('escapa texto recebido da ponte e não transforma conteúdo em HTML executável',async()=>{
     client.get.mockResolvedValue({data:{...overview(),company:{id:'company-a',name:'<img src=x onerror=alert(1)>'}}});
     const root=document.getElementById('content')!;
