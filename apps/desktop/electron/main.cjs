@@ -370,6 +370,7 @@ function registerIpc() {
   ipcMain.handle('works:import-spreadsheets', envelope(() => services.workImport.chooseAndImport()))
   ipcMain.handle('files:import-employee', envelope((payload) => services.files.importForEmployee(payload)))
   ipcMain.handle('files:import-measurement', envelope((payload) => services.files.importForMeasurement(payload)))
+  ipcMain.handle('files:import-received-note', envelope(payload => services.files.importReceivedNoteFile(payload)))
   ipcMain.handle('files:import-work-document', envelope((payload) => services.files.importForWorkDocument(payload)))
   ipcMain.handle('files:open', envelope(({ path: filePath }) => services.files.open(filePath)))
   ipcMain.handle('files:reveal', envelope(({ path: filePath }) => services.files.reveal(filePath)))
