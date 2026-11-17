@@ -50,6 +50,20 @@ it('persists changes while offline and retries the same id after restart', async
   await expect(f.sync.run()).rejects.toThrow('offline')
   expect(f.sync.state().pending).toBeGreaterThan(0)
 })
+it('recebe criação Web uma única vez, persiste no SQLite e publica a nova etapa para a ponte', async () => {
+  const f=fixture();
+  const command={id:'11111111-1111-4111-8111-111111111111',entity:'frentes_obra',deviceId:'device-a',data:{nome:'Etapa Web'}};
+  f.online.webP0Pending=vi.fn(async()=>({commands:[command]}));
+  f.online.webP0Ack=vi.fn(async()=>({ok:true}));
+  await f.sync.configure({companyId:f.company.id,workId:f.work.id});
+  await f.sync.run();
+  const records=f.database.list('frentes_obra',{obra_id:f.work.id}).filter((x:any)=>x.nome==='Etapa Web');
+  expect(records).toHaveLength(1);
+  expect(f.online.webP0Ack).toHaveBeenCalledWith({commandId:command.id,entity:'frentes_obra',localId:records[0].id});
+  expect(f.online.syncPush.mock.calls.flatMap((args:any[])=>args[0]).some((x:any)=>x.entity==='frentes_obra'&&x.localId===records[0].id)).toBe(true);
+  await f.sync.run();
+  expect(f.database.list('frentes_obra',{obra_id:f.work.id}).filter((x:any)=>x.nome==='Etapa Web')).toHaveLength(1);
+});
 it('publishes state transitions without renderer polling', async () => {
   const f = fixture()
   await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
