@@ -9,7 +9,7 @@ BEGIN
     SELECT 1 FROM frentes_obra e
     WHERE e.id=NEW.frente_id AND e.obra_id=NEW.obra_id AND e.deleted_at IS NULL
   ) THEN RAISE(ABORT,'Etapa deve pertencer à mesma obra da conta.') END;
-  SELECT CASE WHEN NOT EXISTS (
+  SELECT CASE WHEN NEW.subfrente_id IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM subfrentes_obra s
     WHERE s.id=NEW.subfrente_id AND s.frente_id=NEW.frente_id AND s.obra_id=NEW.obra_id AND s.deleted_at IS NULL
   ) THEN RAISE(ABORT,'Subetapa deve pertencer à etapa e à mesma obra.') END;
@@ -21,7 +21,7 @@ BEGIN
     SELECT 1 FROM frentes_obra e
     WHERE e.id=NEW.frente_id AND e.obra_id=NEW.obra_id AND e.deleted_at IS NULL
   ) THEN RAISE(ABORT,'Etapa deve pertencer à mesma obra da conta.') END;
-  SELECT CASE WHEN NOT EXISTS (
+  SELECT CASE WHEN NEW.subfrente_id IS NOT NULL AND NOT EXISTS (
     SELECT 1 FROM subfrentes_obra s
     WHERE s.id=NEW.subfrente_id AND s.frente_id=NEW.frente_id AND s.obra_id=NEW.obra_id AND s.deleted_at IS NULL
   ) THEN RAISE(ABORT,'Subetapa deve pertencer à etapa e à mesma obra.') END;
