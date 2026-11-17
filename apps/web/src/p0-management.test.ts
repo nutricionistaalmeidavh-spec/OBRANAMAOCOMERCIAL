@@ -74,7 +74,7 @@ describe('Gestão Web P0 - transações no navegador',()=>{
   });
   it('solicita criação de subetapa no Desktop e não insere registro operacional falso',async()=>{
     const sample=overview();
-    client.get.mockResolvedValue({data:{...sample,sources:[{deviceId:'desktop-1',name:'Desktop autorizado'}],commands:[]}});
+    client.get.mockResolvedValue({data:{...sample,topology:{mode:'local-single'},sources:[{deviceId:'desktop-1',name:'Desktop autorizado'}],commands:[]}});
     client.post.mockResolvedValue({data:{ok:true,command:{id:'id',status:'pending'}}});
     const root=document.getElementById('content')!;
     await mountP0Management(root,()=>{});
