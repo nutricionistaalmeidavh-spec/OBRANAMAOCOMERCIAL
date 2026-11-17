@@ -23,6 +23,20 @@ describe('P0 gestão web: contratos canônicos', () => {
     expect(cmd.expectedDesktopRevision).toBe(9);
     expect(()=>{if(cmd.expectedRevision!==5)throw new BridgeConflict();}).toThrow(BridgeConflict);
   });
+  it('normaliza avanço percentual e rejeita valores fora do domínio',()=>{
+    const command=assertBridgeEdit({entity:'cronograma_etapas',localId:3,sourceDeviceId:'desktop-a',expectedRevision:1,expectedDesktopRevision:6,patch:{percentual_realizado:'45,5'}});
+    expect(command.patch.percentual_realizado).toBe(45.5);
+    for(const percent of ['101','-1','infinito','NaN']){
+      expect(()=>assertBridgeEdit({entity:'cronograma_etapas',localId:3,sourceDeviceId:'desktop-a',expectedRevision:1,expectedDesktopRevision:6,patch:{percentual_realizado:percent}})).toThrow();
+    }
+  });
+  it('não aceita datas inválidas e proíbe alterar vínculos entre etapas ou obras',()=>{
+    const input={entity:'cronograma_etapas',localId:3,sourceDeviceId:'pc',expectedRevision:1,expectedDesktopRevision:6};
+    expect(()=>assertBridgeEdit({...input,patch:{previsto_fim:'30/11/2026'}})).toThrow();
+    expect(()=>assertBridgeEdit({...input,patch:{previsto_fim:'2026-02-30'}})).toThrow();
+    expect(()=>assertBridgeEdit({...input,patch:{frente_id:999}})).toThrow();
+    expect(assertBridgeEdit({...input,patch:{previsto_fim:'2026-11-30'}}).patch.previsto_fim).toBe('2026-11-30');
+  });
   it('não publica registros removidos ou incompletos na visão operacional',()=>{
     const rows=bridgeRows({tasks:[
       {entity:'tarefas_obra',localId:3,sourceDeviceId:'desktop-a',payload:{titulo:'Ativa'}},
