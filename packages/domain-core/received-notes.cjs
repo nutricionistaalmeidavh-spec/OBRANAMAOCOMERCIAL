@@ -309,7 +309,7 @@ function createReceivedNotesService(db) {
     } catch(error){try{db.exec('ROLLBACK')}catch{}throw error}
   }
 
-  const create = payload => {
+  const validateNotePayload = payload => {
     const work=row('obras',payload?.obra_id,'Obra')
     const obraId=Number(work.id)
     const companyId=positiveId(payload?.empresa_id,'Empresa')
@@ -360,6 +360,10 @@ function createReceivedNotesService(db) {
     const sum=items.reduce((total,item)=>total+item.valor_total_centavos,0)
     if (!Number.isSafeInteger(sum)||sum<=0) throw new Error('O valor total da nota deve ser maior que zero.')
     if (payload.valor_total_centavos!==undefined&&payload.valor_total_centavos!==null&&cents(payload.valor_total_centavos,'Valor total')!==sum) throw new Error('O total da nota diverge da soma de seus itens.')
+    return {obraId,companyId,supplierId,number,serie,emissao,dataRecebimento,requestId,pedidoId,contaId,items,sum}
+  }
+  const create = payload => {
+    const {obraId,companyId,supplierId,number,serie,emissao,dataRecebimento,requestId,pedidoId,contaId,items,sum}=validateNotePayload(payload)
     if (requestId) {
       const replay=db.prepare('SELECT id,empresa_id,obra_id,fornecedor_id,numero,serie,valor_total_centavos FROM notas_recebidas WHERE request_id=?').get(requestId)
       if (replay) {
@@ -383,6 +387,35 @@ function createReceivedNotesService(db) {
       throw error
     }
   }
+  const history = noteId => {
+    read(noteId)
+    return db.prepare('SELECT id,nota_id,revision_anterior,anterior_json,origem,created_at FROM nota_recebida_revisoes WHERE nota_id=? ORDER BY id DESC LIMIT 100').all(positiveId(noteId,'Nota'))
+  }
+  const update = (noteId,payload) => {
+    const id=positiveId(noteId,'Nota')
+    const before=read(id)
+    const revision=Number(payload?.revision)
+    if(!Number.isSafeInteger(revision)||revision!==Number(before.revision)) throw new Error('Esta nota foi atualizada em outra sessão. Recarregue a revisão antes de editar.')
+    if(Number(payload?.obra_id)!==Number(before.obra_id)||Number(payload?.empresa_id)!==Number(before.empresa_id)) throw new Error('Não é permitido alterar a obra ou a empresa da nota.')
+    const {obraId,companyId,supplierId,number,serie,emissao,dataRecebimento,pedidoId,contaId,items,sum}=validateNotePayload(payload)
+    if(obraId!==Number(before.obra_id)||companyId!==Number(before.empresa_id))throw new Error('A nota deve permanecer na mesma obra.')
+    const duplicate=db.prepare('SELECT id FROM notas_recebidas WHERE empresa_id=? AND fornecedor_id=? AND numero=? AND serie=? AND id!=? AND deleted_at IS NULL').get(companyId,supplierId,number,serie,id)
+    if(duplicate)throw new Error('Já existe outra nota com esse fornecedor, número e série.')
+    db.exec('BEGIN IMMEDIATE')
+    try {
+      const current=read(id)
+      if(Number(current.revision)!==revision)throw new Error('A nota já foi atualizada. Reabra antes de salvar.')
+      db.prepare('INSERT INTO nota_recebida_revisoes(nota_id,revision_anterior,anterior_json,origem) VALUES(?,?,?,?)')
+        .run(id,revision,JSON.stringify(current),'edicao_usuario')
+      db.prepare('UPDATE notas_recebidas SET fornecedor_id=?,numero=?,serie=?,emissao=?,data_recebimento=?,valor_total_centavos=?,pedido_compra_id=?,conta_id=?,observacoes=?,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+        .run(supplierId,number,serie,emissao,dataRecebimento,sum,pedidoId,contaId,String(payload?.observacoes||'').trim().slice(0,2000)||null,id)
+      db.prepare('DELETE FROM nota_recebida_itens WHERE nota_id=?').run(id)
+      const insert=db.prepare('INSERT INTO nota_recebida_itens(nota_id,frente_id,subfrente_id,pedido_item_id,descricao,unidade,quantidade,valor_unitario_centavos,valor_total_centavos) VALUES(?,?,?,?,?,?,?,?,?)')
+      for(const item of items)insert.run(id,item.frente_id,item.subfrente_id,item.pedido_item_id,item.descricao,item.unidade,item.quantidade,item.valor_unitario_centavos,item.valor_total_centavos)
+      db.exec('COMMIT')
+      return read(id)
+    }catch(error){try{db.exec('ROLLBACK')}catch{}throw error}
+  }
   const attach = (noteId,documentId) => {
     const nota=read(noteId)
     const document=row('documentos',documentId,'Documento')
@@ -391,6 +424,6 @@ function createReceivedNotesService(db) {
     if (!nota.documento_id) db.prepare('UPDATE notas_recebidas SET documento_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(document.id,nota.id)
     return read(nota.id)
   }
-  return { create,list,read,summary,report,costsOverview,unclassifiedAccounts,assignAccounts,attach }
+  return { create,update,history,list,read,summary,report,costsOverview,unclassifiedAccounts,assignAccounts,attach }
 }
 module.exports={createReceivedNotesService}
