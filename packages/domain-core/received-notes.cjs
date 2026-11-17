@@ -205,6 +205,110 @@ function createReceivedNotesService(db) {
     }
   }
 
+  // Single economic-event projection: account charges and invoice items linked to that
+  // account are reconciled, never added as separate charges. Not cash or stock usage.
+  const costsOverview = filters => {
+    const obraId=positiveId(filters?.obra_id,'Obra')
+    row('obras',obraId,'Obra')
+    const accounts=db.prepare("SELECT id,obra_id,frente_id,subfrente_id,fornecedor_id,valor_centavos,descricao,competencia,status FROM contas WHERE obra_id=? AND tipo='pagar' AND deleted_at IS NULL AND COALESCE(status,'')!='cancelado' ORDER BY id").all(obraId)
+    const accountById=new Map(accounts.map(a=>[Number(a.id),a]))
+    const invoiceRows=db.prepare("SELECT n.id nota_id,n.conta_id,n.numero,i.frente_id,i.subfrente_id,COALESCE(e.nome,'Sem etapa') etapa_nome,COALESCE(s.nome,'Sem subetapa') subetapa_nome,SUM(i.valor_total_centavos) valor_centavos FROM nota_recebida_itens i JOIN notas_recebidas n ON n.id=i.nota_id LEFT JOIN frentes_obra e ON e.id=i.frente_id LEFT JOIN subfrentes_obra s ON s.id=i.subfrente_id WHERE n.obra_id=? AND n.deleted_at IS NULL GROUP BY n.id,n.conta_id,i.frente_id,i.subfrente_id").all(obraId)
+    const coveredByAccount=new Map()
+    const groups=new Map()
+    const keyFor=(front,sub)=>String(front??'')+':'+String(sub??'')
+    function add(front,sub,value,source){
+      const key=keyFor(front,sub)
+      if(!groups.has(key)){
+        const e=front?db.prepare('SELECT nome FROM frentes_obra WHERE id=?').get(front):null
+        const s=sub?db.prepare('SELECT nome FROM subfrentes_obra WHERE id=?').get(sub):null
+        groups.set(key,{frente_id:front??null,subfrente_id:sub??null,etapa_nome:e?.nome||'Sem etapa',subetapa_nome:s?.nome||'Sem subetapa',custos_registrados_centavos:0,contas_centavos:0,notas_centavos:0})
+      }
+      const group=groups.get(key)
+      group.custos_registrados_centavos+=value
+      group[source]+=value
+    }
+    let invoiceTotal=0
+    const notesLinkedTo=new Map()
+    for(const item of invoiceRows){
+      const amount=Number(item.valor_centavos)
+      invoiceTotal+=amount
+      const linked=Number(item.conta_id||0)
+      if(linked&&accountById.has(linked)){
+        coveredByAccount.set(linked,(coveredByAccount.get(linked)||0)+amount)
+        notesLinkedTo.set(linked,(notesLinkedTo.get(linked)||0)+1)
+      }
+      add(item.frente_id,item.subfrente_id,amount,'notas_centavos')
+    }
+    const conciliacoes=[]
+    let accountTotal=0,missing=0,missingSub=0,unmapped=0
+    for(const account of accounts){
+      const amount=Number(account.valor_centavos||0)
+      accountTotal+=amount
+      if(!account.frente_id)missing++
+      else if(!account.subfrente_id)missingSub++
+      const documentTotal=coveredByAccount.get(Number(account.id))||0
+      if(coveredByAccount.has(Number(account.id)) && documentTotal!==amount)
+        conciliacoes.push({conta_id:account.id,valor_conta_centavos:amount,valor_notas_centavos:documentTotal,diferenca_centavos:amount-documentTotal})
+      const residual=Math.max(0,amount-documentTotal)
+      if(residual){
+        add(account.frente_id,account.subfrente_id,residual,'contas_centavos')
+        if(!account.frente_id)unmapped+=residual
+      }
+    }
+    const details=[...groups.values()].sort((a,b)=>a.etapa_nome.localeCompare(b.etapa_nome,'pt-BR')||a.subetapa_nome.localeCompare(b.subetapa_nome,'pt-BR'))
+    const stages=new Map()
+    for(const item of details){
+      const key=item.frente_id??'none'
+      if(!stages.has(key))stages.set(key,{frente_id:item.frente_id,nome:item.etapa_nome,custos_registrados_centavos:0,contas_centavos:0,notas_centavos:0})
+      const stage=stages.get(key)
+      for(const field of ['custos_registrados_centavos','contas_centavos','notas_centavos'])stage[field]+=item[field]
+    }
+    return {escopo:{obra_id:obraId},descricao:'Contas a pagar registradas e notas recebidas sem duplicação; não representa valores pagos ou consumo de estoque.',
+      totais:{contas_centavos:accountTotal,notas_centavos:invoiceTotal,
+        custos_registrados_centavos:details.reduce((sum,item)=>sum+item.custos_registrados_centavos,0),
+        contas_sem_etapa:missing,contas_sem_subetapa:missingSub,custos_sem_etapa_centavos:unmapped},
+      etapas:[...stages.values()],subetapas:details,conciliacoes}
+  }
+  const unclassifiedAccounts = ({obra_id,limit=50,offset=0}={}) => {
+    const obraId=positiveId(obra_id,'Obra')
+    row('obras',obraId,'Obra')
+    const size=Number(limit),from=Number(offset)
+    if(!Number.isSafeInteger(size)||size<1||size>100||!Number.isSafeInteger(from)||from<0||from>1000000)throw new Error('Paginação inválida.')
+    const where="obra_id=? AND tipo='pagar' AND deleted_at IS NULL AND COALESCE(status,'')!='cancelado' AND (frente_id IS NULL OR subfrente_id IS NULL)"
+    const total=Number(db.prepare('SELECT COUNT(*) total FROM contas WHERE '+where).get(obraId).total)
+    return {total,limit:size,offset:from,itens:db.prepare("SELECT id,descricao,competencia,valor_centavos,frente_id,subfrente_id,fornecedor_id FROM contas WHERE "+where+" ORDER BY competencia DESC,id DESC LIMIT ? OFFSET ?").all(obraId,size,from)}
+  }
+  const assignAccounts = payload => {
+    const obraId=positiveId(payload?.obra_id,'Obra')
+    row('obras',obraId,'Obra')
+    const frontId=positiveId(payload?.frente_id,'Etapa')
+    sameWork('frentes_obra',frontId,obraId,'Etapa')
+    const subId=optionalId(payload?.subfrente_id,'Subetapa')
+    if(subId){
+      const sub=sameWork('subfrentes_obra',subId,obraId,'Subetapa')
+      if(Number(sub.frente_id)!==frontId)throw new Error('Subetapa deve pertencer à etapa selecionada.')
+    }
+    const ids=payload?.conta_ids
+    if(!Array.isArray(ids)||ids.length===0||ids.length>100)throw new Error('Selecione de 1 a 100 despesas.')
+    const normalized=ids.map(id=>positiveId(id,'Conta'))
+    if(new Set(normalized).size!==normalized.length)throw new Error('A mesma conta foi selecionada mais de uma vez.')
+    db.exec('BEGIN IMMEDIATE')
+    try {
+      const get=db.prepare('SELECT id,obra_id,tipo,frente_id,subfrente_id,deleted_at FROM contas WHERE id=?')
+      const update=db.prepare('UPDATE contas SET frente_id=?,subfrente_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+      const audit=db.prepare("INSERT INTO custos_classificacoes_historico(conta_id,obra_id,frente_anterior_id,subfrente_anterior_id,frente_nova_id,subfrente_nova_id) VALUES(?,?,?,?,?,?)")
+      for(const id of normalized){
+        const account=get.get(id)
+        if(!account||account.deleted_at||Number(account.obra_id)!==obraId||account.tipo!=='pagar')throw new Error('Todas as contas devem ser despesas ativas da mesma obra.')
+        if(account.frente_id&&account.subfrente_id)throw new Error('Há uma despesa já classificada. Edite-a individualmente para reclassificar.')
+        update.run(frontId,subId,id)
+        audit.run(id,obraId,account.frente_id,account.subfrente_id,frontId,subId)
+      }
+      db.exec('COMMIT')
+      return {updated:normalized.length}
+    } catch(error){try{db.exec('ROLLBACK')}catch{}throw error}
+  }
+
   const create = payload => {
     const work=row('obras',payload?.obra_id,'Obra')
     const obraId=Number(work.id)
@@ -287,6 +391,6 @@ function createReceivedNotesService(db) {
     if (!nota.documento_id) db.prepare('UPDATE notas_recebidas SET documento_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(document.id,nota.id)
     return read(nota.id)
   }
-  return { create,list,read,summary,report,attach }
+  return { create,list,read,summary,report,costsOverview,unclassifiedAccounts,assignAccounts,attach }
 }
 module.exports={createReceivedNotesService}
