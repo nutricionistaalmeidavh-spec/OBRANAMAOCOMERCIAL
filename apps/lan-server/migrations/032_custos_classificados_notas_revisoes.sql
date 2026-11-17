@@ -3,16 +3,24 @@ ALTER TABLE contas ADD COLUMN subfrente_id INTEGER REFERENCES subfrentes_obra(id
 CREATE INDEX IF NOT EXISTS idx_contas_obra_etapa_subetapa ON contas(obra_id,frente_id,subfrente_id,tipo,deleted_at);
 
 CREATE TRIGGER IF NOT EXISTS trg_contas_etapa_subetapa_insert
-BEFORE INSERT ON contas WHEN NEW.subfrente_id IS NOT NULL
+BEFORE INSERT ON contas WHEN NEW.frente_id IS NOT NULL OR NEW.subfrente_id IS NOT NULL
 BEGIN
+  SELECT CASE WHEN NEW.obra_id IS NULL OR NEW.frente_id IS NULL OR NOT EXISTS (
+    SELECT 1 FROM frentes_obra e
+    WHERE e.id=NEW.frente_id AND e.obra_id=NEW.obra_id AND e.deleted_at IS NULL
+  ) THEN RAISE(ABORT,'Etapa deve pertencer à mesma obra da conta.') END;
   SELECT CASE WHEN NOT EXISTS (
     SELECT 1 FROM subfrentes_obra s
     WHERE s.id=NEW.subfrente_id AND s.frente_id=NEW.frente_id AND s.obra_id=NEW.obra_id AND s.deleted_at IS NULL
   ) THEN RAISE(ABORT,'Subetapa deve pertencer à etapa e à mesma obra.') END;
 END;
 CREATE TRIGGER IF NOT EXISTS trg_contas_etapa_subetapa_update
-BEFORE UPDATE OF frente_id,subfrente_id,obra_id ON contas WHEN NEW.subfrente_id IS NOT NULL
+BEFORE UPDATE OF frente_id,subfrente_id,obra_id ON contas WHEN NEW.frente_id IS NOT NULL OR NEW.subfrente_id IS NOT NULL
 BEGIN
+  SELECT CASE WHEN NEW.obra_id IS NULL OR NEW.frente_id IS NULL OR NOT EXISTS (
+    SELECT 1 FROM frentes_obra e
+    WHERE e.id=NEW.frente_id AND e.obra_id=NEW.obra_id AND e.deleted_at IS NULL
+  ) THEN RAISE(ABORT,'Etapa deve pertencer à mesma obra da conta.') END;
   SELECT CASE WHEN NOT EXISTS (
     SELECT 1 FROM subfrentes_obra s
     WHERE s.id=NEW.subfrente_id AND s.frente_id=NEW.frente_id AND s.obra_id=NEW.obra_id AND s.deleted_at IS NULL
