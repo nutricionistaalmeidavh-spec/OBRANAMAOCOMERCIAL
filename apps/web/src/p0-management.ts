@@ -54,7 +54,7 @@ export async function mountP0Management(root:HTMLElement,onBack:()=>void){
     root.querySelector('#p0Back')?.addEventListener('click',onBack);
     root.querySelector('#p0Refresh')?.addEventListener('click',()=>void refresh());
     root.querySelectorAll<HTMLButtonElement>('[data-p0-tab]').forEach(button=>button.addEventListener('click',()=>{tab=button.dataset.p0Tab as Entity;editIndex=-1;message='';draw()}));
-    root.querySelectorAll<HTMLButtonElement>('[data-p0-edit]').forEach(button=>button.addEventListener('click',()=>{editIndex=Number(button.dataset.p0Edit);message='';draw();root.querySelector('#p0EditForm')?.scrollIntoView({block:'nearest'});}));
+    root.querySelectorAll<HTMLButtonElement>('[data-p0-edit]').forEach(button=>button.addEventListener('click',()=>{editIndex=Number(button.dataset.p0Edit);message='';draw();root.querySelector<HTMLElement>('#p0EditForm')?.scrollIntoView?.({block:'nearest'});}));
     root.querySelector('#p0Cancel')?.addEventListener('click',()=>{editIndex=-1;draw()});
     root.querySelector('#p0EditForm')?.addEventListener('submit',event=>{event.preventDefault();void submit(selected!)});
   };
