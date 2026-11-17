@@ -33,7 +33,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
   const notes=useAsync(()=>obraId?window.fluxoDre.compras.notas.list(obraId):Promise.resolve([]),[obraId])
   const summary=useAsync(()=>obraId?window.fluxoDre.compras.notas.summary(obraId):Promise.resolve({etapas:[],total_centavos:0}),[obraId])
 
-  const amount=useMemo(()=>(form?.itens||[]).reduce((sum,item)=>sum+Number(item.quantidade||0)*toCents(item.valor_unitario||'0'),0),[form])
+  const amount=useMemo(()=>(form?.itens||[]).reduce((sum,item)=>sum+Math.round(Number(item.quantidade||0)*toCents(item.valor_unitario||'0')),0),[form])
   function itemChange(index:number,patch:Partial<NoteItem>){
     setForm(current=>{
       if(!current) return null
@@ -254,7 +254,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
             setAttachment(selected)
           }}/><small>{form?.documento_id?'Esta nota já possui um documento; o anexo existente será preservado.':attachment?'Selecionado: '+attachment.name:'O arquivo será enviado depois de salvar a nota. Limite de 12 MB.'}</small></Field>
           <Field label="Observações" wide><textarea value={form?.observacoes||''} onChange={e=>setForm({...form!,observacoes:e.target.value})}/></Field>
-          <div className="field-wide"><strong>Total da nota: {brl(Math.round(amount))}</strong><p style={{fontSize:12,color:'#647084'}}>Salvar a nota não gera contas ou entrada de estoque. Vincule apenas registros já existentes.</p></div>
+          <div className="field-wide"><strong>Total da nota: {brl(Math.round(amount))}</strong><p style={{fontSize:12,color:'#647084'}}>Salvar a nota não gera contas ou entrada de estoque. Se essa compra já foi importada no financeiro, vincule a conta existente para evitar custos duplicados.</p></div>
           {error&&<p role="alert" className="field-wide" style={{color:'#b42318'}}>{error}</p>}
         </div>
         <FormActions onCancel={()=>setForm(null)} submitLabel={form?.id?"Salvar alterações":"Salvar nota recebida"} loading={saving}/>
