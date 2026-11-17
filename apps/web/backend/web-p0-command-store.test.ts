@@ -1,5 +1,7 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
-import { DatabaseSync } from 'node:sqlite';
+import { createRequire } from 'node:module';
+const require=createRequire(import.meta.url);
+const {DatabaseSync}=require('node:sqlite');
 
 const state=vi.hoisted(()=>({env:null as any}));
 vi.mock('../cloudflare/sdk',()=>({
@@ -21,7 +23,7 @@ vi.mock('../cloudflare/sdk',()=>({
 }));
 import {enqueueWebP0Command,pendingWebP0Commands,ackWebP0Command,listWebP0Commands} from './web-p0-command-store';
 
-let database:DatabaseSync;
+let database:any;
 beforeEach(()=>{
  database=new DatabaseSync(':memory:');
  database.exec("CREATE TABLE kv_records(collection TEXT NOT NULL,id TEXT NOT NULL,record_json TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(collection,id))");
