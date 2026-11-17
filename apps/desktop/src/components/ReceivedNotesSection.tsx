@@ -279,6 +279,14 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
           <strong>Versão anterior {revision.revision_anterior}</strong>
           <p>Registrada em {revision.created_at} — Nota {previous.numero} — {brl(previous.valor_total_centavos)}</p>
           <small>{previous.itens?.length||0} item(ns) anteriores preservados</small>
+          <div className="table-wrap" style={{marginTop:8}}><table className="data-table">
+            <thead><tr><th>Descrição anterior</th><th>Quantidade</th><th>Preço unitário</th><th>Etapa / subetapa</th></tr></thead>
+            <tbody>{previous.itens?.map((item:any)=><tr key={item.id||item.descricao}>
+              <td>{item.descricao}</td><td>{item.quantidade} {item.unidade}</td>
+              <td>{brl(item.valor_unitario_centavos)}</td>
+              <td>{item.frente_id||'Sem etapa'} / {item.subfrente_id||'Sem subetapa'}</td>
+            </tr>)}</tbody>
+          </table></div>
         </div>
       }):<Empty title="Nenhuma alteração anterior" description="As revisões da nota serão exibidas aqui."/>}
     </div>
