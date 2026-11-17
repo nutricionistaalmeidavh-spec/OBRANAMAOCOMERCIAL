@@ -489,7 +489,13 @@ function createReceivedNotesService(db) {
     const revision=Number(payload?.revision)
     if(!Number.isSafeInteger(revision)||revision!==Number(before.revision)) throw new Error('Esta nota foi atualizada em outra sessão. Recarregue a revisão antes de editar.')
     if(Number(payload?.obra_id)!==Number(before.obra_id)||Number(payload?.empresa_id)!==Number(before.empresa_id)) throw new Error('Não é permitido alterar a obra ou a empresa da nota.')
-    const {obraId,companyId,supplierId,number,serie,emissao,dataRecebimento,pedidoId,contaId,items,sum}=validateNotePayload(payload)
+    // A form opened from a saved row may carry the previous derived total.
+    // Recompute it from the edited lines while still rejecting any newly supplied,
+    // inconsistent explicit total.
+    const input=Number(payload.valor_total_centavos)===Number(before.valor_total_centavos)
+      ? {...payload,valor_total_centavos:undefined}
+      : payload
+    const {obraId,companyId,supplierId,number,serie,emissao,dataRecebimento,pedidoId,contaId,items,sum}=validateNotePayload(input)
     if(obraId!==Number(before.obra_id)||companyId!==Number(before.empresa_id))throw new Error('A nota deve permanecer na mesma obra.')
     const duplicate=db.prepare('SELECT id FROM notas_recebidas WHERE empresa_id=? AND fornecedor_id=? AND numero=? AND serie=? AND id!=? AND deleted_at IS NULL').get(companyId,supplierId,number,serie,id)
     if(duplicate)throw new Error('Já existe outra nota com esse fornecedor, número e série.')
