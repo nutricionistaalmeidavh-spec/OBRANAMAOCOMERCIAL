@@ -13,9 +13,10 @@ async function loadFieldRdoImporter() {
   return FieldRdoImport
 }
 
-const BRIDGE = { frentes_obra: 'fronts', tarefas_obra: 'tasks', rdos: 'rdos', cronograma_etapas: 'schedule' }
+const BRIDGE = { frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', rdos: 'rdos', cronograma_etapas: 'schedule' }
 const EDITABLE = {
-  frentes_obra: ['status', 'observacoes'],
+  frentes_obra: ['nome','codigo','status', 'observacoes'],
+  subfrentes_obra: ['nome','codigo','pavimento','escopo','status','observacoes'],
   tarefas_obra: ['status', 'responsavel', 'prazo', 'prioridade', 'descricao', 'observacoes', 'titulo', 'concluido_em'],
   rdos: ['status', 'clima', 'atividades', 'observacoes'],
   cronograma_etapas: ['status', 'percentual_realizado', 'observacoes', 'responsavel', 'previsto_inicio', 'previsto_fim']
