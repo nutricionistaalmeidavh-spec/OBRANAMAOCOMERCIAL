@@ -100,7 +100,18 @@ try{
     await shot('07-rdo-photo-uploaded');
     await page.locator('#confirmRdoPhotos').click();
     await page.locator('#reviewRdo').click();await page.locator('#prepareRdo').waitFor({state:'visible'});
-    await shot('08-rdo-five-step-review');const rdoSaved=nextSnapshotSync();await page.locator('#prepareRdo').click();await waitForSnapshotSync('RDO closure with photos and materials',rdoSaved);
+    await shot('08-rdo-five-step-review');
+    // The previous action may still be autosyncing. Match the RDO closure snapshot,
+    // not an earlier successful PUT from materials/photos, which can race in CI.
+    const rdoSaved=page.waitForResponse(response=>{
+      if(response.request().method()!=='PUT'||new URL(response.url()).pathname!=='/api/project/state'||!response.ok())return false;
+      try{
+        const saved=response.request().postDataJSON()?.state?.days?.[today];
+        return saved?.rdoStatus==='ready_for_desktop'&&Array.isArray(saved.photos)&&saved.photos.length===1;
+      }catch{return false}
+    },{timeout:10000});
+    await page.locator('#prepareRdo').click();
+    await waitForSnapshotSync('RDO closure with photos and materials',rdoSaved);
     await page.getByText('Pendente de integração').first().waitFor({state:'visible'});
     const result=state.days[today];
     if(result?.materials?.[0]?.material_id!=='mat_aaaaaaaaaaaaaaaaaaaaaaaa'||result.materials[0].frente_id!==1||result.materials[0].servico!=='afaq')
