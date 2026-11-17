@@ -175,6 +175,21 @@ class LanDataClient {
   async receivedNotesReport(filters) {
     return this.request('GET','/api/v1/received-notes/report',{query:filters})
   }
+  async receivedCostsOverview(filters) {
+    return this.request('GET','/api/v1/received-notes/costs',{query:filters})
+  }
+  async unclassifiedAccounts(filters) {
+    return this.request('GET','/api/v1/received-notes/unclassified',{query:filters})
+  }
+  async classifyAccounts(payload) {
+    return this.request('POST','/api/v1/received-notes/classify',{body:payload})
+  }
+  async receivedNotesUpdate(id,payload) {
+    return this.request('PUT','/api/v1/received-notes/'+Number(id),{body:payload})
+  }
+  async receivedNoteHistory(id) {
+    return this.request('GET','/api/v1/received-notes/'+Number(id)+'/history')
+  }
   async receivedNotesCreate(payload) {
     return this.request('POST','/api/v1/received-notes',{body:payload})
   }
