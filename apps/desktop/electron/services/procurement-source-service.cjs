@@ -85,6 +85,36 @@ class ProcurementSourceService {
     if(state==='central-active')return this.lanClient.receivedNotesReport(filters)
     return this.blocked()
   }
+  async receivedCostsOverview(filters){
+    const state=this.state()
+    if(state==='local'||state==='migration-required')return this.notes.costsOverview(filters)
+    if(state==='central-active')return this.lanClient.receivedCostsOverview(filters)
+    return this.blocked()
+  }
+  async unclassifiedAccounts(filters){
+    const state=this.state()
+    if(state==='local'||state==='migration-required')return this.notes.unclassifiedAccounts(filters)
+    if(state==='central-active')return this.lanClient.unclassifiedAccounts(filters)
+    return this.blocked()
+  }
+  async classifyAccounts(payload){
+    const state=this.state()
+    if(state==='local'||state==='migration-required')return this.notes.assignAccounts(payload)
+    if(state==='central-active')return this.lanClient.classifyAccounts(payload)
+    return this.blocked()
+  }
+  async updateReceivedNote(id,payload){
+    const state=this.state()
+    if(state==='local'||state==='migration-required')return this.notes.update(id,payload)
+    if(state==='central-active')return this.lanClient.receivedNotesUpdate(id,payload)
+    return this.blocked()
+  }
+  async receivedNoteHistory(id){
+    const state=this.state()
+    if(state==='local'||state==='migration-required')return this.notes.history(id)
+    if(state==='central-active')return this.lanClient.receivedNoteHistory(id)
+    return this.blocked()
+  }
   async createReceivedNote(payload) {
     const state=this.state()
     if (state==='local'||state==='migration-required') return this.notes.create(payload)

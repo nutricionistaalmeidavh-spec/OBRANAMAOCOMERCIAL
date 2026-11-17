@@ -1,5 +1,6 @@
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button, Card, Empty, Field, Loading } from './ui'
 import { useAsync } from '../hooks/useAsync'
 import { brDate, brl, today } from '../utils/format'
@@ -17,7 +18,15 @@ const alertText=(state:string)=>({
 
 /** Report on recorded RECEIVED invoices only, not payments, cash flow or stock consumption. */
 export default function ReceivedCostsReport({obraId,revision=0}:{obraId:number|null;revision?:number}) {
-  const [opened,setOpened]=useState(false)
+  const [opened,setOpened]=useState(()=>new URLSearchParams(location.search).get('relatorio')==='custos')
+  const [batchStage,setBatchStage]=useState('')
+  const [batchSubstage,setBatchSubstage]=useState('')
+  const [selectedAccounts,setSelectedAccounts]=useState<number[]>([])
+  const [batchRevision,setBatchRevision]=useState(0)
+  const [batchPage,setBatchPage]=useState(0)
+  const [batchSaving,setBatchSaving]=useState(false)
+  const [batchMessage,setBatchMessage]=useState('')
+  const [batchError,setBatchError]=useState('')
   const [filters,setFilters]=useState<Filters>(initialFilters)
   const [offset,setOffset]=useState(0)
   const limit=25
@@ -37,6 +46,24 @@ export default function ReceivedCostsReport({obraId,revision=0}:{obraId:number|n
     fornecedor_id:filters.fornecedor_id?Number(filters.fornecedor_id):null,
     limit,offset
   }):Promise.resolve(null),[opened,obraId,filters.data_inicio,filters.data_fim,filters.frente_id,filters.subfrente_id,filters.fornecedor_id,offset,revision])
+  const costs=useAsync(()=>opened&&obraId?window.fluxoDre.compras.notas.costs({obra_id:obraId}):Promise.resolve(null),[opened,obraId,revision,batchRevision])
+  const missing=useAsync(()=>opened&&obraId?window.fluxoDre.compras.notas.unclassified({obra_id:obraId,limit:50,offset:batchPage*50}):Promise.resolve(null),[opened,obraId,batchPage,batchRevision])
+  async function applyClassification(){
+    if(!obraId||!batchStage||!selectedAccounts.length||batchSaving)return
+    setBatchSaving(true)
+    setBatchError('')
+    try{
+      const saved=await window.fluxoDre.compras.notas.classify({
+        obra_id:obraId,conta_ids:selectedAccounts,frente_id:Number(batchStage),
+        subfrente_id:batchSubstage?Number(batchSubstage):null
+      })
+      setBatchMessage(saved.updated+' despesa(s) classificadas sem recriar lançamentos.')
+      setSelectedAccounts([])
+      setBatchPage(0)
+      setBatchRevision(x=>x+1)
+    }catch(e){setBatchError(e instanceof Error?e.message:'Falha ao classificar despesas.')}
+    finally{setBatchSaving(false)}
+  }
   const result=report.data
 
   return <Card style={{marginTop:14}}>
@@ -74,6 +101,63 @@ export default function ReceivedCostsReport({obraId,revision=0}:{obraId:number|n
       </div>
       {report.error&&<p role="alert" style={{color:'#b42318',marginTop:12}}>Não foi possível carregar o relatório: {report.error.message}</p>}
       {report.loading?<Loading/>:result&&<div style={{marginTop:16}}>
+        <div style={{border:'1px solid #d7dce5',borderRadius:10,padding:14,marginBottom:18}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
+            <h3>Custos registrados na obra — consolidado</h3>
+            <Link to={obraId?'/financeiro?obra='+obraId:'/financeiro'}>Abrir contas importadas</Link>
+          </div>
+          <p style={{fontSize:12,color:'#64748b'}}>Total registrado = contas a pagar + valores de notas, reconciliando as compras que estiverem vinculadas. Não é o total pago ou material consumido. Este consolidado considera toda a obra, independentemente dos filtros de emissão das notas abaixo.</p>
+          {costs.error&&<p role="alert" style={{color:'#b42318'}}>{costs.error.message}</p>}
+          {costs.loading?<Loading/>:costs.data&&<>
+            <div className="metrics">
+              <div className="metric"><span>Custos registrados</span><strong>{money(costs.data.totais.custos_registrados_centavos)}</strong></div>
+              <div className="metric"><span>Orçamento total</span><strong>{money(costs.data.totais.orcamento_centavos)}</strong></div>
+              <div className="metric"><span>Desvio registrado</span><strong>{money(costs.data.totais.desvio_centavos)}</strong></div>
+              <div className="metric"><span>Contas a pagar</span><strong>{money(costs.data.totais.contas_centavos)}</strong></div>
+              <div className="metric"><span>Notas documentadas</span><strong>{money(costs.data.totais.notas_centavos)}</strong></div>
+              <div className="metric"><span>Despesas sem etapa</span><strong>{costs.data.totais.contas_sem_etapa}</strong></div>
+            </div>
+            <div className="table-wrap"><table className="data-table">
+              <thead><tr><th>Etapa</th><th>Subetapa</th><th>Orçado</th><th>Custos registrados</th><th>Desvio</th><th>Origem em contas*</th><th>Origem em notas*</th></tr></thead>
+              <tbody>{costs.data.subetapas.map((line:any)=><tr key={String(line.frente_id??'geral')+'-'+String(line.subfrente_id??'geral')}>
+                <td>{line.etapa_nome}</td><td>{line.subetapa_nome}</td>
+                <td>{money(line.orcamento_centavos)}</td><td><strong>{money(line.custos_registrados_centavos)}</strong></td><td>{money(line.desvio_centavos)}</td>
+                <td>{money(line.contas_centavos)}</td><td>{money(line.notas_centavos)}</td>
+              </tr>)}</tbody>
+            </table></div>
+            <p style={{fontSize:12,color:'#64748b'}}>* Origem em contas representa valores não cobertos por notas vinculadas; origem em notas representa os itens das notas. A soma das duas origens forma o consolidado sem duplicação.</p>
+            {!!costs.data.totais.notas_sem_conta&&<p role="status" style={{fontSize:13,color:'#9a6700'}}>
+              {costs.data.totais.notas_sem_conta} nota(s) sem conta vinculada, totalizando {money(costs.data.totais.notas_sem_conta_centavos)}.
+              Caso essas compras também tenham sido importadas como contas, vincule os registros na edição da nota para evitar duplicidade.
+            </p>}
+            {!!costs.data.conciliacoes.length&&<p role="status" style={{color:'#9a6700',fontSize:13}}>Atenção: {costs.data.conciliacoes.length} conta(s) têm valores diferentes dos documentos vinculados. Verifique essas diferenças antes de usar o relatório para fechamento financeiro.</p>}
+          </>}
+          <h3 style={{marginTop:16}}>Classificar despesas importadas sem etapa</h3>
+          <p style={{fontSize:12,color:'#64748b'}}>Selecione contas já cadastradas e associe-as a uma etapa/subetapa. Nenhuma despesa, pagamento ou nota será recriado. Os lançamentos que já possuem etapa podem ser ajustados individualmente em Contas.</p>
+          <div className="form-grid">
+            <Field label="Etapa para as despesas selecionadas"><select value={batchStage} onChange={e=>{setBatchStage(e.target.value);setBatchSubstage('')}}>
+              <option value="">Selecione a etapa</option>{stages.data?.map((stage:any)=><option key={stage.id} value={stage.id}>{stage.nome}</option>)}
+            </select></Field>
+            <Field label="Subetapa (opcional)"><select disabled={!batchStage} value={batchSubstage} onChange={e=>setBatchSubstage(e.target.value)}>
+              <option value="">Sem subetapa</option>{substages.data?.filter((sub:any)=>String(sub.frente_id)===batchStage).map((sub:any)=><option key={sub.id} value={sub.id}>{sub.nome}</option>)}
+            </select></Field>
+          </div>
+          {missing.loading?<Loading/>:missing.data?.itens?.length?<div className="table-wrap"><table className="data-table">
+            <thead><tr><th>Selecionar</th><th>Descrição</th><th>Competência</th><th>Valor</th></tr></thead>
+            <tbody>{missing.data.itens.map((account:any)=><tr key={account.id}>
+              <td><input aria-label={'Selecionar despesa '+account.descricao} type="checkbox" checked={selectedAccounts.includes(account.id)} onChange={e=>setSelectedAccounts(previous=>e.target.checked?[...previous,account.id]:previous.filter(id=>id!==account.id))}/></td>
+              <td>{account.descricao}</td><td>{account.competencia}</td><td>{money(account.valor_centavos)}</td>
+            </tr>)}</tbody>
+          </table></div>:<Empty title="Sem despesas pendentes de classificação" description="As contas desta obra já possuem etapa, ou não há contas a pagar."/>}
+          <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginTop:12}}>
+            <Button disabled={!selectedAccounts.length||!batchStage||batchSaving} onClick={applyClassification}>Classificar {selectedAccounts.length} despesa(s)</Button>
+            <Button variant="secondary" disabled={batchPage===0} onClick={()=>{setSelectedAccounts([]);setBatchPage(x=>Math.max(0,x-1))}}>Anterior</Button>
+            <Button variant="secondary" disabled={!missing.data||((batchPage+1)*50>=missing.data.total)} onClick={()=>{setSelectedAccounts([]);setBatchPage(x=>x+1)}}>Próximas 50</Button>
+            <small>{missing.data?.total||0} lançamento(s) a classificar</small>
+          </div>
+          {batchError&&<p role="alert" style={{color:'#b42318'}}>{batchError}</p>}
+          {batchMessage&&<p role="status" style={{color:'#216e3a'}}>{batchMessage}</p>}
+        </div>
         <div className="metrics" aria-label="Indicadores de notas e orçamento">
           <div className="metric"><span>Notas emitidas no período</span><strong>{money(result.indicadores.documentado_periodo_centavos)}</strong></div>
           <div className="metric"><span>Notas acumuladas até a data final</span><strong>{money(result.indicadores.documentado_ate_fim_centavos)}</strong></div>

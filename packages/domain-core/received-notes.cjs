@@ -205,7 +205,203 @@ function createReceivedNotesService(db) {
     }
   }
 
-  const create = payload => {
+  // Single economic-event projection: account charges and invoice items linked to that
+  // account are reconciled, never added as separate charges. Not cash or stock usage.
+  const costsOverview = filters => {
+    const obraId=positiveId(filters?.obra_id,'Obra')
+    row('obras',obraId,'Obra')
+    const accounts=db.prepare("SELECT id,obra_id,frente_id,subfrente_id,fornecedor_id,valor_centavos,descricao,competencia,status FROM contas WHERE obra_id=? AND tipo='pagar' AND deleted_at IS NULL AND COALESCE(status,'')!='cancelado' ORDER BY id").all(obraId)
+    const accountById=new Map(accounts.map(a=>[Number(a.id),a]))
+    const invoiceRows=db.prepare("SELECT n.id nota_id,n.conta_id,n.numero,i.frente_id,i.subfrente_id,COALESCE(e.nome,'Sem etapa') etapa_nome,COALESCE(s.nome,'Sem subetapa') subetapa_nome,SUM(i.valor_total_centavos) valor_centavos FROM nota_recebida_itens i JOIN notas_recebidas n ON n.id=i.nota_id LEFT JOIN frentes_obra e ON e.id=i.frente_id LEFT JOIN subfrentes_obra s ON s.id=i.subfrente_id WHERE n.obra_id=? AND n.deleted_at IS NULL GROUP BY n.id,n.conta_id,i.frente_id,i.subfrente_id").all(obraId)
+    const coveredByAccount=new Map()
+    const groups=new Map()
+    const keyFor=(front,sub)=>String(front??'')+':'+String(sub??'')
+    function add(front,sub,value,source){
+      const key=keyFor(front,sub)
+      if(!groups.has(key)){
+        const e=front?db.prepare('SELECT nome FROM frentes_obra WHERE id=?').get(front):null
+        const s=sub?db.prepare('SELECT nome FROM subfrentes_obra WHERE id=?').get(sub):null
+        groups.set(key,{frente_id:front??null,subfrente_id:sub??null,etapa_nome:e?.nome||'Sem etapa',subetapa_nome:s?.nome||'Sem subetapa',custos_registrados_centavos:0,contas_centavos:0,notas_centavos:0})
+      }
+      const group=groups.get(key)
+      group.custos_registrados_centavos+=value
+      group[source]+=value
+    }
+    const unlinkedNotes=new Set()
+    let unlinkedNoteTotal=0
+    let invoiceTotal=0
+    const notesLinkedTo=new Map()
+    for(const item of invoiceRows){
+      const amount=Number(item.valor_centavos)
+      invoiceTotal+=amount
+      if(!item.conta_id){unlinkedNotes.add(Number(item.nota_id));unlinkedNoteTotal+=amount}
+      const linked=Number(item.conta_id||0)
+      if(linked&&accountById.has(linked)){
+        coveredByAccount.set(linked,(coveredByAccount.get(linked)||0)+amount)
+        notesLinkedTo.set(linked,(notesLinkedTo.get(linked)||0)+1)
+      }
+      add(item.frente_id,item.subfrente_id,amount,'notas_centavos')
+    }
+    const conciliacoes=[]
+    let accountTotal=0,missing=0,missingSub=0,unmapped=0
+    for(const account of accounts){
+      const amount=Number(account.valor_centavos||0)
+      accountTotal+=amount
+      if(!account.frente_id)missing++
+      else if(!account.subfrente_id)missingSub++
+      const documentTotal=coveredByAccount.get(Number(account.id))||0
+      if(coveredByAccount.has(Number(account.id)) && documentTotal!==amount)
+        conciliacoes.push({conta_id:account.id,valor_conta_centavos:amount,valor_notas_centavos:documentTotal,diferenca_centavos:amount-documentTotal})
+      const residual=Math.max(0,amount-documentTotal)
+      if(residual){
+        add(account.frente_id,account.subfrente_id,residual,'contas_centavos')
+        if(!account.frente_id)unmapped+=residual
+      }
+    }
+    // Budgets exist at stage scope and, optionally, directly at substage scope.
+    // Never pro-rate stage-only budgets into individual substages.
+    const budgets=db.prepare("SELECT frente_id,subfrente_id,SUM(CAST(ROUND(quantidade*valor_unitario_centavos,0) AS INTEGER)) AS orcamento_centavos FROM itens_orcamentarios WHERE obra_id=? AND deleted_at IS NULL GROUP BY frente_id,subfrente_id").all(obraId)
+    const budgetKeys=new Set()
+    for(const budget of budgets){
+      const key=keyFor(budget.frente_id,budget.subfrente_id)
+      add(budget.frente_id,budget.subfrente_id,0,'notas_centavos')
+      const group=groups.get(key)
+      group.orcamento_centavos=Number(budget.orcamento_centavos)
+      budgetKeys.add(key)
+    }
+    const details=[...groups.values()].map(item=>{
+      const hasBudget=budgetKeys.has(keyFor(item.frente_id,item.subfrente_id))
+      const budget=hasBudget?item.orcamento_centavos:null
+      const diff=hasBudget?item.custos_registrados_centavos-budget:null
+      return {...item,orcamento_centavos:budget,desvio_centavos:diff,
+        alerta:!hasBudget?'sem_orcamento_especifico':diff>0?'acima_do_orcamento':'dentro_do_orcamento'}
+    }).sort((a,b)=>a.etapa_nome.localeCompare(b.etapa_nome,'pt-BR')||a.subetapa_nome.localeCompare(b.subetapa_nome,'pt-BR'))
+    const stages=new Map()
+    for(const item of details){
+      const key=item.frente_id??'none'
+      if(!stages.has(key))stages.set(key,{frente_id:item.frente_id,nome:item.etapa_nome,
+        custos_registrados_centavos:0,contas_centavos:0,notas_centavos:0,orcamento_centavos:0})
+      const stage=stages.get(key)
+      for(const field of ['custos_registrados_centavos','contas_centavos','notas_centavos'])stage[field]+=item[field]
+      stage.orcamento_centavos+=item.orcamento_centavos??0
+    }
+    for(const stage of stages.values()){
+      stage.desvio_centavos=stage.custos_registrados_centavos-stage.orcamento_centavos
+      stage.alerta=stage.orcamento_centavos===0&&stage.custos_registrados_centavos>0?'sem_orcamento':stage.desvio_centavos>0?'acima_do_orcamento':'dentro_do_orcamento'
+    }
+    const totalBudget=budgets.reduce((sum,item)=>sum+Number(item.orcamento_centavos||0),0)
+    const totalRegistered=details.reduce((sum,item)=>sum+item.custos_registrados_centavos,0)
+    return {escopo:{obra_id:obraId},descricao:'Contas a pagar registradas e notas recebidas sem duplicação quando as notas estão vinculadas às contas; notas sem vínculo não são conciliadas automaticamente. Não representa valores pagos ou consumo de estoque.',
+      totais:{contas_centavos:accountTotal,notas_centavos:invoiceTotal,notas_sem_conta:unlinkedNotes.size,notas_sem_conta_centavos:unlinkedNoteTotal,
+        custos_registrados_centavos:totalRegistered,orcamento_centavos:totalBudget,desvio_centavos:totalRegistered-totalBudget,
+        contas_sem_etapa:missing,contas_sem_subetapa:missingSub,custos_sem_etapa_centavos:unmapped},
+      etapas:[...stages.values()],subetapas:details,conciliacoes}
+  }
+  // Four independent finance metrics; never add them together.
+  // Competence filters apply to the associated payable account, while the
+  // separate documentary amount is filtered by the note issue month.
+  const financialSummary = (filters={}) => {
+    const workId=positiveId(filters.obra_id,'Obra')
+    row('obras',workId,'Obra')
+    const start=filters.competencia_inicio?required(filters.competencia_inicio,'Competência inicial',7):null
+    const end=filters.competencia_fim?required(filters.competencia_fim,'Competência final',7):null
+    if(start&&!/^\d{4}-(0[1-9]|1[0-2])$/.test(start))throw new Error('Competência inicial inválida.')
+    if(end&&!/^\d{4}-(0[1-9]|1[0-2])$/.test(end))throw new Error('Competência final inválida.')
+    if(start&&end&&start>end)throw new Error('Período de competência inválido.')
+    const aWhere=["c.obra_id=?","c.tipo='pagar'","c.deleted_at IS NULL","COALESCE(c.status,'')!='cancelado'"],aParams=[workId]
+    if(start){aWhere.push('c.competencia>=?');aParams.push(start)}
+    if(end){aWhere.push('c.competencia<=?');aParams.push(end)}
+    const accounts=db.prepare('SELECT c.id,c.frente_id,c.subfrente_id,c.valor_centavos,COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0) pago_centavos FROM contas c WHERE '+aWhere.join(' AND ')).all(...aParams)
+    const docWhere=['n.obra_id=?','n.deleted_at IS NULL'],docParams=[workId]
+    if(start){docWhere.push('substr(n.emissao,1,7)>=?');docParams.push(start)}
+    if(end){docWhere.push('substr(n.emissao,1,7)<=?');docParams.push(end)}
+    const invoiceLines=db.prepare('SELECT i.frente_id,i.subfrente_id,SUM(i.valor_total_centavos) valor_centavos FROM nota_recebida_itens i JOIN notas_recebidas n ON n.id=i.nota_id WHERE '+docWhere.join(' AND ')+' GROUP BY i.frente_id,i.subfrente_id').all(...docParams)
+    const budgets=db.prepare("SELECT frente_id,subfrente_id,SUM(CAST(ROUND(quantidade*valor_unitario_centavos,0) AS INTEGER)) orcado_centavos FROM itens_orcamentarios WHERE obra_id=? AND deleted_at IS NULL GROUP BY frente_id,subfrente_id").all(workId)
+    const keys=new Map()
+    const nameCache=new Map()
+    const names=(front,sub)=>{
+      const key=(front??'none')+':'+(sub??'none')
+      if(!nameCache.has(key)){
+        const f=front?db.prepare('SELECT nome FROM frentes_obra WHERE id=?').get(front):null
+        const s=sub?db.prepare('SELECT nome FROM subfrentes_obra WHERE id=?').get(sub):null
+        nameCache.set(key,{etapa_nome:f?.nome||'Sem etapa',subetapa_nome:s?.nome||'Sem subetapa'})
+      }
+      return nameCache.get(key)
+    }
+    function track(front,sub,field,amount){
+      const key=(front??'none')+':'+(sub??'none')
+      if(!keys.has(key))keys.set(key,{frente_id:front??null,subfrente_id:sub??null,
+        ...names(front,sub),orcado_centavos:0,comprometido_centavos:0,pago_centavos:0,documentado_centavos:0})
+      keys.get(key)[field]+=Number(amount||0)
+    }
+    for(const b of budgets)track(b.frente_id,b.subfrente_id,'orcado_centavos',b.orcado_centavos)
+    for(const a of accounts){
+      track(a.frente_id,a.subfrente_id,'comprometido_centavos',a.valor_centavos)
+      track(a.frente_id,a.subfrente_id,'pago_centavos',a.pago_centavos)
+    }
+    for(const i of invoiceLines)track(i.frente_id,i.subfrente_id,'documentado_centavos',i.valor_centavos)
+    const substages=[...keys.values()]
+    const stageMap=new Map()
+    for(const item of substages){
+      const key=item.frente_id??'none'
+      if(!stageMap.has(key))stageMap.set(key,{frente_id:item.frente_id,nome:item.etapa_nome,orcado_centavos:0,comprometido_centavos:0,pago_centavos:0,documentado_centavos:0})
+      const target=stageMap.get(key)
+      for(const field of ['orcado_centavos','comprometido_centavos','pago_centavos','documentado_centavos'])target[field]+=item[field]
+    }
+    const totals={orcado_centavos:0,comprometido_centavos:0,pago_centavos:0,documentado_centavos:0}
+    for(const stage of stageMap.values())for(const field of Object.keys(totals))totals[field]+=stage[field]
+    const missing=accounts.filter(a=>!a.frente_id)
+    return {
+      escopo:{obra_id:workId,competencia_inicio:start,competencia_fim:end},
+      metrica_comprometido:'Soma das contas a pagar registradas, não canceladas, na competência.',
+      metrica_pago:'Pagamentos registrados nas contas abrangidas pela competência, sem somar o valor da conta novamente.',
+      metrica_documentado:'Itens de notas recebidas pela competência da data de emissão; não são contas pagas.',
+      avisos:['Valores de contas e notas documentadas não são somados entre si como se fossem despesas diferentes; vincule a conta quando representarem a mesma compra.'],
+      totais:totals,etapas:[...stageMap.values()],subetapas:substages,
+      sem_classificacao:{quantidade:missing.length,valor_centavos:missing.reduce((sum,a)=>sum+Number(a.valor_centavos||0),0)}
+    }
+  }
+  const unclassifiedAccounts = ({obra_id,limit=50,offset=0}={}) => {
+    const obraId=positiveId(obra_id,'Obra')
+    row('obras',obraId,'Obra')
+    const size=Number(limit),from=Number(offset)
+    if(!Number.isSafeInteger(size)||size<1||size>100||!Number.isSafeInteger(from)||from<0||from>1000000)throw new Error('Paginação inválida.')
+    const where="obra_id=? AND tipo='pagar' AND deleted_at IS NULL AND COALESCE(status,'')!='cancelado' AND frente_id IS NULL"
+    const total=Number(db.prepare('SELECT COUNT(*) total FROM contas WHERE '+where).get(obraId).total)
+    return {total,limit:size,offset:from,itens:db.prepare("SELECT id,descricao,competencia,valor_centavos,frente_id,subfrente_id,fornecedor_id FROM contas WHERE "+where+" ORDER BY competencia DESC,id DESC LIMIT ? OFFSET ?").all(obraId,size,from)}
+  }
+  const assignAccounts = payload => {
+    const obraId=positiveId(payload?.obra_id,'Obra')
+    row('obras',obraId,'Obra')
+    const frontId=positiveId(payload?.frente_id,'Etapa')
+    sameWork('frentes_obra',frontId,obraId,'Etapa')
+    const subId=optionalId(payload?.subfrente_id,'Subetapa')
+    if(subId){
+      const sub=sameWork('subfrentes_obra',subId,obraId,'Subetapa')
+      if(Number(sub.frente_id)!==frontId)throw new Error('Subetapa deve pertencer à etapa selecionada.')
+    }
+    const ids=payload?.conta_ids
+    if(!Array.isArray(ids)||ids.length===0||ids.length>100)throw new Error('Selecione de 1 a 100 despesas.')
+    const normalized=ids.map(id=>positiveId(id,'Conta'))
+    if(new Set(normalized).size!==normalized.length)throw new Error('A mesma conta foi selecionada mais de uma vez.')
+    db.exec('BEGIN IMMEDIATE')
+    try {
+      const get=db.prepare('SELECT id,obra_id,tipo,frente_id,subfrente_id,deleted_at FROM contas WHERE id=?')
+      const update=db.prepare('UPDATE contas SET frente_id=?,subfrente_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+      const audit=db.prepare("INSERT INTO custos_classificacoes_historico(conta_id,obra_id,frente_anterior_id,subfrente_anterior_id,frente_nova_id,subfrente_nova_id) VALUES(?,?,?,?,?,?)")
+      for(const id of normalized){
+        const account=get.get(id)
+        if(!account||account.deleted_at||Number(account.obra_id)!==obraId||account.tipo!=='pagar')throw new Error('Todas as contas devem ser despesas ativas da mesma obra.')
+        if(account.frente_id)throw new Error('Há uma despesa já classificada. Edite-a individualmente para reclassificar.')
+        update.run(frontId,subId,id)
+        audit.run(id,obraId,account.frente_id,account.subfrente_id,frontId,subId)
+      }
+      db.exec('COMMIT')
+      return {updated:normalized.length}
+    } catch(error){try{db.exec('ROLLBACK')}catch{}throw error}
+  }
+
+  const validateNotePayload = payload => {
     const work=row('obras',payload?.obra_id,'Obra')
     const obraId=Number(work.id)
     const companyId=positiveId(payload?.empresa_id,'Empresa')
@@ -256,6 +452,10 @@ function createReceivedNotesService(db) {
     const sum=items.reduce((total,item)=>total+item.valor_total_centavos,0)
     if (!Number.isSafeInteger(sum)||sum<=0) throw new Error('O valor total da nota deve ser maior que zero.')
     if (payload.valor_total_centavos!==undefined&&payload.valor_total_centavos!==null&&cents(payload.valor_total_centavos,'Valor total')!==sum) throw new Error('O total da nota diverge da soma de seus itens.')
+    return {obraId,companyId,supplierId,number,serie,emissao,dataRecebimento,requestId,pedidoId,contaId,items,sum}
+  }
+  const create = payload => {
+    const {obraId,companyId,supplierId,number,serie,emissao,dataRecebimento,requestId,pedidoId,contaId,items,sum}=validateNotePayload(payload)
     if (requestId) {
       const replay=db.prepare('SELECT id,empresa_id,obra_id,fornecedor_id,numero,serie,valor_total_centavos FROM notas_recebidas WHERE request_id=?').get(requestId)
       if (replay) {
@@ -279,6 +479,41 @@ function createReceivedNotesService(db) {
       throw error
     }
   }
+  const history = noteId => {
+    read(noteId)
+    return db.prepare('SELECT id,nota_id,revision_anterior,anterior_json,origem,created_at FROM nota_recebida_revisoes WHERE nota_id=? ORDER BY id DESC LIMIT 100').all(positiveId(noteId,'Nota'))
+  }
+  const update = (noteId,payload) => {
+    const id=positiveId(noteId,'Nota')
+    const before=read(id)
+    const revision=Number(payload?.revision)
+    if(!Number.isSafeInteger(revision)||revision!==Number(before.revision)) throw new Error('Esta nota foi atualizada em outra sessão. Recarregue a revisão antes de editar.')
+    if(Number(payload?.obra_id)!==Number(before.obra_id)||Number(payload?.empresa_id)!==Number(before.empresa_id)) throw new Error('Não é permitido alterar a obra ou a empresa da nota.')
+    // A form opened from a saved row may carry the previous derived total.
+    // Recompute it from the edited lines while still rejecting any newly supplied,
+    // inconsistent explicit total.
+    const input=Number(payload.valor_total_centavos)===Number(before.valor_total_centavos)
+      ? {...payload,valor_total_centavos:undefined}
+      : payload
+    const {obraId,companyId,supplierId,number,serie,emissao,dataRecebimento,pedidoId,contaId,items,sum}=validateNotePayload(input)
+    if(obraId!==Number(before.obra_id)||companyId!==Number(before.empresa_id))throw new Error('A nota deve permanecer na mesma obra.')
+    const duplicate=db.prepare('SELECT id FROM notas_recebidas WHERE empresa_id=? AND fornecedor_id=? AND numero=? AND serie=? AND id!=? AND deleted_at IS NULL').get(companyId,supplierId,number,serie,id)
+    if(duplicate)throw new Error('Já existe outra nota com esse fornecedor, número e série.')
+    db.exec('BEGIN IMMEDIATE')
+    try {
+      const current=read(id)
+      if(Number(current.revision)!==revision)throw new Error('A nota já foi atualizada. Reabra antes de salvar.')
+      db.prepare('INSERT INTO nota_recebida_revisoes(nota_id,revision_anterior,anterior_json,origem) VALUES(?,?,?,?)')
+        .run(id,revision,JSON.stringify(current),'edicao_usuario')
+      db.prepare('UPDATE notas_recebidas SET fornecedor_id=?,numero=?,serie=?,emissao=?,data_recebimento=?,valor_total_centavos=?,pedido_compra_id=?,conta_id=?,observacoes=?,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=?')
+        .run(supplierId,number,serie,emissao,dataRecebimento,sum,pedidoId,contaId,String(payload?.observacoes||'').trim().slice(0,2000)||null,id)
+      db.prepare('DELETE FROM nota_recebida_itens WHERE nota_id=?').run(id)
+      const insert=db.prepare('INSERT INTO nota_recebida_itens(nota_id,frente_id,subfrente_id,pedido_item_id,descricao,unidade,quantidade,valor_unitario_centavos,valor_total_centavos) VALUES(?,?,?,?,?,?,?,?,?)')
+      for(const item of items)insert.run(id,item.frente_id,item.subfrente_id,item.pedido_item_id,item.descricao,item.unidade,item.quantidade,item.valor_unitario_centavos,item.valor_total_centavos)
+      db.exec('COMMIT')
+      return read(id)
+    }catch(error){try{db.exec('ROLLBACK')}catch{}throw error}
+  }
   const attach = (noteId,documentId) => {
     const nota=read(noteId)
     const document=row('documentos',documentId,'Documento')
@@ -287,6 +522,7 @@ function createReceivedNotesService(db) {
     if (!nota.documento_id) db.prepare('UPDATE notas_recebidas SET documento_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(document.id,nota.id)
     return read(nota.id)
   }
-  return { create,list,read,summary,report,attach }
+  const revisions = id => history(id).map(record=>({...record,antes:JSON.parse(record.anterior_json)}))
+  return { create,update,history,revisions,list,read,summary,report,costsOverview,financialSummary,unclassifiedAccounts,assignAccounts,attach }
 }
 module.exports={createReceivedNotesService}

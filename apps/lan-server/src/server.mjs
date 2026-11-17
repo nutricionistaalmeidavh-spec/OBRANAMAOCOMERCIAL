@@ -603,14 +603,14 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, measurements.save(body))
       }
 
-      if (url.pathname === '/api/v1/received-notes' || url.pathname === '/api/v1/received-notes/summary' || url.pathname === '/api/v1/received-notes/report' || /^\/api\/v1\/received-notes\/\d+(?:\/attach)?$/.test(url.pathname)) {
+      if (url.pathname === '/api/v1/received-notes' || url.pathname === '/api/v1/received-notes/summary' || url.pathname === '/api/v1/received-notes/report' || ['/api/v1/received-notes/costs','/api/v1/received-notes/unclassified','/api/v1/received-notes/classify'].includes(url.pathname) || /^\/api\/v1\/received-notes\/\d+(?:\/(?:attach|history))?$/.test(url.pathname)) {
         if (!receivedNotes) return sendJson(response,503,{error:'notes_unavailable',message:'Arquivo de notas recebidas indisponível.'})
         const context=await authenticateLanRequest(request,security)
-        const isWrite=request.method==='POST'
+        const isWrite=request.method==='POST'||request.method==='PUT'
         const financeModules=Array.isArray(context.member?.modules)?context.member.modules:[]
         const hasFinance=context.member?.role==='admin'||financeModules.includes('finance')||(!isWrite&&financeModules.includes('dre'))
         if(!hasFinance) return sendJson(response,403,{error:'forbidden',message:'Acesso ao módulo Financeiro não autorizado.'})
-        authorizeAction(context,{domain:'finance',action:isWrite?'create':'view'})
+        authorizeAction(context,{domain:'finance',action:request.method==='PUT'||url.pathname.endsWith('/classify')?'edit':isWrite?'create':'view'})
         if (url.pathname==='/api/v1/received-notes') {
           if (request.method==='GET') return sendJson(response,200,receivedNotes.list(Number(url.searchParams.get('obra_id'))))
           if (request.method==='POST') return sendJson(response,201,receivedNotes.create(await readJson(request)))
@@ -626,8 +626,31 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
           if (request.method!=='GET') return methodNotAllowed(response,['GET'])
           return sendJson(response,200,receivedNotes.summary(Number(url.searchParams.get('obra_id'))))
         }
+        if (url.pathname==='/api/v1/received-notes/costs') {
+          if(request.method!=='GET')return methodNotAllowed(response,['GET'])
+          return sendJson(response,200,receivedNotes.costsOverview({obra_id:Number(url.searchParams.get('obra_id'))}))
+        }
+        if (url.pathname==='/api/v1/received-notes/unclassified') {
+          if(request.method!=='GET')return methodNotAllowed(response,['GET'])
+          return sendJson(response,200,receivedNotes.unclassifiedAccounts({
+            obra_id:Number(url.searchParams.get('obra_id')),
+            limit:url.searchParams.get('limit')||50,
+            offset:url.searchParams.get('offset')||0
+          }))
+        }
+        if (url.pathname==='/api/v1/received-notes/classify') {
+          if(request.method!=='POST')return methodNotAllowed(response,['POST'])
+          return sendJson(response,200,receivedNotes.assignAccounts(await readJson(request)))
+        }
         const parts=url.pathname.split('/')
         const id=Number(parts[4])
+        if (parts[5]==='history') {
+          if(request.method!=='GET')return methodNotAllowed(response,['GET'])
+          return sendJson(response,200,receivedNotes.history(id))
+        }
+        if (request.method==='PUT' && !parts[5]){
+          return sendJson(response,200,receivedNotes.update(id,await readJson(request)))
+        }
         if (parts[5]==='attach') {
           if (request.method!=='POST') return methodNotAllowed(response,['POST'])
           const body=await readJson(request)

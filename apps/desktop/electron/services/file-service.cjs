@@ -187,6 +187,50 @@ class FileService {
     return this.db.save('medicao_anexos', { medicao_id: measurement.id, documento_id: document.id, tipo })
   }
 
+  async importReceivedNoteFile({ obra_id, frente_id = null, title, file }) {
+    // The bytes were selected in the note form. Do not trust the filename or MIME
+    // supplied by the renderer; require a matching signature and a small attachment.
+    const workId=Number(obra_id)
+    if(!Number.isSafeInteger(workId)||workId<=0)throw new Error('Obra inválida.')
+    const work=await this.dataAccess.get('obras',workId)
+    if(!work||work.deleted_at)throw new Error('Obra não encontrada.')
+    const original=String(file?.name||'').trim()
+    if(!original||original.length>180||original.includes('/')||original.includes('\\'))throw new Error('Nome do arquivo inválido.')
+    const encoded=String(file?.contentBase64||'')
+    if(!encoded||encoded.length>16*1024*1024||!/^[A-Za-z0-9+/]*={0,2}$/.test(encoded))throw new Error('Anexo inválido ou maior que o limite de 12 MB.')
+    const bytes=Buffer.from(encoded,'base64')
+    if(bytes.length===0||bytes.length>12*1024*1024)throw new Error('Anexo maior que 12 MB.')
+    const pdf=bytes.subarray(0,5).toString('ascii')==='%PDF-'
+    const png=bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
+    const jpg=bytes.length>=3&&bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff
+    const ext=path.extname(original).toLowerCase()
+    if(!((pdf&&ext==='.pdf')||(png&&ext==='.png')||(jpg&&['.jpg','.jpeg'].includes(ext))))throw new Error('Escolha PDF, PNG ou JPG válido.')
+    const mime=pdf?'application/pdf':png?'image/png':'image/jpeg'
+    const frontId=frente_id?Number(frente_id):null
+    if(frontId){
+      const front=await this.dataAccess.get('frentes_obra',frontId)
+      if(!front||Number(front.obra_id)!==workId)throw new Error('Etapa não pertence à obra.')
+    }
+    const meta={empresa_id:work.empresa_id,obra_id:workId,frente_id:frontId,categoria:'nota_fiscal',titulo:title||'Nota recebida: '+original,status_assinatura:'geral',versao:1}
+    if(this.documentRoute()==='remote'){
+      if(!this.lanClient)throw new Error('Servidor de documentos indisponível.')
+      const result=await this.lanClient.uploadDocument({file:{name:original,mimeType:mime,contentBase64:encoded},document:meta})
+      return result?.document||result
+    }
+    const folder=path.join(this.documentsDir,'Obras',sanitizeName(work.nome||'Obra '+workId),'nota_fiscal')
+    fs.mkdirSync(folder,{recursive:true})
+    const filename=sanitizeName(path.basename(original,ext))+'-'+require('node:crypto').randomUUID()+ext
+    const destination=path.join(folder,filename)
+    if(destination.length>245)throw new Error('Caminho de destino muito longo.')
+    fs.writeFileSync(destination,bytes,{flag:'wx'})
+    try{
+      return this.db.db.transaction(()=>{
+        const arquivo=this.db.save('arquivos',{nome_original:original,nome_armazenado:filename,caminho:destination,tamanho:bytes.length,extensao:ext,mime_type:mime,hash:sha256(destination),origem:'importado'})
+        return this.db.save('documentos',{...meta,arquivo_id:arquivo.id})
+      })()
+    }catch(error){try{fs.unlinkSync(destination)}catch{}throw error}
+  }
+
   async importForWorkDocument({ obra_id, frente_id = null, categoria = 'documento_obra', title, rdo_id = null, contrato_id = null, contrato_aditivo_id = null, pedido_compra_id = null, recebimento_material_id = null, tipo = 'anexo' }) {
     if(this.documentRoute()==='remote'){
       if(!this.dataAccess||!this.lanClient)throw new Error('Storage documental central indisponível.')

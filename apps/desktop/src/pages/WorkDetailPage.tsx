@@ -9,6 +9,7 @@ export default function WorkDetailPage() {
   const { id } = useParams()
   const { data, loading, error, reload } = useAsync(() => window.fluxoDre.obras.overview(Number(id)), [id])
   const edition = useAsync(() => window.fluxoDre.product.getEdition(), [])
+  const costs = useAsync(() => Number(id)>0 ? window.fluxoDre.compras.notas.costs({obra_id:Number(id)}) : Promise.resolve(null), [id])
   if (loading) return <Card><Loading/></Card>
   if (error) return <Card><ErrorState error={error} retry={reload}/></Card>
   if (!data) return <Card><Empty title="Obra não encontrada"/></Card>
@@ -29,6 +30,24 @@ export default function WorkDetailPage() {
     <PageHeader title={data.obra.nome} description={`Obra 360: ${data.obra.status_operacional || data.obra.status || 'em acompanhamento'}`} actions={<Link className="button button-secondary" to="/obras"><ArrowLeft size={16}/>Obras</Link>}/>
     {partial&&<div className="success-box" style={{ marginBottom: 14 }}><strong>Preparando o uso compartilhado desta obra.</strong> Algumas áreas ficam temporariamente indisponíveis para evitar informações divergentes. Finalize a configuração do uso compartilhado em Configurações.</div>}
     <div className="kpi-grid work-overview-kpis"><Kpi label="Orçado" value={planningAvailable?brl(data.orcado_centavos):'—'}/><Kpi label="Contratado" value={contractsAvailable?brl(totalContratado):'—'}/><Kpi label="Pago" value={financeAvailable?brl(totalPago):'—'}/><Kpi label={empreiteira ? 'Receita medida' : 'Medido'} value={measurementsAvailable?brl(data.medido_centavos):'—'}/><Kpi label="Pendências" value={operationAvailable?String(data.pendencias?.length || 0):'—'}/></div>
+    {financeAvailable&&<Card style={{marginTop:16}}>
+      <div className="card-header"><div><h2>Custos registrados por etapa</h2>
+        <p>Contas e notas recebidas consolidadas, sem duplicar compras. Não são pagamentos efetuados.</p></div>
+        <Link to={`/compras?obra=${data.obra.id}&relatorio=custos`}>Ver relatório detalhado</Link>
+      </div>
+      {costs.loading?<Loading/>:costs.error?<div className="card-body"><p role="alert">Não foi possível carregar o consolidado.</p></div>:costs.data?<div className="card-body">
+        <strong>Total registrado: {brl(costs.data.totais.custos_registrados_centavos)} — Orçado: {brl(costs.data.totais.orcamento_centavos)}</strong>
+        <div className="stage-list" style={{marginTop:12}}>
+          {costs.data.etapas.map((item:any)=><div key={String(item.frente_id??'sem-etapa')}>
+            <div><strong>{item.nome}</strong><span>Orçado: {brl(item.orcamento_centavos)} | Desvio: {brl(item.desvio_centavos)}</span></div><strong>{brl(item.custos_registrados_centavos)}</strong>
+          </div>)}
+        </div>
+        {costs.data.totais.contas_sem_etapa>0&&<p style={{color:'#b45309',fontSize:12}}>
+          {costs.data.totais.contas_sem_etapa} despesa(s) ainda sem etapa.
+          <Link to={`/compras?obra=${data.obra.id}&relatorio=custos`}> Classificar despesas</Link>
+        </p>}
+      </div>:<Empty title="Ainda não existem custos classificados" description="Registre contas ou notas para acompanhar despesas por etapa."/>}
+    </Card>}
     <Card style={{ marginTop: 16 }}>
       <div className="card-header"><div><h2>Próximas ações</h2><p>O que merece atenção nesta obra agora.</p></div></div>
       <div className="card-body stage-list">

@@ -107,3 +107,47 @@ test('P2 API de relatórios mantém valores canônicos por etapa, filtro de emis
     assert.equal((await fetch(endpoint+'/report?obra_id='+f.work.id)).status,401)
   }finally{await f.close()}
 })
+
+test('LAN: contas importadas podem ser classificadas sem duplicar custos; notas têm revisão autenticada',async()=>{
+  const f=await fixture()
+  try{
+    const account=f.repository.save('contas',{
+      empresa_id:f.company.id,obra_id:f.work.id,fornecedor_id:f.supplier.id,tipo:'pagar',
+      descricao:'Despesa importada sem etapa',competencia:'2026-11',
+      vencimento:'2026-11-30',valor_centavos:6000
+    })
+    const target=f.base+'/api/v1/received-notes'
+    const before=await fetch(target+'/unclassified?obra_id='+f.work.id,{headers:headers()})
+    assert.equal(before.status,200)
+    assert.equal((await before.json()).total,1)
+    const classify=await fetch(target+'/classify',{method:'POST',headers:headers(),body:JSON.stringify({
+      obra_id:f.work.id,conta_ids:[account.id],frente_id:f.stage.id,subfrente_id:f.substage.id
+    })})
+    assert.equal(classify.status,200,await classify.clone().text())
+    assert.equal(f.repository.get('contas',account.id).subfrente_id,f.substage.id)
+    const created=await fetch(target,{method:'POST',headers:headers(),body:JSON.stringify({...input(f),conta_id:account.id})})
+    assert.equal(created.status,201,await created.clone().text())
+    const original=await created.json()
+    assert.equal(original.revision,1)
+    const costs=await fetch(target+'/costs?obra_id='+f.work.id,{headers:headers()})
+    assert.equal(costs.status,200,await costs.clone().text())
+    const sum=await costs.json()
+    assert.equal(sum.totais.contas_centavos,6000)
+    assert.equal(sum.totais.notas_centavos,5500)
+    assert.equal(sum.totais.custos_registrados_centavos,6000)
+    const updated=await fetch(target+'/'+original.id,{method:'PUT',headers:headers(),body:JSON.stringify({
+      ...input(f),requestId:undefined,revision:1,valor_total_centavos:5800,
+      itens:[{descricao:'Tubo editado',quantidade:1,valor_unitario_centavos:3300,frente_id:f.stage.id,subfrente_id:f.substage.id},
+        {descricao:'Registro',quantidade:1,valor_unitario_centavos:2500,frente_id:f.stage.id}]
+    })})
+    assert.equal(updated.status,200,await updated.clone().text())
+    assert.equal((await updated.json()).revision,2)
+    const version=await fetch(target+'/'+original.id+'/history',{headers:headers()})
+    assert.equal(version.status,200)
+    assert.equal((await version.json()).length,1)
+    const stale=await fetch(target+'/'+original.id,{method:'PUT',headers:headers(),body:JSON.stringify({...input(f),revision:1})})
+    assert.equal(stale.status,400)
+    const noAuth=await fetch(target+'/costs?obra_id='+f.work.id)
+    assert.equal(noAuth.status,401)
+  }finally{await f.close()}
+})
