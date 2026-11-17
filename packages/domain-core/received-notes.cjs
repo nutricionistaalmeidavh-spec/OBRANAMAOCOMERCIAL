@@ -274,7 +274,7 @@ function createReceivedNotesService(db) {
     row('obras',obraId,'Obra')
     const size=Number(limit),from=Number(offset)
     if(!Number.isSafeInteger(size)||size<1||size>100||!Number.isSafeInteger(from)||from<0||from>1000000)throw new Error('Paginação inválida.')
-    const where="obra_id=? AND tipo='pagar' AND deleted_at IS NULL AND COALESCE(status,'')!='cancelado' AND (frente_id IS NULL OR subfrente_id IS NULL)"
+    const where="obra_id=? AND tipo='pagar' AND deleted_at IS NULL AND COALESCE(status,'')!='cancelado' AND frente_id IS NULL"
     const total=Number(db.prepare('SELECT COUNT(*) total FROM contas WHERE '+where).get(obraId).total)
     return {total,limit:size,offset:from,itens:db.prepare("SELECT id,descricao,competencia,valor_centavos,frente_id,subfrente_id,fornecedor_id FROM contas WHERE "+where+" ORDER BY competencia DESC,id DESC LIMIT ? OFFSET ?").all(obraId,size,from)}
   }
@@ -300,7 +300,7 @@ function createReceivedNotesService(db) {
       for(const id of normalized){
         const account=get.get(id)
         if(!account||account.deleted_at||Number(account.obra_id)!==obraId||account.tipo!=='pagar')throw new Error('Todas as contas devem ser despesas ativas da mesma obra.')
-        if(account.frente_id&&account.subfrente_id)throw new Error('Há uma despesa já classificada. Edite-a individualmente para reclassificar.')
+        if(account.frente_id)throw new Error('Há uma despesa já classificada. Edite-a individualmente para reclassificar.')
         update.run(frontId,subId,id)
         audit.run(id,obraId,account.frente_id,account.subfrente_id,frontId,subId)
       }
