@@ -280,7 +280,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
           <p>Registrada em {revision.created_at} — Nota {previous.numero} — {brl(previous.valor_total_centavos)}</p>
           <small>{previous.itens?.length||0} item(ns) anteriores preservados</small>
         </div>
-      }):<Empty title="Nenhuma alteração anterior" description="As revisões da nota serão exibidas aqui."/ >}
+      }):<Empty title="Nenhuma alteração anterior" description="As revisões da nota serão exibidas aqui."/>}
     </div>
   </Modal>
   {historyError&&<p role="alert" style={{color:'#b42318'}}>{historyError}</p>}
