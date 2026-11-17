@@ -72,6 +72,22 @@ describe('Gestão Web P0 - transações no navegador',()=>{
       expectedRevision:7,expectedDesktopRevision:22,patch:{escopo:'Torre B'}
     });
   });
+  it('solicita criação de subetapa no Desktop e não insere registro operacional falso',async()=>{
+    const sample=overview();
+    client.get.mockResolvedValue({data:{...sample,sources:[{deviceId:'desktop-1',name:'Desktop autorizado'}],commands:[]}});
+    client.post.mockResolvedValue({data:{ok:true,command:{id:'id',status:'pending'}}});
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    root.querySelector<HTMLButtonElement>('[data-p0-tab="subfrentes_obra"]')!.click();
+    root.querySelector<HTMLButtonElement>('#p0Create')!.click();
+    expect(root.querySelector<HTMLSelectElement>('[name="frente_id"]')?.querySelectorAll('option')).toHaveLength(1);
+    root.querySelector<HTMLInputElement>('#p0CreateForm [name="nome"]')!.value='Prumadas';
+    root.querySelector<HTMLFormElement>('#p0CreateForm')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/web/p0/create',expect.objectContaining({
+      entity:'subfrentes_obra',sourceDeviceId:'desktop-1',data:{nome:'Prumadas',frente_id:11}
+    })));
+    expect(root.textContent).toContain('Aguardando confirmação');
+  });
   it('escapa texto recebido da ponte e não transforma conteúdo em HTML executável',async()=>{
     client.get.mockResolvedValue({data:{...overview(),company:{id:'company-a',name:'<img src=x onerror=alert(1)>'}}});
     const root=document.getElementById('content')!;
