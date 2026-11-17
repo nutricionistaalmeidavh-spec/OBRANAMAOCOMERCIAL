@@ -39,5 +39,27 @@ export function assertBridgeEdit(input:unknown):{entity:P0Entity;localId:number;
     if(!(EDIT_FIELDS[entity] as readonly string[]).includes(key))throw new Error('Campo não autorizado: '+key);
     if(!textValue(patch[key])||String(patch[key]??'').length>4000)throw new Error('Valor inválido para '+key);
   }
+  const dateFields=new Set(['prazo','previsto_inicio','previsto_fim','concluido_em']);
+  const validDate=(value:string)=>{const match=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value);
+    if(!match)return false;
+    const date=new Date(value+'T00:00:00.000Z');
+    return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value;
+  };
+  for(const key of keys){
+    const value=patch[key];
+    if(key==='percentual_realizado'){
+      const normalized=typeof value==='string'?value.trim().replace(',','.'):value;
+      const percent=Number(normalized);
+      if(normalized===null||normalized===''||!Number.isFinite(percent)||percent<0||percent>100)throw new Error('Percentual realizado deve ficar entre 0 e 100.');
+      patch[key]=percent;continue;
+    }
+    if(dateFields.has(key)){
+      if(value===null||value===''){patch[key]=null;continue}
+      const str=String(value);
+      if(!validDate(str)&&!(key==='concluido_em'&&/^\\d{4}-\\d{2}-\\d{2}T/.test(str)&&!Number.isNaN(Date.parse(str))))throw new Error('Data inválida para '+key);
+      continue;
+    }
+    if(['nome','titulo'].includes(key)&&!String(value??'').trim())throw new Error('O nome ou título não pode ficar vazio.');
+  }
   return{entity,localId:Number(body.localId),sourceDeviceId:body.sourceDeviceId,expectedRevision:Number(body.expectedRevision),expectedDesktopRevision:Number(body.expectedDesktopRevision),patch};
 }
