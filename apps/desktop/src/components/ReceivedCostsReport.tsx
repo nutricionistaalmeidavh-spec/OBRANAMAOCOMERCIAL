@@ -106,7 +106,7 @@ export default function ReceivedCostsReport({obraId,revision=0}:{obraId:number|n
             <h3>Custos registrados na obra — consolidado</h3>
             <Link to={obraId?'/financeiro?obra='+obraId:'/financeiro'}>Abrir contas importadas</Link>
           </div>
-          <p style={{fontSize:12,color:'#64748b'}}>Total registrado = contas a pagar + valores de notas sem duplicar compras vinculadas. Não é o total pago ou material consumido. Este consolidado considera toda a obra, independentemente dos filtros de emissão das notas abaixo.</p>
+          <p style={{fontSize:12,color:'#64748b'}}>Total registrado = contas a pagar + valores de notas, reconciliando as compras que estiverem vinculadas. Não é o total pago ou material consumido. Este consolidado considera toda a obra, independentemente dos filtros de emissão das notas abaixo.</p>
           {costs.error&&<p role="alert" style={{color:'#b42318'}}>{costs.error.message}</p>}
           {costs.loading?<Loading/>:costs.data&&<>
             <div className="metrics">
@@ -124,6 +124,10 @@ export default function ReceivedCostsReport({obraId,revision=0}:{obraId:number|n
               </tr>)}</tbody>
             </table></div>
             <p style={{fontSize:12,color:'#64748b'}}>* Origem em contas representa valores não cobertos por notas vinculadas; origem em notas representa os itens das notas. A soma das duas origens forma o consolidado sem duplicação.</p>
+            {!!costs.data.totais.notas_sem_conta&&<p role="status" style={{fontSize:13,color:'#9a6700'}}>
+              {costs.data.totais.notas_sem_conta} nota(s) sem conta vinculada, totalizando {money(costs.data.totais.notas_sem_conta_centavos)}.
+              Caso essas compras também tenham sido importadas como contas, vincule os registros na edição da nota para evitar duplicidade.
+            </p>}
             {!!costs.data.conciliacoes.length&&<p role="status" style={{color:'#9a6700',fontSize:13}}>Atenção: {costs.data.conciliacoes.length} conta(s) têm valores diferentes dos documentos vinculados. Verifique essas diferenças antes de usar o relatório para fechamento financeiro.</p>}
           </>}
           <h3 style={{marginTop:16}}>Classificar despesas importadas sem etapa</h3>
