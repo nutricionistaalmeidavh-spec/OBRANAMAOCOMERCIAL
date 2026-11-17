@@ -1,3 +1,4 @@
+import { assertBridgeEdit, BridgeConflict, bridgeRows } from './web-p0-policy';
 import { createCompanyRoutes } from './owner-companies';
 import { restrictForemanSnapshot } from './field-snapshot-rules';
 import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts } from './field-rdo-delivery';
@@ -387,6 +388,36 @@ export const handler=router({
   'GET /api/owner/devices':[...ownerSecured,async()=>{const {items}=await db.list<Device>('devices',{limit:100});return json({devices:items.map(d=>({id:d.id,name:d.name,platform:d.platform,email:d.email,companyId:d.companyId,status:d.status,lastSeenAt:d.lastSeenAt,installationId:d.installationId}))})}],
   'PUT /api/owner/devices/:id':[...ownerSecured,async(ctx)=>{const [device]=await db.get<Device>('devices',[ctx.params.id]);if(!device)return error('Computador não encontrado.',404);const status=String(asRecord(ctx.body).status)==='active'?'active':'revoked';await db.update('devices',[{id:ctx.params.id,record:{...device,status,updatedAt:now()} as unknown as Record<string,unknown>}]);return json({ok:true,status})}],
   'POST /api/access/claim':[...secured,async(ctx)=>{const current=await resolveMembership(ctx.user!);if(current)return json({role:current.role,membership:current});const body=asRecord(ctx.body),code=String(body.code||'').trim().toUpperCase();if(!/^[A-Z0-9]{8}$/.test(code))return error('Código de acesso inválido.',400);const table=inviteTable(code),{items}=await db.list<Record<string,unknown>>(table,{limit:1}),ref=items[0];if(!ref)return error('Código de acesso inválido ou já utilizado.',404);const projectId=String(ref.projectId||''),memberId=String(ref.projectMemberId||'');const [member]=await db.get<Member>(membersTable(projectId),[memberId]);if(!member||member.joinCode!==code)return error('Convite não encontrado.',404);if(member.status==='revoked')return error('Este convite foi revogado pelo administrador.',403);if(member.userId&&member.userId!==ctx.user!.userId)return error('Este convite já foi utilizado.',409);const oldEmail=member.email,email=norm(ctx.user!.email),stamp=now(),next:Member={...member,email,userId:ctx.user!.userId,name:ctx.user!.name||member.name,joinCode:undefined,claimedAt:stamp,updatedAt:stamp};await db.update(membersTable(projectId),[{id:memberId,record:next as unknown as Record<string,unknown>}]);const oldAccess=await findAccess(oldEmail),oldIds=oldAccess.filter(a=>a.projectId===projectId).map(a=>a.id);if(oldIds.length)await db.delete(accessTable(oldEmail),oldIds);const actual=await findAccess(email),same=actual.find(a=>a.projectId===projectId),accessRecord={...next,projectMemberId:memberId} as unknown as Record<string,unknown>;if(same)await db.update(accessTable(email),[{id:same.id,record:accessRecord}]);else await db.add(accessTable(email),[accessRecord]);await db.delete(table,[ref.id]);await audit(next,ctx.user!,'access_code_claimed',{role:next.role,employeeId:next.employeeId});return json({role:next.role,membership:{...next,id:memberId}})}],
+  // P0: leitura e edição apenas de projeções canônicas do Desktop, nunca uma tabela sombra.
+  'GET /api/web/p0/overview':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const project=await getProject(gate.member!.projectId);
+    const company=await getCompany(gate.member!.companyId);
+    if(!project||!company||project.companyId!==gate.member!.companyId)return error('Escopo operacional inválido.',403);
+    const state=await assembleState(gate.member!.projectId);
+    const topology=await getCompanyStorageTopology(gate.member!.companyId);
+    return json({
+      company:{id:gate.member!.companyId,name:String(company.name||'')},
+      project:{id:gate.member!.projectId,name:project.name,customer:project.customer||''},
+      topology:{mode:topology.mode},
+      source:'desktop-bridge',
+      revision:Number(asRecord(state?._remote).revision||0),
+      items:bridgeRows(asRecord(state?.desktopBridge)),
+      limitations:['Os cadastros de clientes, obras e subetapas continuam no banco operacional Desktop/Server. Não são duplicados no D1.','A criação e exclusão de registros operacionais exigem o serviço canônico do Desktop/Server.']
+    });
+  }],
+  'POST /api/web/p0/edit':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    let command:ReturnType<typeof assertBridgeEdit>;
+    try{command=assertBridgeEdit(ctx.body)}catch(cause){return error((cause as Error).message,400)}
+    try{
+      const saved=await updateMobileBridge(gate.member!.projectId,command,ctx.user!.userId);
+      await audit(gate.member!,ctx.user!,'web_p0_bridge_edited',{entity:command.entity,localId:command.localId,sourceDeviceId:command.sourceDeviceId,changedFields:Object.keys(command.patch),revision:saved.revision});
+      return json({ok:true,item:saved.item,revision:saved.revision});
+    }catch(cause){return error((cause as Error).message||'Não foi possível salvar.',cause instanceof BridgeConflict?409:409)}
+  }],
   'GET /api/project':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin','foreman'], 'mobile','obra360');if(gate.response)return gate.response;const requested=String(ctx.query.date||new Date().toISOString().slice(0,10));await carryForwardActiveAssignments(gate.member!.projectId,requested,ctx.user!.userId);const state=await assembleState(gate.member!.projectId,requested);if(!state)return error('Obra ainda não inicializada.',404);return json({state,role:gate.member!.role,access:gate.access})}],
   'POST /api/project/import':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const body=asRecord(ctx.body),snapshot=asRecord(body.state);if(!snapshot.project||!Array.isArray(snapshot.floors)||!Array.isArray(snapshot.employees))return error('Snapshot local inválido.',400);const revision=await saveSnapshot(gate.member!.projectId,snapshot,ctx.user!.userId,{allowUnversioned:true});await audit(gate.member!,ctx.user!,'local_snapshot_imported',{revision});return json({ok:true,revision})}],
   'PUT /api/project/state':[...secured,async(ctx)=>{
