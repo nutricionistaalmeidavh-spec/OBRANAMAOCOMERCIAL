@@ -146,6 +146,10 @@ class OperationalSyncDataProvider {
   async getBridge(entity, localId, scope) { return this.activeProvider().getBridge(entity, localId, scope) }
   async summary(scope, modules) { return this.activeProvider().summary(scope, modules) }
   async obligations(scope) { return this.activeProvider().obligations(scope) }
+  async applyWebP0Create(scope,command) {
+    if(this.runtimeState().source!=='local')throw new Error('Criação Web ainda não habilitada na fonte LAN/servidor próprio.')
+    return this.localProvider.applyWebP0Create(scope,command)
+  }
   async applyRemote(entity, localId, payload, scope) { return this.activeProvider().applyRemote(entity, localId, payload, scope) }
   async applyFieldRdo(scope,report) { return this.activeProvider().applyFieldRdo(scope,report) }
   async fieldRdoCatalog(scope) { return this.activeProvider().fieldRdoCatalog(scope) }
