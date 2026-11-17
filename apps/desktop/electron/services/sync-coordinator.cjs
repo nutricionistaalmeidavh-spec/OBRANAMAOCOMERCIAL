@@ -108,6 +108,25 @@ class SyncCoordinator {
   this.notify()
   return task
  }
+ async syncWebP0Commands(scope,generation){
+  if(this.runtimeState().source!=='local'||typeof this.dataProvider.applyWebP0Create!=='function'||typeof this.online.webP0Pending!=='function'||typeof this.online.webP0Ack!=='function')return
+  this.assertScope(scope,generation)
+  const incoming=await this.online.webP0Pending()
+  if(!Array.isArray(incoming?.commands))throw new Error('Resposta da fila de cadastros Web inválida.')
+  if(incoming.commands.length>25)throw new Error('Fila de cadastros excede o limite de processamento.')
+  for(const command of incoming.commands){
+   this.assertScope(scope,generation)
+   try{
+    const saved=await resolved(this.dataProvider.applyWebP0Create(scope,command))
+    this.assertScope(scope,generation)
+    await this.online.webP0Ack({commandId:command.id,entity:saved.entity,localId:saved.localId})
+   }catch(error){
+    if(error?.code!=='invalid_web_p0_command')throw error
+    this.assertScope(scope,generation)
+    await this.online.webP0Ack({commandId:command.id,entity:command.entity,error:String(error.message).slice(0,250)})
+   }
+  }
+ }
  async syncFieldRdos(scope,generation){
   if(typeof this.dataProvider.applyFieldRdo!=='function'||typeof this.online.fieldRdoPending!=='function'||typeof this.online.fieldRdoAck!=='function')return
   this.assertScope(scope,generation)
@@ -146,7 +165,7 @@ class SyncCoordinator {
    this.assertScope(scope,generation)
   }
  }
- async perform({retryNow=false}={}){const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{this.assertScope(scope,generation);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare('UPDATE desktop_sync_scope SET allowed_modules=? WHERE id=1').run(json(modules));const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities)}if(modules.includes('obra360'))await this.syncFieldRdos(scope,generation);
+ async perform({retryNow=false}={}){const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{this.assertScope(scope,generation);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare('UPDATE desktop_sync_scope SET allowed_modules=? WHERE id=1').run(json(modules));if(modules.includes('obra360'))await this.syncWebP0Commands(scope,generation);const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities)}if(modules.includes('obra360'))await this.syncFieldRdos(scope,generation);
   const adminModules=modules.some(m=>['finance','rh','dre'].includes(m)),queue=this.db.prepare("SELECT * FROM desktop_sync_outbox WHERE scope_key=? AND status='pending' ORDER BY id").all(this.key(scope));for(const job of queue){this.assertScope(scope,generation);if(job.kind==='bridge'&&!modules.includes('obra360')){this.supersede(scope,job,'Módulo Obra360 não está mais liberado para este Desktop.');continue}if(job.kind==='bridge'&&!plan.bridgeEntities.includes(job.entity)){this.supersede(scope,job,'Entidade não disponível na fonte operacional atual.');continue}if(job.kind==='summary'&&!plan.summary){this.supersede(scope,job,'Resumo ainda não está disponível na fonte operacional atual.');continue}if(job.kind==='finance'&&!adminModules){this.supersede(scope,job,'Módulos administrativos não estão mais liberados para este Desktop.');continue}if(job.kind==='finance'&&!plan.obligations){this.supersede(scope,job,'Financeiro ainda não está disponível na fonte operacional atual.');continue}if(!retryNow&&job.next_attempt_at>this.now())continue;if(this.hasEarlierPending(scope,job))continue;if(this.db.prepare("SELECT id FROM desktop_sync_conflicts WHERE scope_key=? AND entity=? AND local_id=? AND status='open'").get(this.key(scope),job.entity,job.local_id))continue;
    try{const payload=JSON.parse(job.payload);let reply;if(job.kind==='bridge'){const head=this.db.prepare('SELECT remote_revision FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),job.entity,job.local_id);reply=await this.online.syncPush([{changeId:job.change_id,entity:job.entity,localId:job.local_id,baseMobileRevision:head?.remote_revision||0,payload}]);this.assertScope(scope,generation);const result=reply.accepted?.find(x=>x.changeId===job.change_id);if(!result)throw new Error('Servidor não confirmou a alteração.');if(result.conflict||result.status==='conflict'){this.conflict(scope,job.entity,job.local_id,payload,Number(result.currentMobileRevision||0),result.conflictId);continue}if(!['accepted','duplicate'].includes(result.status)||result.bridged===false)throw new Error('Alteração não aplicada à obra online.')}
     else if(job.kind==='summary'){reply=await this.online.publishMobileSummary({...payload,modules:Object.fromEntries(Object.entries(payload.modules||{}).filter(([key])=>modules.includes(key))),generatedAt:new Date(this.now()).toISOString()});if(!reply.ok)throw new Error('Resumo não confirmado.')}
