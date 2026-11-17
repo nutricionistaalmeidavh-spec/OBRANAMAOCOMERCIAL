@@ -227,11 +227,14 @@ function createReceivedNotesService(db) {
       group.custos_registrados_centavos+=value
       group[source]+=value
     }
+    const unlinkedNotes=new Set()
+    let unlinkedNoteTotal=0
     let invoiceTotal=0
     const notesLinkedTo=new Map()
     for(const item of invoiceRows){
       const amount=Number(item.valor_centavos)
       invoiceTotal+=amount
+      if(!item.conta_id){unlinkedNotes.add(Number(item.nota_id));unlinkedNoteTotal+=amount}
       const linked=Number(item.conta_id||0)
       if(linked&&accountById.has(linked)){
         coveredByAccount.set(linked,(coveredByAccount.get(linked)||0)+amount)
@@ -263,8 +266,8 @@ function createReceivedNotesService(db) {
       const stage=stages.get(key)
       for(const field of ['custos_registrados_centavos','contas_centavos','notas_centavos'])stage[field]+=item[field]
     }
-    return {escopo:{obra_id:obraId},descricao:'Contas a pagar registradas e notas recebidas sem duplicação; não representa valores pagos ou consumo de estoque.',
-      totais:{contas_centavos:accountTotal,notas_centavos:invoiceTotal,
+    return {escopo:{obra_id:obraId},descricao:'Contas a pagar registradas e notas recebidas sem duplicação quando as notas estão vinculadas às contas; notas sem vínculo não são conciliadas automaticamente. Não representa valores pagos ou consumo de estoque.',
+      totais:{contas_centavos:accountTotal,notas_centavos:invoiceTotal,notas_sem_conta:unlinkedNotes.size,notas_sem_conta_centavos:unlinkedNoteTotal,
         custos_registrados_centavos:details.reduce((sum,item)=>sum+item.custos_registrados_centavos,0),
         contas_sem_etapa:missing,contas_sem_subetapa:missingSub,custos_sem_etapa_centavos:unmapped},
       etapas:[...stages.values()],subetapas:details,conciliacoes}
