@@ -86,7 +86,7 @@ describe('Gestão Web P0 - transações no navegador',()=>{
     await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/web/p0/create',expect.objectContaining({
       entity:'subfrentes_obra',sourceDeviceId:'desktop-1',data:{nome:'Prumadas',frente_id:11}
     })));
-    expect(root.textContent).toContain('Aguardando confirmação');
+    await vi.waitFor(()=>expect(root.textContent).toContain('Aguardando confirmação'));
   });
   it('escapa texto recebido da ponte e não transforma conteúdo em HTML executável',async()=>{
     client.get.mockResolvedValue({data:{...overview(),company:{id:'company-a',name:'<img src=x onerror=alert(1)>'}}});
