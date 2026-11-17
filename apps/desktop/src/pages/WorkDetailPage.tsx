@@ -36,10 +36,10 @@ export default function WorkDetailPage() {
         <Link to={`/compras?obra=${data.obra.id}&relatorio=custos`}>Ver relatório detalhado</Link>
       </div>
       {costs.loading?<Loading/>:costs.error?<div className="card-body"><p role="alert">Não foi possível carregar o consolidado.</p></div>:costs.data?<div className="card-body">
-        <strong>Total registrado: {brl(costs.data.totais.custos_registrados_centavos)}</strong>
+        <strong>Total registrado: {brl(costs.data.totais.custos_registrados_centavos)} — Orçado: {brl(costs.data.totais.orcamento_centavos)}</strong>
         <div className="stage-list" style={{marginTop:12}}>
           {costs.data.etapas.map((item:any)=><div key={String(item.frente_id??'sem-etapa')}>
-            <div><strong>{item.nome}</strong></div><strong>{brl(item.custos_registrados_centavos)}</strong>
+            <div><strong>{item.nome}</strong><span>Orçado: {brl(item.orcamento_centavos)} | Desvio: {brl(item.desvio_centavos)}</span></div><strong>{brl(item.custos_registrados_centavos)}</strong>
           </div>)}
         </div>
         {costs.data.totais.contas_sem_etapa>0&&<p style={{color:'#b45309',fontSize:12}}>
