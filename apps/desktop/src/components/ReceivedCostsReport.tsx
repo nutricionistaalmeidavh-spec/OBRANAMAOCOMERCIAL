@@ -111,15 +111,17 @@ export default function ReceivedCostsReport({obraId,revision=0}:{obraId:number|n
           {costs.loading?<Loading/>:costs.data&&<>
             <div className="metrics">
               <div className="metric"><span>Custos registrados</span><strong>{money(costs.data.totais.custos_registrados_centavos)}</strong></div>
+              <div className="metric"><span>Orçamento total</span><strong>{money(costs.data.totais.orcamento_centavos)}</strong></div>
+              <div className="metric"><span>Desvio registrado</span><strong>{money(costs.data.totais.desvio_centavos)}</strong></div>
               <div className="metric"><span>Contas a pagar</span><strong>{money(costs.data.totais.contas_centavos)}</strong></div>
               <div className="metric"><span>Notas documentadas</span><strong>{money(costs.data.totais.notas_centavos)}</strong></div>
               <div className="metric"><span>Despesas sem etapa</span><strong>{costs.data.totais.contas_sem_etapa}</strong></div>
             </div>
             <div className="table-wrap"><table className="data-table">
-              <thead><tr><th>Etapa</th><th>Subetapa</th><th>Custos registrados</th><th>Origem em contas*</th><th>Origem em notas*</th></tr></thead>
+              <thead><tr><th>Etapa</th><th>Subetapa</th><th>Orçado</th><th>Custos registrados</th><th>Desvio</th><th>Origem em contas*</th><th>Origem em notas*</th></tr></thead>
               <tbody>{costs.data.subetapas.map((line:any)=><tr key={String(line.frente_id??'geral')+'-'+String(line.subfrente_id??'geral')}>
                 <td>{line.etapa_nome}</td><td>{line.subetapa_nome}</td>
-                <td><strong>{money(line.custos_registrados_centavos)}</strong></td>
+                <td>{money(line.orcamento_centavos)}</td><td><strong>{money(line.custos_registrados_centavos)}</strong></td><td>{money(line.desvio_centavos)}</td>
                 <td>{money(line.contas_centavos)}</td><td>{money(line.notas_centavos)}</td>
               </tr>)}</tbody>
             </table></div>
