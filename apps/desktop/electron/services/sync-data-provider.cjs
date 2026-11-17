@@ -13,6 +13,8 @@ async function loadFieldRdoImporter() {
   return FieldRdoImport
 }
 
+const { applyWebP0Create } = require('./web-p0-create.cjs')
+
 const BRIDGE = { frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', rdos: 'rdos', cronograma_etapas: 'schedule' }
 const EDITABLE = {
   frentes_obra: ['nome','codigo','status', 'observacoes'],
@@ -246,6 +248,10 @@ class LocalSyncDataProvider {
         components: this.accountComponents(account),
         ...this.accountProvenance(account, scope)
       }))
+  }
+
+  applyWebP0Create(scope, command) {
+    return applyWebP0Create({ database: this.database, scope, command })
   }
 
   applyRemote(entity, localId, payload, scope) {
