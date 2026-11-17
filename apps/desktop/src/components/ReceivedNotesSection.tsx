@@ -6,7 +6,7 @@ import { useAsync } from '../hooks/useAsync'
 import { brDate, brl, toCents, today } from '../utils/format'
 
 type NoteItem = { descricao:string; quantidade:string; unidade:string; valor_unitario:string; frente_id:string; subfrente_id:string; pedido_item_id:string }
-type NoteForm = { fornecedor_id:string; numero:string; serie:string; emissao:string; data_recebimento:string; pedido_compra_id:string; conta_id:string; observacoes:string; itens:NoteItem[] }
+type NoteForm = { id?:number; revision?:number; documento_id?:number|null; fornecedor_id:string; numero:string; serie:string; emissao:string; data_recebimento:string; pedido_compra_id:string; conta_id:string; observacoes:string; itens:NoteItem[] }
 const emptyItem=():NoteItem=>({descricao:'',quantidade:'1',unidade:'un',valor_unitario:'',frente_id:'',subfrente_id:'',pedido_item_id:''})
 const blank=():NoteForm=>({fornecedor_id:'',numero:'',serie:'',emissao:today(),data_recebimento:today(),pedido_compra_id:'',conta_id:'',observacoes:'',itens:[emptyItem()]})
 
@@ -17,6 +17,11 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
   const [notice,setNotice]=useState('')
   const [pendingAttachment,setPendingAttachment]=useState<number|null>(null)
   const [reportRevision,setReportRevision]=useState(0)
+  const [attachment,setAttachment]=useState<File|null>(null)
+  const [supplierForm,setSupplierForm]=useState<{nome:string;documento:string;telefone:string;email:string}|null>(null)
+  const [supplierSaving,setSupplierSaving]=useState(false)
+  const [historyItems,setHistoryItems]=useState<any[]|null>(null)
+  const [historyError,setHistoryError]=useState('')
   const works=useAsync(()=>obraId?window.fluxoDre.obras.list():Promise.resolve([]),[obraId])
   const work=works.data?.find((item:any)=>Number(item.id)===obraId)
   const suppliers=useAsync(()=>window.fluxoDre.fornecedores.list(),[])
@@ -38,7 +43,67 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
   }
   function open(){
     setError('')
+    setAttachment(null)
     setForm(blank())
+  }
+  async function editNote(id:number) {
+    setError('')
+    try {
+      const note=await window.fluxoDre.compras.notas.get(id)
+      setAttachment(null)
+      setForm({
+        id:note.id,revision:note.revision,documento_id:note.documento_id,
+        fornecedor_id:String(note.fornecedor_id),numero:note.numero,
+        serie:note.serie||'',emissao:note.emissao,data_recebimento:note.data_recebimento||'',
+        pedido_compra_id:note.pedido_compra_id?String(note.pedido_compra_id):'',
+        conta_id:note.conta_id?String(note.conta_id):'',observacoes:note.observacoes||'',
+        itens:note.itens.map((item:any)=>({
+          descricao:item.descricao,quantidade:String(item.quantidade),unidade:item.unidade||'un',
+          valor_unitario:(Number(item.valor_unitario_centavos)/100).toFixed(2).replace('.',','),
+          frente_id:item.frente_id?String(item.frente_id):'',subfrente_id:item.subfrente_id?String(item.subfrente_id):'',
+          pedido_item_id:item.pedido_item_id?String(item.pedido_item_id):''
+        }))
+      })
+    }catch(e){setError(e instanceof Error?e.message:'Não foi possível abrir a nota.')}
+  }
+  async function showHistory(id:number) {
+    setHistoryError('')
+    try { setHistoryItems(await window.fluxoDre.compras.notas.history(id)) }
+    catch(e){setHistoryError(e instanceof Error?e.message:'Falha ao carregar histórico.')}
+  }
+  async function saveSupplier(event:FormEvent) {
+    event.preventDefault()
+    if(!supplierForm||!work||supplierSaving)return
+    setSupplierSaving(true)
+    setError('')
+    try{
+      const created=await window.fluxoDre.fornecedores.save({
+        empresa_id:Number(work.empresa_id),nome:supplierForm.nome.trim(),
+        documento:supplierForm.documento.trim(),telefone:supplierForm.telefone.trim(),email:supplierForm.email.trim()
+      })
+      await suppliers.reload()
+      setForm(current=>current?{...current,fornecedor_id:String(created.id),pedido_compra_id:'',conta_id:''}:null)
+      setSupplierForm(null)
+    }catch(e){setError(e instanceof Error?e.message:'Não foi possível cadastrar fornecedor.')}
+    finally{setSupplierSaving(false)}
+  }
+  function fileToBase64(file:File):Promise<string>{
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader()
+      reader.onload=()=>{const result=String(reader.result||'');resolve(result.split(',')[1]||'')}
+      reader.onerror=()=>reject(new Error('Não foi possível ler o arquivo selecionado.'))
+      reader.readAsDataURL(file)
+    })
+  }
+  async function uploadAttachment(note:any,file:File){
+    if(!obraId)throw new Error('Selecione uma obra para anexar documento.')
+    if(file.size>12*1024*1024)throw new Error('O anexo deve ter no máximo 12 MB.')
+    const document=await window.fluxoDre.documentos.importReceivedNote({
+      obra_id:obraId,frente_id:note.itens.find((item:any)=>item.frente_id)?.frente_id||null,
+      title:'Nota recebida '+note.numero,
+      file:{name:file.name,contentBase64:await fileToBase64(file)}
+    })
+    await window.fluxoDre.compras.notas.attach(note.id,document.id)
   }
   async function submit(event:FormEvent){
     event.preventDefault()
@@ -46,7 +111,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
     setSaving(true)
     setError('')
     try{
-      const created=await window.fluxoDre.compras.notas.create({
+      const payload={
         empresa_id:Number(work.empresa_id),obra_id:obraId,fornecedor_id:Number(form.fornecedor_id),
         numero:form.numero.trim(),serie:form.serie.trim(),emissao:form.emissao,data_recebimento:form.data_recebimento,
         pedido_compra_id:form.pedido_compra_id?Number(form.pedido_compra_id):null,
@@ -59,15 +124,45 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
           subfrente_id:item.subfrente_id?Number(item.subfrente_id):null,
           pedido_item_id:item.pedido_item_id?Number(item.pedido_item_id):null
         }))
-      })
+      }
+      const saved=form.id
+        ?await window.fluxoDre.compras.notas.update(form.id,{...payload,revision:form.revision})
+        :await window.fluxoDre.compras.notas.create(payload)
       setForm(null)
-      setNotice('Nota '+created.numero+' arquivada com '+created.itens.length+' item(ns). Nenhum pagamento ou movimento de estoque foi criado.')
       notes.reload()
       summary.reload()
       setReportRevision(value=>value+1)
-      setPendingAttachment(created.id)
+      setNotice('Nota '+saved.numero+(form.id?' atualizada':' cadastrada')+' com '+saved.itens.length+' item(ns). Sem gerar contas ou estoque.')
+      if(attachment&&!saved.documento_id){
+        try{
+          await uploadAttachment(saved,attachment)
+          setAttachment(null)
+          setPendingAttachment(null)
+          setNotice('Nota '+saved.numero+' salva com documento anexado.')
+          notes.reload()
+        }catch(err){
+          setPendingAttachment(saved.id)
+          setNotice('Nota '+saved.numero+' salva. O anexo não foi concluído; use “Tentar anexo novamente”.')
+          setError(err instanceof Error?err.message:'Falha ao anexar documento.')
+        }
+      }else{
+        setAttachment(null)
+        setPendingAttachment(null)
+      }
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível salvar a nota.')}
     finally{setSaving(false)}
+  }
+  async function retryAttachment(){
+    if(!attachment||!pendingAttachment)return
+    try{
+      const note=await window.fluxoDre.compras.notas.get(pendingAttachment)
+      await uploadAttachment(note,attachment)
+      setPendingAttachment(null)
+      setAttachment(null)
+      setError('')
+      setNotice('Documento anexado à nota recebida.')
+      notes.reload()
+    }catch(e){setError(e instanceof Error?e.message:'Falha ao anexar novamente.')}
   }
   async function attach(id:number){
     if(!obraId||!work)return
@@ -100,15 +195,15 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
       <div><h2>Notas recebidas</h2><span>Organize documentos e itens por etapa e subetapa — sem emitir notas</span></div>
       <Button icon={<Plus size={15}/>} disabled={!obraId} onClick={open}>Cadastrar nota recebida</Button>
     </div>
-    {notice&&<div className="success-box" role="status">{notice}{pendingAttachment&&<div style={{marginTop:8}}><Button variant="secondary" icon={<FilePlus size={15}/>} onClick={()=>attach(pendingAttachment)}>Anexar PDF ou imagem agora</Button></div>}</div>}
+    {notice&&<div className="success-box" role="status">{notice}{pendingAttachment&&<div style={{marginTop:8}}><Button variant="secondary" icon={<FilePlus size={15}/>} onClick={attachment?retryAttachment:()=>attach(pendingAttachment)}>{attachment?'Tentar anexo novamente':'Anexar PDF ou imagem'}</Button></div>}</div>}
     {error&&<p role="alert" style={{color:'#b42318',padding:12}}>{error}</p>}
     {notes.loading?<Loading/>:notes.data?.length?<div className="table-wrap"><table className="data-table">
-      <thead><tr><th>Nota</th><th>Fornecedor</th><th>Emissão</th><th>Itens</th><th>Valor</th><th>Documento</th></tr></thead>
+      <thead><tr><th>Nota</th><th>Fornecedor</th><th>Emissão</th><th>Itens</th><th>Valor</th><th>Documento</th><th>Ações</th></tr></thead>
       <tbody>{notes.data.map((item:any)=><tr key={item.id}>
         <td><strong>{item.numero}</strong><small>Série {item.serie||'—'}</small></td>
         <td>{item.fornecedor_nome}</td><td>{brDate(item.emissao)}</td>
         <td>{item.quantidade_itens}</td><td>{brl(item.valor_total_centavos)}</td>
-        <td>{item.documento_id?<Button variant="secondary" onClick={()=>openAttachment(item.documento_id)}>Abrir documento</Button>:<Button variant="secondary" onClick={()=>attach(item.id)}>Anexar</Button>}</td>
+        <td>{item.documento_id?<Button variant="secondary" onClick={()=>openAttachment(item.documento_id)}>Abrir documento</Button>:<Button variant="secondary" onClick={()=>attach(item.id)}>Anexar</Button>}</td><td><div className="row-actions"><Button variant="secondary" onClick={()=>editNote(item.id)}>Editar</Button><Button variant="secondary" onClick={()=>showHistory(item.id)}>Histórico</Button></div></td>
       </tr>)}</tbody>
     </table></div>:<Empty title={obraId?'Nenhuma nota recebida':'Selecione uma obra'} description="Cadastre notas de fornecedores com seus produtos, quantidades e valores. Um documento pode ser anexado depois." action={obraId?<Button onClick={open}>Cadastrar primeira nota</Button>:undefined}/>}
     {!!summary.data?.etapas?.length&&<div className="card-body">
@@ -117,10 +212,10 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
       <div className="stage-list">{summary.data.etapas.map((item:any)=><div key={String(item.frente_id??'geral')}><div><strong>Etapa: {item.nome}</strong></div><strong>{brl(item.valor_centavos)}</strong></div>)}</div>
       <div className="stage-list">{summary.data.subetapas?.map((item:any)=><div key={String(item.frente_id??'geral')+':'+String(item.subfrente_id??'geral')}><div><strong>{item.etapa_nome} / {item.subetapa_nome}</strong><span>{item.quantidade_itens} item(ns) de notas recebidas</span></div><span>{brl(item.valor_centavos)}</span></div>)}</div>
     </div>}
-    <Modal open={!!form} title="Cadastrar nota recebida" onClose={()=>!saving&&setForm(null)} size="lg">
+    <Modal open={!!form} title={form?.id?"Editar nota recebida":"Cadastrar nota recebida"} onClose={()=>!saving&&setForm(null)} size="lg">
       <form onSubmit={submit}>
         <div className="modal-body form-grid">
-          <Field label="Fornecedor" required wide><select required value={form?.fornecedor_id||''} onChange={e=>setForm({...form!,fornecedor_id:e.target.value,pedido_compra_id:'',conta_id:''})}><option value="">Selecione o fornecedor</option>{suppliers.data?.filter((supplier:any)=>!supplier.empresa_id||Number(supplier.empresa_id)===Number(work?.empresa_id)).map((supplier:any)=><option value={supplier.id} key={supplier.id}>{supplier.nome}</option>)}</select></Field>
+          <Field label="Fornecedor" required wide><div style={{display:'flex',gap:8,alignItems:'center'}}><select required value={form?.fornecedor_id||''} onChange={e=>setForm({...form!,fornecedor_id:e.target.value,pedido_compra_id:'',conta_id:''})}><option value="">Selecione o fornecedor</option>{suppliers.data?.filter((supplier:any)=>!supplier.empresa_id||Number(supplier.empresa_id)===Number(work?.empresa_id)).map((supplier:any)=><option value={supplier.id} key={supplier.id}>{supplier.nome}</option>)}</select><Button type="button" variant="secondary" onClick={()=>setSupplierForm({nome:'',documento:'',telefone:'',email:''})}>Novo fornecedor</Button></div></Field>
           <Field label="Número da nota" required><input required value={form?.numero||''} onChange={e=>setForm({...form!,numero:e.target.value})}/></Field>
           <Field label="Série"><input value={form?.serie||''} onChange={e=>setForm({...form!,serie:e.target.value})}/></Field>
           <Field label="Emissão" required><input required type="date" value={form?.emissao||''} onChange={e=>setForm({...form!,emissao:e.target.value})}/></Field>
@@ -153,14 +248,41 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
             </div>)}
             <Button type="button" variant="secondary" icon={<Plus size={15}/>} onClick={()=>setForm(current=>current?{...current,itens:[...current.itens,emptyItem()]}:null)}>Adicionar item</Button>
           </div>
+          <Field label="Anexar PDF ou imagem" wide><input type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" disabled={!!form?.documento_id} onChange={e=>{
+            const selected=e.target.files?.[0]||null
+            if(selected&&selected.size>12*1024*1024){setError('O anexo deve ter no máximo 12 MB.');e.target.value='';setAttachment(null);return}
+            setAttachment(selected)
+          }}/><small>{form?.documento_id?'Esta nota já possui um documento; o anexo existente será preservado.':attachment?'Selecionado: '+attachment.name:'O arquivo será enviado depois de salvar a nota. Limite de 12 MB.'}</small></Field>
           <Field label="Observações" wide><textarea value={form?.observacoes||''} onChange={e=>setForm({...form!,observacoes:e.target.value})}/></Field>
           <div className="field-wide"><strong>Total da nota: {brl(Math.round(amount))}</strong><p style={{fontSize:12,color:'#647084'}}>Salvar a nota não gera contas ou entrada de estoque. Vincule apenas registros já existentes.</p></div>
           {error&&<p role="alert" className="field-wide" style={{color:'#b42318'}}>{error}</p>}
         </div>
-        <FormActions onCancel={()=>setForm(null)} submitLabel="Salvar nota recebida" loading={saving}/>
+        <FormActions onCancel={()=>setForm(null)} submitLabel={form?.id?"Salvar alterações":"Salvar nota recebida"} loading={saving}/>
       </form>
     </Modal>
   </Card>
   <ReceivedCostsReport obraId={obraId} revision={reportRevision}/>
+  <Modal open={!!supplierForm} title="Cadastrar fornecedor" onClose={()=>!supplierSaving&&setSupplierForm(null)}>
+    <form onSubmit={saveSupplier}><div className="modal-body form-grid">
+      <Field label="Nome do fornecedor" required wide><input required value={supplierForm?.nome||''} onChange={e=>setSupplierForm({...supplierForm!,nome:e.target.value})}/></Field>
+      <Field label="CPF/CNPJ"><input value={supplierForm?.documento||''} onChange={e=>setSupplierForm({...supplierForm!,documento:e.target.value})}/></Field>
+      <Field label="Telefone"><input value={supplierForm?.telefone||''} onChange={e=>setSupplierForm({...supplierForm!,telefone:e.target.value})}/></Field>
+      <Field label="E-mail"><input type="email" value={supplierForm?.email||''} onChange={e=>setSupplierForm({...supplierForm!,email:e.target.value})}/></Field>
+      {error&&<p role="alert" className="field-wide" style={{color:'#b42318'}}>{error}</p>}
+    </div><FormActions loading={supplierSaving} onCancel={()=>setSupplierForm(null)} submitLabel="Cadastrar fornecedor"/></form>
+  </Modal>
+  <Modal open={historyItems!==null} title="Histórico de alterações da nota" onClose={()=>setHistoryItems(null)}>
+    <div className="modal-body">
+      {historyItems?.length?historyItems.map((revision:any)=>{
+        const previous=JSON.parse(revision.anterior_json)
+        return <div key={revision.id} style={{padding:12,borderBottom:'1px solid #d7dce5'}}>
+          <strong>Versão anterior {revision.revision_anterior}</strong>
+          <p>Registrada em {revision.created_at} — Nota {previous.numero} — {brl(previous.valor_total_centavos)}</p>
+          <small>{previous.itens?.length||0} item(ns) anteriores preservados</small>
+        </div>
+      }):<Empty title="Nenhuma alteração anterior" description="As revisões da nota serão exibidas aqui."/ >}
+    </div>
+  </Modal>
+  {historyError&&<p role="alert" style={{color:'#b42318'}}>{historyError}</p>}
   </>
 }
