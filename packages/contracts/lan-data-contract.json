@@ -53,7 +53,9 @@
         "contratos_obra",
         "contrato_aditivos",
         "notas_recebidas",
-        "nota_recebida_itens"
+        "nota_recebida_itens",
+        "custos_classificacoes_historico",
+        "nota_recebida_revisoes"
       ]
     },
     "rh": {
