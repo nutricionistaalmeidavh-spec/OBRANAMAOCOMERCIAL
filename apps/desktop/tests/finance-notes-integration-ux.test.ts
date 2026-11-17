@@ -105,4 +105,18 @@ describe('Pós P2: despesas importadas, classificação e consolidação sem dup
       expect(f.service.read(original.id).valor_total_centavos).toBe(2400)
     }finally{f.close()}
   })
+  it('compara orçamento com TODOS os custos classificados por etapa sem inventar previsão da subetapa',()=>{
+    const f=fixture()
+    try {
+      f.db.save('itens_orcamentarios',{obra_id:f.work.id,frente_id:f.stage.id,descricao:'Orçamento da etapa',unidade:'un',quantidade:1,valor_unitario_centavos:4000,tipo:'material'})
+      f.db.save('itens_orcamentarios',{obra_id:f.work.id,frente_id:f.stage.id,subfrente_id:f.sub.id,descricao:'Forro de gesso',unidade:'un',quantidade:1,valor_unitario_centavos:2000,tipo:'material'})
+      f.account(f.work.id,3000,{frente_id:f.stage.id,subfrente_id:f.sub.id})
+      f.note(4000)
+      const costs=f.service.costsOverview({obra_id:f.work.id})
+      expect(costs.totais).toMatchObject({orcamento_centavos:6000,custos_registrados_centavos:7000,desvio_centavos:1000})
+      expect(costs.etapas.find(s=>s.frente_id===f.stage.id)).toMatchObject({orcamento_centavos:6000,custos_registrados_centavos:7000,desvio_centavos:1000})
+      expect(costs.subetapas.find(s=>s.subfrente_id===f.sub.id)).toMatchObject({orcamento_centavos:2000,custos_registrados_centavos:7000,desvio_centavos:5000})
+    }finally{f.close()}
+  })
+
 })
