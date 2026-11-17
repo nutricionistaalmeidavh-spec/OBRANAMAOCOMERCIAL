@@ -15,7 +15,7 @@ describe('P0 gestão web: contratos canônicos', () => {
   it('recusa alterações fora da lista permitida e rejeita alterações sem revisão', () => {
     expect(()=>assertBridgeEdit({entity:'tarefas_obra',localId:4,sourceDeviceId:'d1',expectedRevision:0,expectedDesktopRevision:0,patch:{obra_id:99}})).toThrow();
     expect(()=>assertBridgeEdit({entity:'tarefas_obra',localId:4,sourceDeviceId:'d1',patch:{titulo:'Outro'}})).toThrow();
-    expect(()=>assertBridgeEdit({entity:'tarefas_obra',localId:4,sourceDeviceId:'d1',expectedRevision:0,expectedDesktopRevision:0,patch:{})).toThrow();
+    expect(()=>assertBridgeEdit({entity:'tarefas_obra',localId:4,sourceDeviceId:'d1',expectedRevision:0,expectedDesktopRevision:0,patch:{}})).toThrow();
   });
   it('impede substituição silenciosa de edição concorrente', () => {
     const cmd=assertBridgeEdit({entity:'tarefas_obra',localId:3,sourceDeviceId:'pc',expectedRevision:4,expectedDesktopRevision:9,patch:{titulo:'Conferir material'}});
