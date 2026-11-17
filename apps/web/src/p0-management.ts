@@ -4,10 +4,13 @@ import './p0-management.css';
 import {parentStage,stageIsDelayed} from './p0-hierarchy';
 
 type Entity='frentes_obra'|'subfrentes_obra'|'tarefas_obra'|'cronograma_etapas';
+type P0CreateEntity=Exclude<Entity,'cronograma_etapas'>;
 type Entry={entity:Entity;localId:number;sourceDeviceId:string;revision:number;desktopRevision?:number;payload:Record<string,unknown>};
 type Overview={
   company:{id:string;name:string};project:{id:string;name:string;customer:string};
   source:'desktop-bridge';revision:number;topology:{mode:string};items:Entry[];limitations:string[];
+  sources?:Array<{deviceId:string;name:string}>;
+  commands?:Array<{id:string;entity:string;deviceId:string;status:'pending'|'applied'|'failed';localId?:number;error?:string;createdAt:string}>;
 };
 const esc=(value:unknown)=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch] as string));
 const groups:Record<Entity,{title:string;singular:string;fields:string[]}> = {
@@ -22,17 +25,32 @@ const itemTitle=(item:Entry)=>String(item.payload.titulo||item.payload.nome||ite
 const short=(value:unknown)=>{const x=String(value??'');return x.length>150?x.slice(0,147)+'...':x};
 
 export async function mountP0Management(root:HTMLElement,onBack:()=>void){
-  let data:Overview|null=null,tab:Entity='frentes_obra',editIndex=-1,message='',busy=false;
+  let data:Overview|null=null,tab:Entity='frentes_obra',editIndex=-1,message='',busy=false,createMode=false;
+  let createNonce='',selectedSource='';
 
   const load=async()=>{
     const result=await api.get<Overview>('/api/web/p0/overview');
     data=result.data;editIndex=-1;
+    if(!data.sources?.some(x=>x.deviceId===selectedSource))selectedSource=data.sources?.[0]?.deviceId||'';
   };
 
   const draw=()=>{
     if(!data)return;
     const snapshot=data,records=snapshot.items.filter(row=>row.entity===tab);
     const selected=editIndex>=0?records[editIndex]:null;
+    const createEnabled=tab!=='cronograma_etapas'&&snapshot.topology.mode==='local-single'&&!!snapshot.sources?.length;
+    const createFields:Record<P0CreateEntity,string[]>={
+      frentes_obra:['nome','codigo','status','observacoes'],
+      subfrentes_obra:['frente_id','nome','pavimento','escopo','status'],
+      tarefas_obra:['frente_id','titulo','descricao','responsavel','prazo','status']
+    };
+    const stages=snapshot.items.filter(item=>item.entity==='frentes_obra'&&item.sourceDeviceId===selectedSource);
+    const sourceOptions=(snapshot.sources||[]).map(item=>'<option value="'+esc(item.deviceId)+'" '+(item.deviceId===selectedSource?'selected':'')+'>'+esc(item.name)+'</option>').join('');
+    const createInputs=createMode&&createEnabled?createFields[tab as P0CreateEntity].map(field=>{
+      if(field==='frente_id')return '<label class="p0-field"><span>Etapa vinculada</span><select name="frente_id" '+(tab==='subfrentes_obra'?'required':'')+'>'+(tab==='tarefas_obra'?'<option value="">Sem etapa</option>':'')+stages.map(item=>'<option value="'+item.localId+'">'+esc(itemTitle(item))+'</option>').join('')+'</select></label>';
+      const required=field===(tab==='tarefas_obra'?'titulo':'nome')?'required':'';
+      return '<label class="p0-field"><span>'+esc(labels[field]||field)+'</span><input name="'+field+'" maxlength="4000" '+required+'></label>';
+    }).join(''):'';
     const now=new Date(),today=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
     const schedule=snapshot.items.filter(row=>row.entity==='cronograma_etapas');
     const stageDelay=(item:Entry)=>schedule.some(row=>row.sourceDeviceId===item.sourceDeviceId&&Number(row.payload.frente_id)===item.localId&&stageIsDelayed(row.payload,today));
@@ -50,24 +68,56 @@ export async function mountP0Management(root:HTMLElement,onBack:()=>void){
     root.innerHTML=
       '<section class="p0-layout"><div class="p0-heading"><div><button type="button" id="p0Back" class="p0-back">Voltar à Gestão</button><h1>Operação da obra</h1><p>Consulta e edição dos registros publicados pelo Desktop, sem duplicar cadastros.</p></div><button id="p0Refresh" type="button" class="p0-light">Atualizar</button></div>'+
       '<div class="p0-context"><div><small>Empresa</small><strong>'+esc(snapshot.company.name)+'</strong></div><div><small>Obra vinculada</small><strong>'+esc(snapshot.project.name)+'</strong></div><div><small>Cliente da obra</small><strong>'+esc(snapshot.project.customer||'Não informado')+'</strong></div><div><small>Origem operacional</small><strong>'+esc(snapshot.topology.mode==='local-single'?'Desktop local + sincronização':snapshot.topology.mode==='remote'?'Servidor remoto':'Servidor próprio / LAN')+'</strong></div></div>'+
-      '<div class="p0-notice"><strong>Fonte de dados preservada</strong><p>Novas empresas, clientes, obras, etapas e subetapas ainda precisam ser cadastrados no Desktop/Server. A edição das subetapas sincronizadas já está disponível aqui. Aqui são exibidos apenas registros integrados, com controle de revisão para edição. Não foi criado um banco paralelo.</p></div>'+
+      '<div class="p0-notice"><strong>Fonte de dados preservada</strong><p>Clientes e obras continuam cadastrados no Desktop/Server. Etapas, subetapas e tarefas podem ser solicitadas aqui quando a obra usa Desktop local autorizado. A criação só é efetivada no SQLite e aparece após sincronização.</p></div>'+
       '<div role="status" aria-live="polite" class="p0-message">'+esc(message)+'</div>'+
       '<nav aria-label="Seções da operação" class="p0-tabs">'+nav+'</nav>'+
-      '<div class="p0-section-title"><h2>'+esc(groups[tab].title)+'</h2><small>'+records.length+' registro(s) publicados</small></div><div class="p0-list">'+rows+'</div>'+
+      '<div class="p0-section-title"><h2>'+esc(groups[tab].title)+'</h2><small>'+records.length+' registro(s) publicados</small>'+(createEnabled?'<button type="button" id="p0Create" class="p0-primary">Nova '+esc(groups[tab].singular.toLowerCase())+'</button>':'')+'</div><div class="p0-list">'+rows+'</div>'+
+      (createMode&&createEnabled?'<form id="p0CreateForm" class="p0-editor"><h3>Nova '+esc(groups[tab].singular)+'</h3><p>Será criada na fonte operacional pelo Desktop autorizado. Enquanto estiver desligado, a solicitação ficará pendente.</p><label class="p0-field"><span>Desktop responsável</span><select id="p0Source" name="sourceDeviceId">'+sourceOptions+'</select></label><div class="p0-form-grid">'+createInputs+'</div><div class="p0-actions"><button type="button" id="p0CancelCreate" class="p0-light">Cancelar</button><button class="p0-primary" type="submit" '+(busy?'disabled':'')+'>Solicitar criação</button></div></form>':'')+
+      ((snapshot.commands||[]).length?'<div class="p0-editor"><h3>Solicitações recentes</h3>'+(snapshot.commands||[]).slice(0,10).map(x=>'<div class="p0-item"><strong>'+esc(groups[x.entity as Entity]?.singular||x.entity)+'</strong><small>'+esc(x.status==='pending'?'Aguardando Desktop':x.status==='applied'?'Criado no Desktop, ID '+x.localId:'Falha: '+(x.error||'Revisar comando'))+'</small></div>').join('')+'</div>':'')+
       (selected?'<form id="p0EditForm" class="p0-editor"><h3>Editar '+esc(groups[tab].singular)+'</h3><p>Alterações são enviadas à ponte de sincronização e serão recebidas pelo Desktop conectado.</p><div class="p0-form-grid">'+fields+'</div><div class="p0-actions"><button type="button" id="p0Cancel" class="p0-light">Cancelar</button><button class="p0-primary" type="submit" '+(busy?'disabled':'')+'>'+ (busy?'Salvando...':'Salvar alterações')+'</button></div></form>':'')+
       '</section>';
 
     root.querySelector('#p0Back')?.addEventListener('click',onBack);
     root.querySelector('#p0Refresh')?.addEventListener('click',()=>void refresh());
-    root.querySelectorAll<HTMLButtonElement>('[data-p0-tab]').forEach(button=>button.addEventListener('click',()=>{tab=button.dataset.p0Tab as Entity;editIndex=-1;message='';draw()}));
+    root.querySelectorAll<HTMLButtonElement>('[data-p0-tab]').forEach(button=>button.addEventListener('click',()=>{tab=button.dataset.p0Tab as Entity;editIndex=-1;createMode=false;createNonce='';message='';draw()}));
     root.querySelectorAll<HTMLButtonElement>('[data-p0-edit]').forEach(button=>button.addEventListener('click',()=>{editIndex=Number(button.dataset.p0Edit);message='';draw();root.querySelector<HTMLElement>('#p0EditForm')?.scrollIntoView?.({block:'nearest'});}));
     root.querySelector('#p0Cancel')?.addEventListener('click',()=>{editIndex=-1;draw()});
+    root.querySelector('#p0Create')?.addEventListener('click',()=>{createMode=true;editIndex=-1;createNonce='';draw();root.querySelector('#p0CreateForm')?.scrollIntoView?.({block:'nearest'})});
+    root.querySelector('#p0CancelCreate')?.addEventListener('click',()=>{createMode=false;createNonce='';draw()});
+    root.querySelector('#p0Source')?.addEventListener('change',event=>{selectedSource=(event.target as HTMLSelectElement).value;draw()});
+    root.querySelector('#p0CreateForm')?.addEventListener('submit',event=>{event.preventDefault();void submitCreate()});
     root.querySelector('#p0EditForm')?.addEventListener('submit',event=>{event.preventDefault();void submit(selected!)});
   };
 
   const refresh=async()=>{
     try{message='';await load();draw()}catch(cause){message=errorText(cause);draw();}
   };
+  const submitCreate=async()=>{
+    if(busy||tab==='cronograma_etapas'||!selectedSource)return;
+    const form=root.querySelector<HTMLFormElement>('#p0CreateForm');if(!form)return;
+    const fields=new FormData(form),value:Record<string,unknown>={};
+    for(const [key,raw] of fields){
+      if(key==='sourceDeviceId')continue;
+      const str=String(raw).trim();if(!str)continue;
+      value[key]=key==='frente_id'?Number(str):str;
+    }
+    if(!createNonce)createNonce=crypto.randomUUID();
+    const commandId=createNonce,entity=tab,sourceDeviceId=selectedSource;
+    busy=true;
+    const button=form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if(button)button.disabled=true;
+    try{
+      await api.post('/api/web/p0/create',{commandId,entity,sourceDeviceId,data:value});
+      createMode=false;createNonce='';await load();
+      message='Solicitação registrada. Aguardando confirmação do Desktop para aparecer na obra.';
+      draw();
+    }catch(cause){
+      message=errorText(cause);
+      const live=root.querySelector('.p0-message');if(live)live.textContent=message;
+      if(button)button.disabled=false;
+    }finally{busy=false}
+  };
+
   const submit=async(row:Entry)=>{
     if(busy)return;
     const form=root.querySelector<HTMLFormElement>('#p0EditForm');if(!form)return;
