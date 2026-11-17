@@ -1,0 +1,63 @@
+// @vitest-environment happy-dom
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+const client=vi.hoisted(()=>({get:vi.fn(),post:vi.fn()}));
+vi.mock('./cloudflare-client',()=>({api:client}));
+import { mountP0Management } from './p0-management';
+
+const overview=()=>({
+  company:{id:'company-a',name:'Construtora A'},
+  project:{id:'project-a',name:'Obra Central',customer:'Cliente A'},
+  source:'desktop-bridge',
+  revision:27,
+  topology:{mode:'remote'},
+  limitations:[],
+  items:[
+    {entity:'tarefas_obra',localId:23,sourceDeviceId:'desktop-1',revision:4,desktopRevision:15,payload:{titulo:'Revisar tubulação',status:'aberta'}},
+    {entity:'frentes_obra',localId:11,sourceDeviceId:'desktop-1',revision:0,desktopRevision:5,payload:{nome:'Hidráulica',status:'ativa'}},
+    {entity:'cronograma_etapas',localId:44,sourceDeviceId:'desktop-1',revision:2,desktopRevision:9,payload:{status:'atrasada',percentual_realizado:40}}
+  ]
+});
+
+describe('Gestão Web P0 - transações no navegador',()=>{
+  beforeEach(()=>{
+    vi.clearAllMocks();
+    document.body.innerHTML='<main id="content"></main>';
+    client.get.mockResolvedValue({data:overview()});
+    client.post.mockResolvedValue({data:{ok:true}});
+  });
+  it('exibe contexto da empresa e apenas os registros canônicos recebidos pela ponte',async()=>{
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    expect(root.textContent).toContain('Construtora A');
+    expect(root.textContent).toContain('Obra Central');
+    expect(root.textContent).toContain('Hidráulica');
+    expect(root.textContent).toContain('Não foi criado um banco paralelo');
+    expect(root.querySelectorAll('[data-p0-edit]')).toHaveLength(1);
+    expect(client.get).toHaveBeenCalledWith('/api/web/p0/overview');
+  });
+  it('envia edição com as duas revisões e sem sobrescrever campos não editados',async()=>{
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    root.querySelector<HTMLButtonElement>('[data-p0-tab="tarefas_obra"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-p0-edit="0"]')!.click();
+    const title=root.querySelector<HTMLInputElement>('input[name="titulo"]')!;
+    title.value='Revisar rede hidráulica';
+    root.querySelector<HTMLFormElement>('#p0EditForm')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledOnce());
+    expect(client.post).toHaveBeenCalledWith('/api/web/p0/edit',{
+      entity:'tarefas_obra',
+      localId:23,
+      sourceDeviceId:'desktop-1',
+      expectedRevision:4,
+      expectedDesktopRevision:15,
+      patch:{titulo:'Revisar rede hidráulica'}
+    });
+  });
+  it('escapa texto recebido da ponte e não transforma conteúdo em HTML executável',async()=>{
+    client.get.mockResolvedValue({data:{...overview(),company:{id:'company-a',name:'<img src=x onerror=alert(1)>'}}});
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    expect(root.textContent).toContain('<img src=x onerror=alert(1)>');
+    expect(root.querySelector('img')).toBeNull();
+  });
+});
