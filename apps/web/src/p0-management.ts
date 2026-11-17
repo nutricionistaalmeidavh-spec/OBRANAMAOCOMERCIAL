@@ -33,7 +33,7 @@ export async function mountP0Management(root:HTMLElement,onBack:()=>void){
     if(!data)return;
     const snapshot=data,records=snapshot.items.filter(row=>row.entity===tab);
     const selected=editIndex>=0?records[editIndex]:null;
-    const today=new Date().toLocaleDateString('en-CA');
+    const now=new Date(),today=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
     const schedule=snapshot.items.filter(row=>row.entity==='cronograma_etapas');
     const stageDelay=(item:Entry)=>schedule.some(row=>row.sourceDeviceId===item.sourceDeviceId&&Number(row.payload.frente_id)===item.localId&&stageIsDelayed(row.payload,today));
     const parent=(item:Entry)=>item.entity==='frentes_obra'?'':parentStage(item,snapshot.items);
