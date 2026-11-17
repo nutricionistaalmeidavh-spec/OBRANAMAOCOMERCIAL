@@ -297,6 +297,70 @@ function createReceivedNotesService(db) {
         contas_sem_etapa:missing,contas_sem_subetapa:missingSub,custos_sem_etapa_centavos:unmapped},
       etapas:[...stages.values()],subetapas:details,conciliacoes}
   }
+  // Four independent finance metrics; never add them together.
+  // Competence filters apply to the associated payable account, while the
+  // separate documentary amount is filtered by the note issue month.
+  const financialSummary = (filters={}) => {
+    const workId=positiveId(filters.obra_id,'Obra')
+    row('obras',workId,'Obra')
+    const start=filters.competencia_inicio?required(filters.competencia_inicio,'Competência inicial',7):null
+    const end=filters.competencia_fim?required(filters.competencia_fim,'Competência final',7):null
+    if(start&&!/^\d{4}-(0[1-9]|1[0-2])$/.test(start))throw new Error('Competência inicial inválida.')
+    if(end&&!/^\d{4}-(0[1-9]|1[0-2])$/.test(end))throw new Error('Competência final inválida.')
+    if(start&&end&&start>end)throw new Error('Período de competência inválido.')
+    const aWhere=["c.obra_id=?","c.tipo='pagar'","c.deleted_at IS NULL","COALESCE(c.status,'')!='cancelado'"],aParams=[workId]
+    if(start){aWhere.push('c.competencia>=?');aParams.push(start)}
+    if(end){aWhere.push('c.competencia<=?');aParams.push(end)}
+    const accounts=db.prepare('SELECT c.id,c.frente_id,c.subfrente_id,c.valor_centavos,COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0) pago_centavos FROM contas c WHERE '+aWhere.join(' AND ')).all(...aParams)
+    const docWhere=['n.obra_id=?','n.deleted_at IS NULL'],docParams=[workId]
+    if(start){docWhere.push('substr(n.emissao,1,7)>=?');docParams.push(start)}
+    if(end){docWhere.push('substr(n.emissao,1,7)<=?');docParams.push(end)}
+    const invoiceLines=db.prepare('SELECT i.frente_id,i.subfrente_id,SUM(i.valor_total_centavos) valor_centavos FROM nota_recebida_itens i JOIN notas_recebidas n ON n.id=i.nota_id WHERE '+docWhere.join(' AND ')+' GROUP BY i.frente_id,i.subfrente_id').all(...docParams)
+    const budgets=db.prepare("SELECT frente_id,subfrente_id,SUM(CAST(ROUND(quantidade*valor_unitario_centavos,0) AS INTEGER)) orcado_centavos FROM itens_orcamentarios WHERE obra_id=? AND deleted_at IS NULL GROUP BY frente_id,subfrente_id").all(workId)
+    const keys=new Map()
+    const nameCache=new Map()
+    const names=(front,sub)=>{
+      const key=(front??'none')+':'+(sub??'none')
+      if(!nameCache.has(key)){
+        const f=front?db.prepare('SELECT nome FROM frentes_obra WHERE id=?').get(front):null
+        const s=sub?db.prepare('SELECT nome FROM subfrentes_obra WHERE id=?').get(sub):null
+        nameCache.set(key,{etapa_nome:f?.nome||'Sem etapa',subetapa_nome:s?.nome||'Sem subetapa'})
+      }
+      return nameCache.get(key)
+    }
+    function track(front,sub,field,amount){
+      const key=(front??'none')+':'+(sub??'none')
+      if(!keys.has(key))keys.set(key,{frente_id:front??null,subfrente_id:sub??null,
+        ...names(front,sub),orcado_centavos:0,comprometido_centavos:0,pago_centavos:0,documentado_centavos:0})
+      keys.get(key)[field]+=Number(amount||0)
+    }
+    for(const b of budgets)track(b.frente_id,b.subfrente_id,'orcado_centavos',b.orcado_centavos)
+    for(const a of accounts){
+      track(a.frente_id,a.subfrente_id,'comprometido_centavos',a.valor_centavos)
+      track(a.frente_id,a.subfrente_id,'pago_centavos',a.pago_centavos)
+    }
+    for(const i of invoiceLines)track(i.frente_id,i.subfrente_id,'documentado_centavos',i.valor_centavos)
+    const substages=[...keys.values()]
+    const stageMap=new Map()
+    for(const item of substages){
+      const key=item.frente_id??'none'
+      if(!stageMap.has(key))stageMap.set(key,{frente_id:item.frente_id,nome:item.etapa_nome,orcado_centavos:0,comprometido_centavos:0,pago_centavos:0,documentado_centavos:0})
+      const target=stageMap.get(key)
+      for(const field of ['orcado_centavos','comprometido_centavos','pago_centavos','documentado_centavos'])target[field]+=item[field]
+    }
+    const totals={orcado_centavos:0,comprometido_centavos:0,pago_centavos:0,documentado_centavos:0}
+    for(const stage of stageMap.values())for(const field of Object.keys(totals))totals[field]+=stage[field]
+    const missing=accounts.filter(a=>!a.frente_id)
+    return {
+      escopo:{obra_id:workId,competencia_inicio:start,competencia_fim:end},
+      metrica_comprometido:'Soma das contas a pagar registradas, não canceladas, na competência.',
+      metrica_pago:'Pagamentos registrados nas contas abrangidas pela competência, sem somar o valor da conta novamente.',
+      metrica_documentado:'Itens de notas recebidas pela competência da data de emissão; não são contas pagas.',
+      avisos:['Valores de contas e notas documentadas não são somados entre si como se fossem despesas diferentes; vincule a conta quando representarem a mesma compra.'],
+      totais:totals,etapas:[...stageMap.values()],subetapas:substages,
+      sem_classificacao:{quantidade:missing.length,valor_centavos:missing.reduce((sum,a)=>sum+Number(a.valor_centavos||0),0)}
+    }
+  }
   const unclassifiedAccounts = ({obra_id,limit=50,offset=0}={}) => {
     const obraId=positiveId(obra_id,'Obra')
     row('obras',obraId,'Obra')
@@ -452,6 +516,7 @@ function createReceivedNotesService(db) {
     if (!nota.documento_id) db.prepare('UPDATE notas_recebidas SET documento_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(document.id,nota.id)
     return read(nota.id)
   }
-  return { create,update,history,list,read,summary,report,costsOverview,unclassifiedAccounts,assignAccounts,attach }
+  const revisions = id => history(id).map(record=>({...record,antes:JSON.parse(record.anterior_json)}))
+  return { create,update,history,revisions,list,read,summary,report,costsOverview,financialSummary,unclassifiedAccounts,assignAccounts,attach }
 }
 module.exports={createReceivedNotesService}
