@@ -144,7 +144,7 @@ export default function ReceivedCostsReport({obraId,revision=0}:{obraId:number|n
             </tr>)}</tbody>
           </table></div>:<Empty title="Sem despesas pendentes de classificação" description="As contas desta obra já possuem etapa, ou não há contas a pagar."/>}
           <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginTop:12}}>
-            <Button disabled={!selectedAccounts.length||!batchStage||batchSaving} loading={batchSaving} onClick={applyClassification}>Classificar {selectedAccounts.length} despesa(s)</Button>
+            <Button disabled={!selectedAccounts.length||!batchStage||batchSaving} onClick={applyClassification}>Classificar {selectedAccounts.length} despesa(s)</Button>
             <Button variant="secondary" disabled={batchPage===0} onClick={()=>{setSelectedAccounts([]);setBatchPage(x=>Math.max(0,x-1))}}>Anterior</Button>
             <Button variant="secondary" disabled={!missing.data||((batchPage+1)*50>=missing.data.total)} onClick={()=>{setSelectedAccounts([]);setBatchPage(x=>x+1)}}>Próximas 50</Button>
             <small>{missing.data?.total||0} lançamento(s) a classificar</small>
