@@ -8,8 +8,8 @@ export const EDIT_FIELDS = Object.freeze({
   cronograma_etapas:['status','percentual_realizado','observacoes','responsavel','previsto_inicio','previsto_fim']
 } as const);
 export type P0Entity=keyof typeof EDIT_FIELDS;
-export type BridgeRow={entity:P0Entity;localId:number;sourceDeviceId:string;revision:number;payload:Record<string,unknown>};
-export type BridgeEdit=BridgeRow & {expectedRevision:number;patch:Record<string,unknown>};
+export type BridgeRow={entity:P0Entity;localId:number;sourceDeviceId:string;revision:number;desktopRevision:number;payload:Record<string,unknown>};
+export type BridgeEdit=BridgeRow & {expectedRevision:number;expectedDesktopRevision:number;patch:Record<string,unknown>};
 export class BridgeConflict extends Error {
   constructor(){super('Este registro foi alterado em outro dispositivo. Recarregue antes de salvar.');this.name='BridgeConflict'}
 }
@@ -23,19 +23,20 @@ export function bridgeRows(bridge:unknown):BridgeRow[]{
   return names.flatMap(([entity,bucket])=>(Array.isArray(raw[bucket])?raw[bucket] as unknown[]:[]).map(rec).filter(item=>{
     const payload=rec(item.payload);
     return validId(item.localId)&&typeof item.sourceDeviceId==='string'&&item.sourceDeviceId.length>0&&item.deleted!==true&&payload.deleted!==true&&(!item.entity||item.entity===entity);
-  }).map(item=>({entity,localId:Number(item.localId),sourceDeviceId:String(item.sourceDeviceId),revision:Math.max(0,Number(item.mobileEditedRevision||0)),payload:rec(item.payload)})));
+  }).map(item=>({entity,localId:Number(item.localId),sourceDeviceId:String(item.sourceDeviceId),revision:Math.max(0,Number(item.mobileEditedRevision||0)),desktopRevision:Math.max(0,Number(item.desktopRevision||0)),payload:rec(item.payload)})));
 }
 
-export function assertBridgeEdit(input:unknown):{entity:P0Entity;localId:number;sourceDeviceId:string;expectedRevision:number;patch:Record<string,unknown>}{
+export function assertBridgeEdit(input:unknown):{entity:P0Entity;localId:number;sourceDeviceId:string;expectedRevision:number;expectedDesktopRevision:number;patch:Record<string,unknown>}{
   const body=rec(input),entity=String(body.entity||'') as P0Entity;
   if(!Object.prototype.hasOwnProperty.call(EDIT_FIELDS,entity))throw new Error('Entidade não autorizada no backoffice Web.');
   if(!validId(body.localId)||typeof body.sourceDeviceId!=='string'||!body.sourceDeviceId||body.sourceDeviceId.length>128)throw new Error('Identidade do registro inválida.');
   if(!Number.isSafeInteger(body.expectedRevision)||Number(body.expectedRevision)<0)throw new Error('A revisão original do registro é obrigatória.');
+  if(!Number.isSafeInteger(body.expectedDesktopRevision)||Number(body.expectedDesktopRevision)<0)throw new Error('A revisão de origem do Desktop é obrigatória.');
   const patch=rec(body.patch),keys=Object.keys(patch);
   if(!keys.length||keys.length>EDIT_FIELDS[entity].length)throw new Error('Informe ao menos um campo editável.');
   for(const key of keys){
     if(!(EDIT_FIELDS[entity] as readonly string[]).includes(key))throw new Error('Campo não autorizado: '+key);
     if(!textValue(patch[key])||String(patch[key]??'').length>4000)throw new Error('Valor inválido para '+key);
   }
-  return{entity,localId:Number(body.localId),sourceDeviceId:body.sourceDeviceId,expectedRevision:Number(body.expectedRevision),patch};
+  return{entity,localId:Number(body.localId),sourceDeviceId:body.sourceDeviceId,expectedRevision:Number(body.expectedRevision),expectedDesktopRevision:Number(body.expectedDesktopRevision),patch};
 }
