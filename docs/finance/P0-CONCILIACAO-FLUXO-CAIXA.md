@@ -17,7 +17,7 @@ Implementação na PR #234, aguardando aprovação de merge e release.
 | Desktop local | SQLite do Desktop, migrations 021/022 |
 | Servidor LAN/próprio | SQLite central LAN, migrations 032/033 |
 | Central ativa, conexão indisponível | Bloquear escritas; jamais cair silenciosamente no banco local |
-| PWA/Web | Integração da experiência completa e paridade ficam no P1; não criar nova fonte financeira |
+| Web existente no Cloudflare | Fora do escopo desta PR; não criar site ou fonte de dados paralela |
 
 O novo código está em `apps/lan-server/src/bank-finance.cjs` e `bank-p0.cjs`, reutilizado pelo Desktop e pelo servidor. O fluxo acessa `pagamentos_conta` para conciliação, mas **não cria nem apaga pagamentos durante a vinculação/desvinculação**. A confirmação de cada vínculo é transacional e idempotente. Reversões ficam registradas como `reversed`, preservando o histórico.
 
@@ -33,7 +33,7 @@ O novo código está em `apps/lan-server/src/bank-finance.cjs` e `bank-p0.cjs`, 
 - GET `/api/v1/finance/bank-reconciliation`
 - GET `/api/v1/finance/cash-flow`
 
-Todos exigem autenticação e permissão do domínio Financeiro; conciliação e reversão exigem `approve`. No servidor, o autor da ação é derivado do contexto autenticado, nunca aceito do corpo da requisição.
+Os endpoints do servidor exigem autenticação e permissão do domínio Financeiro; conciliação e reversão exigem `approve`. No servidor, o autor da ação é derivado do contexto autenticado, nunca aceito do corpo da requisição. Essas APIs dão suporte ao Desktop conectado, não formam um aplicativo Web.
 
 ## UX — passos reais
 
@@ -48,7 +48,7 @@ Todos exigem autenticação e permissão do domínio Financeiro; conciliação e
 - **Não há consulta em tempo real a banco/API bancária**: saldos reais são calculados a partir do último saldo inicial informado e dos extratos efetivamente importados; sem extrato completo, o saldo exibido pode estar incompleto.
 - **B3 concilia pagamentos/recebimentos já registrados**. Se existe transação sem pagamento no financeiro, registrar a baixa em Financeiro > Contas e então vincular. Não efetuar baixa automática por extrato.
 - **C1 prevê obrigações existentes**, com seus vencimentos e saldos pendentes. Não gera automaticamente novas parcelas contratuais ou futuras recorrências que ainda não estejam cadastradas.
-- Sem filtros avançados de obra e banco na projeção (P1 C2), sem simulador de cenários (P2 C3), sem fechamento avançado (P2 B5). A paridade completa Desktop/Servidor/Web pertence ao P1.
+- Sem filtros avançados de obra e banco nesta etapa (P1 C2 já implementado para Desktop na mesma PR), sem simulador de cenários (P2 C3), sem fechamento avançado (P2 B5). O P1 é exclusivo do Desktop e das APIs necessárias ao Desktop conectado ao servidor.
 - O vínculo é contábil/operacional, não reconhecimento bancário por API externa nem comprovante de quitação certificado.
 - Core gratuito/self-hosted/open source, sem serviço pago obrigatório.
 
