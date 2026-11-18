@@ -80,9 +80,6 @@ class BankP0Service{
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e}
  }
 
- listCompanies(){
-  return this.db.prepare('SELECT id,razao_social,nome_fantasia,status FROM empresas WHERE deleted_at IS NULL ORDER BY razao_social COLLATE NOCASE LIMIT 100').all()
- }
  listWorks({empresaId}={}){
   const id=this.company(empresaId)
   return this.db.prepare('SELECT id,empresa_id,nome,codigo,status FROM obras WHERE empresa_id=? AND deleted_at IS NULL ORDER BY nome COLLATE NOCASE,id LIMIT 500').all(id)
