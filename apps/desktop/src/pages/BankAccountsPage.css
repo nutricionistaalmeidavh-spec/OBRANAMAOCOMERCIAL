@@ -72,3 +72,13 @@
 .cash-row-negative{background:rgba(185,28,28,.08)}
 @media(max-width:900px){.cash-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.cash-filters{grid-template-columns:1fr}.cash-summary-grid{grid-template-columns:1fr}.bank-p0-reconciliation .bank-stats{grid-template-columns:1fr}.bank-p0-candidate{align-items:stretch}.bank-p0-allocation input{max-width:100%;width:100%}}
+
+
+.bank-transaction-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin:16px 0}
+.bank-transaction-filters input,.bank-transaction-filters select{width:100%;max-width:100%}
+.bank-filter-actions{grid-column:1/-1;display:flex;align-items:end;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.cash-filters{grid-template-columns:repeat(5,minmax(0,1fr))}
+.cash-table select{min-width:165px;max-width:280px;width:100%}
+.cash-table td small{display:block;font-size:11px;color:var(--text-muted,#64748b)}
+@media(max-width:1024px){.cash-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.cash-filters{grid-template-columns:1fr}.bank-transaction-filters{grid-template-columns:1fr}.bank-filter-actions{justify-content:stretch}}
