@@ -76,6 +76,17 @@ describe('LanDataClient', () => {
     }
   })
 
+  it('preserva código permanente do comando P0 para confirmar falha sem reprocessar infinitamente',async()=>{
+    const {LanDataClient}=require('./lan-data-client.cjs');
+    const baseUrl='http://servidor:4732';
+    const client=new LanDataClient({
+      storage:{state:()=>({mode:'server',operationalMode:'remote',baseUrl})},
+      credentials:credentialsFor(baseUrl),
+      fetchImpl:vi.fn(async()=>({ok:false,status:409,json:async()=>({error:'web_p0_conflict',message:'Etapa pertence a outra obra.'})}))
+    });
+    await expect(client.request('POST','/api/v1/web-p0/commands',{body:{}})).rejects.toMatchObject({code:'invalid_web_p0_command'});
+  });
+
   it('consulta capacidades da fonte central com a mesma credencial do dispositivo', async () => {
     const { LanDataClient } = require('./lan-data-client.cjs')
     const baseUrl='http://servidor:4732'
