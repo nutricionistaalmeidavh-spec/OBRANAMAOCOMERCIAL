@@ -119,30 +119,40 @@ class BankP0Service{
   }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
  }
 
- cashFlow({empresaId,asOf,horizonDays=30}={}){
+ cashFlow({empresaId,asOf,horizonDays=30,contaBancariaId,obraId}={}){
   const id=this.company(empresaId),date=dateISO(asOf),horizon=Number(horizonDays)
   if(![30,60,90].includes(horizon))throw Error('Selecione um horizonte de 30, 60 ou 90 dias.')
-  const banks=this.db.prepare('SELECT id,nome,banco_nome,saldo_inicial_centavos,saldo_referencia_data,ativo FROM contas_bancarias WHERE empresa_id=? AND deleted_at IS NULL ORDER BY id').all(id)
-  if(!banks.length)throw Error('Cadastre uma conta bancária para calcular o saldo e o fluxo de caixa.')
-  if(!banks.some(b=>b.saldo_referencia_data<=date))throw Error('Não há conta bancária com data de saldo inicial anterior ou igual à referência.')
+  const hasBank=contaBancariaId!==undefined&&contaBancariaId!==null&&contaBancariaId!==''
+  const bankId=hasBank?this.bankAccount(id,contaBancariaId).id:null
+  const hasWork=obraId!==undefined&&obraId!==null&&obraId!==''
+  const workId=hasWork?this.work(id,obraId):null
+  const allBanks=this.db.prepare('SELECT id,nome,banco_nome,saldo_inicial_centavos,saldo_referencia_data,ativo FROM contas_bancarias WHERE empresa_id=? AND deleted_at IS NULL ORDER BY id').all(id)
+  if(!allBanks.length)throw Error('Cadastre uma conta bancária para calcular o saldo e o fluxo de caixa.')
+  const banks=bankId===null?allBanks:allBanks.filter(b=>b.id===bankId)
+  if(!hasWork&&!banks.some(b=>b.saldo_referencia_data<=date))throw Error('Não há conta bancária com data de saldo inicial anterior ou igual à referência.')
   const txQuery=this.db.prepare('SELECT id,data,valor_centavos FROM transacoes_bancarias WHERE empresa_id=? AND conta_bancaria_id=? AND data>? AND data<=? ORDER BY data,id')
   const movements=banks.map(b=>({...b,eligible:b.saldo_referencia_data<=date,txs:txQuery.all(id,b.id,b.saldo_referencia_data,date)}))
   const balanceAt=at=>movements.reduce((sum,b)=>b.saldo_referencia_data>at?sum:sum+Number(b.saldo_inicial_centavos)+b.txs.reduce((n,tx)=>tx.data<=at?n+Number(tx.valor_centavos):n,0),0)
-  const realized=balanceAt(date)
+  const workMovementQuery=this.db.prepare("SELECT t.data,l.conta_bancaria_id,CASE WHEN t.valor_centavos<0 THEN -a.valor_centavos ELSE a.valor_centavos END AS valor_centavos FROM reconciliacao_alocacoes a JOIN reconciliacao_lotes l ON l.id=a.lote_id AND l.status='active' JOIN transacoes_bancarias t ON t.id=l.transacao_bancaria_id JOIN pagamentos_conta p ON p.id=a.pagamento_id JOIN contas c ON c.id=p.conta_id WHERE c.empresa_id=? AND c.obra_id=? AND c.deleted_at IS NULL AND c.status!='cancelado' AND t.data<=?")
+  const attributed=hasWork?workMovementQuery.all(id,workId,date).filter(x=>bankId===null||x.conta_bancaria_id===bankId):[]
+  const realized=hasWork?attributed.reduce((sum,tx)=>sum+Number(tx.valor_centavos),0):balanceAt(date)
   const history=Array.from({length:30},(_,i)=>{
    const current=nextUTCDate(date,i-29)
-   const items=movements.flatMap(b=>b.txs.filter(tx=>tx.data===current))
-   const covered=movements.every(b=>b.saldo_referencia_data<=current)
-   return{date:current,realizedInCents:items.reduce((n,x)=>n+Math.max(0,Number(x.valor_centavos)),0),realizedOutCents:items.reduce((n,x)=>n+Math.max(0,-Number(x.valor_centavos)),0),balanceCents:covered?balanceAt(current):null,coverage:covered?'full':'partial'}
+   const items=hasWork?attributed.filter(tx=>tx.data===current):movements.flatMap(b=>b.txs.filter(tx=>tx.data===current))
+   const covered=hasWork?false:movements.every(b=>b.saldo_referencia_data<=current)
+   return{date:current,realizedInCents:items.reduce((n,x)=>n+Math.max(0,Number(x.valor_centavos)),0),realizedOutCents:items.reduce((n,x)=>n+Math.max(0,-Number(x.valor_centavos)),0),balanceCents:covered?balanceAt(current):null,coverage:hasWork?'attributed':covered?'full':'partial'}
   })
-  const obligations=this.db.prepare("SELECT c.id,c.tipo,c.vencimento,c.valor_centavos,COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id AND p.data<=?),0) paid FROM contas c WHERE c.empresa_id=? AND c.deleted_at IS NULL AND c.status!='cancelado' AND c.tipo IN ('pagar','receber')").all(date,id)
+  const obligations=this.db.prepare("SELECT c.id,c.tipo,c.obra_id,c.vencimento,c.valor_centavos,v.conta_bancaria_id,COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id AND p.data<=?),0) paid FROM contas c LEFT JOIN conta_previsao_bancaria v ON v.conta_id=c.id AND v.empresa_id=c.empresa_id WHERE c.empresa_id=? AND c.deleted_at IS NULL AND c.status!='cancelado' AND c.tipo IN ('pagar','receber')").all(date,id)
   const tomorrow=nextUTCDate(date,1),last=nextUTCDate(date,horizon),scheduled=new Map()
-  let overdues=0
+  let overdues=0,unassignedObligations=0
   for(const entry of obligations){
+   if(hasWork&&entry.obra_id!==workId)continue
    const outstanding=Math.max(0,Number(entry.valor_centavos)-Number(entry.paid));if(!outstanding)continue
    const dueDate=dateISO(entry.vencimento),effective=dueDate<=date?tomorrow:dueDate
-   if(dueDate<=date)overdues++
    if(effective>last)continue
+   if(hasBank&&!entry.conta_bancaria_id)unassignedObligations++
+   if(hasBank&&entry.conta_bancaria_id!==bankId)continue
+   if(dueDate<=date)overdues++
    const bucket=scheduled.get(effective)||{in:0,out:0}
    if(entry.tipo==='receber')bucket.in+=outstanding
    else bucket.out+=outstanding
@@ -156,10 +166,19 @@ class BankP0Service{
    return{date:day,projectedInCents:event.in,projectedOutCents:event.out,projectedBalanceCents:balance,negative:balance<0}
   })
   const warnings=[]
-  if(movements.some(x=>!x.eligible))warnings.push('Algumas contas não possuem saldo inicial na data de referência e foram excluídas do saldo consolidado.')
-  if(movements.some(x=>x.txs.length===0))warnings.push('Existem contas sem movimentações importadas até a data de referência.')
+  if(hasWork)warnings.push('Visão da obra: o realizado utiliza apenas transações conciliadas e atribuídas à obra. Não representa saldo bancário.')
+  if(movements.some(x=>!x.eligible))warnings.push('Algumas contas não possuem saldo inicial na data de referência e foram excluídas do saldo bancário.')
+  if(!hasWork&&movements.some(x=>x.txs.length===0))warnings.push('Existem contas sem movimentações importadas até a data de referência.')
+  if(unassignedObligations)warnings.push('Há '+unassignedObligations+' obrigação(ões) sem banco planejado, excluída(s) da previsão desta conta.')
   if(overdues)warnings.push('Contas vencidas e ainda pendentes foram projetadas para o primeiro dia seguinte à referência.')
-  return{empresaId:id,asOf:date,horizonDays:horizon,actualSource:'bank_statements',balanceDescription:'Saldo calculado pelo saldo inicial e pelos extratos importados; não é consulta bancária em tempo real.',realizedCents:realized,projectedReceivablesCents:receive,projectedPayablesCents:pay,projectedEndCents:balance,negativeDays,overdueObligations:overdues,history,days,warnings,banks:movements.map(b=>({id:b.id,nome:b.nome,bancoNome:b.banco_nome,referenceDate:b.saldo_referencia_data,active:!!b.ativo,covered:b.eligible,realizedCents:b.eligible?Number(b.saldo_inicial_centavos)+b.txs.reduce((s,tx)=>s+Number(tx.valor_centavos),0):null,importedMovements:b.txs.length}))}
+  return{
+   empresaId:id,obraId:workId,contaBancariaId:bankId,asOf:date,horizonDays:horizon,
+   actualSource:hasWork?'reconciled_payments':'bank_statements',realizedBasis:hasWork?'work_attributed':'bank_balance',hasBankBalance:!hasWork,
+   balanceDescription:hasWork?'Movimentação líquida atribuída à obra por conciliações bancárias; não é saldo bancário.':'Saldo calculado pelo saldo inicial e extratos importados, não por consulta bancária em tempo real.',
+   realizedCents:realized,projectedReceivablesCents:receive,projectedPayablesCents:pay,projectedEndCents:balance,
+   negativeDays,overdueObligations:overdues,unassignedObligations,history,days,warnings,
+   banks:movements.map(b=>({id:b.id,nome:b.nome,bancoNome:b.banco_nome,referenceDate:b.saldo_referencia_data,active:!!b.ativo,covered:b.eligible,realizedCents:b.eligible?Number(b.saldo_inicial_centavos)+b.txs.reduce((s,tx)=>s+Number(tx.valor_centavos),0):null,importedMovements:b.txs.length}))
+  }
  }
 }
 module.exports={BankP0Service,dateISO,nextUTCDate}
