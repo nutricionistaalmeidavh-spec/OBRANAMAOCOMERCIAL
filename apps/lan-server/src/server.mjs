@@ -1,4 +1,5 @@
 import http from 'node:http'
+import { readFileSync } from 'node:fs'
 import { createHash, randomBytes } from 'node:crypto'
 import { authenticateLanRequest, authorizeAction, authorizeBusinessRoute, LanAuthorizationError } from './authorization.mjs'
 import { PairingError } from './pairing-service.mjs'
@@ -334,6 +335,27 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       if (url.pathname === '/version') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         return sendJson(response, 200, { product: 'Obra na Mão', apiVersion: LAN_API_VERSION, serverVersion })
+      }
+
+      // P1: dashboard Web servido pelo próprio servidor (same-origin), sem banco paralelo ou CORS aberto.
+      if (['/financeiro-web','/financeiro-web/','/financeiro-web/app.js','/financeiro-web/style.css'].includes(url.pathname)) {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        const asset = url.pathname.endsWith('app.js') ? ['finance-web.js','text/javascript; charset=utf-8'] :
+          url.pathname.endsWith('style.css') ? ['finance-web.css','text/css; charset=utf-8'] :
+          ['finance-web.html','text/html; charset=utf-8']
+        const bytes = readFileSync(new URL('./'+asset[0], import.meta.url))
+        response.writeHead(200, {
+          'content-type': asset[1],
+          'content-length': bytes.length,
+          'cache-control':'private, no-store',
+          'content-security-policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+          'x-frame-options':'DENY',
+          'x-content-type-options':'nosniff',
+          'referrer-policy':'no-referrer',
+          'cross-origin-resource-policy':'same-origin'
+        })
+        response.end(bytes)
+        return
       }
 
       if (url.pathname === '/api/v1/session') {
