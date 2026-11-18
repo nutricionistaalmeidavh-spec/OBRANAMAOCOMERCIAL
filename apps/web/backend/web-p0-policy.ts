@@ -4,7 +4,7 @@
  */
 export const EDIT_FIELDS = Object.freeze({
   empresas:[],
-  clientes:[]
+  clientes:[],
   obras:[],
   frentes_obra:['nome','codigo','status','observacoes'],
   subfrentes_obra:['nome','codigo','pavimento','escopo','status','observacoes'],
