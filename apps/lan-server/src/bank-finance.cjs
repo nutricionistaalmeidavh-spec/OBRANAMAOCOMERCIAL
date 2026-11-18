@@ -1,6 +1,7 @@
 'use strict'
 
 const { createHash } = require('node:crypto')
+const { BankP0Service } = require('./bank-p0.cjs')
 
 const MAX_BYTES = 4 * 1024 * 1024
 const MAX_TRANSACTIONS = 10000
@@ -165,6 +166,7 @@ class BankFinanceService {
   constructor({ db }) {
     if (!db || typeof db.prepare !== 'function' || typeof db.exec !== 'function') throw new Error('Banco financeiro indisponível.')
     this.db = db
+    this.p0 = new BankP0Service({ db })
   }
   company(empresaId) {
     const id = numberId(empresaId, 'Empresa')
@@ -283,9 +285,14 @@ class BankFinanceService {
     const a = this.account(empresaId, contaBancariaId)
     return this.db.prepare('SELECT id,nome_arquivo,formato,total_linhas,importadas,duplicadas,rejeitadas,created_at FROM extrato_importacoes WHERE empresa_id=? AND conta_bancaria_id=? ORDER BY id DESC LIMIT 100').all(a.empresa_id,a.id)
   }
+  suggestReconciliation(payload) { return this.p0.suggestReconciliation(payload) }
+  confirmReconciliation(payload) { return this.p0.confirmReconciliation(payload) }
+  reverseReconciliation(payload) { return this.p0.reverseReconciliation(payload) }
+  listReconciliations(payload) { return this.p0.listReconciliations(payload) }
+  cashFlow(payload) { return this.p0.cashFlow(payload) }
   listTransactions({ empresaId, contaBancariaId }) {
     const a = this.account(empresaId, contaBancariaId)
-    return this.db.prepare('SELECT id,data,descricao,valor_centavos,origem_identificador,importacao_id,created_at FROM transacoes_bancarias WHERE empresa_id=? AND conta_bancaria_id=? ORDER BY data DESC,id DESC LIMIT 500').all(a.empresa_id,a.id)
+    return this.db.prepare("SELECT t.id,t.data,t.descricao,t.valor_centavos,t.origem_identificador,t.importacao_id,t.created_at,COALESCE((SELECT SUM(x.valor_centavos) FROM reconciliacao_alocacoes x JOIN reconciliacao_lotes l ON l.id=x.lote_id WHERE l.transacao_bancaria_id=t.id AND l.status='active'),0) AS conciliado_centavos FROM transacoes_bancarias t WHERE t.empresa_id=? AND t.conta_bancaria_id=? ORDER BY t.data DESC,t.id DESC LIMIT 500").all(a.empresa_id,a.id)
   }
 }
 module.exports = { BankFinanceService, parseFile, moneyCents, dateISO, csvMapping }
