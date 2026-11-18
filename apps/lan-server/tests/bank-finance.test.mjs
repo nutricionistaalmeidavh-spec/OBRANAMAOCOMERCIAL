@@ -124,6 +124,8 @@ test('B1 permite editar dados, desativar conta preservando histórico e reativar
     const saved=f.service.saveAccount({id:original.id,empresaId:1,nome:'Conta atualizada',bancoNome:'Outro banco',agencia:'0123',contaIdentificador:'345-6',tipoConta:'corrente',saldoInicialCentavos:120000,saldoReferenciaData:'2026-11-01',ativo:false})
     assert.equal(saved.nome,'Conta atualizada')
     assert.equal(saved.ativo,0)
+    const editedWithoutToggle=f.service.saveAccount({id:original.id,empresaId:1,nome:'Conta atualizada novamente',bancoNome:'Outro banco',saldoInicialCentavos:120000,saldoReferenciaData:'2026-11-01'})
+    assert.equal(editedWithoutToggle.ativo,0,'editar dados bancários não pode reativar conta inativa sem solicitação')
     assert.equal(f.service.listAccounts({empresaId:1}).length,1)
     assert.throws(()=>f.service.previewImport(input(original.id,'csv','Data;Descricao;Valor\n18/11/2026;Compra;-1,00\n')),/Ative a conta/)
     const reopened=f.service.saveAccount({id:original.id,empresaId:1,nome:'Conta atualizada',bancoNome:'Outro banco',agencia:'0123',contaIdentificador:'345-6',tipoConta:'corrente',saldoInicialCentavos:120000,saldoReferenciaData:'2026-11-01',ativo:true})
