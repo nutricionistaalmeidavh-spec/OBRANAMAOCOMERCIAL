@@ -50,6 +50,7 @@ function validateCommand(command){
   if(action==='update'&&(!Number.isSafeInteger(command.localId)||command.localId<1||!/^[a-f0-9]{64}$/i.test(String(command.expectedFingerprint||''))))reject('Edição exige ID e hash da fonte.');
   for(const [key,v] of Object.entries(data)){
    if(!fields.has(key))reject('Campo não permitido: '+key);
+   if(action==='update'&&key==='cliente_id'&&v===null){clean[key]=null;continue;}
    if(['cliente_id','frente_id','etapa_id','ordem'].includes(key)){
     if(!Number.isSafeInteger(v)||v<(key==='ordem'?0:1)||v>100000000)reject('Referência inválida.');
     clean[key]=v;continue;
