@@ -44,6 +44,13 @@ describe('comandos Web P0 sem tabela operacional paralela',()=>{
     expect(()=>assertP0Create({...base,entity:'cronograma_etapas',data:{nome:'Crono',etapa_id:0}})).toThrow();
     expect(()=>assertP0Create({...base,entity:'cronograma_etapas',data:{nome:'Crono',percentual_previsto:'101'}})).toThrow();
   });
+  it('permite trocar e desvincular cliente da obra sem permitir troca de empresa',()=>{
+    const expectedFingerprint='a'.repeat(64);
+    const baseUpdate={...base,action:'update',entity:'obras',localId:19,expectedFingerprint};
+    expect(assertP0Create({...baseUpdate,data:{cliente_id:null}}).data).toEqual({cliente_id:null});
+    expect(assertP0Create({...baseUpdate,data:{cliente_id:10}}).data).toEqual({cliente_id:10});
+    expect(()=>assertP0Create({...baseUpdate,data:{empresa_id:50}})).toThrow();
+  });
   it('recusa comando sem identificador único, dispositivo ou com campos excessivos',()=>{
     expect(()=>assertP0Create({...base,commandId:'123',entity:'tarefas_obra',data:{titulo:'Teste'}})).toThrow();
     expect(()=>assertP0Create({...base,sourceDeviceId:'',entity:'tarefas_obra',data:{titulo:'Teste'}})).toThrow();
