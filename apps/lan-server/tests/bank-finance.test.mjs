@@ -115,3 +115,30 @@ test('parser de moedas evita arredondamento impreciso em centavos', () => {
   const csv=parseFile({format:'csv',content:'Data;Descrição;Valor\n18/11/2026;Despesa;-10,10\n'})
   assert.equal(csv.rows[0].amountCents,-1010)
 })
+
+test('B1 permite editar dados, desativar conta preservando histórico e reativar', () => {
+  const f=fixture()
+  try {
+    const original=account(f.service)
+    const saved=f.service.saveAccount({id:original.id,empresaId:1,nome:'Conta atualizada',bancoNome:'Outro banco',agencia:'0123',contaIdentificador:'345-6',tipoConta:'corrente',saldoInicialCentavos:120000,saldoReferenciaData:'2026-11-01',ativo:false})
+    assert.equal(saved.nome,'Conta atualizada')
+    assert.equal(saved.ativo,0)
+    assert.equal(f.service.listAccounts({empresaId:1}).length,1)
+    assert.throws(()=>f.service.previewImport(input(original.id,'csv','Data;Descricao;Valor\n18/11/2026;Compra;-1,00\n')),/Ative a conta/)
+    const reopened=f.service.saveAccount({id:original.id,empresaId:1,nome:'Conta atualizada',bancoNome:'Outro banco',agencia:'0123',contaIdentificador:'345-6',tipoConta:'corrente',saldoInicialCentavos:120000,saldoReferenciaData:'2026-11-01',ativo:true})
+    assert.equal(reopened.ativo,1)
+  }finally{f.db.close()}
+})
+
+test('B2 permite configurar colunas CSV sem cabeçalho padronizado', () => {
+  const f=fixture()
+  try {
+    const a=account(f.service)
+    const file=input(a.id,'csv','Quando;Referência bancária;Total\n18/11/2026;Compra de aço;-155,90\n',{mapping:{date:0,description:1,amount:2},format:'csv'})
+    const preview=f.service.previewImport(file)
+    assert.equal(preview.importable,1)
+    assert.equal(preview.mapping.description,1)
+    const result=f.service.confirmImport({...file,previewHash:preview.previewHash})
+    assert.equal(result.imported,1)
+  }finally{f.db.close()}
+})
