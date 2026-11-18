@@ -88,6 +88,38 @@ describe('Gestão Web P0 - transações no navegador',()=>{
     })));
     await vi.waitFor(()=>expect(root.textContent).toContain('Aguardando confirmação'));
   });
+  it('permite solicitar cliente e obra no servidor próprio sem gravar cadastro Web paralelo',async()=>{
+    const source={...overview(),topology:{mode:'remote'},sources:[{deviceId:'desktop-1',name:'PC principal'}],commands:[]};
+    source.items.push({entity:'clientes',localId:65,sourceDeviceId:'desktop-1',revision:0,desktopRevision:1,payload:{nome:'Cliente A',empresa_id:5,sourceFingerprint:'b'.repeat(64)}} as any);
+    client.get.mockResolvedValue({data:source});
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    root.querySelector<HTMLButtonElement>('[data-p0-tab="obras"]')!.click();
+    root.querySelector<HTMLButtonElement>('#p0Create')!.click();
+    expect(root.querySelector<HTMLSelectElement>('[name="cliente_id"]')!.options).toHaveLength(2);
+    root.querySelector<HTMLInputElement>('[name="nome"]')!.value='Nova obra';
+    root.querySelector<HTMLSelectElement>('[name="cliente_id"]')!.value='65';
+    root.querySelector<HTMLFormElement>('#p0CreateForm')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/web/p0/create',expect.objectContaining({
+      entity:'obras',sourceDeviceId:'desktop-1',data:{nome:'Nova obra',cliente_id:65}
+    })));
+  });
+  it('exige confirmação de exclusão e envia ID com hash da fonte, sem deletar localmente',async()=>{
+    const source=overview();
+    source.items[1].payload.sourceFingerprint='a'.repeat(64);
+    client.get.mockResolvedValue({data:source});
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    root.querySelector<HTMLButtonElement>('[data-p0-delete="0"]')!.click();
+    root.querySelector<HTMLFormElement>('#p0DeleteForm')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    expect(client.post).not.toHaveBeenCalled();
+    expect(root.textContent).toContain('Digite exatamente EXCLUIR');
+    root.querySelector<HTMLInputElement>('[name="confirmation"]')!.value='EXCLUIR';
+    root.querySelector<HTMLFormElement>('#p0DeleteForm')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/web/p0/delete',expect.objectContaining({
+      entity:'frentes_obra',localId:11,sourceDeviceId:'desktop-1',expectedFingerprint:'a'.repeat(64)
+    })));
+  });
   it('escapa texto recebido da ponte e não transforma conteúdo em HTML executável',async()=>{
     client.get.mockResolvedValue({data:{...overview(),company:{id:'company-a',name:'<img src=x onerror=alert(1)>'}}});
     const root=document.getElementById('content')!;
