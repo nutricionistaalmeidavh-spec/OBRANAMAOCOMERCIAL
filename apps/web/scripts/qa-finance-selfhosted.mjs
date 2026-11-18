@@ -64,6 +64,7 @@ try{
  // B2 import OFX/CSV no browser com estado de prévia
  await page.locator('[data-tab=imports]').click()
  await page.locator('#view input[type=file]').setInputFiles({name:'novembro.csv',mimeType:'text/csv',buffer:Buffer.from('Data;Descricao;Valor;FITID\n18/11/2026;Compra de materiais;-123,45;QA001\n')})
+ await page.getByText('Arquivo selecionado. Confira a prévia.').waitFor({state:'visible',timeout:10000})
  await page.getByRole('button',{name:'Conferir prévia'}).click()
  await page.getByText('Prévia · novembro.csv').waitFor({state:'visible',timeout:10000})
  await page.getByRole('button',{name:'Confirmar importação'}).click()
