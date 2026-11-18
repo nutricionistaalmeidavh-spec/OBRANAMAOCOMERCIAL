@@ -9,6 +9,7 @@ export const EDIT_FIELDS = Object.freeze({
   frentes_obra:['nome','codigo','status','observacoes'],
   subfrentes_obra:['nome','codigo','pavimento','escopo','status','observacoes'],
   tarefas_obra:['titulo','status','responsavel','prazo','prioridade','descricao','observacoes','concluido_em'],
+  etapas_obra:[],
   cronograma_etapas:['status','percentual_realizado','observacoes','responsavel','previsto_inicio','previsto_fim']
 } as const);
 export type P0Entity=keyof typeof EDIT_FIELDS;
@@ -23,7 +24,7 @@ const textValue=(v:unknown)=>typeof v==='string'||typeof v==='number'||typeof v=
 
 export function bridgeRows(bridge:unknown):BridgeRow[]{
   const raw=rec(bridge);
-  const names:[P0Entity,string][]=[['empresas','companies'],['clientes','clients'],['obras','works'],['frentes_obra','fronts'],['subfrentes_obra','subfronts'],['tarefas_obra','tasks'],['cronograma_etapas','schedule']];
+  const names:[P0Entity,string][]=[['empresas','companies'],['clientes','clients'],['obras','works'],['frentes_obra','fronts'],['subfrentes_obra','subfronts'],['tarefas_obra','tasks'],['etapas_obra','planStages'],['cronograma_etapas','schedule']];
   return names.flatMap(([entity,bucket])=>(Array.isArray(raw[bucket])?raw[bucket] as unknown[]:[]).map(rec).filter(item=>{
     const payload=rec(item.payload);
     return validId(item.localId)&&typeof item.sourceDeviceId==='string'&&item.sourceDeviceId.length>0&&item.deleted!==true&&payload.deleted!==true&&(!item.entity||item.entity===entity);
