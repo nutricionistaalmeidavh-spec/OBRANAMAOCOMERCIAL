@@ -43,6 +43,10 @@ class SyncCoordinator {
   const session=await this.online.session(),connection=this.online.state()
   if(!session.authorized||!session.company?.id||!session.project?.id||!session.device?.id)throw new Error('Vincule o dispositivo a uma empresa e obra online primeiro.')
   const scope={...source,baseUrl:connection.baseUrl,deviceId:String(session.device.id),remoteCompanyId:String(session.company.id),remoteProjectId:String(session.project.id)}
+  if(runtime.source==='lan-host'){
+   const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim()
+   if(serverId)scope.serverId=serverId
+  }
   if(runtime.source==='remote'){
    if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.')
    const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim()
