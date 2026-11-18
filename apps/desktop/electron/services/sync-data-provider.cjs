@@ -1,6 +1,7 @@
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const fs = require('node:fs')
+const { createHash } = require('node:crypto')
 let fieldRdoImporter = null
 async function loadFieldRdoImporter() {
   if (fieldRdoImporter) return fieldRdoImporter
@@ -15,7 +16,7 @@ async function loadFieldRdoImporter() {
 
 const { applyWebP0Create } = require('./web-p0-create.cjs')
 
-const BRIDGE = { frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', rdos: 'rdos', cronograma_etapas: 'schedule' }
+const BRIDGE = { clientes:'clients',obras:'works',frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', rdos: 'rdos', cronograma_etapas: 'schedule' }
 const EDITABLE = {
   frentes_obra: ['nome','codigo','status', 'observacoes'],
   subfrentes_obra: ['nome','codigo','pavimento','escopo','status','observacoes'],
@@ -24,13 +25,21 @@ const EDITABLE = {
   cronograma_etapas: ['status', 'percentual_realizado', 'observacoes', 'responsavel', 'previsto_inicio', 'previsto_fim']
 }
 const WORK_SCOPED = new Set([...Object.keys(BRIDGE), 'documentos'])
+const COMPANY_SCOPED = new Set(['clientes','obras'])
 
 const json = JSON.stringify
-const payloadOf = row => Object.fromEntries(
-  Object.entries({ ...row, deleted: !!row.deleted_at })
-    .filter(([key]) => !['created_at', 'updated_at'].includes(key))
-    .sort(([a], [b]) => a.localeCompare(b))
-)
+const payloadOf = (row,entity) => {
+  const canonical=Object.fromEntries(
+    Object.entries({...row,deleted:!!row.deleted_at})
+      .filter(([key])=>!['created_at','updated_at'].includes(key))
+      .sort(([a],[b])=>a.localeCompare(b))
+  )
+  if(!['clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra'].includes(entity))return canonical
+  const sourceFingerprint=createHash('sha256').update(JSON.stringify(canonical)).digest('hex')
+  if(entity==='clientes')return{id:canonical.id,empresa_id:canonical.empresa_id,nome:canonical.nome,deleted:canonical.deleted,sourceFingerprint}
+  if(entity==='obras')return{id:canonical.id,empresa_id:canonical.empresa_id,cliente_id:canonical.cliente_id,nome:canonical.nome,status:canonical.status,deleted:canonical.deleted,sourceFingerprint}
+  return{...canonical,sourceFingerprint}
+}
 
 class LocalSyncDataProvider {
   constructor({ database, now = Date.now }) {
@@ -161,6 +170,7 @@ class LocalSyncDataProvider {
 
   listBridge(entity, scope) {
     if (!Object.hasOwn(BRIDGE, entity)) throw new Error('Entidade não disponível na bridge de sincronização.')
+    if(COMPANY_SCOPED.has(entity))return this.database.list(entity,{empresa_id:scope.companyId})
     return this.rowsByWork(entity, scope)
   }
 
