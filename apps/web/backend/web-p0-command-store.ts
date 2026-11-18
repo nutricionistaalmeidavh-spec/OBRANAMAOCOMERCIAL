@@ -5,7 +5,7 @@ export type WebP0Queued={
   id:string;deviceId:string;companyId:string;projectId:string;
   entity:P0CreateCommand['entity'];action:'create'|'delete';data:Record<string,unknown>;
   localId?:number;targetLocalId?:number;expectedFingerprint?:string;
-  actorId:string;status:'pending'|'applied'|'failed';localId?:number;error?:string;
+  actorId:string;status:'pending'|'applied'|'failed';error?:string;
   createdAt:string;updatedAt:string
 };
 const safe=(v:string)=>v.replace(/[^A-Za-z0-9_-]/g,'_');
@@ -22,7 +22,7 @@ export async function enqueueWebP0Command(input:{
   const {projectId,companyId,actorId,command}=input,now=stamp();
   const record:WebP0Queued={
     id:command.commandId,projectId,companyId,actorId,
-    deviceId:command.sourceDeviceId,entity:command.entity,action:command.action,data:command.data,
+    deviceId:command.sourceDeviceId,entity:command.entity,action:command.action||'create',data:command.data,
     ...(command.localId?{targetLocalId:command.localId}:{}),...(command.expectedFingerprint?{expectedFingerprint:command.expectedFingerprint}:{}),
     status:'pending',createdAt:now,updatedAt:now
   };
