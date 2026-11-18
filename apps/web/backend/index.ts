@@ -542,6 +542,35 @@ export const handler=router({
       return json({ok:true,command:{id:record.id,status:record.status,entity:record.entity,action:record.action}},202);
     }catch(e){return error((e as Error).message,409)}
   }],
+  'POST /api/desktop/web-p0/projects':[async(ctx)=>{
+    const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''));
+    if(!session||session.member?.role!=='admin'||!session.access.modules.includes('obra360')||!session.device.companyId)return error('Desktop Admin não autorizado.',403);
+    const members=(await findAccess(session.device.email)).filter(m=>m.companyId===session.device.companyId&&m.role==='admin'&&m.status!=='revoked');
+    const projects=(await Promise.all(members.map(async m=>{
+      const project=await getProject(m.projectId);
+      if(!project||project.companyId!==session.device.companyId)return null;
+      const origin=asRecord(asRecord(project).workSource);
+      if(origin.sourceDeviceId&&origin.sourceDeviceId!==session.device.id)return null;
+      return {id:m.projectId,name:project.name,localWorkId:Number.isSafeInteger(origin.localWorkId)?origin.localWorkId:null,selected:m.projectId===session.device.projectId};
+    }))).filter((p):p is {id:string;name:string;localWorkId:number|null;selected:boolean}=>p!==null);
+    return json({projects});
+  }],
+  'POST /api/desktop/web-p0/project/select':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||session.member?.role!=='admin'||!session.access.modules.includes('obra360')||!session.device.companyId)return error('Desktop Admin não autorizado.',403);
+    const targetId=String(body.projectId||''),workId=Number(body.localWorkId);
+    if(!Number.isSafeInteger(workId)||workId<1)return error('Informe a obra operacional local.',400);
+    const target=await getProject(targetId);
+    if(!target||target.companyId!==session.device.companyId)return error('Projeto de outra empresa.',403);
+    const member=(await findAccess(session.device.email)).find(m=>m.companyId===session.device.companyId&&m.projectId===targetId&&m.role==='admin'&&m.status!=='revoked');
+    if(!member)return error('Desktop sem autorização para o novo projeto.',403);
+    const source=asRecord(asRecord(target).workSource);
+    if(source.sourceDeviceId&&(source.sourceDeviceId!==session.device.id||Number(source.localWorkId)!==workId))
+      return error('A obra canônica não corresponde ao Desktop selecionado.',409);
+    const currentDevice=session.device,stamp=now();
+    await db.update('devices',[{id:currentDevice.id,record:{...currentDevice,projectId:targetId,updatedAt:stamp}}]);
+    return json({ok:true,projectId:targetId,companyId:currentDevice.companyId,localWorkId:workId});
+  }],
   'POST /api/desktop/web-p0/pending':[async(ctx)=>{
     const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''));
     if(!session||!session.device.projectId||session.member?.role!=='admin'||!session.access.modules.includes('obra360'))return error('Desktop não autorizado a receber cadastros Web.',403);
