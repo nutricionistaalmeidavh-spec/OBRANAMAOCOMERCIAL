@@ -59,7 +59,7 @@ export default function BankAccountsPage(){
   const updateDraft=(field:keyof Draft,value:string)=>setDraft(v=>({...v,[field]:value}))
   const editSelected=()=>{
     if(!selected)return
-    setDraft({id:selected.id,nome:selected.nome,bancoNome:selected.banco_nome,agencia:selected.agencia||'',contaIdentificador:selected.conta_identificador||'',tipoConta:selected.tipo_conta,saldoInicial:money(selected.saldo_inicial_centavos).replace('R$', '').trim(),saldoReferenciaData:selected.saldo_referencia_data,requestId:crypto.randomUUID()})
+    setDraft({id:selected.id,nome:selected.nome,bancoNome:selected.banco_nome,agencia:selected.agencia||'',contaIdentificador:selected.conta_identificador||'',tipoConta:selected.tipo_conta,saldoInicial:new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(selected.saldo_inicial_centavos/100),saldoReferenciaData:selected.saldo_referencia_data,requestId:crypto.randomUUID()})
     setError('');setAdding(true)
   }
   const toggleSelected=async()=>{
