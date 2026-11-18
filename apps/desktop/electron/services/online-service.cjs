@@ -382,6 +382,14 @@ class OnlineService {
     return result
   }
 
+  async p0Projects() {
+    return this.request('/api/desktop/web-p0/projects',{deviceToken:this.requireToken()})
+  }
+
+  async selectP0Project({projectId,localWorkId}) {
+    return this.request('/api/desktop/web-p0/project/select',{deviceToken:this.requireToken(),projectId,localWorkId})
+  }
+
   async webP0Pending() {
     return this.request('/api/desktop/web-p0/pending', { deviceToken: this.requireToken() })
   }
