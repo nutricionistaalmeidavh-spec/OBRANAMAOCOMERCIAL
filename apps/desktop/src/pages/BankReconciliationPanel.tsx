@@ -12,6 +12,7 @@ const amountText=(n:number)=>new Intl.NumberFormat('pt-BR',{minimumFractionDigit
 
 export default function BankReconciliationPanel({empresaId,contaBancariaId,movements,onChanged}:{empresaId:number;contaBancariaId:number;movements:Movement[];onChanged:()=>void}){
  const [txId,setTxId]=useState('')
+ const [includeAll,setIncludeAll]=useState(false)
  const [version,setVersion]=useState(0)
  const [selected,setSelected]=useState<Record<string,string>>({})
  const [requestId,setRequestId]=useState(()=>crypto.randomUUID())
@@ -23,9 +24,9 @@ export default function BankReconciliationPanel({empresaId,contaBancariaId,movem
  useEffect(()=>{if(!movements.length){setTxId('');return}if(!movements.some(m=>String(m.id)===txId))setTxId(String(movements[0].id))},[movements,txId])
  const tx=useMemo(()=>movements.find(m=>String(m.id)===txId),[movements,txId])
  const query={empresaId,contaBancariaId,transacaoId:Number(txId)}
- const suggested=useAsync<Suggestions>(()=>txId?window.fluxoDre.bancos.suggestions(query):Promise.resolve({transactionId:0,transactionCents:0,reconciledCents:0,remainingCents:0,suggestions:[]}),[empresaId,contaBancariaId,txId,version])
+ const suggested=useAsync<Suggestions>(()=>txId?window.fluxoDre.bancos.suggestions({...query,includeAll}):Promise.resolve({transactionId:0,transactionCents:0,reconciledCents:0,remainingCents:0,suggestions:[]}),[empresaId,contaBancariaId,txId,version,includeAll])
  const history=useAsync<Match[]>(()=>window.fluxoDre.bancos.reconciliations({empresaId,contaBancariaId}),[empresaId,contaBancariaId,version])
- useEffect(()=>{setSelected({});setRequestId(crypto.randomUUID());setError('');setSuccess('')},[empresaId,contaBancariaId,txId])
+ useEffect(()=>{setSelected({});setIncludeAll(false);setRequestId(crypto.randomUUID());setError('');setSuccess('')},[empresaId,contaBancariaId,txId])
  const available=suggested.data?.remainingCents??0
  const allocations=Object.entries(selected).map(([paymentId,value])=>({pagamentoId:Number(paymentId),valorCentavos:cents(value)}))
  const valid=allocations.length>0&&allocations.every(x=>Number.isSafeInteger(x.valorCentavos)&&x.valorCentavos>0)&&allocations.reduce((s,x)=>s+x.valorCentavos,0)<=available
@@ -67,6 +68,7 @@ export default function BankReconciliationPanel({empresaId,contaBancariaId,movem
     </select>
    </label>
    {tx&&<div className="bank-stats"><span><strong>{money(tx.valor_centavos)}</strong> Valor no extrato</span><span><strong>{money(suggested.data?.reconciledCents||0)}</strong> Conciliado</span><span><strong>{money(available)}</strong> Falta conciliar</span></div>}
+   <label className="bank-check"><input type="checkbox" checked={includeAll} onChange={e=>setIncludeAll(e.target.checked)}/> Mostrar também pagamentos fora dos últimos 14 dias</label>
    {suggested.loading?<Loading label="Buscando pagamentos compatíveis..."/>:suggested.error?<ErrorState error={suggested.error} retry={suggested.reload}/>:available===0?<div role="status" className="bank-message">Movimentação totalmente conciliada. Consulte o histórico para desfazer, se necessário.</div>:!suggested.data?.suggestions.length?<Empty title="Nenhum pagamento correspondente" description="Registre a baixa em Financeiro > Contas e retorne para vincular o comprovante bancário."/>:<div>
     <h3>Pagamentos sugeridos para conferência</h3>
     <p>Confira data, valor e descrição antes de selecionar. Uma movimentação pode ser dividida entre vários pagamentos.</p>
