@@ -15,13 +15,22 @@ export default function SyncSettings() {
   const [state, setState] = useState<DesktopSyncState | null>(null)
   const [companyId, setCompanyId] = useState('')
   const [workId, setWorkId] = useState('')
+  const [webProjects,setWebProjects]=useState<Array<{id:string;name:string;localWorkId:number|null;selected:boolean}>>([])
+  const [webProjectId,setWebProjectId]=useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [confirmation, setConfirmation] = useState(false)
-  const [remote, setRemote] = useState<{ company: string; project: string } | null>(null)
+  const [remote, setRemote] = useState<{ company: string; project: string; oldProjectId:string } | null>(null)
   const [resolution, setResolution] = useState<{ id: number; choice: LocalConflictResolution } | null>(null)
   const refresh = async () => setState(await window.fluxoDre.online.syncState())
+  const refreshWebProjects=async()=>{
+    try{
+      const result=await window.fluxoDre.online.p0Projects();
+      setWebProjects(result.projects||[]);
+      setWebProjectId(current=>(result.projects||[]).some(item=>item.id===current)?current:(result.projects||[]).find(item=>item.selected)?.id||'');
+    }catch{/* O Desktop pode estar offline ou ainda sem vínculo Web. */}
+  }
   useEffect(() => {
     let active = true
     const apply = (value:DesktopSyncState) => { if (active) setState(value) }
@@ -29,6 +38,7 @@ export default function SyncSettings() {
     const unsubscribe = window.fluxoDre.online.onSyncStateChanged(apply)
     const onVisibility = () => { if (document.visibilityState === 'visible') void update() }
     void update()
+    void refreshWebProjects()
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
       active = false
@@ -47,7 +57,11 @@ export default function SyncSettings() {
   const prepare = () => perform(async () => {
     const session = await window.fluxoDre.online.session()
     if (!session.authorized || !session.company?.id || !session.project?.id) throw new Error('Vincule primeiro este computador a uma empresa e obra online.')
-    setRemote({ company: session.company.name || session.company.id, project: session.project.name || session.project.id }); setConfirmation(true)
+    const target=webProjects.find(item=>item.id===webProjectId)
+    if(target?.localWorkId!=null&&target.localWorkId!==Number(workId))
+      throw new Error('A obra local selecionada não corresponde ao projeto Web criado neste Desktop.')
+    setRemote({company:session.company.name||session.company.id,project:target?.name||session.project.name||session.project.id,oldProjectId:session.project.id});
+    setConfirmation(true)
   }, '')
   const choices = (works.data || []).filter(work => String(work.empresa_id) === companyId)
   const company = companies.data?.find(item => String(item.id) === companyId)
@@ -63,10 +77,15 @@ export default function SyncSettings() {
       {remoteCoordinator && <p role="status"><strong>Coordenador do servidor próprio.</strong> Somente o Desktop autorizado para esta obra pode enviar e receber alterações do PWA. A troca do coordenador exige migração assistida.</p>}
       {lanClient && <p role="status"><strong>A sincronização central é responsabilidade do PC principal.</strong> Este computador continua usando os dados do servidor da empresa e acompanha o estado online, mas não executa push/pull central diretamente.</p>}
       <div className="form-grid">
+        <Field label="Projeto Web de destino"><select value={webProjectId} disabled={busy||lanClient} onChange={e=>setWebProjectId(e.target.value)}>
+          <option value="">Projeto atual do Desktop</option>
+          {webProjects.map(item=><option key={item.id} value={item.id}>{item.name}{item.selected?' (atual)':''}</option>)}
+        </select></Field>
         <Field label="Empresa local"><select value={companyId} disabled={busy || lanClient} onChange={event => { setCompanyId(event.target.value); setWorkId('') }}><option value="">Selecione...</option>{companies.data?.map(item => <option key={item.id} value={item.id}>{item.razao_social || item.nome_fantasia}</option>)}</select></Field>
         <Field label="Obra local"><select value={workId} disabled={busy || lanClient || !companyId} onChange={event => setWorkId(event.target.value)}><option value="">Selecione...</option>{choices.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
       </div>
       <div className="setting-actions">
+        <Button variant="secondary" disabled={busy} onClick={()=>void refreshWebProjects()}>Atualizar projetos Web</Button>
         <Button disabled={busy || lanClient || !company || !work} onClick={prepare}>Conferir vínculo e ativar</Button>
         <Button variant="secondary" disabled={busy || !state?.configured || state.paused || state.running} onClick={() => perform(() => window.fluxoDre.online.syncNow(), 'Tentativa concluída. Confira as pendências abaixo.')}>Sincronizar agora</Button>
       </div>
@@ -89,7 +108,16 @@ export default function SyncSettings() {
           <div className="setting-actions"><Button variant="secondary" disabled={busy || state.running} onClick={() => setResolution({ id: item.id, choice: 'keep_local' })}>Manter versão deste computador</Button><Button variant="secondary" disabled={busy || state.running} onClick={() => setResolution({ id: item.id, choice: 'accept_remote' })}>Usar versão do Obra360</Button></div>
         </div>
       })}</section>}
-      <Confirm open={confirmation} title="Confirmar publicação desta obra" description={`${company?.razao_social || ''} / ${work?.nome || ''} → ${remote?.company || ''} / ${remote?.project || ''}. A sincronização enviará dados operacionais e indicadores dos módulos autorizados, além de obrigações financeiras quando houver permissão. Não vincule obras diferentes.`} onCancel={() => setConfirmation(false)} onConfirm={() => { setConfirmation(false); void perform(() => window.fluxoDre.online.configureSync({ companyId: Number(companyId), workId: Number(workId) }), 'Vínculo de sincronização configurado.') }}/>
+      <Confirm open={confirmation} title="Confirmar publicação desta obra" description={`${company?.razao_social || ''} / ${work?.nome || ''} → ${remote?.company || ''} / ${remote?.project || ''}. A sincronização enviará dados operacionais e indicadores dos módulos autorizados, além de obrigações financeiras quando houver permissão. Não vincule obras diferentes.`} onCancel={() => setConfirmation(false)} onConfirm={() => {
+        setConfirmation(false);
+        const target=webProjectId;
+        void perform(
+          () => target&&target!==remote?.oldProjectId
+            ? window.fluxoDre.online.selectP0Project({projectId:target,companyId:Number(companyId),workId:Number(workId)})
+            : window.fluxoDre.online.configureSync({companyId:Number(companyId),workId:Number(workId)}),
+          'Vínculo configurado. A obra local continuará sincronizando com o projeto Web selecionado.'
+        );
+      }}/>
       <Confirm open={!!resolution} title="Resolver divergência" description={resolution?.choice === 'accept_remote' ? 'A versão do Obra360 substituirá os campos divergentes deste computador. Esta decisão será registrada.' : 'A versão deste computador será mantida e enviada ao Obra360 na próxima sincronização. Esta decisão será registrada.'} onCancel={() => setResolution(null)} onConfirm={() => { const selected = resolution!; setResolution(null); void perform(() => window.fluxoDre.online.resolveLocalConflict(selected.id, selected.choice), 'Conflito revisado. Acompanhe a próxima sincronização.') }}/>
     </Card>
   </>
