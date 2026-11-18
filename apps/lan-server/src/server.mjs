@@ -305,9 +305,9 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
-  const bankFinance = repository?.connection?.() ? new BankFinanceService({ db: repository.connection() }) : null
   const repositoryDb = repository?.connection?.()
   const compoundDomainReady = !!repositoryDb && typeof repositoryDb.prepare === 'function' && typeof repositoryDb.exec === 'function'
+  const bankFinance = compoundDomainReady ? new BankFinanceService({ db: repositoryDb }) : null
   const measurements = measurementService || (compoundDomainReady ? new MeasurementService({ repository }) : null)
   const procurement = procurementService || (compoundDomainReady ? new ProcurementService({ repository }) : null)
   const receivedNotes = compoundDomainReady ? createReceivedNotesService(repositoryDb) : null
