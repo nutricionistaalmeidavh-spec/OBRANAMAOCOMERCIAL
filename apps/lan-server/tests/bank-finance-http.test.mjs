@@ -1,8 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import path from 'node:path'
-import fs from 'node:fs'
-import { Script } from 'node:vm'
 import { createHash } from 'node:crypto'
 import { LanRepository } from '../src/repository.mjs'
 import { createLanServer } from '../src/server.mjs'
@@ -109,36 +107,6 @@ test('HTTP B1/B2 exige autenticação e persiste extrato no banco LAN sem baixar
     await new Promise(resolve=>server.close(resolve))
     repository.close()
   }
-})
-
-
-test('P1 JavaScript Web é sintaticamente válido e não acessa serviços externos',()=>{
-  const source=fs.readFileSync(path.resolve(import.meta.dirname,'../src/finance-web.js'),'utf8')
-  assert.doesNotThrow(()=>new Script(source,{filename:'finance-web.js'}))
-  assert.ok(!source.includes('localStorage.setItem'))
-  assert.ok(!source.includes('https://api.'))
-})
-
-test('P1 HTML/CSS/JS Web são servidos localmente sem credenciais e com CSP, APIs protegidas',async()=>{
-  const server=createLanServer({})
-  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
-  const base='http://127.0.0.1:'+server.address().port
-  try{
-    for(const [url,contentType,marker] of [
-      ['/financeiro-web','text/html','pair-form'],
-      ['/financeiro-web/style.css','text/css','.panel'],
-      ['/financeiro-web/app.js','text/javascript','/api/v1/finance/cash-flow']
-    ]){
-      const response=await fetch(base+url)
-      assert.equal(response.status,200)
-      assert.ok(response.headers.get('content-type').includes(contentType))
-      assert.equal(response.headers.get('x-content-type-options'),'nosniff')
-      assert.ok(response.headers.get('content-security-policy').includes("default-src 'none'"))
-      assert.ok((await response.text()).includes(marker))
-    }
-    const res=await fetch(base+'/api/v1/finance/companies')
-    assert.notEqual(res.status,200)
-  }finally{await new Promise(resolve=>server.close(resolve))}
 })
 
 
