@@ -68,3 +68,44 @@ test('Servidor LAN rejeita falso tenant, colaborador, dispositivo e exclusão de
  assert.equal((await send(denied,scope,{id,entity:'clientes',deviceId:scope.deviceId,action:'create',data:{nome:'Bloqueado'}})).status,403)}
  finally{await close(denied)}
 });
+
+
+test('LAN atualiza cliente e empresa dentro do tenant e rejeita revisão obsoleta',async()=>{
+ const f=await fixture();
+ try{
+  const scope={companyId:f.company.id,workId:f.work.id,remoteCompanyId:'cloud-company-A',deviceId:'cloud-device-A'};
+  const customer=f.repository.save('clientes',{empresa_id:f.company.id,nome:'Cliente anterior'});
+  const original=webP0Fingerprint({...customer,revision:1});
+  const command={id:'33333333-aaaa-4aaa-8aaa-333333333333',entity:'clientes',deviceId:scope.deviceId,action:'update',localId:customer.id,expectedFingerprint:original,data:{nome:'Cliente atualizado'}};
+  const applied=await send(f,scope,command);
+  assert.equal(applied.status,200,JSON.stringify(applied.body));
+  assert.equal(f.repository.get('clientes',customer.id).nome,'Cliente atualizado');
+  const replay=await send(f,scope,command);
+  assert.equal(replay.status,200);assert.equal(replay.body.duplicate,true);
+  const stale=await send(f,scope,{...command,id:'44444444-aaaa-4aaa-8aaa-444444444444'});
+  assert.equal(stale.status,409);
+  assert.equal(f.repository.list('clientes',{empresa_id:f.company.id}).length,1);
+  const companyCmd={id:'55555555-aaaa-4aaa-8aaa-555555555555',entity:'empresas',deviceId:scope.deviceId,action:'update',localId:f.company.id,expectedFingerprint:webP0Fingerprint({...f.repository.get('empresas',f.company.id),revision:1}),data:{nome_fantasia:'Construtora'}};
+  const companyUpdate=await send(f,scope,companyCmd);
+  assert.equal(companyUpdate.status,200,JSON.stringify(companyUpdate.body));
+  assert.equal(f.repository.get('empresas',f.company.id).nome_fantasia,'Construtora');
+  assert.equal((await send(f,scope,{...companyCmd,id:'66666666-aaaa-4aaa-8aaa-666666666666',action:'delete',data:{}})).status,409);
+ }finally{await close(f)}
+});
+test('LAN cria etapa planejada vinculada e prazo, preservando integridade ao rejeitar cruzamento',async()=>{
+ const f=await fixture();
+ try{
+  const scope={companyId:f.company.id,workId:f.work.id,remoteCompanyId:'cloud-company-A',deviceId:'cloud-device-A'};
+  const stage=f.repository.save('frentes_obra',{obra_id:f.work.id,nome:'Hidráulica'});
+  const plan=await send(f,scope,{id:'77777777-aaaa-4aaa-8aaa-777777777777',entity:'etapas_obra',deviceId:scope.deviceId,action:'create',data:{nome:'Etapa 1',frente_id:stage.id}});
+  assert.equal(plan.status,200,JSON.stringify(plan.body));
+  const schedule=await send(f,scope,{id:'88888888-aaaa-4aaa-8aaa-888888888888',entity:'cronograma_etapas',deviceId:scope.deviceId,action:'create',data:{nome:'Pressurização',frente_id:stage.id,etapa_id:plan.body.localId,previsto_fim:'2026-11-30'}});
+  assert.equal(schedule.status,200,JSON.stringify(schedule.body));
+  assert.equal(f.repository.get('cronograma_etapas',schedule.body.localId).etapa_id,plan.body.localId);
+  const second=f.repository.save('obras',{empresa_id:f.company.id,nome:'Outra obra'});
+  const foreignStage=f.repository.save('frentes_obra',{obra_id:second.id,nome:'Outra etapa'});
+  const invalid=await send(f,scope,{id:'99999999-aaaa-4aaa-8aaa-999999999999',entity:'cronograma_etapas',deviceId:scope.deviceId,action:'create',data:{nome:'Outra',frente_id:foreignStage.id}});
+  assert.equal(invalid.status,409);
+  assert.equal(f.repository.list('cronograma_etapas',{obra_id:f.work.id}).length,1);
+ }finally{await close(f)}
+});
