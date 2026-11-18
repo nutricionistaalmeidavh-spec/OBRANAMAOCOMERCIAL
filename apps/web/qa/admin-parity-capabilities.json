@@ -46,6 +46,19 @@
       "status": "active"
     },
     {
+      "id": "obra.company.archive",
+      "authorityRoutes": [
+        "DELETE /api/owner/companies/:id"
+      ],
+      "legacySurface": "Central ArtiSys / Empresa / Arquivamento",
+      "generalPanelRequired": false,
+      "reason": "Arquivamento administrativo de tenant vazio; não aparece como ação de exclusão comum, pois exige inexistência de usuários, obras e dispositivos, revogação da licença e auditoria.",
+      "e2e": [
+        "native:test"
+      ],
+      "status": "active"
+    },
+    {
       "id": "obra.device.control",
       "authorityRoutes": [
         "GET /api/owner/devices",
