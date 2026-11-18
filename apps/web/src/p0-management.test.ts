@@ -154,6 +154,23 @@ describe('Gestão Web P0 - transações no navegador',()=>{
       entity:'empresas',localId:1,expectedFingerprint:'b'.repeat(64),data:{razao_social:'Empresa Atualizada'}
     })));
   });
+  it('troca cliente de obra existente sem alterar empresa ou fonte operacional',async()=>{
+    const data={...overview(),sources:[{deviceId:'desktop-1',name:'Origem'}],commands:[]};
+    data.items.push(
+      {entity:'clientes',localId:71,sourceDeviceId:'desktop-1',revision:0,desktopRevision:2,payload:{nome:'Cliente A'}} as any,
+      {entity:'obras',localId:80,sourceDeviceId:'desktop-1',revision:0,desktopRevision:2,payload:{nome:'Obra',cliente_id:null,sourceFingerprint:'c'.repeat(64)}} as any
+    );
+    client.get.mockResolvedValue({data});
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    root.querySelector<HTMLButtonElement>('[data-p0-tab="obras"]')!.click();
+    root.querySelector<HTMLButtonElement>('[data-p0-edit="0"]')!.click();
+    root.querySelector<HTMLSelectElement>('[name="cliente_id"]')!.value='71';
+    root.querySelector<HTMLFormElement>('#p0EditForm')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/web/p0/update',expect.objectContaining({
+      entity:'obras',localId:80,data:{cliente_id:71}
+    })));
+  });
   it('lista e seleciona outra obra Web somente pelo endpoint autenticado',async()=>{
     const data={...overview(),sources:[{deviceId:'desktop-1',name:'Origem'}],availableProjects:[
       {id:'project-a',name:'Obra Central',hasOperationalSource:false},
