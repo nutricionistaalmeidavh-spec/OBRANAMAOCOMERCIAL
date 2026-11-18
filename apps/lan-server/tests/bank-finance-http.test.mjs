@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import path from 'node:path'
+import fs from 'node:fs'
+import { Script } from 'node:vm'
 import { createHash } from 'node:crypto'
 import { LanRepository } from '../src/repository.mjs'
 import { createLanServer } from '../src/server.mjs'
@@ -109,6 +111,13 @@ test('HTTP B1/B2 exige autenticação e persiste extrato no banco LAN sem baixar
   }
 })
 
+
+test('P1 JavaScript Web é sintaticamente válido e não acessa serviços externos',()=>{
+  const source=fs.readFileSync(path.resolve(import.meta.dirname,'../src/finance-web.js'),'utf8')
+  assert.doesNotThrow(()=>new Script(source,{filename:'finance-web.js'}))
+  assert.ok(!source.includes('localStorage.setItem'))
+  assert.ok(!source.includes('https://api.'))
+})
 
 test('P1 HTML/CSS/JS Web são servidos localmente sem credenciais e com CSP, APIs protegidas',async()=>{
   const server=createLanServer({})
