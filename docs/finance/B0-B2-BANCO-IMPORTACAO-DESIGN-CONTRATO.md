@@ -1,6 +1,6 @@
 # Obra na Mão — Financeiro B0–B2: modelo canônico, contas bancárias e importação assistida
 
-Status: **design aprovado para implementação técnica, ainda não implementado**.  
+Status: **implementação B1/B2 disponível na branch de trabalho, em validação de QA; ainda não publicada**.  
 Escopo: B0 (arquitetura), B1 (contas bancárias), B2 (importador OFX/CSV).  
 Referência: branch principal inspecionada em 18/11/2026.  
 Limite de custo: core R$ 0, self-hosted e código open source; serviço pago exclusivamente opcional.
@@ -148,7 +148,7 @@ GET    /api/v1/finance/bank-imports?conta_bancaria_id=...
 GET    /api/v1/finance/bank-transactions?conta_bancaria_id=...
 ```
 
-Desktop IPC deve usar exatamente o mesmo serviço de domínio/contrato e o roteamento de fonte de dados existente; não criar uma implementação semântica diferente para cada superfície. Controlar escopo de empresa no servidor, não confiar no seletor da UI. CSV/OFX são processados sem internet ou serviço pago.
+O Desktop IPC utiliza o mesmo módulo de domínio `apps/lan-server/src/bank-finance.cjs` do servidor e o roteamento de fonte de dados existente; não criar uma implementação semântica diferente para cada superfície. Controlar escopo de empresa no servidor, não confiar no seletor da UI. CSV/OFX são processados sem internet ou serviço pago.
 
 ### Idempotência e conciliação futura
 
@@ -179,9 +179,9 @@ Dar ao usuário a tarefa “Cadastre a conta usada para pagar funcionários e im
 
 ## 10. Entrega e limites
 
-- B0: contrato, matriz de fontes e invariantes → presente neste documento, pendente implementação.
-- B1: schema, domínio, API, interface e testes → pendentes.
-- B2: parser, prévia, persistência, histórico, interface e testes → pendentes.
+- B0: contrato, matriz de fontes e invariantes → definidos e incorporados ao roteamento local/LAN; revisão final pendente.
+- B1: schema, domínio, rotas LAN, bridge Electron, interface Desktop e testes → implementados na branch; QA em execução.
+- B2: OFX/CSV, prévia, confirmação transacional, histórico, interface Desktop e testes → implementados na branch; QA em execução.
 - B3: conciliação bancária → fora do escopo desta etapa.
 - É proibido afirmar B1/B2 como liberados a clientes antes de build, migração, QA e release autorizada.
 - Branch própria; PR draft; sem merge na main, sem release e sem alteração de secrets.
