@@ -69,7 +69,7 @@ async function findAccess(email:string){const {items}=await db.list<Member>(acce
   const stamp=now();device={...device,lastSeenAt:stamp,updatedAt:stamp};await db.update('devices',[{id:device.id,record:device as unknown as Record<string,unknown>}]);
   return{device,member,access}
 }
-const SYNC_ENTITIES=['clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','rdo_anexos','cronograma_etapas'];
+const SYNC_ENTITIES=['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','rdo_anexos','cronograma_etapas'];
 async function resolveMembership(user:{userId:string;email?:string;name?:string}){
   const email=norm(user.email);if(!email)return null;
   const items=(await findAccess(email)).filter(m=>m.status!=='revoked');const ownerPreferred=email===ownerEmail()?(items.find(m=>m.canonicalOwner&&m.userId===user.userId)||items.find(m=>m.canonicalOwner)):undefined;const current=ownerPreferred||items.find(m=>m.userId===user.userId)||items[0];if(!current)return null;
