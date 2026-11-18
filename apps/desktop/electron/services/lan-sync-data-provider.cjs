@@ -70,13 +70,14 @@ class LanSyncDataProvider {
 
   async listBridge(entity, scope) {
     await this.requireBridge(entity)
+    if(entity==='empresas')return [await this.lanClient.get('empresas',scope.companyId)]
     return this.lanClient.list(entity, ['clientes','obras'].includes(entity)?{empresa_id:scope.companyId}:{obra_id:scope.workId})
   }
 
   async getBridge(entity, localId, scope) {
     await this.requireBridge(entity)
     const row = await this.lanClient.get(entity, Number(localId))
-    return row && (['clientes','obras'].includes(entity)?Number(row.empresa_id)===Number(scope.companyId):Number(row.obra_id)===Number(scope.workId))?row:null
+    return row && (entity==='empresas'?Number(row.id)===Number(scope.companyId):['clientes','obras'].includes(entity)?Number(row.empresa_id)===Number(scope.companyId):Number(row.obra_id)===Number(scope.workId))?row:null
   }
 
   async applyWebP0Create(scope,command) {
