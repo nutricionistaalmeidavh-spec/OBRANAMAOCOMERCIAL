@@ -31,7 +31,7 @@ const dateISO = (value) => {
 const moneyCents = (value) => {
   let input = String(value ?? '').trim().replace(/R\$/gi, '').replace(/\s/g, '')
   const negative = input.startsWith('-') || (input.startsWith('(') && input.endsWith(')'))
-  input = input.replace(/^[+-(]/, '').replace(/\)$/, '')
+  input = input.replace(/^[-+(]/, '').replace(/\)$/, '')
   if (!/^\d[\d.,]*$/.test(input)) throw new Error('Valor inválido: ' + String(value))
   const point = input.lastIndexOf('.')
   const comma = input.lastIndexOf(',')
