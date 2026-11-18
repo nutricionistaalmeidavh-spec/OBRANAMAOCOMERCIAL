@@ -4,7 +4,7 @@ import type { P0CreateCommand } from './web-p0-create';
 export type WebP0Queued={
   id:string;deviceId:string;companyId:string;projectId:string;
   entity:P0CreateCommand['entity'];action:'create'|'delete';data:Record<string,unknown>;
-  localId?:number;expectedFingerprint?:string;
+  localId?:number;targetLocalId?:number;expectedFingerprint?:string;
   actorId:string;status:'pending'|'applied'|'failed';localId?:number;error?:string;
   createdAt:string;updatedAt:string
 };
@@ -23,7 +23,7 @@ export async function enqueueWebP0Command(input:{
   const record:WebP0Queued={
     id:command.commandId,projectId,companyId,actorId,
     deviceId:command.sourceDeviceId,entity:command.entity,action:command.action,data:command.data,
-    ...(command.localId?{localId:command.localId}:{}),...(command.expectedFingerprint?{expectedFingerprint:command.expectedFingerprint}:{}),
+    ...(command.localId?{targetLocalId:command.localId}:{}),...(command.expectedFingerprint?{expectedFingerprint:command.expectedFingerprint}:{}),
     status:'pending',createdAt:now,updatedAt:now
   };
   // Exactly-once web submission; replay with same UUID must never create another job.
@@ -34,7 +34,7 @@ export async function enqueueWebP0Command(input:{
   if(!found)throw new Error('Não foi possível registrar a solicitação.');
   if(found.actorId!==actorId||found.projectId!==projectId||found.companyId!==companyId||
     found.deviceId!==record.deviceId||found.entity!==record.entity||
-    (found.action||'create')!==record.action||Number(found.localId||0)!==Number(record.localId||0)||String(found.expectedFingerprint||'')!==String(record.expectedFingerprint||'')||
+    (found.action||'create')!==record.action||Number(found.targetLocalId||0)!==Number(record.targetLocalId||0)||String(found.expectedFingerprint||'')!==String(record.expectedFingerprint||'')||
     JSON.stringify(found.data)!==JSON.stringify(record.data))
     throw new Error('Identificador da solicitação já utilizado em outro cadastro.');
   return found;
@@ -43,7 +43,7 @@ export async function pendingWebP0Commands(projectId:string,deviceId:string):Pro
   const rows=await runtimeEnv().DB.prepare(
     "SELECT id,record_json FROM kv_records WHERE collection=? AND json_extract(record_json,'$.deviceId')=? AND json_extract(record_json,'$.status')='pending' ORDER BY created_at ASC LIMIT 25"
   ).bind(bucket(projectId),deviceId).all<{id:string;record_json:string}>();
-  return (rows.results||[]).map(row=>({...JSON.parse(row.record_json),id:row.id} as WebP0Queued));
+  return (rows.results||[]).map(row=>{const record=JSON.parse(row.record_json) as WebP0Queued;return{...record,id:row.id,...(record.action==='delete'?{localId:record.targetLocalId}:{})}});
 }
 export async function listWebP0Commands(projectId:string,actorId:string):Promise<Array<Pick<WebP0Queued,'id'|'entity'|'action'|'deviceId'|'status'|'localId'|'error'|'createdAt'>>>{
   const {items}=await db.list<WebP0Queued>(bucket(projectId),{limit:100});
