@@ -179,6 +179,5 @@ class BankP0Service{
    negativeDays,overdueObligations:overdues,unassignedObligations,history,days,warnings,
    banks:movements.map(b=>({id:b.id,nome:b.nome,bancoNome:b.banco_nome,referenceDate:b.saldo_referencia_data,active:!!b.ativo,covered:b.eligible,realizedCents:b.eligible?Number(b.saldo_inicial_centavos)+b.txs.reduce((s,tx)=>s+Number(tx.valor_centavos),0):null,importedMovements:b.txs.length}))
   }
- }
 }
 module.exports={BankP0Service,dateISO,nextUTCDate}
