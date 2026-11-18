@@ -119,3 +119,78 @@ test('C0 C1 não projeta além do saldo sem referência, move vencidos para aman
     assert.throws(()=>f.bank.cashFlow({empresaId:f.otherCompanyId,asOf:'2026-11-18',horizonDays:30}),/conta|saldo|bancária/i)
   }finally{f.close()}
 })
+
+
+test('P1 C2 filtra banco apenas por contas planejadas explicitamente e preserva consolidado',()=>{
+  const f=makeFixture()
+  try {
+    const other=f.bank.saveAccount({empresaId:f.companyId,nome:'Segunda',bancoNome:'Banco 2',saldoInicialCentavos:50000,saldoReferenciaData:'2026-11-01',requestId:'second-bank-p1'})
+    const materials=f.addObligation('pagar',10000,'2026-11-20')
+    const payroll=f.addObligation('pagar',20000,'2026-11-21')
+    const principalWithoutMapping=f.bank.cashFlow({empresaId:f.companyId,contaBancariaId:f.account.id,asOf:'2026-11-18',horizonDays:30})
+    assert.equal(principalWithoutMapping.projectedPayablesCents,0)
+    assert.equal(principalWithoutMapping.unassignedObligations,2)
+    const assigned=f.bank.assignPlannedBank({empresaId:f.companyId,contaId:materials,contaBancariaId:f.account.id})
+    assert.equal(assigned.conta_bancaria_id,f.account.id)
+    f.bank.assignPlannedBank({empresaId:f.companyId,contaId:payroll,contaBancariaId:other.id})
+    const first=f.bank.cashFlow({empresaId:f.companyId,contaBancariaId:f.account.id,asOf:'2026-11-18',horizonDays:30})
+    const second=f.bank.cashFlow({empresaId:f.companyId,contaBancariaId:other.id,asOf:'2026-11-18',horizonDays:30})
+    const total=f.bank.cashFlow({empresaId:f.companyId,asOf:'2026-11-18',horizonDays:30})
+    assert.equal(first.realizedCents,100000)
+    assert.equal(first.projectedPayablesCents,10000)
+    assert.equal(second.realizedCents,50000)
+    assert.equal(second.projectedPayablesCents,20000)
+    assert.equal(total.realizedCents,150000)
+    assert.equal(total.projectedPayablesCents,30000)
+    assert.equal(f.bank.listPlannedAccounts({empresaId:f.companyId}).length,2)
+    assert.throws(()=>f.bank.assignPlannedBank({empresaId:f.otherCompanyId,contaId:materials,contaBancariaId:other.id}),/empresa|conta/i)
+    const removed=f.bank.assignPlannedBank({empresaId:f.companyId,contaId:materials,contaBancariaId:null})
+    assert.equal(removed.conta_bancaria_id,null)
+    assert.equal(f.bank.cashFlow({empresaId:f.companyId,contaBancariaId:f.account.id,asOf:'2026-11-18',horizonDays:30}).projectedPayablesCents,0)
+  }finally{f.close()}
+})
+
+test('P1 C2 obra identifica apenas movimentações conciliadas e nunca apresenta caixa bancário como saldo da obra',()=>{
+  const f=makeFixture()
+  try {
+    const workA=Number(f.db.prepare('INSERT INTO obras(empresa_id,nome) VALUES(?,?)').run(f.companyId,'Obra A').lastInsertRowid)
+    const workB=Number(f.db.prepare('INSERT INTO obras(empresa_id,nome) VALUES(?,?)').run(f.companyId,'Obra B').lastInsertRowid)
+    const expense=f.addObligation('pagar',15000,'2026-11-21')
+    const receipt=f.addObligation('receber',5000,'2026-11-22')
+    const other=f.addObligation('pagar',8000,'2026-11-22')
+    f.db.prepare('UPDATE contas SET obra_id=? WHERE id IN (?,?)').run(workA,expense,receipt)
+    f.db.prepare('UPDATE contas SET obra_id=? WHERE id=?').run(workB,other)
+    const paid=f.addPayment(expense,5000)
+    const [tx]=f.addBankMovement([{date:'17/11/2026',description:'Compra obra A',amount:'-50,00',fitid:'WORK-001'}])
+    f.bank.confirmReconciliation({empresaId:f.companyId,contaBancariaId:f.account.id,transacaoId:tx.id,requestId:'work-reconcile-001',actorId:'admin',allocations:[{pagamentoId:paid,valorCentavos:5000}]})
+    const a=f.bank.cashFlow({empresaId:f.companyId,obraId:workA,asOf:'2026-11-18',horizonDays:30})
+    assert.equal(a.realizedBasis,'work_attributed')
+    assert.equal(a.hasBankBalance,false)
+    assert.equal(a.realizedCents,-5000)
+    assert.equal(a.projectedPayablesCents,10000)
+    assert.equal(a.projectedReceivablesCents,5000)
+    const b=f.bank.cashFlow({empresaId:f.companyId,obraId:workB,asOf:'2026-11-18',horizonDays:30})
+    assert.equal(b.realizedCents,0)
+    assert.equal(b.projectedPayablesCents,8000)
+    assert.throws(()=>f.bank.cashFlow({empresaId:f.otherCompanyId,obraId:workA,asOf:'2026-11-18',horizonDays:30}),/obra/i)
+    assert.equal(f.bank.listTransactions({empresaId:f.companyId,contaBancariaId:f.account.id,obraId:workA}).length,1)
+    assert.equal(f.bank.listTransactions({empresaId:f.companyId,contaBancariaId:f.account.id,obraId:workB}).length,0)
+  }finally{f.close()}
+})
+
+test('P1 B4 fornece filtragem por período e pendência sem duplicar movimentos',()=>{
+  const f=makeFixture()
+  try {
+    const tx=f.addBankMovement([
+      {date:'18/11/2026',description:'Pagamento ABC',amount:'-100,00',fitid:'B4-1'},
+      {date:'19/11/2026',description:'Recebimento XYZ',amount:'250,00',fitid:'B4-2'}
+    ])
+    const expense=f.addObligation('pagar',10000,'2026-11-18')
+    const payment=f.addPayment(expense,10000)
+    f.bank.confirmReconciliation({empresaId:f.companyId,contaBancariaId:f.account.id,transacaoId:tx.find(t=>t.valor_centavos<0).id,requestId:'b4-filter-recon',actorId:'admin',allocations:[{pagamentoId:payment,valorCentavos:10000}]})
+    assert.equal(f.bank.listTransactions({empresaId:f.companyId,contaBancariaId:f.account.id,status:'pending'}).length,1)
+    assert.equal(f.bank.listTransactions({empresaId:f.companyId,contaBancariaId:f.account.id,status:'reconciled'}).length,1)
+    assert.equal(f.bank.listTransactions({empresaId:f.companyId,contaBancariaId:f.account.id,startDate:'2026-11-19',endDate:'2026-11-19'}).length,1)
+    assert.throws(()=>f.bank.listTransactions({empresaId:f.companyId,contaBancariaId:f.account.id,status:'invalid'}),/situação/i)
+  }finally{f.close()}
+})
