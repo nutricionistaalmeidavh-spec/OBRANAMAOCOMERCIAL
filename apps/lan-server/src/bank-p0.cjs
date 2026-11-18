@@ -13,7 +13,7 @@ class BankP0Service{
  usedTransaction(id){return Number(this.db.prepare("SELECT COALESCE(SUM(a.valor_centavos),0) used FROM reconciliacao_alocacoes a JOIN reconciliacao_lotes l ON l.id=a.lote_id WHERE l.transacao_bancaria_id=? AND l.status='active'").get(id).used||0)}
  usedPayment(id){return Number(this.db.prepare("SELECT COALESCE(SUM(a.valor_centavos),0) used FROM reconciliacao_alocacoes a JOIN reconciliacao_lotes l ON l.id=a.lote_id WHERE a.pagamento_id=? AND l.status='active'").get(id).used||0)}
  findPayment(empresaId,paymentId){const p=this.db.prepare("SELECT p.id,p.conta_id,p.valor_centavos,p.data,c.empresa_id,c.tipo,c.descricao,c.vencimento,c.obra_id FROM pagamentos_conta p JOIN contas c ON c.id=p.conta_id WHERE p.id=? AND c.empresa_id=? AND c.deleted_at IS NULL AND c.status!='cancelado'").get(positiveId(paymentId,'Pagamento'),this.company(empresaId));if(!p)throw Error('Pagamento não encontrado nesta empresa ou já cancelado.');return p}
- suggestReconciliation({empresaId,contaBancariaId,transacaoId,limit=30}){
+ suggestReconciliation({empresaId,contaBancariaId,transacaoId,limit=30,includeAll=false}){
   const{transaction}=this.movement(empresaId,contaBancariaId,transacaoId)
   const used=this.usedTransaction(transaction.id), remaining=Math.abs(Number(transaction.valor_centavos))-used,expected=transaction.valor_centavos<0?'pagar':'receber'
   const candidates=this.db.prepare("SELECT p.id pagamento_id,p.conta_id,p.valor_centavos,p.data,c.descricao,c.vencimento,c.tipo,c.obra_id FROM pagamentos_conta p JOIN contas c ON c.id=p.conta_id WHERE c.empresa_id=? AND c.deleted_at IS NULL AND c.status!='cancelado' AND c.tipo=? ORDER BY ABS(julianday(p.data)-julianday(?)),p.id DESC LIMIT 700").all(this.company(empresaId),expected,transaction.data)
@@ -21,7 +21,7 @@ class BankP0Service{
   for(const p of candidates){
    const available=Number(p.valor_centavos)-this.usedPayment(p.pagamento_id);if(available<=0)continue
    const days=Math.abs((Date.parse(String(p.data).slice(0,10)+'T00:00:00Z')-Date.parse(transaction.data+'T00:00:00Z'))/86400000)
-   if(!Number.isFinite(days)||days>14)continue
+   if(!Number.isFinite(days)||(days>14 && includeAll!==true && includeAll!=='true'))continue
    const exact=available===remaining
    const desc=String(transaction.descricao||'').toLowerCase()
    const matched=String(p.descricao||'').toLowerCase().split(/\W+/).filter(w=>w.length>3).some(w=>desc.includes(w))
