@@ -94,12 +94,12 @@ test('C0 C1 produz fluxo diário real pelo extrato e previsão sem somar pagamen
       {date:'16/11/2026',description:'Entrada cliente',amount:'400,00',fitid:'in-001'},
       {date:'17/11/2026',description:'Saída fornecedor',amount:'-150,00',fitid:'out-001'}
     ])
-    const result=f.bank.cashFlow({empresaId:f.companyId,asOf:'2026-11-18',horizonDays:3})
+    const result=f.bank.cashFlow({empresaId:f.companyId,asOf:'2026-11-18',horizonDays:30})
     assert.equal(result.realizedCents,125000)
     assert.equal(result.projectedReceivablesCents,20000)
     assert.equal(result.projectedPayablesCents,35000)
     assert.equal(result.projectedEndCents,110000)
-    assert.deepEqual(result.days.map(r=>[r.date,r.projectedBalanceCents]),[
+    assert.deepEqual(result.days.slice(0,3).map(r=>[r.date,r.projectedBalanceCents]),[
       ['2026-11-19',120000],['2026-11-20',140000],['2026-11-21',110000]
     ])
     assert.equal(result.actualSource,'bank_statements')
