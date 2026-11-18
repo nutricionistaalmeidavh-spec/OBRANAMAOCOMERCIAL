@@ -16,7 +16,7 @@ async function loadFieldRdoImporter() {
 
 const { applyWebP0Create } = require('./web-p0-create.cjs')
 
-const BRIDGE = { empresas:'companies',clientes:'clients',obras:'works',frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', rdos: 'rdos', cronograma_etapas: 'schedule' }
+const BRIDGE = { empresas:'companies',clientes:'clients',obras:'works',frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', etapas_obra:'planStages', rdos: 'rdos', cronograma_etapas: 'schedule' }
 const EDITABLE = {
   frentes_obra: ['nome','codigo','status', 'observacoes'],
   subfrentes_obra: ['nome','codigo','pavimento','escopo','status','observacoes'],
