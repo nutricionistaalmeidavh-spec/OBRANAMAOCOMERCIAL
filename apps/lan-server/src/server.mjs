@@ -727,6 +727,22 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
       }
 
 
+      // P1 B4/C2: catálogos do Financeiro e atribuição explícita de banco previsto.
+      if (url.pathname === '/api/v1/finance/companies' || url.pathname === '/api/v1/finance/works' || url.pathname === '/api/v1/finance/planned-banks') {
+        if (request.method !== 'GET' && !(url.pathname.endsWith('/planned-banks') && request.method === 'POST')) return methodNotAllowed(response, url.pathname.endsWith('/planned-banks') ? ['GET','POST'] : ['GET'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:request.method === 'GET' ? 'view' : 'edit' })
+        if (request.method === 'POST') {
+          const saved = bankFinance.assignPlannedBank(await readJson(request))
+          security?.appendAudit?.({ actorMemberId:actor.member?.memberId, actorDeviceId:actor.device?.id, action:'finance_planned_bank_assigned', targetType:'conta', targetId:String(saved.conta_id), details:{ empresaId:saved.empresa_id, contaBancariaId:saved.conta_bancaria_id } })
+          return sendJson(response, 200, saved)
+        }
+        const filters = Object.fromEntries(url.searchParams.entries())
+        const data = url.pathname.endsWith('/companies') ? bankFinance.listCompanies() : url.pathname.endsWith('/works') ? bankFinance.listWorks(filters) : bankFinance.listPlannedAccounts(filters)
+        return sendJson(response, 200, data)
+      }
+
       // P0 B3: conciliação auditável de extratos com pagamentos já existentes.
       if (url.pathname === '/api/v1/finance/bank-reconciliation/suggestions' || url.pathname === '/api/v1/finance/bank-reconciliation') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
