@@ -200,7 +200,7 @@ class BankFinanceService {
       const existing = this.account(empresaId, payload.id)
       const hasImports = this.db.prepare('SELECT id FROM extrato_importacoes WHERE conta_bancaria_id=? LIMIT 1').get(existing.id)
       if (hasImports && (saldo !== existing.saldo_inicial_centavos || data !== existing.saldo_referencia_data)) throw new Error('Saldo inicial e data não podem mudar depois da primeira importação.')
-      this.db.prepare('UPDATE contas_bancarias SET nome=?,banco_nome=?,agencia=?,conta_identificador=?,tipo_conta=?,saldo_inicial_centavos=?,saldo_referencia_data=?,ativo=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND empresa_id=?').run(nome,banco,agencia,identificador,tipo,saldo,data,payload.ativo === false ? 0 : 1,existing.id,empresaId)
+      this.db.prepare('UPDATE contas_bancarias SET nome=?,banco_nome=?,agencia=?,conta_identificador=?,tipo_conta=?,saldo_inicial_centavos=?,saldo_referencia_data=?,ativo=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND empresa_id=?').run(nome,banco,agencia,identificador,tipo,saldo,data,payload.ativo === undefined ? existing.ativo : payload.ativo === false ? 0 : 1,existing.id,empresaId)
       return this.account(empresaId, existing.id)
     }
     const requestId = String(payload.requestId || '').trim()
