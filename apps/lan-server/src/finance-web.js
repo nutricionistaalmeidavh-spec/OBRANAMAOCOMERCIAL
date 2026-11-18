@@ -237,13 +237,13 @@
    check.addEventListener('change',()=>amount.disabled=!check.checked)
    chosen.push({check,amount,paymentId:x.pagamentoId})
   }
-  const confirm=button(actions(ss),'Confirmar conciliação',async()=>{
+  const confirmButton=button(actions(ss),'Confirmar conciliação',async()=>{
    const allocations=chosen.filter(x=>x.check.checked).map(x=>({pagamentoId:x.paymentId,valorCentavos:cents(x.amount.value)}))
    if(!allocations.length)throw Error('Selecione ao menos um pagamento.')
    await post('/api/v1/finance/bank-reconciliation/confirm',{empresaId:n(state.company),contaBancariaId:n(state.bank),transacaoId:n(state.transaction),allocations,requestId:id()})
    notice('Conciliação confirmada, sem criar outro pagamento.');state.transaction='';await render()
   })
-  if(!suggested.remainingCents||!suggested.suggestions.length)confirm.disabled=true
+  if(!suggested.remainingCents||!suggested.suggestions.length)confirmButton.disabled=true
   const history=await get('/api/v1/finance/bank-reconciliation',{empresaId:state.company,contaBancariaId:state.bank})
   const h=panel(mount,'Histórico e reversões')
   for(const match of history){
