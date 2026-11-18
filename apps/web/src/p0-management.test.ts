@@ -120,6 +120,53 @@ describe('Gestão Web P0 - transações no navegador',()=>{
       entity:'frentes_obra',localId:11,sourceDeviceId:'desktop-1',expectedFingerprint:'a'.repeat(64)
     })));
   });
+  it('cadastra cronograma vinculado à etapa planejada e etapa da obra sem criar cópia local',async()=>{
+    const data={...overview(),sources:[{deviceId:'desktop-1',name:'Origem'}],commands:[]};
+    data.items.push({entity:'etapas_obra',localId:70,sourceDeviceId:'desktop-1',revision:0,desktopRevision:2,payload:{nome:'Execução do pavimento',frente_id:11,sourceFingerprint:'a'.repeat(64)}} as any);
+    client.get.mockResolvedValue({data});
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    root.querySelector<HTMLButtonElement>('[data-p0-tab="cronograma_etapas"]')!.click();
+    root.querySelector<HTMLButtonElement>('#p0Create')!.click();
+    expect(root.querySelector<HTMLSelectElement>('[name="etapa_id"]')!.options).toHaveLength(2);
+    const form=root.querySelector<HTMLFormElement>('#p0CreateForm')!;
+    form.querySelector<HTMLInputElement>('[name="nome"]')!.value='Inspeção';
+    form.querySelector<HTMLSelectElement>('[name="etapa_id"]')!.value='70';
+    form.querySelector<HTMLSelectElement>('[name="frente_id"]')!.value='11';
+    form.querySelector<HTMLInputElement>('[name="previsto_fim"]')!.value='2026-11-30';
+    form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/web/p0/create',expect.objectContaining({
+      entity:'cronograma_etapas',data:expect.objectContaining({nome:'Inspeção',etapa_id:70,frente_id:11,previsto_fim:'2026-11-30'})
+    })));
+  });
+  it('edita empresa via comando CAS da origem em vez de alteração direta da ponte',async()=>{
+    const data={...overview(),sources:[{deviceId:'desktop-1',name:'Origem'}],commands:[]};
+    data.items.push({entity:'empresas',localId:1,sourceDeviceId:'desktop-1',revision:0,desktopRevision:2,payload:{id:1,razao_social:'Empresa Original',sourceFingerprint:'b'.repeat(64)}} as any);
+    client.get.mockResolvedValue({data});
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    root.querySelector<HTMLButtonElement>('[data-p0-tab="empresas"]')!.click();
+    expect(root.querySelector('#p0Create')).toBeNull();
+    root.querySelector<HTMLButtonElement>('[data-p0-edit="0"]')!.click();
+    root.querySelector<HTMLInputElement>('[name="razao_social"]')!.value='Empresa Atualizada';
+    root.querySelector<HTMLFormElement>('#p0EditForm')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/web/p0/update',expect.objectContaining({
+      entity:'empresas',localId:1,expectedFingerprint:'b'.repeat(64),data:{razao_social:'Empresa Atualizada'}
+    })));
+  });
+  it('lista e seleciona outra obra Web somente pelo endpoint autenticado',async()=>{
+    const data={...overview(),sources:[{deviceId:'desktop-1',name:'Origem'}],availableProjects:[
+      {id:'project-a',name:'Obra Central',hasOperationalSource:false},
+      {id:'project-b',name:'Obra Nova',hasOperationalSource:true}
+    ]};
+    client.get.mockResolvedValueOnce({data}).mockResolvedValue({data:{...data,project:{id:'project-b',name:'Obra Nova',customer:''}}});
+    const root=document.getElementById('content')!;
+    await mountP0Management(root,()=>{});
+    root.querySelector<HTMLSelectElement>('#p0SelectProject')!.value='project-b';
+    root.querySelector<HTMLButtonElement>('#p0OpenProject')!.click();
+    await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/web/p0/project/select',{projectId:'project-b'}));
+    await vi.waitFor(()=>expect(root.textContent).toContain('Obra Nova'));
+  });
   it('escapa texto recebido da ponte e não transforma conteúdo em HTML executável',async()=>{
     client.get.mockResolvedValue({data:{...overview(),company:{id:'company-a',name:'<img src=x onerror=alert(1)>'}}});
     const root=document.getElementById('content')!;
