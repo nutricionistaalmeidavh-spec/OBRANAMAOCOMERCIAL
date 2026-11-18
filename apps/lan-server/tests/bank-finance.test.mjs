@@ -1,0 +1,117 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import path from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
+import bankModule from '../src/bank-finance.cjs'
+
+const { BankFinanceService, parseFile, moneyCents } = bankModule
+const migrations = path.resolve(import.meta.dirname, '../migrations/032_finance_bank_import.sql')
+function fixture() {
+  const db = new DatabaseSync(':memory:')
+  db.exec('PRAGMA foreign_keys=ON')
+  db.exec('CREATE TABLE empresas(id INTEGER PRIMARY KEY, deleted_at TEXT)')
+  db.exec('CREATE TABLE contas(id INTEGER PRIMARY KEY, empresa_id INTEGER)')
+  db.exec('CREATE TABLE pagamentos_conta(id INTEGER PRIMARY KEY, conta_id INTEGER)')
+  db.exec("INSERT INTO empresas(id) VALUES (1),(2)")
+  db.exec(fs.readFileSync(migrations,'utf8'))
+  return { db, service:new BankFinanceService({db}) }
+}
+const account = service => service.saveAccount({empresaId:1,nome:'Conta operacional',bancoNome:'Banco de teste',saldoInicialCentavos:120000,saldoReferenciaData:'2026-11-01',requestId:'client-test-001'})
+const input = (id, format, content, extra={}) => ({empresaId:1,contaBancariaId:id,fileName:'extrato.'+format,format,contentBase64:Buffer.from(content).toString('base64'),...extra})
+
+test('B1 persiste conta bancária sem criar contas operacionais e preserva idempotência', () => {
+  const f=fixture()
+  try {
+    const one=account(f.service)
+    const again=account(f.service)
+    assert.equal(one.id,again.id)
+    assert.equal(one.saldo_inicial_centavos,120000)
+    assert.equal(f.service.listAccounts({empresaId:1}).length,1)
+    assert.deepEqual(f.service.listAccounts({empresaId:2}),[])
+    assert.equal(f.db.prepare('SELECT COUNT(*) n FROM contas').get().n,0)
+    assert.equal(f.db.prepare('SELECT COUNT(*) n FROM pagamentos_conta').get().n,0)
+    assert.throws(()=>f.service.listTransactions({empresaId:2,contaBancariaId:one.id}),/não encontrada nesta empresa/)
+    assert.throws(()=>f.service.saveAccount({...one,empresaId:2,id:one.id,bancoNome:'Outro'}),/não encontrada nesta empresa/)
+  } finally { f.db.close() }
+})
+
+test('B2 CSV com prévia: importação atômica e repetição não duplica movimentações', () => {
+  const f=fixture()
+  try {
+    const a=account(f.service)
+    const file=input(a.id,'csv','Data;Descrição;Valor\n18/11/2026;Compra de materiais;-1.234,56\n19/11/2026;Recebimento;2.500,00\n')
+    const before=f.service.previewImport(file)
+    assert.equal(before.importable,2)
+    assert.equal(before.duplicates,0)
+    assert.equal(before.invalid,0)
+    assert.equal(f.db.prepare('SELECT COUNT(*) n FROM transacoes_bancarias').get().n,0)
+    const first=f.service.confirmImport({...file,previewHash:before.previewHash})
+    assert.equal(first.imported,2)
+    assert.equal(f.db.prepare('SELECT COUNT(*) n FROM transacoes_bancarias').get().n,2)
+    const again=f.service.confirmImport({...file,previewHash:before.previewHash})
+    assert.equal(again.duplicateFile,true)
+    assert.equal(again.imported,0)
+    assert.equal(f.db.prepare('SELECT COUNT(*) n FROM extrato_importacoes').get().n,1)
+    const rows=f.service.listTransactions({empresaId:1,contaBancariaId:a.id})
+    assert.deepEqual(rows.map(x=>x.valor_centavos).sort((x,y)=>x-y),[-123456,250000])
+    assert.equal(f.db.prepare('SELECT COUNT(*) n FROM contas').get().n,0)
+    assert.equal(f.db.prepare('SELECT COUNT(*) n FROM pagamentos_conta').get().n,0)
+  } finally { f.db.close() }
+})
+
+test('B2 OFX usa FITID, aceita transações iguais com identificadores diferentes e ignora repetidas', () => {
+  const f=fixture()
+  try {
+    const a=account(f.service)
+    const ofx='<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>20261118000000<TRNAMT>-12.50<FITID>PIX-A<NAME>PIX</STMTTRN><STMTTRN><DTPOSTED>20261118000000<TRNAMT>-12.50<FITID>PIX-B<NAME>PIX</STMTTRN></BANKTRANLIST></OFX>'
+    const first=input(a.id,'ofx',ofx)
+    const p=f.service.previewImport(first)
+    assert.equal(p.importable,2)
+    f.service.confirmImport({...first,previewHash:p.previewHash})
+    const updated=ofx.replace('PIX-A','PIX-C')
+    const second=input(a.id,'ofx',updated)
+    const p2=f.service.previewImport(second)
+    assert.equal(p2.importable,1)
+    assert.equal(p2.duplicates,1)
+    const saved=f.service.confirmImport({...second,previewHash:p2.previewHash})
+    assert.equal(saved.imported,1)
+    assert.equal(saved.duplicates,1)
+    assert.equal(f.service.listTransactions({empresaId:1,contaBancariaId:a.id}).length,3)
+  } finally { f.db.close() }
+})
+
+test('B2 nunca confirma prévia desatualizada e exige confirmação explícita para ignorar linhas inválidas', () => {
+  const f=fixture()
+  try {
+    const a=account(f.service)
+    const file=input(a.id,'csv','Data;Descricao;Valor\n2026-11-18;PIX recebido;50,00\n31/02/2026;Data impossível;10,00\n')
+    const p=f.service.previewImport(file)
+    assert.equal(p.invalid,1)
+    assert.equal(p.importable,1)
+    assert.throws(()=>f.service.confirmImport({...file,previewHash:'fake'}),/mudou/)
+    assert.throws(()=>f.service.confirmImport({...file,previewHash:p.previewHash}),/linhas inválidas/)
+    assert.equal(f.db.prepare('SELECT COUNT(*) n FROM transacoes_bancarias').get().n,0)
+    const saved=f.service.confirmImport({...file,previewHash:p.previewHash,acceptInvalid:true})
+    assert.equal(saved.imported,1)
+    assert.equal(saved.rejected,1)
+  } finally { f.db.close() }
+})
+
+test('B1 rejeita alteração retroativa do saldo após importar', () => {
+  const f=fixture()
+  try {
+    const a=account(f.service)
+    const file=input(a.id,'csv','Data;Descricao;Valor\n18/11/2026;Pago;10,00\n')
+    const p=f.service.previewImport(file)
+    f.service.confirmImport({...file,previewHash:p.previewHash})
+    assert.throws(()=>f.service.saveAccount({id:a.id,empresaId:1,nome:a.nome,bancoNome:a.banco_nome,saldoInicialCentavos:100,saldoReferenciaData:a.saldo_referencia_data}),/não podem mudar/)
+  } finally { f.db.close() }
+})
+
+test('parser de moedas evita arredondamento impreciso em centavos', () => {
+  assert.equal(moneyCents('1.234,56'),123456)
+  assert.equal(moneyCents('-5.000,00'),-500000)
+  const csv=parseFile({format:'csv',content:'Data;Descrição;Valor\n18/11/2026;Despesa;-10,10\n'})
+  assert.equal(csv.rows[0].amountCents,-1010)
+})
