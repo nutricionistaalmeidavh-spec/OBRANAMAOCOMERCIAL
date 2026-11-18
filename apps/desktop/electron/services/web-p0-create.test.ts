@@ -50,7 +50,8 @@ it('cria cliente e nova obra usando empresa e cliente da mesma fonte',()=>{
  expect(f.database.get('clientes',client.localId)).toMatchObject({empresa_id:f.company.id,nome:'Cliente Novo'});
  const work=applyWebP0Create({database:f.database,scope,command:cmd('66666666-6666-4666-8666-666666666666','obras',{nome:'Obra Nova',cliente_id:client.localId})});
  expect(f.database.get('obras',work.localId)).toMatchObject({empresa_id:f.company.id,cliente_id:client.localId,nome:'Obra Nova'});
- const foreign=f.database.save('clientes',{empresa_id:f.company.id+10,nome:'Cliente externo'});
+ const otherCompany=f.database.save('empresas',{razao_social:'Empresa externa',status:'ativa'});
+ const foreign=f.database.save('clientes',{empresa_id:otherCompany.id,nome:'Cliente externo'});
  expect(()=>applyWebP0Create({database:f.database,scope,command:cmd('77777777-7777-4777-8777-777777777777','obras',{nome:'Não pode',cliente_id:foreign.id})})).toThrow();
 });
 it('exclui logicamente uma tarefa apenas se o hash coincidir, sem afetar outra obra',()=>{
