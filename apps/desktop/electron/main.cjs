@@ -375,7 +375,6 @@ function registerIpc() {
   ipcMain.handle('bank:reverse', envelope(payload => services.bankFinance.reverseReconciliation({ ...payload, actorId: 'desktop-local' })))
   ipcMain.handle('bank:reconciliations', envelope(payload => services.bankFinance.listReconciliations(payload)))
   ipcMain.handle('bank:cash-flow', envelope(payload => services.bankFinance.cashFlow(payload)))
-  ipcMain.handle('bank:companies', envelope(payload => services.bankFinance.listCompanies(payload)))
   ipcMain.handle('bank:works', envelope(payload => services.bankFinance.listWorks(payload)))
   ipcMain.handle('bank:planned', envelope(payload => services.bankFinance.listPlannedAccounts(payload)))
   ipcMain.handle('bank:assign-plan', envelope(payload => services.bankFinance.assignPlannedBank(payload)))
