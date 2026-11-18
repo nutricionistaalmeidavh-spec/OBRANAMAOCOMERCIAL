@@ -3,7 +3,7 @@ import type { P0CreateCommand } from './web-p0-create';
 
 export type WebP0Queued={
   id:string;deviceId:string;companyId:string;projectId:string;
-  entity:P0CreateCommand['entity'];action:'create'|'delete';data:Record<string,unknown>;
+  entity:P0CreateCommand['entity'];action:'create'|'update'|'delete';data:Record<string,unknown>;
   localId?:number;targetLocalId?:number;expectedFingerprint?:string;
   actorId:string;status:'pending'|'applied'|'failed';error?:string;
   createdAt:string;updatedAt:string
@@ -43,7 +43,7 @@ export async function pendingWebP0Commands(projectId:string,deviceId:string):Pro
   const rows=await runtimeEnv().DB.prepare(
     "SELECT id,record_json FROM kv_records WHERE collection=? AND json_extract(record_json,'$.deviceId')=? AND json_extract(record_json,'$.status')='pending' ORDER BY created_at ASC LIMIT 25"
   ).bind(bucket(projectId),deviceId).all<{id:string;record_json:string}>();
-  return (rows.results||[]).map(row=>{const record=JSON.parse(row.record_json) as WebP0Queued;return{...record,id:row.id,...(record.action==='delete'?{localId:record.targetLocalId}:{})}});
+  return (rows.results||[]).map(row=>{const record=JSON.parse(row.record_json) as WebP0Queued;return{...record,id:row.id,...(record.action==='delete'||record.action==='update'?{localId:record.targetLocalId}:{})}});
 }
 export async function listWebP0Commands(projectId:string,actorId:string):Promise<Array<Pick<WebP0Queued,'id'|'entity'|'action'|'deviceId'|'status'|'localId'|'error'|'createdAt'>>>{
   const {items}=await db.list<WebP0Queued>(bucket(projectId),{limit:100});
