@@ -6,6 +6,7 @@ const ALLOWED={
  frentes_obra:new Set(['nome','codigo','ordem','status','observacoes']),
  subfrentes_obra:new Set(['nome','codigo','pavimento','escopo','ordem','status','observacoes','frente_id']),
  tarefas_obra:new Set(['titulo','descricao','responsavel','prazo','prioridade','status','frente_id']),
+ etapas_obra:new Set(['nome','frente_id','ordem','status']),
  cronograma_etapas:new Set(['nome','frente_id','etapa_id','responsavel','previsto_inicio','previsto_fim','percentual_previsto','percentual_realizado','status','observacoes'])
 }
 class WebP0CommandError extends Error{
