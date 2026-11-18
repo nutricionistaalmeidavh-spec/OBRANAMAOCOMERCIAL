@@ -13,7 +13,11 @@ const METHODS = Object.freeze({
   confirmReconciliation: 'bankReconcile',
   reverseReconciliation: 'bankReverse',
   listReconciliations: 'bankReconciliations',
-  cashFlow: 'bankCashFlow'
+  cashFlow: 'bankCashFlow',
+  listCompanies: 'bankCompanies',
+  listWorks: 'bankWorks',
+  listPlannedAccounts: 'bankPlannedAccounts',
+  assignPlannedBank: 'bankPlanAssignment'
 })
 class BankFinanceSourceService {
   constructor({ local, lanClient, moduleStorage }) {
@@ -38,5 +42,9 @@ class BankFinanceSourceService {
   reverseReconciliation(payload) { return this.call('reverseReconciliation', payload) }
   listReconciliations(payload) { return this.call('listReconciliations', payload) }
   cashFlow(payload) { return this.call('cashFlow', payload) }
+  listCompanies(payload) { return this.call('listCompanies', payload) }
+  listWorks(payload) { return this.call('listWorks', payload) }
+  listPlannedAccounts(payload) { return this.call('listPlannedAccounts', payload) }
+  assignPlannedBank(payload) { return this.call('assignPlannedBank', payload) }
 }
 module.exports = { BankFinanceSourceService }
