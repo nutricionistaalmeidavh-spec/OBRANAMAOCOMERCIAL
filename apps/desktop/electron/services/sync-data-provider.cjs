@@ -34,7 +34,7 @@ const payloadOf = (row,entity) => {
       .filter(([key])=>!['created_at','updated_at'].includes(key))
       .sort(([a],[b])=>a.localeCompare(b))
   )
-  if(!['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','cronograma_etapas'].includes(entity))return canonical
+  if(!['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','etapas_obra','cronograma_etapas'].includes(entity))return canonical
   const sourceFingerprint=createHash('sha256').update(JSON.stringify(canonical)).digest('hex')
   if(entity==='empresas')return{id:canonical.id,razao_social:canonical.razao_social,nome_fantasia:canonical.nome_fantasia,status:canonical.status,deleted:canonical.deleted,sourceFingerprint}
   if(entity==='clientes')return{id:canonical.id,empresa_id:canonical.empresa_id,nome:canonical.nome,deleted:canonical.deleted,sourceFingerprint}
