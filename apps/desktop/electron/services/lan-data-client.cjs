@@ -227,7 +227,6 @@ class LanDataClient {
   async bankReconciliations(payload) { return this.request('GET', '/api/v1/finance/bank-reconciliation', { query: payload }) }
   async bankCashFlow(payload) { return this.request('GET', '/api/v1/finance/cash-flow', { query: payload }) }
 
-  async bankCompanies() { return this.request('GET', '/api/v1/finance/companies') }
   async bankWorks(payload) { return this.request('GET', '/api/v1/finance/works', { query: payload }) }
   async bankPlannedAccounts(payload) { return this.request('GET', '/api/v1/finance/planned-banks', { query: payload }) }
   async bankPlanAssignment(payload) { return this.request('POST', '/api/v1/finance/planned-banks', { body: payload }) }
