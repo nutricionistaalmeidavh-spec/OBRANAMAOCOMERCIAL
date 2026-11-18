@@ -76,6 +76,8 @@ jobs:
         run: npx playwright install-deps chromium
       - name: Install Chromium
         run: npx playwright install chromium
+      - name: Run P1 self-hosted financial Web browser QA
+        run: node scripts/qa-finance-selfhosted.mjs
       - name: Run capability-gated P2 release QA
         run: node scripts/qa-p2-release.mjs
       - name: Verify Artisys homepage responsive hierarchy
