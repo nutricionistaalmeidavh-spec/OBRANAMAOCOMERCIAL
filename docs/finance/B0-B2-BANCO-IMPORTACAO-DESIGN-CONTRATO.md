@@ -32,7 +32,7 @@ Hipótese de UX (a validar com usuário real): o início mais reconhecível é `
 
 **Invariantes:** `empresa_id` em todas as entidades; nenhuma transação aceita conta bancária de outra empresa. `obra_id` não pertence à conta bancária, podendo ser identificado em lançamentos operacionais/conciliados no B3. Uma conta pode ter múltiplas importações e uma importação várias transações. Registro bancário nunca é automaticamente lançamento em `contas` ou `pagamentos_conta`.
 
-**Fontes por modo:** quando Desktop local for canônico, persistência SQLite local. Quando servidor LAN/próprio for canônico, escrita exclusivamente no servidor. PWA/Web só lê/escreve por API autorizada e não mantém banco paralelo. O financeiro web `afi_*` deve ser tratado como integração/migração explícita, com identidade de empresa mapeada, e não como segunda fonte canônica implícita.
+**Fontes por modo:** quando Desktop local for canônico, persistência SQLite local. Quando servidor LAN/próprio for canônico, escrita exclusivamente no servidor. O portal Web Cloudflare existente está fora do escopo desta PR. O financeiro web `afi_*` não deve ser confundido com os dados canônicos locais/servidor do Desktop, nem integrado de forma implícita.
 
 ## 4. Esquema conceitual de banco (proposta, NÃO executar sem migração validada)
 
@@ -185,3 +185,7 @@ Dar ao usuário a tarefa “Cadastre a conta usada para pagar funcionários e im
 - B3: conciliação bancária → fora do escopo desta etapa.
 - É proibido afirmar B1/B2 como liberados a clientes antes de build, migração, QA e release autorizada.
 - Branch própria; PR draft; sem merge na main, sem release e sem alteração de secrets.
+
+## Escopo aprovado após auditoria
+
+Este documento registra decisões e hipóteses históricas de B0–B2; a especificação funcional atual do P1 é `docs/finance/P1-DESKTOP-FINANCEIRO.md`. A PR #234 entrega mudanças na interface **Desktop** e APIs necessárias ao Desktop com servidor próprio, não uma nova aplicação Web. Qualquer evolução do portal Cloudflare é projeto separado e requer pedido explícito.
