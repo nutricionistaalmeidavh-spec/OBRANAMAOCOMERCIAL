@@ -1,55 +1,106 @@
 const { createHash }=require('node:crypto')
 const ALLOWED={
+ clientes:new Set(['nome','documento','telefone','email','observacoes']),
+ obras:new Set(['nome','codigo','endereco','responsavel','cliente_id','data_inicio','previsao_termino','status','observacoes']),
  frentes_obra:new Set(['nome','codigo','ordem','status','observacoes']),
  subfrentes_obra:new Set(['nome','codigo','pavimento','escopo','ordem','status','observacoes','frente_id']),
  tarefas_obra:new Set(['titulo','descricao','responsavel','prazo','prioridade','status','frente_id'])
 }
-class WebP0CommandError extends Error {
+class WebP0CommandError extends Error{
  constructor(message){super(message);this.name='WebP0CommandError';this.code='invalid_web_p0_command'}
 }
-const reject=(message)=>{throw new WebP0CommandError(message)}
-const digest=(value)=>createHash('sha256').update(JSON.stringify(value)).digest('hex')
+const reject=message=>{throw new WebP0CommandError(message)}
+const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex')
 const validDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value
-
+const owned=(entity,row,scope)=>entity==='obras'||entity==='clientes'
+ ?Number(row.empresa_id)===Number(scope.companyId)
+ :Number(row.obra_id)===Number(scope.workId)
+function webP0Fingerprint(row){
+ const fields=Object.fromEntries(Object.entries({...row,deleted:!!row.deleted_at})
+  .filter(([key])=>!['created_at','updated_at'].includes(key))
+  .sort(([left],[right])=>left.localeCompare(right)))
+ return digest(fields)
+}
+function dependents(db,entity,id){
+ const name=v=>'"'+String(v).replace(/"/g,'""')+'"'
+ for(const tableRow of db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all()){
+  const table=tableRow.name
+  for(const fk of db.prepare('PRAGMA foreign_key_list('+name(table)+')').all().filter(fk=>fk.table===entity)){
+   const columns=db.prepare('PRAGMA table_info('+name(table)+')').all().map(x=>x.name)
+   const live=columns.includes('deleted_at')?' AND deleted_at IS NULL':''
+   if(db.prepare('SELECT 1 FROM '+name(table)+' WHERE '+name(fk.from)+'=?'+live+' LIMIT 1').get(id))
+    return table+' ('+fk.from+')'
+  }
+ }
+ return null
+}
 function applyWebP0Create({database,scope,command}){
- const entity=String(command?.entity||''),allowed=ALLOWED[entity],data=command?.data
- if(!allowed||!data||typeof data!=='object'||Array.isArray(data))reject('Entidade ou dados do cadastro não autorizados.')
+ const entity=String(command?.entity||''),action=String(command?.action||'create')
+ const allowed=ALLOWED[entity],data=command?.data||{}
+ if(!allowed||!['create','delete'].includes(action)||!data||typeof data!=='object'||Array.isArray(data))reject('Entidade, operação ou dados não autorizados.')
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(command?.id||'')))reject('ID do comando inválido.')
  if(String(command?.deviceId||'')!==String(scope.deviceId||''))reject('O comando não pertence ao Desktop autenticado.')
- const clean={};
- for(const [key,value] of Object.entries(data)){
-  if(!allowed.has(key))reject('Campo não permitido: '+key)
-  if(key==='frente_id'||key==='ordem'){
-   if(!Number.isSafeInteger(value)||value<(key==='frente_id'?1:0)||value>100000000)reject('Referência numérica inválida.')
-   clean[key]=value;continue
+ const clean={}
+ if(action==='create'){
+  for(const [key,value] of Object.entries(data)){
+   if(!allowed.has(key))reject('Campo não permitido: '+key)
+   if(['frente_id','cliente_id','ordem'].includes(key)){
+    if(!Number.isSafeInteger(value)||value<(key==='ordem'?0:1)||value>100000000)reject('Referência numérica inválida.')
+    clean[key]=value;continue
+   }
+   if(typeof value!=='string'||value.length>(['nome','titulo'].includes(key)?250:['descricao','observacoes'].includes(key)?4000:255))reject('Campo inválido: '+key)
+   clean[key]=value.trim()
+   if(['prazo','data_inicio','previsao_termino'].includes(key)&&clean[key]&&!validDate(clean[key]))reject('Data inválida.')
   }
-  if(typeof value!=='string'||value.length>(['nome','titulo'].includes(key)?250:['descricao','observacoes'].includes(key)?4000:255))reject('Campo inválido: '+key)
-  clean[key]=value.trim()
-  if(key==='prazo'&&clean[key]&&!validDate(clean[key]))reject('Prazo inválido.')
+  if(!Object.keys(clean).length||!String(clean[entity==='tarefas_obra'?'titulo':'nome']||'').trim())reject('Informe nome ou título.')
+  if(entity==='subfrentes_obra'&&!Number.isSafeInteger(clean.frente_id))reject('Informe a etapa da subetapa.')
+ }else{
+  if(Object.keys(data).length||!Number.isSafeInteger(command.localId)||command.localId<1
+   ||typeof command.expectedFingerprint!=='string'||!/^[a-f0-9]{64}$/i.test(command.expectedFingerprint))
+   reject('Exclusão exige ID e hash canônico da versão recebida.')
  }
- if(!Object.keys(clean).length||!String(clean[entity==='tarefas_obra'?'titulo':'nome']||'').trim())reject('Informe nome ou título.')
- if(entity==='subfrentes_obra'&&!Number.isSafeInteger(clean.frente_id))reject('Informe a etapa da subetapa.')
  const companyId=Number(scope.companyId),obraId=Number(scope.workId)
  if(!Number.isSafeInteger(companyId)||!Number.isSafeInteger(obraId)||companyId<=0||obraId<=0)reject('Escopo operacional inválido.')
- const databaseDb=database.db,payloadHash=digest({entity,data:clean,deviceId:String(scope.deviceId),companyId,obraId})
- return databaseDb.transaction(()=>{
-  const previous=databaseDb.prepare('SELECT * FROM web_p0_command_receipts WHERE command_id=?').get(command.id)
+ const db=database.db,localId=Number(command.localId||0)
+ const payloadHash=digest({action,entity,data:clean,localId,expectedFingerprint:command.expectedFingerprint||'',deviceId:String(scope.deviceId),companyId,obraId})
+ return db.transaction(()=>{
+  const previous=db.prepare('SELECT * FROM web_p0_command_receipts WHERE command_id=?').get(command.id)
   if(previous){
    if(previous.payload_hash!==payloadHash||previous.empresa_id!==companyId||previous.obra_id!==obraId||previous.device_id!==scope.deviceId)reject('Comando já utilizado com outro cadastro ou outra obra.')
-   return{entity,localId:previous.local_id,duplicate:true}
+   return{entity,action,localId:previous.local_id,duplicate:true}
   }
-  const work=database.get('obras',obraId)
-  if(!work||work.deleted_at||Number(work.empresa_id)!==companyId)reject('Obra não pertence à empresa autorizada.')
-  if(clean.frente_id!=null){
-   const stage=database.get('frentes_obra',clean.frente_id)
-   if(!stage||stage.deleted_at||Number(stage.obra_id)!==obraId)reject('A etapa escolhida não pertence a esta obra.')
+  const company=database.get('empresas',companyId),work=database.get('obras',obraId)
+  if(!company||company.deleted_at||!work||work.deleted_at||Number(work.empresa_id)!==companyId)reject('Empresa ou obra do vínculo operacional não autorizada.')
+  let savedId
+  if(action==='delete'){
+   const current=database.get(entity,localId)
+   if(!current||current.deleted_at||!owned(entity,current,scope))reject('Cadastro não existe ou não pertence ao escopo autorizado.')
+   if(entity==='obras'&&localId===obraId)reject('A obra conectada não pode ser excluída durante a sincronização.')
+   if(webP0Fingerprint(current)!==String(command.expectedFingerprint).toLowerCase())reject('Registro mudou desde a leitura Web. Atualize antes de excluir.')
+   const child=dependents(db,entity,localId)
+   if(child)reject('Cadastro possui dependência ativa: '+child)
+   if(!database.remove(entity,localId))reject('Exclusão lógica não foi confirmada pelo banco.')
+   savedId=localId
+  }else{
+   if(clean.frente_id!=null){
+    const stage=database.get('frentes_obra',clean.frente_id)
+    if(!stage||stage.deleted_at||Number(stage.obra_id)!==obraId)reject('Etapa vinculada pertence a outra obra.')
+   }
+   if(clean.cliente_id!=null){
+    const client=database.get('clientes',clean.cliente_id)
+    if(!client||client.deleted_at||Number(client.empresa_id)!==companyId)reject('Cliente não pertence à empresa autorizada.')
+   }
+   const fields=entity==='clientes'||entity==='obras'
+    ?{...clean,empresa_id:companyId}
+    :{...clean,obra_id:obraId}
+   const saved=database.save(entity,fields)
+   if(!saved?.id)throw new Error('Banco operacional não confirmou o cadastro.')
+   savedId=Number(saved.id)
   }
-  const saved=database.save(entity,{...clean,obra_id:obraId})
-  if(!saved?.id)throw new Error('Banco operacional não confirmou o cadastro.')
-  databaseDb.prepare('INSERT INTO web_p0_command_receipts(command_id,device_id,empresa_id,obra_id,entity,payload_hash,local_id) VALUES(?,?,?,?,?,?,?)')
-   .run(command.id,String(scope.deviceId),companyId,obraId,entity,payloadHash,Number(saved.id))
-  database.audit?.(entity,Number(saved.id),'WEB_P0_CREATED',{commandId:command.id})
-  return{entity,localId:Number(saved.id),duplicate:false}
+  db.prepare('INSERT INTO web_p0_command_receipts(command_id,device_id,empresa_id,obra_id,entity,payload_hash,local_id) VALUES(?,?,?,?,?,?,?)')
+   .run(command.id,String(scope.deviceId),companyId,obraId,entity,payloadHash,savedId)
+  database.audit?.(entity,savedId,action==='delete'?'WEB_P0_DELETED':'WEB_P0_CREATED',{commandId:command.id})
+  return{entity,action,localId:savedId,duplicate:false}
  })()
 }
-module.exports={applyWebP0Create,WebP0CommandError}
+module.exports={applyWebP0Create,WebP0CommandError,webP0Fingerprint}
