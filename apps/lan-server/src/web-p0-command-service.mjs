@@ -1,11 +1,13 @@
 import {createHash} from 'node:crypto';
 
 const FIELDS={
+ empresas:new Set(['razao_social','nome_fantasia','cnpj','telefone','email','endereco','observacoes','status']),
  clientes:new Set(['nome','documento','telefone','email','observacoes']),
  obras:new Set(['nome','codigo','endereco','responsavel','cliente_id','data_inicio','previsao_termino','status','observacoes']),
  frentes_obra:new Set(['nome','codigo','ordem','status','observacoes']),
  subfrentes_obra:new Set(['nome','codigo','pavimento','escopo','ordem','status','observacoes','frente_id']),
- tarefas_obra:new Set(['titulo','descricao','responsavel','prazo','prioridade','status','frente_id'])
+ tarefas_obra:new Set(['titulo','descricao','responsavel','prazo','prioridade','status','frente_id']),
+ cronograma_etapas:new Set(['nome','frente_id','etapa_id','responsavel','previsto_inicio','previsto_fim','percentual_previsto','percentual_realizado','status','observacoes'])
 };
 export class WebP0CommandError extends Error{
  constructor(message){super(message);this.name='WebP0CommandError';this.code='invalid_web_p0_command'}
@@ -19,7 +21,7 @@ export function webP0Fingerprint(row){
  return hash(payload);
 }
 const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T00:00:00Z'))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;
-const owned=(entity,row,scope)=>Number(entity==='obras'||entity==='clientes'?row.empresa_id:row.obra_id)===Number(entity==='obras'||entity==='clientes'?scope.companyId:scope.workId);
+const owned=(entity,row,scope)=>entity==='empresas'?Number(row.id)===Number(scope.companyId):Number(entity==='obras'||entity==='clientes'?row.empresa_id:row.obra_id)===Number(entity==='obras'||entity==='clientes'?scope.companyId:scope.workId);
 const quote=s=>'"'+String(s).replace(/"/g,'""')+'"';
 function dependent(db,table,id){
  for(const entry of db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all()){
@@ -35,26 +37,34 @@ function dependent(db,table,id){
 }
 function validateCommand(command){
  const entity=String(command?.entity||''),action=String(command?.action||'create'),fields=FIELDS[entity];
- if(!fields||!['create','delete'].includes(action)||!command||typeof command!=='object')reject('Cadastro ou operação não permitida.');
+ if(!fields||!['create','update','delete'].includes(action)||!command||typeof command!=='object')reject('Cadastro ou operação não permitida.');
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(command.id||'')))reject('Comando sem UUID válido.');
+ if(entity==='empresas'&&action!=='update')reject('Nova empresa requer tenant e licença independentes.');
  const data=command.data||{};
  if(!data||typeof data!=='object'||Array.isArray(data))reject('Dados inválidos.');
  const clean={};
  if(action==='delete'){
   if(!Number.isSafeInteger(command.localId)||command.localId<1||!/^[a-f0-9]{64}$/i.test(String(command.expectedFingerprint||''))||Object.keys(data).length)reject('Exclusão sem ID ou hash da versão canônica.');
  }else{
+  if(action==='update'&&(!Number.isSafeInteger(command.localId)||command.localId<1||!/^[a-f0-9]{64}$/i.test(String(command.expectedFingerprint||''))))reject('Edição exige ID e hash da fonte.');
   for(const [key,v] of Object.entries(data)){
    if(!fields.has(key))reject('Campo não permitido: '+key);
-   if(['cliente_id','frente_id','ordem'].includes(key)){
+   if(['cliente_id','frente_id','etapa_id','ordem'].includes(key)){
     if(!Number.isSafeInteger(v)||v<(key==='ordem'?0:1)||v>100000000)reject('Referência inválida.');
+    clean[key]=v;continue;
+   }
+   if(['percentual_previsto','percentual_realizado'].includes(key)){
+    if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>100)reject('Percentual fora da faixa permitida.');
     clean[key]=v;continue;
    }
    if(typeof v!=='string'||v.length>(['nome','titulo'].includes(key)?250:['descricao','observacoes'].includes(key)?4000:255))reject('Campo inválido: '+key);
    clean[key]=v.trim();
-   if(['prazo','data_inicio','previsao_termino'].includes(key)&&clean[key]&&!validDate(clean[key]))reject('Data inválida.');
+   if(['prazo','data_inicio','previsao_termino','previsto_inicio','previsto_fim'].includes(key)&&clean[key]&&!validDate(clean[key]))reject('Data inválida.');
   }
-  if(!String(clean[entity==='tarefas_obra'?'titulo':'nome']||'').trim())reject('Informe nome/título.');
-  if(entity==='subfrentes_obra'&&!Number.isSafeInteger(clean.frente_id))reject('Informe etapa.');
+  if(!Object.keys(clean).length)reject('Informe campos para salvar.');
+  if(action==='create'&&!String(clean[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':'nome']||'').trim())reject('Informe nome/título.');
+  if(action==='update'&&['nome','razao_social','titulo'].some(k=>Object.hasOwn(clean,k)&&!clean[k]))reject('Nome ou título não pode ficar vazio.');
+  if(action==='create'&&entity==='subfrentes_obra'&&!Number.isSafeInteger(clean.frente_id))reject('Informe etapa.');
  }
  return{entity,action,clean};
 }
@@ -76,20 +86,29 @@ export function applyLanWebP0Command({repository,versionedRepository,scope,comma
   const company=repository.get('empresas',companyId),work=repository.get('obras',workId);
   if(!company||company.deleted_at||!work||work.deleted_at||Number(work.empresa_id)!==companyId)reject('Empresa/obra incompatível com o contexto.');
   let savedId;
-  if(action==='delete'){
+  if(action==='delete'||action==='update'){
    const row=repository.get(entity,id);
    if(!row||row.deleted_at||!owned(entity,row,scope))reject('Cadastro inexistente ou fora da empresa/obra.');
-   if(entity==='obras'&&id===workId)reject('Obra em uso pela sincronização não pode ser excluída.');
+   if(action==='delete'&&entity==='obras'&&id===workId)reject('Obra em uso pela sincronização não pode ser excluída.');
    const revisioned=versionedRepository?.decorate(entity,row)||row;
    if(webP0Fingerprint(revisioned)!==String(command.expectedFingerprint).toLowerCase())reject('Cadastro modificado após a última sincronização.');
-   const child=dependent(db,entity,id);
-   if(child)reject('Cadastro possui dependência ativa: '+child);
-   if(!repository.remove(entity,id))reject('Exclusão lógica falhou.');
-   versionedRepository?.concurrency?.remove(entity,id);
+   if(action==='delete'){
+    const child=dependent(db,entity,id);
+    if(child)reject('Cadastro possui dependência ativa: '+child);
+    if(!repository.remove(entity,id))reject('Exclusão lógica falhou.');
+    versionedRepository?.concurrency?.remove(entity,id);
+   }else{
+    if(clean.frente_id!=null){const stage=repository.get('frentes_obra',clean.frente_id);if(!stage||stage.deleted_at||Number(stage.obra_id)!==workId)reject('Etapa de outra obra.');}
+    if(clean.etapa_id!=null){const plan=repository.get('etapas_obra',clean.etapa_id);if(!plan||plan.deleted_at||Number(plan.obra_id)!==workId)reject('Etapa do planejamento de outra obra.');}
+    if(clean.cliente_id!=null){const client=repository.get('clientes',clean.cliente_id);if(!client||client.deleted_at||Number(client.empresa_id)!==companyId)reject('Cliente de outra empresa.');}
+    if(!repository.save(entity,{...clean,id}))reject('Alteração não confirmada no SQLite.');
+    versionedRepository?.concurrency?.bump(entity,id);
+   }
    savedId=id;
   }else{
    if(clean.frente_id!=null){const stage=repository.get('frentes_obra',clean.frente_id);if(!stage||stage.deleted_at||Number(stage.obra_id)!==workId)reject('Etapa pertence a outra obra.');}
    if(clean.cliente_id!=null){const client=repository.get('clientes',clean.cliente_id);if(!client||client.deleted_at||Number(client.empresa_id)!==companyId)reject('Cliente pertence a outra empresa.');}
+   if(clean.etapa_id!=null){const plan=repository.get('etapas_obra',clean.etapa_id);if(!plan||plan.deleted_at||Number(plan.obra_id)!==workId)reject('Etapa do planejamento pertence a outra obra.');}
    const data=entity==='clientes'||entity==='obras'?{...clean,empresa_id:companyId}:{...clean,obra_id:workId};
    const saved=repository.save(entity,data);
    if(!saved?.id)reject('Banco central não confirmou o registro.');
