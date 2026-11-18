@@ -471,10 +471,6 @@ export const handler=router({
     const state=await assembleState(gate.member!.projectId);
     const row=bridgeRows(asRecord(state?.desktopBridge)).find(x=>x.entity===command.entity&&x.localId===command.localId&&x.sourceDeviceId===command.sourceDeviceId);
     if(!row||String(row.payload.sourceFingerprint||'')!==command.expectedFingerprint)return error('Registro já mudou ou não pertence à origem selecionada.',409);
-    if(command.entity==='obras'){
-      const project=await getProject(gate.member!.projectId);
-      if(!project||project.name===row.payload.nome)return error('Não é permitido excluir a obra vinculada à sessão atual.',409);
-    }
     try{
       const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,command});
       await audit(gate.member!,ctx.user!,'web_p0_delete_enqueued',{entity:command.entity,commandId:command.commandId,localId:command.localId});
