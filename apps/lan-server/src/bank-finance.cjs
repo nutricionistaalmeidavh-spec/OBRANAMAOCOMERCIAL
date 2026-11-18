@@ -290,9 +290,27 @@ class BankFinanceService {
   reverseReconciliation(payload) { return this.p0.reverseReconciliation(payload) }
   listReconciliations(payload) { return this.p0.listReconciliations(payload) }
   cashFlow(payload) { return this.p0.cashFlow(payload) }
-  listTransactions({ empresaId, contaBancariaId }) {
+  listCompanies() { return this.p0.listCompanies() }
+  listWorks(payload) { return this.p0.listWorks(payload) }
+  listPlannedAccounts(payload) { return this.p0.listPlannedAccounts(payload) }
+  assignPlannedBank(payload) { return this.p0.assignPlannedBank(payload) }
+  listTransactions({ empresaId, contaBancariaId, obraId, status='all', startDate, endDate, search='' }) {
     const a = this.account(empresaId, contaBancariaId)
-    return this.db.prepare("SELECT t.id,t.data,t.descricao,t.valor_centavos,t.origem_identificador,t.importacao_id,t.created_at,COALESCE((SELECT SUM(x.valor_centavos) FROM reconciliacao_alocacoes x JOIN reconciliacao_lotes l ON l.id=x.lote_id WHERE l.transacao_bancaria_id=t.id AND l.status='active'),0) AS conciliado_centavos FROM transacoes_bancarias t WHERE t.empresa_id=? AND t.conta_bancaria_id=? ORDER BY t.data DESC,t.id DESC LIMIT 500").all(a.empresa_id,a.id)
+    if (!['all','pending','partial','reconciled'].includes(String(status))) throw new Error('Situação de conciliação inválida.')
+    const clauses=['t.empresa_id=?','t.conta_bancaria_id=?']
+    const params=[a.empresa_id,a.id]
+    if (startDate) { clauses.push('t.data>=?');params.push(dateISO(startDate)) }
+    if (endDate) { clauses.push('t.data<=?');params.push(dateISO(endDate)) }
+    if (search) { clauses.push('LOWER(t.descricao) LIKE ?');params.push('%'+String(search).toLowerCase().slice(0,100)+'%') }
+    if (obraId!==undefined && obraId!==null && obraId!=='') {
+      const validWork=this.p0.work(a.empresa_id,obraId)
+      clauses.push("EXISTS (SELECT 1 FROM reconciliacao_lotes l JOIN reconciliacao_alocacoes al ON al.lote_id=l.id JOIN pagamentos_conta p ON p.id=al.pagamento_id JOIN contas c ON c.id=p.conta_id WHERE l.transacao_bancaria_id=t.id AND l.status='active' AND c.empresa_id=? AND c.obra_id=? AND c.deleted_at IS NULL)")
+      params.push(a.empresa_id,validWork)
+    }
+    const sql="SELECT * FROM (SELECT t.id,t.data,t.descricao,t.valor_centavos,t.origem_identificador,t.importacao_id,t.created_at,COALESCE((SELECT SUM(x.valor_centavos) FROM reconciliacao_alocacoes x JOIN reconciliacao_lotes l ON l.id=x.lote_id WHERE l.transacao_bancaria_id=t.id AND l.status='active'),0) conciliado_centavos FROM transacoes_bancarias t WHERE "+clauses.join(' AND ')+") q"+
+      (status==='pending'?" WHERE q.conciliado_centavos=0":status==='partial'?" WHERE q.conciliado_centavos>0 AND q.conciliado_centavos<ABS(q.valor_centavos)":status==='reconciled'?" WHERE q.conciliado_centavos>=ABS(q.valor_centavos)":"")+
+      " ORDER BY q.data DESC,q.id DESC LIMIT 500"
+    return this.db.prepare(sql).all(...params)
   }
 }
 module.exports = { BankFinanceService, parseFile, moneyCents, dateISO, csvMapping }
