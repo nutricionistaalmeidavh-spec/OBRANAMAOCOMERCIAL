@@ -210,6 +210,17 @@ class LanDataClient {
     return this.request('POST', `/api/v1/finance/accounts/${Number(id)}/payment`, { body: { requestId, payment } })
   }
 
+  async bankList(payload) { return this.request('GET', '/api/v1/finance/bank-accounts', { query: payload }) }
+  async bankSave(payload) {
+    return payload?.id
+      ? this.request('PATCH', '/api/v1/finance/bank-accounts/' + Number(payload.id), { body: payload })
+      : this.request('POST', '/api/v1/finance/bank-accounts', { body: payload })
+  }
+  async bankPreview(payload) { return this.request('POST', '/api/v1/finance/bank-imports/preview', { body: payload }) }
+  async bankConfirm(payload) { return this.request('POST', '/api/v1/finance/bank-imports/confirm', { body: payload }) }
+  async bankImports(payload) { return this.request('GET', '/api/v1/finance/bank-imports', { query: payload }) }
+  async bankTransactions(payload) { return this.request('GET', '/api/v1/finance/bank-transactions', { query: payload }) }
+
   async financeDre(filters = {}) {
     return this.request('GET', '/api/v1/finance/dre', { query: filters })
   }
