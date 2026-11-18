@@ -5,6 +5,8 @@ import { PairingError } from './pairing-service.mjs'
 import { FieldService } from './field-service.mjs'
 import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
+import bankFinanceModule from './bank-finance.cjs'
+const { BankFinanceService } = bankFinanceModule
 import { MeasurementService } from './measurement-service.mjs'
 import { ProcurementService } from './procurement-service.mjs'
 import domainCore from './domain-core.cjs'
@@ -303,6 +305,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
+  const bankFinance = repository?.connection?.() ? new BankFinanceService({ db: repository.connection() }) : null
   const repositoryDb = repository?.connection?.()
   const compoundDomainReady = !!repositoryDb && typeof repositoryDb.prepare === 'function' && typeof repositoryDb.exec === 'function'
   const measurements = measurementService || (compoundDomainReady ? new MeasurementService({ repository }) : null)
@@ -684,6 +687,43 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const context = await authenticateLanRequest(request, security)
         authorizeAction(context, { domain:'finance', action:'edit' })
         return sendJson(response, 201, contracts.addendum(await readJson(request)))
+      }
+
+      // B1/B2: contas bancárias e extratos, sem criar baixas em contas/pagamentos_conta.
+      if (url.pathname === '/api/v1/finance/bank-accounts') {
+        if (!['GET','POST'].includes(request.method)) return methodNotAllowed(response, ['GET','POST'])
+        if (!bankFinance) return sendJson(response, 503, { error: 'bank_finance_unavailable', message: 'Financeiro bancário indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain: 'finance', action: request.method === 'GET' ? 'view' : 'create' })
+        const data = request.method === 'GET' ? bankFinance.listAccounts(Object.fromEntries(url.searchParams.entries())) : bankFinance.saveAccount(await readJson(request))
+        return sendJson(response, request.method === 'GET' ? 200 : 201, data)
+      }
+
+      const bankAccountMatch = url.pathname.match(/^\/api\/v1\/finance\/bank-accounts\/(\d+)\/?$/)
+      if (bankAccountMatch) {
+        if (request.method !== 'PATCH') return methodNotAllowed(response, ['PATCH'])
+        if (!bankFinance) return sendJson(response, 503, { error: 'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain: 'finance', action: 'edit' })
+        return sendJson(response, 200, bankFinance.saveAccount({ ...await readJson(request), id: Number(bankAccountMatch[1]) }))
+      }
+
+      if (url.pathname === '/api/v1/finance/bank-imports/preview' || url.pathname === '/api/v1/finance/bank-imports/confirm') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!bankFinance) return sendJson(response, 503, { error: 'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain: 'finance', action: url.pathname.endsWith('/confirm') ? 'create' : 'view' })
+        const body = await readJson(request, 6 * 1024 * 1024)
+        return sendJson(response, 200, url.pathname.endsWith('/confirm') ? bankFinance.confirmImport(body) : bankFinance.previewImport(body))
+      }
+
+      if (url.pathname === '/api/v1/finance/bank-imports' || url.pathname === '/api/v1/finance/bank-transactions') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!bankFinance) return sendJson(response, 503, { error: 'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain: 'finance', action: 'view' })
+        const filters = Object.fromEntries(url.searchParams.entries())
+        return sendJson(response, 200, url.pathname.endsWith('/bank-imports') ? bankFinance.listImports(filters) : bankFinance.listTransactions(filters))
       }
 
       const financePaymentMatch = url.pathname.match(FINANCE_PAYMENT_ROUTE)
