@@ -290,7 +290,6 @@ class BankFinanceService {
   reverseReconciliation(payload) { return this.p0.reverseReconciliation(payload) }
   listReconciliations(payload) { return this.p0.listReconciliations(payload) }
   cashFlow(payload) { return this.p0.cashFlow(payload) }
-  listCompanies() { return this.p0.listCompanies() }
   listWorks(payload) { return this.p0.listWorks(payload) }
   listPlannedAccounts(payload) { return this.p0.listPlannedAccounts(payload) }
   assignPlannedBank(payload) { return this.p0.assignPlannedBank(payload) }
