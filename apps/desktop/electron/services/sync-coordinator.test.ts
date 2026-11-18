@@ -64,6 +64,31 @@ it('recebe criação Web uma única vez, persiste no SQLite e publica a nova eta
   await f.sync.run();
   expect(f.database.list('frentes_obra',{obra_id:f.work.id}).filter((x:any)=>x.nome==='Etapa Web')).toHaveLength(1);
 });
+it('aplica comando Web na fonte LAN e confirma sem criar cadastro no SQLite do Desktop',async()=>{
+  const f=fixture();
+  const command={id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',entity:'clientes',action:'create',deviceId:'device-a',data:{nome:'Cliente LAN'}};
+  const dataProvider={
+    storage:{state:()=>({serverId:'server-lan-001'})},
+    runtimeState:()=>({source:'lan-host',paused:false,pauseReason:null}),
+    resolveScope:vi.fn(async()=>({companyId:501,workId:601,companyName:'Empresa central',workName:'Obra central'})),
+    syncCapabilities:vi.fn(async()=>({modules:[],bridgeEntities:[]})),
+    listBridge:vi.fn(async()=>[]),
+    applyWebP0Create:vi.fn(async()=>({entity:'clientes',action:'create',localId:701,duplicate:false})),
+    summary:vi.fn(async()=>({modules:{}})),
+    obligations:vi.fn(async()=>[])
+  };
+  f.session.access.modules=['obra360'];
+  f.online.webP0Pending=vi.fn(async()=>({commands:[command]}));
+  f.online.webP0Ack=vi.fn(async()=>({ok:true}));
+  f.sync=new SyncCoordinator({database:f.database,online:f.online,dataProvider});
+  await f.sync.configure({companyId:501,workId:601});
+  await f.sync.run();
+  expect(dataProvider.applyWebP0Create).toHaveBeenCalledWith(expect.objectContaining({
+    companyId:501,workId:601,remoteCompanyId:'company-a',serverId:'server-lan-001'
+  }),command);
+  expect(f.online.webP0Ack).toHaveBeenCalledWith({commandId:command.id,entity:'clientes',localId:701});
+  expect(f.database.list('clientes',{empresa_id:f.company.id})).toHaveLength(0);
+});
 it('publishes state transitions without renderer polling', async () => {
   const f = fixture()
   await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
