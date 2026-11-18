@@ -1,5 +1,6 @@
 import { assertBridgeEdit, BridgeConflict, bridgeRows } from './web-p0-policy';
 import { assertP0Create } from './web-p0-create';
+import { ensureP0WorkProject } from './web-p0-project-provision';
 import { enqueueWebP0Command, getWebP0Command, pendingWebP0Commands, ackWebP0Command, listWebP0Commands } from './web-p0-command-store';
 import { createCompanyRoutes } from './owner-companies';
 import { restrictForemanSnapshot } from './field-snapshot-rules';
@@ -72,7 +73,7 @@ async function findAccess(email:string){const {items}=await db.list<Member>(acce
 const SYNC_ENTITIES=['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','rdo_anexos','cronograma_etapas'];
 async function resolveMembership(user:{userId:string;email?:string;name?:string}){
   const email=norm(user.email);if(!email)return null;
-  const items=(await findAccess(email)).filter(m=>m.status!=='revoked');const ownerPreferred=email===ownerEmail()?(items.find(m=>m.canonicalOwner&&m.userId===user.userId)||items.find(m=>m.canonicalOwner)):undefined;const current=ownerPreferred||items.find(m=>m.userId===user.userId)||items[0];if(!current)return null;
+  const items=(await findAccess(email)).filter(m=>m.status!=='revoked');const selected=(await db.list<{projectId:string}>(`p0_selected_${hashKey(email)}`,{limit:1})).items[0]?.projectId;const preferred=items.find(m=>m.projectId===selected&&m.userId===user.userId);const ownerPreferred=email===ownerEmail()?(items.find(m=>m.canonicalOwner&&m.userId===user.userId)||items.find(m=>m.canonicalOwner)):undefined;const current=preferred||ownerPreferred||items.find(m=>m.userId===user.userId)||items[0];if(!current)return null;
   if(current.userId!==user.userId||current.name!==user.name){const firstBind=!current.userId,stamp=now(),next={...current,userId:user.userId,name:user.name||current.name,joinCode:firstBind?undefined:current.joinCode,claimedAt:firstBind?stamp:current.claimedAt,updatedAt:stamp};await db.update(accessTable(email),[{id:current.id,record:next as Record<string,unknown>}]);if(current.projectMemberId){const [pm]=await db.get<Member>(membersTable(current.projectId),[current.projectMemberId]);if(pm)await db.update(membersTable(current.projectId),[{id:current.projectMemberId,record:{...pm,userId:user.userId,name:user.name||pm.name,joinCode:firstBind?undefined:pm.joinCode,claimedAt:firstBind?stamp:pm.claimedAt,updatedAt:stamp} as Record<string,unknown>}])}if(firstBind&&current.joinCode){const invite=await db.list<Record<string,unknown>>(inviteTable(current.joinCode),{limit:1});if(invite.items[0])await db.delete(inviteTable(current.joinCode),[invite.items[0].id])}return{...next,id:current.id}}
   return current;
 }
@@ -171,6 +172,30 @@ async function p0CreateDevices(companyId:string,projectId:string){
     return{deviceId:device.id,name:device.name||'Desktop autorizado'};
   }));
   return allowed.filter((d):d is {deviceId:string;name:string}=>d!==null);
+}
+
+async function provisionP0Work(record:NonNullable<Awaited<ReturnType<typeof getWebP0Command>>>,localWorkId:number){
+  if(record.action!=='create'||record.entity!=='obras')return null;
+  if(!record.actorEmail)throw new Error('Comando antigo sem identidade para vincular projeto.');
+  const parent=await getProject(record.projectId);
+  const members=await findAccess(record.actorEmail),actor=members.find(m=>m.companyId===record.companyId&&m.projectId===record.projectId&&m.role==='admin'&&m.status!=='revoked'&&m.userId===record.actorId);
+  if(!parent||parent.companyId!==record.companyId||!actor)throw new Error('Administrador de origem perdeu acesso; nova obra não foi vinculada.');
+  const limits=await limitsForCompany(record.companyId);
+  const state=await assembleState(record.projectId),client=bridgeRows(asRecord(state?.desktopBridge)).find(row=>
+    row.entity==='clientes'&&row.sourceDeviceId===record.deviceId&&row.localId===record.data.cliente_id);
+  const result=await ensureP0WorkProject({
+    commandId:record.id,companyId:record.companyId,parentProjectId:record.projectId,actorId:record.actorId,
+    sourceDeviceId:record.deviceId,localWorkId,name:String(record.data.nome||''),customer:client?String(client.payload.nome||''):undefined,
+    maxProjects:limits.maxProjects
+  });
+  const granted=await upsertMember(result.id,record.companyId,{
+    email:record.actorEmail,role:'admin',modules:actor.modules,channels:actor.channels
+  });
+  await ensurePlatformAccessForMember({
+    email:granted.email,name:actor.name,companyId:record.companyId,projectId:result.id,
+    role:'admin',modules:granted.modules||['obra360']
+  });
+  return result.id;
 }
 
 export const handler=router({
@@ -439,12 +464,48 @@ export const handler=router({
     }catch(cause){return error((cause as Error).message||'Não foi possível salvar.',cause instanceof BridgeConflict?409:409)}
   }],
   // Solicitações ficam em uma fila, nunca em registros operacionais paralelos no D1.
+  'POST /api/web/p0/update':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    let command:ReturnType<typeof assertP0Create>;
+    try{command=assertP0Create({...asRecord(ctx.body),action:'update'})}
+    catch(e){return error((e as Error).message,400)}
+    const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
+    if(!sources.some(s=>s.deviceId===command.sourceDeviceId))return error('Dispositivo não autorizado para esta obra.',403);
+    const state=await assembleState(gate.member!.projectId);
+    const row=bridgeRows(asRecord(state?.desktopBridge)).find(x=>x.entity===command.entity&&x.localId===command.localId&&x.sourceDeviceId===command.sourceDeviceId);
+    if(!row||String(row.payload.sourceFingerprint||'')!==command.expectedFingerprint)return error('O cadastro mudou ou não pertence ao dispositivo. Recarregue.',409);
+    if(command.entity==='empresas'&&row.localId!==Number(row.payload.id))return error('Identidade da empresa inválida.',409);
+    try{
+      const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,actorEmail:gate.member!.email,command});
+      await audit(gate.member!,ctx.user!,'web_p0_update_enqueued',{entity:command.entity,localId:command.localId,commandId:command.commandId});
+      return json({ok:true,command:{id:record.id,status:record.status}},202);
+    }catch(e){return error((e as Error).message,409)}
+  }],
+  'POST /api/web/p0/project/select':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const target=String(asRecord(ctx.body).projectId||''),project=await getProject(target);
+    if(!project||project.companyId!==gate.member!.companyId)return error('Obra não pertence à empresa.',403);
+    const memberships=(await findAccess(gate.member!.email)).filter(x=>x.status!=='revoked');
+    if(!memberships.some(x=>x.projectId===target&&x.companyId===project.companyId&&x.role==='admin'&&x.userId===ctx.user!.userId))
+      return error('Sua conta não possui acesso à obra solicitada.',403);
+    const key=`p0_selected_${hashKey(norm(gate.member!.email))}`,selected=(await db.list<{id:string;projectId:string}>(key,{limit:1})).items;
+    if(selected[0])await db.update(key,[{id:selected[0].id,record:{projectId:target,updatedAt:now()}}]);
+    else await db.add(key,[{projectId:target,updatedAt:now()}]);
+    return json({ok:true,projectId:target});
+  }],
   'POST /api/web/p0/create':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
     if(gate.response)return gate.response;
     let command:ReturnType<typeof assertP0Create>;
     try{command=assertP0Create(ctx.body);if(command.action!=='create')throw new Error('Use a operação de exclusão.')}
     catch(e){return error((e as Error).message,400)}
+    if(command.entity==='obras'){
+      const limit=await limitsForCompany(gate.member!.companyId);
+      const current=(await db.list<Project>('projects',{limit:1000})).items.filter(x=>x.companyId===gate.member!.companyId);
+      if(current.length>=limit.maxProjects)return error('Limite de obras da licença atingido. Não é possível criar sem um vínculo Web.',409);
+    }
     const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
     if(!sources.some(s=>s.deviceId===command.sourceDeviceId))return error('O Desktop selecionado não está autorizado para esta obra.',403);
     if(command.data.frente_id||command.data.cliente_id){
@@ -490,6 +551,9 @@ export const handler=router({
     if(typeof body.commandId!=='string'||!/^[0-9a-f-]{36}$/i.test(body.commandId)||typeof body.entity!=='string')return error('Confirmação inválida.',400);
     if(!Number.isSafeInteger(body.localId)&&!(typeof body.error==='string'&&body.error.length>0&&body.error.length<=250))return error('Resultado do comando inválido.',400);
     try{
+      const queued=await getWebP0Command(session.device.projectId,String(body.commandId));
+      if(queued&&queued.deviceId===session.device.id&&queued.entity===body.entity&&queued.action==='create'&&queued.entity==='obras'&&Number.isSafeInteger(body.localId)&&body.localId>0)
+        await provisionP0Work(queued,Number(body.localId));
       const saved=await ackWebP0Command(session.device.projectId,session.device.id,{
         commandId:body.commandId,entity:body.entity,localId:Number.isSafeInteger(body.localId)?Number(body.localId):undefined,
         error:typeof body.error==='string'?body.error:undefined
