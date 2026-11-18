@@ -726,6 +726,36 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, url.pathname.endsWith('/bank-imports') ? bankFinance.listImports(filters) : bankFinance.listTransactions(filters))
       }
 
+
+      // P0 B3: conciliação auditável de extratos com pagamentos já existentes.
+      if (url.pathname === '/api/v1/finance/bank-reconciliation/suggestions' || url.pathname === '/api/v1/finance/bank-reconciliation') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'view' })
+        const filters = Object.fromEntries(url.searchParams.entries())
+        return sendJson(response, 200, url.pathname.endsWith('/suggestions') ? bankFinance.suggestReconciliation(filters) : bankFinance.listReconciliations(filters))
+      }
+
+      if (url.pathname === '/api/v1/finance/bank-reconciliation/confirm' || url.pathname === '/api/v1/finance/bank-reconciliation/reverse') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'approve' })
+        const body = await readJson(request)
+        // Do not trust a client-supplied audit actor. Bind to authenticated device/member.
+        const payload = { ...body, actorId: String(actor.member?.memberId || actor.device?.id || 'lan-user') }
+        return sendJson(response, 200, url.pathname.endsWith('/reverse') ? bankFinance.reverseReconciliation(payload) : bankFinance.confirmReconciliation(payload))
+      }
+
+      if (url.pathname === '/api/v1/finance/cash-flow') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'view' })
+        return sendJson(response, 200, bankFinance.cashFlow(Object.fromEntries(url.searchParams.entries())))
+      }
+
       const financePaymentMatch = url.pathname.match(FINANCE_PAYMENT_ROUTE)
       if (financePaymentMatch) {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
