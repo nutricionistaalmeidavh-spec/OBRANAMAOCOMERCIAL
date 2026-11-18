@@ -30,6 +30,20 @@ describe('comandos Web P0 sem tabela operacional paralela',()=>{
     expect(()=>assertP0Create({...base,action:'delete',entity:'empresas',localId:5,expectedFingerprint})).toThrow();
     expect(()=>assertP0Create({...base,action:'delete',entity:'tarefas_obra',localId:0,expectedFingerprint})).toThrow();
   });
+  it('solicita atualização canônica condicionada à versão sem permitir troca de empresa/obra',()=>{
+    const fingerprint='a'.repeat(64);
+    expect(assertP0Create({...base,action:'update',entity:'clientes',localId:9,expectedFingerprint:fingerprint,data:{nome:'Cliente Atualizado'}}))
+      .toMatchObject({action:'update',entity:'clientes',localId:9,data:{nome:'Cliente Atualizado'}});
+    expect(()=>assertP0Create({...base,action:'update',entity:'obras',localId:2,expectedFingerprint:fingerprint,data:{empresa_id:999}})).toThrow();
+    expect(()=>assertP0Create({...base,action:'update',entity:'obras',localId:2,data:{nome:'Sem revisão'}})).toThrow();
+    expect(()=>assertP0Create({...base,action:'create',entity:'empresas',data:{razao_social:'Outra empresa'}})).toThrow();
+  });
+  it('permite prazo do cronograma com etapa de obra vinculada sem aceitar IDs de outra origem',()=>{
+    expect(assertP0Create({...base,entity:'cronograma_etapas',data:{nome:'Execução',frente_id:7,previsto_inicio:'2026-11-20',previsto_fim:'2026-11-30'}}))
+      .toMatchObject({action:'create',entity:'cronograma_etapas',data:{frente_id:7}});
+    expect(()=>assertP0Create({...base,entity:'cronograma_etapas',data:{nome:'Crono',etapa_id:0}})).toThrow();
+    expect(()=>assertP0Create({...base,entity:'cronograma_etapas',data:{nome:'Crono',percentual_previsto:'101'}})).toThrow();
+  });
   it('recusa comando sem identificador único, dispositivo ou com campos excessivos',()=>{
     expect(()=>assertP0Create({...base,commandId:'123',entity:'tarefas_obra',data:{titulo:'Teste'}})).toThrow();
     expect(()=>assertP0Create({...base,sourceDeviceId:'',entity:'tarefas_obra',data:{titulo:'Teste'}})).toThrow();
