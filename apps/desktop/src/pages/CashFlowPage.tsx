@@ -59,13 +59,13 @@ export default function CashFlowPage(){
   </Card>
   {!selectedEmpresa?<Empty title="Nenhuma empresa cadastrada" description="Cadastre uma empresa antes de consultar o fluxo financeiro."/>:cash.loading?<Loading label="Calculando caixa consolidado..."/>:cash.error?<Card><ErrorState error={cash.error} retry={cash.reload}/><p>Para começar, cadastre uma conta bancária, informe o saldo de referência e importe os extratos.</p><Link to={ROUTES.bankAccounts}>Ir para contas bancárias</Link></Card>:!cash.data?<Empty title="Sem dados financeiros"/>:<>
    <div className="cash-summary-grid">
-    <Card><small>{cash.data.hasBankBalance?'Saldo realizado por extratos':'Movimentação líquida atribuída à obra'}</small><strong>{money(cash.data.realizedCents)}</strong><small>Até {displayDate(cash.data.asOf)}</small></Card>
+    <Card><small>{cash.data?.hasBankBalance?'Saldo realizado por extratos':'Movimentação líquida atribuída à obra'}</small><strong>{money(cash.data.realizedCents)}</strong><small>Até {displayDate(cash.data.asOf)}</small></Card>
     <Card><small>Recebimentos previstos</small><strong>{money(cash.data.projectedReceivablesCents)}</strong><small>Nos próximos {horizonDays} dias</small></Card>
     <Card><small>Pagamentos previstos</small><strong>{money(cash.data.projectedPayablesCents)}</strong><small>Nos próximos {horizonDays} dias</small></Card>
-    <Card><small>{cash.data.hasBankBalance?'Saldo final projetado':'Resultado gerencial projetado da obra'}</small><strong className={cash.data.projectedEndCents<0?'cash-negative':''}>{money(cash.data.projectedEndCents)}</strong><small>{displayDate(cash.data.days[cash.data.days.length-1].date)}</small></Card>
+    <Card><small>{cash.data?.hasBankBalance?'Saldo final projetado':'Resultado gerencial projetado da obra'}</small><strong className={cash.data.projectedEndCents<0?'cash-negative':''}>{money(cash.data.projectedEndCents)}</strong><small>{displayDate(cash.data.days[cash.data.days.length-1].date)}</small></Card>
    </div>
    <Card className="bank-import-card">
-    <h2>{cash.data.hasBankBalance?'Saldo projetado — evolução diária':'Resultado gerencial projetado — evolução diária'}</h2>
+    <h2>{cash.data?.hasBankBalance?'Saldo projetado — evolução diária':'Resultado gerencial projetado — evolução diária'}</h2>
     <p>{cash.data.balanceDescription}</p>
     {cash.data.negativeDays>0&&<p className="cash-alert" role="alert">Previsão de caixa negativo a partir de {negative?displayDate(negative.date):'data não determinada'}, em {cash.data.negativeDays} dias do período.</p>}
     <BalanceChart days={cash.data.days}/>
@@ -74,10 +74,10 @@ export default function CashFlowPage(){
    <PlannedBankPanel empresaId={Number(selectedEmpresa)} obraId={workId?Number(workId):undefined} works={works.data||[]} onChanged={()=>setReload(v=>v+1)}/>
    <Card><h2>Saldos por conta bancária</h2><div className="bank-card-grid">{cash.data.banks.map(b=><div key={b.id} className="bank-account-card"><BarChart3 size={20}/><strong>{b.nome}</strong><small>{b.bancoNome} · saldo inicial em {displayDate(b.referenceDate)}</small><strong>{b.covered&&b.realizedCents!==null?money(b.realizedCents):'Sem saldo nessa data'}</strong><small>{b.importedMovements} movimentos importados até a referência</small></div>)}</div></Card>
    <Card><h2>Previsão dia a dia</h2><p>Vencimentos anteriores à referência são previstos para o primeiro dia seguinte. Pagamentos já registrados até a referência são descontados das obrigações.</p>
-    <div className="bank-table cash-table"><table><thead><tr><th>Data</th><th>Entradas previstas</th><th>Saídas previstas</th><th>{cash.data.hasBankBalance?'Saldo projetado':'Resultado gerencial projetado'}</th></tr></thead><tbody>{cash.data.days.map(day=><tr key={day.date} className={day.negative?'cash-row-negative':''}><td>{displayDate(day.date)}</td><td>{money(day.projectedInCents)}</td><td>{money(day.projectedOutCents)}</td><td><strong>{money(day.projectedBalanceCents)}</strong></td></tr>)}</tbody></table></div>
+    <div className="bank-table cash-table"><table><thead><tr><th>Data</th><th>Entradas previstas</th><th>Saídas previstas</th><th>{cash.data?.hasBankBalance?'Saldo projetado':'Resultado gerencial projetado'}</th></tr></thead><tbody>{cash.data.days.map(day=><tr key={day.date} className={day.negative?'cash-row-negative':''}><td>{displayDate(day.date)}</td><td>{money(day.projectedInCents)}</td><td>{money(day.projectedOutCents)}</td><td><strong>{money(day.projectedBalanceCents)}</strong></td></tr>)}</tbody></table></div>
    </Card>
    <Card><h2>Movimentação realizada — últimos 30 dias</h2><p>Valores obtidos dos extratos bancários, sem somar novamente os pagamentos registrados nas contas operacionais.</p>
-    <div className="bank-table cash-table"><table><thead><tr><th>Data</th><th>Entradas</th><th>Saídas</th><th>Saldo calculado</th></tr></thead><tbody>{cash.data.history.map(day=><tr key={day.date}><td>{displayDate(day.date)}</td><td>{money(day.realizedInCents)}</td><td>{money(day.realizedOutCents)}</td><td>{day.balanceCents===null?(cash.data.hasBankBalance?'Cobertura parcial':'Não aplicável à obra'):money(day.balanceCents)}</td></tr>)}</tbody></table></div>
+    <div className="bank-table cash-table"><table><thead><tr><th>Data</th><th>Entradas</th><th>Saídas</th><th>Saldo calculado</th></tr></thead><tbody>{cash.data.history.map(day=><tr key={day.date}><td>{displayDate(day.date)}</td><td>{money(day.realizedInCents)}</td><td>{money(day.realizedOutCents)}</td><td>{day.balanceCents===null?(cash.data?.hasBankBalance?'Cobertura parcial':'Não aplicável à obra'):money(day.balanceCents)}</td></tr>)}</tbody></table></div>
    </Card>
   </>}
  </div>
