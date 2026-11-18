@@ -15,6 +15,7 @@ import EmployeeRegistrationPage from './pages/EmployeeRegistrationPage'
 import DocumentsPage from './pages/DocumentsPage'
 import RegistriesPage from './pages/RegistriesPage'
 import ImportPage from './pages/ImportPage'
+import BankAccountsPage from './pages/BankAccountsPage'
 import SettingsPage from './pages/SettingsPage'
 import SettingsHubPage from './pages/SettingsHubPage'
 import TimeSheetPage from './pages/TimeSheetPage'
@@ -81,6 +82,7 @@ export default function App() {
       <Route path={ROUTES.ai} element={<AiAssistantPage/>}/>
       <Route path={ROUTES.dre} element={<DrePage/>}/>
       <Route path={ROUTES.finance} element={<FinancePage/>}/>
+      <Route path={ROUTES.bankAccounts} element={<BankAccountsPage/>}/>
       <Route path={ROUTES.budget} element={<BudgetPage/>}/>
       <Route path={ROUTES.measurements} element={<MeasurementsPage/>}/>
       <Route path={ROUTES.procurementContracts} element={<ProcurementContractsHubPage/>}/>
