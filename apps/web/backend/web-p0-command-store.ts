@@ -3,7 +3,8 @@ import type { P0CreateCommand } from './web-p0-create';
 
 export type WebP0Queued={
   id:string;deviceId:string;companyId:string;projectId:string;
-  entity:P0CreateCommand['entity'];data:Record<string,unknown>;
+  entity:P0CreateCommand['entity'];action:'create'|'delete';data:Record<string,unknown>;
+  localId?:number;expectedFingerprint?:string;
   actorId:string;status:'pending'|'applied'|'failed';localId?:number;error?:string;
   createdAt:string;updatedAt:string
 };
@@ -21,7 +22,8 @@ export async function enqueueWebP0Command(input:{
   const {projectId,companyId,actorId,command}=input,now=stamp();
   const record:WebP0Queued={
     id:command.commandId,projectId,companyId,actorId,
-    deviceId:command.sourceDeviceId,entity:command.entity,data:command.data,
+    deviceId:command.sourceDeviceId,entity:command.entity,action:command.action,data:command.data,
+    ...(command.localId?{localId:command.localId}:{}),...(command.expectedFingerprint?{expectedFingerprint:command.expectedFingerprint}:{}),
     status:'pending',createdAt:now,updatedAt:now
   };
   // Exactly-once web submission; replay with same UUID must never create another job.
@@ -32,6 +34,7 @@ export async function enqueueWebP0Command(input:{
   if(!found)throw new Error('Não foi possível registrar a solicitação.');
   if(found.actorId!==actorId||found.projectId!==projectId||found.companyId!==companyId||
     found.deviceId!==record.deviceId||found.entity!==record.entity||
+    (found.action||'create')!==record.action||Number(found.localId||0)!==Number(record.localId||0)||String(found.expectedFingerprint||'')!==String(record.expectedFingerprint||'')||
     JSON.stringify(found.data)!==JSON.stringify(record.data))
     throw new Error('Identificador da solicitação já utilizado em outro cadastro.');
   return found;
@@ -42,10 +45,10 @@ export async function pendingWebP0Commands(projectId:string,deviceId:string):Pro
   ).bind(bucket(projectId),deviceId).all<{id:string;record_json:string}>();
   return (rows.results||[]).map(row=>({...JSON.parse(row.record_json),id:row.id} as WebP0Queued));
 }
-export async function listWebP0Commands(projectId:string,actorId:string):Promise<Array<Pick<WebP0Queued,'id'|'entity'|'deviceId'|'status'|'localId'|'error'|'createdAt'>>>{
+export async function listWebP0Commands(projectId:string,actorId:string):Promise<Array<Pick<WebP0Queued,'id'|'entity'|'action'|'deviceId'|'status'|'localId'|'error'|'createdAt'>>>{
   const {items}=await db.list<WebP0Queued>(bucket(projectId),{limit:100});
   return items.filter(item=>item.actorId===actorId)
-    .map(item=>({id:item.id,entity:item.entity,deviceId:item.deviceId,status:item.status,localId:item.localId,error:item.error,createdAt:item.createdAt}));
+    .map(item=>({id:item.id,entity:item.entity,action:item.action||'create',deviceId:item.deviceId,status:item.status,localId:item.localId,error:item.error,createdAt:item.createdAt}));
 }
 export async function ackWebP0Command(projectId:string,deviceId:string,input:{
   commandId:string;entity:string;localId?:number;error?:string
