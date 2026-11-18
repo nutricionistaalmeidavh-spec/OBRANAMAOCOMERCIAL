@@ -81,8 +81,53 @@ test('HTTP B1/B2 exige autenticação e persiste extrato no banco LAN sem baixar
     const unauthenticated=await fetch(base+'/api/v1/finance/cash-flow?empresaId='+company.id+'&asOf=2026-11-18')
     assert.equal(unauthenticated.status,401)
 
+    // P1: ações de banco previsto e filtros usam a mesma API autorizada do Desktop.
+    const workId=Number(repository.connection().prepare("INSERT INTO obras(empresa_id,nome) VALUES(?,'Obra piloto')").run(company.id).lastInsertRowid)
+    const pendingId=Number(repository.connection().prepare("INSERT INTO contas(tipo,empresa_id,obra_id,descricao,competencia,vencimento,valor_centavos,status) VALUES('pagar',?,?,'Compra futura','2026-11','2026-11-25',10000,'pendente')").run(company.id,workId).lastInsertRowid)
+    const companiesResponse=await send('/api/v1/finance/companies')
+    assert.equal(companiesResponse.status,200)
+    assert.ok((await companiesResponse.json()).some(x=>x.id===company.id))
+    const worksResponse=await send('/api/v1/finance/works?empresaId='+company.id)
+    assert.equal(worksResponse.status,200)
+    assert.ok((await worksResponse.json()).some(x=>x.id===workId))
+    const beforePlan=await send('/api/v1/finance/cash-flow?empresaId='+company.id+'&contaBancariaId='+bank.id+'&asOf=2026-11-18&horizonDays=30')
+    assert.equal((await beforePlan.json()).projectedPayablesCents,0)
+    const planned=await send('/api/v1/finance/planned-banks','POST',{empresaId:company.id,contaId:pendingId,contaBancariaId:bank.id})
+    assert.equal(planned.status,200)
+    assert.equal((await planned.json()).conta_bancaria_id,bank.id)
+    const selected=await send('/api/v1/finance/cash-flow?empresaId='+company.id+'&contaBancariaId='+bank.id+'&obraId='+workId+'&asOf=2026-11-18&horizonDays=30')
+    const selectedFlow=await selected.json()
+    assert.equal(selectedFlow.hasBankBalance,false)
+    assert.equal(selectedFlow.projectedPayablesCents,10000)
+    const plannedRows=await send('/api/v1/finance/planned-banks?empresaId='+company.id+'&obraId='+workId)
+    assert.ok((await plannedRows.json()).some(x=>x.conta_id===pendingId&&x.conta_bancaria_id===bank.id))
+
+
   }finally{
     await new Promise(resolve=>server.close(resolve))
     repository.close()
   }
+})
+
+
+test('P1 HTML/CSS/JS Web são servidos localmente sem credenciais e com CSP, APIs protegidas',async()=>{
+  const server=createLanServer({})
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
+  const base='http://127.0.0.1:'+server.address().port
+  try{
+    for(const [url,contentType,marker] of [
+      ['/financeiro-web','text/html','pair-form'],
+      ['/financeiro-web/style.css','text/css','.panel'],
+      ['/financeiro-web/app.js','text/javascript','/api/v1/finance/cash-flow']
+    ]){
+      const response=await fetch(base+url)
+      assert.equal(response.status,200)
+      assert.ok(response.headers.get('content-type').includes(contentType))
+      assert.equal(response.headers.get('x-content-type-options'),'nosniff')
+      assert.ok(response.headers.get('content-security-policy').includes("default-src 'none'"))
+      assert.ok((await response.text()).includes(marker))
+    }
+    const res=await fetch(base+'/api/v1/finance/companies')
+    assert.notEqual(res.status,200)
+  }finally{await new Promise(resolve=>server.close(resolve))}
 })
