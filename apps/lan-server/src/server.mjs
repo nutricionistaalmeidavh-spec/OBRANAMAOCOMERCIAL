@@ -728,7 +728,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
 
 
       // P1 B4/C2: catálogos do Financeiro e atribuição explícita de banco previsto.
-      if (url.pathname === '/api/v1/finance/companies' || url.pathname === '/api/v1/finance/works' || url.pathname === '/api/v1/finance/planned-banks') {
+      if (url.pathname === '/api/v1/finance/works' || url.pathname === '/api/v1/finance/planned-banks') {
         if (request.method !== 'GET' && !(url.pathname.endsWith('/planned-banks') && request.method === 'POST')) return methodNotAllowed(response, url.pathname.endsWith('/planned-banks') ? ['GET','POST'] : ['GET'])
         if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
         const actor = await authenticateLanRequest(request, security)
@@ -739,7 +739,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
           return sendJson(response, 200, saved)
         }
         const filters = Object.fromEntries(url.searchParams.entries())
-        const data = url.pathname.endsWith('/companies') ? bankFinance.listCompanies() : url.pathname.endsWith('/works') ? bankFinance.listWorks(filters) : bankFinance.listPlannedAccounts(filters)
+        const data = url.pathname.endsWith('/works') ? bankFinance.listWorks(filters) : bankFinance.listPlannedAccounts(filters)
         return sendJson(response, 200, data)
       }
 
