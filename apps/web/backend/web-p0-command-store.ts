@@ -2,7 +2,7 @@ import { db, runtimeEnv } from '../cloudflare/sdk';
 import type { P0CreateCommand } from './web-p0-create';
 
 export type WebP0Queued={
-  id:string;deviceId:string;companyId:string;projectId:string;
+  id:string;deviceId:string;companyId:string;projectId:string;actorEmail?:string;
   entity:P0CreateCommand['entity'];action:'create'|'update'|'delete';data:Record<string,unknown>;
   localId?:number;targetLocalId?:number;expectedFingerprint?:string;
   actorId:string;status:'pending'|'applied'|'failed';error?:string;
@@ -17,11 +17,11 @@ export async function getWebP0Command(projectId:string,id:string):Promise<WebP0Q
   return row||null;
 }
 export async function enqueueWebP0Command(input:{
-  projectId:string;companyId:string;actorId:string;command:P0CreateCommand
+  projectId:string;companyId:string;actorId:string;actorEmail?:string;command:P0CreateCommand
 }):Promise<WebP0Queued>{
-  const {projectId,companyId,actorId,command}=input,now=stamp();
+  const {projectId,companyId,actorId,actorEmail,command}=input,now=stamp();
   const record:WebP0Queued={
-    id:command.commandId,projectId,companyId,actorId,
+    id:command.commandId,projectId,companyId,actorId,...(actorEmail?{actorEmail}:{}),
     deviceId:command.sourceDeviceId,entity:command.entity,action:command.action||'create',data:command.data,
     ...(command.localId?{targetLocalId:command.localId}:{}),...(command.expectedFingerprint?{expectedFingerprint:command.expectedFingerprint}:{}),
     status:'pending',createdAt:now,updatedAt:now
@@ -32,7 +32,7 @@ export async function enqueueWebP0Command(input:{
   ).bind(bucket(projectId),record.id,JSON.stringify(record),now,now).run();
   const found=await getWebP0Command(projectId,record.id);
   if(!found)throw new Error('Não foi possível registrar a solicitação.');
-  if(found.actorId!==actorId||found.projectId!==projectId||found.companyId!==companyId||
+  if(found.actorId!==actorId||String(found.actorEmail||'')!==String(actorEmail||'')||found.projectId!==projectId||found.companyId!==companyId||
     found.deviceId!==record.deviceId||found.entity!==record.entity||
     (found.action||'create')!==record.action||Number(found.targetLocalId||0)!==Number(record.targetLocalId||0)||String(found.expectedFingerprint||'')!==String(record.expectedFingerprint||'')||
     JSON.stringify(found.data)!==JSON.stringify(record.data))
