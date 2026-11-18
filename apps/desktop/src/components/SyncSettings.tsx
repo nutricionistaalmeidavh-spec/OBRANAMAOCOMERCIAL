@@ -115,7 +115,7 @@ export default function SyncSettings() {
           () => target&&target!==remote?.oldProjectId
             ? window.fluxoDre.online.selectP0Project({projectId:target,companyId:Number(companyId),workId:Number(workId)})
             : window.fluxoDre.online.configureSync({companyId:Number(companyId),workId:Number(workId)}),
-          'Vínculo configurado. A obra local continuará sincronizando com o projeto Web selecionado.'
+          'Vínculo de sincronização configurado.'
         );
       }}/>
       <Confirm open={!!resolution} title="Resolver divergência" description={resolution?.choice === 'accept_remote' ? 'A versão do Obra360 substituirá os campos divergentes deste computador. Esta decisão será registrada.' : 'A versão deste computador será mantida e enviada ao Obra360 na próxima sincronização. Esta decisão será registrada.'} onCancel={() => setResolution(null)} onConfirm={() => { const selected = resolution!; setResolution(null); void perform(() => window.fluxoDre.online.resolveLocalConflict(selected.id, selected.choice), 'Conflito revisado. Acompanhe a próxima sincronização.') }}/>
