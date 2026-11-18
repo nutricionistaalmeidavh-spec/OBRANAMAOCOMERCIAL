@@ -158,12 +158,17 @@ async function remoteSyncOwnerError(session:RemoteSyncSession):Promise<Response|
 }
 
 async function p0CreateDevices(companyId:string,projectId:string){
+  const topology=await getCompanyStorageTopology(companyId);
   const devices=(await db.list<Device>('devices',{limit:1000})).items
     .filter(d=>d.status==='active'&&d.companyId===companyId&&d.projectId===projectId&&(!d.tokenExpiresAt||d.tokenExpiresAt>=now()));
   const allowed=await Promise.all(devices.map(async device=>{
     const member=(await findAccess(device.email)).find(m=>m.projectId===projectId&&m.companyId===companyId&&m.role==='admin'&&m.status!=='revoked');
     const rights=member?await memberEntitlements(member):null;
-    return member&&rights?.modules.includes('obra360')&&rights?.channels.includes('desktop')?{deviceId:device.id,name:device.name||'Desktop autorizado'}:null;
+    if(!member||!rights?.modules.includes('obra360')||!rights.channels.includes('desktop'))return null;
+    if(topology.mode==='remote'&&(!topology.serverId||!await remoteSyncOwners().verify({
+      companyId,projectId,serverId:String(topology.serverId),deviceId:String(device.id)
+    })))return null;
+    return{deviceId:device.id,name:device.name||'Desktop autorizado'};
   }));
   return allowed.filter((d):d is {deviceId:string;name:string}=>d!==null);
 }
@@ -417,9 +422,9 @@ export const handler=router({
       source:'desktop-bridge',
       revision:Number(asRecord(state?._remote).revision||0),
       items:bridgeRows(asRecord(state?.desktopBridge)),
-      sources:topology.mode==='local-single'?await p0CreateDevices(gate.member!.companyId,gate.member!.projectId):[],
+      sources:await p0CreateDevices(gate.member!.companyId,gate.member!.projectId),
       commands:await listWebP0Commands(gate.member!.projectId,ctx.user!.userId),
-      limitations:['Empresas, clientes e obras continuam na fonte operacional Desktop/Server.','A criação Web de etapas, subetapas e tarefas usa fila idempotente exclusivamente no modo Desktop local; outros modos aguardam executor próprio.']
+      limitations:['Cadastros e exclusões só são confirmados após aplicação na fonte operacional Desktop/Server.','A obra criada precisa ser vinculada à licença/projeto Web para obter acesso Obra360 próprio.']
     });
   }],
   'POST /api/web/p0/edit':[...secured,async(ctx)=>{
@@ -437,16 +442,17 @@ export const handler=router({
   'POST /api/web/p0/create':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
     if(gate.response)return gate.response;
-    const topology=await getCompanyStorageTopology(gate.member!.companyId);
-    if(topology.mode!=='local-single')return error('Criação pelo Web ainda não habilitada para servidor compartilhado/remoto.',409);
     let command:ReturnType<typeof assertP0Create>;
-    try{command=assertP0Create(ctx.body)}catch(e){return error((e as Error).message,400)}
+    try{command=assertP0Create(ctx.body);if(command.action!=='create')throw new Error('Use a operação de exclusão.')}
+    catch(e){return error((e as Error).message,400)}
     const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
     if(!sources.some(s=>s.deviceId===command.sourceDeviceId))return error('O Desktop selecionado não está autorizado para esta obra.',403);
-    if(command.data.frente_id){
+    if(command.data.frente_id||command.data.cliente_id){
       const state=await assembleState(gate.member!.projectId);
       const stages=bridgeRows(asRecord(state?.desktopBridge)).filter(x=>x.entity==='frentes_obra'&&x.sourceDeviceId===command.sourceDeviceId);
-      if(!stages.some(x=>x.localId===command.data.frente_id))return error('Etapa vinculada não foi sincronizada neste Desktop.',409);
+      if(command.data.frente_id&&!stages.some(x=>x.localId===command.data.frente_id))return error('Etapa vinculada não foi sincronizada neste Desktop.',409);
+      const clients=bridgeRows(asRecord(state?.desktopBridge)).filter(x=>x.entity==='clientes'&&x.sourceDeviceId===command.sourceDeviceId);
+      if(command.data.cliente_id&&!clients.some(x=>x.localId===command.data.cliente_id))return error('Cliente vinculado não foi sincronizado neste Desktop.',409);
     }
     try{
       const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,command});
@@ -454,20 +460,37 @@ export const handler=router({
       return json({ok:true,command:{id:record.id,status:record.status,entity:record.entity,localId:record.localId}},202);
     }catch(e){return error((e as Error).message,409)}
   }],
+  'POST /api/web/p0/delete':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    let command:ReturnType<typeof assertP0Create>;
+    try{command=assertP0Create({...asRecord(ctx.body),action:'delete'})}
+    catch(e){return error((e as Error).message,400)}
+    const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
+    if(!sources.some(s=>s.deviceId===command.sourceDeviceId))return error('Desktop selecionado não está autorizado para esta operação.',403);
+    const state=await assembleState(gate.member!.projectId);
+    const row=bridgeRows(asRecord(state?.desktopBridge)).find(x=>x.entity===command.entity&&x.localId===command.localId&&x.sourceDeviceId===command.sourceDeviceId);
+    if(!row||String(row.payload.sourceFingerprint||'')!==command.expectedFingerprint)return error('Registro já mudou ou não pertence à origem selecionada.',409);
+    if(command.entity==='obras'){
+      const project=await getProject(gate.member!.projectId);
+      if(!project||project.name===row.payload.nome)return error('Não é permitido excluir a obra vinculada à sessão atual.',409);
+    }
+    try{
+      const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,command});
+      await audit(gate.member!,ctx.user!,'web_p0_delete_enqueued',{entity:command.entity,commandId:command.commandId,localId:command.localId});
+      return json({ok:true,command:{id:record.id,status:record.status,entity:record.entity,action:record.action}},202);
+    }catch(e){return error((e as Error).message,409)}
+  }],
   'POST /api/desktop/web-p0/pending':[async(ctx)=>{
     const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''));
     if(!session||!session.device.projectId||session.member?.role!=='admin'||!session.access.modules.includes('obra360'))return error('Desktop não autorizado a receber cadastros Web.',403);
     const ownerGate=await remoteSyncOwnerError(session);if(ownerGate)return ownerGate;
-    const topology=await getCompanyStorageTopology(String(session.device.companyId||''));
-    if(topology.mode!=='local-single')return json({commands:[]});
     return json({commands:await pendingWebP0Commands(session.device.projectId,session.device.id)});
   }],
   'POST /api/desktop/web-p0/ack':[async(ctx)=>{
     const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
     if(!session||!session.device.projectId||session.member?.role!=='admin'||!session.access.modules.includes('obra360'))return error('Desktop não autorizado a confirmar cadastros Web.',403);
     const ownerGate=await remoteSyncOwnerError(session);if(ownerGate)return ownerGate;
-    const topology=await getCompanyStorageTopology(String(session.device.companyId||''));
-    if(topology.mode!=='local-single')return error('Este modo operacional não aceita confirmação local.',409);
     if(typeof body.commandId!=='string'||!/^[0-9a-f-]{36}$/i.test(body.commandId)||typeof body.entity!=='string')return error('Confirmação inválida.',400);
     if(!Number.isSafeInteger(body.localId)&&!(typeof body.error==='string'&&body.error.length>0&&body.error.length<=250))return error('Resultado do comando inválido.',400);
     try{
