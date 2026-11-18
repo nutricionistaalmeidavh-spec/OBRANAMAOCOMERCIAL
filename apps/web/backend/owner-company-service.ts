@@ -41,7 +41,7 @@ export function companyViews(companies:Row[],licenses:Row[],users:Row[],projects
     const passwordCreatedAt=credentials.find(item=>norm(item.email)===adminEmail)?.created_at||null;
     return{id,name:company?.name||`Licença reservada — ${adminEmail||'sem e-mail'}`,adminEmail,reserved:!company,status:license?.status==='revoked'?'suspended':license?.expiresAt&&license.expiresAt<new Date().toISOString()?'expired':!license?.claimedBy?'pending':'active',license:license?{id:license.id,plan:license.plan,status:license.status,expiresAt:license.expiresAt,maxUsers:license.maxUsers,maxProjects:license.maxProjects,maxDevices:license.maxDevices,advancedServer:license.advancedServer===true,claimed:!!license.claimedBy}:null,modules:license?.modules||[],channels:license?.channels||[],passwordCreatedAt,usersCount:companyUsers.length,projectsCount:companyProjects.length,devicesCount:companyDevices.length,users:companyUsers,projects:companyProjects,devices:companyDevices};
   };
-  return{companies:[...companies.filter(company=>!operationIds.has(company.id)).map(company=>view(company,licenses.find(license=>license.id===company.licenseId)||licenses.find(license=>license.companyId===company.id))),...licenses.filter(license=>!license.companyId&&!companies.some(company=>company.licenseId===license.id)&&norm(license.email)!==norm(ownerEmail)).map(license=>view(undefined,license))],operationCompanyIds:[...operationIds]};
+  return{companies:[...companies.filter(company=>!operationIds.has(company.id)&&!company.archivedAt).map(company=>view(company,licenses.find(license=>license.id===company.licenseId)||licenses.find(license=>license.companyId===company.id))),...licenses.filter(license=>!license.companyId&&!companies.some(company=>company.licenseId===license.id)&&norm(license.email)!==norm(ownerEmail)).map(license=>view(undefined,license))],operationCompanyIds:[...operationIds]};
 }
 
 export async function managedCompanyInventory(){
@@ -77,6 +77,19 @@ export async function updateManagedCompany(companyId:string,input:Record<string,
   if(!modules.length||!channels.length)throw new ManagedAdminError('Selecione módulos e canais.',400);
   const license=await mutateLicense(company.license.id,current=>({...current,modules,channels,status:input.status==='suspended'?'revoked':input.status==='active'?'active':current.status,plan:input.plan!==undefined?String(input.plan||'custom'):current.plan,expiresAt:input.expiresAt===null||input.expiresAt===''?undefined:input.expiresAt!==undefined?String(input.expiresAt):current.expiresAt,maxUsers:input.maxUsers!==undefined?bounded(input.maxUsers,current.maxUsers||10):current.maxUsers,maxProjects:input.maxProjects!==undefined?bounded(input.maxProjects,current.maxProjects||5):current.maxProjects,maxDevices:input.maxDevices!==undefined?bounded(input.maxDevices,current.maxDevices||2):current.maxDevices,advancedServer:typeof input.advancedServer==='boolean'?input.advancedServer:current.advancedServer}),{source:'manual',userId:actor.userId,email:actor.email},'company_updated');
   return{company:(await managedCompanyInventory()).companies.find(item=>item.id===companyId),license};
+}
+
+export async function retireManagedCompany(companyId:string,actor:ManagedActor){
+  const inventory=await managedCompanyInventory(),company=inventory.companies.find(c=>c.id===companyId);
+  if(!company?.license||company.reserved)throw new ManagedAdminError('Somente empresas cadastradas podem ser arquivadas.',404);
+  if(company.usersCount||company.projectsCount||company.devicesCount)
+    throw new ManagedAdminError('Esta empresa possui usuários, obras ou dispositivos. Revise e encerre os vínculos antes de arquivar.',409);
+  const [record]=await db.get<Record<string,unknown>>('companies',[companyId]);
+  if(!record||record.archivedAt)throw new ManagedAdminError('Empresa indisponível para arquivamento.',409);
+  const stamp=new Date().toISOString();
+  await mutateLicense(company.license.id,current=>({...current,status:'revoked'}),{source:'manual',userId:actor.userId,email:actor.email},'company_archived');
+  await db.update('companies',[{id:companyId,record:{...record,archivedAt:stamp,archivedBy:actor.userId,updatedAt:stamp}}]);
+  return{ok:true,companyId,status:'archived',archivedAt:stamp};
 }
 
 export async function setManagedDeviceStatus(deviceId:string,status:unknown){
