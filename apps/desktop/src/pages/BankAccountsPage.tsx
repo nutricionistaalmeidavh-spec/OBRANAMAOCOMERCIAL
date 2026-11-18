@@ -6,6 +6,8 @@ import BankReconciliationPanel from './BankReconciliationPanel'
 import './BankAccountsPage.css'
 
 type Bank = { id:number; empresa_id:number; nome:string; banco_nome:string; agencia?:string; conta_identificador?:string; tipo_conta:string; saldo_inicial_centavos:number; saldo_referencia_data:string; ativo:number }
+type MovementFilter = { status:'all'|'pending'|'partial'|'reconciled'; obraId:string;startDate:string;endDate:string;search:string }
+const blankFilter = ():MovementFilter=>({ status:'all',obraId:'',startDate:'',endDate:'',search:'' })
 type PreviewRow = { line:number; date:string; description:string; amountCents:number; duplicate:boolean }
 type Preview = { previewHash:string; total:number; importable:number; duplicates:number; invalid:number; invalidRows:{line:number;reason:string}[]; preview:PreviewRow[]; headers:string[]; mapping:Record<string,number|string>; duplicatedFile:boolean }
 type Result = { duplicateFile:boolean; imported:number; duplicates:number; rejected:number; importId:number }
@@ -47,6 +49,8 @@ export default function BankAccountsPage(){
   const [result,setResult]=useState<Result|null>(null)
   const [working,setWorking]=useState(false)
   const [error,setError]=useState('')
+  const [filterDraft,setFilterDraft]=useState<MovementFilter>(blankFilter)
+  const [activeFilter,setActiveFilter]=useState<MovementFilter>(blankFilter)
   const companies=useAsync<any[]>(()=>window.fluxoDre.empresas.list(),[])
   useEffect(()=>{if(!empresaId&&companies.data?.length)setEmpresaId(String(companies.data[0].id))},[companies.data,empresaId])
   const banks=useAsync<Bank[]>(()=>empresaId?window.fluxoDre.bancos.list(Number(empresaId)):Promise.resolve([]),[empresaId,version])
@@ -55,8 +59,9 @@ export default function BankAccountsPage(){
     if(!banks.data.some(item=>String(item.id)===bankId))setBankId(String(banks.data[0].id))
   },[banks.data,bankId])
   const selected=useMemo(()=>banks.data?.find(x=>String(x.id)===bankId),[banks.data,bankId])
+  const works=useAsync<{id:number;nome:string}[]>(()=>empresaId?window.fluxoDre.bancos.works({empresaId:Number(empresaId)}):Promise.resolve([]),[empresaId])
   const imports=useAsync<any[]>(()=>empresaId&&bankId?window.fluxoDre.bancos.imports({empresaId:Number(empresaId),contaBancariaId:Number(bankId)}):Promise.resolve([]),[empresaId,bankId,version])
-  const transactions=useAsync<any[]>(()=>empresaId&&bankId?window.fluxoDre.bancos.transactions({empresaId:Number(empresaId),contaBancariaId:Number(bankId)}):Promise.resolve([]),[empresaId,bankId,version])
+  const transactions=useAsync<any[]>(()=>empresaId&&bankId?window.fluxoDre.bancos.transactions({empresaId:Number(empresaId),contaBancariaId:Number(bankId),status:activeFilter.status,obraId:activeFilter.obraId?Number(activeFilter.obraId):undefined,startDate:activeFilter.startDate||undefined,endDate:activeFilter.endDate||undefined,search:activeFilter.search||undefined}):Promise.resolve([]),[empresaId,bankId,version,activeFilter])
   const updateDraft=(field:keyof Draft,value:string)=>setDraft(v=>({...v,[field]:value}))
   const editSelected=()=>{
     if(!selected)return
@@ -121,7 +126,20 @@ export default function BankAccountsPage(){
     }catch(err){setError((err as Error).message)}
     finally{setWorking(false)}
   }
-  const changeAccount=(id:string)=>{setBankId(id);resetFile()}
+  const changeAccount=(id:string)=>{setBankId(id);resetFile();setActiveFilter(blankFilter());setFilterDraft(blankFilter())}
+  const updateFilter=(key:keyof MovementFilter,value:string)=>setFilterDraft(v=>({...v,[key]:value}))
+  const exportTransactions=()=>{
+    const tx=transactions.data||[]
+    if(!tx.length)return
+    const safe=(value:unknown)=>'"'+String(value??'').replace(/"/g,'""')+'"'
+    const lines=[['Data','Descrição','Valor (R$)','Conciliado (R$)','Situação'],...tx.map(t=>{
+      const amount=Number(t.valor_centavos),match=Number(t.conciliado_centavos||0)
+      return[t.data,t.descricao,(amount/100).toFixed(2).replace('.',','),(match/100).toFixed(2).replace('.',','),match>=Math.abs(amount)?'Conciliado':match>0?'Parcial':'Pendente']
+    })]
+    const csv='\uFEFF'+lines.map(x=>x.map(safe).join(';')).join('\r\n')
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}))
+    const a=document.createElement('a');a.href=url;a.download='extrato-financeiro-'+bankId+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }
   const setColumn=(name:string,value:string)=>{setMapping(v=>({...v,[name]:value}));setPreview(null)}
 
   return <div className="bank-finance">
@@ -181,9 +199,21 @@ export default function BankAccountsPage(){
         </div>}
         {result&&<div className="bank-message bank-success" role="status">{result.duplicateFile?'Este extrato já foi importado.':'Importação concluída.'} {result.imported} movimentações novas, {result.duplicates} duplicadas, {result.rejected} inválidas. Nenhuma baixa financeira foi criada.</div>}
       </Card>}
+      <Card className="bank-import-card">
+        <h2>Movimentações e conciliação — filtros</h2>
+        <form className="bank-transaction-filters" onSubmit={e=>{e.preventDefault();setActiveFilter({...filterDraft})}}>
+          <Field label="Situação"><select value={filterDraft.status} onChange={e=>updateFilter('status',e.target.value)}><option value="all">Todas</option><option value="pending">Pendentes</option><option value="partial">Parciais</option><option value="reconciled">Conciliadas</option></select></Field>
+          <Field label="Obra"><select value={filterDraft.obraId} onChange={e=>updateFilter('obraId',e.target.value)}><option value="">Todas (inclui administrativo)</option>{works.data?.map(w=><option value={w.id} key={w.id}>{w.nome}</option>)}</select></Field>
+          <Field label="Data inicial"><input type="date" value={filterDraft.startDate} onChange={e=>updateFilter('startDate',e.target.value)}/></Field>
+          <Field label="Data final"><input type="date" min={filterDraft.startDate||undefined} value={filterDraft.endDate} onChange={e=>updateFilter('endDate',e.target.value)}/></Field>
+          <Field label="Descrição"><input placeholder="Buscar no extrato" value={filterDraft.search} onChange={e=>updateFilter('search',e.target.value)}/></Field>
+          <div className="bank-filter-actions"><Button type="submit">Aplicar filtros</Button><Button variant="secondary" type="button" onClick={()=>{setFilterDraft(blankFilter());setActiveFilter(blankFilter())}}>Limpar</Button><Button type="button" variant="secondary" disabled={!transactions.data?.length} onClick={exportTransactions}>Exportar CSV</Button></div>
+        </form>
+        <p>{transactions.data?.length||0} movimentação(ões) exibida(s). A visão por obra inclui apenas movimentações já atribuídas por conciliação.</p>
+      </Card>
       {selected&&<BankReconciliationPanel empresaId={Number(empresaId)} contaBancariaId={selected.id} movements={transactions.data||[]} onChanged={()=>setVersion(v=>v+1)}/>}
       <div className="bank-history-grid">
-        <Card><h2>Movimentações importadas</h2>{transactions.loading?<Loading/>:transactions.error?<ErrorState error={transactions.error} retry={transactions.reload}/>:!transactions.data?.length?<Empty title="Sem movimentações" description="Importe o primeiro extrato para visualizar seus lançamentos."/>:<div className="bank-table"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>{transactions.data.map(tx=><tr key={tx.id}><td>{displayDate(tx.data)}</td><td>{tx.descricao}</td><td>{money(tx.valor_centavos)}</td></tr>)}</tbody></table></div>}</Card>
+        <Card><h2>Movimentações importadas</h2>{transactions.loading?<Loading/>:transactions.error?<ErrorState error={transactions.error} retry={transactions.reload}/>:!transactions.data?.length?<Empty title="Sem movimentações" description="Importe o primeiro extrato para visualizar seus lançamentos."/>:<div className="bank-table"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Conciliação</th></tr></thead><tbody>{transactions.data.map(tx=><tr key={tx.id}><td>{displayDate(tx.data)}</td><td>{tx.descricao}</td><td>{money(tx.valor_centavos)}</td><td>{Number(tx.conciliado_centavos||0)>=Math.abs(tx.valor_centavos)?'Conciliado':Number(tx.conciliado_centavos)>0?'Parcial':'Pendente'}</td></tr>)}</tbody></table></div>}</Card>
         <Card><h2>Histórico de importações</h2>{imports.loading?<Loading/>:imports.error?<ErrorState error={imports.error} retry={imports.reload}/>:!imports.data?.length?<Empty title="Nenhuma importação" description="O histórico será exibido após a confirmação do primeiro extrato."/>:<div className="bank-table"><table><thead><tr><th>Arquivo</th><th>Novas</th><th>Duplicadas</th></tr></thead><tbody>{imports.data.map(x=><tr key={x.id}><td>{x.nome_arquivo}</td><td>{x.importadas}</td><td>{x.duplicadas}</td></tr>)}</tbody></table></div>}</Card>
       </div>
     </>}
