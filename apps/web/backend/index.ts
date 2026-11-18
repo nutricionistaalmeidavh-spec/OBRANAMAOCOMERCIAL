@@ -1,6 +1,6 @@
 import { assertBridgeEdit, BridgeConflict, bridgeRows } from './web-p0-policy';
 import { assertP0Create } from './web-p0-create';
-import { enqueueWebP0Command, pendingWebP0Commands, ackWebP0Command, listWebP0Commands } from './web-p0-command-store';
+import { enqueueWebP0Command, getWebP0Command, pendingWebP0Commands, ackWebP0Command, listWebP0Commands } from './web-p0-command-store';
 import { createCompanyRoutes } from './owner-companies';
 import { restrictForemanSnapshot } from './field-snapshot-rules';
 import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts } from './field-rdo-delivery';
@@ -455,7 +455,7 @@ export const handler=router({
       if(command.data.cliente_id&&!clients.some(x=>x.localId===command.data.cliente_id))return error('Cliente vinculado não foi sincronizado neste Desktop.',409);
     }
     try{
-      const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,command});
+      const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,actorEmail:gate.member!.email,command});
       if(record.status==='pending')await audit(gate.member!,ctx.user!,'web_p0_create_enqueued',{entity:command.entity,commandId:command.commandId,sourceDeviceId:command.sourceDeviceId});
       return json({ok:true,command:{id:record.id,status:record.status,entity:record.entity,localId:record.localId}},202);
     }catch(e){return error((e as Error).message,409)}
@@ -472,7 +472,7 @@ export const handler=router({
     const row=bridgeRows(asRecord(state?.desktopBridge)).find(x=>x.entity===command.entity&&x.localId===command.localId&&x.sourceDeviceId===command.sourceDeviceId);
     if(!row||String(row.payload.sourceFingerprint||'')!==command.expectedFingerprint)return error('Registro já mudou ou não pertence à origem selecionada.',409);
     try{
-      const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,command});
+      const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,actorEmail:gate.member!.email,command});
       await audit(gate.member!,ctx.user!,'web_p0_delete_enqueued',{entity:command.entity,commandId:command.commandId,localId:command.localId});
       return json({ok:true,command:{id:record.id,status:record.status,entity:record.entity,action:record.action}},202);
     }catch(e){return error((e as Error).message,409)}
