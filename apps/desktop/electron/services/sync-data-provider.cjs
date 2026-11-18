@@ -176,6 +176,7 @@ class LocalSyncDataProvider {
 
   getBridge(entity, localId, scope) {
     if (!Object.hasOwn(BRIDGE, entity)) return null
+    if(COMPANY_SCOPED.has(entity))return this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND empresa_id=?`).get(Number(localId),scope.companyId)||null
     return this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND obra_id=?`).get(Number(localId), scope.workId) || null
   }
 
