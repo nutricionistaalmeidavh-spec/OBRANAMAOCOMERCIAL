@@ -448,6 +448,10 @@ export const handler=router({
       revision:Number(asRecord(state?._remote).revision||0),
       items:bridgeRows(asRecord(state?.desktopBridge)),
       sources:await p0CreateDevices(gate.member!.companyId,gate.member!.projectId),
+      availableProjects:(await Promise.all((await findAccess(gate.member!.email))
+        .filter(m=>m.companyId===gate.member!.companyId&&m.role==='admin'&&m.status!=='revoked')
+        .map(async m=>{const p=await getProject(m.projectId);return p?.companyId===gate.member!.companyId?{id:m.projectId,name:p.name,hasOperationalSource:!!asRecord(p).workSource}:null})))
+        .filter((p):p is {id:string;name:string;hasOperationalSource:boolean}=>p!==null),
       commands:await listWebP0Commands(gate.member!.projectId,ctx.user!.userId),
       limitations:['Cadastros e exclusões só são confirmados após aplicação na fonte operacional Desktop/Server.','A obra criada precisa ser vinculada à licença/projeto Web para obter acesso Obra360 próprio.']
     });
