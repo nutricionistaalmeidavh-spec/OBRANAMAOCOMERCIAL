@@ -17,7 +17,7 @@ const esc=(value:unknown)=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;
 const groups:Record<Entity,{title:string;singular:string;fields:string[]}> = {
   empresas:{title:'Empresa',singular:'Empresa',fields:['razao_social','nome_fantasia','status']},
   clientes:{title:'Clientes',singular:'Cliente',fields:['nome','documento','telefone','email','observacoes']},
-  obras:{title:'Obras',singular:'Obra',fields:['nome','codigo','endereco','responsavel','status','observacoes']},
+  obras:{title:'Obras',singular:'Obra',fields:['nome','cliente_id','codigo','endereco','responsavel','data_inicio','previsao_termino','status','observacoes']},
   frentes_obra:{title:'Etapas',singular:'Etapa',fields:['nome','codigo','status','observacoes']},
   subfrentes_obra:{title:'Subetapas',singular:'Subetapa',fields:['nome','codigo','pavimento','escopo','status','observacoes']},
   tarefas_obra:{title:'Tarefas',singular:'Tarefa',fields:['titulo','descricao','status','responsavel','prazo','prioridade','observacoes','concluido_em']},
@@ -77,7 +77,8 @@ export async function mountP0Management(root:HTMLElement,onBack:()=>void){
     ).join(''):'<p class="p0-empty">Nenhum registro do Desktop sincronizado nesta área. Os cadastros existentes permanecem na fonte operacional.</p>';
     const fields=selected?groups[tab].fields.map(field=>{
       const value=selected.payload[field];
-      return '<label class="p0-field"><span>'+esc(labels[field]||field)+'</span><input name="'+field+'" value="'+esc(value??'')+'" maxlength="4000" '+(field==='percentual_realizado'?'inputmode="decimal"':'')+'></label>';
+      if(field==='cliente_id')return '<label class="p0-field"><span>Cliente vinculado</span><select name="cliente_id"><option value="">Sem vínculo</option>'+snapshot.items.filter(x=>x.entity==='clientes'&&x.sourceDeviceId===selected.sourceDeviceId).map(x=>'<option value="'+x.localId+'" '+(Number(value)===x.localId?'selected':'')+'>'+esc(itemTitle(x))+'</option>').join('')+'</select></label>';
+      return '<label class="p0-field"><span>'+esc(labels[field]||field)+'</span><input name="'+field+'" value="'+esc(value??'')+'" maxlength="4000" '+(['data_inicio','previsao_termino','previsto_inicio','previsto_fim'].includes(field)?'type="date" ':'')+(field==='percentual_realizado'?'inputmode="decimal"':'')+'></label>';
     }).join(''):'';
     root.innerHTML=
       '<section class="p0-layout"><div class="p0-heading"><div><button type="button" id="p0Back" class="p0-back">Voltar à Gestão</button><h1>Operação da obra</h1><p>Consulta e edição dos registros publicados pelo Desktop, sem duplicar cadastros.</p></div><button id="p0Refresh" type="button" class="p0-light">Atualizar</button></div>'+
@@ -177,10 +178,10 @@ export async function mountP0Management(root:HTMLElement,onBack:()=>void){
   const submit=async(row:Entry)=>{
     if(busy)return;
     const form=root.querySelector<HTMLFormElement>('#p0EditForm');if(!form)return;
-    const values=new FormData(form),patch:Record<string,string>={};
+    const values=new FormData(form),patch:Record<string,unknown>={};
     for(const field of groups[row.entity].fields){
       const value=String(values.get(field)||'').trim();
-      if(value!==String(row.payload[field]??'').trim())patch[field]=value;
+      if(value!==String(row.payload[field]??'').trim())patch[field]=field==='cliente_id'?(value?Number(value):null):value;
     }
     if(!Object.keys(patch).length){message='Nenhuma alteração para salvar.';draw();return}
     busy=true;message='';
