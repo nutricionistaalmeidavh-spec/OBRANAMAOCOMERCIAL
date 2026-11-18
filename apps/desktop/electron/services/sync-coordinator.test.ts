@@ -64,6 +64,20 @@ it('recebe criação Web uma única vez, persiste no SQLite e publica a nova eta
   await f.sync.run();
   expect(f.database.list('frentes_obra',{obra_id:f.work.id}).filter((x:any)=>x.nome==='Etapa Web')).toHaveLength(1);
 });
+it('repete comando após ACK offline sem duplicar obra e confirma no próximo ciclo',async()=>{
+  const f=fixture();
+  const command={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',entity:'obras',action:'create',deviceId:'device-a',data:{nome:'Obra remota 2'}};
+  f.online.webP0Pending=vi.fn(async()=>({commands:[command]}));
+  f.online.webP0Ack=vi.fn().mockRejectedValueOnce(new Error('Falha de rede no ACK')).mockResolvedValue({ok:true});
+  await f.sync.configure({companyId:f.company.id,workId:f.work.id});
+  await expect(f.sync.run()).rejects.toThrow(/ACK/);
+  expect(f.database.list('obras',{empresa_id:f.company.id}).filter((w:any)=>w.nome==='Obra remota 2')).toHaveLength(1);
+  await f.sync.run({retryNow:true});
+  const works=f.database.list('obras',{empresa_id:f.company.id}).filter((w:any)=>w.nome==='Obra remota 2');
+  expect(works).toHaveLength(1);
+  expect(f.online.webP0Ack).toHaveBeenCalledTimes(2);
+  expect(f.online.webP0Ack.mock.calls[1][0]).toMatchObject({entity:'obras',localId:works[0].id});
+});
 it('aplica comando Web na fonte LAN e confirma sem criar cadastro no SQLite do Desktop',async()=>{
   const f=fixture();
   const command={id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',entity:'clientes',action:'create',deviceId:'device-a',data:{nome:'Cliente LAN'}};
