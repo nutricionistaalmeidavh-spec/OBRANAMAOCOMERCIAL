@@ -77,3 +77,20 @@ it('recusa exclusão de etapa com dependências e da obra ativa',()=>{
  const workCmd={...stageCmd,id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',entity:'obras',localId:f.obra.id,expectedFingerprint:webP0Fingerprint(f.database.get('obras',f.obra.id))};
  expect(()=>applyWebP0Create({database:f.database,scope,command:workCmd})).toThrow();
 });
+
+it('atualiza nome do cliente somente com revisão atual, escopo correto e transação única',()=>{
+ const {webP0Fingerprint}=require('./web-p0-create.cjs'),f=fixture(),scope={companyId:f.company.id,workId:f.obra.id,deviceId:'desktop-a'};
+ const client=f.database.save('clientes',{empresa_id:f.company.id,nome:'Cliente Original'});
+ const fingerprint=webP0Fingerprint(client);
+ const command={id:'dededede-dede-4ded-8ded-dededededede',entity:'clientes',action:'update',deviceId:'desktop-a',localId:client.id,expectedFingerprint:fingerprint,data:{nome:'Cliente Alterado'}};
+ expect(applyWebP0Create({database:f.database,scope,command})).toMatchObject({localId:client.id,action:'update'});
+ expect(f.database.get('clientes',client.id).nome).toBe('Cliente Alterado');
+ expect(applyWebP0Create({database:f.database,scope,command}).duplicate).toBe(true);
+ expect(()=>applyWebP0Create({database:f.database,scope,command:{...command,id:'edededed-eded-4ede-8ede-edededededed'}})).toThrow(/mudou|atualiz|alter/i);
+});
+it('cria cronograma por frente da mesma obra e bloqueia referência cruzada',()=>{
+ const f=fixture(),scope={companyId:f.company.id,workId:f.obra.id,deviceId:'desktop-a'};
+ const plan=applyWebP0Create({database:f.database,scope,command:cmd('abababab-abab-4aba-8aba-abababababab','cronograma_etapas',{nome:'Teste pressurização',frente_id:f.stage.id,previsto_fim:'2026-11-30'})});
+ expect(f.database.get('cronograma_etapas',plan.localId)).toMatchObject({obra_id:f.obra.id,frente_id:f.stage.id});
+ expect(()=>applyWebP0Create({database:f.database,scope,command:cmd('bcbcbcbc-bcbc-4bcb-8bcb-bcbcbcbcbcbc','cronograma_etapas',{nome:'Incorreto',frente_id:f.otherStage.id})})).toThrow();
+});
