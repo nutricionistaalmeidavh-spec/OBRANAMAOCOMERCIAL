@@ -140,3 +140,18 @@ test('P1 HTML/CSS/JS Web são servidos localmente sem credenciais e com CSP, API
     assert.notEqual(res.status,200)
   }finally{await new Promise(resolve=>server.close(resolve))}
 })
+
+
+test('O servidor financeiro expõe apenas APIs; não cria uma aplicação Web paralela',async()=>{
+  const server=createLanServer({})
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
+  const origin='http://127.0.0.1:'+server.address().port
+  try{
+    for(const endpoint of ['/financeiro-web','/financeiro-web/','/financeiro-web/app.js','/financeiro-web/style.css']){
+      const response=await fetch(origin+endpoint)
+      assert.equal(response.status,404,endpoint+' não pode existir no servidor próprio')
+    }
+    const health=await fetch(origin+'/health')
+    assert.equal(health.status,200,'as APIs já existentes permanecem ativas')
+  }finally{await new Promise(resolve=>server.close(resolve))}
+})
