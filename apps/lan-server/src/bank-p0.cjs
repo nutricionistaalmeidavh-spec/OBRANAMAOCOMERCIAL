@@ -79,6 +79,46 @@ class BankP0Service{
    const result=this.reconciliationById(batch.id);db.exec('COMMIT');return result
   }catch(e){try{db.exec('ROLLBACK')}catch{};throw e}
  }
+
+ listCompanies(){
+  return this.db.prepare('SELECT id,razao_social,nome_fantasia,status FROM empresas WHERE deleted_at IS NULL ORDER BY razao_social COLLATE NOCASE LIMIT 100').all()
+ }
+ listWorks({empresaId}={}){
+  const id=this.company(empresaId)
+  return this.db.prepare('SELECT id,empresa_id,nome,codigo,status FROM obras WHERE empresa_id=? AND deleted_at IS NULL ORDER BY nome COLLATE NOCASE,id LIMIT 500').all(id)
+ }
+ work(empresaId,obraId){
+  const id=this.company(empresaId)
+  const work=this.db.prepare('SELECT id FROM obras WHERE id=? AND empresa_id=? AND deleted_at IS NULL').get(positiveId(obraId,'Obra'),id)
+  if(!work)throw Error('Obra não encontrada nesta empresa.')
+  return work.id
+ }
+ listPlannedAccounts({empresaId,obraId,asOf}={}){
+  const id=this.company(empresaId)
+  const filters=['c.empresa_id=?','c.deleted_at IS NULL',"c.status!='cancelado'"]
+  const values=[id]
+  if(obraId!==undefined&&obraId!==null&&obraId!==''){
+   filters.push('c.obra_id=?');values.push(this.work(id,obraId))
+  }
+  const reference=asOf?dateISO(asOf):null
+  const sql="SELECT c.id conta_id,c.obra_id,c.tipo,c.descricao,c.vencimento,c.valor_centavos,c.status,COALESCE(p.conta_bancaria_id,NULL) conta_bancaria_id,COALESCE((SELECT SUM(x.valor_centavos) FROM pagamentos_conta x WHERE x.conta_id=c.id"+(reference?" AND x.data<=?":"")+"),0) pago_centavos FROM contas c LEFT JOIN conta_previsao_bancaria p ON p.conta_id=c.id AND p.empresa_id=c.empresa_id WHERE "+filters.join(' AND ')+" ORDER BY c.vencimento,c.id LIMIT 500"
+  const args=reference?[reference,...values]:values
+  return this.db.prepare(sql).all(...args).map(x=>({...x,pendente_centavos:Math.max(0,Number(x.valor_centavos)-Number(x.pago_centavos))}))
+ }
+ assignPlannedBank({empresaId,contaId,contaBancariaId}={}){
+  const companyId=this.company(empresaId),id=positiveId(contaId,'Conta financeira')
+  const financial=this.db.prepare('SELECT id FROM contas WHERE id=? AND empresa_id=? AND deleted_at IS NULL').get(id,companyId)
+  if(!financial)throw Error('Conta financeira não encontrada nesta empresa.')
+  const bankId=contaBancariaId===undefined||contaBancariaId===null||contaBancariaId===''?null:this.bankAccount(companyId,contaBancariaId).id
+  const db=this.db;db.exec('BEGIN IMMEDIATE')
+  try{
+   if(bankId===null)db.prepare('DELETE FROM conta_previsao_bancaria WHERE conta_id=? AND empresa_id=?').run(id,companyId)
+   else db.prepare("INSERT INTO conta_previsao_bancaria(conta_id,empresa_id,conta_bancaria_id) VALUES(?,?,?) ON CONFLICT(conta_id) DO UPDATE SET conta_bancaria_id=excluded.conta_bancaria_id,updated_at=CURRENT_TIMESTAMP WHERE empresa_id=excluded.empresa_id").run(id,companyId,bankId)
+   db.exec('COMMIT')
+   return{conta_id:id,empresa_id:companyId,conta_bancaria_id:bankId}
+  }catch(error){try{db.exec('ROLLBACK')}catch{};throw error}
+ }
+
  cashFlow({empresaId,asOf,horizonDays=30}={}){
   const id=this.company(empresaId),date=dateISO(asOf),horizon=Number(horizonDays)
   if(![30,60,90].includes(horizon))throw Error('Selecione um horizonte de 30, 60 ou 90 dias.')
