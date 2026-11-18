@@ -45,6 +45,7 @@ export function assertP0Create(input:unknown):P0CreateCommand{
   if(!Object.keys(rawData).length||Object.keys(rawData).length>allowed.length)throw new Error('Informe os campos do cadastro.');
   for(const [key,value] of Object.entries(rawData)){
     if(!allowed.includes(key))throw new Error('Campo não autorizado: '+key);
+    if(action==='update'&&key==='cliente_id'&&value===null){data[key]=null;continue;}
     if(['frente_id','cliente_id','etapa_id','ordem'].includes(key)){
       if(typeof value!=='number'||!Number.isSafeInteger(value)||value<(key==='ordem'?0:1)||value>100000000)throw new Error('Referência ou ordem inválida.');
       data[key]=value;continue;
