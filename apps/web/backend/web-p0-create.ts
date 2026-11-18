@@ -2,7 +2,7 @@
  * Commands posted by browser are queued, never written to a parallel operational table.
  * Authority and tenant identity come exclusively from the authenticated session/device.
  */
-export type P0CreateEntity='empresas'|'clientes'|'obras'|'frentes_obra'|'subfrentes_obra'|'tarefas_obra'|'cronograma_etapas';
+export type P0CreateEntity='empresas'|'clientes'|'obras'|'frentes_obra'|'subfrentes_obra'|'tarefas_obra'|'etapas_obra'|'cronograma_etapas';
 export type P0CommandAction='create'|'update'|'delete';
 export type P0CreateCommand={
   commandId:string;sourceDeviceId:string;entity:P0CreateEntity;action:P0CommandAction;
@@ -15,6 +15,7 @@ export const P0_CREATE_FIELDS={
   frentes_obra:['nome','codigo','ordem','status','observacoes'],
   subfrentes_obra:['nome','codigo','pavimento','escopo','ordem','status','observacoes','frente_id'],
   tarefas_obra:['titulo','descricao','responsavel','prazo','prioridade','status','frente_id'],
+  etapas_obra:['nome','frente_id','ordem','status'],
   cronograma_etapas:['nome','frente_id','etapa_id','responsavel','previsto_inicio','previsto_fim','percentual_previsto','percentual_realizado','status','observacoes']
 } as const;
 const rec=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};
