@@ -78,7 +78,7 @@ class SyncCoordinator {
   const summary=plan.summary?await resolved(this.summary(scope,modules)):null
   const obligations=plan.obligations?await resolved(this.obligations(scope)):[]
   this.db.transaction(()=>{
-   for(const [entity,rows] of bridge){for(const row of rows)this.enqueue(scope,'bridge',entity,row.id,payloadOf(row));const seen=new Set(rows.map(x=>x.id));for(const old of this.db.prepare('SELECT local_id FROM desktop_sync_heads WHERE scope_key=? AND entity=?').all(this.key(scope),entity))if(!seen.has(old.local_id))this.enqueue(scope,'bridge',entity,old.local_id,{id:old.local_id,obra_id:scope.workId,deleted:true})}
+   for(const [entity,rows] of bridge){for(const row of rows)this.enqueue(scope,'bridge',entity,row.id,payloadOf(row,entity));const seen=new Set(rows.map(x=>x.id));for(const old of this.db.prepare('SELECT local_id FROM desktop_sync_heads WHERE scope_key=? AND entity=?').all(this.key(scope),entity))if(!seen.has(old.local_id))this.enqueue(scope,'bridge',entity,old.local_id,{id:old.local_id,obra_id:scope.workId,deleted:true})}
    if(summary!==null)this.enqueue(scope,'summary','mobile_summary',0,summary)
    for(const obligation of obligations)this.enqueue(scope,'finance','finance_reference',Number(obligation.sourceId.split(':').at(-1)),obligation)
   })()
@@ -90,8 +90,8 @@ class SyncCoordinator {
  applyRemote(scope,entity,id,payload){return this.dataProvider.applyRemote(entity,id,payload,scope)}
  async ingest(scope,pull,bridgeEntities=Object.keys(BRIDGE)){if(!pull.changed)return;const snapshot=pull.snapshot;if(!snapshot||typeof snapshot!=='object')throw new Error('Snapshot online inválido.');
   for(const entity of bridgeEntities){const bucket=BRIDGE[entity];for(const item of snapshot.desktopBridge?.[bucket]||[]){if(String(item.sourceDeviceId)!==scope.deviceId||!Number.isSafeInteger(Number(item.localId)))continue;const id=Number(item.localId),head=this.db.prepare('SELECT * FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),entity,id);if(!head||Number(item.mobileEditedRevision||0)<=head.remote_revision)continue;const row=await resolved(this.dataProvider.getBridge(entity,id,scope)),pending=this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND entity=? AND local_id=? AND status='pending'").get(this.key(scope),entity,id).n;
-   if(!row||pending||hash(payloadOf(row))!==head.acknowledged_hash||item.payload?.deleted){this.conflict(scope,entity,id,item.payload||{},Number(item.mobileEditedRevision));continue}
-   await resolved(this.applyRemote(scope,entity,id,item.payload||{}));const updated=await resolved(this.dataProvider.getBridge(entity,id,scope)),digest=hash(payloadOf(updated));this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(digest,digest,Number(item.mobileEditedRevision),this.key(scope),entity,id)
+   if(!row||pending||hash(payloadOf(row,entity))!==head.acknowledged_hash||item.payload?.deleted){this.conflict(scope,entity,id,item.payload||{},Number(item.mobileEditedRevision));continue}
+   await resolved(this.applyRemote(scope,entity,id,item.payload||{}));const updated=await resolved(this.dataProvider.getBridge(entity,id,scope)),digest=hash(payloadOf(updated,entity));this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(digest,digest,Number(item.mobileEditedRevision),this.key(scope),entity,id)
   }}
   this.db.prepare('UPDATE desktop_sync_scope SET snapshot=?,remote_revision=? WHERE id=1').run(json(snapshot),Number(pull.remoteRevision||0))
  }
@@ -109,7 +109,7 @@ class SyncCoordinator {
   return task
  }
  async syncWebP0Commands(scope,generation){
-  if(this.runtimeState().source!=='local'||typeof this.dataProvider.applyWebP0Create!=='function'||typeof this.online.webP0Pending!=='function'||typeof this.online.webP0Ack!=='function')return
+  if(typeof this.dataProvider.applyWebP0Create!=='function'||typeof this.online.webP0Pending!=='function'||typeof this.online.webP0Ack!=='function')return
   this.assertScope(scope,generation)
   const incoming=await this.online.webP0Pending()
   if(!Array.isArray(incoming?.commands))throw new Error('Resposta da fila de cadastros Web inválida.')
@@ -178,7 +178,7 @@ class SyncCoordinator {
  async resolveLocalConflict(id,resolution){if(this.running)throw new Error('Aguarde a sincronização atual terminar.');if(!['keep_local','accept_remote'].includes(resolution))throw new Error('Resolução inválida.');const runtime=this.runtimeState();if(runtime.paused)throw new Error(`Sincronização pausada: ${runtime.pauseReason}`);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};const scope=this.binding()?.scope;if(!scope)throw new Error('Configure a sincronização.');const generation=this.generation;await this.validate(scope,generation);const conflict=this.db.prepare("SELECT * FROM desktop_sync_conflicts WHERE id=? AND scope_key=? AND status='open'").get(Number(id),this.key(scope));if(!conflict)throw new Error('Conflito não encontrado.');const pull=await this.online.syncPull(0);this.assertScope(scope,generation);const item=(pull.snapshot?.desktopBridge?.[BRIDGE[conflict.entity]]||[]).find(x=>String(x.sourceDeviceId)===scope.deviceId&&Number(x.localId)===conflict.local_id);if(!item)throw new Error('Registro remoto não encontrado; revise o vínculo antes de resolver.');if(Number(item.mobileEditedRevision||0)!==conflict.remote_revision){this.conflict(scope,conflict.entity,conflict.local_id,item.payload||{},Number(item.mobileEditedRevision||0),conflict.remote_conflict_id);throw new Error('O registro online mudou; atualize e revise o conflito novamente.');}if(conflict.remote_conflict_id){
    const result=await this.online.resolveConflict(conflict.remote_conflict_id,'keep_mobile');this.assertScope(scope,generation);if(result?.ok===false)throw new Error('Conflito online não confirmado.')}
   if(resolution==='accept_remote'&&!await resolved(this.applyRemote(scope,conflict.entity,conflict.local_id,item.payload)))throw new Error('Registro local ausente.')
-  const row=await resolved(this.dataProvider.getBridge(conflict.entity,conflict.local_id,scope));if(!row)throw new Error('Registro local ausente.');const digest=hash(payloadOf(row));
+  const row=await resolved(this.dataProvider.getBridge(conflict.entity,conflict.local_id,scope));if(!row)throw new Error('Registro local ausente.');const digest=hash(payloadOf(row,conflict.entity));
   this.db.transaction(()=>{this.db.prepare("UPDATE desktop_sync_outbox SET status='superseded' WHERE scope_key=? AND entity=? AND local_id=? AND status='pending'").run(this.key(scope),conflict.entity,conflict.local_id);this.db.prepare("UPDATE desktop_sync_conflicts SET status=? WHERE id=?").run(resolution,id);this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(resolution==='accept_remote'?digest:'',resolution==='accept_remote'?digest:null,Number(item.mobileEditedRevision||0),this.key(scope),conflict.entity,conflict.local_id)})();return this.notify()
  }
 }
