@@ -48,6 +48,7 @@ function applyWebP0Create({database,scope,command}){
  if(action!=='delete'){
   for(const [key,value] of Object.entries(data)){
    if(!allowed.has(key))reject('Campo não permitido: '+key)
+   if(action==='update'&&key==='cliente_id'&&value===null){clean[key]=null;continue}
    if(['frente_id','cliente_id','etapa_id','ordem'].includes(key)){
     if(!Number.isSafeInteger(value)||value<(key==='ordem'?0:1)||value>100000000)reject('Referência numérica inválida.')
     clean[key]=value;continue
