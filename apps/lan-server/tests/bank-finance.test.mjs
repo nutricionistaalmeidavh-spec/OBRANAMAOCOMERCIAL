@@ -32,7 +32,7 @@ test('B1 persiste conta bancária sem criar contas operacionais e preserva idemp
     assert.equal(f.db.prepare('SELECT COUNT(*) n FROM contas').get().n,0)
     assert.equal(f.db.prepare('SELECT COUNT(*) n FROM pagamentos_conta').get().n,0)
     assert.throws(()=>f.service.listTransactions({empresaId:2,contaBancariaId:one.id}),/não encontrada nesta empresa/)
-    assert.throws(()=>f.service.saveAccount({...one,empresaId:2,id:one.id,bancoNome:'Outro'}),/não encontrada nesta empresa/)
+    assert.throws(()=>f.service.saveAccount({empresaId:2,id:one.id,nome:one.nome,bancoNome:'Outro',saldoInicialCentavos:120000,saldoReferenciaData:'2026-11-01'}),/não encontrada nesta empresa/)
   } finally { f.db.close() }
 })
 
