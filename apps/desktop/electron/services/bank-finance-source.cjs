@@ -8,7 +8,12 @@ const METHODS = Object.freeze({
   previewImport: 'bankPreview',
   confirmImport: 'bankConfirm',
   listImports: 'bankImports',
-  listTransactions: 'bankTransactions'
+  listTransactions: 'bankTransactions',
+  suggestReconciliation: 'bankSuggestions',
+  confirmReconciliation: 'bankReconcile',
+  reverseReconciliation: 'bankReverse',
+  listReconciliations: 'bankReconciliations',
+  cashFlow: 'bankCashFlow'
 })
 class BankFinanceSourceService {
   constructor({ local, lanClient, moduleStorage }) {
@@ -28,5 +33,10 @@ class BankFinanceSourceService {
   confirmImport(payload) { return this.call('confirmImport', payload) }
   listImports(payload) { return this.call('listImports', payload) }
   listTransactions(payload) { return this.call('listTransactions', payload) }
+  suggestReconciliation(payload) { return this.call('suggestReconciliation', payload) }
+  confirmReconciliation(payload) { return this.call('confirmReconciliation', payload) }
+  reverseReconciliation(payload) { return this.call('reverseReconciliation', payload) }
+  listReconciliations(payload) { return this.call('listReconciliations', payload) }
+  cashFlow(payload) { return this.call('cashFlow', payload) }
 }
 module.exports = { BankFinanceSourceService }
