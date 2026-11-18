@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Obra na Mão | Financeiro do servidor</title>
+<link rel="stylesheet" href="/financeiro-web/style.css">
+<script src="/financeiro-web/app.js" defer></script>
+</head>
+<body>
+<header class="top"><div><strong>Obra na Mão</strong><span>Financeiro do servidor</span></div><button id="logout" type="button" hidden>Sair da sessão</button></header>
+<main>
+<section id="connection" class="surface login">
+<h1>Conectar ao servidor</h1>
+<p>Use um código de pareamento emitido pelo administrador do Obra na Mão Server. Esse código identifica seu usuário e respeita as permissões do Financeiro.</p>
+<form id="pair-form">
+<label>Código de pareamento<input id="pair-code" required autocomplete="one-time-code" placeholder="Código autorizado" maxlength="40"></label>
+<label>Nome deste dispositivo<input id="device-name" required value="Navegador financeiro" maxlength="100"></label>
+<button type="submit">Conectar com código</button>
+</form>
+<p class="hint">Somente a sessão desta aba armazena a credencial. Para uso remoto, configure HTTPS no servidor próprio ou uma VPN; não exponha credenciais por HTTP na internet.</p>
+</section>
+<section id="app" hidden>
+<div class="toolbar surface"><div class="heading"><h1>Gestão financeira</h1><p id="member"></p></div><label>Empresa<select id="company"></select></label><button id="reload" class="secondary" type="button">Atualizar</button></div>
+<nav aria-label="Módulos financeiros" class="tabs">
+<button data-tab="accounts" aria-current="page" type="button">Contas bancárias</button>
+<button data-tab="imports" type="button">Importar extratos</button>
+<button data-tab="reconcile" type="button">Conciliação</button>
+<button data-tab="cash" type="button">Fluxo de caixa</button>
+</nav>
+<div id="view" aria-live="polite"></div>
+</section>
+<div id="notice" role="status" aria-live="polite" hidden></div>
+</main>
+<footer>Obra na Mão · dados processados pelo servidor autorizado · sem dependência bancária paga</footer>
+</body>
+</html>
