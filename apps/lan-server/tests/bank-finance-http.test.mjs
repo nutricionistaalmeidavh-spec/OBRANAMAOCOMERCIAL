@@ -49,6 +49,38 @@ test('HTTP B1/B2 exige autenticação e persiste extrato no banco LAN sem baixar
     assert.equal((await movements.json()).length,1)
     assert.equal(repository.connection().prepare('SELECT COUNT(*) n FROM contas').get().n,0)
     assert.equal(repository.connection().prepare('SELECT COUNT(*) n FROM pagamentos_conta').get().n,0)
+
+    // B3 + C0/C1: contrato HTTP usa o mesmo banco canônico do importador.
+    const obligationId = Number(repository.connection().prepare("INSERT INTO contas(tipo,empresa_id,descricao,competencia,vencimento,valor_centavos,status) VALUES('pagar',?,'Compra material','2026-11','2026-11-18',2590,'pago')").run(company.id).lastInsertRowid)
+    const paymentId = Number(repository.connection().prepare("INSERT INTO pagamentos_conta(conta_id,valor_centavos,data) VALUES(?,2590,'2026-11-18')").run(obligationId).lastInsertRowid)
+    const txsResponse = await send('/api/v1/finance/bank-transactions?empresaId='+company.id+'&contaBancariaId='+bank.id)
+    const txs = await txsResponse.json()
+    assert.equal(txs.length,1)
+    const filters='?empresaId='+company.id+'&contaBancariaId='+bank.id+'&transacaoId='+txs[0].id
+    const matchSuggestions=await send('/api/v1/finance/bank-reconciliation/suggestions'+filters)
+    assert.equal(matchSuggestions.status,200)
+    assert.equal((await matchSuggestions.json()).remainingCents,2590)
+    const matched=await send('/api/v1/finance/bank-reconciliation/confirm','POST',{
+      empresaId:company.id,contaBancariaId:bank.id,transacaoId:txs[0].id,
+      requestId:'test-http-reconciliation-01',actorId:'fraudulent-actor',
+      allocations:[{pagamentoId:paymentId,valorCentavos:2590}]
+    })
+    assert.equal(matched.status,200)
+    const match=await matched.json()
+    assert.equal(match.allocatedCents,2590)
+    assert.equal(match.createdBy,'device')
+    const flowResponse=await send('/api/v1/finance/cash-flow?empresaId='+company.id+'&asOf=2026-11-18&horizonDays=30')
+    assert.equal(flowResponse.status,200)
+    const flow=await flowResponse.json()
+    assert.equal(flow.realizedCents,47410)
+    assert.equal(flow.projectedEndCents,47410)
+    assert.equal(repository.connection().prepare('SELECT COUNT(*) n FROM pagamentos_conta').get().n,1)
+    const reversal=await send('/api/v1/finance/bank-reconciliation/reverse','POST',{empresaId:company.id,loteId:match.id,reason:'Pagamento vinculado incorretamente'})
+    assert.equal(reversal.status,200)
+    assert.equal((await reversal.json()).status,'reversed')
+    const unauthenticated=await fetch(base+'/api/v1/finance/cash-flow?empresaId='+company.id+'&asOf=2026-11-18')
+    assert.equal(unauthenticated.status,401)
+
   }finally{
     await new Promise(resolve=>server.close(resolve))
     repository.close()
