@@ -476,6 +476,23 @@ function registerIpc() {
   ipcMain.handle('online:disconnect', envelope(() => withSyncStopped(() => services.online.disconnect())))
   ipcMain.handle('online:sync-state', envelope(() => services.sync.state()))
   ipcMain.handle('online:sync-configure', envelope((scope) => withSyncStopped(() => services.sync.configure(scope))))
+  ipcMain.handle('online:p0-projects', envelope(() => services.online.p0Projects()))
+  ipcMain.handle('online:p0-project-select', envelope(({projectId,companyId,workId}) => withSyncStopped(async () => {
+    const previous=await services.online.session(),priorScope=services.sync.binding()?.scope
+    await services.online.selectP0Project({projectId,localWorkId:Number(workId)})
+    try{
+      const selected=await services.sync.configure({companyId:Number(companyId),workId:Number(workId)})
+      return {selected:true,projectId,state:selected}
+    }catch(cause){
+      if(previous?.project?.id&&priorScope){
+        try{
+          await services.online.selectP0Project({projectId:previous.project.id,localWorkId:priorScope.workId})
+          await services.sync.configure({companyId:priorScope.companyId,workId:priorScope.workId})
+        }catch{/* original error is more important; preserve paused state if rollback fails */}
+      }
+      throw cause
+    }
+  })))
   ipcMain.handle('online:sync-now', envelope(() => { requireSyncAvailable(); return services.sync.run({ retryNow: true }) }))
   ipcMain.handle('online:sync-resolve-local', envelope(({ id, resolution }) => withSyncStopped(() => services.sync.resolveLocalConflict(id, resolution))))
   ipcMain.handle('online:sync-pull', envelope(({ sinceRevision }) => services.online.syncPull(sinceRevision)))
