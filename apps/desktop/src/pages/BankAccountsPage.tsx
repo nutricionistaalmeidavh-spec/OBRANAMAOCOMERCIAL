@@ -3,6 +3,7 @@ import { Landmark, FileUp, Plus, RefreshCw } from 'lucide-react'
 import { Button, Card, Empty, ErrorState, Field, Loading, PageHeader } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
 import BankReconciliationPanel from './BankReconciliationPanel'
+import BankPeriodAuditPanel from './BankPeriodAuditPanel'
 import './BankAccountsPage.css'
 
 type Bank = { id:number; empresa_id:number; nome:string; banco_nome:string; agencia?:string; conta_identificador?:string; tipo_conta:string; saldo_inicial_centavos:number; saldo_referencia_data:string; ativo:number }
@@ -212,6 +213,7 @@ export default function BankAccountsPage(){
         <p>{transactions.data?.length||0} movimentação(ões) exibida(s). A visão por obra inclui apenas movimentações já atribuídas por conciliação.</p>
       </Card>
       {selected&&<BankReconciliationPanel empresaId={Number(empresaId)} contaBancariaId={selected.id} movements={transactions.data||[]} onChanged={()=>setVersion(v=>v+1)}/>}
+      <BankPeriodAuditPanel empresaId={Number(empresaId)} works={works.data||[]} banks={banks.data||[]}/>
       <div className="bank-history-grid">
         <Card><h2>Movimentações importadas</h2>{transactions.loading?<Loading/>:transactions.error?<ErrorState error={transactions.error} retry={transactions.reload}/>:!transactions.data?.length?<Empty title="Sem movimentações" description="Importe o primeiro extrato para visualizar seus lançamentos."/>:<div className="bank-table"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Conciliação</th></tr></thead><tbody>{transactions.data.map(tx=><tr key={tx.id}><td>{displayDate(tx.data)}</td><td>{tx.descricao}</td><td>{money(tx.valor_centavos)}</td><td>{Number(tx.conciliado_centavos||0)>=Math.abs(tx.valor_centavos)?'Conciliado':Number(tx.conciliado_centavos)>0?'Parcial':'Pendente'}</td></tr>)}</tbody></table></div>}</Card>
         <Card><h2>Histórico de importações</h2>{imports.loading?<Loading/>:imports.error?<ErrorState error={imports.error} retry={imports.reload}/>:!imports.data?.length?<Empty title="Nenhuma importação" description="O histórico será exibido após a confirmação do primeiro extrato."/>:<div className="bank-table"><table><thead><tr><th>Arquivo</th><th>Novas</th><th>Duplicadas</th></tr></thead><tbody>{imports.data.map(x=><tr key={x.id}><td>{x.nome_arquivo}</td><td>{x.importadas}</td><td>{x.duplicadas}</td></tr>)}</tbody></table></div>}</Card>
