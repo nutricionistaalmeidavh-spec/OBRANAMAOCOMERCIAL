@@ -82,3 +82,21 @@
 .cash-table td small{display:block;font-size:11px;color:var(--text-muted,#64748b)}
 @media(max-width:1024px){.cash-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.cash-filters{grid-template-columns:1fr}.bank-transaction-filters{grid-template-columns:1fr}.bank-filter-actions{justify-content:stretch}}
+
+
+/* P2 — financeiro avançado do Desktop, sem interface Web paralela. */
+.bank-advanced{display:grid;gap:16px;min-width:0}
+.bank-p2-report,.bank-p2-scenarios,.bank-audit{display:grid;gap:12px;min-width:0}
+.bank-alerts{display:grid;gap:8px}.bank-alerts .bank-invalid{margin:0}
+.bank-sim-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px}
+.bank-sim-heading h3{margin:0}
+.bank-sim-row{display:grid;grid-template-columns:130px 150px 145px minmax(150px,1fr) auto;align-items:end;gap:8px;border-bottom:1px solid var(--border,#dbe3ed);padding:8px 0}
+.bank-sim-shift{grid-template-columns:minmax(220px,1fr) 170px auto}
+.bank-sim-row input,.bank-sim-row select,.bank-sim-row textarea{width:100%}
+.bank-sim-row button{white-space:nowrap}
+.bank-sim-result{padding:14px;border:1px solid var(--border,#dbe3ed);border-radius:12px;background:var(--surface-muted,#f8fafc)}
+.bank-audit .bank-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.bank-audit .bank-p0-reversal{margin-top:12px}
+@media(max-width:850px){.bank-sim-row{grid-template-columns:repeat(2,minmax(0,1fr))}.bank-sim-shift{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.bank-audit .bank-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.bank-sim-row,.bank-sim-shift{grid-template-columns:1fr}.bank-sim-row button{width:100%}}
+@media print{.bank-finance button,.bank-finance input,.bank-finance select,.bank-finance textarea,.bank-p2-scenarios,.bank-audit{display:none!important}.bank-p2-report{break-inside:avoid;border:none!important;box-shadow:none!important}.cash-table{max-height:none!important;overflow:visible!important}.cash-table th{position:static!important}.bank-finance{display:block}.bank-p2-report .cash-summary-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
