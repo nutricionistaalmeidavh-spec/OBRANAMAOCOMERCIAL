@@ -772,6 +772,41 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, bankFinance.cashFlow(Object.fromEntries(url.searchParams.entries())))
       }
 
+
+      // P2: relatórios e simulações servem ao Desktop. Não criam interface Web.
+      if (url.pathname === '/api/v1/finance/bank-period/audit' ||
+          url.pathname === '/api/v1/finance/bank-period/status' ||
+          url.pathname === '/api/v1/finance/bank-period/events' ||
+          url.pathname === '/api/v1/finance/cash-report') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'view' })
+        const args = Object.fromEntries(url.searchParams.entries())
+        const action = url.pathname.split('/').at(-1)
+        const result = action === 'audit' ? bankFinance.auditPeriod(args) :
+          action === 'status' ? bankFinance.periodStatus(args) :
+          action === 'events' ? bankFinance.periodEvents(args) : bankFinance.cashReport(args)
+        return sendJson(response, 200, result)
+      }
+      if (url.pathname === '/api/v1/finance/bank-period/close' ||
+          url.pathname === '/api/v1/finance/bank-period/reopen') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'approve' })
+        const body = await readJson(request)
+        const args = { ...body, actorId:String(actor.member?.memberId || actor.device?.id || 'lan-user') }
+        return sendJson(response, 200, url.pathname.endsWith('/close') ? bankFinance.closePeriod(args) : bankFinance.reopenPeriod(args))
+      }
+      if (url.pathname === '/api/v1/finance/cash-simulate') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'view' })
+        return sendJson(response, 200, bankFinance.simulateCashFlow(await readJson(request)))
+      }
+
       const financePaymentMatch = url.pathname.match(FINANCE_PAYMENT_ROUTE)
       if (financePaymentMatch) {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
