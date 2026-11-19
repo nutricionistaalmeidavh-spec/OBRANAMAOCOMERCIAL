@@ -5,7 +5,7 @@ import { useAsync } from '../hooks/useAsync'
 type ReportDay={date:string;plannedInCents:number;plannedOutCents:number;actualInCents:number;actualOutCents:number;plannedBalanceCents:number}
 type Report={summary:{plannedInCents:number;plannedOutCents:number;actualInCents:number;actualOutCents:number;projectedEndCents:number};alerts:{kind:string;message:string}[];limitations:string[];days:ReportDay[]}
 type Scenario={baseEndCents:number;projectedEndCents:number;deltaCents:number;negativeDays:number;simulatedOnly:boolean;days:{date:string;projectedInCents:number;projectedOutCents:number;projectedBalanceCents:number}[]}
-type Planned={conta_id:number;descricao:string;vencimento:string;tipo:string;pendente_centavos:number}
+type Planned={conta_id:number;descricao:string;vencimento:string;tipo:string;pendente_centavos:number;conta_bancaria_id:number|null}
 type Event={key:string;date:string;type:'pagar'|'receber';amount:string;description:string}
 type Shift={key:string;contaId:string;newDate:string}
 const money=(n:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n||0)/100)
@@ -75,7 +75,7 @@ export default function CashAdvancedPanel({empresaId,asOf,horizonDays,contaBanca
    </div>)}
    <div className="bank-sim-heading"><h3>Adiamento de obrigações existentes</h3><Button variant="secondary" onClick={()=>setShifts(x=>[...x,{key:id(),contaId:'',newDate:futureStart}])}>Adicionar adiamento</Button></div>
    {shifts.map(s=><div className="bank-sim-row bank-sim-shift" key={s.key}>
-    <Field label="Obrigação a adiar"><select value={s.contaId} onChange={e=>editShift(s.key,{contaId:e.target.value})}><option value="">Selecione</option>{planned.data?.filter(x=>x.pendente_centavos>0).map(p=><option key={p.conta_id} value={p.conta_id}>{p.descricao} · {p.vencimento} · {money(p.pendente_centavos)}</option>)}</select></Field>
+    <Field label="Obrigação a adiar"><select value={s.contaId} onChange={e=>editShift(s.key,{contaId:e.target.value})}><option value="">Selecione</option>{planned.data?.filter(x=>x.pendente_centavos>0 && (contaBancariaId===undefined || x.conta_bancaria_id===contaBancariaId)).map(p=><option key={p.conta_id} value={p.conta_id}>{p.descricao} · {p.vencimento} · {money(p.pendente_centavos)}</option>)}</select></Field>
     <Field label="Nova data"><input type="date" min={futureStart} value={s.newDate} onChange={e=>editShift(s.key,{newDate:e.target.value})}/></Field>
     <Button variant="secondary" onClick={()=>setShifts(x=>x.filter(y=>y.key!==s.key))}>Excluir</Button>
    </div>)}
