@@ -202,6 +202,7 @@ class BankFinanceService {
       const existing = this.account(empresaId, payload.id)
       const hasImports = this.db.prepare('SELECT id FROM extrato_importacoes WHERE conta_bancaria_id=? LIMIT 1').get(existing.id)
       if (hasImports && (saldo !== existing.saldo_inicial_centavos || data !== existing.saldo_referencia_data)) throw new Error('Saldo inicial e data não podem mudar depois da primeira importação.')
+      if(saldo !== existing.saldo_inicial_centavos || data !== existing.saldo_referencia_data) this.p2.assertBalanceReference(empresaId,data < existing.saldo_referencia_data ? data : existing.saldo_referencia_data)
       this.db.prepare('UPDATE contas_bancarias SET nome=?,banco_nome=?,agencia=?,conta_identificador=?,tipo_conta=?,saldo_inicial_centavos=?,saldo_referencia_data=?,ativo=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND empresa_id=?').run(nome,banco,agencia,identificador,tipo,saldo,data,payload.ativo === undefined ? existing.ativo : payload.ativo === false ? 0 : 1,existing.id,empresaId)
       return this.account(empresaId, existing.id)
     }
@@ -212,6 +213,7 @@ class BankFinanceService {
       if (previous.empresa_id !== empresaId) throw new Error('Identificador já utilizado por outra empresa.')
       return previous
     }
+    this.p2.assertBalanceReference(empresaId,data)
     this.db.prepare('INSERT INTO contas_bancarias(empresa_id,nome,banco_nome,agencia,conta_identificador,tipo_conta,saldo_inicial_centavos,saldo_referencia_data,ativo,request_id) VALUES (?,?,?,?,?,?,?,?,1,?)').run(empresaId,nome,banco,agencia,identificador,tipo,saldo,data,requestId)
     return this.db.prepare('SELECT * FROM contas_bancarias WHERE request_id=?').get(requestId)
   }
