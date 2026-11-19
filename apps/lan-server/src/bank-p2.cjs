@@ -10,6 +10,11 @@ class BankP2Service{
   const r=this.db.prepare('SELECT * FROM finance_bank_period_closures WHERE empresa_id=? AND period=?').get(id,m)
   return r?{id:r.id,empresaId:id,period:m,status:r.status,closedBy:r.closed_by,closedAt:r.closed_at,reopenedBy:r.reopened_by,reopenedAt:r.reopened_at,reopenReason:r.reopen_reason,snapshot:JSON.parse(r.audit_snapshot_json)}:{empresaId:id,period:m,status:'open',snapshot:null}
  }
+ assertBalanceReference(empresaId,referenceDate){
+  const id=this.p0.company(empresaId),dateMonth=date(referenceDate).slice(0,7)
+  const closed=this.db.prepare("SELECT period FROM finance_bank_period_closures WHERE empresa_id=? AND status='closed' AND period>=? ORDER BY period LIMIT 1").get(id,dateMonth)
+  if(closed)throw Error('Já existe período bancário fechado ('+closed.period+') posterior ou igual à data do saldo inicial. Reabra o período antes de ajustar o saldo.')
+ }
  assertOpen(empresaId,dateValue){
   const id=this.p0.company(empresaId),m=date(dateValue).slice(0,7)
   if(this.db.prepare("SELECT id FROM finance_bank_period_closures WHERE empresa_id=? AND period=? AND status='closed'").get(id,m))throw Error('Período bancário '+m+' fechado. Reabra com autorização para modificar extratos ou conciliações.')
