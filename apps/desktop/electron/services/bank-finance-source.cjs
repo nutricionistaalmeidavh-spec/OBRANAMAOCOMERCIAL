@@ -16,7 +16,14 @@ const METHODS = Object.freeze({
   cashFlow: 'bankCashFlow',
   listWorks: 'bankWorks',
   listPlannedAccounts: 'bankPlannedAccounts',
-  assignPlannedBank: 'bankPlanAssignment'
+  assignPlannedBank: 'bankPlanAssignment',
+  auditPeriod: 'bankAudit',
+  periodStatus: 'bankPeriodStatus',
+  periodEvents: 'bankPeriodEvents',
+  closePeriod: 'bankPeriodClose',
+  reopenPeriod: 'bankPeriodReopen',
+  simulateCashFlow: 'bankSimulateCash',
+  cashReport: 'bankCashReport'
 })
 class BankFinanceSourceService {
   constructor({ local, lanClient, moduleStorage }) {
@@ -44,5 +51,12 @@ class BankFinanceSourceService {
   listWorks(payload) { return this.call('listWorks', payload) }
   listPlannedAccounts(payload) { return this.call('listPlannedAccounts', payload) }
   assignPlannedBank(payload) { return this.call('assignPlannedBank', payload) }
+  auditPeriod(payload) { return this.call('auditPeriod', payload) }
+  periodStatus(payload) { return this.call('periodStatus', payload) }
+  periodEvents(payload) { return this.call('periodEvents', payload) }
+  closePeriod(payload) { return this.call('closePeriod', payload) }
+  reopenPeriod(payload) { return this.call('reopenPeriod', payload) }
+  simulateCashFlow(payload) { return this.call('simulateCashFlow', payload) }
+  cashReport(payload) { return this.call('cashReport', payload) }
 }
 module.exports = { BankFinanceSourceService }
