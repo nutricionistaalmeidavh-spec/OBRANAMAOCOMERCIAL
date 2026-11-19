@@ -16,6 +16,7 @@ function fixture() {
   db.exec("INSERT INTO empresas(id) VALUES (1),(2)")
   db.exec(fs.readFileSync(migrations,'utf8'))
   db.exec(fs.readFileSync(path.resolve(import.meta.dirname, '../migrations/033_reconciliacao_bancaria.sql'),'utf8'))
+  db.exec(fs.readFileSync(path.resolve(import.meta.dirname, '../migrations/035_finance_bank_period_closures.sql'),'utf8'))
   return { db, service:new BankFinanceService({db}) }
 }
 const account = service => service.saveAccount({empresaId:1,nome:'Conta operacional',bancoNome:'Banco de teste',saldoInicialCentavos:120000,saldoReferenciaData:'2026-11-01',requestId:'client-test-001'})
