@@ -2,6 +2,7 @@
 
 const { createHash } = require('node:crypto')
 const { BankP0Service } = require('./bank-p0.cjs')
+const { BankP2Service } = require('./bank-p2.cjs')
 
 const MAX_BYTES = 4 * 1024 * 1024
 const MAX_TRANSACTIONS = 10000
@@ -167,6 +168,7 @@ class BankFinanceService {
     if (!db || typeof db.prepare !== 'function' || typeof db.exec !== 'function') throw new Error('Banco financeiro indisponível.')
     this.db = db
     this.p0 = new BankP0Service({ db })
+    this.p2 = new BankP2Service({ db, p0:this.p0 })
   }
   company(empresaId) {
     const id = numberId(empresaId, 'Empresa')
@@ -261,6 +263,7 @@ class BankFinanceService {
     try {
       const old = db.prepare('SELECT * FROM extrato_importacoes WHERE conta_bancaria_id=? AND arquivo_sha256=?').get(input.account.id,input.fileHash)
       if (old) { db.exec('COMMIT'); return { duplicateFile: true, importId: old.id, imported: 0, duplicates: input.parsed.rows.length, rejected: input.parsed.invalid.length } }
+      for(const transaction of input.parsed.rows) this.p2.assertOpen(input.account.empresa_id,transaction.date)
       const ins = db.prepare('INSERT INTO extrato_importacoes(empresa_id,conta_bancaria_id,nome_arquivo,formato,arquivo_sha256,mapeamento_json,total_linhas,importadas,duplicadas,rejeitadas) VALUES (?,?,?,?,?,?,?,?,?,?)').run(input.account.empresa_id,input.account.id,input.name,input.format,input.fileHash,JSON.stringify(input.parsed.mapping),input.parsed.total,0,0,input.parsed.invalid.length)
       const importId = Number(ins.lastInsertRowid)
       const has = db.prepare('SELECT id FROM transacoes_bancarias WHERE conta_bancaria_id=? AND chave_transacao=?')
@@ -286,13 +289,29 @@ class BankFinanceService {
     return this.db.prepare('SELECT id,nome_arquivo,formato,total_linhas,importadas,duplicadas,rejeitadas,created_at FROM extrato_importacoes WHERE empresa_id=? AND conta_bancaria_id=? ORDER BY id DESC LIMIT 100').all(a.empresa_id,a.id)
   }
   suggestReconciliation(payload) { return this.p0.suggestReconciliation(payload) }
-  confirmReconciliation(payload) { return this.p0.confirmReconciliation(payload) }
-  reverseReconciliation(payload) { return this.p0.reverseReconciliation(payload) }
+  confirmReconciliation(payload) {
+    const item=this.p0.movement(payload.empresaId,payload.contaBancariaId,payload.transacaoId)
+    this.p2.assertOpen(item.bank.empresa_id,item.transaction.data)
+    return this.p0.confirmReconciliation(payload)
+  }
+  reverseReconciliation(payload) {
+    const batch=this.p0.reconciliationById(payload.loteId)
+    const item=this.p0.movement(payload.empresaId,batch.contaBancariaId,batch.transacaoId)
+    this.p2.assertOpen(item.bank.empresa_id,item.transaction.data)
+    return this.p0.reverseReconciliation(payload)
+  }
   listReconciliations(payload) { return this.p0.listReconciliations(payload) }
   cashFlow(payload) { return this.p0.cashFlow(payload) }
   listWorks(payload) { return this.p0.listWorks(payload) }
   listPlannedAccounts(payload) { return this.p0.listPlannedAccounts(payload) }
   assignPlannedBank(payload) { return this.p0.assignPlannedBank(payload) }
+  auditPeriod(payload) { return this.p2.auditPeriod(payload) }
+  closePeriod(payload) { return this.p2.closePeriod(payload) }
+  reopenPeriod(payload) { return this.p2.reopenPeriod(payload) }
+  periodStatus(payload) { return this.p2.periodStatus(payload) }
+  periodEvents(payload) { return this.p2.periodEvents(payload) }
+  simulateCashFlow(payload) { return this.p2.simulateCashFlow(payload) }
+  cashReport(payload) { return this.p2.cashReport(payload) }
   listTransactions({ empresaId, contaBancariaId, obraId, status='all', startDate, endDate, search='' }) {
     const a = this.account(empresaId, contaBancariaId)
     if (!['all','pending','partial','reconciled'].includes(String(status))) throw new Error('Situação de conciliação inválida.')
