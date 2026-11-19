@@ -93,3 +93,13 @@ test('C4 relatório compara previsto e importado, preserva isolamento e gera ale
   assert.equal(f.db.prepare('SELECT COUNT(*) n FROM pagamentos_conta').get().n,0)
  }finally{f.close()}
 })
+
+
+test('B5 impede criar conta bancária com referência retroativa a um mês fechado',()=>{
+ const f=fixture();try{
+  f.bank.closePeriod({empresaId:f.companyId,period:'2026-11',actorId:'gestor',acknowledgePending:true})
+  assert.throws(()=>f.bank.saveAccount({empresaId:f.companyId,nome:'Retroativa',bancoNome:'Banco 2',saldoInicialCentavos:1000,saldoReferenciaData:'2026-11-02',requestId:'retroactive-account'}),/fechado/i)
+  const after=f.bank.saveAccount({empresaId:f.companyId,nome:'Nova conta',bancoNome:'Banco 2',saldoInicialCentavos:1000,saldoReferenciaData:'2026-12-01',requestId:'future-account'})
+  assert.equal(after.saldo_inicial_centavos,1000)
+ }finally{f.close()}
+})
