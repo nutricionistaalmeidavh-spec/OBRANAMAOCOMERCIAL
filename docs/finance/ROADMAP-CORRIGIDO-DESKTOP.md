@@ -32,14 +32,14 @@ As tabelas `contas` e `pagamentos_conta` permanecem canônicas. A importação d
 
 **Integração necessária, não módulo Web:** serviços no backend do Obra na Mão Server e roteamento IPC do Desktop para operar com banco local ou banco central configurado; não criar frontend dentro do servidor.
 
-## P2 — gestão avançada (não implementado)
+## P2 — gestão avançada (implementado no código da PR; homologação pendente)
 
 | Código | Entrega | Aceite |
 |---|---|---|
-| B5 | auditoria financeira avançada e fechamento por período | relatórios de divergências, bloqueio/reabertura por permissão, reversões rastreadas |
+| B5 | auditoria e fechamento bancário mensal | divergências por período, bloqueio/reabertura autenticada e registro de ações; não fecha automaticamente RH/DRE/contas |
 | C3 | cenários de fluxo de caixa | simular adiamentos, despesas e recebimentos futuros sem modificar contas reais |
-| C4 | relatórios e alertas | exportações de fluxo, previsto vs realizado, avisos internos de saldo negativo, por empresa/obra/banco |
-| I0 | homologação/release | QA integral Desktop local/servidor, migração legada, instaladores, regressões e aprovação antes de merge |
+| C4 | relatórios e alertas | previsto vs realizado, CSV, impressão PDF e avisos internos por empresa/obra/banco |
+| I0 | homologação/release | testes automatizados integrados na branch; homologação manual e autorização de merge/release ainda obrigatórias |
 
 P2 não autoriza APIs bancárias pagas nem ligações de conta por terceiro.
 
@@ -57,3 +57,7 @@ P2 não autoriza APIs bancárias pagas nem ligações de conta por terceiro.
 Nenhum arquivo da interface `finance-web.html/css/js`; nenhuma rota `/financeiro-web`; nenhum fluxo de pareamento financeiro exclusivo para navegador; nenhuma alteração no workflow `commercial-cloudflare-ci.yml`; nenhum arquivo alterado em `apps/web/`.
 
 Documentos técnicos complementares: `P0-CONCILIACAO-FLUXO-CAIXA.md` e `P1-DESKTOP-FINANCEIRO.md`.
+
+## Entrega P2 na branch
+
+O código foi adicionado na mesma PR #234. Ver `docs/finance/P2-DESKTOP-HOMOLOGACAO.md` para APIs, escopo e testes. O fechamento P2 protege extratos e conciliações bancárias de mês fechado; **não bloqueia automaticamente a edição de folhas, pagamentos e DRE de outros módulos**. O portal Web Cloudflare permanece intocado. A entrega não está incorporada à `main` nem publicada.
