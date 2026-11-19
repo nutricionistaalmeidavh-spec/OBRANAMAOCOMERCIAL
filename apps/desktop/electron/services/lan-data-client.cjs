@@ -231,6 +231,14 @@ class LanDataClient {
   async bankPlannedAccounts(payload) { return this.request('GET', '/api/v1/finance/planned-banks', { query: payload }) }
   async bankPlanAssignment(payload) { return this.request('POST', '/api/v1/finance/planned-banks', { body: payload }) }
 
+  async bankAudit(payload) { return this.request('GET', '/api/v1/finance/bank-period/audit', {query:payload}) }
+  async bankPeriodStatus(payload) { return this.request('GET', '/api/v1/finance/bank-period/status', {query:payload}) }
+  async bankPeriodEvents(payload) { return this.request('GET', '/api/v1/finance/bank-period/events', {query:payload}) }
+  async bankPeriodClose(payload) { return this.request('POST', '/api/v1/finance/bank-period/close', {body:payload}) }
+  async bankPeriodReopen(payload) { return this.request('POST', '/api/v1/finance/bank-period/reopen', {body:payload}) }
+  async bankSimulateCash(payload) { return this.request('POST', '/api/v1/finance/cash-simulate', {body:payload}) }
+  async bankCashReport(payload) { return this.request('GET', '/api/v1/finance/cash-report', {query:payload}) }
+
   async financeDre(filters = {}) {
     return this.request('GET', '/api/v1/finance/dre', { query: filters })
   }
