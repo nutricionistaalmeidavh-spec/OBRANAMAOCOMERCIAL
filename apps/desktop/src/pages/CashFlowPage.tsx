@@ -6,6 +6,7 @@ import { useAsync } from '../hooks/useAsync'
 import { ROUTES } from '../routes/registry'
 import './BankAccountsPage.css'
 import PlannedBankPanel from './PlannedBankPanel'
+import CashAdvancedPanel from './CashAdvancedPanel'
 
 type Day={date:string;projectedInCents:number;projectedOutCents:number;projectedBalanceCents:number;negative:boolean}
 type HistoryDay={date:string;realizedInCents:number;realizedOutCents:number;balanceCents:number|null;coverage:string}
@@ -72,6 +73,7 @@ export default function CashFlowPage(){
    </Card>
    {cash.data.warnings.length>0&&<Card><h2>Pontos de atenção</h2><ul>{cash.data.warnings.map((item,i)=><li key={i}>{item}</li>)}</ul></Card>}
    <PlannedBankPanel empresaId={Number(selectedEmpresa)} obraId={workId?Number(workId):undefined} works={works.data||[]} onChanged={()=>setReload(v=>v+1)}/>
+   <CashAdvancedPanel empresaId={Number(selectedEmpresa)} asOf={asOf} horizonDays={horizonDays} contaBancariaId={bankId?Number(bankId):undefined} obraId={workId?Number(workId):undefined} revision={reload}/>
    {!workId&&<Card><h2>Saldos por conta bancária</h2><div className="bank-card-grid">{cash.data.banks.map(b=><div key={b.id} className="bank-account-card"><BarChart3 size={20}/><strong>{b.nome}</strong><small>{b.bancoNome} · saldo inicial em {displayDate(b.referenceDate)}</small><strong>{b.covered&&b.realizedCents!==null?money(b.realizedCents):'Sem saldo nessa data'}</strong><small>{b.importedMovements} movimentos importados até a referência</small></div>)}</div></Card>}
    <Card><h2>Previsão dia a dia</h2><p>Vencimentos anteriores à referência são previstos para o primeiro dia seguinte. Pagamentos já registrados até a referência são descontados das obrigações.</p>
     <div className="bank-table cash-table"><table><thead><tr><th>Data</th><th>Entradas previstas</th><th>Saídas previstas</th><th>{cash.data?.hasBankBalance?'Saldo projetado':'Resultado gerencial projetado'}</th></tr></thead><tbody>{cash.data.days.map(day=><tr key={day.date} className={day.negative?'cash-row-negative':''}><td>{displayDate(day.date)}</td><td>{money(day.projectedInCents)}</td><td>{money(day.projectedOutCents)}</td><td><strong>{money(day.projectedBalanceCents)}</strong></td></tr>)}</tbody></table></div>
