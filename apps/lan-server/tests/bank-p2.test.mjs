@@ -115,6 +115,7 @@ test('C4 congela previsão por empresa e referência, preservando histórico ap�
   assert.equal(f.bank.captureForecast({...query,requestId:'forecast-repro-0001',actorId:'os:gestor'}).id,snap.id)
   assert.equal(f.bank.listForecasts(query).length,1)
   f.db.prepare('UPDATE contas SET valor_centavos=50000 WHERE id=?').run(invoice)
+  assert.equal(f.bank.captureForecast({...query,requestId:'forecast-repro-0001',actorId:'os:gestor'}).id,snap.id,'repetir solicitação original não deve recalcular histórico')
   const latest=f.bank.cashReport(query)
   const frozen=f.bank.cashReport({...query,snapshotId:snap.id})
   assert.equal(latest.summary.plannedOutCents,50000)
