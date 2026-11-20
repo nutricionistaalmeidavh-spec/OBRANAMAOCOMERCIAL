@@ -143,6 +143,36 @@ describe('LanDataClient', () => {
     expect(fetchImpl.mock.calls[5][0]).toBe(`${baseUrl}/api/v1/rh/time/document-context`)
   })
 
+  it('exige capability central de edição em lote antes de enviar qualquer mutação', async () => {
+    const { LanDataClient }=require('./lan-data-client.cjs')
+    const baseUrl='http://servidor:4732'
+    const fetchImpl=vi.fn(async()=>({ok:true,status:200,json:async()=>({features:['optimistic-concurrency-v1']})}))
+    const client=new LanDataClient({storage:{state:()=>({mode:'server',operationalMode:'lan-client',baseUrl})},
+      credentials:credentialsFor(baseUrl),fetchImpl})
+    await expect(client.operationalSheetCommit({area:'orcamento',obraId:1,rows:[]})).rejects.toThrow(/atualizado|versão 0\.4\.3/i)
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(fetchImpl.mock.calls[0][0]).toContain('/api/v1/sync-source/capabilities')
+  })
+
+  it('usa a API transacional da empresa e mantém revisão e chave idempotente intactas', async () => {
+    const { LanDataClient }=require('./lan-data-client.cjs')
+    const baseUrl='http://servidor:4732'
+    const fetchImpl=vi.fn(async(url:string,options:any)=>({ok:true,status:200,json:async()=>
+      url.includes('capabilities')?{features:['operational-sheets-batch-v1']}:JSON.parse(options.body)
+    }))
+    const client=new LanDataClient({storage:{state:()=>({mode:'server',operationalMode:'lan-client',baseUrl})},
+      credentials:credentialsFor(baseUrl),fetchImpl})
+    const rows=[{id:7,revision:3,quantidade:1.5,valor_unitario_centavos:500}]
+    const reply=await client.operationalSheetCommit({area:'orcamento',obraId:10,rows})
+    expect(reply.rows[0].revision).toBe(3)
+    const receipt=await client.procurementReceiveMany({requestId:'lote-123',data:'2026-11-20',
+      items:[{pedido_item_id:8,quantidade_recebida:2}]})
+    expect(receipt.requestId).toBe('lote-123')
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+    expect(fetchImpl.mock.calls[1][0]).toBe(baseUrl+'/api/v1/operational-sheets/commit')
+    expect(fetchImpl.mock.calls[2][0]).toBe(baseUrl+'/api/v1/operational-sheets/receive-many')
+  })
+
   it('falha antes da rede quando o servidor atual ainda não foi pareado', async () => {
     const { LanDataClient } = require('./lan-data-client.cjs')
     const fetchImpl=vi.fn()

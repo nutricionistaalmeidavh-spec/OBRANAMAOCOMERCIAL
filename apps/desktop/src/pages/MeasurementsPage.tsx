@@ -28,11 +28,11 @@ export default function MeasurementsPage() {
   const contracts = useAsync(() => work ? window.fluxoDre.contratos.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
   const budget = useAsync(() => work ? window.fluxoDre.orcamentos.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
   const items = useAsync(() => work ? window.fluxoDre.medicoes.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
-  const localPlanning=planningStorage.data&&['local','migration-required'].includes(planningStorage.data.state)
-  const progress=useAsync(()=>progressOpen&&work&&localPlanning
+  const planningReady=planningStorage.data&&planningStorage.data.state!=='central-ready'
+  const progress=useAsync(()=>progressOpen&&work&&planningReady
     ?window.fluxoDre.operationalSheet.p1Measurements({obraId:Number(work),competencia:progressCompetence})
     :Promise.resolve({items:[],contracts:[],competencia:progressCompetence}),
-    [progressOpen,work,localPlanning,progressCompetence,items.data])
+    [progressOpen,work,planningReady,progressCompetence,items.data])
   const itemColumns:SheetColumn[]=[
     {key:'descricao',label:'Item',width:230,edit:true},
     {key:'item_orcamentario_id',label:'Item orçamentário',kind:'select',edit:true,
@@ -120,9 +120,9 @@ export default function MeasurementsPage() {
     {notice && <div className="success-box">{notice}</div>}
     <Card>{items.loading ? <Loading/> : items.data?.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Numero</th><th>Etapa</th><th>Contrato</th><th>Periodo</th><th>Status</th><th className="number">Liquido</th><th/></tr></thead><tbody>{items.data.map((item: any) => <tr key={item.id}><td><strong>{item.numero}</strong><small>{item.descricao}</small></td><td>{fronts.data?.find((front: any) => front.id === item.frente_id)?.nome || 'Obra geral'}</td><td>{contracts.data?.find((contract: any) => contract.id === item.contrato_id)?.numero || '-'}</td><td>{brDate(item.periodo_inicio || item.data)} a {brDate(item.periodo_fim || item.data)}</td><td><Status value={item.status}/></td><td className="number">{brl(item.valor_liquido_centavos)}</td><td><div className="row-actions"><button className="icon-button" title="Editar" onClick={() => open(item)}><Edit3 size={15}/></button><button className="icon-button" title={documentsActive ? "Anexar PDF ou comprovante" : "Documentos ainda não estão ativos no servidor"} disabled={!documentsActive} onClick={() => attach(item)}><Paperclip size={15}/></button></div></td></tr>)}</tbody></table></div> : <Empty title={work ? 'Nenhuma medicao' : 'Selecione uma obra'} description="Cadastre a medicao e anexe boletins, memoria de calculo ou notas."/>}</Card>
     {progressOpen&&work&&<div className="filters" style={{marginTop:14}}><Field label="Competência do mapa de medição"><input type="month" value={progressCompetence} onChange={e=>setProgressCompetence(e.target.value)}/></Field></div>}
-    {progressOpen&&work&&(localPlanning
+    {progressOpen&&work&&(planningReady
       ?progress.loading?<Card><Loading label="Calculando saldos de medição..."/></Card>:progress.error?<p role="alert">{progress.error.message}</p>:<MeasurementsProgressPanel progress={progress.data||{items:[],contracts:[],competencia:progressCompetence}} obraId={Number(work)}/>
-      :<Card><p className="card-body">As planilhas consolidadas de medição ainda não estão homologadas no modo servidor. Continue usando o formulário individual, sem gravar cópias locais.</p></Card>)}
+      :<Card><p className="card-body">O planejamento central ainda não está ativado. Conclua o assistente de conexão para consultar medições.</p></Card>)}
     <Modal open={!!form} title={form?.id ? 'Editar medicao' : 'Nova medicao'} onClose={() => setForm(null)} size="xl"><form onSubmit={submit}><div className="modal-body">
       <div className="form-grid form-grid-3">
         <Field label="Obra" required><select required value={form?.obra_id || ''} onChange={(event) => { setForm({ ...form, obra_id: event.target.value, frente_id: '', contrato_id: '' }); setWork(event.target.value) }}><option value="">Selecione</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>

@@ -34,7 +34,7 @@ function asExportRow(row:SheetRow, columns:SheetColumn[]) {
 
 type Props = {
   title:string
-  area:'orcamento'|'estoque'|'compras'|'financeiro'|'folha'|'cronograma'|'etapas'|'subetapas'|'medicoes'|'ponto'
+  area:'orcamento'|'estoque'|'compras'|'financeiro'|'folha'|'cronograma'|'etapas'|'subetapas'|'medicoes'|'ponto'|'tarefas'|'rdo'
   rows:SheetRow[]
   columns:SheetColumn[]
   companyId?:string|number|null
@@ -50,10 +50,11 @@ type Props = {
   commitLabel?:string
   commitSuccessMessage?:string
   showImport?:boolean
+  onDraftChange?:(dirty:boolean)=>void
 }
 export default function OperationalSheetGrid({
   title,area,rows,columns,companyId,importArea,filename,onCommit,onRowAction,
-  rowActionLabel='Abrir',onSaved,allowTemplate=false,disabledReason,canEditRow,commitLabel='Salvar',commitSuccessMessage,showImport=true
+  rowActionLabel='Abrir',onSaved,allowTemplate=false,disabledReason,canEditRow,commitLabel='Salvar',commitSuccessMessage,showImport=true,onDraftChange
 }:Props) {
   const [drafts,setDrafts]=useState<Record<string,Record<string,string>>>({})
   const [busy,setBusy]=useState(false)
@@ -78,11 +79,13 @@ export default function OperationalSheetGrid({
     setDrafts(current=>({...current,[String(row.id)]:{...(current[String(row.id)]||{}),[key]:value}}))
     setError('')
     setMessage('')
+    onDraftChange?.(true)
   }
   const paste=(event:ClipboardEvent<HTMLInputElement>,row:SheetRow,columnIndex:number)=>{
     const matrix=pasteCells(event.clipboardData.getData('text/plain'))
     if(matrix.length===1&&matrix[0].length===1)return
     event.preventDefault()
+    onDraftChange?.(true)
     const rowIndex=visibleRows.findIndex(item=>item.id===row.id)
     if(rowIndex<0)return
     setDrafts(current=>{
@@ -106,6 +109,7 @@ export default function OperationalSheetGrid({
       const selected=view.filter(row=>drafts[String(row.id)])
       await onCommit(selected)
       setDrafts({})
+      onDraftChange?.(false)
       setMessage(commitSuccessMessage||selected.length+' linha(s) atualizada(s).')
       onSaved?.()
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível gravar as alterações. Nenhum sucesso foi confirmado.')}
@@ -147,7 +151,7 @@ export default function OperationalSheetGrid({
           try{window.localStorage.setItem(filterKey,value)}catch{/* armazenamento de preferência é opcional */}
         }} style={{minWidth:220,flex:1,maxWidth:460}}/>
       {filter&&<Button type="button" variant="secondary" onClick={()=>{setFilter('');setPage(1);try{window.localStorage.removeItem(filterKey)}catch{/* armazenamento opcional */}}}>Limpar filtro</Button>}
-      {onCommit&&<><Button type="button" disabled={!changed||busy||!!disabledReason} onClick={()=>void commit()}><Check size={14}/> {busy?'Processando...':commitLabel+' '+changed+' linha(s)'}</Button><Button type="button" variant="secondary" disabled={!changed||busy} onClick={()=>{setDrafts({});setError('');setMessage('Alterações descartadas.')}}><RotateCcw size={14}/> Descartar</Button></>}
+      {onCommit&&<><Button type="button" disabled={!changed||busy||!!disabledReason} onClick={()=>void commit()}><Check size={14}/> {busy?'Processando...':commitLabel+' '+changed+' linha(s)'}</Button><Button type="button" variant="secondary" disabled={!changed||busy} onClick={()=>{setDrafts({});onDraftChange?.(false);setError('');setMessage('Alterações descartadas.')}}><RotateCcw size={14}/> Descartar</Button></>}
     </div>
     {disabledReason&&<div className="notice" role="status">{disabledReason}</div>}
     {error&&<div className="notice" role="alert">{error}</div>}

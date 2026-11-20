@@ -31,13 +31,12 @@ const convertId=(id:unknown)=>isNew(id)?null:Number(id)
 export default function StagesSheetPanel({obraId,selectedFront,fronts,subfronts,operationState,onSaved,onSubSaved}:Props){
   const [newFronts,setNewFronts]=useState<SheetRow[]>([])
   const [newSubs,setNewSubs]=useState<SheetRow[]>([])
-  const disabledReason=operationState&&!['local','migration-required'].includes(operationState)
-    ?'Edição coletiva disponível somente no modo local homologado. Utilize o cadastro individual no servidor.':undefined
+  const disabledReason=operationState==='central-ready'?'Operações centrais ainda não ativadas. Conclua a conexão do servidor.':undefined
   const addFront=()=>setNewFronts(rows=>[...rows,{id:'novo-etapa-'+(rows.length+1),nome:'',codigo:'',ordem:fronts.length+rows.length+1,status:'ativa',observacoes:''}])
   const addSub=()=>setNewSubs(rows=>[...rows,{id:'novo-sub-'+(rows.length+1),nome:'',codigo:'',pavimento:'Geral',escopo:'',ordem:subfronts.length+rows.length+1,status:'ativa',frente_id:selectedFront}])
   const saveFronts=async(changed:SheetRow[])=>{
     const rows=changed.map(row=>({id:convertId(row.id),nome:String(row.nome||''),codigo:String(row.codigo||''),
-      ordem:Number(row.ordem),status:String(row.status),observacoes:String(row.observacoes||''),
+      ordem:Number(row.ordem),status:String(row.status),observacoes:String(row.observacoes||''),revision:row.revision,
       updated_at:String(row.updated_at||'')}))
     await window.fluxoDre.operationalSheet.p1Commit({area:'etapas',obraId,rows})
     setNewFronts([]);onSaved()
@@ -46,14 +45,14 @@ export default function StagesSheetPanel({obraId,selectedFront,fronts,subfronts,
     if(!selectedFront)throw new Error('Selecione a etapa de origem.')
     const rows=changed.map(row=>({id:convertId(row.id),frente_id:selectedFront,nome:String(row.nome||''),
       codigo:String(row.codigo||''),pavimento:String(row.pavimento||''),
-      escopo:String(row.escopo||''),ordem:Number(row.ordem),status:String(row.status),
+      escopo:String(row.escopo||''),ordem:Number(row.ordem),status:String(row.status),revision:row.revision,
       updated_at:String(row.updated_at||'')}))
     await window.fluxoDre.operationalSheet.p1Commit({area:'subetapas',obraId,rows})
     setNewSubs([]);onSubSaved()
   }
   return <div style={{display:'grid',gap:14,marginTop:14}}>
     <Card>
-      <div className="card-header"><div><h2>Cadastro de etapas em lote</h2><p>As linhas novas e as alterações são confirmadas em uma única transação local.</p></div>
+      <div className="card-header"><div><h2>Cadastro de etapas em lote</h2><p>As linhas novas e as alterações são confirmadas em uma única transação no banco canônico.</p></div>
         <Button type="button" variant="secondary" icon={<Plus size={15}/>} disabled={!!disabledReason} onClick={addFront}>Adicionar etapa</Button>
       </div>
       <OperationalSheetGrid area="etapas" title="Planilha de etapas" rows={[...fronts,...newFronts]}

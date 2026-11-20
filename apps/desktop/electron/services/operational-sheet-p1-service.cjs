@@ -105,12 +105,17 @@ function hoursWorked(mark){
 }
 
 class OperationalSheetP1Service {
-  constructor({db,moduleStorage,timeService}){
-    this.db=db;this.moduleStorage=moduleStorage;this.timeService=timeService
+  constructor({db,moduleStorage,timeService,lanClient}){
+    this.db=db;this.moduleStorage=moduleStorage;this.timeService=timeService;this.lanClient=lanClient
   }
   commit(payload={}) {
     const area=String(payload.area||'')
     if(!['cronograma','etapas','subetapas'].includes(area))throw new Error('Área não aceita edição de estrutura em lote.')
+    const state=this.moduleStorage?.state(area==='cronograma'?'planning':'operation')?.state
+    if(state==='central-active'){
+      if(!this.lanClient?.operationalSheetCommit)throw new Error('Servidor central precisa ser atualizado para editar planilhas.')
+      return this.lanClient.operationalSheetCommit(payload)
+    }
     requireLocal(this.moduleStorage,area==='cronograma'?'planning':'operation')
     const obraId=requireWork(payload.obraId)
     const rows=payload.rows
@@ -145,6 +150,10 @@ class OperationalSheetP1Service {
     })()
   }
   measurementOverview(payload={}) {
+    if(this.moduleStorage?.state('planning')?.state==='central-active'){
+      if(!this.lanClient?.operationalSheetMeasurements)throw new Error('Atualize o servidor para consultar medições em planilha.')
+      return this.lanClient.operationalSheetMeasurements(payload)
+    }
     requireLocal(this.moduleStorage,'planning')
     const obraId=requireWork(payload.obraId)
     const competencia=validCompetence(payload.competencia)
@@ -188,6 +197,10 @@ class OperationalSheetP1Service {
     return {items,contracts,competencia,obraId}
   }
   timeMatrix(payload={}) {
+    if(this.moduleStorage?.state('rh')?.state==='central-active'){
+      if(!this.lanClient?.operationalSheetTimeMatrix)throw new Error('Atualize o servidor para consultar o ponto em planilha.')
+      return this.lanClient.operationalSheetTimeMatrix(payload)
+    }
     requireLocal(this.moduleStorage,'rh')
     const competencia=validCompetence(payload.competencia)
     const obraId=payload.obraId?requireWork(payload.obraId):null
@@ -236,6 +249,10 @@ class OperationalSheetP1Service {
     return {competencia,rows,employeeCount:chosen.length,truncated}
   }
   commitTime(payload={}){
+    if(this.moduleStorage?.state('rh')?.state==='central-active'){
+      if(!this.lanClient?.operationalSheetTimeCommit)throw new Error('Atualize o servidor para salvar o ponto em lote.')
+      return this.lanClient.operationalSheetTimeCommit(payload)
+    }
     requireLocal(this.moduleStorage,'rh')
     const competencia=validCompetence(payload.competencia)
     const obraId=payload.obraId?requireWork(payload.obraId):null

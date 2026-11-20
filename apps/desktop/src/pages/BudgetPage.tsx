@@ -46,7 +46,7 @@ export default function BudgetPage() {
       const unit=parseBrDecimal(row.valor_unitario)
       if(qty===null||qty<0||unit===null||unit<0)throw new Error('Quantidade e preço unitário devem ser números não negativos.')
       return {
-        id:Number(row.id),updated_at:String(row.updated_at||''),
+        id:Number(row.id),revision:row.revision,updated_at:String(row.updated_at||''),
         descricao:String(row.descricao||''),codigo:String(row.codigo||''),tipo:String(row.tipo||'material'),
         frente_id:row.frente_id?Number(row.frente_id):null,
         subfrente_id:row.subfrente_id?Number(row.subfrente_id):null,
@@ -57,7 +57,7 @@ export default function BudgetPage() {
     await window.fluxoDre.operationalSheet.commit({area:'orcamento',obraId:Number(work),rows:updates})
     await items.reload()
   }
-  const sheetDisabled=sheetStorage.data&&!['local','migration-required'].includes(sheetStorage.data.state)?'Edição em lote em servidor ainda não homologada; utilize Editar item. Exportação está disponível.':undefined
+  const sheetDisabled=sheetStorage.data?.state==='central-ready'?'Módulo central ainda não ativado. Conclua o assistente de conexão.':undefined
   const open = (item?: any) => setForm(item ? { ...item, subfrente_id:item.subfrente_id||'', valor_unitario: (item.valor_unitario_centavos / 100).toFixed(2).replace('.', ',') } : { ...blank, obra_id: work })
   async function submit(event: FormEvent) { event.preventDefault(); await window.fluxoDre.orcamentos.save({ ...form, obra_id: Number(form.obra_id), frente_id: form.frente_id ? Number(form.frente_id) : null, subfrente_id: form.subfrente_id ? Number(form.subfrente_id) : null, etapa_id: form.etapa_id ? Number(form.etapa_id) : null, quantidade: Number(form.quantidade), valor_unitario_centavos: toCents(form.valor_unitario), atualizado_em: new Date().toISOString() }); setForm(null); setWork(String(form.obra_id)); items.reload() }
   return <>

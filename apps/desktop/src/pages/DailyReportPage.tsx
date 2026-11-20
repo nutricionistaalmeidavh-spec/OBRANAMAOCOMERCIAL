@@ -1,8 +1,10 @@
-import { ClipboardPlus, Edit3, Paperclip, Plus } from 'lucide-react'
+import { ClipboardPlus, Edit3, Paperclip, Plus, FileSpreadsheet } from 'lucide-react'
+import OperationalSheetGrid,{type SheetColumn,type SheetRow} from '../components/OperationalSheetGrid'
+import {parseBrDecimal} from '../utils/operational-sheet'
 import { FormEvent, useState } from 'react'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal, PageHeader, Status } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
-import { brDate, brl, toCents, today } from '../utils/format'
+import { brDate, brl, today } from '../utils/format'
 
 const blank = { obra_id: '', frente_id: '', data: today(), clima: 'ensolarado', status: 'rascunho', atividades: '', observacoes: '', equipe: [], equipamentos: [], ocorrencias: [] }
 
@@ -10,6 +12,11 @@ export default function DailyReportPage() {
   const [work, setWork] = useState(new URLSearchParams(location.search).get('obra') || '')
   const [front, setFront] = useState('')
   const [modal, setModal] = useState(false)
+  const [sheetMode,setSheetMode]=useState(false)
+  const [sheetDirty,setSheetDirty]=useState({equipe:false,equipamentos:false})
+  const hasSheetDraft=sheetDirty.equipe||sheetDirty.equipamentos
+  const [saving,setSaving]=useState(false)
+  const [sheetNotice,setSheetNotice]=useState('')
   const [form, setForm] = useState<any>(blank)
   const [notice, setNotice] = useState('')
   const works = useAsync(() => window.fluxoDre.obras.list(), [])
@@ -24,11 +31,47 @@ export default function DailyReportPage() {
   const fronts = useAsync(() => operationActive && work ? window.fluxoDre.frentes.list({ obra_id: Number(work) }) : Promise.resolve([]), [work, operationActive])
   const rdos = useAsync(() => operationActive && work ? window.fluxoDre.rdos.list({ obra_id: Number(work) }) : Promise.resolve([]), [work, operationActive])
   const employees = useAsync(() => rhActive ? window.fluxoDre.funcionarios.list() : Promise.resolve([]), [rhActive])
+  const stageOptions=[{value:'',label:'Etapa principal'},...(fronts.data||[]).map((x:any)=>({value:String(x.id),label:x.nome}))]
+  const teamColumns:SheetColumn[]=[
+    {key:'nome',label:'Pessoa',edit:true,width:200},
+    {key:'funcionario_nome',label:'Vínculo no RH',value:row=>employees.data?.find((x:any)=>x.id===Number(row.funcionario_id))?.nome||'Avulso/terceirizado'},
+    {key:'funcao',label:'Função',edit:true},
+    {key:'horas',label:'Horas',edit:true,kind:'decimal'},
+    {key:'custo',label:'Custo R$',edit:true,kind:'money'},
+    {key:'frente_id',label:'Etapa',edit:true,kind:'select',options:stageOptions},
+    {key:'observacoes',label:'Observações',edit:true,width:220}
+  ]
+  const equipmentColumns:SheetColumn[]=[
+    {key:'nome',label:'Equipamento',edit:true,width:190},
+    {key:'horas_uso',label:'Horas de uso',edit:true,kind:'decimal'},
+    {key:'custo',label:'Custo R$',edit:true,kind:'money'},
+    {key:'frente_id',label:'Etapa',edit:true,kind:'select',options:stageOptions},
+    {key:'observacoes',label:'Observações',edit:true,width:220}
+  ]
+  const sheetRows=(kind:'equipe'|'equipamentos'):SheetRow[]=>(form[kind]||[]).map((row:any,index:number)=>({...row,id:index+1}))
+  const applyRdoSheet=async(kind:'equipe'|'equipamentos',changed:SheetRow[])=>{
+    const normalized=await window.fluxoDre.operationalSheet.p2StageRdo({area:kind,rows:changed})
+    for(const row of normalized){
+      if(row.frente_id&&!fronts.data?.some((front:any)=>String(front.id)===String(row.frente_id)&&String(front.obra_id)===String(form.obra_id)))
+        throw new Error('Etapa da equipe/equipamento não pertence à obra selecionada.')
+      if(kind==='equipe'&&row.funcionario_id&&!employees.data?.some((person:any)=>String(person.id)===String(row.funcionario_id)))
+        throw new Error('Funcionário não está disponível no cadastro de RH carregado.')
+    }
+    const patches=new Map<number,any>(normalized.map((row:any)=>{const {id,...patch}=row;return [Number(id),patch]}))
+    setForm((current:any)=>({...current,[kind]:(current[kind]||[]).map((row:any,index:number)=>({...row,...(patches.get(index+1)||{})}))}))
+    setSheetNotice('Alterações aplicadas ao rascunho. Para gravar o diário, clique em Salvar RDO.')
+  }
+  const rdoCents=(value:unknown)=>{
+    const amount=parseBrDecimal(value)
+    if(amount===null||amount<0)throw new Error('Custo de equipe/equipamento inválido.')
+    return Math.round(amount*100)
+  }
   const rows = (rdos.data || []).filter((rdo: any) => !front || String(rdo.frente_id || '') === front)
   const add = (key: string, row: any) => setForm({ ...form, [key]: [...form[key], row] })
   const change = (key: string, index: number, field: string, value: string) => setForm({ ...form, [key]: form[key].map((row: any, i: number) => i === index ? { ...row, [field]: value } : row) })
   const remove = (key: string, index: number) => setForm({ ...form, [key]: form[key].filter((_: any, i: number) => i !== index) })
   async function open(rdo?: any) {
+    setSheetMode(false);setSheetDirty({equipe:false,equipamentos:false});setSheetNotice('')
     if (!rdo) {
       setForm({ ...blank, obra_id: work, frente_id: front })
       setModal(true)
@@ -50,17 +93,22 @@ export default function DailyReportPage() {
   }
   async function submit(event: FormEvent) {
     event.preventDefault()
+    if(hasSheetDraft){setSheetNotice('Aplique ou descarte as alterações nas planilhas antes de salvar o RDO.');return}
+    setSaving(true);setSheetNotice('')
+    try{
     await window.fluxoDre.campo.saveRdo({
       ...form,
       obra_id: Number(form.obra_id),
       frente_id: form.frente_id ? Number(form.frente_id) : null,
-      equipe: (form.equipe || []).map((row: any) => ({ ...row, frente_id: row.frente_id ? Number(row.frente_id) : form.frente_id ? Number(form.frente_id) : null, custo_centavos: toCents(row.custo || 0) })),
-      equipamentos: (form.equipamentos || []).map((row: any) => ({ ...row, frente_id: row.frente_id ? Number(row.frente_id) : form.frente_id ? Number(form.frente_id) : null, custo_centavos: toCents(row.custo || 0) })),
+      equipe: (form.equipe || []).map((row: any) => ({ ...row, frente_id: row.frente_id ? Number(row.frente_id) : form.frente_id ? Number(form.frente_id) : null, custo_centavos: rdoCents(row.custo || 0) })),
+      equipamentos: (form.equipamentos || []).map((row: any) => ({ ...row, frente_id: row.frente_id ? Number(row.frente_id) : form.frente_id ? Number(form.frente_id) : null, custo_centavos: rdoCents(row.custo || 0) })),
       ocorrencias: (form.ocorrencias || []).map((row: any) => ({ ...row, frente_id: row.frente_id ? Number(row.frente_id) : form.frente_id ? Number(form.frente_id) : null }))
     })
     setModal(false)
     setWork(String(form.obra_id))
     rdos.reload()
+    }catch(error){setSheetNotice(error instanceof Error?error.message:'Não foi possível salvar o Diário de Obra.')}
+    finally{setSaving(false)}
   }
   async function attach(rdo: any) {
     if (!documentsActive) {
@@ -80,7 +128,7 @@ export default function DailyReportPage() {
     </div>
     {notice && <div className="success-box">{notice}</div>}
     <Card>{rdos.loading ? <Loading/> : rows.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Data</th><th>Etapa</th><th>Clima</th><th>Atividades</th><th>Status</th><th/></tr></thead><tbody>{rows.map((rdo: any) => <tr key={rdo.id}><td><strong>{brDate(rdo.data)}</strong></td><td>{fronts.data?.find((item: any) => item.id === rdo.frente_id)?.nome || 'Obra geral'}</td><td>{rdo.clima || '-'}</td><td>{rdo.atividades || '-'}</td><td><Status value={rdo.status}/></td><td><div className="row-actions"><button className="icon-button" onClick={() => open(rdo)} title="Editar"><Edit3 size={15}/></button><button className="icon-button" disabled={!documentsActive} onClick={() => attach(rdo)} title={documentsActive?'Anexar arquivo':'Anexos temporariamente indisponíveis'}><Paperclip size={15}/></button></div></td></tr>)}</tbody></table></div> : <Empty title={work ? 'Ainda não há Diário de obra' : 'Selecione uma obra'} description={work ? 'Registre o primeiro dia de campo para reunir atividades, equipe, equipamentos e ocorrências.' : 'Escolha uma obra para consultar e registrar o Diário de obra.'} action={work ? <Button onClick={() => open()}>Registrar primeiro RDO</Button> : undefined}/>}</Card>
-    <Modal open={modal} title={form.id ? 'Editar RDO' : 'Novo RDO'} onClose={() => setModal(false)} size="xl"><form onSubmit={submit}><div className="modal-body">
+    <Modal open={modal} title={form.id ? 'Editar RDO' : 'Novo RDO'} onClose={() => {if(hasSheetDraft){setSheetNotice('Aplique ou descarte as alterações pendentes antes de fechar.');return}setModal(false)}} size="xl"><form onSubmit={submit}><div className="modal-body">
       <div className="form-grid form-grid-3">
         <Field label="Obra" required><select required value={form.obra_id} onChange={(event) => { setForm({ ...form, obra_id: event.target.value, frente_id: '' }); setWork(event.target.value) }}><option value="">Selecione</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
         <Field label="Etapa principal"><select value={form.frente_id || ''} onChange={(event) => setForm({ ...form, frente_id: event.target.value })}><option value="">Obra geral</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
@@ -90,11 +138,13 @@ export default function DailyReportPage() {
         <Field label="Atividades executadas" wide required><textarea required value={form.atividades} onChange={(event) => setForm({ ...form, atividades: event.target.value })}/></Field>
         <Field label="Observacoes" wide><textarea value={form.observacoes || ''} onChange={(event) => setForm({ ...form, observacoes: event.target.value })}/></Field>
       </div>
-      <RdoSection title="Equipe no dia" addLabel="Adicionar pessoa" onAdd={() => add('equipe', { funcionario_id: '', frente_id: form.frente_id || '', nome: '', funcao: '', horas: '8', custo: '0', observacoes: '' })}>{(form.equipe || []).map((row: any, index: number) => <div className="rdo-row" key={index}><select value={row.frente_id || ''} onChange={(event) => change('equipe', index, 'frente_id', event.target.value)}><option value="">Etapa principal</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select><select value={row.funcionario_id || ''} onChange={(event) => { const person = employees.data?.find((item: any) => item.id === Number(event.target.value)); change('equipe', index, 'funcionario_id', event.target.value); if (person) { change('equipe', index, 'nome', person.nome); change('equipe', index, 'funcao', person.cargo_nome || '') } }}><option value="">Avulso / terceirizado</option>{employees.data?.map((person: any) => <option key={person.id} value={person.id}>{person.nome}</option>)}</select><input placeholder="Nome" value={row.nome} onChange={(event) => change('equipe', index, 'nome', event.target.value)}/><input placeholder="Funcao" value={row.funcao || ''} onChange={(event) => change('equipe', index, 'funcao', event.target.value)}/><input type="number" min="0" step="0.5" placeholder="Horas" value={row.horas} onChange={(event) => change('equipe', index, 'horas', event.target.value)}/><input placeholder="Custo" value={row.custo || ''} onChange={(event) => change('equipe', index, 'custo', event.target.value)}/><button type="button" className="icon-button" onClick={() => remove('equipe', index)}>x</button></div>)}</RdoSection>
-      <RdoSection title="Equipamentos" addLabel="Adicionar equipamento" onAdd={() => add('equipamentos', { frente_id: form.frente_id || '', nome: '', horas_uso: '0', custo: '0', observacoes: '' })}>{(form.equipamentos || []).map((row: any, index: number) => <div className="rdo-row rdo-equipment" key={index}><select value={row.frente_id || ''} onChange={(event) => change('equipamentos', index, 'frente_id', event.target.value)}><option value="">Etapa principal</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select><input placeholder="Equipamento" value={row.nome} onChange={(event) => change('equipamentos', index, 'nome', event.target.value)}/><input type="number" min="0" step="0.5" placeholder="Horas" value={row.horas_uso} onChange={(event) => change('equipamentos', index, 'horas_uso', event.target.value)}/><input placeholder="Custo" value={row.custo || ''} onChange={(event) => change('equipamentos', index, 'custo', event.target.value)}/><input placeholder="Observacao" value={row.observacoes || ''} onChange={(event) => change('equipamentos', index, 'observacoes', event.target.value)}/><button type="button" className="icon-button" onClick={() => remove('equipamentos', index)}>x</button></div>)}</RdoSection>
+      <div className="row-actions" style={{margin:'12px 0',flexWrap:'wrap'}}><Button type="button" variant="secondary" icon={<FileSpreadsheet size={15}/>} onClick={()=>{if(hasSheetDraft){setSheetNotice('Aplique ou descarte alterações antes de trocar a visualização.');return}setSheetMode(v=>!v);setSheetNotice('')}}>{sheetMode?'Editar equipe/equipamentos no formulário':'Editar equipe/equipamentos em planilha'}</Button><span style={{fontSize:12}}>O PWA mobile mantém o registro individual. A planilha altera apenas o rascunho atual.</span></div>
+      {sheetNotice&&<div className="success-box" role="status">{sheetNotice}</div>}
+      <RdoSection title="Equipe no dia" addLabel="Adicionar pessoa" onAdd={() => {if(hasSheetDraft){setSheetNotice('Aplique ou descarte as alterações antes de incluir pessoas.');return}add('equipe', { funcionario_id: '', frente_id: form.frente_id || '', nome: '', funcao: '', horas: '8', custo: '0', observacoes: '' })}}>{sheetMode?<OperationalSheetGrid key={'equipe-'+(form.id||form.data)+'-'+(form.equipe||[]).length} area="rdo" title="Equipe no dia — rascunho" rows={sheetRows('equipe')} columns={teamColumns} filename={'rdo-equipe-'+form.data} showImport={false} onCommit={changed=>applyRdoSheet('equipe',changed)} onDraftChange={dirty=>setSheetDirty(current=>({...current,equipe:dirty}))} commitLabel="Aplicar" commitSuccessMessage="Equipe aplicada ao rascunho; confirme Salvar RDO."/>:(form.equipe || []).map((row: any, index: number) => <div className="rdo-row" key={index}><select value={row.frente_id || ''} onChange={(event) => change('equipe', index, 'frente_id', event.target.value)}><option value="">Etapa principal</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select><select value={row.funcionario_id || ''} onChange={(event) => { const person = employees.data?.find((item: any) => item.id === Number(event.target.value)); change('equipe', index, 'funcionario_id', event.target.value); if (person) { change('equipe', index, 'nome', person.nome); change('equipe', index, 'funcao', person.cargo_nome || '') } }}><option value="">Avulso / terceirizado</option>{employees.data?.map((person: any) => <option key={person.id} value={person.id}>{person.nome}</option>)}</select><input placeholder="Nome" value={row.nome} onChange={(event) => change('equipe', index, 'nome', event.target.value)}/><input placeholder="Funcao" value={row.funcao || ''} onChange={(event) => change('equipe', index, 'funcao', event.target.value)}/><input type="number" min="0" step="0.5" placeholder="Horas" value={row.horas} onChange={(event) => change('equipe', index, 'horas', event.target.value)}/><input placeholder="Custo" value={row.custo || ''} onChange={(event) => change('equipe', index, 'custo', event.target.value)}/><button type="button" className="icon-button" onClick={() => remove('equipe', index)}>x</button></div>)}</RdoSection>
+      <RdoSection title="Equipamentos" addLabel="Adicionar equipamento" onAdd={() => {if(hasSheetDraft){setSheetNotice('Aplique ou descarte as alterações antes de incluir equipamentos.');return}add('equipamentos', { frente_id: form.frente_id || '', nome: '', horas_uso: '0', custo: '0', observacoes: '' })}}>{sheetMode?<OperationalSheetGrid key={'equip-'+(form.id||form.data)+'-'+(form.equipamentos||[]).length} area="rdo" title="Equipamentos — rascunho" rows={sheetRows('equipamentos')} columns={equipmentColumns} filename={'rdo-equipamentos-'+form.data} showImport={false} onCommit={changed=>applyRdoSheet('equipamentos',changed)} onDraftChange={dirty=>setSheetDirty(current=>({...current,equipamentos:dirty}))} commitLabel="Aplicar" commitSuccessMessage="Equipamentos aplicados ao rascunho; confirme Salvar RDO."/>:(form.equipamentos || []).map((row: any, index: number) => <div className="rdo-row rdo-equipment" key={index}><select value={row.frente_id || ''} onChange={(event) => change('equipamentos', index, 'frente_id', event.target.value)}><option value="">Etapa principal</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select><input placeholder="Equipamento" value={row.nome} onChange={(event) => change('equipamentos', index, 'nome', event.target.value)}/><input type="number" min="0" step="0.5" placeholder="Horas" value={row.horas_uso} onChange={(event) => change('equipamentos', index, 'horas_uso', event.target.value)}/><input placeholder="Custo" value={row.custo || ''} onChange={(event) => change('equipamentos', index, 'custo', event.target.value)}/><input placeholder="Observacao" value={row.observacoes || ''} onChange={(event) => change('equipamentos', index, 'observacoes', event.target.value)}/><button type="button" className="icon-button" onClick={() => remove('equipamentos', index)}>x</button></div>)}</RdoSection>
       <RdoSection title="Ocorrencias e impedimentos" addLabel="Adicionar ocorrencia" onAdd={() => add('ocorrencias', { frente_id: form.frente_id || '', tipo: 'falta_material', descricao: '', status: 'aberta', prioridade: 'normal', responsavel: '', prazo: '' })}>{(form.ocorrencias || []).map((row: any, index: number) => <div className="rdo-row rdo-occurrence" key={index}><select value={row.frente_id || ''} onChange={(event) => change('ocorrencias', index, 'frente_id', event.target.value)}><option value="">Etapa principal</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select><select value={row.tipo} onChange={(event) => change('ocorrencias', index, 'tipo', event.target.value)}><option value="falta_material">Falta de material</option><option value="atraso">Atraso</option><option value="retrabalho">Retrabalho</option><option value="seguranca">Seguranca</option><option value="qualidade">Qualidade</option><option value="pendencia_cliente">Pendencia do cliente</option></select><input placeholder="Descricao" value={row.descricao} onChange={(event) => change('ocorrencias', index, 'descricao', event.target.value)}/><input placeholder="Responsavel" value={row.responsavel || ''} onChange={(event) => change('ocorrencias', index, 'responsavel', event.target.value)}/><input type="date" value={row.prazo || ''} onChange={(event) => change('ocorrencias', index, 'prazo', event.target.value)}/><select value={row.prioridade || 'normal'} onChange={(event) => change('ocorrencias', index, 'prioridade', event.target.value)}><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select><select value={row.status} onChange={(event) => change('ocorrencias', index, 'status', event.target.value)}><option value="aberta">Aberta</option><option value="em_andamento">Em andamento</option><option value="resolvida">Resolvida</option></select><button type="button" className="icon-button" onClick={() => remove('ocorrencias', index)}>x</button></div>)}</RdoSection>
       <div className="notice">Anexos e fotos ficam disponiveis pelo botao de anexo depois que o RDO e salvo.</div>
-    </div><FormActions onCancel={() => setModal(false)} submitLabel="Salvar RDO"/></form></Modal>
+    </div><FormActions onCancel={() => {if(hasSheetDraft){setSheetNotice('Aplique ou descarte as alterações pendentes antes de sair.');return}setModal(false)}} submitLabel={saving?'Salvando...':'Salvar RDO'}/></form></Modal>
   </>
 }
 

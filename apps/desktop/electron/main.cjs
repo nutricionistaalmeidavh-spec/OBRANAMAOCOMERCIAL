@@ -34,6 +34,7 @@ const { WorkImportService } = require('./services/work-import-service.cjs')
 const { UniversalImportService } = require('./services/universal-import-service.cjs')
 const { OperationalSheetService } = require('./services/operational-sheet-service.cjs')
 const { OperationalSheetP1Service } = require('./services/operational-sheet-p1-service.cjs')
+const { OperationalSheetP2Service,normalizeRdoRows } = require('./services/operational-sheet-p2-service.cjs')
 const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
@@ -164,8 +165,9 @@ function createServices() {
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db, moduleStorage }),
-    operationalSheet: new OperationalSheetService({ db, moduleStorage, dialog }),
-    operationalSheetP1: new OperationalSheetP1Service({db,moduleStorage,timeService:localTime}),
+    operationalSheet: new OperationalSheetService({ db, moduleStorage, dialog,lanClient:dataAccess.remote }),
+    operationalSheetP1: new OperationalSheetP1Service({db,moduleStorage,timeService:localTime,lanClient:dataAccess.remote}),
+    operationalSheetP2: new OperationalSheetP2Service({db,moduleStorage,lanClient:dataAccess.remote}),
     works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, measurements,
     product, uiPreferences, procurement, contracts, demo: new DemoDataService({ db, product }), online, sync
   }
@@ -349,6 +351,8 @@ function registerIpc() {
   ipcMain.handle('operational-sheet:p1-measurements', envelope(payload => services.operationalSheetP1.measurementOverview(payload)))
   ipcMain.handle('operational-sheet:p1-time-matrix', envelope(payload => services.operationalSheetP1.timeMatrix(payload)))
   ipcMain.handle('operational-sheet:p1-time-commit', envelope(payload => services.operationalSheetP1.commitTime(payload)))
+  ipcMain.handle('operational-sheet:p2-tasks-commit', envelope(payload => services.operationalSheetP2.commitTasks(payload)))
+  ipcMain.handle('operational-sheet:p2-stage-rdo', envelope(({area,rows}) => normalizeRdoRows(area,rows)))
   ipcMain.handle('entity:list', envelope(({ table, filters }) => services.dataAccess.list(table, filters)))
   ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))
   ipcMain.handle('entity:save', envelope(({ table, data }) => services.dataAccess.save(table, data)))

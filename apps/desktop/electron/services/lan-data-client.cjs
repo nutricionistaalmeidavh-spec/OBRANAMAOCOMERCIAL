@@ -19,6 +19,7 @@ class LanDataClient {
     this.credentials = credentials
     this.fetchImpl = fetchImpl
     this.timeoutMs = timeoutMs
+    this.operationalSheetCapabilities = new Set()
   }
 
   assertTable(table) {
@@ -39,7 +40,7 @@ class LanDataClient {
     return token ? value.split(token).join('[credencial protegida]') : value
   }
 
-  async request(method, path, { query, body } = {}) {
+  async request(method, path, { query, body, timeoutMs } = {}) {
     const state = this.connection()
     const url = new URL(`${state.baseUrl}${path}`)
     for (const [key, value] of Object.entries(query || {})) {
@@ -48,7 +49,7 @@ class LanDataClient {
     }
 
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    const timer = setTimeout(() => controller.abort(), timeoutMs ?? this.timeoutMs)
     try {
       const response = await this.fetchImpl(url.toString(), {
         method,
@@ -276,6 +277,38 @@ class LanDataClient {
 
   async timeDocumentContext(payload) {
     return this.request('POST', '/api/v1/rh/time/document-context', { body: payload })
+  }
+
+  async requireOperationalSheetCapability() {
+    const target=this.connection()
+    const key=target.serverKey+'|'+target.baseUrl
+    if(this.operationalSheetCapabilities.has(key))return
+    const capabilities=await this.syncSourceCapabilities()
+    if(!Array.isArray(capabilities?.features)||!capabilities.features.includes('operational-sheets-batch-v1')){
+      throw new Error('O servidor da empresa precisa ser atualizado para a versão 0.4.3 ou superior antes de editar planilhas em lote.')
+    }
+    this.operationalSheetCapabilities.add(key)
+  }
+
+  async operationalSheetCommit(payload) {
+    await this.requireOperationalSheetCapability()
+    return this.request('POST','/api/v1/operational-sheets/commit',{body:payload,timeoutMs:30000})
+  }
+  async operationalSheetMeasurements(payload) {
+    await this.requireOperationalSheetCapability()
+    return this.request('POST','/api/v1/operational-sheets/measurements',{body:payload,timeoutMs:30000})
+  }
+  async operationalSheetTimeMatrix(payload) {
+    await this.requireOperationalSheetCapability()
+    return this.request('POST','/api/v1/operational-sheets/time-matrix',{body:payload,timeoutMs:30000})
+  }
+  async operationalSheetTimeCommit(payload) {
+    await this.requireOperationalSheetCapability()
+    return this.request('POST','/api/v1/operational-sheets/time-commit',{body:payload,timeoutMs:30000})
+  }
+  async procurementReceiveMany(payload) {
+    await this.requireOperationalSheetCapability()
+    return this.request('POST','/api/v1/operational-sheets/receive-many',{body:payload,timeoutMs:30000})
   }
 
   async list(table, filters = {}) {
