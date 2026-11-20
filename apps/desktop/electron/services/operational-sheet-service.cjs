@@ -4,7 +4,7 @@ const ExcelJS = require('exceljs')
 const { z } = require('zod')
 const { readWorkbook, sheetRows } = require('./spreadsheet-reader.cjs')
 
-const AREAS = Object.freeze(['orcamento','estoque','compras','financeiro','folha','cronograma','etapas','subetapas','medicoes','ponto'])
+const AREAS = Object.freeze(['orcamento','estoque','compras','financeiro','folha','cronograma','etapas','subetapas','medicoes','ponto','tarefas','rdo'])
 const EDITABLE = Object.freeze(['orcamento','financeiro'])
 const COLUMNS_LIMIT = 35
 const MAX_EXPORT_ROWS = 10000
