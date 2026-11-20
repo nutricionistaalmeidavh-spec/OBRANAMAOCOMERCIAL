@@ -1,10 +1,5 @@
 name: Publish Obra na Mao Desktop 2.1.10 - Importador homologado
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'apps/desktop/**'
-      - '.github/workflows/publish-desktop-2.1.10-import-qa.yml'
   push:
     branches: [main]
     paths:
