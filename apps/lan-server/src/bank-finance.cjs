@@ -217,6 +217,42 @@ class BankFinanceService {
     this.db.prepare('INSERT INTO contas_bancarias(empresa_id,nome,banco_nome,agencia,conta_identificador,tipo_conta,saldo_inicial_centavos,saldo_referencia_data,ativo,request_id) VALUES (?,?,?,?,?,?,?,?,1,?)').run(empresaId,nome,banco,agencia,identificador,tipo,saldo,data,requestId)
     return this.db.prepare('SELECT * FROM contas_bancarias WHERE request_id=?').get(requestId)
   }
+  // Saldo absoluto ao fim do dia. Nunca gravar como transação: importações
+  // posteriores podem conter as mesmas datas e continuariam reconciliáveis.
+  listManualBalances({ empresaId, contaBancariaId }) {
+    const account=this.account(empresaId,contaBancariaId)
+    return this.db.prepare('SELECT id,empresa_id,conta_bancaria_id,data,saldo_centavos,justificativa,created_by,created_at FROM finance_bank_manual_balances WHERE empresa_id=? AND conta_bancaria_id=? ORDER BY data DESC,id DESC LIMIT 100').all(account.empresa_id,account.id)
+  }
+  recordManualBalance(payload) {
+    const bank=this.account(payload.empresaId,payload.contaBancariaId)
+    if(!bank.ativo)throw Error('Ative a conta bancária para informar o saldo.')
+    const data=dateISO(payload.data)
+    if(data<bank.saldo_referencia_data)throw Error('A data do saldo manual não pode anteceder o saldo inicial da conta.')
+    const saldo=Number(payload.saldoCentavos)
+    if(!Number.isSafeInteger(saldo))throw Error('Saldo manual inválido.')
+    const justificativa=String(payload.justificativa||'').trim()
+    if(justificativa.length<8||justificativa.length>500)throw Error('Informe justificativa entre 8 e 500 caracteres.')
+    const actor=String(payload.actorId||'').trim()
+    if(actor.length<2||actor.length>120)throw Error('Responsável inválido.')
+    const request=String(payload.requestId||'').trim()
+    if(!/^[a-zA-Z0-9_-]{8,100}$/.test(request))throw Error('Identificador de operação inválido.')
+    const hash=sha(JSON.stringify([bank.empresa_id,bank.id,data,saldo,justificativa]))
+    const db=this.db
+    db.exec('BEGIN IMMEDIATE')
+    try{
+      const old=db.prepare('SELECT * FROM finance_bank_manual_balances WHERE request_id=?').get(request)
+      if(old){
+        if(old.request_hash!==hash)throw Error('Identificador de operação reutilizado com dados diferentes.')
+        db.exec('COMMIT')
+        return old
+      }
+      this.p2.assertBalanceReference(bank.empresa_id,data)
+      db.prepare('INSERT INTO finance_bank_manual_balances(empresa_id,conta_bancaria_id,data,saldo_centavos,justificativa,created_by,request_id,request_hash) VALUES (?,?,?,?,?,?,?,?)').run(bank.empresa_id,bank.id,data,saldo,justificativa,actor,request,hash)
+      const saved=db.prepare('SELECT * FROM finance_bank_manual_balances WHERE request_id=?').get(request)
+      db.exec('COMMIT')
+      return saved
+    }catch(error){db.exec('ROLLBACK');throw error}
+  }
   bankInput(payload) {
     const account = this.account(payload.empresaId, payload.contaBancariaId)
     if (!account.ativo) throw new Error('Ative a conta bancária antes de importar.')
@@ -236,6 +272,7 @@ class BankFinanceService {
   inspect(payload) {
     const input = this.bankInput(payload)
     const existingImport = this.db.prepare('SELECT id,created_at FROM extrato_importacoes WHERE conta_bancaria_id=? AND arquivo_sha256=?').get(input.account.id,input.fileHash)
+    const latestManual = this.db.prepare('SELECT data FROM finance_bank_manual_balances WHERE empresa_id=? AND conta_bancaria_id=? ORDER BY data DESC,id DESC LIMIT 1').get(input.account.empresa_id,input.account.id)
     const seen = new Set(), preview = []
     let duplicateCount = 0, importableCount = 0
     for (const row of input.parsed.rows) {
@@ -252,6 +289,8 @@ class BankFinanceService {
       duplicatedFile: !!existingImport, previousImportId: existingImport?.id || null,
       headers: input.parsed.headers, mapping: input.parsed.mapping,
       total: input.parsed.total, importable: importableCount, duplicates: duplicateCount,
+      coveredByManualBalance: latestManual ? input.parsed.rows.filter(row=>row.date<=latestManual.data).length : 0,
+      manualBalanceDate: latestManual?.data || null,
       invalid: input.parsed.invalid.length, invalidRows: input.parsed.invalid.slice(0, 40), preview
     }
   }
