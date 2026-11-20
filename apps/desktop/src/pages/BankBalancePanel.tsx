@@ -3,7 +3,7 @@ import { Button, Card, Empty, ErrorState, Field, Loading } from '../components/u
 import { useAsync } from '../hooks/useAsync'
 
 type ManualBalance={id:number;data:string;saldo_centavos:number;justificativa:string;created_by:string;created_at:string}
-type Props={empresaId:number;contaBancariaId:number;contaNome:string;saldoInicialData:string;ativo:boolean;revision:number;onSaved:()=>void}
+type Props={empresaId:number;contaBancariaId:number;contaNome:string;saldoInicialData:string;ativo:boolean;revision:number;onSaved:(balance:ManualBalance & {conta_bancaria_id:number})=>void}
 const today=()=>{const now=new Date();return [now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-')}
 const money=(cents:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(cents)/100)
 const parseAmount=(value:string)=>{
@@ -34,7 +34,7 @@ export default function BankBalancePanel({empresaId,contaBancariaId,contaNome,sa
    const response=await window.fluxoDre.bancos.recordBalance({empresaId,contaBancariaId,data,saldoCentavos:parseAmount(valor),justificativa:justificativa.trim(),requestId})
    setMessage('Saldo de '+money(response.saldo_centavos)+' registrado em '+response.data+'. O extrato futuro não repetirá este valor.')
    setValor('');setJustificativa('');setRequestId(crypto.randomUUID())
-   setSavedVersion(x=>x+1);onSaved()
+   setSavedVersion(x=>x+1);onSaved(response)
   }catch(err){setError((err as Error).message)}finally{setBusy(false)}
  }
  return <Card className="bank-import-card bank-manual-balance">
