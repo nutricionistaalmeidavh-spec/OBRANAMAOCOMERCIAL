@@ -5,6 +5,8 @@ import { PairingError } from './pairing-service.mjs'
 import { FieldService } from './field-service.mjs'
 import { PlanningService } from './planning-service.mjs'
 import { FinanceService } from './finance-service.mjs'
+import bankFinanceModule from './bank-finance.cjs'
+const { BankFinanceService } = bankFinanceModule
 import { MeasurementService } from './measurement-service.mjs'
 import { ProcurementService } from './procurement-service.mjs'
 import domainCore from './domain-core.cjs'
@@ -305,6 +307,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
   const repositoryDb = repository?.connection?.()
   const compoundDomainReady = !!repositoryDb && typeof repositoryDb.prepare === 'function' && typeof repositoryDb.exec === 'function'
+  const bankFinance = compoundDomainReady ? new BankFinanceService({ db: repositoryDb }) : null
   const measurements = measurementService || (compoundDomainReady ? new MeasurementService({ repository }) : null)
   const procurement = procurementService || (compoundDomainReady ? new ProcurementService({ repository }) : null)
   const receivedNotes = compoundDomainReady ? createReceivedNotesService(repositoryDb) : null
@@ -684,6 +687,147 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const context = await authenticateLanRequest(request, security)
         authorizeAction(context, { domain:'finance', action:'edit' })
         return sendJson(response, 201, contracts.addendum(await readJson(request)))
+      }
+
+      // B1/B2: contas bancárias e extratos, sem criar baixas em contas/pagamentos_conta.
+      if (url.pathname === '/api/v1/finance/bank-accounts') {
+        if (!['GET','POST'].includes(request.method)) return methodNotAllowed(response, ['GET','POST'])
+        if (!bankFinance) return sendJson(response, 503, { error: 'bank_finance_unavailable', message: 'Financeiro bancário indisponível.' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain: 'finance', action: request.method === 'GET' ? 'view' : 'create' })
+        const data = request.method === 'GET' ? bankFinance.listAccounts(Object.fromEntries(url.searchParams.entries())) : bankFinance.saveAccount(await readJson(request))
+        return sendJson(response, request.method === 'GET' ? 200 : 201, data)
+      }
+
+      // Saldo manual absoluto: não cria transação nem pagamento fictício.
+      if (url.pathname === '/api/v1/finance/bank-balances') {
+        if (!['GET','POST'].includes(request.method)) return methodNotAllowed(response,['GET','POST'])
+        if (!bankFinance) return sendJson(response,503,{error:'bank_finance_unavailable'})
+        const actor=await authenticateLanRequest(request,security)
+        authorizeAction(actor,{domain:'finance',action:request.method==='GET'?'view':'approve'})
+        if(request.method==='GET')return sendJson(response,200,bankFinance.listManualBalances(Object.fromEntries(url.searchParams.entries())))
+        const body=await readJson(request)
+        const saved=bankFinance.recordManualBalance({...body,actorId:String(actor.member?.memberId||actor.device?.id||'lan-user')})
+        security?.appendAudit?.({actorMemberId:actor.member?.memberId,actorDeviceId:actor.device?.id,action:'finance_bank_manual_balance',targetType:'bank_account',targetId:String(saved.conta_bancaria_id),details:{empresaId:saved.empresa_id,date:saved.data,balanceId:saved.id}})
+        return sendJson(response,201,saved)
+      }
+
+      const bankAccountMatch = url.pathname.match(/^\/api\/v1\/finance\/bank-accounts\/(\d+)\/?$/)
+      if (bankAccountMatch) {
+        if (request.method !== 'PATCH') return methodNotAllowed(response, ['PATCH'])
+        if (!bankFinance) return sendJson(response, 503, { error: 'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain: 'finance', action: 'edit' })
+        return sendJson(response, 200, bankFinance.saveAccount({ ...await readJson(request), id: Number(bankAccountMatch[1]) }))
+      }
+
+      if (url.pathname === '/api/v1/finance/bank-imports/preview' || url.pathname === '/api/v1/finance/bank-imports/confirm') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!bankFinance) return sendJson(response, 503, { error: 'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain: 'finance', action: url.pathname.endsWith('/confirm') ? 'create' : 'view' })
+        const body = await readJson(request, 6 * 1024 * 1024)
+        return sendJson(response, 200, url.pathname.endsWith('/confirm') ? bankFinance.confirmImport(body) : bankFinance.previewImport(body))
+      }
+
+      if (url.pathname === '/api/v1/finance/bank-imports' || url.pathname === '/api/v1/finance/bank-transactions') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!bankFinance) return sendJson(response, 503, { error: 'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain: 'finance', action: 'view' })
+        const filters = Object.fromEntries(url.searchParams.entries())
+        return sendJson(response, 200, url.pathname.endsWith('/bank-imports') ? bankFinance.listImports(filters) : bankFinance.listTransactions(filters))
+      }
+
+
+      // P1 B4/C2: catálogos do Financeiro e atribuição explícita de banco previsto.
+      if (url.pathname === '/api/v1/finance/works' || url.pathname === '/api/v1/finance/planned-banks') {
+        if (request.method !== 'GET' && !(url.pathname.endsWith('/planned-banks') && request.method === 'POST')) return methodNotAllowed(response, url.pathname.endsWith('/planned-banks') ? ['GET','POST'] : ['GET'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:request.method === 'GET' ? 'view' : 'edit' })
+        if (request.method === 'POST') {
+          const saved = bankFinance.assignPlannedBank(await readJson(request))
+          security?.appendAudit?.({ actorMemberId:actor.member?.memberId, actorDeviceId:actor.device?.id, action:'finance_planned_bank_assigned', targetType:'conta', targetId:String(saved.conta_id), details:{ empresaId:saved.empresa_id, contaBancariaId:saved.conta_bancaria_id } })
+          return sendJson(response, 200, saved)
+        }
+        const filters = Object.fromEntries(url.searchParams.entries())
+        const data = url.pathname.endsWith('/works') ? bankFinance.listWorks(filters) : bankFinance.listPlannedAccounts(filters)
+        return sendJson(response, 200, data)
+      }
+
+      // P0 B3: conciliação auditável de extratos com pagamentos já existentes.
+      if (url.pathname === '/api/v1/finance/bank-reconciliation/suggestions' || url.pathname === '/api/v1/finance/bank-reconciliation') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'view' })
+        const filters = Object.fromEntries(url.searchParams.entries())
+        return sendJson(response, 200, url.pathname.endsWith('/suggestions') ? bankFinance.suggestReconciliation(filters) : bankFinance.listReconciliations(filters))
+      }
+
+      if (url.pathname === '/api/v1/finance/bank-reconciliation/confirm' || url.pathname === '/api/v1/finance/bank-reconciliation/reverse') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'approve' })
+        const body = await readJson(request)
+        // Do not trust a client-supplied audit actor. Bind to authenticated device/member.
+        const payload = { ...body, actorId: String(actor.member?.memberId || actor.device?.id || 'lan-user') }
+        return sendJson(response, 200, url.pathname.endsWith('/reverse') ? bankFinance.reverseReconciliation(payload) : bankFinance.confirmReconciliation(payload))
+      }
+
+      if (url.pathname === '/api/v1/finance/cash-flow') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'view' })
+        return sendJson(response, 200, bankFinance.cashFlow(Object.fromEntries(url.searchParams.entries())))
+      }
+
+
+      // P2: relatórios e simulações servem ao Desktop. Não criam interface Web.
+      if (url.pathname === '/api/v1/finance/bank-period/audit' ||
+          url.pathname === '/api/v1/finance/bank-period/status' ||
+          url.pathname === '/api/v1/finance/bank-period/events' ||
+          url.pathname === '/api/v1/finance/cash-report') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'view' })
+        const args = Object.fromEntries(url.searchParams.entries())
+        const action = url.pathname.split('/').at(-1)
+        const result = action === 'audit' ? bankFinance.auditPeriod(args) :
+          action === 'status' ? bankFinance.periodStatus(args) :
+          action === 'events' ? bankFinance.periodEvents(args) : bankFinance.cashReport(args)
+        return sendJson(response, 200, result)
+      }
+      if (url.pathname === '/api/v1/finance/bank-period/close' ||
+          url.pathname === '/api/v1/finance/bank-period/reopen') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'approve' })
+        const body = await readJson(request)
+        const args = { ...body, actorId:String(actor.member?.memberId || actor.device?.id || 'lan-user') }
+        return sendJson(response, 200, url.pathname.endsWith('/close') ? bankFinance.closePeriod(args) : bankFinance.reopenPeriod(args))
+      }
+      // Desktop C4: o usuário captura explicitamente uma previsão histórica na fonte de dados canônica.
+      if (url.pathname === '/api/v1/finance/forecast-snapshots') {
+        if (!['GET','POST'].includes(request.method)) return methodNotAllowed(response, ['GET','POST'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:request.method==='GET'?'view':'approve' })
+        if (request.method==='GET') return sendJson(response, 200, bankFinance.listForecasts(Object.fromEntries(url.searchParams.entries())))
+        const input=await readJson(request)
+        return sendJson(response, 201, bankFinance.captureForecast({ ...input, actorId:String(actor.member?.memberId || actor.device?.id || 'lan-user') }))
+      }
+      if (url.pathname === '/api/v1/finance/cash-simulate') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:'view' })
+        return sendJson(response, 200, bankFinance.simulateCashFlow(await readJson(request)))
       }
 
       const financePaymentMatch = url.pathname.match(FINANCE_PAYMENT_ROUTE)

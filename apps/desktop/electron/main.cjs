@@ -37,6 +37,7 @@ const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
 const { FinanceSourceService } = require('./services/finance-source-service.cjs')
+const { BankFinanceSourceService } = require('./services/bank-finance-source.cjs')
 const { MeasurementSourceService } = require('./services/measurement-source-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
 const { FieldSourceService } = require('./services/field-source-service.cjs')
@@ -102,6 +103,8 @@ function createServices() {
   const localPlanning = new PlanningService({ db })
   const planning = new PlanningSourceService({ local: localPlanning, lanClient: dataAccess.remote, moduleStorage })
   const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
+  const { BankFinanceService } = require(path.join(path.dirname(resolveLanServerEntry()), 'bank-finance.cjs'))
+  const bankFinance = new BankFinanceSourceService({ local: new BankFinanceService({ db: db.db }), lanClient: dataAccess.remote, moduleStorage })
   const measurements = new MeasurementSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db, dataAccess, lanClient:dataAccess.remote, moduleStorage, storage })
@@ -164,7 +167,7 @@ function createServices() {
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db, moduleStorage }),
     operationalSheet: new OperationalSheetService({ db, moduleStorage, dialog }),
-    works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, measurements,
+    works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, bankFinance, measurements,
     product, uiPreferences, procurement, contracts, demo: new DemoDataService({ db, product }), online, sync
   }
 }
@@ -367,6 +370,31 @@ function registerIpc() {
   ipcMain.handle('contracts:addendum', envelope((payload) => services.contracts.createAddendum(payload)))
   ipcMain.handle('dre:get', envelope((filters) => services.finance.dre(filters)))
   ipcMain.handle('accounts:payment', envelope(({ id, payment }) => services.finance.accountPayment(id, payment)))
+  ipcMain.handle('bank:list', envelope(payload => services.bankFinance.listAccounts(payload)))
+  ipcMain.handle('bank:manual-balances', envelope(payload => services.bankFinance.listManualBalances(payload)))
+  ipcMain.handle('bank:record-balance', envelope(payload => services.bankFinance.recordManualBalance(payload)))
+  ipcMain.handle('bank:save', envelope(payload => services.bankFinance.saveAccount(payload)))
+  ipcMain.handle('bank:preview', envelope(payload => services.bankFinance.previewImport(payload)))
+  ipcMain.handle('bank:confirm', envelope(payload => services.bankFinance.confirmImport(payload)))
+  ipcMain.handle('bank:imports', envelope(payload => services.bankFinance.listImports(payload)))
+  ipcMain.handle('bank:transactions', envelope(payload => services.bankFinance.listTransactions(payload)))
+  ipcMain.handle('bank:suggestions', envelope(payload => services.bankFinance.suggestReconciliation(payload)))
+  ipcMain.handle('bank:reconcile', envelope(payload => services.bankFinance.confirmReconciliation(payload)))
+  ipcMain.handle('bank:reverse', envelope(payload => services.bankFinance.reverseReconciliation(payload)))
+  ipcMain.handle('bank:reconciliations', envelope(payload => services.bankFinance.listReconciliations(payload)))
+  ipcMain.handle('bank:cash-flow', envelope(payload => services.bankFinance.cashFlow(payload)))
+  ipcMain.handle('bank:works', envelope(payload => services.bankFinance.listWorks(payload)))
+  ipcMain.handle('bank:planned', envelope(payload => services.bankFinance.listPlannedAccounts(payload)))
+  ipcMain.handle('bank:assign-plan', envelope(payload => services.bankFinance.assignPlannedBank(payload)))
+  ipcMain.handle('bank:audit', envelope(payload => services.bankFinance.auditPeriod(payload)))
+  ipcMain.handle('bank:period-status', envelope(payload => services.bankFinance.periodStatus(payload)))
+  ipcMain.handle('bank:period-events', envelope(payload => services.bankFinance.periodEvents(payload)))
+  ipcMain.handle('bank:period-close', envelope(payload => services.bankFinance.closePeriod(payload)))
+  ipcMain.handle('bank:period-reopen', envelope(payload => services.bankFinance.reopenPeriod(payload)))
+  ipcMain.handle('bank:simulate-cash', envelope(payload => services.bankFinance.simulateCashFlow(payload)))
+  ipcMain.handle('bank:cash-report', envelope(payload => services.bankFinance.cashReport(payload)))
+  ipcMain.handle('bank:forecast-capture', envelope(payload => services.bankFinance.captureForecast(payload)))
+  ipcMain.handle('bank:forecasts', envelope(payload => services.bankFinance.listForecasts(payload)))
   ipcMain.handle('measurements:save', envelope((payload) => services.measurements.saveWithItems(payload)))
   ipcMain.handle('works:import-spreadsheets', envelope(() => services.workImport.chooseAndImport()))
   ipcMain.handle('files:import-employee', envelope((payload) => services.files.importForEmployee(payload)))
