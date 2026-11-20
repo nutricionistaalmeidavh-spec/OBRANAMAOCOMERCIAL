@@ -37,10 +37,13 @@ type Props = {
   onSaved?:()=>void
   allowTemplate?:boolean
   disabledReason?:string
+  canEditRow?:(row:SheetRow)=>boolean
+  commitLabel?:string
+  commitSuccessMessage?:string
 }
 export default function OperationalSheetGrid({
   title,area,rows,columns,companyId,importArea,filename,onCommit,onRowAction,
-  rowActionLabel='Abrir',onSaved,allowTemplate=false,disabledReason
+  rowActionLabel='Abrir',onSaved,allowTemplate=false,disabledReason,canEditRow,commitLabel='Salvar',commitSuccessMessage
 }:Props) {
   const [drafts,setDrafts]=useState<Record<string,Record<string,string>>>({})
   const [busy,setBusy]=useState(false)
@@ -69,7 +72,7 @@ export default function OperationalSheetGrid({
         const patch={...(next[String(target.id)]||{})}
         line.forEach((value,c)=>{
           const column=columns[columnIndex+c]
-          if(column?.edit)patch[column.key]=value
+          if(column?.edit && (!canEditRow||canEditRow(target)))patch[column.key]=value
         })
         if(Object.keys(patch).length)next[String(target.id)]=patch
       })
@@ -83,7 +86,7 @@ export default function OperationalSheetGrid({
       const selected=view.filter(row=>drafts[String(row.id)])
       await onCommit(selected)
       setDrafts({})
-      setMessage(selected.length+' linha(s) atualizada(s).')
+      setMessage(commitSuccessMessage||selected.length+' linha(s) atualizada(s).')
       onSaved?.()
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível gravar as alterações. Nenhum sucesso foi confirmado.')}
     finally{setBusy(false)}
@@ -119,7 +122,7 @@ export default function OperationalSheetGrid({
     </div>
     <div className="card-body" style={{paddingBottom:8,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
       <input aria-label={'Filtrar '+title} placeholder="Buscar na planilha..." value={filter} onChange={event=>setFilter(event.target.value)} style={{minWidth:220,flex:1,maxWidth:460}}/>
-      {onCommit&&<><Button disabled={!changed||busy||!!disabledReason} onClick={()=>void commit()}><Check size={14}/> {busy?'Salvando...':'Salvar '+changed+' linha(s)'}</Button><Button variant="secondary" disabled={!changed||busy} onClick={()=>{setDrafts({});setError('');setMessage('Alterações descartadas.')}}><RotateCcw size={14}/> Descartar</Button></>}
+      {onCommit&&<><Button disabled={!changed||busy||!!disabledReason} onClick={()=>void commit()}><Check size={14}/> {busy?'Processando...':commitLabel+' '+changed+' linha(s)'}</Button><Button variant="secondary" disabled={!changed||busy} onClick={()=>{setDrafts({});setError('');setMessage('Alterações descartadas.')}}><RotateCcw size={14}/> Descartar</Button></>}
     </div>
     {disabledReason&&<div className="notice" role="status">{disabledReason}</div>}
     {error&&<div className="notice" role="alert">{error}</div>}
@@ -130,7 +133,7 @@ export default function OperationalSheetGrid({
         <tbody>{filtered.map((row,index)=><tr key={row.id}>
           {columns.map((column,colIndex)=>{
             const raw=column.value?column.value(row):row[column.key]
-            const editable=!!onCommit && column.edit && !disabledReason
+            const editable=!!onCommit && column.edit && !disabledReason && (!canEditRow||canEditRow(row))
             return <td key={column.key}>
               {editable && column.kind==='select' ?
                 <select value={textValue(raw)} disabled={busy} onChange={event=>update(row,column.key,event.target.value)} aria-label={column.label+' linha '+(index+1)}>
