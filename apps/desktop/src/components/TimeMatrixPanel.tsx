@@ -19,8 +19,10 @@ function hours(row:SheetRow){
     const [h,m]=t.split(':').map(Number)
     return h*60+m
   })
-  if(values.some(v=>v===null)||values[1]!<values[0]!||values[2]!<values[1]!||values[3]!<values[2]!)return '—'
-  return ((values[1]!-values[0]!+values[3]!-values[2]!)/60).toLocaleString('pt-BR',{maximumFractionDigits:2})
+  if(values.some(v=>v===null))return '—'
+  const [start,morningEnd,afternoonStart,end]=values as number[]
+  if(morningEnd<start||afternoonStart<morningEnd||end<afternoonStart)return '—'
+  return ((morningEnd-start+end-afternoonStart)/60).toLocaleString('pt-BR',{maximumFractionDigits:2})
 }
 const columns:SheetColumn[]=[
   {key:'funcionario_nome',label:'Funcionário',width:220},
