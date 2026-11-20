@@ -60,7 +60,7 @@ export default function SchedulePage() {
       const planned=parseBrDecimal(row.custo_planejado)
       const actual=parseBrDecimal(row.custo_realizado)
       if(planned===null||actual===null||planned<0||actual<0)throw new Error('Custos devem ser números positivos ou zero.')
-      return {id:Number(row.id),updated_at:String(row.updated_at||''),nome:String(row.nome||''),
+      return {id:Number(row.id),revision:row.revision,updated_at:String(row.updated_at||''),nome:String(row.nome||''),
         frente_id:row.frente_id?Number(row.frente_id):null,responsavel:String(row.responsavel||''),
         previsto_inicio:String(row.previsto_inicio||''),previsto_fim:String(row.previsto_fim||''),
         percentual_previsto:row.percentual_previsto,percentual_realizado:row.percentual_realizado,
@@ -70,8 +70,7 @@ export default function SchedulePage() {
     await window.fluxoDre.operationalSheet.p1Commit({area:'cronograma',obraId:Number(work),rows:batch})
     await items.reload();overview.reload();setSheetError('')
   }
-  const sheetDisabled=storagePlanning.data&&!['local','migration-required'].includes(storagePlanning.data.state)
-    ?'Edição coletiva disponível no Desktop local; no servidor utilize a edição individual até homologar a paridade.':undefined
+  const sheetDisabled=storagePlanning.data?.state==='central-ready'?'Planejamento central ainda não ativado. Conclua o assistente de conexão.':undefined
   const isLate = (item:any) => !!item.previsto_fim && item.previsto_fim < today() && Number(item.percentual_realizado || 0) < 100 && item.status !== 'concluida'
   const curveMax = Math.max(1, ...(overview.data?.curve || []).map((item: any) => Math.max(item.previsto_centavos, item.realizado_centavos)))
   return <>
