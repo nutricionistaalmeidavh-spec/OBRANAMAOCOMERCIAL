@@ -47,7 +47,7 @@ async function main(){
  if(overflowBank)throw Error('Overflow horizontal no layout de Contas bancárias com largura mínima Desktop.')
  await page.screenshot({path:path.join(screenshots,'02-bancos-tela-minima.png'),fullPage:true})
  await page.evaluate(()=>{location.hash='#/financeiro/fluxo-caixa'})
- await page.getByText('Fluxo de caixa',{exact:true}).first().waitFor({state:'visible',timeout:30000})
+ await page.getByRole('heading',{name:'Fluxo de caixa',exact:true}).waitFor({state:'visible',timeout:30000})
  await page.getByText('Relatório — previsto × realizado',{exact:true}).waitFor({state:'visible',timeout:30000})
  await page.getByText('Simulador de cenários financeiros',{exact:true}).waitFor({state:'visible',timeout:30000})
  const overflowFlow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+4)
