@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto'
 import path from 'node:path'
 import {LanRepository} from '../src/repository.mjs'
 import {createLanServer} from '../src/server.mjs'
+import {OperationalSheetCentral} from '../src/operational-sheet-service.mjs'
 
 const TOKEN='batch-parity-device'
 const digest=v=>createHash('sha256').update(v).digest('hex')
@@ -151,5 +152,28 @@ test('reenvio de recebimento central é idempotente e não duplica estoque',asyn
   assert.equal(invalid.status,400)
   assert.equal(f.repo.connection().prepare('SELECT COUNT(*) n FROM movimentacoes_estoque').get().n,1)
   assert.equal(f.repo.get('pedido_compra_itens',item.id).quantidade_recebida,4)
+ }finally{await close(f)}
+})
+
+test('auditoria do lote preserva usuário/dispositivo e reverte junto com alteração em caso de falha',async()=>{
+ const f=await setup()
+ try{
+  const db=f.repo.connection()
+  db.exec("CREATE TABLE IF NOT EXISTS audit_test(id INTEGER PRIMARY KEY,member_id TEXT,device_id TEXT,action TEXT)")
+  const sheets=new OperationalSheetCentral({repository:f.repo,audit:(actor,event)=>{
+   db.prepare('INSERT INTO audit_test(member_id,device_id,action) VALUES(?,?,?)')
+     .run(actor.member.memberId,actor.device.id,event.action)
+  }})
+  const actor={member:{memberId:'operator-1'},device:{id:'workstation-4'}}
+  const saved=sheets.commit({area:'tarefas',obraId:f.work.id,
+    rows:[{id:f.task.id,revision:1,responsavel:'Equipe A'}]},actor)
+  assert.equal(saved.updated,1)
+  assert.deepEqual(db.prepare('SELECT member_id,device_id,action FROM audit_test').get(),
+    {member_id:'operator-1',device_id:'workstation-4',action:'operational_sheet.commit'})
+  const auditCount=db.prepare('SELECT COUNT(*) n FROM audit_test').get().n
+  assert.throws(()=>sheets.commit({area:'tarefas',obraId:f.work.id,
+    rows:[{id:f.task.id,revision:2,responsavel:'Equipe B'},{id:999999,revision:1,responsavel:'Inválido'}]},actor))
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM audit_test').get().n,auditCount)
+  assert.equal(f.repo.get('tarefas_obra',f.task.id).responsavel,'Equipe A')
  }finally{await close(f)}
 })
