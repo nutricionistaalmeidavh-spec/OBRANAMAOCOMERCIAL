@@ -28,14 +28,16 @@ export default function FinancePage() {
     {key:'status',label:'Situação'},
     {key:'empresa_nome',label:'Empresa'},
     {key:'obra_nome',label:'Obra'},
-    {key:'categoria_nome',label:'Categoria'}
+    {key:'categoria_nome',label:'Categoria'},
+    {key:'centro_custo',label:'Centro de custo'}
   ]
   const sheetRows:SheetRow[]=rows.map((row:any)=>({
     ...row,
     valor:(Number(row.valor_centavos||0)/100).toFixed(2).replace('.',','),
     empresa_nome:companies.data?.find((c:any)=>c.id===row.empresa_id)?.nome_fantasia||companies.data?.find((c:any)=>c.id===row.empresa_id)?.razao_social||'',
     obra_nome:works.data?.find((w:any)=>w.id===row.obra_id)?.nome||'',
-    categoria_nome:categories.data?.find((c:any)=>c.id===row.categoria_id)?.nome||''
+    categoria_nome:categories.data?.find((c:any)=>c.id===row.categoria_id)?.nome||'',
+    centro_custo:works.data?.find((w:any)=>w.id===row.obra_id)?.centro_custo||'—'
   }))
   const commitSheet=async(changed:SheetRow[])=>{
     const batch=changed.map(row=>{
