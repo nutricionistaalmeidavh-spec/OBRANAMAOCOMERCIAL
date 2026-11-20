@@ -48,6 +48,12 @@ export default function DailyReportPage() {
   const sheetRows=(kind:'equipe'|'equipamentos'):SheetRow[]=>(form[kind]||[]).map((row:any,index:number)=>({...row,id:index+1}))
   const applyRdoSheet=async(kind:'equipe'|'equipamentos',changed:SheetRow[])=>{
     const normalized=await window.fluxoDre.operationalSheet.p2StageRdo({area:kind,rows:changed})
+    for(const row of normalized){
+      if(row.frente_id&&!fronts.data?.some((front:any)=>String(front.id)===String(row.frente_id)&&String(front.obra_id)===String(form.obra_id)))
+        throw new Error('Etapa da equipe/equipamento não pertence à obra selecionada.')
+      if(kind==='equipe'&&row.funcionario_id&&!employees.data?.some((person:any)=>String(person.id)===String(row.funcionario_id)))
+        throw new Error('Funcionário não está disponível no cadastro de RH carregado.')
+    }
     const patches=new Map<number,any>(normalized.map((row:any)=>{const {id,...patch}=row;return [Number(id),patch]}))
     setForm((current:any)=>({...current,[kind]:(current[kind]||[]).map((row:any,index:number)=>({...row,...(patches.get(index+1)||{})}))}))
     setSheetNotice('Alterações aplicadas ao rascunho. Para gravar o diário, clique em Salvar RDO.')
