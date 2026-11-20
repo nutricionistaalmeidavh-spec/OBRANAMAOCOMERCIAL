@@ -14,6 +14,7 @@ let launched
 const today=new Date().toISOString().slice(0,10)
 const reference=today.slice(0,7)+'-01'
 async function main(){
+ try{
  db.open()
  const company=db.save('empresas',{razao_social:'Empresa QA — Financeiro Desktop',nome_fantasia:'Obra QA'})
  const work=db.save('obras',{empresa_id:company.id,nome:'Obra Demonstrativa',codigo:'QA-P2'})
@@ -63,5 +64,6 @@ async function main(){
  try{await launched?.close()}catch{}
  try{db.close()}catch{}
  fs.rmSync(dataDir,{recursive:true,force:true})
+ }
 }
 main().catch(e=>{console.error(e);process.exitCode=1})
