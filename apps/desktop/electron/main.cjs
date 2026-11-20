@@ -165,9 +165,9 @@ function createServices() {
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
     universalImport: new UniversalImportService({ db, moduleStorage }),
-    operationalSheet: new OperationalSheetService({ db, moduleStorage, dialog }),
-    operationalSheetP1: new OperationalSheetP1Service({db,moduleStorage,timeService:localTime}),
-    operationalSheetP2: new OperationalSheetP2Service({db,moduleStorage}),
+    operationalSheet: new OperationalSheetService({ db, moduleStorage, dialog,lanClient:dataAccess.remote }),
+    operationalSheetP1: new OperationalSheetP1Service({db,moduleStorage,timeService:localTime,lanClient:dataAccess.remote}),
+    operationalSheetP2: new OperationalSheetP2Service({db,moduleStorage,lanClient:dataAccess.remote}),
     works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, measurements,
     product, uiPreferences, procurement, contracts, demo: new DemoDataService({ db, product }), online, sync
   }
