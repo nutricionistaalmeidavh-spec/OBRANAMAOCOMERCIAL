@@ -1,4 +1,6 @@
 'use strict'
+const {localFinanceActor}=require('./desktop-finance-identity.cjs')
+const AUDITED_OPERATIONS=new Set(['confirmReconciliation','reverseReconciliation','closePeriod','reopenPeriod','captureForecast'])
 
 // One domain service for both local SQLite and the Obra na Mão Server.
 // Never fall back to a local write when the finance module is server-owned.
@@ -23,18 +25,23 @@ const METHODS = Object.freeze({
   closePeriod: 'bankPeriodClose',
   reopenPeriod: 'bankPeriodReopen',
   simulateCashFlow: 'bankSimulateCash',
-  cashReport: 'bankCashReport'
+  cashReport: 'bankCashReport',
+  captureForecast: 'bankCaptureForecast',
+  listForecasts: 'bankListForecasts'
 })
 class BankFinanceSourceService {
-  constructor({ local, lanClient, moduleStorage }) {
+  constructor({ local, lanClient, moduleStorage, actorProvider=localFinanceActor }) {
     this.local = local
     this.lanClient = lanClient
     this.moduleStorage = moduleStorage
+    this.actorProvider = actorProvider
   }
   call(method, payload) {
     const state = this.moduleStorage.state('finance').state
-    if (state === 'local' || state === 'migration-required') return this.local[method](payload)
-    if (state === 'central-active') return this.lanClient[METHODS[method]](payload)
+    const safePayload=AUDITED_OPERATIONS.has(method)?{...payload}:payload
+    if(AUDITED_OPERATIONS.has(method))delete safePayload.actorId // Nunca confiar no renderer para auditoria
+    if (state === 'local' || state === 'migration-required') return this.local[method](AUDITED_OPERATIONS.has(method)?{...safePayload,actorId:this.actorProvider()}:safePayload)
+    if (state === 'central-active') return this.lanClient[METHODS[method]](safePayload)
     throw new Error('Financeiro central indisponível. Nenhum dado foi gravado localmente.')
   }
   listAccounts(payload) { return this.call('listAccounts', payload) }
@@ -58,5 +65,7 @@ class BankFinanceSourceService {
   reopenPeriod(payload) { return this.call('reopenPeriod', payload) }
   simulateCashFlow(payload) { return this.call('simulateCashFlow', payload) }
   cashReport(payload) { return this.call('cashReport', payload) }
+  captureForecast(payload) { return this.call('captureForecast', payload) }
+  listForecasts(payload) { return this.call('listForecasts', payload) }
 }
 module.exports = { BankFinanceSourceService }
