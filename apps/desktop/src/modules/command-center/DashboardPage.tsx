@@ -9,6 +9,7 @@ import {
 import { Card, Empty, ErrorState, Loading } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
 import { brl, competenceLabel } from '../../utils/format'
+import BankQuickSummary from '../../pages/BankQuickSummary'
 
 const percentage = (value: number, total: number) => total > 0 ? Math.max(0, Math.min(100, (value / total) * 100)) : 0
 
@@ -31,6 +32,7 @@ export default function DashboardPage() {
         <button className="icon-button command-refresh" onClick={reload} title="Atualizar dados" aria-label="Atualizar dados"><RefreshCw size={16}/></button>
       </div>
     </header>
+    <BankQuickSummary empresaId={empresaId}/>
 
     {loading ? <Card><Loading/></Card> : error ? <Card><ErrorState error={error} retry={reload}/></Card> : data && <>
       <div className="command-kpi-grid">
