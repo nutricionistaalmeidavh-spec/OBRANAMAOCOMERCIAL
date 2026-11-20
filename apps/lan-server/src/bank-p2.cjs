@@ -1,4 +1,5 @@
 'use strict'
+const {createHash}=require('node:crypto')
 const month=v=>{const s=String(v||'');if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(s))throw Error('Período inválido: AAAA-MM.');return s}
 const date=v=>{const s=String(v||'');const d=new Date(s+'T00:00:00.000Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||!Number.isFinite(d.getTime())||d.toISOString().slice(0,10)!==s)throw Error('Data inválida.');return s}
 const uid=(v,label)=>{const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw Error(label+' inválido.');return n}
@@ -108,8 +109,48 @@ class BankP2Service{
   })
   return{empresaId:id,asOf:base.asOf,horizonDays:base.horizonDays,baseEndCents:base.projectedEndCents,projectedEndCents:balance,deltaCents:balance-base.projectedEndCents,projectedReceivablesCents:incoming,projectedPayablesCents:outgoing,negativeDays,days,simulatedOnly:true,notes:['Cenário temporário: nenhuma obrigação, extrato ou pagamento foi modificado.']}
  }
- cashReport({empresaId,asOf,horizonDays=30,contaBancariaId,obraId}={}){
+
+ forecastRow(row){
+  const data=JSON.parse(row.snapshot_json)
+  return{id:row.id,empresaId:row.empresa_id,asOf:row.as_of,horizonDays:row.horizon_days,contaBancariaId:row.conta_bancaria_id,obraId:row.obra_id,createdAt:row.created_at,createdBy:row.created_by,status:'frozen',summary:data.summary,days:data.days}
+ }
+ listForecasts({empresaId,asOf,horizonDays,contaBancariaId,obraId}={}){
+  const id=this.p0.company(empresaId)
+  const where=['empresa_id=?'],args=[id]
+  if(asOf!==undefined&&asOf!==''){where.push('as_of=?');args.push(date(asOf))}
+  if(horizonDays!==undefined&&horizonDays!==''){const horizon=Number(horizonDays);if(![30,60,90].includes(horizon))throw Error('Horizonte de previsão inválido.');where.push('horizon_days=?');args.push(horizon)}
+  if(contaBancariaId!==undefined&&contaBancariaId!==''){where.push('conta_bancaria_id=?');args.push(this.p0.bankAccount(id,contaBancariaId).id)}
+  if(obraId!==undefined&&obraId!==''){where.push('obra_id=?');args.push(this.p0.work(id,obraId))}
+  return this.db.prepare('SELECT * FROM finance_bank_forecast_snapshots WHERE '+where.join(' AND ')+' ORDER BY id DESC LIMIT 200').all(...args).map(r=>this.forecastRow(r))
+ }
+ captureForecast({empresaId,asOf,horizonDays=30,contaBancariaId,obraId,requestId,actorId}={}){
+  const id=this.p0.company(empresaId),request=String(requestId||'').trim(),who=actor(actorId)
+  if(!/^[a-zA-Z0-9_-]{8,100}$/.test(request))throw Error('Identificador de previsão inválido.')
+  const flow=this.p0.cashFlow({empresaId:id,asOf,horizonDays,contaBancariaId,obraId})
+  const content={summary:{plannedInCents:flow.projectedReceivablesCents,plannedOutCents:flow.projectedPayablesCents,projectedEndCents:flow.projectedEndCents},days:flow.days.map(x=>({date:x.date,plannedInCents:x.projectedInCents,plannedOutCents:x.projectedOutCents,plannedBalanceCents:x.projectedBalanceCents}))}
+  const hash=createHash('sha256').update(JSON.stringify([id,flow.asOf,flow.horizonDays,flow.contaBancariaId,flow.obraId,content])).digest('hex')
+  const db=this.db;db.exec('BEGIN IMMEDIATE')
+  try{
+   const prev=db.prepare('SELECT * FROM finance_bank_forecast_snapshots WHERE request_id=?').get(request)
+   if(prev){
+    if(prev.scope_hash!==hash)throw Error('Identificador da previsão já utilizado com conteúdo diferente.')
+    const result=this.forecastRow(prev);db.exec('COMMIT');return result
+   }
+   db.prepare('INSERT INTO finance_bank_forecast_snapshots(empresa_id,as_of,horizon_days,conta_bancaria_id,obra_id,request_id,scope_hash,created_by,snapshot_json) VALUES(?,?,?,?,?,?,?,?,?)').run(id,flow.asOf,flow.horizonDays,flow.contaBancariaId,flow.obraId,request,hash,who,JSON.stringify(content))
+   const row=db.prepare('SELECT * FROM finance_bank_forecast_snapshots WHERE request_id=?').get(request)
+   const result=this.forecastRow(row);db.exec('COMMIT');return result
+  }catch(e){try{db.exec('ROLLBACK')}catch{};throw e}
+ }
+
+ cashReport({empresaId,asOf,horizonDays=30,contaBancariaId,obraId,snapshotId}={}){
   const flow=this.p0.cashFlow({empresaId,asOf,horizonDays,contaBancariaId,obraId}),id=flow.empresaId
+  let historical=null
+  if(snapshotId!==undefined && snapshotId!==null && snapshotId!==''){
+   const row=this.db.prepare('SELECT * FROM finance_bank_forecast_snapshots WHERE id=? AND empresa_id=?').get(uid(snapshotId,'Previsão'),id)
+   if(!row)throw Error('Previsão histórica não encontrada nesta empresa.')
+   historical=this.forecastRow(row)
+   if(historical.asOf!==flow.asOf||historical.horizonDays!==flow.horizonDays||historical.contaBancariaId!==flow.contaBancariaId||historical.obraId!==flow.obraId)throw Error('A previsão histórica não corresponde aos filtros selecionados.')
+  }
   const start=flow.days[0].date,end=flow.days[flow.days.length-1].date
   let sql,args
   if(flow.obraId!==null){
@@ -119,14 +160,14 @@ class BankP2Service{
   if(flow.contaBancariaId!==null){sql+=" AND t.conta_bancaria_id=?";args.push(flow.contaBancariaId)}
   const byDate=new Map()
   for(const tx of this.db.prepare(sql).all(...args)){const x=byDate.get(tx.data)||{in:0,out:0};x.in+=Math.max(0,Number(tx.valor_centavos));x.out+=Math.max(0,-Number(tx.valor_centavos));byDate.set(tx.data,x)}
-  const days=flow.days.map(x=>{const a=byDate.get(x.date)||{in:0,out:0};return{date:x.date,plannedInCents:x.projectedInCents,plannedOutCents:x.projectedOutCents,actualInCents:a.in,actualOutCents:a.out,plannedBalanceCents:x.projectedBalanceCents}})
+  const days=flow.days.map((x,i)=>{const a=byDate.get(x.date)||{in:0,out:0},planned=historical?.days[i]||{plannedInCents:x.projectedInCents,plannedOutCents:x.projectedOutCents,plannedBalanceCents:x.projectedBalanceCents};return{date:x.date,plannedInCents:planned.plannedInCents,plannedOutCents:planned.plannedOutCents,actualInCents:a.in,actualOutCents:a.out,plannedBalanceCents:planned.plannedBalanceCents}})
   const audit=this.auditPeriod({empresaId:id,period:flow.asOf.slice(0,7),contaBancariaId:flow.contaBancariaId||undefined,obraId:flow.obraId||undefined})
   const alerts=[]
   if(flow.negativeDays)alerts.push({kind:'negative_cash',message:'Saldo previsto negativo em '+flow.negativeDays+' dia(s).'})
   if(flow.overdueObligations)alerts.push({kind:'overdue',message:flow.overdueObligations+' obrigação(ões) vencida(s).'})
   if(flow.unassignedObligations)alerts.push({kind:'unassigned_bank',message:flow.unassignedObligations+' obrigação(ões) sem banco planejado.'})
   if(audit.unreconciledCents)alerts.push({kind:'unreconciled',message:'Extrato com '+audit.pendingTransactions+' pendente(s) e '+audit.partialTransactions+' parcial(is) no mês de referência.'})
-  return{empresaId:id,asOf:flow.asOf,horizonDays:flow.horizonDays,obraId:flow.obraId,contaBancariaId:flow.contaBancariaId,summary:{plannedInCents:flow.projectedReceivablesCents,plannedOutCents:flow.projectedPayablesCents,actualInCents:days.reduce((s,x)=>s+x.actualInCents,0),actualOutCents:days.reduce((s,x)=>s+x.actualOutCents,0),projectedEndCents:flow.projectedEndCents},alerts,days,limitations:['Previsto calculado com obrigações atuais; não é orçamento histórico imutável.','Realizado depende da completude dos extratos importados.']}
+  return{empresaId:id,asOf:flow.asOf,horizonDays:flow.horizonDays,obraId:flow.obraId,contaBancariaId:flow.contaBancariaId,forecastMode:historical?'frozen':'current_recalculated',forecastSnapshotId:historical?.id||null,forecastCapturedAt:historical?.createdAt||null,forecastCreatedBy:historical?.createdBy||null,summary:{plannedInCents:historical?.summary.plannedInCents??flow.projectedReceivablesCents,plannedOutCents:historical?.summary.plannedOutCents??flow.projectedPayablesCents,actualInCents:days.reduce((s,x)=>s+x.actualInCents,0),actualOutCents:days.reduce((s,x)=>s+x.actualOutCents,0),projectedEndCents:historical?.summary.projectedEndCents??flow.projectedEndCents},alerts,days,limitations:[historical?'Previsto preservado como fotografia imutável do planejamento; realizado atualizado pelos extratos atuais.':'Previsto reconstituído com obrigações atuais; salve uma previsão para comparativo histórico.','Realizado depende da completude dos extratos importados.']}
  }
 }
 module.exports={BankP2Service,month}
