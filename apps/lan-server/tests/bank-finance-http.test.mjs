@@ -34,6 +34,18 @@ test('HTTP B1/B2 exige autenticação e persiste extrato no banco LAN sem baixar
     assert.ok(bank.id>0)
     const list=await send('/api/v1/finance/bank-accounts?empresaId='+company.id)
     assert.equal((await list.json()).length,1)
+    const deniedBalance=await fetch(base+'/api/v1/finance/bank-balances?empresaId='+company.id+'&contaBancariaId='+bank.id)
+    assert.equal(deniedBalance.status,401)
+    const manual=await send('/api/v1/finance/bank-balances','POST',{
+      empresaId:company.id,contaBancariaId:bank.id,data:'2026-11-18',
+      saldoCentavos:60000,justificativa:'Conferência bancária pelo gestor',
+      actorId:'cliente-falsificado',requestId:'http-manual-check-001'
+    })
+    assert.equal(manual.status,201)
+    const registered=await manual.json()
+    assert.equal(registered.created_by,'m1','ator vem da sessão autenticada e não do cliente')
+    const manualList=await send('/api/v1/finance/bank-balances?empresaId='+company.id+'&contaBancariaId='+bank.id)
+    assert.equal((await manualList.json()).length,1)
     const payload={
       empresaId:company.id,contaBancariaId:bank.id,fileName:'novembro.csv',format:'csv',
       contentBase64:Buffer.from('Data;Descricao;Valor\n18/11/2026;Pagamento;-25,90\n').toString('base64')
@@ -42,9 +54,13 @@ test('HTTP B1/B2 exige autenticação e persiste extrato no banco LAN sem baixar
     assert.equal(previewResponse.status,200)
     const preview=await previewResponse.json()
     assert.equal(preview.importable,1)
+    assert.equal(preview.coveredByManualBalance,1,'extrato retroativo fica disponível sem contaminar o saldo')
     const confirmation=await send('/api/v1/finance/bank-imports/confirm','POST',{...payload,previewHash:preview.previewHash})
     assert.equal(confirmation.status,200)
     assert.equal((await confirmation.json()).imported,1)
+    const cashResponse=await send('/api/v1/finance/cash-flow?empresaId='+company.id+'&asOf=2026-11-18&horizonDays=30')
+    assert.equal(cashResponse.status,200)
+    assert.equal((await cashResponse.json()).realizedCents,60000,'saldo manual não recebe débito importado da mesma data')
     const movements=await send('/api/v1/finance/bank-transactions?empresaId='+company.id+'&contaBancariaId='+bank.id)
     assert.equal((await movements.json()).length,1)
     assert.equal(repository.connection().prepare('SELECT COUNT(*) n FROM contas').get().n,0)
