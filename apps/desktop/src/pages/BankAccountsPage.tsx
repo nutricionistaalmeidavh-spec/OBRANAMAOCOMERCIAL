@@ -7,7 +7,7 @@ import BankPeriodAuditPanel from './BankPeriodAuditPanel'
 import BankBalancePanel from './BankBalancePanel'
 import './BankAccountsPage.css'
 
-type Bank = { id:number; empresa_id:number; nome:string; banco_nome:string; agencia?:string; conta_identificador?:string; tipo_conta:string; saldo_inicial_centavos:number; saldo_referencia_data:string; ativo:number }
+type Bank = { id:number; empresa_id:number; nome:string; banco_nome:string; agencia?:string; conta_identificador?:string; tipo_conta:string; saldo_inicial_centavos:number; saldo_referencia_data:string; saldo_manual_data?:string|null; saldo_manual_centavos?:number|null; ativo:number }
 type MovementFilter = { status:'all'|'pending'|'partial'|'reconciled'; obraId:string;startDate:string;endDate:string;search:string }
 const blankFilter = ():MovementFilter=>({ status:'all',obraId:'',startDate:'',endDate:'',search:'' })
 type PreviewRow = { line:number; date:string; description:string; amountCents:number; duplicate:boolean }
@@ -192,7 +192,7 @@ export default function BankAccountsPage(){
     {banks.loading?<Loading label="Carregando contas bancárias..."/>:banks.error?<ErrorState error={banks.error} retry={banks.reload}/>:!banks.data?.length?<Card><Empty title="Nenhuma conta bancária cadastrada" description="Adicione a conta usada pela empresa para começar a importar extratos."/></Card>:<>
       <div className="bank-card-grid">
         {banks.data.map(bank=><button type="button" className={'bank-account-card'+(bankId===String(bank.id)?' selected':'')} key={bank.id} onClick={()=>changeAccount(String(bank.id))} aria-pressed={bankId===String(bank.id)}>
-          <Landmark size={21}/><strong>{bank.nome}</strong><span>{bank.banco_nome} · {mask(bank.conta_identificador)}</span><small>Saldo de referência: {money(bank.saldo_inicial_centavos)} em {displayDate(bank.saldo_referencia_data)}</small><small>{bank.ativo?'Ativa':'Inativa'}</small>
+          <Landmark size={21}/><strong>{bank.nome}</strong><span>{bank.banco_nome} · {mask(bank.conta_identificador)}</span><small>{bank.saldo_manual_data?'Último saldo conferido: ':'Saldo inicial: '}{money(bank.saldo_manual_data?Number(bank.saldo_manual_centavos):bank.saldo_inicial_centavos)} em {displayDate(bank.saldo_manual_data||bank.saldo_referencia_data)}</small><small>{bank.ativo?'Ativa':'Inativa'}</small>
         </button>)}
       </div>
       {selected&&tab==='contas'&&<div className="bank-card-actions bank-account-actions"><Button variant="secondary" type="button" onClick={editSelected} disabled={working}>Editar conta</Button><Button variant="secondary" type="button" onClick={()=>void toggleSelected()} disabled={working}>{selected.ativo?'Desativar':'Ativar'}</Button></div>}
