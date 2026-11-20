@@ -72,12 +72,12 @@ export default function OperationalSheetGrid({
     const matrix=pasteCells(event.clipboardData.getData('text/plain'))
     if(matrix.length===1&&matrix[0].length===1)return
     event.preventDefault()
-    const rowIndex=view.findIndex(item=>item.id===row.id)
+    const rowIndex=filtered.findIndex(item=>item.id===row.id)
     if(rowIndex<0)return
     setDrafts(current=>{
       const next={...current}
-      matrix.slice(0,Math.max(0,view.length-rowIndex)).forEach((line,r)=>{
-        const target=view[rowIndex+r]
+      matrix.slice(0,Math.max(0,filtered.length-rowIndex)).forEach((line,r)=>{
+        const target=filtered[rowIndex+r]
         const patch={...(next[String(target.id)]||{})}
         line.forEach((value,c)=>{
           const column=columns[columnIndex+c]
