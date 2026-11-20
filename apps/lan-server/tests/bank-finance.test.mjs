@@ -152,9 +152,9 @@ test('B4 pagina mais de 500 movimentações sem duplicar nem omitir registros na
  const f=fixture()
  try{
   const bank=account(f.service)
-  const insert=f.db.prepare('INSERT INTO transacoes_bancarias(empresa_id,conta_bancaria_id,importacao_id,data,descricao,valor_centavos,origem_identificador,fingerprint,created_at) VALUES(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)')
-  const imp=f.db.prepare("INSERT INTO extrato_importacoes(empresa_id,conta_bancaria_id,nome_arquivo,arquivo_sha256,formato,linhas_total,importadas,duplicadas,rejeitadas) VALUES(?,?,'mass.csv','paginacao-mass','csv',505,505,0,0)").run(1,bank.id)
-  for(let i=0;i<505;i++)insert.run(1,bank.id,Number(imp.lastInsertRowid),'2026-11-18','Lançamento '+i,-(100+i),'mass-'+i,'mass-'+i)
+  const insert=f.db.prepare('INSERT INTO transacoes_bancarias(empresa_id,conta_bancaria_id,importacao_id,chave_transacao,data,descricao,valor_centavos,origem_identificador,created_at) VALUES(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)')
+  const imp=f.db.prepare("INSERT INTO extrato_importacoes(empresa_id,conta_bancaria_id,nome_arquivo,arquivo_sha256,formato,total_linhas,importadas,duplicadas,rejeitadas) VALUES(?,?,'mass.csv','paginacao-mass','csv',505,505,0,0)").run(1,bank.id)
+  for(let i=0;i<505;i++)insert.run(1,bank.id,Number(imp.lastInsertRowid),'mass-'+i,'2026-11-18','Lançamento '+i,-(100+i),'mass-'+i)
   const first=f.service.listTransactions({empresaId:1,contaBancariaId:bank.id,limit:500,offset:0})
   const next=f.service.listTransactions({empresaId:1,contaBancariaId:bank.id,limit:500,offset:500})
   assert.equal(first.length,500);assert.equal(next.length,5)
