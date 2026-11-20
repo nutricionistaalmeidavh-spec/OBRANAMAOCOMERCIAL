@@ -66,6 +66,15 @@ function fixture(rows: any[][], area = 'financeiro', foreignWork = false) {
 }
 
 describe('segurança da importação universal', () => {
+  it('impede importação local de dados centrais sem fallback silencioso', () => {
+    const { service, db }=fixture([['Conta',10]])
+    service.moduleStorage={state:()=>({state:'central-active'})}
+    expect(()=>service.assertLocalArea('financeiro')).toThrow(/servidor central/i)
+    expect(db.save).not.toHaveBeenCalled()
+    service.moduleStorage={state:()=>({state:'local'})}
+    expect(()=>service.assertLocalArea('financeiro')).not.toThrow()
+  })
+
   it('exige escolha explícita de empresa existente na prévia e no commit, sem criar empresa', async () => {
     const { service, db, options } = fixture([['Conta', 10]])
     await expect(service.preview('arquivo', { ...options, companyId: undefined })).rejects.toThrow(/empresa/i)

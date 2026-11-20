@@ -32,6 +32,7 @@ const { ReceiptPolicyService } = require('./services/receipt-policy-service.cjs'
 const { ScannerService } = require('./services/scanner-service.cjs')
 const { WorkImportService } = require('./services/work-import-service.cjs')
 const { UniversalImportService } = require('./services/universal-import-service.cjs')
+const { OperationalSheetService } = require('./services/operational-sheet-service.cjs')
 const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
@@ -161,7 +162,8 @@ function createServices() {
     time, receiptPolicy: new ReceiptPolicyService({ dataAccess }),
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
-    universalImport: new UniversalImportService({ db }),
+    universalImport: new UniversalImportService({ db, moduleStorage }),
+    operationalSheet: new OperationalSheetService({ db, moduleStorage, dialog }),
     works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, measurements,
     product, uiPreferences, procurement, contracts, demo: new DemoDataService({ db, product }), online, sync
   }
@@ -338,6 +340,9 @@ function registerIpc() {
   ipcMain.handle('lan:refresh-identity', envelope(() => services.lanSetup.refreshIdentity()))
   ipcMain.handle('lan:start-at-login-state', envelope(() => ({ enabled: app.getLoginItemSettings().openAtLogin === true })))
   ipcMain.handle('lan:set-start-at-login', envelope(({ enabled }) => { app.setLoginItemSettings({ openAtLogin: enabled === true }); return { enabled: app.getLoginItemSettings().openAtLogin === true } }))
+  ipcMain.handle('operational-sheet:commit', envelope((payload) => services.operationalSheet.commit(payload)))
+  ipcMain.handle('operational-sheet:export', envelope((payload) => services.operationalSheet.exportFile(payload)))
+  ipcMain.handle('operational-sheet:load-note-items', envelope(() => services.operationalSheet.loadNoteItems()))
   ipcMain.handle('entity:list', envelope(({ table, filters }) => services.dataAccess.list(table, filters)))
   ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))
   ipcMain.handle('entity:save', envelope(({ table, data }) => services.dataAccess.save(table, data)))
@@ -356,6 +361,7 @@ function registerIpc() {
   ipcMain.handle('procurement:summary', envelope(({ obra_id }) => services.procurement.summary(obra_id)))
   ipcMain.handle('procurement:create-order', envelope((payload) => services.procurement.createOrder(payload)))
   ipcMain.handle('procurement:receive-material', envelope((payload) => services.procurement.receiveMaterial(payload)))
+  ipcMain.handle('procurement:receive-many', envelope((payload) => services.procurement.receiveMany(payload)))
   ipcMain.handle('procurement:move-stock', envelope((payload) => services.procurement.moveStock(payload)))
   ipcMain.handle('contracts:create', envelope((payload) => services.contracts.createReceivable(payload)))
   ipcMain.handle('contracts:addendum', envelope((payload) => services.contracts.createAddendum(payload)))
