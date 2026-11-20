@@ -51,6 +51,27 @@ class ProcurementService {
     })()
   }
 
+  receiveMany(payload={}) {
+    const items=payload.items
+    if(!Array.isArray(items)||items.length===0||items.length>100)throw new Error('Selecione de 1 a 100 itens para recebimento em lote.')
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(payload.data||'')))throw new Error('Informe uma data válida.')
+    const seen=new Set()
+    for(const item of items){
+      const id=Number(item.pedido_item_id)
+      const quantity=Number(item.quantidade_recebida)
+      if(!Number.isSafeInteger(id)||id<=0||!Number.isFinite(quantity)||quantity<=0)throw new Error('Item e quantidade recebida devem ser válidos.')
+      if(seen.has(id))throw new Error('Item duplicado no recebimento em lote: #'+id)
+      seen.add(id)
+    }
+    return this.db.db.transaction(()=>{
+      const saved=items.map(item=>this.receiveMaterial({
+        pedido_item_id:Number(item.pedido_item_id),quantidade_recebida:Number(item.quantidade_recebida),
+        data:payload.data,nota_fiscal:payload.nota_fiscal||null,observacoes:payload.observacoes||null
+      }))
+      return {received:saved.length,ids:saved.map(item=>item.id)}
+    })()
+  }
+
   moveStock(payload) {
     const quantity = Number(payload.quantidade)
     if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade valida.')

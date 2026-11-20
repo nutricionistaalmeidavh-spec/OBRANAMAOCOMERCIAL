@@ -1,4 +1,6 @@
-import { FilePlus, Plus, Trash2 } from 'lucide-react'
+import { FilePlus, Plus, Trash2, FileSpreadsheet } from 'lucide-react'
+import OperationalSheetGrid, { type SheetColumn, type SheetRow } from './OperationalSheetGrid'
+import {parseBrDecimal,requirePositiveQuantity} from '../utils/operational-sheet'
 import ReceivedCostsReport from './ReceivedCostsReport'
 import { FormEvent, useMemo, useState } from 'react'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal } from './ui'
@@ -17,6 +19,8 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
   const [notice,setNotice]=useState('')
   const [pendingAttachment,setPendingAttachment]=useState<number|null>(null)
   const [reportRevision,setReportRevision]=useState(0)
+  const [itemGrid,setItemGrid]=useState(false)
+  const [itemImportBusy,setItemImportBusy]=useState(false)
   const works=useAsync(()=>obraId?window.fluxoDre.obras.list():Promise.resolve([]),[obraId])
   const work=works.data?.find((item:any)=>Number(item.id)===obraId)
   const suppliers=useAsync(()=>window.fluxoDre.fornecedores.list(),[])
@@ -28,7 +32,43 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
   const notes=useAsync(()=>obraId?window.fluxoDre.compras.notas.list(obraId):Promise.resolve([]),[obraId])
   const summary=useAsync(()=>obraId?window.fluxoDre.compras.notas.summary(obraId):Promise.resolve({etapas:[],total_centavos:0}),[obraId])
 
-  const amount=useMemo(()=>(form?.itens||[]).reduce((sum,item)=>sum+Number(item.quantidade||0)*toCents(item.valor_unitario||'0'),0),[form])
+  const noteCents=(value:unknown)=>Math.round((parseBrDecimal(value)||0)*100)
+  const amount=useMemo(()=>(form?.itens||[]).reduce((sum,item)=>sum+(parseBrDecimal(item.quantidade)||0)*noteCents(item.valor_unitario||'0'),0),[form])
+  const sheetRows:SheetRow[]=(form?.itens||[]).map((item,index)=>({id:index+1,...item}))
+  const sheetColumns:SheetColumn[]=[
+    {key:'descricao',label:'Material ou serviço',edit:true,width:210},
+    {key:'quantidade',label:'Quantidade',edit:true,kind:'decimal'},
+    {key:'unidade',label:'Unidade',edit:true},
+    {key:'valor_unitario',label:'Preço unitário',edit:true,kind:'money'},
+    {key:'frente_id',label:'Etapa',edit:true,kind:'select',options:[{value:'',label:'Sem etapa'},...(stages.data||[]).map((r:any)=>({value:String(r.id),label:r.nome}))]},
+    {key:'subfrente_id',label:'Subetapa',edit:true,kind:'select',options:[{value:'',label:'Sem subetapa'},...(substages.data||[]).map((r:any)=>({value:String(r.id),label:r.nome}))]},
+    {key:'total_linha',label:'Total em reais',value:r=>((parseBrDecimal(r.quantidade)||0)*(parseBrDecimal(r.valor_unitario)||0)).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+  ]
+  const applySheet=async(changed:SheetRow[])=>{
+    const patches=new Map<number,Partial<NoteItem>>()
+    for(const row of changed){
+      const qty=requirePositiveQuantity(row.quantidade)
+      const price=parseBrDecimal(row.valor_unitario)
+      if(!String(row.descricao||'').trim()||price===null||price<0)throw new Error('Descrição e preço unitário devem ser válidos.')
+      const front=String(row.frente_id||''),sub=String(row.subfrente_id||'')
+      if(sub&&!substages.data?.some((value:any)=>String(value.id)===sub&&String(value.frente_id)===front))throw new Error('Subetapa incompatível com a etapa.')
+      patches.set(Number(row.id),{descricao:String(row.descricao),quantidade:String(qty),unidade:String(row.unidade||'un'),valor_unitario:String(row.valor_unitario),frente_id:front,subfrente_id:sub})
+    }
+    setForm(current=>current?{...current,itens:current.itens.map((item,index)=>({...item,...(patches.get(index+1)||{})}))}:null)
+  }
+  const importItems=async()=>{
+    setItemImportBusy(true);setError('')
+    try{
+      const loaded=await window.fluxoDre.operationalSheet.loadNoteItems()
+      if(!loaded?.rows?.length)return
+      const newItems:NoteItem[]=loaded.rows.map(row=>({...row,frente_id:'',subfrente_id:'',pedido_item_id:''}))
+      setForm(current=>current?{...current,itens:newItems}:null)
+      setNotice(newItems.length+' itens importados para revisão; a nota ainda não foi gravada.')
+      setItemGrid(true)
+    }catch(error){setError(error instanceof Error?error.message:'Não foi possível ler os itens da planilha.')}
+    finally{setItemImportBusy(false)}
+  }
+
   function itemChange(index:number,patch:Partial<NoteItem>){
     setForm(current=>{
       if(!current) return null
@@ -37,6 +77,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
     })
   }
   function open(){
+    setItemGrid(false)
     setError('')
     setForm(blank())
   }
@@ -52,13 +93,19 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
         pedido_compra_id:form.pedido_compra_id?Number(form.pedido_compra_id):null,
         conta_id:form.conta_id?Number(form.conta_id):null,
         observacoes:form.observacoes,valor_total_centavos:Math.round(amount),
-        itens:form.itens.map(item=>({
-          descricao:item.descricao.trim(),quantidade:Number(item.quantidade),unidade:item.unidade.trim(),
-          valor_unitario_centavos:toCents(item.valor_unitario||'0'),
-          frente_id:item.frente_id?Number(item.frente_id):null,
-          subfrente_id:item.subfrente_id?Number(item.subfrente_id):null,
-          pedido_item_id:item.pedido_item_id?Number(item.pedido_item_id):null
-        }))
+        itens:form.itens.map((item,index)=>{
+          const unit=parseBrDecimal(item.valor_unitario)
+          if(unit===null||unit<0)throw new Error('Preço unitário inválido no item '+(index+1)+'.')
+          const description=item.descricao.trim()
+          if(!description)throw new Error('Descrição obrigatória no item '+(index+1)+'.')
+          return {
+            descricao:description,quantidade:requirePositiveQuantity(item.quantidade),unidade:item.unidade.trim(),
+            valor_unitario_centavos:Math.round(unit*100),
+            frente_id:item.frente_id?Number(item.frente_id):null,
+            subfrente_id:item.subfrente_id?Number(item.subfrente_id):null,
+            pedido_item_id:item.pedido_item_id?Number(item.pedido_item_id):null
+          }
+        })
       })
       setForm(null)
       setNotice('Nota '+created.numero+' arquivada com '+created.itens.length+' item(ns). Nenhum pagamento ou movimento de estoque foi criado.')
@@ -130,7 +177,12 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
           <div className="field-wide">
             <h3>Itens e classificação</h3>
             <p style={{fontSize:12,color:'#647084'}}>Cada item pode ter sua etapa e subetapa. Sem obrigar vínculo ao cronograma.</p>
-            {form?.itens.map((item,index)=><div key={index} style={{border:'1px solid #d7dce5',borderRadius:9,padding:12,marginBottom:10}}>
+            <div className="row-actions" style={{margin:'10px 0',flexWrap:'wrap'}}>
+              <Button type="button" variant="secondary" icon={<FileSpreadsheet size={15}/>} onClick={()=>setItemGrid(v=>!v)}>{itemGrid?'Editar por formulário':'Editar em planilha'}</Button>
+              <Button type="button" variant="secondary" disabled={itemImportBusy} onClick={()=>void importItems()}>Importar itens XLSX/CSV</Button>
+            </div>
+            {itemGrid&&<OperationalSheetGrid area="compras" title="Itens da nota — rascunho" rows={sheetRows} columns={sheetColumns} filename={'itens-nota-'+(form?.numero||'nova')} onCommit={applySheet} commitLabel="Aplicar" commitSuccessMessage="Itens aplicados ao formulário. Clique Salvar nota recebida para gravar." showImport={false}/>}
+            {!itemGrid&&form?.itens.map((item,index)=><div key={index} style={{border:'1px solid #d7dce5',borderRadius:9,padding:12,marginBottom:10}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}><strong>Item {index+1}</strong><button className="icon-button" type="button" title="Remover item" aria-label={'Remover item '+(index+1)} disabled={form.itens.length===1} onClick={()=>setForm(current=>current?{...current,itens:current.itens.filter((_,i)=>i!==index)}:null)}><Trash2 size={15}/></button></div>
               <div className="form-grid">
                 {!!form?.pedido_compra_id && <Field label="Item do pedido já cadastrado" wide><select value={item.pedido_item_id} onChange={e=>{

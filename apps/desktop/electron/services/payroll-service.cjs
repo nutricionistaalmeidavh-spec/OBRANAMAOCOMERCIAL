@@ -129,13 +129,17 @@ class PayrollService {
       data: payload.data || null,
       origem: 'variavel', editavel: 1, status: 'pendente'
     }
+    const confirmed=this.db.db.prepare("SELECT id FROM pagamentos_funcionario WHERE funcionario_id=? AND competencia=? AND quinzena=? AND status='pago'").get(employee.id,payload.competencia,data.quinzena)
+    if(confirmed)throw new Error('Esta quinzena já está paga; não é permitido criar ou editar variáveis.')
     if (data.id) {
       const current = this.db.get('folha_lancamentos', data.id)
-      if (!current?.editavel || current.status === 'pago') throw new Error('Este lançamento não pode ser alterado.')
+      if (!current?.editavel || current.status === 'pago' || Number(current.funcionario_id)!==Number(employee.id) || Number(current.folha_id)!==Number(sheet.id)) throw new Error('Este lançamento não pode ser alterado.')
     }
-    const saved = this.db.save('folha_lancamentos', data)
-    this.syncPayrollAccount(sheet)
-    return saved
+    return this.db.db.transaction(()=>{
+      const saved = this.db.save('folha_lancamentos', data)
+      this.syncPayrollAccount(sheet)
+      return saved
+    })()
   }
 
   removeVariable(id) {

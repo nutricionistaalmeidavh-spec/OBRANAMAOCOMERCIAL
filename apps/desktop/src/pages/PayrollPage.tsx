@@ -41,6 +41,14 @@ const overviewGroups=[
     {key:'encargos.outros',label:'Outros',field:'outros_centavos'}
   ]}
 ]
+const editableOverviewTypes:Record<string,{tipo:string;descricao:string;natureza:'credito'|'desconto';quinzena:number}>={
+  'remuneracao.vale_adiantamento':{tipo:'vale_salario',descricao:'Vale / adiantamento',natureza:'credito',quinzena:2},
+  'remuneracao.diarias':{tipo:'diaria',descricao:'Diária',natureza:'credito',quinzena:1},
+  'remuneracao.empreitas':{tipo:'empreita',descricao:'Empreita',natureza:'credito',quinzena:1},
+  'remuneracao.outros':{tipo:'ajuste',descricao:'Ajuste',natureza:'credito',quinzena:1},
+  'descontos.faltas':{tipo:'falta',descricao:'Falta',natureza:'desconto',quinzena:1},
+  'descontos.outros':{tipo:'outro_desconto',descricao:'Outro desconto',natureza:'desconto',quinzena:1}
+}
 const overviewColumns=overviewGroups.flatMap(group=>group.columns.map(column=>({...column,group:group.key})))
 const overviewValue=(row:any,column:any)=>Number(row?.[column.group]?.[column.field]||0)
 const overviewMoney=(value:number,group?:string)=>value===0?'—':brl(group==='descontos'?-Math.abs(value):value)
@@ -118,9 +126,27 @@ export default function PayrollPage(){
     accountId:row.id,
     sources:row.sources||[]
   })
+  const openMatrixNew=(row:any,column:any)=>{
+    const variable=editableOverviewTypes[column.key]
+    if(!variable)return
+    setEmployee(String(row.funcionario_id))
+    setForm({...variable,valor:'',data:today()})
+    setModal(true)
+  }
+  const editMatrixSource=async(source:any)=>{
+    if(source.kind!=='folha_lancamento'||source.origem!=='variavel'||!cellDetail?.employeeId)return
+    try{
+      const data=await window.fluxoDre.folha.employee({funcionario_id:Number(cellDetail.employeeId),competencia})
+      const launch=data.launches?.find((item:any)=>Number(item.id)===Number(source.id))
+      if(!launch?.editavel||launch.status==='pago'||launch.origem!=='variavel')throw new Error('Este lançamento está bloqueado ou não é uma variável editável.')
+      setEmployee(String(cellDetail.employeeId))
+      setForm({...launch,valor:(Number(launch.valor_centavos||0)/100).toFixed(2).replace('.',',')})
+      setCellDetail(null);setModal(true)
+    }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível editar esta origem.')}
+  }
   const SmartCell=({row,column}:{row:any,column:any})=>{
     const value=overviewValue(row,column)
-    if(!value)return <td className="payroll-overview-empty">—</td>
+    if(!value)return <td className="payroll-overview-empty">{editableOverviewTypes[column.key]?<button type="button" className="payroll-overview-cell" title="Criar lançamento variável nesta célula" onClick={()=>openMatrixNew(row,column)}>+ variável</button>:'—'}</td>
     return <td><button className={`payroll-overview-cell ${column.group==='descontos'?'is-discount':''}`} onClick={()=>openCellDetail(row,column,value)} title="Ver origem do valor">{overviewMoney(value,column.group)}</button></td>
   }
 
@@ -149,7 +175,7 @@ export default function PayrollPage(){
     if(!data)return <Card><Empty title="Não foi possível carregar a visão geral" description="Revise a competência e tente novamente."/></Card>
     if(!data.employees?.length&&!data.company_expenses?.length)return <Card><Empty title="Sem dados nesta competência" description="A visão geral será preenchida a partir da folha e das contas a pagar."/></Card>
     return <Card className="payroll-overview-card">
-      <div className="payroll-overview-intro"><div><h2>Visão geral da competência</h2><p>Valores consolidados da folha e das despesas da empresa. Clique em uma célula com valor para ver sua origem.</p></div><span>{competenceLabel(competencia)}</span></div>
+      <div className="payroll-overview-intro"><div><h2>Visão geral da competência</h2><p>Clique em um valor para ver sua origem e editar variáveis pendentes. Células vazias das rubricas variáveis permitem novos lançamentos; salário, benefícios e encargos permanecem protegidos.</p></div><span>{competenceLabel(competencia)}</span></div>
       <div className="payroll-overview-wrap"><table className="payroll-overview-table" style={{zoom:tableZoom/100}}>
         <thead>
           <tr><th rowSpan={2} className="payroll-overview-sticky">Funcionário / despesa</th>{overviewGroups.map(group=><th key={group.key} colSpan={group.columns.length} className={'overview-group '+group.key}>{group.label}</th>)}<th rowSpan={2} className="overview-total-head">Total funcionário</th><th rowSpan={2} className="overview-cost-head">Custo empresa</th></tr>
@@ -190,7 +216,7 @@ export default function PayrollPage(){
     </>}
     {message&&<div className="success-box" style={{marginTop:14}}>{message}</div>}
     <PayrollImportModal open={importModal} onClose={()=>setImportModal(false)} competencia={competencia} empresaId={importCompanyId} obraId={obraId} onImported={()=>setVersion(value=>value+1)}/>
-    <Modal open={!!cellDetail} title="Origem do valor" onClose={()=>setCellDetail(null)} size="sm">{cellDetail&&<div className="modal-body payroll-source-detail"><div className="payroll-source-heading"><span className="payroll-source-icon"><Info size={18}/></span><div><strong>{cellDetail.title}</strong><small>{cellDetail.subtitle}</small></div><b>{brl(cellDetail.group==='descontos'?-Math.abs(cellDetail.value):cellDetail.value)}</b></div><div className="payroll-source-list">{cellDetail.sources?.length?cellDetail.sources.map((source:any,index:number)=><div className="payroll-source-row" key={(source.kind||'source')+'-'+(source.id||index)}><div><strong>{source.kind==='conta'?'Conta a pagar':'Lançamento da folha'} #{source.id||'—'}</strong><small>{source.origem?('Origem: '+source.origem):'Origem registrada no dado canônico'}{source.importacao_linha_id?(' · linha importada #'+source.importacao_linha_id):''}</small></div></div>):<div className="notice">Nenhuma referência de origem foi encontrada para este valor.</div>}</div><div className="payroll-source-actions">{cellDetail.kind==='employee'?<Button variant="secondary" onClick={()=>{setEmployee(String(cellDetail.employeeId));setTab('funcionarios');setCellDetail(null)}}>Abrir funcionário</Button>:<Link className="button button-secondary" to="/financeiro?tipo=pagar" onClick={()=>setCellDetail(null)}>Abrir contas a pagar</Link>}</div></div>}</Modal>
+    <Modal open={!!cellDetail} title="Origem do valor" onClose={()=>setCellDetail(null)} size="sm">{cellDetail&&<div className="modal-body payroll-source-detail"><div className="payroll-source-heading"><span className="payroll-source-icon"><Info size={18}/></span><div><strong>{cellDetail.title}</strong><small>{cellDetail.subtitle}</small></div><b>{brl(cellDetail.group==='descontos'?-Math.abs(cellDetail.value):cellDetail.value)}</b></div><div className="payroll-source-list">{cellDetail.sources?.length?cellDetail.sources.map((source:any,index:number)=><div className="payroll-source-row" key={(source.kind||'source')+'-'+(source.id||index)}><div><strong>{source.kind==='conta'?'Conta a pagar':'Lançamento da folha'} #{source.id||'—'}</strong><small>{source.origem?('Origem: '+source.origem):'Origem registrada no dado canônico'}{source.importacao_linha_id?(' · linha importada #'+source.importacao_linha_id):''}</small></div>{source.kind==='folha_lancamento'&&source.origem==='variavel'&&<Button variant="secondary" onClick={()=>void editMatrixSource(source)}>Editar variável</Button>}</div>):<div className="notice">Nenhuma referência de origem foi encontrada para este valor.</div>}</div><div className="payroll-source-actions">{cellDetail.kind==='employee'?<Button variant="secondary" onClick={()=>{setEmployee(String(cellDetail.employeeId));setTab('funcionarios');setCellDetail(null)}}>Abrir funcionário</Button>:<Link className="button button-secondary" to="/financeiro?tipo=pagar" onClick={()=>setCellDetail(null)}>Abrir contas a pagar</Link>}</div></div>}</Modal>
     <Modal open={modal} title={form.id?'Editar lançamento variável':'Novo lançamento variável'} onClose={()=>setModal(false)}><form onSubmit={submit}><div className="modal-body form-grid"><Field label="Funcionário" wide><div className="readonly-person"><UserRound size={17}/>{selectedEmployee?.nome} · CPF {selectedEmployee?.cpf||'não informado'}</div></Field><Field label="Rubrica" required><select value={form.tipo} onChange={selectType}>{variables.map(item=><option value={item.tipo} key={item.tipo}>{item.descricao}</option>)}</select></Field><Field label="Natureza"><select value={form.natureza} onChange={event=>setForm({...form,natureza:event.target.value})}><option value="credito">Crédito</option><option value="desconto">Desconto</option></select></Field><Field label="Quinzena"><select value={form.quinzena} onChange={event=>setForm({...form,quinzena:Number(event.target.value)})}><option value="1">1ª quinzena</option><option value="2">2ª quinzena</option></select></Field><Field label="Valor" required><input required value={form.valor} onChange={event=>setForm({...form,valor:event.target.value})} placeholder="0,00"/></Field><Field label="Data"><input type="date" value={form.data||today()} onChange={event=>setForm({...form,data:event.target.value})}/></Field></div><FormActions onCancel={()=>setModal(false)} submitLabel="Salvar lançamento"/></form></Modal>
   </>
 }

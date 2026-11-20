@@ -74,6 +74,32 @@ function money(value) {
   const number = Number(text)
   return Number.isFinite(number) ? Math.round(number * 100) : 0
 }
+// Células numéricas do Excel são preservadas; CSV/strings pt-BR usam vírgula decimal.
+// Ponto isolado permanece decimal para não modificar frações de engenharia.
+function parseQuantity(value, fallback = NaN) {
+  if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) return fallback
+  if (typeof value === 'number') return Number.isFinite(value) ? value : NaN
+  if (typeof value !== 'string') return NaN
+  const text = value.trim().replace(/[\s\u00a0\u202f]/g, '')
+  let normalized
+  if (/^[+-]?\d{1,3}(?:\.\d{3})+,\d+$/.test(text)) {
+    normalized = text.replace(/\./g, '').replace(',', '.')
+  } else if (/^[+-]?\d+,\d+$/.test(text)) {
+    normalized = text.replace(',', '.')
+  } else if (/^[+-]?\d+(?:\.\d+)?$/.test(text)) {
+    normalized = text
+  } else {
+    return NaN
+  }
+  const result = Number(normalized)
+  return Number.isFinite(result) ? result : NaN
+}
+function sheetEntries(pending, sheet) {
+  return rowsAsObjects(sheetRows(pending.workbook.getWorksheet(sheet.name)), sheet.headerIndex)
+    .map((row, index) => ({ row, line: index + sheet.headerIndex + 2 }))
+    .filter((item) => Object.values(item.row).some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ''))
+}
+
 function date(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10)
   if (typeof value === 'number') {
@@ -133,6 +159,19 @@ function rowErrors(area, row, map, db, companyId) {
   }[area] || []
   const errors = mandatory.filter((field) => !String(value(row, map, field) ?? '').trim()).map((field) => 'Preencha o campo obrigatório "' + field.replace(/_/g, ' ') + '".')
   if (area === 'financeiro' && money(value(row, map, 'valor')) <= 0) errors.push('Valor financeiro deve ser maior que zero.')
+  if (area === 'estoque' || area === 'compras' || area === 'orcamento') {
+    const rawQuantity = value(row, map, 'quantidade')
+    const supplied = rawQuantity !== null && rawQuantity !== undefined && String(rawQuantity).trim() !== ''
+    const minDescription = area === 'orcamento' ? 'maior ou igual a zero' : 'maior que zero'
+    if (area === 'estoque' && !supplied) {
+      errors.push('Quantidade obrigatória: informe um número maior que zero.')
+    } else if (supplied) {
+      const quantity = parseQuantity(rawQuantity)
+      if (!Number.isFinite(quantity) || quantity < 0 || (area !== 'orcamento' && quantity === 0)) {
+        errors.push(`Quantidade "${String(rawQuantity)}" inválida: informe um número ${minDescription} (ex.: 0,5).`)
+      }
+    }
+  }
   if (area === 'aditivos' && String(value(row, map, 'contrato') || '').trim()) {
     const number = String(value(row, map, 'contrato')).trim()
     const linked = db.prepare("SELECT c.id FROM contratos_obra c JOIN obras o ON o.id=c.obra_id WHERE lower(COALESCE(c.numero,c.descricao))=lower(?) AND c.deleted_at IS NULL AND o.empresa_id=? LIMIT 1").get(number, companyId)
@@ -142,7 +181,18 @@ function rowErrors(area, row, map, db, companyId) {
 }
 
 class UniversalImportService {
-  constructor({ db }) { this.db = db; this.pending = new Map() }
+  constructor({ db, moduleStorage = null }) { this.db = db; this.moduleStorage=moduleStorage; this.pending = new Map() }
+
+  assertLocalArea(area) {
+    // Importador universal ainda grava em SQLite local; servidor central não pode receber gravação fantasma.
+    const owners = {orcamento:'planning',obras:'core',estoque:'finance',compras:'finance',financeiro:'finance',contratos:'finance',aditivos:'finance',medicoes:'planning',funcionarios:'rh',ponto:'rh',documentos:'documents'}
+    const owner=owners[area]
+    if(!owner||!this.moduleStorage)return
+    const state=this.moduleStorage.state(owner)?.state
+    if(state && state!=='local' && state!=='migration-required'){
+      throw new Error('Importação universal de '+area+' indisponível no servidor central. Nenhuma linha será gravada localmente: use o modo local ou a importação homologada do servidor.')
+    }
+  }
 
   mappingKey(companyId, area, headers) {
     selectedCompany(this.db.db, companyId)
@@ -296,9 +346,7 @@ class UniversalImportService {
     const savedMapping = this.getSavedMapping({ companyId: company.id, area, headers: sheet.headers })
     const map = this.validateMapping(area, sheet.headers, { ...mapping(sheet.headers, area), ...(savedMapping || {}), ...(options.mapping || {}) })
     if (options.mappingOnly === true) return { mapping: map, mappingSource: savedMapping ? 'saved' : 'suggested' }
-    const entries = rowsAsObjects(sheetRows(pending.workbook.getWorksheet(sheet.name)), sheet.headerIndex)
-      .map((row, index) => ({ row, line: index + sheet.headerIndex + 2 }))
-      .filter((item) => Object.values(item.row).some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ''))
+    const entries = sheetEntries(pending, sheet)
     const uniqueRows = new Map()
     const existingLookup = new Map()
     let duplicates = 0
@@ -363,13 +411,19 @@ class UniversalImportService {
     const preview = await this.preview(token, options)
     if (preview.missing.length) throw new Error('Mapeie os campos obrigatórios: ' + preview.missing.join(', ') + '.')
     if (!preview.total) throw new Error('A aba não contém linhas para importar.')
-    if (preview.invalid) throw new Error('Existem ' + preview.invalid + ' linha(s) inválida(s). Corrija os dados antes de importar.')
+    if (preview.invalid) {
+      const first = preview.issues[0]
+      throw new Error('Existem ' + preview.invalid + ' linha(s) inválida(s).'
+        + (first ? ' Linha ' + first.line + ': ' + first.errors.join(' ') : '')
+        + ' Corrija os dados antes de importar.')
+    }
     if (preview.alreadyImported) throw new Error('Esta aba deste arquivo já foi importada anteriormente.')
     const sheet = pending.sheets.find((item) => item.name === options.sheet)
-    const rows = rowsAsObjects(sheetRows(pending.workbook.getWorksheet(sheet.name)), sheet.headerIndex)
+    const entries = sheetEntries(pending, sheet)
     const area = preview.area
+    this.assertLocalArea(area)
     const map = preview.mapping
-    return this.db.db.transaction(() => {
+    const result = this.db.db.transaction(() => {
       const company = selectedCompany(this.db.db, options.companyId)
       if (this.db.db.prepare(`SELECT id FROM importacoes
         WHERE hash=? AND aba=? AND status='concluida'
@@ -400,10 +454,10 @@ class UniversalImportService {
       }
       const contractByNumber = (number) => this.db.db.prepare("SELECT c.* FROM contratos_obra c JOIN obras o ON o.id=c.obra_id WHERE lower(COALESCE(c.numero,c.descricao))=lower(?) AND c.deleted_at IS NULL AND o.empresa_id=? ORDER BY c.id DESC LIMIT 1").get(String(number || '').trim(), company.id)
 
-      for (let index = 0; index < rows.length; index++) {
-        const row = rows[index]
-        if (!Object.values(row).some(Boolean)) continue
+      for (let index = 0; index < entries.length; index++) {
+        const { row, line } = entries[index]
         let entity = null
+        try {
         if (area === 'financeiro') {
           const description = String(value(row, map, 'descricao') || '').trim()
           const amount = money(value(row, map, 'valor'))
@@ -426,7 +480,7 @@ class UniversalImportService {
           const front = frontByName(work, value(row, map, 'frente'))
           const description = String(value(row, map, 'descricao') || '').trim()
           if (!work || !description) continue
-          entity = this.db.save('itens_orcamentarios', { obra_id: work.id, frente_id: front?.id || null, codigo: String(value(row, map, 'codigo') || ''), descricao: description, unidade: String(value(row, map, 'unidade') || 'un'), quantidade: Number(value(row, map, 'quantidade') || 1), valor_unitario_centavos: money(value(row, map, 'valor_unitario')), tipo: String(value(row, map, 'tipo') || 'servico').replace(/\s+/g, '_') })
+          entity = this.db.save('itens_orcamentarios', { obra_id: work.id, frente_id: front?.id || null, codigo: String(value(row, map, 'codigo') || ''), descricao: description, unidade: String(value(row, map, 'unidade') || 'un'), quantidade: parseQuantity(value(row, map, 'quantidade'), 1), valor_unitario_centavos: money(value(row, map, 'valor_unitario')), tipo: String(value(row, map, 'tipo') || 'servico').replace(/\s+/g, '_') })
         } else if (area === 'funcionarios') {
           const name = String(value(row, map, 'nome') || '').trim()
           if (!name) continue
@@ -441,7 +495,7 @@ class UniversalImportService {
           if (!work || !description) continue
           const amount = money(value(row, map, 'valor'))
           const order = this.db.save('pedidos_compra', { obra_id: work.id, frente_id: front?.id || null, fornecedor_id: supplier?.id || null, descricao: description, valor_centavos: amount, entrega_prevista: date(value(row, map, 'vencimento')), status: String(value(row, map, 'status') || 'emitido') })
-          this.db.save('pedido_compra_itens', { pedido_compra_id: order.id, descricao: description, unidade: String(value(row, map, 'unidade') || 'un'), quantidade_pedida: Number(value(row, map, 'quantidade') || 1), valor_centavos: amount })
+          this.db.save('pedido_compra_itens', { pedido_compra_id: order.id, descricao: description, unidade: String(value(row, map, 'unidade') || 'un'), quantidade_pedida: parseQuantity(value(row, map, 'quantidade'), 1), valor_centavos: amount })
           entity = order
         } else if (area === 'contratos') {
           const work = workByName(value(row, map, 'obra'))
@@ -479,18 +533,24 @@ class UniversalImportService {
           const work = workByName(value(row, map, 'obra'))
           const front = frontByName(work, value(row, map, 'frente'))
           if (!work) continue
-          entity = this.db.save('movimentacoes_estoque', { obra_id: work.id, frente_id: front?.id || null, descricao: String(value(row, map, 'descricao') || '').trim(), unidade: String(value(row, map, 'unidade') || 'un'), quantidade: Number(value(row, map, 'quantidade') || 0), tipo: String(value(row, map, 'tipo') || 'entrada'), data: date(value(row, map, 'data')) || new Date().toISOString().slice(0, 10), observacoes: String(value(row, map, 'observacoes') || '') })
+          entity = this.db.save('movimentacoes_estoque', { obra_id: work.id, frente_id: front?.id || null, descricao: String(value(row, map, 'descricao') || '').trim(), unidade: String(value(row, map, 'unidade') || 'un'), quantidade: parseQuantity(value(row, map, 'quantidade')), tipo: String(value(row, map, 'tipo') || 'entrada'), data: date(value(row, map, 'data')) || new Date().toISOString().slice(0, 10), observacoes: String(value(row, map, 'observacoes') || '') })
         }
         if (entity) {
           count++
-          raw.run(imported.id, area === 'financeiro' ? competence(value(row, map, 'competencia')) : null, `${sheet.name}!${index + sheet.headerIndex + 2}`, area, String(value(row, map, 'descricao') || value(row, map, 'nome') || value(row, map, 'titulo') || ''), money(value(row, map, 'valor')), JSON.stringify(row), area, entity.id, 'importado')
+          raw.run(imported.id, area === 'financeiro' ? competence(value(row, map, 'competencia')) : null, `${sheet.name}!${line}`, area, String(value(row, map, 'descricao') || value(row, map, 'nome') || value(row, map, 'titulo') || ''), money(value(row, map, 'valor')), JSON.stringify(row), area, entity.id, 'importado')
+        }
+        } catch (error) {
+          const detail = String(value(row, map, 'descricao') || value(row, map, 'nome') || value(row, map, 'titulo') || '').trim()
+          const reason = error instanceof Error ? error.message : String(error)
+          throw new Error(`Falha na linha ${line}${detail ? ' (' + detail + ')' : ''}: ${reason}`, { cause: error })
         }
       }
       this.db.db.prepare("UPDATE importacoes SET status='concluida',resumo=?,concluida_em=CURRENT_TIMESTAMP WHERE id=?").run(JSON.stringify({ area, empresa_id: company.id, linhas: count, cadastros_criados: created }), imported.id)
-      this.pending.delete(token)
       return { importacao_id: imported.id, area, imported: count, created }
     })()
+    this.pending.delete(token)
+    return result
   }
 }
 
-module.exports = { UniversalImportService, AREAS, mapping, detect, norm, money, date }
+module.exports = { UniversalImportService, AREAS, mapping, detect, norm, money, parseQuantity, date }
