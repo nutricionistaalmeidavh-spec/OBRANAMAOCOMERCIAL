@@ -55,6 +55,13 @@ class ProcurementSourceService {
     return this.central('receive', payload, requestId => this.lanClient.procurementReceiveMaterial({ ...payload, requestId }))
   }
 
+  async receiveMany(payload) {
+    const state=this.state()
+    if(state==='local'||state==='migration-required')return this.local.receiveMany(payload)
+    if(state==='central-active')throw new Error('Recebimento em lote ainda não homologado no servidor. Use recebimentos individuais, que são sincronizados.')
+    return this.blocked()
+  }
+
   async moveStock(payload) {
     const state = this.state()
     if (state === 'local' || state === 'migration-required') return this.local.moveStock(payload)
