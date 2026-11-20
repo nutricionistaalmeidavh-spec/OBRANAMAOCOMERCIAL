@@ -342,6 +342,7 @@ function registerIpc() {
   ipcMain.handle('lan:set-start-at-login', envelope(({ enabled }) => { app.setLoginItemSettings({ openAtLogin: enabled === true }); return { enabled: app.getLoginItemSettings().openAtLogin === true } }))
   ipcMain.handle('operational-sheet:commit', envelope((payload) => services.operationalSheet.commit(payload)))
   ipcMain.handle('operational-sheet:export', envelope((payload) => services.operationalSheet.exportFile(payload)))
+  ipcMain.handle('operational-sheet:load-note-items', envelope(() => services.operationalSheet.loadNoteItems()))
   ipcMain.handle('entity:list', envelope(({ table, filters }) => services.dataAccess.list(table, filters)))
   ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))
   ipcMain.handle('entity:save', envelope(({ table, data }) => services.dataAccess.save(table, data)))
