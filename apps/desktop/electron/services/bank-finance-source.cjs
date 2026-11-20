@@ -1,11 +1,13 @@
 'use strict'
 const {localFinanceActor}=require('./desktop-finance-identity.cjs')
-const AUDITED_OPERATIONS=new Set(['confirmReconciliation','reverseReconciliation','closePeriod','reopenPeriod','captureForecast'])
+const AUDITED_OPERATIONS=new Set(['confirmReconciliation','reverseReconciliation','closePeriod','reopenPeriod','captureForecast','recordManualBalance'])
 
 // One domain service for both local SQLite and the Obra na Mão Server.
 // Never fall back to a local write when the finance module is server-owned.
 const METHODS = Object.freeze({
   listAccounts: 'bankList',
+  listManualBalances: 'bankManualBalances',
+  recordManualBalance: 'bankRecordBalance',
   saveAccount: 'bankSave',
   previewImport: 'bankPreview',
   confirmImport: 'bankConfirm',
@@ -45,6 +47,8 @@ class BankFinanceSourceService {
     throw new Error('Financeiro central indisponível. Nenhum dado foi gravado localmente.')
   }
   listAccounts(payload) { return this.call('listAccounts', payload) }
+  listManualBalances(payload) { return this.call('listManualBalances', payload) }
+  recordManualBalance(payload) { return this.call('recordManualBalance', payload) }
   saveAccount(payload) { return this.call('saveAccount', payload) }
   previewImport(payload) { return this.call('previewImport', payload) }
   confirmImport(payload) { return this.call('confirmImport', payload) }
