@@ -2,6 +2,7 @@ import { useMemo, useState, type ClipboardEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Download, FileSpreadsheet, RotateCcw, UploadCloud } from 'lucide-react'
 import { Button } from './ui'
+import { parseBrDecimal } from '../utils/operational-sheet'
 
 export type SheetRow = { id: string | number; [key:string]: unknown }
 export type SheetColumn = {
@@ -20,7 +21,14 @@ export function pasteCells(text:string):string[][] {
 }
 function textValue(raw:unknown) { return raw===null||raw===undefined?'':String(raw) }
 function asExportRow(row:SheetRow, columns:SheetColumn[]) {
-  return Object.fromEntries(columns.map(column=>[column.key,column.value?column.value(row):row[column.key]??'']))
+  return Object.fromEntries(columns.map(column=>{
+    const value=column.value?column.value(row):row[column.key]??''
+    if(column.kind==='money'||column.kind==='decimal'){
+      const number=parseBrDecimal(value)
+      if(number!==null)return [column.key,number]
+    }
+    return [column.key,value]
+  }))
 }
 
 type Props = {
@@ -100,7 +108,7 @@ export default function OperationalSheetGrid({
         columns:columns.map(({key,label})=>({key,label})),
         rows:view.map(row=>asExportRow(row,columns))
       })
-      if(out?.path)setMessage('Arquivo exportado: '+out.path)
+      if(out?.path)setMessage('Arquivo exportado'+(changed?' com alterações de rascunho ainda não gravadas':'')+': '+out.path)
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível exportar.')}
     finally{setBusy(false)}
   }
