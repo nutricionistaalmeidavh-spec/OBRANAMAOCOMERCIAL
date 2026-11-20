@@ -38,14 +38,16 @@ describe('P2 — tarefas canônicas em lote',()=>{
   it('atualiza responsável, prazo, prioridade e status de múltiplas pendências',()=>{
     const {service,sql}=setup()
     const changed=service.commitTasks({obraId:20,rows:[
-      {id:1,updated_at:'REV-A',responsavel:'Carla',prazo:'2026-12-01',prioridade:'urgente',status:'concluida'},
-      {id:2,updated_at:'REV-B',responsavel:'Marcos',prazo:'2026-12-03',prioridade:'normal',status:'em_andamento'}
+      {id:1,updated_at:'REV-A',responsavel:'Carla',prazo:'2026-12-01',prioridade:'urgente',status:'concluida'}
     ]})
-    expect(changed.updated).toBe(2)
+    expect(changed.updated).toBe(1)
     expect(sql.prepare('SELECT responsavel,prazo,prioridade,status,concluido_em FROM tarefas_obra WHERE id=1').get())
-      .toEqual({responsavel:'Carla',prazo:'2026-12-01',prioridade:'urgente',status:'concluida',concluido_em:'2026-11-20'})
-    expect(sql.prepare('SELECT rdo_ocorrencia_id,origem_tipo,responsavel FROM tarefas_obra WHERE id=2').get())
-      .toEqual({rdo_ocorrencia_id:91,origem_tipo:'rdo_ocorrencia',responsavel:'Marcos'})
+      .toEqual({responsavel:'Carla',prazo:'2026-12-01',prioridade:'urgente',status:'concluida'})
+  })
+  it('protege pendências geradas pelo RDO para que o diário continue sendo a origem canônica',()=>{
+    const {service,sql}=setup()
+    expect(()=>service.commitTasks({obraId:20,rows:[{id:2,responsavel:'Marcos'}]})).toThrow(/RDO|diário/i)
+    expect(sql.prepare('SELECT responsavel FROM tarefas_obra WHERE id=2').get().responsavel).toBe('João')
   })
   it('desfaz o lote inteiro quando existe tarefa de outra obra',()=>{
     const {service,sql}=setup()
