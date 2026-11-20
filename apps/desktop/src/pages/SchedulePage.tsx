@@ -34,7 +34,7 @@ export default function SchedulePage() {
   }
   const sheetColumns:SheetColumn[]=[
     {key:'nome',label:'Programação',edit:true,width:210},
-    {key:'frente_id',label:'Etapa da obra',edit:true,kind:'select',options:[{value:'',label:'Selecione'},...(fronts.data||[]).map((item:any)=>({value:String(item.id),label:item.nome}))]},
+    {key:'frente_nome',label:'Etapa da obra',value:row=>fronts.data?.find((item:any)=>item.id===Number(row.frente_id))?.nome||'Editar vínculo nos detalhes'},
     {key:'responsavel',label:'Responsável',edit:true},
     {key:'previsto_inicio',label:'Início',edit:true,kind:'date'},
     {key:'previsto_fim',label:'Fim',edit:true,kind:'date'},
