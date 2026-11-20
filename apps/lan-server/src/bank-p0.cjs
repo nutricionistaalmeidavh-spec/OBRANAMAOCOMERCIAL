@@ -128,8 +128,22 @@ class BankP0Service{
   const banks=bankId===null?allBanks:allBanks.filter(b=>b.id===bankId)
   if(!hasWork&&!banks.some(b=>b.saldo_referencia_data<=date))throw Error('Não há conta bancária com data de saldo inicial anterior ou igual à referência.')
   const txQuery=this.db.prepare('SELECT id,data,valor_centavos FROM transacoes_bancarias WHERE empresa_id=? AND conta_bancaria_id=? AND data>? AND data<=? ORDER BY data,id')
-  const movements=banks.map(b=>({...b,eligible:b.saldo_referencia_data<=date,txs:txQuery.all(id,b.id,b.saldo_referencia_data,date)}))
-  const balanceAt=at=>movements.reduce((sum,b)=>b.saldo_referencia_data>at?sum:sum+Number(b.saldo_inicial_centavos)+b.txs.reduce((n,tx)=>tx.data<=at?n+Number(tx.valor_centavos):n,0),0)
+  const manualQuery=this.db.prepare('SELECT data,saldo_centavos FROM finance_bank_manual_balances WHERE empresa_id=? AND conta_bancaria_id=? AND data<=? ORDER BY data,id')
+  const movements=banks.map(b=>({...b,eligible:b.saldo_referencia_data<=date,txs:txQuery.all(id,b.id,b.saldo_referencia_data,date),anchors:manualQuery.all(id,b.id,date)}))
+  const referenceAt=(b,at)=>{
+   const manual=b.anchors.filter(a=>a.data<=at).at(-1)
+   return manual?{data:manual.data,cents:Number(manual.saldo_centavos),manual:true}:{data:b.saldo_referencia_data,cents:Number(b.saldo_inicial_centavos),manual:false}
+  }
+  // Um saldo manual é uma fotografia absoluta no FIM do dia, não uma entrada.
+  // Mesmo extratos OFX/CSV importados depois são contabilizados apenas se
+  // a data da transação for estritamente posterior à última fotografia válida.
+  const bankBalanceAt=(b,at)=>{
+   if(b.saldo_referencia_data>at)return null
+   const anchor=referenceAt(b,at)
+   return anchor.cents+b.txs.reduce((sum,tx)=>tx.data>anchor.data&&tx.data<=at?sum+Number(tx.valor_centavos):sum,0)
+  }
+  const balanceAt=at=>movements.reduce((sum,b)=>sum+(bankBalanceAt(b,at)??0),0)
+  const manualBalancesUsed=movements.some(b=>b.anchors.length>0)
   const workMovementQuery=this.db.prepare("SELECT t.data,l.conta_bancaria_id,CASE WHEN t.valor_centavos<0 THEN -a.valor_centavos ELSE a.valor_centavos END AS valor_centavos FROM reconciliacao_alocacoes a JOIN reconciliacao_lotes l ON l.id=a.lote_id AND l.status='active' JOIN transacoes_bancarias t ON t.id=l.transacao_bancaria_id JOIN pagamentos_conta p ON p.id=a.pagamento_id JOIN contas c ON c.id=p.conta_id WHERE c.empresa_id=? AND c.obra_id=? AND c.deleted_at IS NULL AND c.status!='cancelado' AND t.data<=?")
   const attributed=hasWork?workMovementQuery.all(id,workId,date).filter(x=>bankId===null||x.conta_bancaria_id===bankId):[]
   const realized=hasWork?attributed.reduce((sum,tx)=>sum+Number(tx.valor_centavos),0):balanceAt(date)
@@ -165,16 +179,17 @@ class BankP0Service{
   const warnings=[]
   if(hasWork)warnings.push('Visão da obra: o realizado utiliza apenas transações conciliadas e atribuídas à obra. Não representa saldo bancário.')
   if(movements.some(x=>!x.eligible))warnings.push('Algumas contas não possuem saldo inicial na data de referência e foram excluídas do saldo bancário.')
-  if(!hasWork&&movements.some(x=>x.txs.length===0))warnings.push('Existem contas sem movimentações importadas até a data de referência.')
+  if(!hasWork&&movements.some(x=>x.txs.length===0&&x.anchors.length===0))warnings.push('Existem contas sem movimentações importadas nem saldo manual atualizado até a data de referência.')
+  if(!hasWork&&manualBalancesUsed)warnings.push('Saldo manual é referência absoluta ao fim do dia: movimentações importadas nessa data ou antes dela permanecem no histórico, mas não são somadas ao saldo novamente.')
   if(unassignedObligations)warnings.push('Há '+unassignedObligations+' obrigação(ões) sem banco planejado, excluída(s) da previsão desta conta.')
   if(overdues)warnings.push('Contas vencidas e ainda pendentes foram projetadas para o primeiro dia seguinte à referência.')
   return{
    empresaId:id,obraId:workId,contaBancariaId:bankId,asOf:date,horizonDays:horizon,
-   actualSource:hasWork?'reconciled_payments':'bank_statements',realizedBasis:hasWork?'work_attributed':'bank_balance',hasBankBalance:!hasWork,
-   balanceDescription:hasWork?'Movimentação líquida atribuída à obra por conciliações bancárias; não é saldo bancário.':'Saldo calculado pelo saldo inicial e extratos importados, não por consulta bancária em tempo real.',
+   actualSource:hasWork?'reconciled_payments':manualBalancesUsed?'manual_balance_and_bank_statements':'bank_statements',realizedBasis:hasWork?'work_attributed':'bank_balance',hasBankBalance:!hasWork,
+   balanceDescription:hasWork?'Movimentação líquida atribuída à obra por conciliações bancárias; não é saldo bancário.':manualBalancesUsed?'Saldo baseado na última conferência manual por conta e nos extratos posteriores, sem dupla contagem.':'Saldo calculado pelo saldo inicial e extratos importados, não por consulta bancária em tempo real.',
    realizedCents:realized,projectedReceivablesCents:receive,projectedPayablesCents:pay,projectedEndCents:balance,
    negativeDays,overdueObligations:overdues,unassignedObligations,history,days,warnings,
-   banks:movements.map(b=>({id:b.id,nome:b.nome,bancoNome:b.banco_nome,referenceDate:b.saldo_referencia_data,active:!!b.ativo,covered:b.eligible,realizedCents:b.eligible?Number(b.saldo_inicial_centavos)+b.txs.reduce((s,tx)=>s+Number(tx.valor_centavos),0):null,importedMovements:b.txs.length}))
+   banks:movements.map(b=>({id:b.id,nome:b.nome,bancoNome:b.banco_nome,referenceDate:referenceAt(b,date).data,manualBalanceDate:b.anchors.at(-1)?.data||null,active:!!b.ativo,covered:b.eligible,realizedCents:bankBalanceAt(b,date),importedMovements:b.txs.length}))
   }
 }
 }
