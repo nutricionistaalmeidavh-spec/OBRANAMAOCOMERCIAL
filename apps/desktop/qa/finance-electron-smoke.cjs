@@ -43,6 +43,16 @@ async function main(){
  await page.getByText('Auditoria e fechamento bancário',{exact:true}).waitFor({state:'visible',timeout:30000})
  await page.screenshot({path:path.join(screenshots,'01-bancos-e-auditoria.png'),fullPage:true})
  await page.setViewportSize({width:1024,height:768})
+ const layout=await page.evaluate(()=>{
+  const side=document.querySelector('.command-sidebar')?.getBoundingClientRect()
+  const main=document.querySelector('.main-content')?.getBoundingClientRect()
+  const h1=document.querySelector('.page-header h1')?.getBoundingClientRect()
+  const shell=document.querySelector('.command-center-shell')
+  return{viewport:window.innerWidth,media1100:matchMedia('(max-width:1100px)').matches,sidebarRight:side?.right,sidebarWidth:side?.width,mainLeft:main?.left,headingLeft:h1?.left,columns:shell?getComputedStyle(shell).gridTemplateColumns:null}
+ })
+ console.log('Electron sidebar layout 1024:',JSON.stringify(layout))
+ if(layout.sidebarRight!==undefined && layout.headingLeft!==undefined && layout.sidebarRight>layout.headingLeft-8)throw Error('Menu lateral sobrepõe o cabeçalho do financeiro na resolução mínima.')
+
  const overflowBank=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+4)
  if(overflowBank)throw Error('Overflow horizontal no layout de Contas bancárias com largura mínima Desktop.')
  await page.screenshot({path:path.join(screenshots,'02-bancos-tela-minima.png'),fullPage:true})
