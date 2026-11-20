@@ -67,10 +67,14 @@ function normalizeRdoRows(area,rows){
   })
 }
 class OperationalSheetP2Service {
-  constructor({db,moduleStorage,today=()=>new Date().toISOString().slice(0,10)}){
-    this.db=db;this.moduleStorage=moduleStorage;this.today=today
+  constructor({db,moduleStorage,lanClient,today=()=>new Date().toISOString().slice(0,10)}){
+    this.db=db;this.moduleStorage=moduleStorage;this.lanClient=lanClient;this.today=today
   }
   commitTasks(payload={}){
+    if(this.moduleStorage?.state('operation')?.state==='central-active'){
+      if(!this.lanClient?.operationalSheetCommit)throw new Error('Atualize o servidor para salvar tarefas em lote.')
+      return this.lanClient.operationalSheetCommit({...payload,area:'tarefas'})
+    }
     requireLocal(this.moduleStorage)
     const obraId=Number(payload.obraId)
     if(!Number.isSafeInteger(obraId)||obraId<=0)throw new Error('Selecione uma obra válida.')
