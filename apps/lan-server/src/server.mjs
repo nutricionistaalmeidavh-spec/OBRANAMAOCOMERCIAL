@@ -22,7 +22,7 @@ import { createVersionedRepository } from './versioned-repository.mjs'
 import { OperationalSheetCentral, AREA_DOMAIN } from './operational-sheet-service.mjs'
 
 export const LAN_API_VERSION = '1'
-export const LAN_SERVER_VERSION = '0.4.2'
+export const LAN_SERVER_VERSION = '0.4.3'
 
 const MAX_BODY_BYTES = 1024 * 1024
 const MAX_DOCUMENT_BODY_BYTES = 36 * 1024 * 1024
