@@ -2,6 +2,7 @@ const fs = require('node:fs/promises')
 const path = require('node:path')
 const ExcelJS = require('exceljs')
 const { z } = require('zod')
+const { readWorkbook, sheetRows } = require('./spreadsheet-reader.cjs')
 
 const AREAS = Object.freeze(['orcamento','estoque','compras','financeiro','folha'])
 const EDITABLE = Object.freeze(['orcamento','financeiro'])
@@ -99,6 +100,45 @@ class OperationalSheetService {
       return {updated:updated.length,ids:updated.map(row=>row.id)}
     })()
   }
+  async loadNoteItems() {
+    const choice=await this.dialog.showOpenDialog({
+      title:'Selecionar planilha de itens da nota (revisão sem gravação)',
+      properties:['openFile'],
+      filters:[{name:'Planilhas',extensions:['xlsx','xlsm','csv']}]
+    })
+    if(choice.canceled||!choice.filePaths?.length)return null
+    const workbook=await readWorkbook(choice.filePaths[0])
+    const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'')
+    const findIndex=(headers,keys)=>headers.findIndex(header=>keys.includes(normalize(header)))
+    let selection=null
+    for(const sheet of workbook.worksheets){
+      const values=sheetRows(sheet)
+      for(let line=0;line<Math.min(12,values.length);line++){
+        const headers=values[line]||[]
+        const desc=findIndex(headers,['descricao','produto','material','item','servico'])
+        const qty=findIndex(headers,['quantidade','qtd','qtde'])
+        if(desc>=0&&qty>=0){selection={values,line,desc,qty,unit:findIndex(headers,['unidade','und','un']),price:findIndex(headers,['valorunitario','precounitario','preco','valorunitariors'])};break}
+      }
+      if(selection)break
+    }
+    if(!selection)throw new Error('Não encontramos colunas Descrição e Quantidade. Confira os cabeçalhos da planilha.')
+    const rows=[]
+    for(let index=selection.line+1;index<selection.values.length;index++){
+      const values=selection.values[index]||[]
+      if(!values.some(value=>String(value??'').trim()))continue
+      if(rows.length>=500)throw new Error('Limite de 500 itens por nota. Divida a planilha para revisar por partes.')
+      const descricao=String(values[selection.desc]||'').trim()
+      const quantidade=parseDecimal(values[selection.qty])
+      const preco=selection.price<0?0:parseDecimal(values[selection.price])
+      if(!descricao||quantidade===null||quantidade<=0||preco===null||preco<0){
+        throw new Error('Linha '+(index+1)+': confira descrição, quantidade maior que zero e preço unitário não negativo.')
+      }
+      rows.push({descricao,quantidade:String(quantidade),unidade:String(values[selection.unit]||'un'),valor_unitario:String(preco).replace('.',',')})
+    }
+    if(!rows.length)throw new Error('A planilha não contém itens para importar.')
+    return {rows,file:path.basename(choice.filePaths[0])}
+  }
+
   async exportFile(payload={}) {
     const area=String(payload.area||'')
     const format=String(payload.format||'xlsx').toLowerCase()
