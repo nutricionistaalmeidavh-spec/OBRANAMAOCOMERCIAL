@@ -103,3 +103,39 @@ test('B5 impede criar conta bancária com referência retroativa a um mês fecha
   assert.equal(after.saldo_inicial_centavos,1000)
  }finally{f.close()}
 })
+
+
+test('C4 congela previsão por empresa e referência, preservando histórico após alteração de obrigação',()=>{
+ const f=fixture();try{
+  const invoice=f.addObligation('pagar',30000,'2026-11-25')
+  const query={empresaId:f.companyId,asOf:'2026-11-18',horizonDays:30}
+  const snap=f.bank.captureForecast({...query,requestId:'forecast-repro-0001',actorId:'os:gestor'})
+  assert.equal(snap.status,'frozen')
+  assert.equal(snap.summary.plannedOutCents,30000)
+  assert.equal(f.bank.captureForecast({...query,requestId:'forecast-repro-0001',actorId:'os:gestor'}).id,snap.id)
+  assert.equal(f.bank.listForecasts(query).length,1)
+  f.db.prepare('UPDATE contas SET valor_centavos=50000 WHERE id=?').run(invoice)
+  const latest=f.bank.cashReport(query)
+  const frozen=f.bank.cashReport({...query,snapshotId:snap.id})
+  assert.equal(latest.summary.plannedOutCents,50000)
+  assert.equal(frozen.summary.plannedOutCents,30000)
+  assert.equal(frozen.forecastSnapshotId,snap.id)
+  assert.equal(frozen.days.find(x=>x.date==='2026-11-25').plannedOutCents,30000)
+  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM finance_bank_forecast_snapshots').get().n,1)
+  assert.throws(()=>f.bank.captureForecast({...query,requestId:'forecast-repro-0001',actorId:'os:gestor',horizonDays:60}),/identificador|diferente/i)
+  assert.throws(()=>f.bank.cashReport({...query,empresaId:f.foreignCompanyId,snapshotId:snap.id}),/empresa|previsão|snapshot/i)
+ }finally{f.close()}
+})
+
+test('C4 previsão congelada mantém valores e compara realizado importado após o congelamento',()=>{
+ const f=fixture();try{
+  const query={empresaId:f.companyId,asOf:'2026-11-18',horizonDays:30}
+  f.addObligation('pagar',14000,'2026-11-22')
+  const snap=f.bank.captureForecast({...query,requestId:'forecast-repro-0002',actorId:'os:gestor'})
+  f.importCSV([{date:'22/11/2026',description:'Fornecedor da obra',amount:'-140,00'}],'actual-later.csv')
+  const report=f.bank.cashReport({...query,snapshotId:snap.id})
+  assert.equal(report.summary.plannedOutCents,14000)
+  assert.equal(report.summary.actualOutCents,14000)
+  assert.equal(report.days.find(x=>x.date==='2026-11-22').actualOutCents,14000)
+ }finally{f.close()}
+})
