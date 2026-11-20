@@ -34,7 +34,7 @@ function asExportRow(row:SheetRow, columns:SheetColumn[]) {
 
 type Props = {
   title:string
-  area:'orcamento'|'estoque'|'compras'|'financeiro'|'folha'|'cronograma'|'etapas'|'subetapas'|'medicoes'|'ponto'
+  area:'orcamento'|'estoque'|'compras'|'financeiro'|'folha'|'cronograma'|'etapas'|'subetapas'|'medicoes'|'ponto'|'tarefas'|'rdo'
   rows:SheetRow[]
   columns:SheetColumn[]
   companyId?:string|number|null
