@@ -5,7 +5,7 @@ P2 complementa P0 (orçamento, compras, estoque, financeiro e folha) e P1 (crono
 
 ## Tarefas e pendências
 - Desktop: botão **Editar em planilha** no módulo Tarefas, filtrado por obra, etapa e status.
-- Edição em lote apenas dos campos canônicos de gestão: responsável, prazo, prioridade e status. Origem, descrição, título, etapa e ID permanecem intactos, inclusive tarefas geradas pelo RDO.
+- Edição em lote dos campos canônicos de tarefas **manuais**: responsável, prazo, prioridade e status. Origem, descrição, título, etapa e ID permanecem intactos. Tarefas geradas por ocorrências do RDO ficam somente para consulta nesta grade e devem ser alteradas na origem, evitando divergência entre o RDO e a pendência.
 - `OperationalSheetP2Service.commitTasks`: transação SQLite, validação de obra, ID único, revisão `updated_at`, data calendário válida e valores de status/prioridade. A data de conclusão é preenchida ou limpa conforme a transição.
 - Filtros visuais são preferências, não bancos novos; o exportador existente produz XLSX/CSV.
 - Não há fallback silencioso para dados locais quando o domínio Operação usa servidor.
