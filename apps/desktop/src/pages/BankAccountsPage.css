@@ -100,3 +100,9 @@
 @media(max-width:850px){.bank-sim-row{grid-template-columns:repeat(2,minmax(0,1fr))}.bank-sim-shift{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.bank-audit .bank-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.bank-sim-row,.bank-sim-shift{grid-template-columns:1fr}.bank-sim-row button{width:100%}}
 @media print{.bank-finance button,.bank-finance input,.bank-finance select,.bank-finance textarea,.bank-p2-scenarios,.bank-audit{display:none!important}.bank-p2-report{break-inside:avoid;border:none!important;box-shadow:none!important}.cash-table{max-height:none!important;overflow:visible!important}.cash-table th{position:static!important}.bank-finance{display:block}.bank-p2-report .cash-summary-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+
+.bank-snapshot-controls{display:grid;grid-template-columns:minmax(230px,1fr) auto;gap:12px;align-items:end}
+.bank-snapshot-controls button{white-space:nowrap}
+@media(max-width:650px){.bank-snapshot-controls{grid-template-columns:1fr}.bank-snapshot-controls button{width:100%}}
+@media print{.bank-snapshot-controls{display:none!important}}
