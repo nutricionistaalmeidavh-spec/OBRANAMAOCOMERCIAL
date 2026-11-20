@@ -123,7 +123,7 @@ export default function OperationalSheetGrid({
     <div className="card-header" style={{gap:10,flexWrap:'wrap'}}>
       <div><h2>{title}</h2><p>Planilha conectada aos registros do sistema · {rows.length} linha(s).</p></div>
       <div className="row-actions" style={{flexWrap:'wrap'}}>
-        {showImport&&<Link className="button button-secondary" to={'/importacao?'+params}><UploadCloud size={14}/> Importar</Link>}
+        {showImport&&!disabledReason&&<Link className="button button-secondary" to={'/importacao?'+params}><UploadCloud size={14}/> Importar</Link>}
         {allowTemplate&&<Button type="button" variant="secondary" disabled={busy} onClick={downloadTemplate}><FileSpreadsheet size={14}/> Modelo</Button>}
         <Button type="button" variant="secondary" disabled={busy} onClick={()=>exportAs('xlsx')}><Download size={14}/> Excel</Button>
         <Button type="button" variant="secondary" disabled={busy} onClick={()=>exportAs('csv')}>CSV</Button>
