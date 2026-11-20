@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Card, Loading } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
+import './BankAccountsPage.css'
 
 type Company={id:number;nome_fantasia?:string;razao_social?:string}
 type CashSummary={realizedCents:number;projectedEndCents:number;asOf:string;hasBankBalance:boolean;actualSource:string;balanceDescription:string}
