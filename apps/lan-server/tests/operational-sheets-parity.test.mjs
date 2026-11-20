@@ -168,7 +168,9 @@ test('auditoria do lote preserva usuário/dispositivo e reverte junto com altera
   const saved=sheets.commit({area:'tarefas',obraId:f.work.id,
     rows:[{id:f.task.id,revision:1,responsavel:'Equipe A'}]},actor)
   assert.equal(saved.updated,1)
-  assert.deepEqual(db.prepare('SELECT member_id,device_id,action FROM audit_test').get(),
+  // node:sqlite retorna objetos de linha com protótipo nulo; compare os campos, não o protótipo.
+  const auditRow=db.prepare('SELECT member_id,device_id,action FROM audit_test').get()
+  assert.deepEqual({...auditRow},
     {member_id:'operator-1',device_id:'workstation-4',action:'operational_sheet.commit'})
   const auditCount=db.prepare('SELECT COUNT(*) n FROM audit_test').get().n
   assert.throws(()=>sheets.commit({area:'tarefas',obraId:f.work.id,
