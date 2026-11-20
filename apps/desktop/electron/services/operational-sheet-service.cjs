@@ -71,10 +71,18 @@ function assertLocal(moduleStorage,area) {
 }
 
 class OperationalSheetService {
-  constructor({db,moduleStorage,dialog}) { this.db=db; this.moduleStorage=moduleStorage; this.dialog=dialog }
+  constructor({db,moduleStorage,dialog,lanClient}) { this.db=db; this.moduleStorage=moduleStorage; this.dialog=dialog;this.lanClient=lanClient }
   commit(payload={}) {
     const area=String(payload.area||'')
     const rows=validateBatch(area,payload.rows)
+    const domain=area==='orcamento'?'planning':'finance'
+    const state=this.moduleStorage?.state(domain)?.state
+    if(state==='central-active'){
+      if(!this.lanClient?.operationalSheetCommit)throw new Error('Servidor não suporta planilhas em lote. Atualize o servidor primeiro.')
+      return this.lanClient.operationalSheetCommit({...payload,rows:rows.map((row,index)=>({
+        ...row,revision:payload.rows[index].revision
+      }))})
+    }
     assertLocal(this.moduleStorage,area)
     const obraId=Number(payload.obraId||0)
     const empresaId=Number(payload.empresaId||0)
