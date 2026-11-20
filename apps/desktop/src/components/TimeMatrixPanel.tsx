@@ -42,11 +42,11 @@ export default function TimeMatrixPanel({competencia,refresh}:{competencia:strin
   const state=useAsync(()=>window.fluxoDre.storage.moduleState('rh'),[])
   const companies=useAsync(()=>window.fluxoDre.empresas.list(),[])
   const works=useAsync(()=>window.fluxoDre.obras.list(empresaId?{empresa_id:Number(empresaId)}:{}),[empresaId])
-  const local=!!state.data&&['local','migration-required'].includes(state.data.state)
-  const sheet=useAsync(()=>local?window.fluxoDre.operationalSheet.p1TimeMatrix({
+  const ready=!!state.data&&state.data.state!=='central-ready'
+  const sheet=useAsync(()=>ready?window.fluxoDre.operationalSheet.p1TimeMatrix({
     competencia,...(obraId?{obraId:Number(obraId)}:{}),...(empresaId?{empresaId:Number(empresaId)}:{})
   }):Promise.resolve({rows:[],employeeCount:0,truncated:false}),
-  [local,competencia,empresaId,obraId,revision])
+  [ready,competencia,empresaId,obraId,revision])
   const save=async(changed:SheetRow[])=>{
     await window.fluxoDre.operationalSheet.p1TimeCommit({competencia,
       ...(empresaId?{empresaId:Number(empresaId)}:{}),
@@ -55,7 +55,7 @@ export default function TimeMatrixPanel({competencia,refresh}:{competencia:strin
         tipo:String(row.tipo||''),entrada:String(row.entrada||''),
         intervalo_saida:String(row.intervalo_saida||''),intervalo_entrada:String(row.intervalo_entrada||''),
         saida:String(row.saida||''),observacoes:String(row.observacoes||''),
-        updated_at:String(row.updated_at||'') }))
+        updated_at:String(row.updated_at||''),pointRevision:row.pointRevision??null }))
     })
     setRevision(n=>n+1);refresh()
   }
@@ -67,7 +67,7 @@ export default function TimeMatrixPanel({competencia,refresh}:{competencia:strin
       <Field label="Obra"><select value={obraId} onChange={e=>setObraId(e.target.value)}><option value="">Todas as obras</option>{works.data?.map((w:any)=><option key={w.id} value={w.id}>{w.nome}</option>)}</select></Field>
     </div>
     {state.loading?<Loading label="Verificando disponibilidade da matriz..."/>:
-      !local?<p className="notice" role="status">A edição em lote do ponto não está homologada no servidor. Use a ficha individual que respeita as permissões e a sincronização.</p>:
+      !ready?<p className="notice" role="status">Conclua a ativação do armazenamento central antes de usar a matriz de ponto.</p>:
       sheet.loading?<Loading label="Carregando marcações e exceções da competência..."/>:
       sheet.error?<p role="alert" className="notice">{sheet.error.message}</p>:
       <>
