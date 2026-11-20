@@ -52,6 +52,8 @@ export default function BankAccountsPage(){
   const [error,setError]=useState('')
   const [filterDraft,setFilterDraft]=useState<MovementFilter>(blankFilter)
   const [activeFilter,setActiveFilter]=useState<MovementFilter>(blankFilter)
+  const [page,setPage]=useState(0)
+  const [exporting,setExporting]=useState(false)
   const companies=useAsync<any[]>(()=>window.fluxoDre.empresas.list(),[])
   useEffect(()=>{if(!empresaId&&companies.data?.length)setEmpresaId(String(companies.data[0].id))},[companies.data,empresaId])
   const banks=useAsync<Bank[]>(()=>empresaId?window.fluxoDre.bancos.list(Number(empresaId)):Promise.resolve([]),[empresaId,version])
@@ -62,7 +64,7 @@ export default function BankAccountsPage(){
   const selected=useMemo(()=>banks.data?.find(x=>String(x.id)===bankId),[banks.data,bankId])
   const works=useAsync<{id:number;nome:string}[]>(()=>empresaId?window.fluxoDre.bancos.works({empresaId:Number(empresaId)}):Promise.resolve([]),[empresaId])
   const imports=useAsync<any[]>(()=>empresaId&&bankId?window.fluxoDre.bancos.imports({empresaId:Number(empresaId),contaBancariaId:Number(bankId)}):Promise.resolve([]),[empresaId,bankId,version])
-  const transactions=useAsync<any[]>(()=>empresaId&&bankId?window.fluxoDre.bancos.transactions({empresaId:Number(empresaId),contaBancariaId:Number(bankId),status:activeFilter.status,obraId:activeFilter.obraId?Number(activeFilter.obraId):undefined,startDate:activeFilter.startDate||undefined,endDate:activeFilter.endDate||undefined,search:activeFilter.search||undefined}):Promise.resolve([]),[empresaId,bankId,version,activeFilter])
+  const transactions=useAsync<any[]>(()=>empresaId&&bankId?window.fluxoDre.bancos.transactions({empresaId:Number(empresaId),contaBancariaId:Number(bankId),status:activeFilter.status,obraId:activeFilter.obraId?Number(activeFilter.obraId):undefined,startDate:activeFilter.startDate||undefined,endDate:activeFilter.endDate||undefined,search:activeFilter.search||undefined,limit:500,offset:page*500}):Promise.resolve([]),[empresaId,bankId,version,activeFilter,page])
   const updateDraft=(field:keyof Draft,value:string)=>setDraft(v=>({...v,[field]:value}))
   const editSelected=()=>{
     if(!selected)return
@@ -127,19 +129,33 @@ export default function BankAccountsPage(){
     }catch(err){setError((err as Error).message)}
     finally{setWorking(false)}
   }
-  const changeAccount=(id:string)=>{setBankId(id);resetFile();setActiveFilter(blankFilter());setFilterDraft(blankFilter())}
+  const changeAccount=(id:string)=>{setBankId(id);resetFile();setActiveFilter(blankFilter());setFilterDraft(blankFilter());setPage(0)}
   const updateFilter=(key:keyof MovementFilter,value:string)=>setFilterDraft(v=>({...v,[key]:value}))
-  const exportTransactions=()=>{
-    const tx=transactions.data||[]
-    if(!tx.length)return
-    const safe=(value:unknown)=>'"'+String(value??'').replace(/"/g,'""')+'"'
-    const lines=[['Data','Descrição','Valor (R$)','Conciliado (R$)','Situação'],...tx.map(t=>{
-      const amount=Number(t.valor_centavos),match=Number(t.conciliado_centavos||0)
-      return[t.data,t.descricao,(amount/100).toFixed(2).replace('.',','),(match/100).toFixed(2).replace('.',','),match>=Math.abs(amount)?'Conciliado':match>0?'Parcial':'Pendente']
-    })]
-    const csv='\uFEFF'+lines.map(x=>x.map(safe).join(';')).join('\r\n')
-    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}))
-    const a=document.createElement('a');a.href=url;a.download='extrato-financeiro-'+bankId+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+  const exportTransactions=async()=>{
+    if(!bankId||!empresaId||exporting)return
+    setExporting(true);setError('')
+    try{
+      const params={empresaId:Number(empresaId),contaBancariaId:Number(bankId),status:activeFilter.status,obraId:activeFilter.obraId?Number(activeFilter.obraId):undefined,startDate:activeFilter.startDate||undefined,endDate:activeFilter.endDate||undefined,search:activeFilter.search||undefined,limit:500}
+      const all:any[]=[]
+      // Não emitir arquivo parcial: falhar antes de criar o CSV se o volume exceder o limite explícito.
+      for(let offset=0;offset<=50000;offset+=500){
+        const batch:any[]=await window.fluxoDre.bancos.transactions({...params,offset})
+        all.push(...batch)
+        if(batch.length<500)break
+        if(offset>=50000)throw Error('Mais de 50.000 movimentações. Refine o período para exportar sem corte.')
+      }
+      if(!all.length)throw Error('Nenhuma movimentação encontrada para exportar.')
+      if(new Set(all.map(x=>x.id)).size!==all.length)throw Error('Os extratos foram alterados durante a exportação; tente novamente.')
+      const safe=(value:unknown)=>'"'+String(value??'').replace(/"/g,'""')+'"'
+      const lines=[['Data','Descrição','Valor (R$)','Conciliado (R$)','Situação'],...all.map(t=>{
+        const amount=Number(t.valor_centavos),match=Number(t.conciliado_centavos||0)
+        return[t.data,t.descricao,(amount/100).toFixed(2).replace('.',','),(match/100).toFixed(2).replace('.',','),match>=Math.abs(amount)?'Conciliado':match>0?'Parcial':'Pendente']
+      })]
+      const csv='\uFEFF'+lines.map(x=>x.map(safe).join(';')).join('\r\n')
+      const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}))
+      const a=document.createElement('a');a.href=url;a.download='extrato-financeiro-'+bankId+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)
+    }catch(error){setError((error as Error).message)}
+    finally{setExporting(false)}
   }
   const setColumn=(name:string,value:string)=>{setMapping(v=>({...v,[name]:value}));setPreview(null)}
 
@@ -202,15 +218,16 @@ export default function BankAccountsPage(){
       </Card>}
       <Card className="bank-import-card">
         <h2>Movimentações e conciliação — filtros</h2>
-        <form className="bank-transaction-filters" onSubmit={e=>{e.preventDefault();setActiveFilter({...filterDraft})}}>
+        <form className="bank-transaction-filters" onSubmit={e=>{e.preventDefault();setPage(0);setActiveFilter({...filterDraft})}}>
           <Field label="Situação"><select value={filterDraft.status} onChange={e=>updateFilter('status',e.target.value)}><option value="all">Todas</option><option value="pending">Pendentes</option><option value="partial">Parciais</option><option value="reconciled">Conciliadas</option></select></Field>
           <Field label="Obra"><select value={filterDraft.obraId} onChange={e=>updateFilter('obraId',e.target.value)}><option value="">Todas (inclui administrativo)</option>{works.data?.map(w=><option value={w.id} key={w.id}>{w.nome}</option>)}</select></Field>
           <Field label="Data inicial"><input type="date" value={filterDraft.startDate} onChange={e=>updateFilter('startDate',e.target.value)}/></Field>
           <Field label="Data final"><input type="date" min={filterDraft.startDate||undefined} value={filterDraft.endDate} onChange={e=>updateFilter('endDate',e.target.value)}/></Field>
           <Field label="Descrição"><input placeholder="Buscar no extrato" value={filterDraft.search} onChange={e=>updateFilter('search',e.target.value)}/></Field>
-          <div className="bank-filter-actions"><Button type="submit">Aplicar filtros</Button><Button variant="secondary" type="button" onClick={()=>{setFilterDraft(blankFilter());setActiveFilter(blankFilter())}}>Limpar</Button><Button type="button" variant="secondary" disabled={!transactions.data?.length} onClick={exportTransactions}>Exportar CSV</Button></div>
+          <div className="bank-filter-actions"><Button type="submit">Aplicar filtros</Button><Button variant="secondary" type="button" onClick={()=>{setPage(0);setFilterDraft(blankFilter());setActiveFilter(blankFilter())}}>Limpar</Button><Button type="button" variant="secondary" disabled={exporting||!transactions.data?.length} onClick={()=>void exportTransactions()}>{exporting?'Exportando...':'Exportar CSV completo'}</Button></div>
         </form>
-        <p>{transactions.data?.length||0} movimentação(ões) exibida(s). A visão por obra inclui apenas movimentações já atribuídas por conciliação.</p>
+        <p>{transactions.data?.length||0} movimentação(ões) nesta página, a partir do registro {page*500+1}. A visão por obra inclui apenas movimentações já atribuídas por conciliação. O CSV exporta todas as páginas dos filtros atuais.</p>
+        <div className="bank-filter-actions"><Button variant="secondary" type="button" disabled={page===0||transactions.loading} onClick={()=>setPage(v=>Math.max(0,v-1))}>Página anterior</Button><span aria-live="polite">Página {page+1}</span><Button variant="secondary" type="button" disabled={transactions.loading||(transactions.data?.length||0)<500} onClick={()=>setPage(v=>v+1)}>Próxima página</Button></div>
       </Card>
       {selected&&<BankReconciliationPanel empresaId={Number(empresaId)} contaBancariaId={selected.id} movements={transactions.data||[]} onChanged={()=>setVersion(v=>v+1)}/>}
       <BankPeriodAuditPanel empresaId={Number(empresaId)} works={works.data||[]} banks={banks.data||[]}/>
