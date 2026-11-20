@@ -19,6 +19,7 @@ import { CompensationPolicyService } from './compensation-policy-service.mjs'
 import { MigrationService } from './migration-service.mjs'
 import { RevisionConflictError } from './concurrency-service.mjs'
 import { createVersionedRepository } from './versioned-repository.mjs'
+import { OperationalSheetCentral, AREA_DOMAIN } from './operational-sheet-service.mjs'
 
 export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.4.2'
@@ -72,7 +73,7 @@ const SERVER_CAPABILITIES = Object.freeze({
   modules:['core','operation','planning','finance','rh','documents','summary'],
   moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:3,documents:2},
   bridgeEntities:['frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra'],
-  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1']
+  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1','operational-sheets-batch-v1']
 })
 
 function publicServerCapabilities(versionedRepository) {
@@ -300,6 +301,7 @@ async function authorizeRh(request, security, action = 'edit') {
 
 export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, measurementService = null, procurementService = null, contractsService = null, payrollService = null, timeService = null, compensationPolicyService = null, migrationService = null, documentStorageService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const versionedRepository = createVersionedRepository(repository)
+  const sheets=versionedRepository?new OperationalSheetCentral({repository}):null
   const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
@@ -466,6 +468,38 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
 
       if (centralStorage?.isMaintenanceActive?.()) {
         return sendJson(response, 503, { error:'storage_maintenance', message:'Banco central temporariamente indisponível durante manutenção segura.' })
+      }
+
+      if(url.pathname.startsWith('/api/v1/operational-sheets/')){
+        if(request.method!=='POST')return methodNotAllowed(response,['POST'])
+        if(!sheets)return sendJson(response,503,{error:'operational_sheets_unavailable',message:'Servidor central sem suporte transacional de planilhas.'})
+        const actor=await authenticateLanRequest(request,security)
+        const body=await readJson(request)
+        const operation=url.pathname.slice('/api/v1/operational-sheets/'.length)
+        if(operation==='commit'){
+          const domain=AREA_DOMAIN[String(body.area||'')]
+          if(!domain)return sendJson(response,400,{error:'invalid_area',message:'Planilha não suportada.'})
+          authorizeAction(actor,{domain,action:'edit'})
+          if(Array.isArray(body.rows)&&body.rows.some(row=>!row?.id))authorizeAction(actor,{domain,action:'create'})
+          return sendJson(response,200,sheets.commit(body))
+        }
+        if(operation==='measurements'){
+          authorizeAction(actor,{domain:'planning',action:'view'})
+          return sendJson(response,200,sheets.measurements(body))
+        }
+        if(operation==='time-matrix'){
+          authorizeAction(actor,{domain:'rh',action:'view'})
+          return sendJson(response,200,sheets.timeMatrix(body))
+        }
+        if(operation==='time-commit'){
+          authorizeAction(actor,{domain:'rh',action:'edit'})
+          return sendJson(response,200,sheets.timeCommit(body))
+        }
+        if(operation==='receive-many'){
+          authorizeAction(actor,{domain:'finance',action:'edit'})
+          return sendJson(response,200,sheets.receiveMany(body))
+        }
+        return sendJson(response,404,{error:'not_found'})
       }
 
       if (url.pathname === '/api/v1/sync-source/capabilities') {
