@@ -43,7 +43,7 @@ test('HTTP B1/B2 exige autenticação e persiste extrato no banco LAN sem baixar
     })
     assert.equal(manual.status,201)
     const registered=await manual.json()
-    assert.equal(registered.created_by,'m1','ator vem da sessão autenticada e não do cliente')
+    assert.equal(registered.created_by,'device','ator vem do dispositivo autenticado e não do cliente')
     const manualList=await send('/api/v1/finance/bank-balances?empresaId='+company.id+'&contaBancariaId='+bank.id)
     assert.equal((await manualList.json()).length,1)
     const payload={
