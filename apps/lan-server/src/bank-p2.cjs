@@ -145,14 +145,15 @@ class BankP2Service{
  }
 
  cashReport({empresaId,asOf,horizonDays=30,contaBancariaId,obraId,snapshotId}={}){
-  const flow=this.p0.cashFlow({empresaId,asOf,horizonDays,contaBancariaId,obraId}),id=flow.empresaId
+  const id=this.p0.company(empresaId)
   let historical=null
   if(snapshotId!==undefined && snapshotId!==null && snapshotId!==''){
    const row=this.db.prepare('SELECT * FROM finance_bank_forecast_snapshots WHERE id=? AND empresa_id=?').get(uid(snapshotId,'Previsão'),id)
    if(!row)throw Error('Previsão histórica não encontrada nesta empresa.')
    historical=this.forecastRow(row)
-   if(historical.asOf!==flow.asOf||historical.horizonDays!==flow.horizonDays||historical.contaBancariaId!==flow.contaBancariaId||historical.obraId!==flow.obraId)throw Error('A previsão histórica não corresponde aos filtros selecionados.')
   }
+  const flow=this.p0.cashFlow({empresaId:id,asOf,horizonDays,contaBancariaId,obraId})
+  if(historical&&(historical.asOf!==flow.asOf||historical.horizonDays!==flow.horizonDays||historical.contaBancariaId!==flow.contaBancariaId||historical.obraId!==flow.obraId))throw Error('A previsão histórica não corresponde aos filtros selecionados.')
   const start=flow.days[0].date,end=flow.days[flow.days.length-1].date
   let sql,args
   if(flow.obraId!==null){
