@@ -40,10 +40,11 @@ type Props = {
   canEditRow?:(row:SheetRow)=>boolean
   commitLabel?:string
   commitSuccessMessage?:string
+  showImport?:boolean
 }
 export default function OperationalSheetGrid({
   title,area,rows,columns,companyId,importArea,filename,onCommit,onRowAction,
-  rowActionLabel='Abrir',onSaved,allowTemplate=false,disabledReason,canEditRow,commitLabel='Salvar',commitSuccessMessage
+  rowActionLabel='Abrir',onSaved,allowTemplate=false,disabledReason,canEditRow,commitLabel='Salvar',commitSuccessMessage,showImport=true
 }:Props) {
   const [drafts,setDrafts]=useState<Record<string,Record<string,string>>>({})
   const [busy,setBusy]=useState(false)
@@ -114,7 +115,7 @@ export default function OperationalSheetGrid({
     <div className="card-header" style={{gap:10,flexWrap:'wrap'}}>
       <div><h2>{title}</h2><p>Planilha conectada aos registros do sistema · {rows.length} linha(s).</p></div>
       <div className="row-actions" style={{flexWrap:'wrap'}}>
-        <Link className="button button-secondary" to={'/importacao?'+params}><UploadCloud size={14}/> Importar</Link>
+        {showImport&&<Link className="button button-secondary" to={'/importacao?'+params}><UploadCloud size={14}/> Importar</Link>}
         {allowTemplate&&<Button variant="secondary" disabled={busy} onClick={downloadTemplate}><FileSpreadsheet size={14}/> Modelo</Button>}
         <Button variant="secondary" disabled={busy} onClick={()=>exportAs('xlsx')}><Download size={14}/> Excel</Button>
         <Button variant="secondary" disabled={busy} onClick={()=>exportAs('csv')}>CSV</Button>
