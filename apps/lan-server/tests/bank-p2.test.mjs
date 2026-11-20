@@ -142,3 +142,40 @@ test('C4 previsão congelada mantém valores e compara realizado importado após
   assert.equal(report.days.find(x=>x.date==='2026-11-22').actualOutCents,14000)
  }finally{f.close()}
 })
+
+
+test('P2 saldo manual e extrato retroativo não geram dupla contagem no caixa',()=>{
+ const f=fixture();try{
+  const balance={empresaId:f.companyId,contaBancariaId:f.a.id,data:'2026-11-18',saldoCentavos:75000,justificativa:'Conferência de saldo bancário',requestId:'manual-balance-test-001',actorId:'os:qa'};
+  const checkpoint=f.bank.recordManualBalance(balance);
+  assert.equal(checkpoint.saldo_centavos,75000);
+  assert.equal(f.bank.recordManualBalance(balance).id,checkpoint.id,'retry idempotente');
+  assert.equal(f.bank.cashFlow({empresaId:f.companyId,asOf:'2026-11-18'}).realizedCents,75000);
+  f.importCSV([
+   {date:'17/11/2026',description:'Anterior à conferência',amount:'-200,00'},
+   {date:'18/11/2026',description:'Mesmo dia da conferência',amount:'-100,00'},
+   {date:'19/11/2026',description:'Posterior à conferência',amount:'-50,00'}
+  ],'com-periodo-sobreposto.csv');
+  assert.equal(f.bank.listTransactions({empresaId:f.companyId,contaBancariaId:f.a.id}).length,3,'histórico do extrato preservado');
+  assert.equal(f.bank.cashFlow({empresaId:f.companyId,asOf:'2026-11-18'}).realizedCents,75000);
+  const flow=f.bank.cashFlow({empresaId:f.companyId,asOf:'2026-11-19'});
+  assert.equal(flow.realizedCents,70000,'somente movimentação posterior ao saldo informado');
+  assert.equal(flow.banks[0].manualBalanceDate,'2026-11-18');
+  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM pagamentos_conta').get().n,0,'não cria baixa');
+  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM transacoes_bancarias').get().n,3,'não cria transação fictícia');
+ }finally{f.close()}
+});
+
+test('P2 saldo manual possui trilha, escopo por empresa, bloqueio bancário e idempotência',()=>{
+ const f=fixture();try{
+  const balance={empresaId:f.companyId,contaBancariaId:f.a.id,data:'2026-11-18',saldoCentavos:42000,justificativa:'Apuração manual bancária',requestId:'manual-balance-test-002',actorId:'os:qa'};
+  const a=f.bank.recordManualBalance(balance);
+  assert.equal(f.bank.listManualBalances({empresaId:f.companyId,contaBancariaId:f.a.id})[0].created_by,'os:qa');
+  assert.throws(()=>f.bank.recordManualBalance({...balance,saldoCentavos:123}),/identificador|diferente/i);
+  assert.throws(()=>f.bank.recordManualBalance({...balance,requestId:'manual-balance-other-company',empresaId:f.foreignCompanyId}),/empresa|conta/i);
+  assert.throws(()=>f.db.prepare('UPDATE finance_bank_manual_balances SET saldo_centavos=0 WHERE id=?').run(a.id),/imutável/i);
+  f.bank.closePeriod({empresaId:f.companyId,period:'2026-11',actorId:'gestor',acknowledgePending:true});
+  assert.throws(()=>f.bank.recordManualBalance({...balance,data:'2026-11-20',requestId:'manual-balance-closed'}),/fechado/i);
+  assert.equal(f.bank.listManualBalances({empresaId:f.companyId,contaBancariaId:f.a.id}).length,1);
+ }finally{f.close()}
+});
