@@ -43,12 +43,12 @@ export default function FinancePage() {
     const batch=changed.map(row=>{
       const amount=parseBrDecimal(row.valor)
       if(amount===null||amount<=0)throw new Error('O valor da conta deve ser maior que zero.')
-      return {id:Number(row.id),updated_at:String(row.updated_at||''),descricao:String(row.descricao||''),competencia:String(row.competencia||''),vencimento:String(row.vencimento||''),valor_centavos:Math.round(amount*100)}
+      return {id:Number(row.id),revision:row.revision,updated_at:String(row.updated_at||''),descricao:String(row.descricao||''),competencia:String(row.competencia||''),vencimento:String(row.vencimento||''),valor_centavos:Math.round(amount*100)}
     })
     await window.fluxoDre.operationalSheet.commit({area:'financeiro',rows:batch})
     await accounts.reload()
   }
-  const sheetDisabled=sheetStorage.data&&!['local','migration-required'].includes(sheetStorage.data.state)?'Edição em lote em servidor ainda não homologada; edite as contas pelo formulário. Exportação disponível.':undefined
+  const sheetDisabled=sheetStorage.data?.state==='central-ready'?'Financeiro central ainda não ativado. Conclua o assistente de conexão.':undefined
 
   return <>
     <PageHeader title="Contas" description="Contas a pagar e receber com competência, vencimento e baixas parciais." actions={<div className="row-actions"><Button variant="secondary" icon={<FileSpreadsheet size={16}/>} onClick={()=>setSheetOpen(value=>!value)}>{sheetOpen?'Ocultar planilha':'Editar em planilha'}</Button><Button icon={<Plus size={16}/>} onClick={()=>openForm()}>Nova conta</Button></div>}/>
