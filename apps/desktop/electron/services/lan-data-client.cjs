@@ -278,6 +278,22 @@ class LanDataClient {
     return this.request('POST', '/api/v1/rh/time/document-context', { body: payload })
   }
 
+  async operationalSheetCommit(payload) {
+    return this.request('POST','/api/v1/operational-sheets/commit',{body:payload})
+  }
+  async operationalSheetMeasurements(payload) {
+    return this.request('POST','/api/v1/operational-sheets/measurements',{body:payload})
+  }
+  async operationalSheetTimeMatrix(payload) {
+    return this.request('POST','/api/v1/operational-sheets/time-matrix',{body:payload})
+  }
+  async operationalSheetTimeCommit(payload) {
+    return this.request('POST','/api/v1/operational-sheets/time-commit',{body:payload})
+  }
+  async procurementReceiveMany(payload) {
+    return this.request('POST','/api/v1/operational-sheets/receive-many',{body:payload})
+  }
+
   async list(table, filters = {}) {
     this.assertTable(table)
     return this.request('GET', `/api/v1/${table}`, { query: filters })
