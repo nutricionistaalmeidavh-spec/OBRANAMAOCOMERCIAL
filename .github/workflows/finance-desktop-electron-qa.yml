@@ -1,0 +1,48 @@
+name: Finance Desktop Electron UI QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/lan-server/**'
+      - '.github/workflows/finance-desktop-electron-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  electron-screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install Desktop dependencies
+        working-directory: apps/desktop
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Build production renderer
+        working-directory: apps/desktop
+        run: npm run build
+      - name: Install free Playwright test driver
+        working-directory: apps/desktop
+        run: |
+          npm install --workspaces=false --no-audit --no-fund --no-save --package-lock=false playwright@1.62.1
+          npx playwright install-deps chromium
+      - name: Capture actual Electron Desktop finance UI and assert user flows
+        working-directory: apps/desktop
+        env:
+          NODE_ENV: test
+          ARTISYS_QA: '1'
+        run: xvfb-run -a node qa/finance-electron-smoke.cjs
+      - name: Preserve QA screenshots for human review
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: finance-desktop-electron-p0-p2-qa
+          path: apps/desktop/qa-artifacts/finance-desktop/*.png
+          if-no-files-found: warn
+          retention-days: 14
