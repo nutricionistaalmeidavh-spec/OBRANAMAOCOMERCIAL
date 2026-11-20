@@ -33,6 +33,7 @@ export default function ProcurementPage() {
   const quotes = useAsync(() => window.fluxoDre.compras.cotacoes.list(), [])
   const orders = useAsync(() => work ? window.fluxoDre.compras.pedidos.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
   const stock = useAsync(() => work ? window.fluxoDre.compras.estoque.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
+  const stockOrderItems=useAsync(()=>work?window.fluxoDre.compras.itens.list():Promise.resolve([]),[work])
   async function saveRequest(event: FormEvent) {
     event.preventDefault()
     await window.fluxoDre.compras.save({ ...requestForm, obra_id: Number(requestForm.obra_id), frente_id: requestForm.frente_id ? Number(requestForm.frente_id) : null })
@@ -82,14 +83,16 @@ export default function ProcurementPage() {
     if (result) setNotice('Documento vinculado ao pedido.')
   }
   const requestOptions = (requests.data || []).filter((item: any) => !['cancelada', 'concluida', 'convertida_pedido'].includes(item.status))
-  const stockBalance:SheetRow[]=groupStockMovements(stock.data||[])
+  const stockBalance:SheetRow[]=groupStockMovements(stock.data||[],stockOrderItems.data||[])
   const stockColumns:SheetColumn[]=[
     {key:'descricao',label:'Material',width:210},
     {key:'unidade',label:'Unidade'},
     {key:'etapa_nome',label:'Etapa',value:row=>fronts.data?.find((f:any)=>f.id===row.frente_id)?.nome||'Obra geral'},
     {key:'entradas',label:'Entradas'},
     {key:'saidas',label:'Saídas'},
-    {key:'saldo',label:'Saldo atual'}
+    {key:'saldo',label:'Saldo atual'},
+    {key:'custo_medio',label:'Custo médio estimado',value:row=>row.custo_medio_centavos===null?'—':brl(Number(row.custo_medio_centavos))},
+    {key:'saldo_estimado',label:'Saldo valorizado estimado',value:row=>row.saldo_estimado_centavos===null?'—':brl(Number(row.saldo_estimado_centavos))}
   ]
   const quotesForWork:SheetRow[]=(quotes.data||[]).filter((q:any)=>(requests.data||[]).some((r:any)=>r.id===q.solicitacao_id)).map((q:any)=>({
     ...q,
