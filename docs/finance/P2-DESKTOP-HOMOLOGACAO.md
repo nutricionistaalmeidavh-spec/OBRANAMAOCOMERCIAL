@@ -55,3 +55,12 @@ Navegação: **Financeiro > Fluxo de caixa > Relatório — previsto × realizad
 6. C4 calcula previsto/realizado sem duplicar baixas; alerta sobre lacunas.
 7. Modo Desktop local e LAN produzem a mesma semântica e preservam instalação antiga.
 8. Todos os jobs de QA necessários aprovados; release desabilitada até autorização.
+
+## Complemento de homologação — identidade, histórico e exportação
+
+- **Auditoria local:** ações bancárias críticas usam a conta real do sistema operacional (username + hostname), extraída pelo processo principal do Electron. O renderer não define o responsável. Este Desktop local não cria login por colaborador; a separação de pessoas em computadores compartilhados exige contas diferentes no sistema operacional. As permissões são do dono da sessão e arquivos locais, não um `finance:approve` multiusuário inventado. No Desktop com servidor, a API exige `finance:approve` e registra membro/dispositivo pareado.
+- **C4 histórico verdadeiro:** o usuário pode escolher **Guardar previsão atual**, criando fotografia imutável de entradas, saídas e saldo diário com empresa/data/horizonte/obra/banco. Futuras alterações em obrigações não reescrevem a fotografia. O relatório pode selecionar a fotografia para comparar com movimentos posteriormente importados, ou escolher **Previsão atual (recalculada)**. Snapshots não são criados automaticamente, não modificam contas nem extratos.
+- Migrações novas: Desktop `025_finance_forecast_snapshots.sql`; servidor `036_finance_forecast_snapshots.sql`. Fonte única conforme modo local/central. O histórico `finance_bank_forecast_snapshots` só recebe inserts, com idempotência por requestId e verificação do escopo.
+- **B4 exportação sem corte:** listagem de movimentos paginada em blocos de até 500 e exportação percorrendo todas as páginas. Limite seguro explícito de 50 mil registros; se ultrapassado, a operação informa o limite e não gera CSV parcial.
+- **QA visual Electron:** `apps/desktop/qa/finance-electron-smoke.cjs` abre o aplicativo real com banco QA isolado, visita Contas bancárias/Fluxo de caixa, salva uma fotografia e captura imagens. Job `.github/workflows/finance-desktop-electron-qa.yml` publica apenas evidências de QA (não releases); resultados só são considerados homologados quando o job concluir com sucesso e as capturas forem inspecionadas.
+- O Portal Web existente do Cloudflare e a configuração de servidores próprios por cliente não mudaram. Nenhuma API paga foi introduzida como dependência do núcleo.
