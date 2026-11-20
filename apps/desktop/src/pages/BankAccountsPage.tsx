@@ -196,7 +196,7 @@ export default function BankAccountsPage(){
         </button>)}
       </div>
       {selected&&tab==='contas'&&<div className="bank-card-actions bank-account-actions"><Button variant="secondary" type="button" onClick={editSelected} disabled={working}>Editar conta</Button><Button variant="secondary" type="button" onClick={()=>void toggleSelected()} disabled={working}>{selected.ativo?'Desativar':'Ativar'}</Button></div>}
-      {selected&&tab==='contas'&&<BankBalancePanel empresaId={Number(empresaId)} contaBancariaId={selected.id} contaNome={selected.nome} saldoInicialData={selected.saldo_referencia_data} ativo={!!selected.ativo} revision={version} onSaved={()=>setVersion(v=>v+1)}/>}
+      {selected&&tab==='contas'&&<BankBalancePanel empresaId={Number(empresaId)} contaBancariaId={selected.id} contaNome={selected.nome} saldoInicialData={selected.saldo_referencia_data} ativo={!!selected.ativo} revision={version} onSaved={balance=>banks.setData(current=>current?.map(item=>item.id===balance.conta_bancaria_id?{...item,saldo_manual_data:balance.data,saldo_manual_centavos:balance.saldo_centavos}:item)||[])}/>}
       {selected&&tab==='extratos'&&<Card className="bank-import-card">
         <div className="bank-card-title"><div><h2>Importar extrato — {selected.nome}</h2><p>Importações não geram baixas automáticas. Lançamentos anteriores ou na data de um saldo manual informado não são somados novamente ao saldo.</p></div><FileUp size={23}/></div>
         <div className="bank-import-grid">
