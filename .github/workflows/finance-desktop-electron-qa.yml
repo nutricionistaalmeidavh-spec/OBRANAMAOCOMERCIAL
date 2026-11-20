@@ -27,16 +27,16 @@ jobs:
       - name: Build production renderer
         working-directory: apps/desktop
         run: npm run build
-      - name: Install free Playwright test driver
-        working-directory: apps/desktop
+      - name: Install free Playwright test driver in isolated test directory
         run: |
-          npm install --workspaces=false --no-audit --no-fund --no-save --package-lock=false playwright@1.62.1
-          npx playwright install-deps chromium
+          npm install --prefix "$RUNNER_TEMP/finance-playwright" --no-audit --no-fund --no-save playwright@1.62.1
+          node "$RUNNER_TEMP/finance-playwright/node_modules/playwright/cli.js" install-deps chromium
       - name: Capture actual Electron Desktop finance UI and assert user flows
         working-directory: apps/desktop
         env:
           NODE_ENV: test
           ARTISYS_QA: '1'
+          NODE_PATH: ${{ runner.temp }}/finance-playwright/node_modules
         run: xvfb-run -a node qa/finance-electron-smoke.cjs
       - name: Preserve QA screenshots for human review
         uses: actions/upload-artifact@v4
