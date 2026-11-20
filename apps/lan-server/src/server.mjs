@@ -699,6 +699,19 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, request.method === 'GET' ? 200 : 201, data)
       }
 
+      // Saldo manual absoluto: não cria transação nem pagamento fictício.
+      if (url.pathname === '/api/v1/finance/bank-balances') {
+        if (!['GET','POST'].includes(request.method)) return methodNotAllowed(response,['GET','POST'])
+        if (!bankFinance) return sendJson(response,503,{error:'bank_finance_unavailable'})
+        const actor=await authenticateLanRequest(request,security)
+        authorizeAction(actor,{domain:'finance',action:request.method==='GET'?'view':'approve'})
+        if(request.method==='GET')return sendJson(response,200,bankFinance.listManualBalances(Object.fromEntries(url.searchParams.entries())))
+        const body=await readJson(request)
+        const saved=bankFinance.recordManualBalance({...body,actorId:String(actor.member?.memberId||actor.device?.id||'lan-user')})
+        security?.appendAudit?.({actorMemberId:actor.member?.memberId,actorDeviceId:actor.device?.id,action:'finance_bank_manual_balance',targetType:'bank_account',targetId:String(saved.conta_bancaria_id),details:{empresaId:saved.empresa_id,date:saved.data,balanceId:saved.id}})
+        return sendJson(response,201,saved)
+      }
+
       const bankAccountMatch = url.pathname.match(/^\/api\/v1\/finance\/bank-accounts\/(\d+)\/?$/)
       if (bankAccountMatch) {
         if (request.method !== 'PATCH') return methodNotAllowed(response, ['PATCH'])
