@@ -123,6 +123,8 @@ test('C4 congela previsão por empresa e referência, preservando histórico ap�
   assert.equal(frozen.forecastSnapshotId,snap.id)
   assert.equal(frozen.days.find(x=>x.date==='2026-11-25').plannedOutCents,30000)
   assert.equal(f.db.prepare('SELECT COUNT(*) n FROM finance_bank_forecast_snapshots').get().n,1)
+  assert.throws(()=>f.db.prepare('UPDATE finance_bank_forecast_snapshots SET snapshot_json=? WHERE id=?').run('{}',snap.id),/imutavel/i)
+  assert.throws(()=>f.db.prepare('DELETE FROM finance_bank_forecast_snapshots WHERE id=?').run(snap.id),/imutavel/i)
   assert.throws(()=>f.bank.captureForecast({...query,requestId:'forecast-repro-0001',actorId:'os:gestor',horizonDays:60}),/identificador|diferente/i)
   assert.throws(()=>f.bank.cashReport({...query,empresaId:f.foreignCompanyId,snapshotId:snap.id}),/empresa|previsão|snapshot/i)
  }finally{f.close()}
