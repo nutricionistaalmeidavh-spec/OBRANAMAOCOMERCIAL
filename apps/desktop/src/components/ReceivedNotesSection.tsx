@@ -32,7 +32,8 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
   const notes=useAsync(()=>obraId?window.fluxoDre.compras.notas.list(obraId):Promise.resolve([]),[obraId])
   const summary=useAsync(()=>obraId?window.fluxoDre.compras.notas.summary(obraId):Promise.resolve({etapas:[],total_centavos:0}),[obraId])
 
-  const amount=useMemo(()=>(form?.itens||[]).reduce((sum,item)=>sum+(parseBrDecimal(item.quantidade)||0)*toCents(item.valor_unitario||'0'),0),[form])
+  const noteCents=(value:unknown)=>Math.round((parseBrDecimal(value)||0)*100)
+  const amount=useMemo(()=>(form?.itens||[]).reduce((sum,item)=>sum+(parseBrDecimal(item.quantidade)||0)*noteCents(item.valor_unitario||'0'),0),[form])
   const sheetRows:SheetRow[]=(form?.itens||[]).map((item,index)=>({id:index+1,...item}))
   const sheetColumns:SheetColumn[]=[
     {key:'descricao',label:'Material ou serviço',edit:true,width:210},
@@ -94,7 +95,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
         observacoes:form.observacoes,valor_total_centavos:Math.round(amount),
         itens:form.itens.map(item=>({
           descricao:item.descricao.trim(),quantidade:requirePositiveQuantity(item.quantidade),unidade:item.unidade.trim(),
-          valor_unitario_centavos:toCents(item.valor_unitario||'0'),
+          valor_unitario_centavos:noteCents(item.valor_unitario||'0'),
           frente_id:item.frente_id?Number(item.frente_id):null,
           subfrente_id:item.subfrente_id?Number(item.subfrente_id):null,
           pedido_item_id:item.pedido_item_id?Number(item.pedido_item_id):null
