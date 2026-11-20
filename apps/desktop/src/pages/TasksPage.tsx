@@ -64,7 +64,7 @@ export default function TasksPage() {
     setForm(task ? { ...task, frente_id: task.frente_id || '', prazo: task.prazo || '' } : { ...blank, obra_id: work })
   }
   return <>
-    <PageHeader title="Tarefas e pendencias" description="Acompanhe responsaveis, prazo, origem e prioridade por obra e etapa." actions={<div className="row-actions"><Button variant="secondary" icon={<FileSpreadsheet size={15}/>} disabled={!work} onClick={()=>setSheetOpen(v=>!v)}>{sheetOpen?'Ocultar planilha':'Editar em planilha'}</Button><Button icon={<Plus size={16}/>} disabled={!work} onClick={() => open()}>Nova pendencia</Button></div>/>
+    <PageHeader title="Tarefas e pendencias" description="Acompanhe responsaveis, prazo, origem e prioridade por obra e etapa." actions={<div className="row-actions"><Button variant="secondary" icon={<FileSpreadsheet size={15}/>} disabled={!work} onClick={()=>setSheetOpen(v=>!v)}>{sheetOpen?'Ocultar planilha':'Editar em planilha'}</Button><Button icon={<Plus size={16}/>} disabled={!work} onClick={() => open()}>Nova pendencia</Button></div>}/>
     <div className="filters">
       <Field label="Obra"><select value={work} onChange={(event) => { setWork(event.target.value); setFront('') }}><option value="">Selecione</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
       <Field label="Etapa"><select value={front} onChange={(event) => setFront(event.target.value)} disabled={!work}><option value="">Todas</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
