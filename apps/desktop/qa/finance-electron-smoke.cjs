@@ -43,6 +43,13 @@ async function main(){
  await page.getByText('Auditoria e fechamento bancário',{exact:true}).waitFor({state:'visible',timeout:30000})
  await page.screenshot({path:path.join(screenshots,'01-bancos-e-auditoria.png'),fullPage:true})
  await page.setViewportSize({width:1024,height:768})
+ // Aguarde a transição animada (200ms) da sidebar no breakpoint antes de fotografar.
+ await page.waitForFunction(()=>{
+  const side=document.querySelector('.command-sidebar')?.getBoundingClientRect()
+  const title=document.querySelector('.page-header h1')?.getBoundingClientRect()
+  return !!side&&!!title&&side.width<=80&&side.right<=title.left-8
+ },null,{timeout:10000})
+
  const layout=await page.evaluate(()=>{
   const side=document.querySelector('.command-sidebar')?.getBoundingClientRect()
   const main=document.querySelector('.main-content')?.getBoundingClientRect()
