@@ -42,7 +42,7 @@ describe('P2 — tarefas canônicas em lote',()=>{
     ]})
     expect(changed.updated).toBe(1)
     expect(sql.prepare('SELECT responsavel,prazo,prioridade,status,concluido_em FROM tarefas_obra WHERE id=1').get())
-      .toEqual({responsavel:'Carla',prazo:'2026-12-01',prioridade:'urgente',status:'concluida'})
+      .toEqual({responsavel:'Carla',prazo:'2026-12-01',prioridade:'urgente',status:'concluida',concluido_em:'2026-11-20'})
   })
   it('protege pendências geradas pelo RDO para que o diário continue sendo a origem canônica',()=>{
     const {service,sql}=setup()
