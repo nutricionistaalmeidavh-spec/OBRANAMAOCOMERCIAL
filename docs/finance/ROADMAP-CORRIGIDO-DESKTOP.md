@@ -38,7 +38,7 @@ As tabelas `contas` e `pagamentos_conta` permanecem canônicas. A importação d
 |---|---|---|
 | B5 | auditoria e fechamento bancário mensal | divergências por período, bloqueio/reabertura autenticada e registro de ações; não fecha automaticamente RH/DRE/contas |
 | C3 | cenários de fluxo de caixa | simular adiamentos, despesas e recebimentos futuros sem modificar contas reais |
-| C4 | relatórios e alertas | previsto vs realizado, CSV, impressão PDF e avisos internos por empresa/obra/banco |
+| C4 | relatórios e alertas | previsão histórica congelada opcional, previsto vs realizado, CSV paginado, impressão PDF e alertas internos por empresa/obra/banco |
 | I0 | homologação/release | testes automatizados integrados na branch; homologação manual e autorização de merge/release ainda obrigatórias |
 
 P2 não autoriza APIs bancárias pagas nem ligações de conta por terceiro.
@@ -61,3 +61,7 @@ Documentos técnicos complementares: `P0-CONCILIACAO-FLUXO-CAIXA.md` e `P1-DESKT
 ## Entrega P2 na branch
 
 O código foi adicionado na mesma PR #234. Ver `docs/finance/P2-DESKTOP-HOMOLOGACAO.md` para APIs, escopo e testes. O fechamento P2 protege extratos e conciliações bancárias de mês fechado; **não bloqueia automaticamente a edição de folhas, pagamentos e DRE de outros módulos**. O portal Web Cloudflare permanece intocado. A entrega não está incorporada à `main` nem publicada.
+
+### Correção de qualidade e rastreabilidade
+
+Identidade auditável no Desktop local por conta do sistema operacional (sem inventar login multiusuário); snapshots C4 preservados no banco SQLite canônico; exportação B4 em páginas completas; evidências de navegação por Electron capturadas pelo CI. Revisão e homologação manual continuam necessárias antes de release.
