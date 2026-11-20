@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createRequire } from 'node:module'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 const require=createRequire(import.meta.url)
@@ -111,6 +111,15 @@ describe('P0 XLSX/CSV sem serviços externos',()=>{
     await book.xlsx.writeFile(filepath)
     const sqlite=memory()
     const importer=service(sqlite,{showOpenDialog:async()=>({canceled:false,filePaths:[filepath]})})
+    const result=await importer.loadNoteItems()
+    expect(result.rows).toEqual([{descricao:'Cabo elétrico',quantidade:'0.5',unidade:'MT',valor_unitario:'12,9'}])
+  })
+  it('lê CSV brasileiro com separador ponto e vírgula e decimal com vírgula',async()=>{
+    const dir=await mkdtemp(join(tmpdir(),'obra-p0-notas-csv-'))
+    cleanup.push(()=>rm(dir,{force:true,recursive:true}))
+    const file=join(dir,'nota.csv')
+    await writeFile(file,'\uFEFFDescrição;Quantidade;Unidade;Valor unitário\nCabo elétrico;0,5;MT;12,90\n','utf8')
+    const importer=service(memory(),{showOpenDialog:async()=>({canceled:false,filePaths:[file]})})
     const result=await importer.loadNoteItems()
     expect(result.rows).toEqual([{descricao:'Cabo elétrico',quantidade:'0.5',unidade:'MT',valor_unitario:'12,9'}])
   })
