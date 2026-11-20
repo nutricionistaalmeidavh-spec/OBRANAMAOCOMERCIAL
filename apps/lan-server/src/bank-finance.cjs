@@ -314,8 +314,13 @@ class BankFinanceService {
   periodEvents(payload) { return this.p2.periodEvents(payload) }
   simulateCashFlow(payload) { return this.p2.simulateCashFlow(payload) }
   cashReport(payload) { return this.p2.cashReport(payload) }
-  listTransactions({ empresaId, contaBancariaId, obraId, status='all', startDate, endDate, search='' }) {
+  captureForecast(payload) { return this.p2.captureForecast(payload) }
+  listForecasts(payload) { return this.p2.listForecasts(payload) }
+  listTransactions({ empresaId, contaBancariaId, obraId, status='all', startDate, endDate, search='', limit=500, offset=0 }) {
     const a = this.account(empresaId, contaBancariaId)
+    const pageSize=Number(limit),skip=Number(offset)
+    if(!Number.isSafeInteger(pageSize)||pageSize<1||pageSize>500)throw Error('Limite por página inválido (1–500).')
+    if(!Number.isSafeInteger(skip)||skip<0||skip>1000000)throw Error('Deslocamento de página inválido.')
     if (!['all','pending','partial','reconciled'].includes(String(status))) throw new Error('Situação de conciliação inválida.')
     const clauses=['t.empresa_id=?','t.conta_bancaria_id=?']
     const params=[a.empresa_id,a.id]
@@ -329,8 +334,8 @@ class BankFinanceService {
     }
     const sql="SELECT * FROM (SELECT t.id,t.data,t.descricao,t.valor_centavos,t.origem_identificador,t.importacao_id,t.created_at,COALESCE((SELECT SUM(x.valor_centavos) FROM reconciliacao_alocacoes x JOIN reconciliacao_lotes l ON l.id=x.lote_id WHERE l.transacao_bancaria_id=t.id AND l.status='active'),0) conciliado_centavos FROM transacoes_bancarias t WHERE "+clauses.join(' AND ')+") q"+
       (status==='pending'?" WHERE q.conciliado_centavos=0":status==='partial'?" WHERE q.conciliado_centavos>0 AND q.conciliado_centavos<ABS(q.valor_centavos)":status==='reconciled'?" WHERE q.conciliado_centavos>=ABS(q.valor_centavos)":"")+
-      " ORDER BY q.data DESC,q.id DESC LIMIT 500"
-    return this.db.prepare(sql).all(...params)
+      " ORDER BY q.data DESC,q.id DESC LIMIT ? OFFSET ?"
+    return this.db.prepare(sql).all(...params,pageSize,skip)
   }
 }
 module.exports = { BankFinanceService, parseFile, moneyCents, dateISO, csvMapping }
