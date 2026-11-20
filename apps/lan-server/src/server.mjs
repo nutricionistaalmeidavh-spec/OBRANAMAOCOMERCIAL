@@ -301,7 +301,9 @@ async function authorizeRh(request, security, action = 'edit') {
 
 export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository = null, security = null, identity = null, cloudAuthority = null, cloudBaseUrl = '', pairingService = null, fieldService = null, planningService = null, financeService = null, measurementService = null, procurementService = null, contractsService = null, payrollService = null, timeService = null, compensationPolicyService = null, migrationService = null, documentStorageService = null, centralBackupService = null, backupOperationsService = null, runtimeInfo = {}, nowMs = Date.now, identityStaleMs = DEFAULT_IDENTITY_STALE_MS } = {}) {
   const versionedRepository = createVersionedRepository(repository)
-  const sheets=versionedRepository?new OperationalSheetCentral({repository}):null
+  const sheets=versionedRepository?new OperationalSheetCentral({repository,audit:(actor,event)=>security?.appendAudit?.({
+    actorMemberId:actor?.member?.memberId||null,actorDeviceId:actor?.device?.id||null,...event
+  })}):null
   const field = fieldService || (versionedRepository ? new FieldService({ repository }) : null)
   const planning = planningService || (repository ? new PlanningService({ repository }) : null)
   const finance = financeService || (repository ? new FinanceService({ repository, now: nowMs }) : null)
@@ -481,7 +483,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
           if(!domain)return sendJson(response,400,{error:'invalid_area',message:'Planilha não suportada.'})
           authorizeAction(actor,{domain,action:'edit'})
           if(Array.isArray(body.rows)&&body.rows.some(row=>!row?.id))authorizeAction(actor,{domain,action:'create'})
-          return sendJson(response,200,sheets.commit(body))
+          return sendJson(response,200,sheets.commit(body,actor))
         }
         if(operation==='measurements'){
           authorizeAction(actor,{domain:'planning',action:'view'})
@@ -493,11 +495,11 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         }
         if(operation==='time-commit'){
           authorizeAction(actor,{domain:'rh',action:'edit'})
-          return sendJson(response,200,sheets.timeCommit(body))
+          return sendJson(response,200,sheets.timeCommit(body,actor))
         }
         if(operation==='receive-many'){
           authorizeAction(actor,{domain:'finance',action:'edit'})
-          return sendJson(response,200,sheets.receiveMany(body))
+          return sendJson(response,200,sheets.receiveMany(body,actor))
         }
         return sendJson(response,404,{error:'not_found'})
       }
