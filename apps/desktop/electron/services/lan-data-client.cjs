@@ -211,6 +211,8 @@ class LanDataClient {
   }
 
   async bankList(payload) { return this.request('GET', '/api/v1/finance/bank-accounts', { query: payload }) }
+  async bankManualBalances(payload) { return this.request('GET', '/api/v1/finance/bank-balances', { query: payload }) }
+  async bankRecordBalance(payload) { return this.request('POST', '/api/v1/finance/bank-balances', { body: payload }) }
   async bankSave(payload) {
     return payload?.id
       ? this.request('PATCH', '/api/v1/finance/bank-accounts/' + Number(payload.id), { body: payload })
