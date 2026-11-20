@@ -120,7 +120,9 @@ class BankP2Service{
   if(asOf!==undefined&&asOf!==''){where.push('as_of=?');args.push(date(asOf))}
   if(horizonDays!==undefined&&horizonDays!==''){const horizon=Number(horizonDays);if(![30,60,90].includes(horizon))throw Error('Horizonte de previsão inválido.');where.push('horizon_days=?');args.push(horizon)}
   if(contaBancariaId!==undefined&&contaBancariaId!==''){where.push('conta_bancaria_id=?');args.push(this.p0.bankAccount(id,contaBancariaId).id)}
+  else where.push('conta_bancaria_id IS NULL')
   if(obraId!==undefined&&obraId!==''){where.push('obra_id=?');args.push(this.p0.work(id,obraId))}
+  else where.push('obra_id IS NULL')
   return this.db.prepare('SELECT * FROM finance_bank_forecast_snapshots WHERE '+where.join(' AND ')+' ORDER BY id DESC LIMIT 200').all(...args).map(r=>this.forecastRow(r))
  }
  captureForecast({empresaId,asOf,horizonDays=30,contaBancariaId,obraId,requestId,actorId}={}){
