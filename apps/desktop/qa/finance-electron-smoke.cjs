@@ -40,6 +40,13 @@ async function main(){
  await page.evaluate(()=>{location.hash='#/financeiro/bancos'})
  await page.getByText('Contas bancárias e extratos',{exact:true}).waitFor({state:'visible',timeout:30000})
  await page.getByText('Conta QA',{exact:true}).first().waitFor({state:'visible',timeout:30000})
+ await page.getByText('Atualizar saldo manualmente — Conta QA',{exact:true}).waitFor({state:'visible',timeout:30000})
+ await page.getByPlaceholder('Ex.: 10.500,00').fill('1.500,00')
+ await page.getByPlaceholder('Ex.: Saldo conferido no aplicativo do banco').fill('QA: conferência de saldo')
+ await page.getByRole('button',{name:'Confirmar saldo manual'}).click()
+ await page.getByText(/Saldo de .* registrado em/).waitFor({state:'visible',timeout:30000})
+ await page.screenshot({path:path.join(screenshots,'00-contas-e-saldo-manual.png'),fullPage:true})
+ await page.getByRole('tab',{name:'Auditoria'}).click()
  await page.getByText('Auditoria e fechamento bancário',{exact:true}).waitFor({state:'visible',timeout:30000})
  await page.screenshot({path:path.join(screenshots,'01-bancos-e-auditoria.png'),fullPage:true})
  await page.setViewportSize({width:1024,height:768})
@@ -75,7 +82,7 @@ async function main(){
  await page.getByText(/Previsão histórica #\d+ guardada/).waitFor({state:'visible',timeout:30000})
  await page.screenshot({path:path.join(screenshots,'04-previsao-congelada.png'),fullPage:true})
  if(errs.length)throw Error('Erros no renderer Electron: '+errs.join('; ').slice(0,1200))
- if(fs.readdirSync(screenshots).filter(x=>x.endsWith('.png')).length!==4)throw Error('Capturas não concluídas.')
+ if(fs.readdirSync(screenshots).filter(x=>x.endsWith('.png')).length!==5)throw Error('Capturas não concluídas.')
  console.log('PASS Desktop Electron screenshots; stored at '+screenshots)
 }finally{
  try{await launched?.close()}catch{}
