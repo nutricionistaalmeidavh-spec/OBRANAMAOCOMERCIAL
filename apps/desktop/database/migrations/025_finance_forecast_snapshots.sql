@@ -14,3 +14,16 @@ CREATE TABLE IF NOT EXISTS finance_bank_forecast_snapshots (
  snapshot_json TEXT NOT NULL CHECK(length(snapshot_json)>0)
 );
 CREATE INDEX IF NOT EXISTS idx_bank_forecast_company ON finance_bank_forecast_snapshots(empresa_id,as_of DESC,created_at DESC,id DESC);
+
+
+-- Imutabilidade aplicada no próprio banco, inclusive contra alterações fora da interface.
+CREATE TRIGGER IF NOT EXISTS trg_finance_forecast_immutable_update
+BEFORE UPDATE ON finance_bank_forecast_snapshots
+BEGIN
+ SELECT RAISE(ABORT, 'previsao historica imutavel');
+END;
+CREATE TRIGGER IF NOT EXISTS trg_finance_forecast_immutable_delete
+BEFORE DELETE ON finance_bank_forecast_snapshots
+BEGIN
+ SELECT RAISE(ABORT, 'previsao historica imutavel');
+END;
