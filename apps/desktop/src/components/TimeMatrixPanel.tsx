@@ -74,7 +74,7 @@ export default function TimeMatrixPanel({competencia,refresh}:{competencia:strin
         <p className="card-body" style={{fontSize:12}}>{sheet.data?.employeeCount||0} funcionários e {sheet.data?.rows?.length||0} dias na matriz. {sheet.data?.truncated?'A consulta foi limitada aos primeiros 60 funcionários; filtre empresa ou obra para ver os demais.':''}</p>
         <OperationalSheetGrid key={competencia+'-'+empresaId+'-'+obraId} area="ponto" title="Planilha mensal de marcações" rows={sheet.data?.rows||[]} columns={columns}
           filename={'ponto-'+competencia} showImport={false} onCommit={save}
-          disabledReason={undefined} canEditRow={row=>row.ponto_status!=='gerado'}/>
+          disabledReason={undefined} canEditRow={row=>['sem_ficha','rascunho','preenchido'].includes(String(row.ponto_status))}/>
       </>}
   </Card>
 }
