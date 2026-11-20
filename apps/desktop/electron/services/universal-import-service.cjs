@@ -181,7 +181,18 @@ function rowErrors(area, row, map, db, companyId) {
 }
 
 class UniversalImportService {
-  constructor({ db }) { this.db = db; this.pending = new Map() }
+  constructor({ db, moduleStorage = null }) { this.db = db; this.moduleStorage=moduleStorage; this.pending = new Map() }
+
+  assertLocalArea(area) {
+    // Importador universal ainda grava em SQLite local; servidor central não pode receber gravação fantasma.
+    const owners = {orcamento:'planning',obras:'core',estoque:'finance',compras:'finance',financeiro:'finance',contratos:'finance',aditivos:'finance',medicoes:'planning',funcionarios:'rh',ponto:'rh',documentos:'documents'}
+    const owner=owners[area]
+    if(!owner||!this.moduleStorage)return
+    const state=this.moduleStorage.state(owner)?.state
+    if(state && state!=='local' && state!=='migration-required'){
+      throw new Error('Importação universal de '+area+' indisponível no servidor central. Nenhuma linha será gravada localmente: use o modo local ou a importação homologada do servidor.')
+    }
+  }
 
   mappingKey(companyId, area, headers) {
     selectedCompany(this.db.db, companyId)
@@ -410,6 +421,7 @@ class UniversalImportService {
     const sheet = pending.sheets.find((item) => item.name === options.sheet)
     const entries = sheetEntries(pending, sheet)
     const area = preview.area
+    this.assertLocalArea(area)
     const map = preview.mapping
     const result = this.db.db.transaction(() => {
       const company = selectedCompany(this.db.db, options.companyId)
