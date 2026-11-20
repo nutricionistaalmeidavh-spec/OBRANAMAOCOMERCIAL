@@ -9,12 +9,8 @@ const STATUSES = Object.freeze({
 })
 const POINT_TYPES=['trabalho','falta','ferias','feriado','folga','afastado','sabado','domingo']
 const positive=z.number().int().positive()
-const optionalId=z.union([positive,z.null()]).optional()
 const text=z.string().trim().min(1).max(255)
-const optionalText=z.string().max(1000).optional()
 const percentage=z.coerce.number().min(0).max(100).finite()
-const amount=z.number().int().nonnegative()
-const dateText=z.union([z.string(),z.null()]).optional()
 
 function validDate(raw,allowEmpty=true){
   if((raw===null||raw===undefined||raw==='')&&allowEmpty)return null
@@ -204,14 +200,20 @@ class OperationalSheetP1Service {
     const chosen=employees.slice(0,60)
     const [year,month]=competencia.split('-').map(Number)
     const lastDay=new Date(Date.UTC(year,month,0)).getUTCDate()
-    const marks=this.db.db.prepare(`
+    // Restrinja a consulta aos funcionários efetivamente selecionados.
+    const selectedIds=chosen.map(employee=>employee.id)
+    const marks=selectedIds.length?this.db.db.prepare(`
       SELECT p.funcionario_id,p.status AS ponto_status,m.data,m.tipo,
         m.entrada,m.intervalo_saida,m.intervalo_entrada,m.saida,m.observacoes,m.updated_at
       FROM pontos_mensais p JOIN ponto_marcacoes m ON m.ponto_mensal_id=p.id
-      WHERE p.competencia=? AND m.data BETWEEN ? AND ?
-    `).all(competencia,competencia+'-01',competencia+'-'+String(lastDay).padStart(2,'0'))
+      WHERE p.competencia=? AND p.funcionario_id IN (${selectedIds.map(()=>'?').join(',')})
+        AND m.data BETWEEN ? AND ?
+    `).all(competencia,...selectedIds,competencia+'-01',competencia+'-'+String(lastDay).padStart(2,'0')):[]
     const index=new Map(marks.map(row=>[row.funcionario_id+'|'+row.data,row]))
-    const points=this.db.db.prepare('SELECT funcionario_id,status FROM pontos_mensais WHERE competencia=?').all(competencia)
+    const points=selectedIds.length?this.db.db.prepare(`
+      SELECT funcionario_id,status FROM pontos_mensais WHERE competencia=?
+      AND funcionario_id IN (${selectedIds.map(()=>'?').join(',')})
+    `).all(competencia,...selectedIds):[]
     const pointStatus=new Map(points.map(row=>[row.funcionario_id,row.status]))
     const rows=[]
     for(const employee of chosen){
@@ -271,7 +273,7 @@ class OperationalSheetP1Service {
           if(obraId&&Number(employee.obra_atual_id)!==obraId)throw new Error('Funcionário não pertence à obra selecionada.')
           if(empresaId&&Number(employee.empresa_id)!==empresaId)throw new Error('Funcionário não pertence à empresa selecionada.')
           const point=this.db.db.prepare('SELECT * FROM pontos_mensais WHERE funcionario_id=? AND competencia=?').get(row.funcionario_id,competencia)
-          if(point?.status==='gerado')throw new Error('Ficha de ponto já gerada. Não altere por lote.')
+          if(point && !['rascunho','preenchido'].includes(String(point.status)))throw new Error('Ficha de ponto já gerada, confirmada ou bloqueada. Não altere por lote.')
           const paid=this.db.db.prepare("SELECT COUNT(*) AS total FROM pagamentos_funcionario WHERE funcionario_id=? AND competencia=? AND status='pago'").get(row.funcionario_id,competencia)
           if(Number(paid?.total||0)>0)throw new Error('Funcionário possui pagamento confirmado na competência.')
           if(point){
