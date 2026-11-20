@@ -2,12 +2,13 @@ import { describe, expect, it, vi } from 'vitest'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const { BankFinanceSourceService } = require('./bank-finance-source.cjs')
+const { localFinanceActor } = require('./desktop-finance-identity.cjs')
 
 describe('B0-B2 roteamento canônico de contas bancárias', () => {
   const data={empresaId:5,contaBancariaId:2}
   function fixture(state:string) {
-    const local={ listAccounts:vi.fn().mockReturnValue([{id:1}]),confirmImport:vi.fn().mockReturnValue({imported:1}),assignPlannedBank:vi.fn().mockReturnValue({conta_id:5,conta_bancaria_id:2}),cashFlow:vi.fn().mockReturnValue({realizedCents:100}),closePeriod:vi.fn().mockReturnValue({status:'closed'}),simulateCashFlow:vi.fn().mockReturnValue({projectedEndCents:150}) }
-    const remote={ bankList:vi.fn().mockResolvedValue([{id:2}]),bankConfirm:vi.fn().mockResolvedValue({imported:2}),bankPlanAssignment:vi.fn().mockResolvedValue({conta_id:5,conta_bancaria_id:2}),bankCashFlow:vi.fn().mockResolvedValue({realizedCents:200}),bankPeriodClose:vi.fn().mockResolvedValue({status:'closed'}),bankSimulateCash:vi.fn().mockResolvedValue({projectedEndCents:250}) }
+    const local={ listAccounts:vi.fn().mockReturnValue([{id:1}]),confirmImport:vi.fn().mockReturnValue({imported:1}),assignPlannedBank:vi.fn().mockReturnValue({conta_id:5,conta_bancaria_id:2}),cashFlow:vi.fn().mockReturnValue({realizedCents:100}),closePeriod:vi.fn().mockReturnValue({status:'closed'}),captureForecast:vi.fn().mockReturnValue({id:7}),simulateCashFlow:vi.fn().mockReturnValue({projectedEndCents:150}) }
+    const remote={ bankList:vi.fn().mockResolvedValue([{id:2}]),bankConfirm:vi.fn().mockResolvedValue({imported:2}),bankPlanAssignment:vi.fn().mockResolvedValue({conta_id:5,conta_bancaria_id:2}),bankCashFlow:vi.fn().mockResolvedValue({realizedCents:200}),bankPeriodClose:vi.fn().mockResolvedValue({status:'closed'}),bankCaptureForecast:vi.fn().mockResolvedValue({id:8}),bankSimulateCash:vi.fn().mockResolvedValue({projectedEndCents:250}) }
     const moduleStorage={state:vi.fn().mockReturnValue({state})}
     const service=new BankFinanceSourceService({local,lanClient:remote,moduleStorage})
     return {service,local,remote}
@@ -55,6 +56,23 @@ describe('B0-B2 roteamento canônico de contas bancárias', () => {
     const blocked=fixture('central-unavailable')
     expect(()=>blocked.service.closePeriod(close)).toThrow(/Nenhum dado foi gravado localmente/)
     expect(blocked.local.closePeriod).not.toHaveBeenCalled()
+  })
+  it('B5 extrai identidade de OS local e ignora actorId injetado no renderer',()=>{
+    const f=fixture('local')
+    const actor=localFinanceActor({userInfo:()=>({username:'responsavel'}) ,hostname:()=> 'pc-obra'})
+    expect(actor).toBe('os:responsavel@pc-obra')
+    f.service.actorProvider=()=>actor
+    f.service.closePeriod({empresaId:1,period:'2026-11',actorId:'forged-client'})
+    expect(f.local.closePeriod).toHaveBeenCalledWith({empresaId:1,period:'2026-11',actorId:actor})
+    f.service.captureForecast({empresaId:1,requestId:'forecast-x1',actorId:'forged-client'})
+    expect(f.local.captureForecast).toHaveBeenCalledWith({empresaId:1,requestId:'forecast-x1',actorId:actor})
+  })
+  it('B5 no servidor nunca transmite ator escolhido no cliente e mantém autoridade LAN',async()=>{
+    const f=fixture('central-active')
+    await f.service.closePeriod({empresaId:1,period:'2026-11',actorId:'forged-client'})
+    expect(f.remote.bankPeriodClose).toHaveBeenCalledWith({empresaId:1,period:'2026-11'})
+    await f.service.captureForecast({empresaId:1,requestId:'forecast-x1',actorId:'forged-client'})
+    expect(f.remote.bankCaptureForecast).toHaveBeenCalledWith({empresaId:1,requestId:'forecast-x1'})
   })
   it('não usa fallback local quando o servidor está bloqueado', () => {
     const f=fixture('central-unavailable')
