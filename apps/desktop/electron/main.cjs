@@ -360,6 +360,7 @@ function registerIpc() {
   ipcMain.handle('procurement:summary', envelope(({ obra_id }) => services.procurement.summary(obra_id)))
   ipcMain.handle('procurement:create-order', envelope((payload) => services.procurement.createOrder(payload)))
   ipcMain.handle('procurement:receive-material', envelope((payload) => services.procurement.receiveMaterial(payload)))
+  ipcMain.handle('procurement:receive-many', envelope((payload) => services.procurement.receiveMany(payload)))
   ipcMain.handle('procurement:move-stock', envelope((payload) => services.procurement.moveStock(payload)))
   ipcMain.handle('contracts:create', envelope((payload) => services.contracts.createReceivable(payload)))
   ipcMain.handle('contracts:addendum', envelope((payload) => services.contracts.createAddendum(payload)))
