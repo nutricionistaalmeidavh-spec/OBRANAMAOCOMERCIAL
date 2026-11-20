@@ -3,7 +3,8 @@ import { Button, Card, ErrorState, Field, Loading } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
 
 type ReportDay={date:string;plannedInCents:number;plannedOutCents:number;actualInCents:number;actualOutCents:number;plannedBalanceCents:number}
-type Report={summary:{plannedInCents:number;plannedOutCents:number;actualInCents:number;actualOutCents:number;projectedEndCents:number};alerts:{kind:string;message:string}[];limitations:string[];days:ReportDay[]}
+type Forecast={id:number;asOf:string;horizonDays:number;createdAt:string;createdBy:string;summary:{plannedInCents:number;plannedOutCents:number}}
+type Report={forecastMode?:'frozen'|'current_recalculated';forecastSnapshotId?:number|null;forecastCapturedAt?:string|null;summary:{plannedInCents:number;plannedOutCents:number;actualInCents:number;actualOutCents:number;projectedEndCents:number};alerts:{kind:string;message:string}[];limitations:string[];days:ReportDay[]}
 type Scenario={baseEndCents:number;projectedEndCents:number;deltaCents:number;negativeDays:number;simulatedOnly:boolean;days:{date:string;projectedInCents:number;projectedOutCents:number;projectedBalanceCents:number}[]}
 type Planned={conta_id:number;descricao:string;vencimento:string;tipo:string;pendente_centavos:number;conta_bancaria_id:number|null}
 type Event={key:string;date:string;type:'pagar'|'receber';amount:string;description:string}
@@ -30,12 +31,26 @@ export default function CashAdvancedPanel({empresaId,asOf,horizonDays,contaBanca
  const [scenario,setScenario]=useState<Scenario|null>(null)
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
- const report=useAsync<Report>(()=>window.fluxoDre.bancos.cashReport(filters),[empresaId,asOf,horizonDays,contaBancariaId,obraId,revision])
+ const [snapshotId,setSnapshotId]=useState('')
+ const [snapshotRevision,setSnapshotRevision]=useState(0)
+ const [captureBusy,setCaptureBusy]=useState(false)
+ const [snapshotMessage,setSnapshotMessage]=useState('')
+ const snapshots=useAsync<Forecast[]>(()=>window.fluxoDre.bancos.forecasts(filters),[empresaId,asOf,horizonDays,contaBancariaId,obraId,snapshotRevision])
+ const report=useAsync<Report>(()=>window.fluxoDre.bancos.cashReport({...filters,snapshotId:snapshotId?Number(snapshotId):undefined}),[empresaId,asOf,horizonDays,contaBancariaId,obraId,revision,snapshotId])
  const planned=useAsync<Planned[]>(()=>window.fluxoDre.bancos.planned({empresaId,obraId,asOf}),[empresaId,obraId,asOf,revision])
  const futureStart=(()=>{const d=new Date(asOf+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+1);return d.toISOString().slice(0,10)})()
- useEffect(()=>{setScenario(null);setError('');setEvents([]);setShifts([])},[empresaId,asOf,horizonDays,contaBancariaId,obraId])
+ useEffect(()=>{setScenario(null);setError('');setEvents([]);setShifts([]);setSnapshotId('');setSnapshotMessage('')},[empresaId,asOf,horizonDays,contaBancariaId,obraId])
  const editEvent=(key:string,patch:Partial<Event>)=>setEvents(old=>old.map(e=>e.key===key?{...e,...patch}:e))
  const editShift=(key:string,patch:Partial<Shift>)=>setShifts(old=>old.map(e=>e.key===key?{...e,...patch}:e))
+ const capture=async()=>{
+  if(!window.confirm('Guardar uma fotografia imutável da previsão atual de '+horizonDays+' dias? Ela poderá ser comparada aos valores realizados posteriormente.'))return
+  setCaptureBusy(true);setError('');setSnapshotMessage('')
+  try{
+   const saved:Forecast=await window.fluxoDre.bancos.captureForecast({...filters,requestId:crypto.randomUUID()})
+   setSnapshotRevision(v=>v+1);setSnapshotId(String(saved.id));setSnapshotMessage('Previsão histórica #'+saved.id+' guardada. As alterações futuras nas obrigações não modificarão esta fotografia.')
+  }catch(e){setError((e as Error).message)}
+  finally{setCaptureBusy(false)}
+ }
  const simulate=async()=>{
   setBusy(true);setError('')
   try{
@@ -47,8 +62,16 @@ export default function CashAdvancedPanel({empresaId,asOf,horizonDays,contaBanca
  return <div className="bank-advanced">
   <Card className="bank-import-card bank-p2-report">
    <h2>Relatório — previsto × realizado</h2>
-   <p>Utiliza os filtros atuais de empresa, obra e banco. Previsto calculado pelas obrigações cadastradas; realizado obtido dos extratos importados ou conciliações atribuídas.</p>
+   <p>O previsto atual é recalculado com obrigações cadastradas. Para comparar alterações do planejamento ao longo do tempo, guarde uma fotografia imutável antes de modificar as obrigações.</p>
+   <div className="bank-snapshot-controls">
+    <Field label="Base da previsão"><select value={snapshotId} onChange={e=>setSnapshotId(e.target.value)} disabled={snapshots.loading}><option value="">Previsão atual (recalculada)</option>{snapshots.data?.map(item=><option key={item.id} value={item.id}>#{item.id} · {item.createdAt} · {item.createdBy}</option>)}</select></Field>
+    <Button disabled={captureBusy||snapshots.loading} onClick={()=>void capture()}>{captureBusy?'Guardando...':'Guardar previsão atual'}</Button>
+   </div>
+   {snapshotMessage&&<p role="status" className="bank-message bank-success">{snapshotMessage}</p>}
+   {snapshots.error&&<p role="alert" className="bank-message bank-error">{snapshots.error.message}</p>}
+   {error&&<p role="alert" className="bank-message bank-error">{error}</p>}
    {report.loading?<Loading label="Preparando comparativo..."/>:report.error?<ErrorState error={report.error} retry={report.reload}/>:report.data&&<>
+    <p className="bank-hint">{report.data.forecastMode==='frozen'? 'Comparação com a previsão guardada em '+report.data.forecastCapturedAt+'; valores realizados consultados nos extratos atuais.' : 'Comparativo reconstituído a partir das obrigações atuais (não é histórico congelado).'}</p>
     <div className="cash-summary-grid">
      <div className="bank-account-card"><small>Entradas previstas</small><strong>{money(report.data.summary.plannedInCents)}</strong></div>
      <div className="bank-account-card"><small>Entradas realizadas</small><strong>{money(report.data.summary.actualInCents)}</strong></div>
