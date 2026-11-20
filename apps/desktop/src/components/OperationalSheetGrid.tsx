@@ -59,9 +59,14 @@ export default function OperationalSheetGrid({
   const [error,setError]=useState('')
   const [message,setMessage]=useState('')
   const [filter,setFilter]=useState('')
+  const [page,setPage]=useState(1)
+  const pageSize=120
   const changed=Object.keys(drafts).length
   const view=useMemo(()=>rows.map(row=>({...row,...(drafts[String(row.id)]||{})})),[rows,drafts])
   const filtered=useMemo(()=>view.filter(row=>!filter||columns.some(column=>textValue(row[column.key]).toLowerCase().includes(filter.toLowerCase()))),[view,columns,filter])
+  const pages=Math.max(1,Math.ceil(filtered.length/pageSize))
+  const currentPage=Math.min(page,pages)
+  const visibleRows=filtered.slice((currentPage-1)*pageSize,currentPage*pageSize)
   const update=(row:SheetRow,key:string,value:string)=>{
     if(busy)return
     setDrafts(current=>({...current,[String(row.id)]:{...(current[String(row.id)]||{}),[key]:value}}))
@@ -72,12 +77,12 @@ export default function OperationalSheetGrid({
     const matrix=pasteCells(event.clipboardData.getData('text/plain'))
     if(matrix.length===1&&matrix[0].length===1)return
     event.preventDefault()
-    const rowIndex=filtered.findIndex(item=>item.id===row.id)
+    const rowIndex=visibleRows.findIndex(item=>item.id===row.id)
     if(rowIndex<0)return
     setDrafts(current=>{
       const next={...current}
-      matrix.slice(0,Math.max(0,filtered.length-rowIndex)).forEach((line,r)=>{
-        const target=filtered[rowIndex+r]
+      matrix.slice(0,Math.max(0,visibleRows.length-rowIndex)).forEach((line,r)=>{
+        const target=visibleRows[rowIndex+r]
         const patch={...(next[String(target.id)]||{})}
         line.forEach((value,c)=>{
           const column=columns[columnIndex+c]
@@ -130,7 +135,7 @@ export default function OperationalSheetGrid({
       </div>
     </div>
     <div className="card-body" style={{paddingBottom:8,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
-      <input aria-label={'Filtrar '+title} placeholder="Buscar na planilha..." value={filter} onChange={event=>setFilter(event.target.value)} style={{minWidth:220,flex:1,maxWidth:460}}/>
+      <input aria-label={'Filtrar '+title} placeholder="Buscar na planilha..." value={filter} onChange={event=>{setFilter(event.target.value);setPage(1)}} style={{minWidth:220,flex:1,maxWidth:460}}/>
       {onCommit&&<><Button type="button" disabled={!changed||busy||!!disabledReason} onClick={()=>void commit()}><Check size={14}/> {busy?'Processando...':commitLabel+' '+changed+' linha(s)'}</Button><Button type="button" variant="secondary" disabled={!changed||busy} onClick={()=>{setDrafts({});setError('');setMessage('Alterações descartadas.')}}><RotateCcw size={14}/> Descartar</Button></>}
     </div>
     {disabledReason&&<div className="notice" role="status">{disabledReason}</div>}
@@ -139,7 +144,7 @@ export default function OperationalSheetGrid({
     <div className="table-wrap" style={{maxHeight:510,overflow:'auto'}}>
       <table className="data-table" style={{minWidth:Math.max(720,columns.length*145)}}>
         <thead><tr>{columns.map(column=><th key={column.key} style={{minWidth:column.width||120,position:'sticky',top:0,background:'var(--surface,#fff)',zIndex:1}}>{column.label}{column.edit?' *':''}</th>)}{onRowAction&&<th>Ação</th>}</tr></thead>
-        <tbody>{filtered.map((row,index)=><tr key={row.id}>
+        <tbody>{visibleRows.map((row,index)=><tr key={row.id}>
           {columns.map((column,colIndex)=>{
             const raw=column.value?column.value(row):row[column.key]
             const editable=!!onCommit && column.edit && !disabledReason && (!canEditRow||canEditRow(row))
@@ -157,7 +162,9 @@ export default function OperationalSheetGrid({
         </tr>)}</tbody>
       </table>
       {!rows.length&&<p style={{padding:16}}>Nenhuma linha para esta seleção. Importe ou cadastre registros para começar.</p>}
+      {rows.length>0&&filtered.length===0&&<p style={{padding:16}}>Nenhuma linha corresponde ao filtro.</p>}
     </div>
+    {pages>1&&<div className="row-actions" style={{alignItems:'center',justifyContent:'flex-end',padding:10,gap:10}}><span>Linhas {((currentPage-1)*pageSize)+1}–{Math.min(currentPage*pageSize,filtered.length)} de {filtered.length}</span><Button type="button" variant="secondary" disabled={currentPage===1} onClick={()=>setPage(v=>Math.max(1,v-1))}>Anterior</Button><Button type="button" variant="secondary" disabled={currentPage===pages} onClick={()=>setPage(v=>Math.min(pages,v+1))}>Próxima</Button></div>}
     {onCommit&&<p className="card-body" style={{fontSize:12,paddingTop:8}}>Células marcadas com * podem ser editadas. Alterações são conferidas antes de gravar; campos derivados permanecem protegidos. Cole linhas do Excel em uma célula para preencher várias posições.</p>}
   </section>
 }
