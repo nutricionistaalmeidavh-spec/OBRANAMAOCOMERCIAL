@@ -71,7 +71,7 @@ test('conflito de edição de dois computadores retorna 409 e preserva alteraç�
  }finally{await close(f)}
 })
 test('lote exige autorização granular de escrita, não apenas leitura',async()=>{
- const permission={operation:{view:true,edit:false},planning:{view:true,edit:false},finance:{view:true,edit:false},rh:{view:true,edit:false}}
+ const permission={operation:['view'],planning:['view'],finance:['view'],rh:['view']}
  const f=await setup(permission)
  try{
   const res=await call(f,'/api/v1/operational-sheets/commit',{area:'tarefas',obraId:f.work.id,rows:[{id:f.task.id,revision:1,status:'concluida'}]})
