@@ -238,6 +238,8 @@ class LanDataClient {
   async bankPeriodReopen(payload) { return this.request('POST', '/api/v1/finance/bank-period/reopen', {body:payload}) }
   async bankSimulateCash(payload) { return this.request('POST', '/api/v1/finance/cash-simulate', {body:payload}) }
   async bankCashReport(payload) { return this.request('GET', '/api/v1/finance/cash-report', {query:payload}) }
+  async bankCaptureForecast(payload) { return this.request('POST', '/api/v1/finance/forecast-snapshots', {body:payload}) }
+  async bankListForecasts(payload) { return this.request('GET', '/api/v1/finance/forecast-snapshots', {query:payload}) }
 
   async financeDre(filters = {}) {
     return this.request('GET', '/api/v1/finance/dre', { query: filters })
