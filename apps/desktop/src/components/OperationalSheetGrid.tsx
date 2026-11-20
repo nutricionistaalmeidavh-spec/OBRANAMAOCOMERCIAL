@@ -12,6 +12,7 @@ export type SheetColumn = {
   kind?:'text'|'decimal'|'money'|'date'|'select'
   options?:Array<{value:string;label:string}>
   value?:(row:SheetRow)=>string|number
+  exportValue?:(row:SheetRow)=>string|number
   render?:(row:SheetRow)=>string
   width?:number
 }
@@ -22,7 +23,7 @@ export function pasteCells(text:string):string[][] {
 function textValue(raw:unknown) { return raw===null||raw===undefined?'':String(raw) }
 function asExportRow(row:SheetRow, columns:SheetColumn[]) {
   return Object.fromEntries(columns.map(column=>{
-    const value=column.value?column.value(row):row[column.key]??''
+    const value=column.exportValue?column.exportValue(row):column.value?column.value(row):row[column.key]??''
     if(column.kind==='money'||column.kind==='decimal'){
       const number=parseBrDecimal(value)
       if(number!==null)return [column.key,number]
