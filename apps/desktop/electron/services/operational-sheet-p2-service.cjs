@@ -89,6 +89,7 @@ class OperationalSheetP2Service {
           const old=this.db.get('tarefas_obra',id)
           if(!old||old.deleted_at)throw new Error('Tarefa inexistente ou excluída.')
           if(Number(old.obra_id)!==obraId)throw new Error('Tarefa pertence a outra obra.')
+          if(old.origem_tipo==='rdo_ocorrencia'||old.rdo_ocorrencia_id)throw new Error('Pendência gerada pelo diário deve ser editada no RDO de origem.')
           if(row.updated_at&&old.updated_at&&String(row.updated_at)!==String(old.updated_at))
             throw new Error('Tarefa alterada por outro usuário. Atualize os dados antes de salvar.')
           const patch=taskPatch(row,old,this.today)
