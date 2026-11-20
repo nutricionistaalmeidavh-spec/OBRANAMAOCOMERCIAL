@@ -44,7 +44,13 @@ async function main(){
  await page.getByPlaceholder('Ex.: 10.500,00').fill('1.500,00')
  await page.getByPlaceholder('Ex.: Saldo conferido no aplicativo do banco').fill('QA: conferência de saldo')
  await page.getByRole('button',{name:'Confirmar saldo manual'}).click()
- await page.getByText(/Saldo de .* registrado em/).waitFor({state:'visible',timeout:30000})
+ try{
+  await page.getByText(/Saldo de .* registrado em/).waitFor({state:'visible',timeout:12000})
+ }catch(err){
+  const detail=await page.locator('.bank-manual-balance').innerText().catch(e=>'Sem painel: '+e.message)
+  await page.screenshot({path:path.join(screenshots,'00-diagnostico-saldo-manual.png'),fullPage:true})
+  throw Error('Falha ao registrar saldo manual na interface: '+detail.slice(-1600)+' | '+err.message)
+ }
  await page.screenshot({path:path.join(screenshots,'00-contas-e-saldo-manual.png'),fullPage:true})
  await page.getByRole('tab',{name:'Auditoria'}).click()
  await page.getByText('Auditoria e fechamento bancário',{exact:true}).waitFor({state:'visible',timeout:30000})
