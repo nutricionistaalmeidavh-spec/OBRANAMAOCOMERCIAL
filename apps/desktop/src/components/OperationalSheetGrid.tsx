@@ -124,14 +124,14 @@ export default function OperationalSheetGrid({
       <div><h2>{title}</h2><p>Planilha conectada aos registros do sistema · {rows.length} linha(s).</p></div>
       <div className="row-actions" style={{flexWrap:'wrap'}}>
         {showImport&&<Link className="button button-secondary" to={'/importacao?'+params}><UploadCloud size={14}/> Importar</Link>}
-        {allowTemplate&&<Button variant="secondary" disabled={busy} onClick={downloadTemplate}><FileSpreadsheet size={14}/> Modelo</Button>}
-        <Button variant="secondary" disabled={busy} onClick={()=>exportAs('xlsx')}><Download size={14}/> Excel</Button>
-        <Button variant="secondary" disabled={busy} onClick={()=>exportAs('csv')}>CSV</Button>
+        {allowTemplate&&<Button type="button" variant="secondary" disabled={busy} onClick={downloadTemplate}><FileSpreadsheet size={14}/> Modelo</Button>}
+        <Button type="button" variant="secondary" disabled={busy} onClick={()=>exportAs('xlsx')}><Download size={14}/> Excel</Button>
+        <Button type="button" variant="secondary" disabled={busy} onClick={()=>exportAs('csv')}>CSV</Button>
       </div>
     </div>
     <div className="card-body" style={{paddingBottom:8,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
       <input aria-label={'Filtrar '+title} placeholder="Buscar na planilha..." value={filter} onChange={event=>setFilter(event.target.value)} style={{minWidth:220,flex:1,maxWidth:460}}/>
-      {onCommit&&<><Button disabled={!changed||busy||!!disabledReason} onClick={()=>void commit()}><Check size={14}/> {busy?'Processando...':commitLabel+' '+changed+' linha(s)'}</Button><Button variant="secondary" disabled={!changed||busy} onClick={()=>{setDrafts({});setError('');setMessage('Alterações descartadas.')}}><RotateCcw size={14}/> Descartar</Button></>}
+      {onCommit&&<><Button type="button" disabled={!changed||busy||!!disabledReason} onClick={()=>void commit()}><Check size={14}/> {busy?'Processando...':commitLabel+' '+changed+' linha(s)'}</Button><Button type="button" variant="secondary" disabled={!changed||busy} onClick={()=>{setDrafts({});setError('');setMessage('Alterações descartadas.')}}><RotateCcw size={14}/> Descartar</Button></>}
     </div>
     {disabledReason&&<div className="notice" role="status">{disabledReason}</div>}
     {error&&<div className="notice" role="alert">{error}</div>}
@@ -153,7 +153,7 @@ export default function OperationalSheetGrid({
               :<span>{column.render?column.render(row):textValue(raw)||'—'}</span>}
             </td>
           })}
-          {onRowAction&&<td><Button variant="secondary" onClick={()=>onRowAction(row)}>{rowActionLabel}</Button></td>}
+          {onRowAction&&<td><Button type="button" variant="secondary" onClick={()=>onRowAction(row)}>{rowActionLabel}</Button></td>}
         </tr>)}</tbody>
       </table>
       {!rows.length&&<p style={{padding:16}}>Nenhuma linha para esta seleção. Importe ou cadastre registros para começar.</p>}
