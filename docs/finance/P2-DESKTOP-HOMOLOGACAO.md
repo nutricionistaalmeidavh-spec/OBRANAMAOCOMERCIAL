@@ -64,3 +64,26 @@ Navegação: **Financeiro > Fluxo de caixa > Relatório — previsto × realizad
 - **B4 exportação sem corte:** listagem de movimentos paginada em blocos de até 500 e exportação percorrendo todas as páginas. Limite seguro explícito de 50 mil registros; se ultrapassado, a operação informa o limite e não gera CSV parcial.
 - **QA visual Electron:** `apps/desktop/qa/finance-electron-smoke.cjs` abre o aplicativo real com banco QA isolado, visita Contas bancárias/Fluxo de caixa, salva uma fotografia e captura imagens. Job `.github/workflows/finance-desktop-electron-qa.yml` publica apenas evidências de QA (não releases); resultados só são considerados homologados quando o job concluir com sucesso e as capturas forem inspecionadas.
 - O Portal Web existente do Cloudflare e a configuração de servidores próprios por cliente não mudaram. Nenhuma API paga foi introduzida como dependência do núcleo.
+
+
+## Complemento — saldos manuais e prevenção de dupla contagem (P2)
+
+Navegação: **Financeiro > Contas bancárias > Contas e saldos > Atualizar saldo manualmente**.
+
+- O gestor registra **saldo absoluto ao final da data de referência**, justificativa e responsável auditado. Não representa movimentação, receita ou pagamento e não afeta a DRE diretamente.
+- Cada conferência é imutável. Correções são novas conferências, com histórico por conta, inclusive se a data for igual (vence o registro mais recente daquela data).
+- A posição financeira em qualquer data utiliza o saldo de conferência mais recente **naquela data ou anterior**; sem conferência, utiliza o saldo inicial. Soma apenas os lançamentos de extratos com data **estritamente posterior à referência** e até a data consultada.
+- Importação OFX/CSV **preserva** transações anteriores ou da mesma data para conciliação e histórico, mas não as soma novamente ao saldo consolidado. A prévia informa quantas linhas estão cobertas pela última conferência; não confundir com transações duplicadas, que permanecem protegidas por chave/arquivo.
+- Mês fechado impede novas conferências retroativas ao mês fechado e posteriores ao bloqueio; reabrir o período exige autorização. API LAN exige `finance:approve`; local usa conta do sistema operacional.
+- Fonte canônica SQLite local ou servidor próprio, sem sincronização bancária paga.
+- Migrações adicionais: Desktop `026_finance_manual_balances.sql`; LAN `037_finance_manual_balances.sql`.
+- Organização de tela: abas **Contas e saldos**, **Extratos**, **Conciliação**, **Auditoria**. Dashboard inclui posição bancária separada de receitas, despesas e resultado do DRE.
+
+### Testes de aceite adicionais
+
+1. Informar R$ 750,00 em 18/11 e importar em seguida extrato com movimentos em 17/11, 18/11 e 19/11: saldo em 18/11 mantém R$ 750,00; em 19/11 muda apenas pelo movimento de 19/11.
+2. Repetir a mesma operação com o mesmo `requestId` não gera saldo duplicado; reutilizar `requestId` para payload diferente é rejeitado.
+3. Confirmar que os movimentos retroativos continuam disponíveis para conciliação, sem baixar contas duas vezes.
+4. Bloquear alteração/deleção de registros auditados e novas referências em períodos fechados; impedir cruzar empresas/contas.
+5. Testar os modos Desktop local e servidor próprio, inclusive uma instalação antiga migrada.
+6. Validar navegação por abas e screenshot do formulário real no QA Electron antes da homologação.
