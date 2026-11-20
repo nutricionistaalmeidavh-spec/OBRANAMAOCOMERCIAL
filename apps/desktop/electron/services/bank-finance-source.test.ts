@@ -7,8 +7,8 @@ const { localFinanceActor } = require('./desktop-finance-identity.cjs')
 describe('B0-B2 roteamento canônico de contas bancárias', () => {
   const data={empresaId:5,contaBancariaId:2}
   function fixture(state:string) {
-    const local={ listAccounts:vi.fn().mockReturnValue([{id:1}]),confirmImport:vi.fn().mockReturnValue({imported:1}),assignPlannedBank:vi.fn().mockReturnValue({conta_id:5,conta_bancaria_id:2}),cashFlow:vi.fn().mockReturnValue({realizedCents:100}),closePeriod:vi.fn().mockReturnValue({status:'closed'}),captureForecast:vi.fn().mockReturnValue({id:7}),simulateCashFlow:vi.fn().mockReturnValue({projectedEndCents:150}) }
-    const remote={ bankList:vi.fn().mockResolvedValue([{id:2}]),bankConfirm:vi.fn().mockResolvedValue({imported:2}),bankPlanAssignment:vi.fn().mockResolvedValue({conta_id:5,conta_bancaria_id:2}),bankCashFlow:vi.fn().mockResolvedValue({realizedCents:200}),bankPeriodClose:vi.fn().mockResolvedValue({status:'closed'}),bankCaptureForecast:vi.fn().mockResolvedValue({id:8}),bankSimulateCash:vi.fn().mockResolvedValue({projectedEndCents:250}) }
+    const local={ listManualBalances:vi.fn().mockReturnValue([{id:11}]),recordManualBalance:vi.fn().mockReturnValue({id:12}), listAccounts:vi.fn().mockReturnValue([{id:1}]),confirmImport:vi.fn().mockReturnValue({imported:1}),assignPlannedBank:vi.fn().mockReturnValue({conta_id:5,conta_bancaria_id:2}),cashFlow:vi.fn().mockReturnValue({realizedCents:100}),closePeriod:vi.fn().mockReturnValue({status:'closed'}),captureForecast:vi.fn().mockReturnValue({id:7}),simulateCashFlow:vi.fn().mockReturnValue({projectedEndCents:150}) }
+    const remote={ bankManualBalances:vi.fn().mockResolvedValue([{id:22}]),bankRecordBalance:vi.fn().mockResolvedValue({id:23}), bankList:vi.fn().mockResolvedValue([{id:2}]),bankConfirm:vi.fn().mockResolvedValue({imported:2}),bankPlanAssignment:vi.fn().mockResolvedValue({conta_id:5,conta_bancaria_id:2}),bankCashFlow:vi.fn().mockResolvedValue({realizedCents:200}),bankPeriodClose:vi.fn().mockResolvedValue({status:'closed'}),bankCaptureForecast:vi.fn().mockResolvedValue({id:8}),bankSimulateCash:vi.fn().mockResolvedValue({projectedEndCents:250}) }
     const moduleStorage={state:vi.fn().mockReturnValue({state})}
     const service=new BankFinanceSourceService({local,lanClient:remote,moduleStorage})
     return {service,local,remote}
@@ -80,4 +80,24 @@ describe('B0-B2 roteamento canônico de contas bancárias', () => {
     expect(f.local.confirmImport).not.toHaveBeenCalled()
     expect(f.remote.bankConfirm).not.toHaveBeenCalled()
   })
+  it('saldo manual usa identidade do SO no local e nunca confia em ator do renderer',()=>{
+    const f=fixture('local')
+    f.service.actorProvider=()=> 'os:qa@pc'
+    const input={empresaId:5,contaBancariaId:2,data:'2026-11-18',saldoCentavos:1000,justificativa:'Conferido no banco',requestId:'balance-route-1',actorId:'forged'}
+    expect(f.service.recordManualBalance(input)).toEqual({id:12})
+    expect(f.local.recordManualBalance).toHaveBeenCalledWith({...input,actorId:'os:qa@pc'})
+    expect(f.service.listManualBalances(data)).toEqual([{id:11}])
+  })
+  it('saldo manual no servidor exige rota central e remove identidade falsificada',async()=>{
+    const f=fixture('central-active')
+    const input={empresaId:5,contaBancariaId:2,data:'2026-11-18',saldoCentavos:1000,justificativa:'Conferido no banco',requestId:'balance-route-2',actorId:'forged'}
+    expect(await f.service.recordManualBalance(input)).toEqual({id:23})
+    const {actorId,...clean}=input
+    expect(f.remote.bankRecordBalance).toHaveBeenCalledWith(clean)
+    expect(await f.service.listManualBalances(data)).toEqual([{id:22}])
+    const disconnected=fixture('central-unavailable')
+    expect(()=>disconnected.service.recordManualBalance(input)).toThrow(/Nenhum dado foi gravado localmente/)
+    expect(disconnected.local.recordManualBalance).not.toHaveBeenCalled()
+  })
+
 })
