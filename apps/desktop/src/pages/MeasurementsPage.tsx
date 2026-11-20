@@ -1,4 +1,7 @@
-import { Edit3, Paperclip, Plus } from 'lucide-react'
+import { Edit3, Paperclip, Plus, FileSpreadsheet } from 'lucide-react'
+import OperationalSheetGrid,{type SheetColumn,type SheetRow} from '../components/OperationalSheetGrid'
+import MeasurementsProgressPanel from '../components/MeasurementsProgressPanel'
+import {parseBrDecimal} from '../utils/operational-sheet'
 import { FormEvent, useState } from 'react'
 import { Button, Card, Empty, ErrorState, Field, FormActions, Loading, Modal, PageHeader, Status } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
@@ -10,6 +13,11 @@ export default function MeasurementsPage() {
   const [work, setWork] = useState('')
   const [form, setForm] = useState<any>(null)
   const [notice, setNotice] = useState('')
+  const [progressOpen,setProgressOpen]=useState(false)
+  const [progressCompetence,setProgressCompetence]=useState(currentCompetence())
+  const [editItemsGrid,setEditItemsGrid]=useState(false)
+  const [itemNotice,setItemNotice]=useState('')
+  const planningStorage=useAsync(()=>window.fluxoDre.storage.moduleState('planning'),[])
   const works = useAsync(() => window.fluxoDre.obras.list(), [])
   const storage = useAsync(() => window.fluxoDre.storage.state(), [])
   const documentsStorage = useAsync(() => window.fluxoDre.storage.moduleState('documents'), [])
@@ -20,8 +28,44 @@ export default function MeasurementsPage() {
   const contracts = useAsync(() => work ? window.fluxoDre.contratos.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
   const budget = useAsync(() => work ? window.fluxoDre.orcamentos.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
   const items = useAsync(() => work ? window.fluxoDre.medicoes.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
+  const localPlanning=planningStorage.data&&['local','migration-required'].includes(planningStorage.data.state)
+  const progress=useAsync(()=>progressOpen&&work&&localPlanning
+    ?window.fluxoDre.operationalSheet.p1Measurements({obraId:Number(work),competencia:progressCompetence})
+    :Promise.resolve({items:[],contracts:[],competencia:progressCompetence}),
+    [progressOpen,work,localPlanning,progressCompetence,items.data])
+  const itemColumns:SheetColumn[]=[
+    {key:'descricao',label:'Item',width:230,edit:true},
+    {key:'item_orcamentario_id',label:'Item orçamentário',kind:'select',edit:true,
+      options:[{value:'',label:'Selecione item'},...(budget.data||[]).map((b:any)=>({value:String(b.id),label:b.descricao}))]},
+    {key:'unidade',label:'Unidade',edit:true},
+    {key:'quantidade_total',label:'Quantidade prevista',edit:true,kind:'decimal'},
+    {key:'quantidade_periodo',label:'Quantidade medida',edit:true,kind:'decimal'},
+    {key:'valor_periodo',label:'Valor do período R$',edit:true,kind:'money'},
+    {key:'justificativa_excesso',label:'Justificativa excesso',edit:true,width:220}
+  ]
+  const measuredRows:SheetRow[]=(form?.itens||[]).map((row:any,index:number)=>({id:index+1,...row}))
+  const applyMeasured=async(changed:SheetRow[])=>{
+    const updates=new Map<number,any>()
+    for(const row of changed){
+      const quantity=parseBrDecimal(row.quantidade_periodo)
+      const total=parseBrDecimal(row.quantidade_total)
+      const money=parseBrDecimal(row.valor_periodo)
+      if(quantity===null||quantity<0||total===null||total<0||money===null||money<0)throw new Error('Quantidades e valores devem ser números não negativos.')
+      const selected=budget.data?.find((b:any)=>b.id===Number(row.item_orcamentario_id))
+      if(!selected)throw new Error('Selecione um item orçamentário válido.')
+      if(!String(row.descricao||'').trim())throw new Error('Informe a descrição do item.')
+      updates.set(Number(row.id),{item_orcamentario_id:Number(row.item_orcamentario_id),descricao:String(row.descricao),
+        unidade:String(row.unidade||selected.unidade||'un'),quantidade_total:String(total),
+        quantidade_periodo:String(quantity),valor_periodo:String(money).replace('.',','),
+        justificativa_excesso:String(row.justificativa_excesso||'')})
+    }
+    setForm((prev:any)=>prev?{...prev,itens:(prev.itens||[]).map((row:any,index:number)=>({...row,...(updates.get(index+1)||{})}))}:null)
+    setItemNotice('Alterações aplicadas ao rascunho. Salve a medição para atualizar os dados canônicos.')
+  }
   const loadError = works.error || companies.error || fronts.error || contracts.error || budget.error || items.error
   async function open(item?: any) {
+    setEditItemsGrid(false)
+    setItemNotice('')
     if (!item) {
       setForm({ ...blank, obra_id: work })
       return
@@ -63,6 +107,7 @@ export default function MeasurementsPage() {
     setWork(String(form.obra_id))
     setForm(null)
     items.reload()
+    progress.reload()
   }
   async function attach(medicao: any) {
     const result = await window.fluxoDre.medicoes.importAttachment({ medicao_id: medicao.id })
@@ -70,10 +115,14 @@ export default function MeasurementsPage() {
   }
   if (loadError) return <Card><ErrorState error={loadError} retry={() => { works.reload(); companies.reload(); fronts.reload(); contracts.reload(); budget.reload(); items.reload() }}/></Card>
   return <>
-    <PageHeader title="Medicoes" description="Registre avancos por item/etapa, anexe PDFs e acompanhe faturamento/recebimento." actions={<Button icon={<Plus size={16}/>} disabled={!work} onClick={() => open()}>Nova medicao</Button>}/>
+    <PageHeader title="Medicoes" description="Registre avancos por item/etapa, anexe PDFs e acompanhe faturamento/recebimento." actions={<div className="row-actions"><Button variant="secondary" icon={<FileSpreadsheet size={15}/>} disabled={!work} onClick={()=>setProgressOpen(v=>!v)}>{progressOpen?'Ocultar planilhas':'Planilhas de medição'}</Button><Button icon={<Plus size={16}/>} disabled={!work} onClick={() => open()}>Nova medicao</Button></div>}/>
     <div className="filters"><Field label="Obra"><select value={work} onChange={(event) => setWork(event.target.value)}><option value="">Selecione</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field></div>
     {notice && <div className="success-box">{notice}</div>}
     <Card>{items.loading ? <Loading/> : items.data?.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Numero</th><th>Etapa</th><th>Contrato</th><th>Periodo</th><th>Status</th><th className="number">Liquido</th><th/></tr></thead><tbody>{items.data.map((item: any) => <tr key={item.id}><td><strong>{item.numero}</strong><small>{item.descricao}</small></td><td>{fronts.data?.find((front: any) => front.id === item.frente_id)?.nome || 'Obra geral'}</td><td>{contracts.data?.find((contract: any) => contract.id === item.contrato_id)?.numero || '-'}</td><td>{brDate(item.periodo_inicio || item.data)} a {brDate(item.periodo_fim || item.data)}</td><td><Status value={item.status}/></td><td className="number">{brl(item.valor_liquido_centavos)}</td><td><div className="row-actions"><button className="icon-button" title="Editar" onClick={() => open(item)}><Edit3 size={15}/></button><button className="icon-button" title={documentsActive ? "Anexar PDF ou comprovante" : "Documentos ainda não estão ativos no servidor"} disabled={!documentsActive} onClick={() => attach(item)}><Paperclip size={15}/></button></div></td></tr>)}</tbody></table></div> : <Empty title={work ? 'Nenhuma medicao' : 'Selecione uma obra'} description="Cadastre a medicao e anexe boletins, memoria de calculo ou notas."/>}</Card>
+    {progressOpen&&work&&<div className="filters" style={{marginTop:14}}><Field label="Competência do mapa de medição"><input type="month" value={progressCompetence} onChange={e=>setProgressCompetence(e.target.value)}/></Field></div>}
+    {progressOpen&&work&&(localPlanning
+      ?progress.loading?<Card><Loading label="Calculando saldos de medição..."/></Card>:progress.error?<p role="alert">{progress.error.message}</p>:<MeasurementsProgressPanel progress={progress.data||{items:[],contracts:[],competencia:progressCompetence}} obraId={Number(work)}/>
+      :<Card><p className="card-body">As planilhas consolidadas de medição ainda não estão homologadas no modo servidor. Continue usando o formulário individual, sem gravar cópias locais.</p></Card>)}
     <Modal open={!!form} title={form?.id ? 'Editar medicao' : 'Nova medicao'} onClose={() => setForm(null)} size="xl"><form onSubmit={submit}><div className="modal-body">
       <div className="form-grid form-grid-3">
         <Field label="Obra" required><select required value={form?.obra_id || ''} onChange={(event) => { setForm({ ...form, obra_id: event.target.value, frente_id: '', contrato_id: '' }); setWork(event.target.value) }}><option value="">Selecione</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
@@ -91,7 +140,9 @@ export default function MeasurementsPage() {
         <Field label="Descontos"><input value={form?.descontos || ''} onChange={(event) => setForm({ ...form, descontos: event.target.value })}/></Field>
         <Field label="Descricao" wide><textarea value={form?.descricao || ''} onChange={(event) => setForm({ ...form, descricao: event.target.value })}/></Field>
       </div>
-      <section className="rdo-section"><div><h3>Itens medidos</h3><Button type="button" variant="secondary" icon={<Plus size={14}/>} onClick={addMeasuredItem}>Adicionar item</Button></div>{(form?.itens || []).map((row: any, index: number) => <div className="rdo-row rdo-occurrence" key={index}><select value={row.item_orcamentario_id || ''} onChange={(event) => { const budgetItem = budget.data?.find((item: any) => item.id === Number(event.target.value)); changeItem(index, 'item_orcamentario_id', event.target.value); if (budgetItem) { changeItem(index, 'descricao', budgetItem.descricao); changeItem(index, 'unidade', budgetItem.unidade); changeItem(index, 'quantidade_total', String(budgetItem.quantidade)) } }}><option value="">Item livre</option>{budget.data?.map((item: any) => <option key={item.id} value={item.id}>{item.descricao}</option>)}</select><input placeholder="Descricao" value={row.descricao || ''} onChange={(event) => changeItem(index, 'descricao', event.target.value)}/><input placeholder="Un" value={row.unidade || 'un'} onChange={(event) => changeItem(index, 'unidade', event.target.value)}/><input type="number" min="0" step="0.001" placeholder="Total" value={row.quantidade_total || ''} onChange={(event) => changeItem(index, 'quantidade_total', event.target.value)}/><input type="number" min="0" step="0.001" placeholder="Medido" value={row.quantidade_periodo || ''} onChange={(event) => changeItem(index, 'quantidade_periodo', event.target.value)}/><input placeholder="Valor periodo" value={row.valor_periodo || ''} onChange={(event) => changeItem(index, 'valor_periodo', event.target.value)}/><button type="button" className="icon-button" onClick={() => removeItem(index)}>x</button></div>)}</section>
+      <section className="rdo-section"><div><h3>Itens medidos</h3><div className="row-actions"><Button type="button" variant="secondary" icon={<FileSpreadsheet size={14}/>} onClick={()=>setEditItemsGrid(v=>!v)}>{editItemsGrid?'Editar por formulário':'Editar em planilha'}</Button><Button type="button" variant="secondary" icon={<Plus size={14}/>} onClick={addMeasuredItem}>Adicionar item</Button></div></div>{itemNotice&&<p role="status">{itemNotice}</p>}
+      {editItemsGrid&&<OperationalSheetGrid key={form?.id||'nova'} area="medicoes" title="Itens da medição — rascunho" rows={measuredRows} columns={itemColumns} filename={'itens-medicao-'+(form?.numero||'nova')} showImport={false} onCommit={applyMeasured} commitLabel="Aplicar" commitSuccessMessage="Alterações aplicadas ao formulário; confirme Salvar medição."/>}
+      {!editItemsGrid&&(form?.itens || []).map((row: any, index: number) => <div className="rdo-row rdo-occurrence" key={index}><select value={row.item_orcamentario_id || ''} onChange={(event) => { const budgetItem = budget.data?.find((item: any) => item.id === Number(event.target.value)); changeItem(index, 'item_orcamentario_id', event.target.value); if (budgetItem) { changeItem(index, 'descricao', budgetItem.descricao); changeItem(index, 'unidade', budgetItem.unidade); changeItem(index, 'quantidade_total', String(budgetItem.quantidade)) } }}><option value="">Item livre</option>{budget.data?.map((item: any) => <option key={item.id} value={item.id}>{item.descricao}</option>)}</select><input placeholder="Descricao" value={row.descricao || ''} onChange={(event) => changeItem(index, 'descricao', event.target.value)}/><input placeholder="Un" value={row.unidade || 'un'} onChange={(event) => changeItem(index, 'unidade', event.target.value)}/><input type="number" min="0" step="0.001" placeholder="Total" value={row.quantidade_total || ''} onChange={(event) => changeItem(index, 'quantidade_total', event.target.value)}/><input type="number" min="0" step="0.001" placeholder="Medido" value={row.quantidade_periodo || ''} onChange={(event) => changeItem(index, 'quantidade_periodo', event.target.value)}/><input placeholder="Valor periodo" value={row.valor_periodo || ''} onChange={(event) => changeItem(index, 'valor_periodo', event.target.value)}/><button type="button" className="icon-button" onClick={() => removeItem(index)}>x</button></div>)}</section>
     </div><FormActions onCancel={() => setForm(null)} submitLabel="Salvar medicao"/></form></Modal>
   </>
 }
