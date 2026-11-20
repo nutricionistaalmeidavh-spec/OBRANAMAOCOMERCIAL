@@ -283,8 +283,21 @@ export class OperationalSheetCentral {
   const seen=new Set()
   return this.transaction(()=>{
    const prefix=requestId+':'
-   const previous=this.db.prepare('SELECT COUNT(*) AS n FROM recebimentos_materiais WHERE substr(request_id,1,?)=?').get(prefix.length,prefix)
-   if(Number(previous.n)>0&&Number(previous.n)!==rows.length)throw Error('Reenvio idempotente divergente: o lote original tinha outra quantidade de itens.')
+   const previous=this.db.prepare('SELECT request_id,pedido_item_id,quantidade_recebida,data FROM recebimentos_materiais WHERE substr(request_id,1,?)=?').all(prefix.length,prefix)
+   if(previous.length){
+    if(previous.length!==rows.length)throw Error('Reenvio idempotente divergente: o lote original tinha outra quantidade de itens.')
+    const incoming=new Map()
+    for(const row of rows){
+     const id=positiveId(row.pedido_item_id,'Item')
+     if(incoming.has(id))throw Error('Item repetido no reenvio.')
+     incoming.set(id,decimal(row.quantidade_recebida,'Quantidade'))
+    }
+    for(const original of previous){
+     if(!incoming.has(original.pedido_item_id)||incoming.get(original.pedido_item_id)!==Number(original.quantidade_recebida)||day!==original.data){
+      throw Error('Reenvio idempotente divergente: itens, quantidades ou data não coincidem com o lote original.')
+     }
+    }
+   }
    const receipts=[]
    for(let i=0;i<rows.length;i++){
     try{
