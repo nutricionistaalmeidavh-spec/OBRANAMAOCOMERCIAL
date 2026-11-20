@@ -162,7 +162,7 @@ function createServices() {
     time, receiptPolicy: new ReceiptPolicyService({ dataAccess }),
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
-    universalImport: new UniversalImportService({ db }),
+    universalImport: new UniversalImportService({ db, moduleStorage }),
     operationalSheet: new OperationalSheetService({ db, moduleStorage, dialog }),
     works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, measurements,
     product, uiPreferences, procurement, contracts, demo: new DemoDataService({ db, product }), online, sync
