@@ -43,6 +43,7 @@ export default function BankPeriodAuditPanel({empresaId,works,banks}:{empresaId:
  return <Card className="bank-import-card bank-audit">
   <h2>Auditoria e fechamento bancário</h2>
   <p>Confira transações não conciliadas, parciais e seus valores. O fechamento bloqueia somente novas importações e mudanças em conciliações bancárias daquele mês; não fecha a folha nem outras contas operacionais.</p>
+  <p className="bank-hint">No Desktop local, o responsável é identificado pela conta do sistema operacional que abriu o aplicativo; uma conta compartilhada não distingue pessoas. No Desktop conectado ao servidor, fechamento e reabertura exigem permissão Financeiro para aprovação.</p>
   <div className="cash-filters">
    <Field label="Mês de referência"><input type="month" value={period} onChange={e=>setPeriod(e.target.value)}/></Field>
    <Field label="Banco (apenas relatório)"><select value={bankId} onChange={e=>setBankId(e.target.value)}><option value="">Todos os bancos</option>{banks.map(b=><option key={b.id} value={b.id}>{b.nome}</option>)}</select></Field>
