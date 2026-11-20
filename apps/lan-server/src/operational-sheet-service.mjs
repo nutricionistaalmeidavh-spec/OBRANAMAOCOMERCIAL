@@ -205,7 +205,7 @@ export class OperationalSheetCentral {
   const [year,month]=competencia.split('-').map(Number),last=new Date(Date.UTC(year,month,0)).getUTCDate()
   const ids=chosen.map(e=>e.id)
   const points=ids.length?this.db.prepare(`SELECT id,funcionario_id,status FROM pontos_mensais WHERE competencia=? AND funcionario_id IN (${ids.map(()=>'?').join(',')})`).all(competencia,...ids):[]
-  const index=new Map(points.map(p=>[p.funcionario_id,{...p,revision:this.concurrency.current('pontos_mensais',p.id)||null}]))
+  const index=new Map(points.map(p=>[p.funcionario_id,{...p,revision:this.concurrency.current('pontos_mensais',p.id)||this.concurrency.initialize('pontos_mensais',p.id)}]))
   const marks=points.length?this.db.prepare(`SELECT p.funcionario_id,m.data,m.tipo,m.entrada,m.intervalo_saida,m.intervalo_entrada,m.saida,m.observacoes,m.updated_at FROM ponto_marcacoes m JOIN pontos_mensais p ON p.id=m.ponto_mensal_id WHERE p.competencia=? AND p.funcionario_id IN (${ids.map(()=>'?').join(',')})`).all(competencia,...ids):[]
   const markIndex=new Map(marks.map(m=>[m.funcionario_id+'|'+m.data,m]))
   const rows=[]
@@ -253,6 +253,10 @@ export class OperationalSheetCentral {
     let point=this.db.prepare('SELECT * FROM pontos_mensais WHERE funcionario_id=? AND competencia=?').get(employeeId,competencia)
     if(point){
      if(!['rascunho','preenchido'].includes(point.status))throw Error('Ficha de ponto fechada.')
+     if(group.expected===null||group.expected===undefined){
+      const currentRevision=this.concurrency.current('pontos_mensais',point.id)||this.concurrency.initialize('pontos_mensais',point.id)
+      throw new RevisionConflictError({resourceType:'pontos_mensais',resourceId:point.id,expectedRevision:0,currentRevision,current:{...point,revision:currentRevision}})
+     }
      this.revision('pontos_mensais',point.id,group.expected,point)
     }else{
      if(group.expected!==null&&group.expected!==undefined)throw new RevisionConflictError({resourceType:'pontos_mensais',resourceId:employeeId+'|'+competencia,expectedRevision:group.expected,currentRevision:0})
@@ -278,6 +282,9 @@ export class OperationalSheetCentral {
   const day=date(payload.data,true)
   const seen=new Set()
   return this.transaction(()=>{
+   const prefix=requestId+':'
+   const previous=this.db.prepare('SELECT COUNT(*) AS n FROM recebimentos_materiais WHERE substr(request_id,1,?)=?').get(prefix.length,prefix)
+   if(Number(previous.n)>0&&Number(previous.n)!==rows.length)throw Error('Reenvio idempotente divergente: o lote original tinha outra quantidade de itens.')
    const receipts=[]
    for(let i=0;i<rows.length;i++){
     try{
@@ -286,7 +293,10 @@ export class OperationalSheetCentral {
      if(seen.has(itemId))throw Error('Item duplicado.');seen.add(itemId)
      const key=requestId+':'+itemId
      const replay=this.db.prepare('SELECT * FROM recebimentos_materiais WHERE request_id=?').get(key)
-     if(replay){receipts.push(replay);continue}
+     if(replay){
+      if(Number(replay.quantidade_recebida)!==quantity||replay.data!==day)throw Error('Reenvio com quantidade ou data diferente do recebimento original.')
+      receipts.push(replay);continue
+     }
      const item=this.repository.get('pedido_compra_itens',itemId)
      if(!item)throw Error('Item de pedido inexistente.')
      const order=this.repository.get('pedidos_compra',item.pedido_compra_id)
