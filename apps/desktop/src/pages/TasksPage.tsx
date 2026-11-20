@@ -37,13 +37,10 @@ export default function TasksPage() {
     {key:'descricao',label:'Descrição',width:240}
   ]
   const sheetRows:SheetRow[]=rows.map((row:any)=>({...row,prazo:row.prazo||''}))
-  const localOperation=operationStorage.data&&['local','migration-required'].includes(operationStorage.data.state)
-  const sheetDisabled=operationStorage.loading
-    ?'Verificando o modo de armazenamento do módulo de operações.'
-    :!localOperation?'Edição em lote no servidor ainda não homologada; utilize a edição individual para manter os dados centrais.':undefined
+  const sheetDisabled=operationStorage.loading?'Verificando o armazenamento das operações.':operationStorage.data?.state==='central-ready'?'Conclua a conexão do servidor central antes de editar a planilha.':undefined
   const commitSheet=async(changed:SheetRow[])=>{
     const updates=changed.map(row=>({
-      id:Number(row.id),updated_at:String(row.updated_at||''),responsavel:String(row.responsavel||''),
+      id:Number(row.id),revision:row.revision,updated_at:String(row.updated_at||''),responsavel:String(row.responsavel||''),
       prazo:String(row.prazo||''),prioridade:String(row.prioridade||'normal'),status:String(row.status||'aberta')
     }))
     await window.fluxoDre.operationalSheet.p2TasksCommit({obraId:Number(work),rows:updates})
