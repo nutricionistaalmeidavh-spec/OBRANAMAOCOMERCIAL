@@ -32,7 +32,7 @@ function setup(mode='local') {
     INSERT INTO funcionarios VALUES(50,3,1,'Maria','ativo',NULL),(60,4,2,'Pedro','ativo',NULL);
     CREATE TABLE pontos_mensais(id INTEGER PRIMARY KEY,funcionario_id INTEGER,competencia TEXT,status TEXT,updated_at TEXT);
     INSERT INTO pontos_mensais VALUES(1000,50,'2026-11','rascunho',NULL);
-    CREATE TABLE ponto_marcacoes(id INTEGER PRIMARY KEY,ponto_mensal_id INTEGER,data TEXT,tipo TEXT,entrada TEXT,intervalo_saida TEXT,intervalo_entrada TEXT,saida TEXT,observacoes TEXT,updated_at TEXT);
+    CREATE TABLE ponto_marcacoes(id INTEGER PRIMARY KEY,ponto_mensal_id INTEGER,data TEXT,tipo TEXT,entrada TEXT,intervalo_saida TEXT,intervalo_entrada TEXT,saida TEXT,observacoes TEXT,updated_at TEXT,UNIQUE(ponto_mensal_id,data));
     INSERT INTO ponto_marcacoes VALUES(1,1000,'2026-11-04','trabalho','07:00','11:00','12:00','17:00','',NULL);
     CREATE TABLE pagamentos_funcionario(id INTEGER PRIMARY KEY,funcionario_id INTEGER,competencia TEXT,status TEXT);
   `)
@@ -114,6 +114,24 @@ describe('P1 — matriz de ponto',()=>{
     expect(()=>service.commitTime({competencia:'2026-11',obraId:1,rows:[{funcionario_id:50,data:'2026-12-01',tipo:'falta'}]})).toThrow(/competência|data/i)
     expect(()=>service.commitTime({competencia:'2026-11',obraId:1,rows:[{funcionario_id:60,data:'2026-11-05',tipo:'falta'}]})).toThrow(/obra/i)
     expect(sql.prepare('SELECT COUNT(*) n FROM ponto_marcacoes').get().n).toBe(1)
+  })
+  it('salva duas marcações da mesma competência na fonte canônica',()=>{
+    const {service,sql}=setup()
+    const result=service.commitTime({competencia:'2026-11',obraId:1,rows:[
+      {funcionario_id:50,data:'2026-11-04',tipo:'trabalho',entrada:'08:00',intervalo_saida:'12:00',intervalo_entrada:'13:00',saida:'17:00'},
+      {funcionario_id:50,data:'2026-11-05',tipo:'falta',observacoes:'Falta justificada'}
+    ]})
+    expect(result).toEqual({updated:2,employees:1})
+    expect(sql.prepare("SELECT entrada FROM ponto_marcacoes WHERE data='2026-11-04'").get().entrada).toBe('08:00')
+    expect(sql.prepare("SELECT tipo FROM ponto_marcacoes WHERE data='2026-11-05'").get().tipo).toBe('falta')
+  })
+  it('desfaz alteração de outro dia se um registro do lote pertence a outra obra',()=>{
+    const {service,sql}=setup()
+    expect(()=>service.commitTime({competencia:'2026-11',obraId:1,rows:[
+      {funcionario_id:50,data:'2026-11-04',tipo:'falta'},
+      {funcionario_id:60,data:'2026-11-05',tipo:'falta'}
+    ]})).toThrow(/obra/i)
+    expect(sql.prepare("SELECT tipo FROM ponto_marcacoes WHERE data='2026-11-04'").get().tipo).toBe('trabalho')
   })
   it('impede edição em lote no modo servidor, sem fallback para SQLite',()=>{
     const {service}=setup('central-active')
