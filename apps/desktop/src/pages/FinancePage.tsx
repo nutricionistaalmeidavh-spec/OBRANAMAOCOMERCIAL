@@ -41,7 +41,7 @@ export default function FinancePage() {
     const batch=changed.map(row=>{
       const amount=parseBrDecimal(row.valor)
       if(amount===null||amount<=0)throw new Error('O valor da conta deve ser maior que zero.')
-      return {id:Number(row.id),updated_at:String(row.updated_at||''),descricao:String(row.descricao||''),competencia:String(row.competencia||''),vencimento:String(row.vencimento||''),valor_centavos:toCents(String(row.valor))}
+      return {id:Number(row.id),updated_at:String(row.updated_at||''),descricao:String(row.descricao||''),competencia:String(row.competencia||''),vencimento:String(row.vencimento||''),valor_centavos:Math.round(amount*100)}
     })
     await window.fluxoDre.operationalSheet.commit({area:'financeiro',rows:batch})
     await accounts.reload()
