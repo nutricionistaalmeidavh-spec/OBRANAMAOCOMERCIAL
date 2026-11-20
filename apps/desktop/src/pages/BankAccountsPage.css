@@ -106,3 +106,15 @@
 .bank-snapshot-controls button{white-space:nowrap}
 @media(max-width:650px){.bank-snapshot-controls{grid-template-columns:1fr}.bank-snapshot-controls button{width:100%}}
 @media print{.bank-snapshot-controls{display:none!important}}
+
+/* Navegação bancária: uma função por aba, sem sobrecarregar a tela. */
+.bank-finance-tabs{display:flex;gap:8px;flex-wrap:wrap;padding:4px 0 12px;border-bottom:1px solid var(--border,#dbe3ed)}
+.bank-finance-tabs button{appearance:none;border:1px solid var(--border,#dbe3ed);border-radius:10px;background:var(--surface,#fff);color:var(--text,#1f2937);padding:10px 16px;min-height:44px;font:inherit;font-weight:600;cursor:pointer}
+.bank-finance-tabs button.active{border-color:var(--primary,#2563eb);background:var(--surface-muted,#eff6ff);box-shadow:inset 0 -2px var(--primary,#2563eb)}
+.bank-finance-tabs button:focus-visible{outline:3px solid var(--primary,#2563eb);outline-offset:2px}
+.bank-account-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.bank-manual-balance .bank-form{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.bank-manual-balance .bank-form-actions{grid-column:1/-1}
+.bank-manual-balance .bank-form input{width:100%}
+@media(max-width:600px){.bank-finance-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.bank-finance-tabs button{padding:10px 7px}.bank-account-actions{justify-content:stretch}}
+@media print{.bank-finance-tabs,.bank-manual-balance form{display:none!important}}
