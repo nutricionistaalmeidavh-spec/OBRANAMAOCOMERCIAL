@@ -131,6 +131,9 @@ class OperationalSheetP1Service {
           if(old&&Number(old.obra_id)!==obraId)throw new Error('Registro pertence a outra obra.')
           checkRevision(old||{},row)
           const patch=cleanRow(area,row,old,obraId)
+          if(area==='cronograma'&&old&&Number(old.frente_id||0)!==Number(patch.frente_id)){
+            throw new Error('A etapa vinculada ao cronograma deve ser alterada no formulário individual para preservar o planejamento.')
+          }
           if(area==='cronograma'||area==='subetapas'){
             const front=this.db.get('frentes_obra',patch.frente_id)
             if(!front||front.deleted_at||Number(front.obra_id)!==obraId)throw new Error('Etapa vinculada não pertence à obra selecionada.')
