@@ -12,7 +12,7 @@ describe('P0 planilhas operacionais',()=>{
     expect(parseDecimal('')).toBeNull()
   })
   it('neutraliza injeção de fórmulas exportadas para Excel e CSV',()=>{
-    expect(safeSpreadsheetText('=HYPERLINK("x")')).toBe('\'=HYPERLINK("x")')
+    expect(safeSpreadsheetText('=HYPERLINK("x")')).toBe("'=HYPERLINK(\"x\")")
     expect(safeSpreadsheetText('  @SUM(A1)')).toBe("'  @SUM(A1)")
     expect(detectFormula('-4')).toBe(false)
   })
