@@ -59,7 +59,12 @@ export default function OperationalSheetGrid({
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [message,setMessage]=useState('')
-  const [filter,setFilter]=useState('')
+  // Preferência visual por planilha, nunca representa uma cópia dos registros canônicos.
+  const filterKey='obranamao:sheet-filter:'+area+':'+(filename||title)
+  const [filter,setFilter]=useState(()=>{
+    try{return typeof window==='undefined'?'':(window.localStorage.getItem(filterKey)||'')}
+    catch{return ''}
+  })
   const [page,setPage]=useState(1)
   const pageSize=120
   const changed=Object.keys(drafts).length
@@ -136,7 +141,12 @@ export default function OperationalSheetGrid({
       </div>
     </div>
     <div className="card-body" style={{paddingBottom:8,display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
-      <input aria-label={'Filtrar '+title} placeholder="Buscar na planilha..." value={filter} onChange={event=>{setFilter(event.target.value);setPage(1)}} style={{minWidth:220,flex:1,maxWidth:460}}/>
+      <input aria-label={'Filtrar '+title} placeholder="Buscar na planilha..." value={filter} onChange={event=>{
+          const value=event.target.value
+          setFilter(value);setPage(1)
+          try{window.localStorage.setItem(filterKey,value)}catch{/* armazenamento de preferência é opcional */}
+        }} style={{minWidth:220,flex:1,maxWidth:460}}/>
+      {filter&&<Button type="button" variant="secondary" onClick={()=>{setFilter('');setPage(1);try{window.localStorage.removeItem(filterKey)}catch{/* armazenamento opcional */}}}>Limpar filtro</Button>}
       {onCommit&&<><Button type="button" disabled={!changed||busy||!!disabledReason} onClick={()=>void commit()}><Check size={14}/> {busy?'Processando...':commitLabel+' '+changed+' linha(s)'}</Button><Button type="button" variant="secondary" disabled={!changed||busy} onClick={()=>{setDrafts({});setError('');setMessage('Alterações descartadas.')}}><RotateCcw size={14}/> Descartar</Button></>}
     </div>
     {disabledReason&&<div className="notice" role="status">{disabledReason}</div>}
