@@ -130,7 +130,7 @@ class BankP2Service{
   if(!/^[a-zA-Z0-9_-]{8,100}$/.test(request))throw Error('Identificador de previsão inválido.')
   const flow=this.p0.cashFlow({empresaId:id,asOf,horizonDays,contaBancariaId,obraId})
   const content={summary:{plannedInCents:flow.projectedReceivablesCents,plannedOutCents:flow.projectedPayablesCents,projectedEndCents:flow.projectedEndCents},days:flow.days.map(x=>({date:x.date,plannedInCents:x.projectedInCents,plannedOutCents:x.projectedOutCents,plannedBalanceCents:x.projectedBalanceCents}))}
-  const hash=createHash('sha256').update(JSON.stringify([id,flow.asOf,flow.horizonDays,flow.contaBancariaId,flow.obraId,content])).digest('hex')
+  const hash=createHash('sha256').update(JSON.stringify([id,flow.asOf,flow.horizonDays,flow.contaBancariaId,flow.obraId])).digest('hex')
   const db=this.db;db.exec('BEGIN IMMEDIATE')
   try{
    const prev=db.prepare('SELECT * FROM finance_bank_forecast_snapshots WHERE request_id=?').get(request)
