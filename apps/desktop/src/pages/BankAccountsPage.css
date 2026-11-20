@@ -118,3 +118,13 @@
 .bank-manual-balance .bank-form input{width:100%}
 @media(max-width:600px){.bank-finance-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.bank-finance-tabs button{padding:10px 7px}.bank-account-actions{justify-content:stretch}}
 @media print{.bank-finance-tabs,.bank-manual-balance form{display:none!important}}
+
+.bank-quick-summary{display:grid;gap:12px;margin-bottom:16px}
+.bank-quick-summary h2{font-size:16px;margin:0}
+.bank-quick-summary p{margin:0;color:var(--text-muted,#64748b);font-size:13px}
+.bank-quick-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.bank-quick-metrics>div{display:grid;gap:4px;padding:11px;border:1px solid var(--border,#dbe3ed);border-radius:10px}
+.bank-quick-metrics small{color:var(--text-muted,#64748b)}
+.bank-quick-metrics strong{font-size:22px;overflow-wrap:anywhere}
+.bank-quick-actions{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;font-weight:600}
+@media(max-width:640px){.bank-quick-metrics{grid-template-columns:1fr}}
