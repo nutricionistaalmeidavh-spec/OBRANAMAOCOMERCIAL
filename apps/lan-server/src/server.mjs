@@ -799,6 +799,16 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         const args = { ...body, actorId:String(actor.member?.memberId || actor.device?.id || 'lan-user') }
         return sendJson(response, 200, url.pathname.endsWith('/close') ? bankFinance.closePeriod(args) : bankFinance.reopenPeriod(args))
       }
+      // Desktop C4: o usuário captura explicitamente uma previsão histórica na fonte de dados canônica.
+      if (url.pathname === '/api/v1/finance/forecast-snapshots') {
+        if (!['GET','POST'].includes(request.method)) return methodNotAllowed(response, ['GET','POST'])
+        if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
+        const actor = await authenticateLanRequest(request, security)
+        authorizeAction(actor, { domain:'finance', action:request.method==='GET'?'view':'approve' })
+        if (request.method==='GET') return sendJson(response, 200, bankFinance.listForecasts(Object.fromEntries(url.searchParams.entries())))
+        const input=await readJson(request)
+        return sendJson(response, 201, bankFinance.captureForecast({ ...input, actorId:String(actor.member?.memberId || actor.device?.id || 'lan-user') }))
+      }
       if (url.pathname === '/api/v1/finance/cash-simulate') {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!bankFinance) return sendJson(response, 503, { error:'bank_finance_unavailable' })
