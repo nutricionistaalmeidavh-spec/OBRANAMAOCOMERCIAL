@@ -70,6 +70,14 @@ describe('P1 — cronograma e estrutura canônica',()=>{
     expect(result.updated).toBe(1)
     expect(sql.prepare('SELECT percentual_realizado FROM cronograma_etapas WHERE id=1').get().percentual_realizado).toBe(40)
   })
+  it('exige formulário individual para mudar a etapa vinculada ao planejamento',()=>{
+    const {service,sql}=setup()
+    sql.exec("INSERT INTO frentes_obra VALUES(30,1,'Elétrica','EL',3,'ativa','',NULL,NULL)")
+    expect(()=>service.commit({area:'cronograma',obraId:1,rows:[
+      {id:1,nome:'Instalação',frente_id:30,percentual_realizado:35}
+    ]})).toThrow(/formulário individual|planejamento/i)
+    expect(sql.prepare('SELECT frente_id FROM cronograma_etapas WHERE id=1').get().frente_id).toBe(10)
+  })
   it('faz rollback quando uma etapa do lote pertence a outra obra',()=>{
     const {sql,service}=setup()
     expect(()=>service.commit({area:'cronograma',obraId:1,rows:[
