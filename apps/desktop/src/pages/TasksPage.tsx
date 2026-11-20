@@ -1,4 +1,5 @@
 import { CheckCircle2, Edit3, Plus, RotateCcw, FileSpreadsheet } from 'lucide-react'
+import {useNavigate} from 'react-router-dom'
 import OperationalSheetGrid,{type SheetColumn,type SheetRow} from '../components/OperationalSheetGrid'
 import { FormEvent, useMemo, useState } from 'react'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal, PageHeader, Status } from '../components/ui'
@@ -8,6 +9,7 @@ import { brDate, today } from '../utils/format'
 const blank = { obra_id: '', frente_id: '', titulo: '', descricao: '', responsavel: '', prazo: today(), prioridade: 'normal', status: 'aberta', origem_tipo: 'manual' }
 
 export default function TasksPage() {
+  const navigate=useNavigate()
   const [work, setWork] = useState(new URLSearchParams(location.search).get('obra') || '')
   const [front, setFront] = useState('')
   const [status, setStatus] = useState('ativas')
@@ -57,7 +59,10 @@ export default function TasksPage() {
     await window.fluxoDre.tarefas.save({ id: task.id, status: next, concluido_em: next === 'concluida' ? today() : null })
     tasks.reload()
   }
-  const open = (task?: any) => setForm(task ? { ...task, frente_id: task.frente_id || '', prazo: task.prazo || '' } : { ...blank, obra_id: work })
+  const open = (task?: any) => {
+    if(task?.origem_tipo==='rdo_ocorrencia'||task?.rdo_ocorrencia_id){navigate('/rdo?obra='+work);return}
+    setForm(task ? { ...task, frente_id: task.frente_id || '', prazo: task.prazo || '' } : { ...blank, obra_id: work })
+  }
   return <>
     <PageHeader title="Tarefas e pendencias" description="Acompanhe responsaveis, prazo, origem e prioridade por obra e etapa." actions={<div className="row-actions"><Button variant="secondary" icon={<FileSpreadsheet size={15}/>} disabled={!work} onClick={()=>setSheetOpen(v=>!v)}>{sheetOpen?'Ocultar planilha':'Editar em planilha'}</Button><Button icon={<Plus size={16}/>} disabled={!work} onClick={() => open()}>Nova pendencia</Button></div>/>
     <div className="filters">
@@ -67,7 +72,7 @@ export default function TasksPage() {
     </div>
     <Card>{tasks.loading ? <Loading/> : rows.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Tarefa</th><th>Origem</th><th>Etapa</th><th>Responsavel</th><th>Prazo</th><th>Status</th><th/></tr></thead><tbody>{rows.map((item: any) => {
       const overdue = item.prazo && item.prazo < today() && !['concluida', 'cancelada'].includes(item.status)
-      return <tr key={item.id}><td><strong>{item.titulo}</strong><small>{item.descricao}</small></td><td>{item.origem_tipo === 'rdo_ocorrencia' ? 'RDO' : item.origem_tipo || 'manual'}</td><td>{fronts.data?.find((frontItem: any) => frontItem.id === item.frente_id)?.nome || 'Obra geral'}</td><td>{item.responsavel || '-'}</td><td>{brDate(item.prazo)}{overdue && <small className="danger-text">Atrasada</small>}</td><td><Status value={item.status}/></td><td><div className="row-actions"><button className="icon-button" onClick={() => open(item)} title="Editar"><Edit3 size={15}/></button>{item.status === 'concluida' ? <button className="icon-button" onClick={() => setTaskStatus(item, 'aberta')} title="Reabrir"><RotateCcw size={15}/></button> : <button className="icon-button" onClick={() => setTaskStatus(item, 'concluida')} title="Concluir"><CheckCircle2 size={15}/></button>}</div></td></tr>
+      return <tr key={item.id}><td><strong>{item.titulo}</strong><small>{item.descricao}</small></td><td>{item.origem_tipo === 'rdo_ocorrencia' ? 'RDO' : item.origem_tipo || 'manual'}</td><td>{fronts.data?.find((frontItem: any) => frontItem.id === item.frente_id)?.nome || 'Obra geral'}</td><td>{item.responsavel || '-'}</td><td>{brDate(item.prazo)}{overdue && <small className="danger-text">Atrasada</small>}</td><td><Status value={item.status}/></td><td><div className="row-actions"><button className="icon-button" onClick={() => open(item)} title="Editar"><Edit3 size={15}/></button>{item.origem_tipo==='rdo_ocorrencia'||item.rdo_ocorrencia_id ? <span title="Modifique esta pendência pelo Diário de Obra">Via RDO</span> : item.status === 'concluida' ? <button className="icon-button" onClick={() => setTaskStatus(item, 'aberta')} title="Reabrir"><RotateCcw size={15}/></button> : <button className="icon-button" onClick={() => setTaskStatus(item, 'concluida')} title="Concluir"><CheckCircle2 size={15}/></button>}</div></td></tr>
     })}</tbody></table></div> : <Empty title={work ? 'Nenhuma pendência neste filtro' : 'Selecione uma obra'} description={work ? 'Crie uma tarefa manual ou acompanhe aqui as pendências geradas pelo Diário de obra.' : 'Escolha uma obra para acompanhar responsáveis, prazos e pendências.'} action={work ? <Button onClick={() => open()}>Nova pendência</Button> : undefined}/>}</Card>
     {sheetOpen&&work&&<Card style={{marginTop:14}}><OperationalSheetGrid key={work+'-'+front+'-'+status} area="tarefas" title="Planilha de tarefas e pendências" rows={sheetRows} columns={columns} filename={'tarefas-obra-'+work} showImport={false} onCommit={commitSheet} disabledReason={sheetDisabled} canEditRow={row=>(row.origem_tipo==='manual'||!row.origem_tipo)&&!row.rdo_ocorrencia_id}
       onRowAction={row=>open(rows.find((item:any)=>item.id===Number(row.id)))} rowActionLabel="Detalhes"/></Card>}
