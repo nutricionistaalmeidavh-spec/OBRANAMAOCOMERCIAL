@@ -51,7 +51,7 @@ export default function BudgetPage() {
         frente_id:row.frente_id?Number(row.frente_id):null,
         subfrente_id:row.subfrente_id?Number(row.subfrente_id):null,
         etapa_id:row.etapa_id?Number(row.etapa_id):null,
-        unidade:String(row.unidade||'un'),quantidade:qty,valor_unitario_centavos:toCents(String(row.valor_unitario))
+        unidade:String(row.unidade||'un'),quantidade:qty,valor_unitario_centavos:Math.round(unit*100)
       }
     })
     await window.fluxoDre.operationalSheet.commit({area:'orcamento',obraId:Number(work),rows:updates})
