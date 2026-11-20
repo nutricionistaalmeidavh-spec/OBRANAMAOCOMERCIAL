@@ -213,7 +213,7 @@ export default function BankAccountsPage(){
         {preview&&<div className="bank-preview" aria-live="polite">
           <h3>Prévia do extrato</h3>
           {preview.duplicatedFile&&<div className="bank-message">Este arquivo já foi importado nesta conta.</div>}
-          {!!preview.coveredByManualBalance&&<div className="bank-message" role="status">{preview.coveredByManualBalance} movimentação(ões) até {displayDate(preview.manualBalanceDate||'')} já cobertas pelo saldo manual: serão preservadas para conferência, mas não somadas novamente ao caixa.</div>
+          {!!preview.coveredByManualBalance&&<div className="bank-message" role="status">{preview.coveredByManualBalance} movimentação(ões) até {displayDate(preview.manualBalanceDate||'')} já cobertas pelo saldo manual: serão preservadas para conferência, mas não somadas novamente ao caixa.</div>}
           <div className="bank-stats"><span><strong>{preview.total}</strong> linhas</span><span><strong>{preview.importable}</strong> novas</span><span><strong>{preview.duplicates}</strong> duplicadas</span><span><strong>{preview.invalid}</strong> inválidas</span></div>
           {preview.invalidRows.length>0&&<div className="bank-invalid"><strong>Linhas que precisam de atenção</strong>{preview.invalidRows.map(x=><div key={x.line}>Linha {x.line}: {x.reason}</div>)}</div>}
           <div className="bank-table"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Situação</th></tr></thead><tbody>
