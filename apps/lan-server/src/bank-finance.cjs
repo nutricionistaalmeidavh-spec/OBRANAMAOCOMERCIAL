@@ -184,7 +184,7 @@ class BankFinanceService {
   }
   listAccounts({ empresaId }) {
     const id = this.company(empresaId)
-    return this.db.prepare('SELECT id,empresa_id,nome,banco_nome,agencia,conta_identificador,tipo_conta,saldo_inicial_centavos,saldo_referencia_data,ativo,created_at FROM contas_bancarias WHERE empresa_id=? AND deleted_at IS NULL ORDER BY ativo DESC,nome COLLATE NOCASE,id').all(id)
+    return this.db.prepare('SELECT b.id,b.empresa_id,b.nome,b.banco_nome,b.agencia,b.conta_identificador,b.tipo_conta,b.saldo_inicial_centavos,b.saldo_referencia_data,b.ativo,b.created_at,(SELECT m.data FROM finance_bank_manual_balances m WHERE m.conta_bancaria_id=b.id AND m.empresa_id=b.empresa_id ORDER BY m.data DESC,m.id DESC LIMIT 1) saldo_manual_data,(SELECT m.saldo_centavos FROM finance_bank_manual_balances m WHERE m.conta_bancaria_id=b.id AND m.empresa_id=b.empresa_id ORDER BY m.data DESC,m.id DESC LIMIT 1) saldo_manual_centavos FROM contas_bancarias b WHERE b.empresa_id=? AND b.deleted_at IS NULL ORDER BY b.ativo DESC,b.nome COLLATE NOCASE,b.id').all(id)
   }
   saveAccount(payload) {
     const empresaId = this.company(payload.empresaId)
