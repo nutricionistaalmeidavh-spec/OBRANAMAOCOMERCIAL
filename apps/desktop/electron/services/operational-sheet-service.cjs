@@ -107,7 +107,16 @@ class OperationalSheetService {
       filters:[{name:'Planilhas',extensions:['xlsx','xlsm','csv']}]
     })
     if(choice.canceled||!choice.filePaths?.length)return null
-    const workbook=await readWorkbook(choice.filePaths[0])
+    let workbook
+    if(path.extname(choice.filePaths[0]).toLowerCase()==='.csv'){
+      // CSV do Excel brasileiro costuma utilizar ponto e vírgula.
+      const sample=(await fs.readFile(choice.filePaths[0],'utf8')).replace(/^\uFEFF/,'').split(/\r?\n/,1)[0]
+      const delimiter=(sample.match(/;/g)||[]).length>(sample.match(/,/g)||[]).length?';':','
+      workbook=new ExcelJS.Workbook()
+      await workbook.csv.readFile(choice.filePaths[0],{parserOptions:{delimiter}})
+    }else{
+      workbook=await readWorkbook(choice.filePaths[0])
+    }
     const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'')
     const findIndex=(headers,keys)=>headers.findIndex(header=>keys.includes(normalize(header)))
     let selection=null
