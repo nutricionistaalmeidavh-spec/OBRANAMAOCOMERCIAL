@@ -45,11 +45,12 @@ function timeMinutes(value){if(typeof value!=='string'||!/^([01]\d|2[0-3]):[0-5]
 function workedHours(row){if(row.tipo!=='trabalho')return null;const times=[row.entrada,row.intervalo_saida,row.intervalo_entrada,row.saida];if(times.some(x=>!x))return null;const n=times.map(timeMinutes);return n[0]<=n[1]&&n[1]<=n[2]&&n[2]<=n[3]?Number(((n[1]-n[0]+n[3]-n[2])/60).toFixed(2)):null}
 
 export class OperationalSheetCentral {
- constructor({repository}){
+ constructor({repository,audit=null}){
   if(!repository?.connection||!repository?.save)throw Error('Repositório central indisponível para planilhas.')
   this.repository=repository
   this.db=repository.connection()
   this.concurrency=new ConcurrencyService({db:this.db})
+  this.audit=typeof audit==='function'?audit:()=>{}
  }
  transaction(fn){
   this.db.exec('BEGIN IMMEDIATE')
@@ -135,7 +136,7 @@ export class OperationalSheetCentral {
   }
   return src
  }
- commit(payload={}){
+ commit(payload={},actor=null){
   const area=String(payload.area||'')
   const table=TABLE[area]
   if(!table)throw Error('Área de planilha não suportada.')
@@ -164,6 +165,7 @@ export class OperationalSheetCentral {
      ids.push({id:saved.id,revision})
     }catch(e){throw typedError(i,e)}
    }
+   this.audit(actor,{action:'operational_sheet.commit',targetType:area,targetId:String(obraId||payload.empresaId||''),details:{rows:ids.length,ids:ids.map(x=>x.id)}})
    return {updated:ids.length,ids:ids.map(x=>x.id),revisions:ids}
   })
  }
@@ -222,7 +224,7 @@ export class OperationalSheetCentral {
   }
   return {competencia,rows,employeeCount:chosen.length,truncated:employees.length>60}
  }
- timeCommit(payload={}){
+ timeCommit(payload={},actor=null){
   const competencia=competence(payload.competencia),rows=validRows(payload.rows),obraId=payload.obraId?positiveId(payload.obraId,'Obra'):null,
    empresaId=payload.empresaId?positiveId(payload.empresaId,'Empresa'):null
   return this.transaction(()=>{
@@ -272,10 +274,11 @@ export class OperationalSheetCentral {
     this.repository.save('pontos_mensais',{id:point.id,status:'preenchido'})
     this.concurrency.bump('pontos_mensais',point.id)
    }
+   this.audit(actor,{action:'operational_sheet.time_commit',targetType:'pontos_mensais',targetId:competencia,details:{rows:rows.length,employees:grouped.size,obraId,empresaId}})
    return {updated:rows.length,employees:grouped.size}
   })
  }
- receiveMany(payload={}){
+ receiveMany(payload={},actor=null){
   const rows=validRows(payload.items)
   const requestId=text(payload.requestId,120)
   if(!requestId)throw Error('Identificador idempotente obrigatório para recebimento.')
@@ -299,6 +302,7 @@ export class OperationalSheetCentral {
     }
    }
    const receipts=[]
+   let newlyReceived=0
    for(let i=0;i<rows.length;i++){
     try{
      const itemId=positiveId(rows[i].pedido_item_id,'Item'),quantity=decimal(rows[i].quantidade_recebida,'Quantidade')
@@ -324,8 +328,10 @@ export class OperationalSheetCentral {
      const left=this.db.prepare('SELECT COUNT(*) n FROM pedido_compra_itens WHERE pedido_compra_id=? AND quantidade_recebida<quantidade_pedida').get(order.id)
      this.repository.save('pedidos_compra',{id:order.id,status:Number(left.n)>0?'recebido_parcial':'recebido'})
      receipts.push(receipt)
+     newlyReceived++
     }catch(e){throw typedError(i,e)}
    }
+   if(newlyReceived)this.audit(actor,{action:'operational_sheet.receive_many',targetType:'recebimentos_materiais',targetId:requestId,details:{rows:newlyReceived,ids:receipts.map(r=>r.id)}})
    return {received:receipts.length,ids:receipts.map(r=>r.id)}
   })
  }
