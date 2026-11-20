@@ -365,6 +365,8 @@ function registerIpc() {
   ipcMain.handle('dre:get', envelope((filters) => services.finance.dre(filters)))
   ipcMain.handle('accounts:payment', envelope(({ id, payment }) => services.finance.accountPayment(id, payment)))
   ipcMain.handle('bank:list', envelope(payload => services.bankFinance.listAccounts(payload)))
+  ipcMain.handle('bank:manual-balances', envelope(payload => services.bankFinance.listManualBalances(payload)))
+  ipcMain.handle('bank:record-balance', envelope(payload => services.bankFinance.recordManualBalance(payload)))
   ipcMain.handle('bank:save', envelope(payload => services.bankFinance.saveAccount(payload)))
   ipcMain.handle('bank:preview', envelope(payload => services.bankFinance.previewImport(payload)))
   ipcMain.handle('bank:confirm', envelope(payload => services.bankFinance.confirmImport(payload)))
