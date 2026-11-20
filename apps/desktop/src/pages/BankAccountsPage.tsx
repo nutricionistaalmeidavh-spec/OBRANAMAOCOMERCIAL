@@ -4,13 +4,14 @@ import { Button, Card, Empty, ErrorState, Field, Loading, PageHeader } from '../
 import { useAsync } from '../hooks/useAsync'
 import BankReconciliationPanel from './BankReconciliationPanel'
 import BankPeriodAuditPanel from './BankPeriodAuditPanel'
+import BankBalancePanel from './BankBalancePanel'
 import './BankAccountsPage.css'
 
 type Bank = { id:number; empresa_id:number; nome:string; banco_nome:string; agencia?:string; conta_identificador?:string; tipo_conta:string; saldo_inicial_centavos:number; saldo_referencia_data:string; ativo:number }
 type MovementFilter = { status:'all'|'pending'|'partial'|'reconciled'; obraId:string;startDate:string;endDate:string;search:string }
 const blankFilter = ():MovementFilter=>({ status:'all',obraId:'',startDate:'',endDate:'',search:'' })
 type PreviewRow = { line:number; date:string; description:string; amountCents:number; duplicate:boolean }
-type Preview = { previewHash:string; total:number; importable:number; duplicates:number; invalid:number; invalidRows:{line:number;reason:string}[]; preview:PreviewRow[]; headers:string[]; mapping:Record<string,number|string>; duplicatedFile:boolean }
+type Preview = { previewHash:string; total:number; importable:number; duplicates:number; invalid:number; invalidRows:{line:number;reason:string}[]; preview:PreviewRow[]; headers:string[]; mapping:Record<string,number|string>; duplicatedFile:boolean; coveredByManualBalance?:number; manualBalanceDate?:string|null }
 type Result = { duplicateFile:boolean; imported:number; duplicates:number; rejected:number; importId:number }
 type Draft = { id?:number; nome:string; bancoNome:string; agencia:string; contaIdentificador:string; tipoConta:string; saldoInicial:string; saldoReferenciaData:string; requestId:string }
 const blank = ():Draft => ({ nome:'', bancoNome:'', agencia:'', contaIdentificador:'', tipoConta:'corrente', saldoInicial:'0,00', saldoReferenciaData:new Date().toISOString().slice(0,10), requestId:crypto.randomUUID() })
@@ -35,6 +36,7 @@ const mask = (value:string|undefined) => {
 
 export default function BankAccountsPage(){
   const [empresaId,setEmpresaId]=useState('')
+  const [tab,setTab]=useState<'contas'|'extratos'|'conciliacao'|'auditoria'>('contas')
   const [version,setVersion]=useState(0)
   const [bankId,setBankId]=useState('')
   const [adding,setAdding]=useState(false)
@@ -160,7 +162,7 @@ export default function BankAccountsPage(){
   const setColumn=(name:string,value:string)=>{setMapping(v=>({...v,[name]:value}));setPreview(null)}
 
   return <div className="bank-finance">
-    <PageHeader title="Contas bancárias e extratos" description="Cadastre as contas da empresa, importe extratos e confira as movimentações antes de conciliar." actions={<Button icon={<Plus size={16}/>} onClick={()=>{setDraft(blank());setAdding(v=>!v);setError('')}}>{adding?'Fechar cadastro':'Adicionar conta'}</Button>}/>
+    <PageHeader title="Contas bancárias e extratos" description="Consulte contas, atualize saldos, importe extratos e concilie em etapas separadas." actions={tab==='contas'?<Button icon={<Plus size={16}/>} onClick={()=>{setDraft(blank());setAdding(v=>!v);setError('')}}>{adding?'Fechar cadastro':'Adicionar conta'}</Button>:undefined}/>
     <div className="bank-section">
       <Field label="Empresa">
         <select value={empresaId} onChange={e=>{setEmpresaId(e.target.value);changeAccount('')}}>
@@ -170,7 +172,10 @@ export default function BankAccountsPage(){
       <Button variant="secondary" disabled={working} icon={<RefreshCw size={15}/>} onClick={()=>setVersion(v=>v+1)}>Atualizar</Button>
     </div>
     {error&&<div className="bank-message bank-error" role="alert">{error}</div>}
-    {adding&&<Card className="bank-form-card">
+    <nav className="bank-finance-tabs" role="tablist" aria-label="Etapas da gestão bancária">
+      {([{id:'contas',label:'Contas e saldos'},{id:'extratos',label:'Extratos'},{id:'conciliacao',label:'Conciliação'},{id:'auditoria',label:'Auditoria'}] as const).map(item=><button key={item.id} type="button" role="tab" aria-selected={tab===item.id} className={tab===item.id?'active':''} onClick={()=>setTab(item.id)}>{item.label}</button>)}
+    </nav>
+    {tab==='contas'&&adding&&<Card className="bank-form-card">
       <h2>{draft.id?'Editar conta bancária':'Adicionar conta bancária'}</h2>
       <p>Esta conta pertence à empresa selecionada. As obras continuarão vinculadas aos lançamentos financeiros.</p>
       <form onSubmit={submitBank} className="bank-form">
@@ -190,8 +195,10 @@ export default function BankAccountsPage(){
           <Landmark size={21}/><strong>{bank.nome}</strong><span>{bank.banco_nome} · {mask(bank.conta_identificador)}</span><small>Saldo de referência: {money(bank.saldo_inicial_centavos)} em {displayDate(bank.saldo_referencia_data)}</small><small>{bank.ativo?'Ativa':'Inativa'}</small>
         </button>)}
       </div>
-      {selected&&<Card className="bank-import-card">
-        <div className="bank-card-title"><div><h2>Importar extrato — {selected.nome}</h2><p>Os valores serão registrados como movimentos bancários. Contas a pagar e receber não serão baixadas nesta etapa.</p></div><div className="bank-card-actions"><Button variant="secondary" type="button" onClick={editSelected} disabled={working}>Editar conta</Button><Button variant="secondary" type="button" onClick={()=>void toggleSelected()} disabled={working}>{selected.ativo?'Desativar':'Ativar'}</Button><FileUp size={23}/></div></div>
+      {selected&&tab==='contas'&&<div className="bank-card-actions bank-account-actions"><Button variant="secondary" type="button" onClick={editSelected} disabled={working}>Editar conta</Button><Button variant="secondary" type="button" onClick={()=>void toggleSelected()} disabled={working}>{selected.ativo?'Desativar':'Ativar'}</Button></div>}
+      {selected&&tab==='contas'&&<BankBalancePanel empresaId={Number(empresaId)} contaBancariaId={selected.id} contaNome={selected.nome} saldoInicialData={selected.saldo_referencia_data} ativo={!!selected.ativo} revision={version} onSaved={()=>setVersion(v=>v+1)}/>}
+      {selected&&tab==='extratos'&&<Card className="bank-import-card">
+        <div className="bank-card-title"><div><h2>Importar extrato — {selected.nome}</h2><p>Importações não geram baixas automáticas. Lançamentos anteriores ou na data de um saldo manual informado não são somados novamente ao saldo.</p></div><FileUp size={23}/></div>
         <div className="bank-import-grid">
           <Field label="Arquivo OFX ou CSV"><input type="file" accept=".csv,.ofx" onChange={e=>void chooseFile(e.target.files?.[0]||null)}/></Field>
           <div className="bank-import-action"><Button disabled={!base64||working||!selected.ativo} onClick={()=>void doPreview()}>{working?'Processando...':'Conferir prévia'}</Button></div>
@@ -206,6 +213,7 @@ export default function BankAccountsPage(){
         {preview&&<div className="bank-preview" aria-live="polite">
           <h3>Prévia do extrato</h3>
           {preview.duplicatedFile&&<div className="bank-message">Este arquivo já foi importado nesta conta.</div>}
+          {!!preview.coveredByManualBalance&&<div className="bank-message" role="status">{preview.coveredByManualBalance} movimentação(ões) até {displayDate(preview.manualBalanceDate||'')} já cobertas pelo saldo manual: serão preservadas para conferência, mas não somadas novamente ao caixa.</div>
           <div className="bank-stats"><span><strong>{preview.total}</strong> linhas</span><span><strong>{preview.importable}</strong> novas</span><span><strong>{preview.duplicates}</strong> duplicadas</span><span><strong>{preview.invalid}</strong> inválidas</span></div>
           {preview.invalidRows.length>0&&<div className="bank-invalid"><strong>Linhas que precisam de atenção</strong>{preview.invalidRows.map(x=><div key={x.line}>Linha {x.line}: {x.reason}</div>)}</div>}
           <div className="bank-table"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Situação</th></tr></thead><tbody>
@@ -216,7 +224,7 @@ export default function BankAccountsPage(){
         </div>}
         {result&&<div className="bank-message bank-success" role="status">{result.duplicateFile?'Este extrato já foi importado.':'Importação concluída.'} {result.imported} movimentações novas, {result.duplicates} duplicadas, {result.rejected} inválidas. Nenhuma baixa financeira foi criada.</div>}
       </Card>}
-      <Card className="bank-import-card">
+      {tab==='conciliacao'&&<Card className="bank-import-card">
         <h2>Movimentações e conciliação — filtros</h2>
         <form className="bank-transaction-filters" onSubmit={e=>{e.preventDefault();setPage(0);setActiveFilter({...filterDraft})}}>
           <Field label="Situação"><select value={filterDraft.status} onChange={e=>updateFilter('status',e.target.value)}><option value="all">Todas</option><option value="pending">Pendentes</option><option value="partial">Parciais</option><option value="reconciled">Conciliadas</option></select></Field>
@@ -228,13 +236,13 @@ export default function BankAccountsPage(){
         </form>
         <p>{transactions.data?.length||0} movimentação(ões) nesta página, a partir do registro {page*500+1}. A visão por obra inclui apenas movimentações já atribuídas por conciliação. O CSV exporta todas as páginas dos filtros atuais.</p>
         <div className="bank-filter-actions"><Button variant="secondary" type="button" disabled={page===0||transactions.loading} onClick={()=>setPage(v=>Math.max(0,v-1))}>Página anterior</Button><span aria-live="polite">Página {page+1}</span><Button variant="secondary" type="button" disabled={transactions.loading||(transactions.data?.length||0)<500} onClick={()=>setPage(v=>v+1)}>Próxima página</Button></div>
-      </Card>
-      {selected&&<BankReconciliationPanel empresaId={Number(empresaId)} contaBancariaId={selected.id} movements={transactions.data||[]} onChanged={()=>setVersion(v=>v+1)}/>}
-      <BankPeriodAuditPanel empresaId={Number(empresaId)} works={works.data||[]} banks={banks.data||[]}/>
-      <div className="bank-history-grid">
+      </Card>}
+      {selected&&tab==='conciliacao'&&<BankReconciliationPanel empresaId={Number(empresaId)} contaBancariaId={selected.id} movements={transactions.data||[]} onChanged={()=>setVersion(v=>v+1)}/>}
+      {tab==='auditoria'&&<BankPeriodAuditPanel empresaId={Number(empresaId)} works={works.data||[]} banks={banks.data||[]}/>} 
+      {(tab==='extratos'||tab==='conciliacao')&&<div className="bank-history-grid">
         <Card><h2>Movimentações importadas</h2>{transactions.loading?<Loading/>:transactions.error?<ErrorState error={transactions.error} retry={transactions.reload}/>:!transactions.data?.length?<Empty title="Sem movimentações" description="Importe o primeiro extrato para visualizar seus lançamentos."/>:<div className="bank-table"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Conciliação</th></tr></thead><tbody>{transactions.data.map(tx=><tr key={tx.id}><td>{displayDate(tx.data)}</td><td>{tx.descricao}</td><td>{money(tx.valor_centavos)}</td><td>{Number(tx.conciliado_centavos||0)>=Math.abs(tx.valor_centavos)?'Conciliado':Number(tx.conciliado_centavos)>0?'Parcial':'Pendente'}</td></tr>)}</tbody></table></div>}</Card>
-        <Card><h2>Histórico de importações</h2>{imports.loading?<Loading/>:imports.error?<ErrorState error={imports.error} retry={imports.reload}/>:!imports.data?.length?<Empty title="Nenhuma importação" description="O histórico será exibido após a confirmação do primeiro extrato."/>:<div className="bank-table"><table><thead><tr><th>Arquivo</th><th>Novas</th><th>Duplicadas</th></tr></thead><tbody>{imports.data.map(x=><tr key={x.id}><td>{x.nome_arquivo}</td><td>{x.importadas}</td><td>{x.duplicadas}</td></tr>)}</tbody></table></div>}</Card>
-      </div>
+        {tab==='extratos'&&<Card><h2>Histórico de importações</h2>{imports.loading?<Loading/>:imports.error?<ErrorState error={imports.error} retry={imports.reload}/>:!imports.data?.length?<Empty title="Nenhuma importação" description="O histórico será exibido após a confirmação do primeiro extrato."/>:<div className="bank-table"><table><thead><tr><th>Arquivo</th><th>Novas</th><th>Duplicadas</th></tr></thead><tbody>{imports.data.map(x=><tr key={x.id}><td>{x.nome_arquivo}</td><td>{x.importadas}</td><td>{x.duplicadas}</td></tr>)}</tbody></table></div>}</Card>}
+      </div>}
     </>}
   </div>
 }
