@@ -1,6 +1,7 @@
 import ReceiptPolicySelection from '../components/ReceiptPolicySelection'
+import TimeMatrixPanel from '../components/TimeMatrixPanel'
 import { useWorkContext } from '../hooks/useWorkContext'
-import { FileDown, Printer, RotateCcw, Save, Sparkles, UsersRound } from 'lucide-react'
+import { FileDown, Printer, RotateCcw, Save, Sparkles, UsersRound, FileSpreadsheet } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Card, Empty, Field, Loading, PageHeader, Status } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
@@ -19,6 +20,7 @@ export default function TimeSheetPage(){
   const [message,setMessage]=useState('')
   const [batchPdfPath,setBatchPdfPath]=useState('')
   const [batchOpen,setBatchOpen]=useState(false)
+  const [matrixOpen,setMatrixOpen]=useState(false)
   const [marksOpen,setMarksOpen]=useState(true)
   const [policyReady,setPolicyReady]=useState(false)
   const [policySaving,setPolicySaving]=useState(false)
@@ -40,7 +42,8 @@ export default function TimeSheetPage(){
   const printAll=async()=>{if(!selectionOk())return;setBusy(true);setMessage('');try{const result:any=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today(),print:true});setBatchPdfPath(result.batchPdfPath||'');const failed=(result.results||[]).filter((item:any)=>!item.ok);const paymentFailures=(result.payments||[]).filter((item:any)=>!item.ok);const paymentMessage=paymentFailures.length?' Pendências na baixa dos pagamentos: '+paymentFailures.map(failureDetail).join('; ')+'.':result.payments?' Pagamentos do mês atualizados.':'';const suffix=paymentMessage+(failed.length?' '+failed.length+' funcionário(s) não entraram no lote: '+failed.map(failureDetail).join('; ')+'.':'');setMessage(result.canceled?'Impressão cancelada. Os PDFs já gerados foram mantidos.'+suffix:(result.printed?'Lote enviado para a caixa de impressão com '+result.employees+' funcionário(s).':'Nenhum lote foi impresso.')+suffix);setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
   const reprintAll=async()=>{if(!selectionOk())return;setBusy(true);setMessage('');try{const result:any=await window.fluxoDre.ponto.generateAll({competencia,paymentDate:today(),reprint:true});setBatchPdfPath(result.batchPdfPath||'');const failed=(result.results||[]).filter((item:any)=>!item.ok);const paymentFailures=(result.payments||[]).filter((item:any)=>!item.ok);const paymentMessage=paymentFailures.length?' Pendências na baixa dos pagamentos: '+paymentFailures.map(failureDetail).join('; ')+'.':result.payments?' Pagamentos do mês atualizados.':'';const suffix=paymentMessage+(failed.length?' '+failed.length+' funcionário(s) não entraram no lote: '+failed.map(failureDetail).join('; ')+'.':'');setMessage(result.canceled?'Reimpressão cancelada. Nenhum PDF duplicado foi criado.'+suffix:(result.printed?'Reimpressão enviada para a caixa de impressão com '+result.employees+' funcionário(s). Nenhum PDF duplicado foi criado.':'Nenhum lote foi reimpresso.')+suffix);setBatchOpen(false)}catch(error:any){setMessage(error?.message||String(error))}finally{setBusy(false)}}
   return <>
-    <PageHeader title="Folhas de ponto" description="Controle mensal das marcações e central de geração, impressão e reimpressão dos documentos do período."/>
+    <PageHeader title="Folhas de ponto" description="Controle mensal das marcações e central de geração, impressão e reimpressão dos documentos do período."
+      actions={<Button variant="secondary" icon={<FileSpreadsheet size={16}/>} onClick={()=>setMatrixOpen(v=>!v)}>{matrixOpen?'Ocultar matriz':'Matriz mensal da equipe'}</Button>}/>
     <Card className="time-filter"><Field label="Funcionário" wide><select value={employee} onChange={(event)=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option value={item.id} key={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((role:any)=>role.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><div className="readonly-person">{competenceLabel(competencia)}</div></Field></Card>
 
     <Card style={{margin:'14px 0',padding:16}}>
@@ -73,6 +76,7 @@ export default function TimeSheetPage(){
         </>}
       </Card>
     </>}
+    {matrixOpen&&<TimeMatrixPanel competencia={competencia} refresh={()=>{setVersion(v=>v+1);employees.reload()}}/>}
     {message&&<div className="success-box" style={{marginTop:14}}>{message}</div>}
     {batchPdfPath&&<Button variant="secondary" icon={<FileDown size={15}/>} onClick={()=>void window.fluxoDre.documentos.reveal(batchPdfPath)}>Abrir PDF único do lote</Button>}
   </>
