@@ -93,13 +93,19 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
         pedido_compra_id:form.pedido_compra_id?Number(form.pedido_compra_id):null,
         conta_id:form.conta_id?Number(form.conta_id):null,
         observacoes:form.observacoes,valor_total_centavos:Math.round(amount),
-        itens:form.itens.map(item=>({
-          descricao:item.descricao.trim(),quantidade:requirePositiveQuantity(item.quantidade),unidade:item.unidade.trim(),
-          valor_unitario_centavos:noteCents(item.valor_unitario||'0'),
-          frente_id:item.frente_id?Number(item.frente_id):null,
-          subfrente_id:item.subfrente_id?Number(item.subfrente_id):null,
-          pedido_item_id:item.pedido_item_id?Number(item.pedido_item_id):null
-        }))
+        itens:form.itens.map((item,index)=>{
+          const unit=parseBrDecimal(item.valor_unitario)
+          if(unit===null||unit<0)throw new Error('Preço unitário inválido no item '+(index+1)+'.')
+          const description=item.descricao.trim()
+          if(!description)throw new Error('Descrição obrigatória no item '+(index+1)+'.')
+          return {
+            descricao:description,quantidade:requirePositiveQuantity(item.quantidade),unidade:item.unidade.trim(),
+            valor_unitario_centavos:Math.round(unit*100),
+            frente_id:item.frente_id?Number(item.frente_id):null,
+            subfrente_id:item.subfrente_id?Number(item.subfrente_id):null,
+            pedido_item_id:item.pedido_item_id?Number(item.pedido_item_id):null
+          }
+        })
       })
       setForm(null)
       setNotice('Nota '+created.numero+' arquivada com '+created.itens.length+' item(ns). Nenhum pagamento ou movimento de estoque foi criado.')
