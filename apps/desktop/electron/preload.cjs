@@ -146,6 +146,8 @@ contextBridge.exposeInMainWorld('fluxoDre', {
       return () => ipcRenderer.removeListener('online:sync-state-changed', handler)
     },
     configureSync: (scope) => call('online:sync-configure', scope),
+    p0Projects: () => call('online:p0-projects'),
+    selectP0Project: (input) => call('online:p0-project-select', input),
     syncNow: () => call('online:sync-now'),
     resolveLocalConflict: (id, resolution) => call('online:sync-resolve-local', { id, resolution }),
     state: () => call('online:state'),

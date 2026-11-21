@@ -105,6 +105,8 @@ interface Window { fluxoDre: {
     syncState():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     onSyncStateChanged(listener:(state:import('../../../packages/contracts/src/desktop-sync').DesktopSyncState)=>void):()=>void;
     configureSync(scope:{companyId:number;workId:number}):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
+    p0Projects():Promise<{projects:Array<{id:string;name:string;localWorkId:number|null;selected:boolean}>}>;
+    selectP0Project(input:{projectId:string;companyId:number;workId:number}):Promise<{selected:true;projectId:string;state:import('../../../packages/contracts/src/desktop-sync').DesktopSyncState}>;
     syncNow():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     resolveLocalConflict(id:number,resolution:import('../../../packages/contracts/src/desktop-sync').LocalConflictResolution):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     state():Promise<{baseUrl:string;installationId:string;linked:boolean;linkedAt:string|null;pending:{expiresAt:string|null}|null;storageRequired:CompanyStorageRequirement|null}>;

@@ -385,6 +385,22 @@ class OnlineService {
     return result
   }
 
+  async p0Projects() {
+    return this.request('/api/desktop/web-p0/projects',{deviceToken:this.requireToken()})
+  }
+
+  async selectP0Project({projectId,localWorkId}) {
+    return this.request('/api/desktop/web-p0/project/select',{deviceToken:this.requireToken(),projectId,localWorkId})
+  }
+
+  async webP0Pending() {
+    return this.request('/api/desktop/web-p0/pending', { deviceToken: this.requireToken() })
+  }
+
+  async webP0Ack({commandId,entity,localId,error}) {
+    return this.request('/api/desktop/web-p0/ack', { deviceToken: this.requireToken(),commandId,entity,localId,error })
+  }
+
   async syncPull(sinceRevision = 0) {
     return this.request('/api/desktop/sync/pull', { deviceToken: this.requireToken(), sinceRevision })
   }

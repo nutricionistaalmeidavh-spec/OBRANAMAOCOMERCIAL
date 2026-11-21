@@ -1,5 +1,5 @@
 /** Operational sync contract shared by the Desktop UI and Cloudflare boundary. */
-export const DESKTOP_SYNC_ENTITIES = ['frentes_obra','tarefas_obra','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','rdo_anexos','cronograma_etapas'] as const;
+export const DESKTOP_SYNC_ENTITIES = ['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','etapas_obra','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','rdo_anexos','cronograma_etapas'] as const;
 export function validateDesktopChange(change: Record<string, unknown>): string | null {
   if (!(DESKTOP_SYNC_ENTITIES as readonly unknown[]).includes(change.entity)) return 'Entidade não permitida na sincronização.';
   if (typeof change.changeId !== 'string' || change.changeId.length < 12 || change.changeId.length > 160) return 'Identificador de alteração inválido.';

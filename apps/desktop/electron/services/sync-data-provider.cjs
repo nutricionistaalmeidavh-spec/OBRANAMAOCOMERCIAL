@@ -1,6 +1,7 @@
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const fs = require('node:fs')
+const { createHash } = require('node:crypto')
 let fieldRdoImporter = null
 async function loadFieldRdoImporter() {
   if (fieldRdoImporter) return fieldRdoImporter
@@ -13,21 +14,33 @@ async function loadFieldRdoImporter() {
   return FieldRdoImport
 }
 
-const BRIDGE = { frentes_obra: 'fronts', tarefas_obra: 'tasks', rdos: 'rdos', cronograma_etapas: 'schedule' }
+const { applyWebP0Create } = require('./web-p0-create.cjs')
+
+const BRIDGE = { empresas:'companies',clientes:'clients',obras:'works',frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', etapas_obra:'planStages', rdos: 'rdos', cronograma_etapas: 'schedule' }
 const EDITABLE = {
-  frentes_obra: ['status', 'observacoes'],
+  frentes_obra: ['nome','codigo','status', 'observacoes'],
+  subfrentes_obra: ['nome','codigo','pavimento','escopo','status','observacoes'],
   tarefas_obra: ['status', 'responsavel', 'prazo', 'prioridade', 'descricao', 'observacoes', 'titulo', 'concluido_em'],
   rdos: ['status', 'clima', 'atividades', 'observacoes'],
   cronograma_etapas: ['status', 'percentual_realizado', 'observacoes', 'responsavel', 'previsto_inicio', 'previsto_fim']
 }
 const WORK_SCOPED = new Set([...Object.keys(BRIDGE), 'documentos'])
+const COMPANY_SCOPED = new Set(['clientes','obras','empresas'])
 
 const json = JSON.stringify
-const payloadOf = row => Object.fromEntries(
-  Object.entries({ ...row, deleted: !!row.deleted_at })
-    .filter(([key]) => !['created_at', 'updated_at'].includes(key))
-    .sort(([a], [b]) => a.localeCompare(b))
-)
+const payloadOf = (row,entity) => {
+  const canonical=Object.fromEntries(
+    Object.entries({...row,deleted:!!row.deleted_at})
+      .filter(([key])=>!['created_at','updated_at'].includes(key))
+      .sort(([a],[b])=>a.localeCompare(b))
+  )
+  if(!['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','etapas_obra','cronograma_etapas'].includes(entity))return canonical
+  const sourceFingerprint=createHash('sha256').update(JSON.stringify(canonical)).digest('hex')
+  if(entity==='empresas')return{id:canonical.id,razao_social:canonical.razao_social,nome_fantasia:canonical.nome_fantasia,status:canonical.status,deleted:canonical.deleted,sourceFingerprint}
+  if(entity==='clientes')return{id:canonical.id,empresa_id:canonical.empresa_id,nome:canonical.nome,deleted:canonical.deleted,sourceFingerprint}
+  if(entity==='obras')return{id:canonical.id,empresa_id:canonical.empresa_id,cliente_id:canonical.cliente_id,nome:canonical.nome,status:canonical.status,deleted:canonical.deleted,sourceFingerprint}
+  return{...canonical,sourceFingerprint}
+}
 
 class LocalSyncDataProvider {
   constructor({ database, now = Date.now }) {
@@ -158,11 +171,15 @@ class LocalSyncDataProvider {
 
   listBridge(entity, scope) {
     if (!Object.hasOwn(BRIDGE, entity)) throw new Error('Entidade não disponível na bridge de sincronização.')
+    if(entity==='empresas')return [this.database.get('empresas',scope.companyId)].filter(row=>row&&!row.deleted_at)
+    if(COMPANY_SCOPED.has(entity))return this.database.list(entity,{empresa_id:scope.companyId})
     return this.rowsByWork(entity, scope)
   }
 
   getBridge(entity, localId, scope) {
     if (!Object.hasOwn(BRIDGE, entity)) return null
+    if(entity==='empresas')return Number(localId)===Number(scope.companyId)?this.database.get('empresas',localId):null
+    if(COMPANY_SCOPED.has(entity))return this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND empresa_id=?`).get(Number(localId),scope.companyId)||null
     return this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND obra_id=?`).get(Number(localId), scope.workId) || null
   }
 
@@ -245,6 +262,10 @@ class LocalSyncDataProvider {
         components: this.accountComponents(account),
         ...this.accountProvenance(account, scope)
       }))
+  }
+
+  applyWebP0Create(scope, command) {
+    return applyWebP0Create({ database: this.database, scope, command })
   }
 
   applyRemote(entity, localId, payload, scope) {

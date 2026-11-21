@@ -1,3 +1,7 @@
+import { assertBridgeEdit, BridgeConflict, bridgeRows } from './web-p0-policy';
+import { assertP0Create } from './web-p0-create';
+import { ensureP0WorkProject } from './web-p0-project-provision';
+import { enqueueWebP0Command, getWebP0Command, pendingWebP0Commands, ackWebP0Command, listWebP0Commands } from './web-p0-command-store';
 import { createCompanyRoutes } from './owner-companies';
 import { restrictForemanSnapshot } from './field-snapshot-rules';
 import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts } from './field-rdo-delivery';
@@ -66,10 +70,10 @@ async function findAccess(email:string){const {items}=await db.list<Member>(acce
   const stamp=now();device={...device,lastSeenAt:stamp,updatedAt:stamp};await db.update('devices',[{id:device.id,record:device as unknown as Record<string,unknown>}]);
   return{device,member,access}
 }
-const SYNC_ENTITIES=['frentes_obra','tarefas_obra','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','rdo_anexos','cronograma_etapas'];
+const SYNC_ENTITIES=['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','etapas_obra','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','rdo_anexos','cronograma_etapas'];
 async function resolveMembership(user:{userId:string;email?:string;name?:string}){
   const email=norm(user.email);if(!email)return null;
-  const items=(await findAccess(email)).filter(m=>m.status!=='revoked');const ownerPreferred=email===ownerEmail()?(items.find(m=>m.canonicalOwner&&m.userId===user.userId)||items.find(m=>m.canonicalOwner)):undefined;const current=ownerPreferred||items.find(m=>m.userId===user.userId)||items[0];if(!current)return null;
+  const items=(await findAccess(email)).filter(m=>m.status!=='revoked');const selected=(await db.list<{projectId:string}>(`p0_selected_${hashKey(email)}`,{limit:1})).items[0]?.projectId;const preferred=items.find(m=>m.projectId===selected&&m.userId===user.userId);const ownerPreferred=email===ownerEmail()?(items.find(m=>m.canonicalOwner&&m.userId===user.userId)||items.find(m=>m.canonicalOwner)):undefined;const current=preferred||ownerPreferred||items.find(m=>m.userId===user.userId)||items[0];if(!current)return null;
   if(current.userId!==user.userId||current.name!==user.name){const firstBind=!current.userId,stamp=now(),next={...current,userId:user.userId,name:user.name||current.name,joinCode:firstBind?undefined:current.joinCode,claimedAt:firstBind?stamp:current.claimedAt,updatedAt:stamp};await db.update(accessTable(email),[{id:current.id,record:next as Record<string,unknown>}]);if(current.projectMemberId){const [pm]=await db.get<Member>(membersTable(current.projectId),[current.projectMemberId]);if(pm)await db.update(membersTable(current.projectId),[{id:current.projectMemberId,record:{...pm,userId:user.userId,name:user.name||pm.name,joinCode:firstBind?undefined:pm.joinCode,claimedAt:firstBind?stamp:pm.claimedAt,updatedAt:stamp} as Record<string,unknown>}])}if(firstBind&&current.joinCode){const invite=await db.list<Record<string,unknown>>(inviteTable(current.joinCode),{limit:1});if(invite.items[0])await db.delete(inviteTable(current.joinCode),[invite.items[0].id])}return{...next,id:current.id}}
   return current;
 }
@@ -99,10 +103,10 @@ async function requirePhoneField(token:string){
 
 async function indexInvite(memberId:string,member:Member){if(member.status==='revoked'||!member.joinCode||member.userId)return;const table=inviteTable(member.joinCode),{items}=await db.list<Record<string,unknown>>(table,{limit:1}),record={projectId:member.projectId,companyId:member.companyId,projectMemberId:memberId,code:member.joinCode};if(items[0])await db.update(table,[{id:items[0].id,record}]);else await db.add(table,[record])}
 
-async function upsertMember(projectId:string,companyId:string,input:{email:string;role:Role;employeeId?:string;modules?:string[];channels?:string[];permissions?:PermissionMatrix;desktopStorage?:DesktopStorageBinding|null}){
+async function upsertMember(projectId:string,companyId:string,input:{email:string;role:Role;employeeId?:string;modules?:string[];channels?:string[];userId?:string;permissions?:PermissionMatrix;desktopStorage?:DesktopStorageBinding|null}){
   const email=norm(input.email),table=membersTable(projectId);const {items}=await db.list<Member>(table,{limit:100});const existing=items.find(m=>norm(m.email)===email);const stamp=now(),modules=(input.modules?.length?input.modules:defaultModules(input.role)).filter(x=>MODULES.includes(x)),channels=(input.channels?.length?input.channels:defaultChannels(input.role)).filter(x=>CHANNELS.includes(x));
-  if(existing){const joinCode=existing.userId?undefined:(existing.joinCode||newJoinCode()),desktopStorage=input.desktopStorage===undefined?existing.desktopStorage:(input.desktopStorage||undefined),next={...existing,status:existing.status||'active',role:input.role,employeeId:input.employeeId||undefined,modules,channels,permissions:input.permissions===undefined?existing.permissions:normalizePermissions(input.permissions),desktopStorage,joinCode,updatedAt:stamp};await db.update(table,[{id:existing.id,record:next as Record<string,unknown>}]);const access=await findAccess(email),a=access.find(x=>x.projectId===projectId);if(a)await db.update(accessTable(email),[{id:a.id,record:{...a,...next,projectMemberId:existing.id} as Record<string,unknown>}]);else await db.add(accessTable(email),[{...next,projectMemberId:existing.id} as Record<string,unknown>]);await indexInvite(existing.id,next);return{...next,id:existing.id}}
-  const limits=await limitsForCompany(companyId);if(items.length>=limits.maxUsers)throw new Error(`Limite de ${limits.maxUsers} usuário(s) atingido para esta licença.`);const base:Member={companyId,projectId,email,role:input.role,employeeId:input.employeeId||undefined,modules,channels,permissions:input.permissions===undefined?undefined:normalizePermissions(input.permissions),desktopStorage:input.desktopStorage||undefined,status:'active',joinCode:newJoinCode(),createdAt:stamp,updatedAt:stamp};const [memberId]=await db.add(table,[base as unknown as Record<string,unknown>]);if(!memberId)throw new Error('Falha ao criar membro');await db.add(accessTable(email),[{...base,projectMemberId:memberId} as unknown as Record<string,unknown>]);await indexInvite(memberId,base);return{...base,id:memberId}
+  if(existing){const joinCode=(existing.userId||input.userId)?undefined:(existing.joinCode||newJoinCode()),desktopStorage=input.desktopStorage===undefined?existing.desktopStorage:(input.desktopStorage||undefined),next={...existing,...(input.userId?{userId:input.userId}:{}),status:existing.status||'active',role:input.role,employeeId:input.employeeId||undefined,modules,channels,permissions:input.permissions===undefined?existing.permissions:normalizePermissions(input.permissions),desktopStorage,joinCode,updatedAt:stamp};await db.update(table,[{id:existing.id,record:next as Record<string,unknown>}]);const access=await findAccess(email),a=access.find(x=>x.projectId===projectId);if(a)await db.update(accessTable(email),[{id:a.id,record:{...a,...next,projectMemberId:existing.id} as Record<string,unknown>}]);else await db.add(accessTable(email),[{...next,projectMemberId:existing.id} as Record<string,unknown>]);await indexInvite(existing.id,next);return{...next,id:existing.id}}
+  const limits=await limitsForCompany(companyId);if(items.length>=limits.maxUsers)throw new Error(`Limite de ${limits.maxUsers} usuário(s) atingido para esta licença.`);const base:Member={companyId,projectId,email,role:input.role,userId:input.userId,employeeId:input.employeeId||undefined,modules,channels,permissions:input.permissions===undefined?undefined:normalizePermissions(input.permissions),desktopStorage:input.desktopStorage||undefined,status:'active',joinCode:newJoinCode(),createdAt:stamp,updatedAt:stamp};const [memberId]=await db.add(table,[base as unknown as Record<string,unknown>]);if(!memberId)throw new Error('Falha ao criar membro');await db.add(accessTable(email),[{...base,projectMemberId:memberId} as unknown as Record<string,unknown>]);await indexInvite(memberId,base);return{...base,id:memberId}
 }
 
 async function setCanonicalMemberStatus(projectId:string,companyId:string,memberId:string,status:'active'|'revoked'){
@@ -152,6 +156,46 @@ async function remoteSyncOwnerError(session:RemoteSyncSession):Promise<Response|
   });
   if(!owner)return error('Sincronização remota reservada ao coordenador cadastrado para esta obra. Não faça uma segunda sincronização.',409);
   return null;
+}
+
+async function p0CreateDevices(companyId:string,projectId:string){
+  const topology=await getCompanyStorageTopology(companyId);
+  const devices=(await db.list<Device>('devices',{limit:1000})).items
+    .filter(d=>d.status==='active'&&d.companyId===companyId&&d.projectId===projectId&&(!d.tokenExpiresAt||d.tokenExpiresAt>=now()));
+  const allowed=await Promise.all(devices.map(async device=>{
+    const member=(await findAccess(device.email)).find(m=>m.projectId===projectId&&m.companyId===companyId&&m.role==='admin'&&m.status!=='revoked');
+    const rights=member?await memberEntitlements(member):null;
+    if(!member||!rights?.modules.includes('obra360')||!rights.channels.includes('desktop'))return null;
+    if(topology.mode==='remote'&&(!topology.serverId||!await remoteSyncOwners().verify({
+      companyId,projectId,serverId:String(topology.serverId),deviceId:String(device.id)
+    })))return null;
+    return{deviceId:device.id,name:device.name||'Desktop autorizado'};
+  }));
+  return allowed.filter((d):d is {deviceId:string;name:string}=>d!==null);
+}
+
+async function provisionP0Work(record:NonNullable<Awaited<ReturnType<typeof getWebP0Command>>>,localWorkId:number){
+  if(record.action!=='create'||record.entity!=='obras')return null;
+  if(!record.actorEmail)throw new Error('Comando antigo sem identidade para vincular projeto.');
+  const parent=await getProject(record.projectId);
+  const members=await findAccess(record.actorEmail),actor=members.find(m=>m.companyId===record.companyId&&m.projectId===record.projectId&&m.role==='admin'&&m.status!=='revoked'&&m.userId===record.actorId);
+  if(!parent||parent.companyId!==record.companyId||!actor)throw new Error('Administrador de origem perdeu acesso; nova obra não foi vinculada.');
+  const limits=await limitsForCompany(record.companyId);
+  const state=await assembleState(record.projectId),client=bridgeRows(asRecord(state?.desktopBridge)).find(row=>
+    row.entity==='clientes'&&row.sourceDeviceId===record.deviceId&&row.localId===record.data.cliente_id);
+  const result=await ensureP0WorkProject({
+    commandId:record.id,companyId:record.companyId,parentProjectId:record.projectId,actorId:record.actorId,
+    sourceDeviceId:record.deviceId,localWorkId,name:String(record.data.nome||''),customer:client?String(client.payload.nome||''):undefined,
+    maxProjects:limits.maxProjects
+  });
+  const granted=await upsertMember(result.id,record.companyId,{
+    email:record.actorEmail,role:'admin',modules:actor.modules,channels:actor.channels,userId:record.actorId
+  });
+  await ensurePlatformAccessForMember({
+    email:granted.email,name:actor.name,companyId:record.companyId,projectId:result.id,
+    role:'admin',modules:granted.modules||['obra360']
+  });
+  return result.id;
 }
 
 export const handler=router({
@@ -387,6 +431,170 @@ export const handler=router({
   'GET /api/owner/devices':[...ownerSecured,async()=>{const {items}=await db.list<Device>('devices',{limit:100});return json({devices:items.map(d=>({id:d.id,name:d.name,platform:d.platform,email:d.email,companyId:d.companyId,status:d.status,lastSeenAt:d.lastSeenAt,installationId:d.installationId}))})}],
   'PUT /api/owner/devices/:id':[...ownerSecured,async(ctx)=>{const [device]=await db.get<Device>('devices',[ctx.params.id]);if(!device)return error('Computador não encontrado.',404);const status=String(asRecord(ctx.body).status)==='active'?'active':'revoked';await db.update('devices',[{id:ctx.params.id,record:{...device,status,updatedAt:now()} as unknown as Record<string,unknown>}]);return json({ok:true,status})}],
   'POST /api/access/claim':[...secured,async(ctx)=>{const current=await resolveMembership(ctx.user!);if(current)return json({role:current.role,membership:current});const body=asRecord(ctx.body),code=String(body.code||'').trim().toUpperCase();if(!/^[A-Z0-9]{8}$/.test(code))return error('Código de acesso inválido.',400);const table=inviteTable(code),{items}=await db.list<Record<string,unknown>>(table,{limit:1}),ref=items[0];if(!ref)return error('Código de acesso inválido ou já utilizado.',404);const projectId=String(ref.projectId||''),memberId=String(ref.projectMemberId||'');const [member]=await db.get<Member>(membersTable(projectId),[memberId]);if(!member||member.joinCode!==code)return error('Convite não encontrado.',404);if(member.status==='revoked')return error('Este convite foi revogado pelo administrador.',403);if(member.userId&&member.userId!==ctx.user!.userId)return error('Este convite já foi utilizado.',409);const oldEmail=member.email,email=norm(ctx.user!.email),stamp=now(),next:Member={...member,email,userId:ctx.user!.userId,name:ctx.user!.name||member.name,joinCode:undefined,claimedAt:stamp,updatedAt:stamp};await db.update(membersTable(projectId),[{id:memberId,record:next as unknown as Record<string,unknown>}]);const oldAccess=await findAccess(oldEmail),oldIds=oldAccess.filter(a=>a.projectId===projectId).map(a=>a.id);if(oldIds.length)await db.delete(accessTable(oldEmail),oldIds);const actual=await findAccess(email),same=actual.find(a=>a.projectId===projectId),accessRecord={...next,projectMemberId:memberId} as unknown as Record<string,unknown>;if(same)await db.update(accessTable(email),[{id:same.id,record:accessRecord}]);else await db.add(accessTable(email),[accessRecord]);await db.delete(table,[ref.id]);await audit(next,ctx.user!,'access_code_claimed',{role:next.role,employeeId:next.employeeId});return json({role:next.role,membership:{...next,id:memberId}})}],
+  // P0: leitura e edição apenas de projeções canônicas do Desktop, nunca uma tabela sombra.
+  'GET /api/web/p0/overview':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const project=await getProject(gate.member!.projectId);
+    const company=await getCompany(gate.member!.companyId);
+    if(!project||!company||project.companyId!==gate.member!.companyId)return error('Escopo operacional inválido.',403);
+    const state=await assembleState(gate.member!.projectId);
+    const topology=await getCompanyStorageTopology(gate.member!.companyId);
+    return json({
+      company:{id:gate.member!.companyId,name:String(company.name||'')},
+      project:{id:gate.member!.projectId,name:project.name,customer:project.customer||''},
+      topology:{mode:topology.mode},
+      source:'desktop-bridge',
+      revision:Number(asRecord(state?._remote).revision||0),
+      items:bridgeRows(asRecord(state?.desktopBridge)),
+      sources:await p0CreateDevices(gate.member!.companyId,gate.member!.projectId),
+      availableProjects:(await Promise.all((await findAccess(gate.member!.email))
+        .filter(m=>m.companyId===gate.member!.companyId&&m.role==='admin'&&m.status!=='revoked')
+        .map(async m=>{const p=await getProject(m.projectId);return p?.companyId===gate.member!.companyId?{id:m.projectId,name:p.name,hasOperationalSource:!!asRecord(p).workSource}:null})))
+        .filter((p):p is {id:string;name:string;hasOperationalSource:boolean}=>p!==null),
+      commands:await listWebP0Commands(gate.member!.projectId,ctx.user!.userId),
+      limitations:['Cadastros e exclusões só são confirmados após aplicação na fonte operacional Desktop/Server.','A obra criada precisa ser vinculada à licença/projeto Web para obter acesso Obra360 próprio.']
+    });
+  }],
+  'POST /api/web/p0/edit':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    let command:ReturnType<typeof assertBridgeEdit>;
+    try{command=assertBridgeEdit(ctx.body)}catch(cause){return error((cause as Error).message,400)}
+    try{
+      const saved=await updateMobileBridge(gate.member!.projectId,command,ctx.user!.userId);
+      await audit(gate.member!,ctx.user!,'web_p0_bridge_edited',{entity:command.entity,localId:command.localId,sourceDeviceId:command.sourceDeviceId,changedFields:Object.keys(command.patch),revision:saved.revision});
+      return json({ok:true,item:saved.item,revision:saved.revision});
+    }catch(cause){return error((cause as Error).message||'Não foi possível salvar.',cause instanceof BridgeConflict?409:409)}
+  }],
+  // Solicitações ficam em uma fila, nunca em registros operacionais paralelos no D1.
+  'POST /api/web/p0/update':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    let command:ReturnType<typeof assertP0Create>;
+    try{command=assertP0Create({...asRecord(ctx.body),action:'update'})}
+    catch(e){return error((e as Error).message,400)}
+    const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
+    if(!sources.some(s=>s.deviceId===command.sourceDeviceId))return error('Dispositivo não autorizado para esta obra.',403);
+    const state=await assembleState(gate.member!.projectId);
+    const row=bridgeRows(asRecord(state?.desktopBridge)).find(x=>x.entity===command.entity&&x.localId===command.localId&&x.sourceDeviceId===command.sourceDeviceId);
+    if(!row||String(row.payload.sourceFingerprint||'')!==command.expectedFingerprint)return error('O cadastro mudou ou não pertence ao dispositivo. Recarregue.',409);
+    if(command.entity==='empresas'&&row.localId!==Number(row.payload.id))return error('Identidade da empresa inválida.',409);
+    try{
+      const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,actorEmail:gate.member!.email,command});
+      await audit(gate.member!,ctx.user!,'web_p0_update_enqueued',{entity:command.entity,localId:command.localId,commandId:command.commandId});
+      return json({ok:true,command:{id:record.id,status:record.status}},202);
+    }catch(e){return error((e as Error).message,409)}
+  }],
+  'POST /api/web/p0/project/select':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const target=String(asRecord(ctx.body).projectId||''),project=await getProject(target);
+    if(!project||project.companyId!==gate.member!.companyId)return error('Obra não pertence à empresa.',403);
+    const memberships=(await findAccess(gate.member!.email)).filter(x=>x.status!=='revoked');
+    if(!memberships.some(x=>x.projectId===target&&x.companyId===project.companyId&&x.role==='admin'&&x.userId===ctx.user!.userId))
+      return error('Sua conta não possui acesso à obra solicitada.',403);
+    const key=`p0_selected_${hashKey(norm(gate.member!.email))}`,selected=(await db.list<{id:string;projectId:string}>(key,{limit:1})).items;
+    if(selected[0])await db.update(key,[{id:selected[0].id,record:{projectId:target,updatedAt:now()}}]);
+    else await db.add(key,[{projectId:target,updatedAt:now()}]);
+    return json({ok:true,projectId:target});
+  }],
+  'POST /api/web/p0/create':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    let command:ReturnType<typeof assertP0Create>;
+    try{command=assertP0Create(ctx.body);if(command.action!=='create')throw new Error('Use a operação de exclusão.')}
+    catch(e){return error((e as Error).message,400)}
+    if(command.entity==='obras'){
+      const limit=await limitsForCompany(gate.member!.companyId);
+      const current=(await db.list<Project>('projects',{limit:1000})).items.filter(x=>x.companyId===gate.member!.companyId);
+      if(current.length>=limit.maxProjects)return error('Limite de obras da licença atingido. Não é possível criar sem um vínculo Web.',409);
+    }
+    const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
+    if(!sources.some(s=>s.deviceId===command.sourceDeviceId))return error('O Desktop selecionado não está autorizado para esta obra.',403);
+    if(command.data.frente_id||command.data.cliente_id){
+      const state=await assembleState(gate.member!.projectId);
+      const stages=bridgeRows(asRecord(state?.desktopBridge)).filter(x=>x.entity==='frentes_obra'&&x.sourceDeviceId===command.sourceDeviceId);
+      if(command.data.frente_id&&!stages.some(x=>x.localId===command.data.frente_id))return error('Etapa vinculada não foi sincronizada neste Desktop.',409);
+      const clients=bridgeRows(asRecord(state?.desktopBridge)).filter(x=>x.entity==='clientes'&&x.sourceDeviceId===command.sourceDeviceId);
+      if(command.data.cliente_id&&!clients.some(x=>x.localId===command.data.cliente_id))return error('Cliente vinculado não foi sincronizado neste Desktop.',409);
+    }
+    try{
+      const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,actorEmail:gate.member!.email,command});
+      if(record.status==='pending')await audit(gate.member!,ctx.user!,'web_p0_create_enqueued',{entity:command.entity,commandId:command.commandId,sourceDeviceId:command.sourceDeviceId});
+      return json({ok:true,command:{id:record.id,status:record.status,entity:record.entity,localId:record.localId}},202);
+    }catch(e){return error((e as Error).message,409)}
+  }],
+  'POST /api/web/p0/delete':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    let command:ReturnType<typeof assertP0Create>;
+    try{command=assertP0Create({...asRecord(ctx.body),action:'delete'})}
+    catch(e){return error((e as Error).message,400)}
+    const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
+    if(!sources.some(s=>s.deviceId===command.sourceDeviceId))return error('Desktop selecionado não está autorizado para esta operação.',403);
+    const state=await assembleState(gate.member!.projectId);
+    const row=bridgeRows(asRecord(state?.desktopBridge)).find(x=>x.entity===command.entity&&x.localId===command.localId&&x.sourceDeviceId===command.sourceDeviceId);
+    if(!row||String(row.payload.sourceFingerprint||'')!==command.expectedFingerprint)return error('Registro já mudou ou não pertence à origem selecionada.',409);
+    try{
+      const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,actorId:ctx.user!.userId,actorEmail:gate.member!.email,command});
+      await audit(gate.member!,ctx.user!,'web_p0_delete_enqueued',{entity:command.entity,commandId:command.commandId,localId:command.localId});
+      return json({ok:true,command:{id:record.id,status:record.status,entity:record.entity,action:record.action}},202);
+    }catch(e){return error((e as Error).message,409)}
+  }],
+  'POST /api/desktop/web-p0/projects':[async(ctx)=>{
+    const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''));
+    if(!session||session.member?.role!=='admin'||!session.access.modules.includes('obra360')||!session.device.companyId)return error('Desktop Admin não autorizado.',403);
+    const members=(await findAccess(session.device.email)).filter(m=>m.companyId===session.device.companyId&&m.role==='admin'&&m.status!=='revoked');
+    const projects=(await Promise.all(members.map(async m=>{
+      const project=await getProject(m.projectId);
+      if(!project||project.companyId!==session.device.companyId)return null;
+      const origin=asRecord(asRecord(project).workSource);
+      if(origin.sourceDeviceId&&origin.sourceDeviceId!==session.device.id)return null;
+      return {id:m.projectId,name:project.name,localWorkId:Number.isSafeInteger(origin.localWorkId)?origin.localWorkId:null,selected:m.projectId===session.device.projectId};
+    }))).filter((p):p is {id:string;name:string;localWorkId:number|null;selected:boolean}=>p!==null);
+    return json({projects});
+  }],
+  'POST /api/desktop/web-p0/project/select':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||session.member?.role!=='admin'||!session.access.modules.includes('obra360')||!session.device.companyId)return error('Desktop Admin não autorizado.',403);
+    const targetId=String(body.projectId||''),workId=Number(body.localWorkId);
+    if(!Number.isSafeInteger(workId)||workId<1)return error('Informe a obra operacional local.',400);
+    const target=await getProject(targetId);
+    if(!target||target.companyId!==session.device.companyId)return error('Projeto de outra empresa.',403);
+    const member=(await findAccess(session.device.email)).find(m=>m.companyId===session.device.companyId&&m.projectId===targetId&&m.role==='admin'&&m.status!=='revoked');
+    if(!member)return error('Desktop sem autorização para o novo projeto.',403);
+    const source=asRecord(asRecord(target).workSource);
+    if(source.sourceDeviceId&&(source.sourceDeviceId!==session.device.id||Number(source.localWorkId)!==workId))
+      return error('A obra canônica não corresponde ao Desktop selecionado.',409);
+    const currentDevice=session.device,stamp=now();
+    await db.update('devices',[{id:currentDevice.id,record:{...currentDevice,projectId:targetId,updatedAt:stamp}}]);
+    return json({ok:true,projectId:targetId,companyId:currentDevice.companyId,localWorkId:workId});
+  }],
+  'POST /api/desktop/web-p0/pending':[async(ctx)=>{
+    const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''));
+    if(!session||!session.device.projectId||session.member?.role!=='admin'||!session.access.modules.includes('obra360'))return error('Desktop não autorizado a receber cadastros Web.',403);
+    const ownerGate=await remoteSyncOwnerError(session);if(ownerGate)return ownerGate;
+    return json({commands:await pendingWebP0Commands(session.device.projectId,session.device.id)});
+  }],
+  'POST /api/desktop/web-p0/ack':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||!session.device.projectId||session.member?.role!=='admin'||!session.access.modules.includes('obra360'))return error('Desktop não autorizado a confirmar cadastros Web.',403);
+    const ownerGate=await remoteSyncOwnerError(session);if(ownerGate)return ownerGate;
+    if(typeof body.commandId!=='string'||!/^[0-9a-f-]{36}$/i.test(body.commandId)||typeof body.entity!=='string')return error('Confirmação inválida.',400);
+    if(!Number.isSafeInteger(body.localId)&&!(typeof body.error==='string'&&body.error.length>0&&body.error.length<=250))return error('Resultado do comando inválido.',400);
+    try{
+      const queued=await getWebP0Command(session.device.projectId,String(body.commandId));
+      if(queued&&queued.deviceId===session.device.id&&queued.entity===body.entity&&queued.action==='create'&&queued.entity==='obras'&&Number.isSafeInteger(body.localId)&&body.localId>0)
+        await provisionP0Work(queued,Number(body.localId));
+      const saved=await ackWebP0Command(session.device.projectId,session.device.id,{
+        commandId:body.commandId,entity:body.entity,localId:Number.isSafeInteger(body.localId)?Number(body.localId):undefined,
+        error:typeof body.error==='string'?body.error:undefined
+      });
+      if(!saved)return error('Comando não encontrado na obra.',404);
+      return json({ok:true,status:saved.status,localId:saved.localId||null});
+    }catch(e){return error((e as Error).message,409)}
+  }],
   'GET /api/project':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin','foreman'], 'mobile','obra360');if(gate.response)return gate.response;const requested=String(ctx.query.date||new Date().toISOString().slice(0,10));await carryForwardActiveAssignments(gate.member!.projectId,requested,ctx.user!.userId);const state=await assembleState(gate.member!.projectId,requested);if(!state)return error('Obra ainda não inicializada.',404);return json({state,role:gate.member!.role,access:gate.access})}],
   'POST /api/project/import':[...secured,async(ctx)=>{const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;const body=asRecord(ctx.body),snapshot=asRecord(body.state);if(!snapshot.project||!Array.isArray(snapshot.floors)||!Array.isArray(snapshot.employees))return error('Snapshot local inválido.',400);const revision=await saveSnapshot(gate.member!.projectId,snapshot,ctx.user!.userId,{allowUnversioned:true});await audit(gate.member!,ctx.user!,'local_snapshot_imported',{revision});return json({ok:true,revision})}],
   'PUT /api/project/state':[...secured,async(ctx)=>{

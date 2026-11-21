@@ -70,13 +70,21 @@ class LanSyncDataProvider {
 
   async listBridge(entity, scope) {
     await this.requireBridge(entity)
-    return this.lanClient.list(entity, { obra_id: scope.workId })
+    if(entity==='empresas')return [await this.lanClient.get('empresas',scope.companyId)]
+    return this.lanClient.list(entity, ['clientes','obras'].includes(entity)?{empresa_id:scope.companyId}:{obra_id:scope.workId})
   }
 
   async getBridge(entity, localId, scope) {
     await this.requireBridge(entity)
     const row = await this.lanClient.get(entity, Number(localId))
-    return row && Number(row.obra_id) === Number(scope.workId) ? row : null
+    return row && (entity==='empresas'?Number(row.id)===Number(scope.companyId):['clientes','obras'].includes(entity)?Number(row.empresa_id)===Number(scope.companyId):Number(row.obra_id)===Number(scope.workId))?row:null
+  }
+
+  async applyWebP0Create(scope,command) {
+    const capabilities=await this.capabilities()
+    if(!Array.isArray(capabilities?.features)||!capabilities.features.includes('web-p0-idempotent-commands-v1'))
+      throw new Error('Atualize o servidor próprio para receber cadastros Web com idempotência.')
+    return this.lanClient.request('POST','/api/v1/web-p0/commands',{body:{scope,command}})
   }
 
   async applyRemote(entity, localId, payload, scope) {
@@ -146,6 +154,13 @@ class OperationalSyncDataProvider {
   async getBridge(entity, localId, scope) { return this.activeProvider().getBridge(entity, localId, scope) }
   async summary(scope, modules) { return this.activeProvider().summary(scope, modules) }
   async obligations(scope) { return this.activeProvider().obligations(scope) }
+  async applyWebP0Create(scope,command) {
+    const runtime=this.runtimeState()
+    if(runtime.paused)throw new Error('Sincronização operacional pausada.')
+    if(runtime.source==='local')return this.localProvider.applyWebP0Create(scope,command)
+    if(runtime.source==='lan-host'||runtime.source==='remote')return this.lanProvider.applyWebP0Create(scope,command)
+    throw new Error('Fonte operacional indisponível para criação Web.')
+  }
   async applyRemote(entity, localId, payload, scope) { return this.activeProvider().applyRemote(entity, localId, payload, scope) }
   async applyFieldRdo(scope,report) { return this.activeProvider().applyFieldRdo(scope,report) }
   async fieldRdoCatalog(scope) { return this.activeProvider().fieldRdoCatalog(scope) }
