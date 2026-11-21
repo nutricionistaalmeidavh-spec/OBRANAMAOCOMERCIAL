@@ -42,6 +42,7 @@ describe('Gestão Web P1',()=>{
     client.get.mockResolvedValue({data:{...sample(),items:[{entity:'rdos',localId:1,sourceDeviceId:'pc-1',revision:0,desktopRevision:2,payload:{atividades:'<img src=x onerror=alert(1)>'}}]}});
     const root=document.getElementById('content')!;
     await mountP1Management(root,()=>{});
+    root.querySelector<HTMLButtonElement>('[data-p1-detail="0"]')!.click();
     expect(root.textContent).toContain('<img src=x onerror=alert(1)>');
     expect(root.querySelector('img')).toBeNull();
   });
