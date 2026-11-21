@@ -1,4 +1,4 @@
-const { LocalSyncDataProvider, BRIDGE } = require('./sync-data-provider.cjs')
+const { LocalSyncDataProvider, BRIDGE, EDITABLE } = require('./sync-data-provider.cjs')
 
 const PAUSE_REASONS = {
   'lan-client': 'A sincronização central é responsabilidade do PC principal.'
@@ -92,7 +92,13 @@ class LanSyncDataProvider {
     if (payload?.deleted) throw new Error('Exclusão remota exige revisão manual no cadastro central.')
     const current = await this.getBridge(entity, localId, scope)
     if (!current) return false
-    await this.lanClient.save(entity, { ...current, ...payload, id: Number(localId), obra_id: current.obra_id })
+    // Never write a complete cloud projection back into central SQLite.
+    // Only explicitly editable fields may be applied; financial / stock / document
+    // projections are read-only and their domain services remain authoritative.
+    const allowed=EDITABLE[entity]||[]
+    const patch=Object.fromEntries(allowed.filter(key=>Object.hasOwn(payload,key)).map(key=>[key,payload[key]]))
+    if(Object.keys(patch).length)
+      await this.lanClient.save(entity, { ...current, ...patch, id: Number(localId), obra_id: current.obra_id })
     return true
   }
 

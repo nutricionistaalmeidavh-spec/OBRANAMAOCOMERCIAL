@@ -16,12 +16,13 @@ async function loadFieldRdoImporter() {
 
 const { applyWebP0Create } = require('./web-p0-create.cjs')
 
-const BRIDGE = { empresas:'companies',clientes:'clients',obras:'works',frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', etapas_obra:'planStages', rdos: 'rdos', cronograma_etapas: 'schedule' }
+const BRIDGE = { empresas:'companies',clientes:'clients',obras:'works',frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', etapas_obra:'planStages', rdos: 'rdos', checklist_frente_itens:'checklists', itens_orcamentarios:'budgets', medicoes:'measurements', solicitacoes_compra:'purchaseRequests', pedidos_compra:'purchases', movimentacoes_estoque:'stock', contratos_obra:'contracts', documentos:'documents', cronograma_etapas: 'schedule' }
 const EDITABLE = {
   frentes_obra: ['nome','codigo','status', 'observacoes'],
   subfrentes_obra: ['nome','codigo','pavimento','escopo','status','observacoes'],
   tarefas_obra: ['status', 'responsavel', 'prazo', 'prioridade', 'descricao', 'observacoes', 'titulo', 'concluido_em'],
   rdos: ['status', 'clima', 'atividades', 'observacoes'],
+  checklist_frente_itens: ['descricao','status','responsavel','prazo','observacoes'],
   cronograma_etapas: ['status', 'percentual_realizado', 'observacoes', 'responsavel', 'previsto_inicio', 'previsto_fim']
 }
 const WORK_SCOPED = new Set([...Object.keys(BRIDGE), 'documentos'])
@@ -34,6 +35,22 @@ const payloadOf = (row,entity) => {
       .filter(([key])=>!['created_at','updated_at'].includes(key))
       .sort(([a],[b])=>a.localeCompare(b))
   )
+  const P1_FIELDS={
+    rdos:['data','frente_id','clima','status','atividades','observacoes'],
+    checklist_frente_itens:['descricao','tipo','status','responsavel','prazo','concluido_em','observacoes','frente_id','subfrente_id','pavimento'],
+    itens_orcamentarios:['codigo','descricao','unidade','quantidade','valor_unitario_centavos','tipo','frente_id','etapa_id','subfrente_id','observacoes'],
+    medicoes:['numero','competencia','data','status','descricao','valor_bruto_centavos','valor_liquido_centavos','observacoes','frente_id'],
+    solicitacoes_compra:['descricao','solicitante','status','prioridade','prazo','observacoes','frente_id'],
+    pedidos_compra:['numero','descricao','status','valor_centavos','entrega_prevista','observacoes','frente_id'],
+    movimentacoes_estoque:['tipo','descricao','unidade','quantidade','data','observacoes','frente_id'],
+    contratos_obra:['numero','tipo','descricao','valor_centavos','retencao_centavos','status','data_inicio','data_fim','observacoes','frente_id'],
+    documentos:['titulo','categoria','status_assinatura','versao','vencimento','observacoes','rdo_id','medicao_id','contrato_id','pedido_compra_id']
+  }
+  if(Object.hasOwn(P1_FIELDS,entity)){
+    const out={deleted:canonical.deleted}
+    for(const field of P1_FIELDS[entity])if(Object.hasOwn(canonical,field))out[field]=canonical[field]
+    return out
+  }
   if(!['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','etapas_obra','cronograma_etapas'].includes(entity))return canonical
   const sourceFingerprint=createHash('sha256').update(JSON.stringify(canonical)).digest('hex')
   if(entity==='empresas')return{id:canonical.id,razao_social:canonical.razao_social,nome_fantasia:canonical.nome_fantasia,status:canonical.status,deleted:canonical.deleted,sourceFingerprint}

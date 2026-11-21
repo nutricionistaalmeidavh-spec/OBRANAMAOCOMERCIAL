@@ -1,4 +1,5 @@
 import { assertBridgeEdit, BridgeConflict, bridgeRows } from './web-p0-policy';
+import { p1Rows,assertP1Edit } from './web-p1-policy';
 import { assertP0Create } from './web-p0-create';
 import { ensureP0WorkProject } from './web-p0-project-provision';
 import { enqueueWebP0Command, getWebP0Command, pendingWebP0Commands, ackWebP0Command, listWebP0Commands } from './web-p0-command-store';
@@ -70,7 +71,7 @@ async function findAccess(email:string){const {items}=await db.list<Member>(acce
   const stamp=now();device={...device,lastSeenAt:stamp,updatedAt:stamp};await db.update('devices',[{id:device.id,record:device as unknown as Record<string,unknown>}]);
   return{device,member,access}
 }
-const SYNC_ENTITIES=['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','etapas_obra','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','rdo_anexos','cronograma_etapas'];
+const SYNC_ENTITIES=['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','etapas_obra','rdos','rdo_equipe','rdo_equipamentos','rdo_ocorrencias','rdo_anexos','cronograma_etapas','checklist_frente_itens','itens_orcamentarios','medicoes','solicitacoes_compra','pedidos_compra','movimentacoes_estoque','contratos_obra','documentos'];
 async function resolveMembership(user:{userId:string;email?:string;name?:string}){
   const email=norm(user.email);if(!email)return null;
   const items=(await findAccess(email)).filter(m=>m.status!=='revoked');const selected=(await db.list<{projectId:string}>(`p0_selected_${hashKey(email)}`,{limit:1})).items[0]?.projectId;const preferred=items.find(m=>m.projectId===selected&&m.userId===user.userId);const ownerPreferred=email===ownerEmail()?(items.find(m=>m.canonicalOwner&&m.userId===user.userId)||items.find(m=>m.canonicalOwner)):undefined;const current=preferred||ownerPreferred||items.find(m=>m.userId===user.userId)||items[0];if(!current)return null;
@@ -431,6 +432,38 @@ export const handler=router({
   'GET /api/owner/devices':[...ownerSecured,async()=>{const {items}=await db.list<Device>('devices',{limit:100});return json({devices:items.map(d=>({id:d.id,name:d.name,platform:d.platform,email:d.email,companyId:d.companyId,status:d.status,lastSeenAt:d.lastSeenAt,installationId:d.installationId}))})}],
   'PUT /api/owner/devices/:id':[...ownerSecured,async(ctx)=>{const [device]=await db.get<Device>('devices',[ctx.params.id]);if(!device)return error('Computador não encontrado.',404);const status=String(asRecord(ctx.body).status)==='active'?'active':'revoked';await db.update('devices',[{id:ctx.params.id,record:{...device,status,updatedAt:now()} as unknown as Record<string,unknown>}]);return json({ok:true,status})}],
   'POST /api/access/claim':[...secured,async(ctx)=>{const current=await resolveMembership(ctx.user!);if(current)return json({role:current.role,membership:current});const body=asRecord(ctx.body),code=String(body.code||'').trim().toUpperCase();if(!/^[A-Z0-9]{8}$/.test(code))return error('Código de acesso inválido.',400);const table=inviteTable(code),{items}=await db.list<Record<string,unknown>>(table,{limit:1}),ref=items[0];if(!ref)return error('Código de acesso inválido ou já utilizado.',404);const projectId=String(ref.projectId||''),memberId=String(ref.projectMemberId||'');const [member]=await db.get<Member>(membersTable(projectId),[memberId]);if(!member||member.joinCode!==code)return error('Convite não encontrado.',404);if(member.status==='revoked')return error('Este convite foi revogado pelo administrador.',403);if(member.userId&&member.userId!==ctx.user!.userId)return error('Este convite já foi utilizado.',409);const oldEmail=member.email,email=norm(ctx.user!.email),stamp=now(),next:Member={...member,email,userId:ctx.user!.userId,name:ctx.user!.name||member.name,joinCode:undefined,claimedAt:stamp,updatedAt:stamp};await db.update(membersTable(projectId),[{id:memberId,record:next as unknown as Record<string,unknown>}]);const oldAccess=await findAccess(oldEmail),oldIds=oldAccess.filter(a=>a.projectId===projectId).map(a=>a.id);if(oldIds.length)await db.delete(accessTable(oldEmail),oldIds);const actual=await findAccess(email),same=actual.find(a=>a.projectId===projectId),accessRecord={...next,projectMemberId:memberId} as unknown as Record<string,unknown>;if(same)await db.update(accessTable(email),[{id:same.id,record:accessRecord}]);else await db.add(accessTable(email),[accessRecord]);await db.delete(table,[ref.id]);await audit(next,ctx.user!,'access_code_claimed',{role:next.role,employeeId:next.employeeId});return json({role:next.role,membership:{...next,id:memberId}})}],
+  // P1: read-only previews for financial/material/document domains and guarded editing of RDO/checklists.
+  'GET /api/web/p1/overview':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    const project=await getProject(gate.member!.projectId);
+    const company=await getCompany(gate.member!.companyId);
+    if(!project||!company||project.companyId!==gate.member!.companyId)return error('Escopo operacional inválido.',403);
+    const state=await assembleState(gate.member!.projectId);
+    const topology=await getCompanyStorageTopology(gate.member!.companyId);
+    return json({
+      company:{id:gate.member!.companyId,name:String(company.name||'')},
+      project:{id:gate.member!.projectId,name:project.name},
+      topology:{mode:topology.mode},
+      items:p1Rows(asRecord(state?.desktopBridge)),
+      limitations:['Edição de RDO/checklists aplicada na fonte após sincronização.','Orçamento, medições, compras, estoque, contratos e documentos são somente leitura na Web P1 até possuírem comandos transacionais especializados.']
+    });
+  }],
+  'POST /api/web/p1/edit':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    let command:ReturnType<typeof assertP1Edit>;
+    try{command=assertP1Edit(ctx.body)}catch(cause){return error((cause as Error).message,400)}
+    const state=await assembleState(gate.member!.projectId);
+    const original=p1Rows(asRecord(state?.desktopBridge)).find(row=>
+      row.entity===command.entity&&row.localId===command.localId&&row.sourceDeviceId===command.sourceDeviceId);
+    if(!original)return error('Registro não encontrado na obra ou origem autorizada.',404);
+    try{
+      const saved=await updateMobileBridge(gate.member!.projectId,command,ctx.user!.userId);
+      await audit(gate.member!,ctx.user!,'web_p1_operation_edited',{entity:command.entity,localId:command.localId,sourceDeviceId:command.sourceDeviceId,changedFields:Object.keys(command.patch),revision:saved.revision});
+      return json({ok:true,item:saved.item,revision:saved.revision});
+    }catch(cause){return error((cause as Error).message||'Conflito de edição na origem.',409)}
+  }],
   // P0: leitura e edição apenas de projeções canônicas do Desktop, nunca uma tabela sombra.
   'GET /api/web/p0/overview':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');

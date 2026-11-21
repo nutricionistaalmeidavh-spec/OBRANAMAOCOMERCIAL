@@ -217,6 +217,15 @@ async function loadManagementOnly(b:Bootstrap){
     return;
   }
   setHeader('admin',true);
+  if(location.hash.startsWith('#gestao/operacao/p1')){
+    if(!b.access?.modules?.includes('obra360')){
+      root().innerHTML=messageCard('Módulo não liberado','A operação Web requer o módulo Obra360.');
+      return;
+    }
+    const {mountP1Management}=await import('./p1-management');
+    await mountP1Management(root(),()=>{history.replaceState(null,'','#gestao');void loadManagementOnly(b)});
+    return;
+  }
   if(location.hash.startsWith('#gestao/operacao')){
     if(!b.access?.modules?.includes('obra360')){
       root().innerHTML=messageCard('Módulo não liberado','A operação Web requer o módulo Obra360.');
@@ -240,6 +249,12 @@ async function loadManagementOnly(b:Bootstrap){
     action.style.cssText='display:block;width:calc(100% - 32px);max-width:600px;margin:18px auto';
     action.addEventListener('click',()=>{location.hash='#gestao/operacao';void loadManagementOnly(b)});
     root().prepend(action);
+    const actionP1=document.createElement('button');
+    actionP1.type='button';actionP1.className='btn';
+    actionP1.id='managementP1Entry';actionP1.textContent='RDO, vistorias, orçamento, medições, compras, estoque e documentos';
+    actionP1.style.cssText='display:block;width:calc(100% - 32px);max-width:600px;margin:8px auto';
+    actionP1.addEventListener('click',()=>{location.hash='#gestao/operacao/p1';void loadManagementOnly(b)});
+    action.insertAdjacentElement('afterend',actionP1);
   }
 }
 
