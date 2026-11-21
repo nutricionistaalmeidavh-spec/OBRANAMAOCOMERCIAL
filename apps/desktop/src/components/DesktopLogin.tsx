@@ -17,6 +17,8 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
   const [storagePending, setStoragePending] = useState<CompanyStorageRequirement|null>(storageRequired || null)
   const [serverAddress, setServerAddress] = useState('')
   const [manualAddress, setManualAddress] = useState(false)
+  const [transferPreview, setTransferPreview] = useState<{serverId:string;alreadyLocal:boolean;devices:Array<{id:string;name:string;email?:string}>}|null>(null)
+  const [transferConfirmed, setTransferConfirmed] = useState(false)
   const firstAccess = mode !== 'login'
 
   async function submit(event: FormEvent) {
@@ -58,6 +60,36 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
       setMessage(error instanceof Error ? error.message : 'Não foi possível conectar ao computador principal.')
     }
     finally { setBusy(false) }
+  }
+
+  async function reviewTransfer() {
+    setBusy(true); setMessage('')
+    try {
+      const preview = await window.fluxoDre.online.localTransferPreview()
+      setTransferPreview(preview)
+      setTransferConfirmed(false)
+    } catch (error) {
+      setTransferPreview(null)
+      setMessage(error instanceof Error ? error.message : 'Não foi possível verificar a transferência.')
+    } finally { setBusy(false) }
+  }
+
+  async function transferToLocal() {
+    if (!transferPreview || !transferConfirmed) return
+    setBusy(true); setMessage('')
+    try {
+      const result = await window.fluxoDre.online.transferToLocal({
+        confirmed: true,
+        expectedServerId: transferPreview.serverId,
+        otherDeviceIds: transferPreview.devices.map(device => device.id)
+      })
+      if (!result.linked) throw new Error('A alteração não foi confirmada. Verifique os computadores vinculados.')
+      setStoragePending(null); setTransferPreview(null); setTransferConfirmed(false); onLinked()
+    } catch (error) {
+      setTransferPreview(null)
+      setTransferConfirmed(false)
+      setMessage(error instanceof Error ? error.message : 'Não foi possível transferir o acesso. Tente novamente.')
+    } finally { setBusy(false) }
   }
 
   async function google() {
@@ -107,6 +139,31 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
             <Button type="button" variant="secondary" disabled={busy||!serverAddress.trim()} onClick={()=>void completeStorage()}>{busy ? 'Verificando...' : 'Verificar endereço'}</Button>
           </div>}
         </>}
+        {!remote && <div style={{ display:'grid', gap:10, borderTop:'1px solid #d6dce4', paddingTop:16 }}>
+          <strong>Este computador será usado sozinho?</strong>
+          <p style={{ margin:0 }}>Se você não utiliza mais o computador principal antigo, o administrador pode transferir o uso da empresa para este PC, sem precisar conectar à rede anterior.</p>
+          {!transferPreview
+            ? <Button type="button" variant="secondary" disabled={busy} onClick={()=>void reviewTransfer()}>
+                {busy ? 'Verificando...' : 'Transferir o uso para este computador'}
+              </Button>
+            : <div style={{ display:'grid', gap:10 }}>
+                {transferPreview.alreadyLocal
+                  ? <p>A empresa já foi alterada para uso individual. Conclua a configuração local deste computador.</p>
+                  : <p>Ao confirmar, os seguintes computadores perderão o acesso Desktop desta empresa: <strong>{transferPreview.devices.length || 'nenhum outro computador'}</strong>.</p>}
+                {transferPreview.devices.map(device => <div key={device.id} style={{ padding:10, background:'rgba(140,140,140,.08)', borderRadius:8 }}>
+                  <strong>{device.name}</strong>{device.email ? <small style={{ display:'block' }}>{device.email}</small> : null}
+                </div>)}
+                <p style={{ margin:0 }}><strong>Importante:</strong> os dados do computador/servidor antigo não são transferidos automaticamente. Eles permanecem na origem. Faça um backup no computador anterior e restaure-o aqui se precisar continuar com aqueles registros. Não haverá cópia silenciosa nem mistura de bancos.</p>
+                <label style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
+                  <input type="checkbox" checked={transferConfirmed} onChange={event=>setTransferConfirmed(event.target.checked)}/>
+                  <span>Confirmo que autorizo a transferência e entendo que os dados antigos precisam de backup e restauração separados.</span>
+                </label>
+                <Button type="button" disabled={busy||!transferConfirmed} onClick={()=>void transferToLocal()}>
+                  {busy ? 'Transferindo...' : 'Confirmar e usar somente este computador'}
+                </Button>
+                <Button type="button" variant="ghost" disabled={busy} onClick={()=>{setTransferPreview(null);setTransferConfirmed(false)}}>Cancelar transferência</Button>
+              </div>}
+        </div>}
       </div>
     </Card>
   }
