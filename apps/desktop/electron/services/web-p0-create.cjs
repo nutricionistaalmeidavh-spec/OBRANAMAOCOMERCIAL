@@ -7,7 +7,9 @@ const ALLOWED={
  subfrentes_obra:new Set(['nome','codigo','pavimento','escopo','ordem','status','observacoes','frente_id']),
  tarefas_obra:new Set(['titulo','descricao','responsavel','prazo','prioridade','status','frente_id']),
  etapas_obra:new Set(['nome','frente_id','ordem','status']),
- cronograma_etapas:new Set(['nome','frente_id','etapa_id','responsavel','previsto_inicio','previsto_fim','percentual_previsto','percentual_realizado','status','observacoes'])
+ cronograma_etapas:new Set(['nome','frente_id','etapa_id','responsavel','previsto_inicio','previsto_fim','percentual_previsto','percentual_realizado','status','observacoes']),
+ checklist_frente_itens:new Set(['frente_id','subfrente_id','descricao','tipo','status','responsavel','prazo','observacoes','pavimento']),
+ rdos:new Set(['data','clima','atividades','observacoes'])
 }
 class WebP0CommandError extends Error{
  constructor(message){super(message);this.name='WebP0CommandError';this.code='invalid_web_p0_command'}
@@ -44,12 +46,13 @@ function applyWebP0Create({database,scope,command}){
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(command?.id||'')))reject('ID do comando inválido.')
  if(String(command?.deviceId||'')!==String(scope.deviceId||''))reject('O comando não pertence ao Desktop autenticado.')
  const clean={}
+ if(['rdos','checklist_frente_itens'].includes(entity)&&action!=='create')reject('Este registro exige edição via fluxo Web com revisão canônica.')
  if(entity==='empresas'&&action!=='update')reject('Empresa vinculada à licença não pode ser criada/excluída via comando operacional.')
  if(action!=='delete'){
   for(const [key,value] of Object.entries(data)){
    if(!allowed.has(key))reject('Campo não permitido: '+key)
    if(action==='update'&&key==='cliente_id'&&value===null){clean[key]=null;continue}
-   if(['frente_id','cliente_id','etapa_id','ordem'].includes(key)){
+   if(['frente_id','cliente_id','etapa_id','subfrente_id','ordem'].includes(key)){
     if(!Number.isSafeInteger(value)||value<(key==='ordem'?0:1)||value>100000000)reject('Referência numérica inválida.')
     clean[key]=value;continue
    }
@@ -57,12 +60,13 @@ function applyWebP0Create({database,scope,command}){
     if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>100)reject('Percentual fora da faixa permitida.')
     clean[key]=value;continue
    }
-   if(typeof value!=='string'||value.length>(['nome','titulo'].includes(key)?250:['descricao','observacoes'].includes(key)?4000:255))reject('Campo inválido: '+key)
+   if(typeof value!=='string'||value.length>(['nome','titulo','descricao'].includes(key)?250:['atividades','observacoes'].includes(key)?4000:255))reject('Campo inválido: '+key)
    clean[key]=value.trim()
-   if(['prazo','data_inicio','previsao_termino','previsto_inicio','previsto_fim'].includes(key)&&clean[key]&&!validDate(clean[key]))reject('Data inválida.')
+   if(['prazo','data','data_inicio','previsao_termino','previsto_inicio','previsto_fim'].includes(key)&&clean[key]&&!validDate(clean[key]))reject('Data inválida.')
   }
   if(!Object.keys(clean).length)reject('Informe campos para alterar.')
-  if(action==='create'&&!String(clean[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':'nome']||'').trim())reject('Informe nome ou título.')
+  if(action==='create'&&!String(clean[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':entity==='checklist_frente_itens'?'descricao':entity==='rdos'?'data':'nome']||'').trim())reject('Informe nome, descrição ou data.')
+  if(action==='create'&&entity==='checklist_frente_itens'&&!Number.isSafeInteger(clean.frente_id))reject('Checklist precisa de etapa válida.')
   if(action==='update'&&['nome','razao_social','titulo'].some(k=>Object.hasOwn(clean,k)&&!clean[k]))reject('Nome ou título não pode ficar vazio.')
   if(action==='update'&&(!Number.isSafeInteger(command.localId)||command.localId<1||!(/^[a-f0-9]{64}$/i.test(String(command.expectedFingerprint||'')))))reject('Edição exige ID e versão canônica.')
   if(action==='create'&&entity==='subfrentes_obra'&&!Number.isSafeInteger(clean.frente_id))reject('Informe a etapa da subetapa.')
@@ -105,6 +109,11 @@ function applyWebP0Create({database,scope,command}){
     const stage=database.get('frentes_obra',clean.frente_id)
     if(!stage||stage.deleted_at||Number(stage.obra_id)!==obraId)reject('Etapa vinculada pertence a outra obra.')
    }
+   if(clean.subfrente_id!=null){
+    const sub=database.get('subfrentes_obra',clean.subfrente_id)
+    if(!sub||sub.deleted_at||Number(sub.obra_id)!==obraId||Number(sub.frente_id)!==Number(clean.frente_id))reject('Subetapa não corresponde à etapa ou obra.')
+   }
+   if(entity==='rdos'&&db.prepare('SELECT id FROM rdos WHERE obra_id=? AND data=? AND deleted_at IS NULL LIMIT 1').get(obraId,clean.data))reject('Já existe RDO nesta data para a obra.')
    if(clean.etapa_id!=null){
     const plan=database.get('etapas_obra',clean.etapa_id)
     if(!plan||plan.deleted_at||Number(plan.obra_id)!==obraId)reject('Etapa do planejamento pertence a outra obra.')

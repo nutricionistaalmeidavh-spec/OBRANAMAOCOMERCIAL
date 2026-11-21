@@ -7,6 +7,9 @@ type Row={entity:Entity;localId:number;sourceDeviceId:string;revision:number;des
 type Overview={
   company:{id:string;name:string};project:{id:string;name:string};
   topology:{mode:string};items:Row[];limitations:string[];
+  sources?:Array<{deviceId:string;name:string}>;
+  stages?:Array<{entity:'frentes_obra'|'subfrentes_obra';localId:number;sourceDeviceId:string;name:string;frenteId?:number}>;
+  commands?:Array<{id:string;entity:string;status:string;error?:string;createdAt:string}>;
 };
 const groups:Record<Entity,{title:string;label:string;fields:string[];editable:string[];display:string[]}>={
   rdos:{title:'Diário de obra',label:'RDO',fields:['data','status','clima','atividades','observacoes'],editable:['clima','atividades','observacoes'],display:['data','status','clima','atividades','observacoes']},
@@ -31,8 +34,8 @@ const itemTitle=(row:Row)=>String(row.payload.titulo||row.payload.descricao||row
 const labelField=(field:string)=>labels[field]||field;
 
 export async function mountP1Management(root:HTMLElement,onBack:()=>void){
-  let overview:Overview|null=null,active:Entity='rdos',editing=-1,expanded=-1,message='',busy=false;
-  const load=async()=>{const result=await api.get<Overview>('/api/web/p1/overview');overview=result.data;editing=-1;expanded=-1;};
+  let overview:Overview|null=null,active:Entity='rdos',editing=-1,expanded=-1,message='',busy=false,creating=false,selectedSource='',createNonce='';
+  const load=async()=>{const result=await api.get<Overview>('/api/web/p1/overview');overview=result.data;editing=-1;expanded=-1;if(!overview.sources?.some(x=>x.deviceId===selectedSource))selectedSource=overview.sources?.[0]?.deviceId||'';};
   const draw=()=>{
     if(!overview)return;
     const view=overview,entries=view.items.filter(row=>row.entity===active),section=groups[active],edit=editing>=0?entries[editing]:null;
@@ -54,25 +57,67 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
       if(field==='observacoes'||field==='atividades'||field==='descricao')return '<label class="p0-field"><span>'+title+'</span><textarea name="'+field+'" maxlength="'+(field==='descricao'?250:4000)+'">'+safe+'</textarea></label>';
       return '<label class="p0-field"><span>'+title+'</span><input name="'+field+'" value="'+safe+'" maxlength="250"'+(field==='prazo'?' type="date"':'')+'></label>';
     }).join(''):'';
+    const canCreate=(active==='rdos'||active==='checklist_frente_itens')&&!!view.sources?.length;
+    const sources=(view.sources||[]).map(source=>'<option value="'+escapeHtml(source.deviceId)+'"'+(selectedSource===source.deviceId?' selected':'')+'>'+escapeHtml(source.name)+'</option>').join('');
+    const stages=(view.stages||[]).filter(x=>x.entity==='frentes_obra'&&x.sourceDeviceId===selectedSource);
+    const stageSelect=stages.map(x=>'<option value="'+x.localId+'">'+escapeHtml(x.name)+'</option>').join('');
+    const createInputs=active==='rdos'
+      ?'<label class="p0-field"><span>Data do RDO</span><input name="data" type="date" required></label><label class="p0-field"><span>Clima</span><input name="clima" maxlength="250"></label><label class="p0-field"><span>Atividades</span><textarea name="atividades" maxlength="4000"></textarea></label><label class="p0-field"><span>Observações</span><textarea name="observacoes" maxlength="4000"></textarea></label>'
+      :'<label class="p0-field"><span>Etapa da obra</span><select name="frente_id" required>'+stageSelect+'</select></label>'+
+        '<label class="p0-field"><span>Descrição da vistoria</span><input name="descricao" maxlength="250" required></label>'+
+        '<label class="p0-field"><span>Responsável</span><input name="responsavel" maxlength="250"></label>'+
+        '<label class="p0-field"><span>Prazo</span><input name="prazo" type="date"></label>'+
+        '<label class="p0-field"><span>Observações</span><textarea name="observacoes" maxlength="4000"></textarea></label>';
+    const createForm=creating&&canCreate?'<form id="p1CreateForm" class="p0-editor"><h3>Novo '+escapeHtml(section.label)+'</h3><p>Solicitação idempotente. O registro só aparecerá após confirmação do Desktop ou servidor autorizado.</p>'+
+      '<div class="p0-form-grid"><label class="p0-field"><span>Fonte operacional</span><select name="sourceDeviceId" id="p1Source">'+sources+'</select></label>'+createInputs+'</div>'+
+      '<div class="p0-actions"><button id="p1CancelCreate" type="button" class="p0-light">Cancelar</button><button type="submit" class="p0-primary">Solicitar criação</button></div></form>':'';
+    const pending=(view.commands||[]).filter(cmd=>['rdos','checklist_frente_itens'].includes(cmd.entity)).slice(0,10);
+    const commandView=pending.length?'<div class="p0-editor"><h3>Solicitações recentes</h3>'+pending.map(cmd=>
+      '<p>'+escapeHtml(cmd.entity==='rdos'?'RDO':'Checklist')+': '+escapeHtml(cmd.status==='pending'?'Aguardando sincronização':cmd.status==='applied'?'Confirmado':'Falha: '+String(cmd.error||'Revisar registro'))+'</p>').join('')+'</div>':'';
     root.innerHTML='<section class="p0-layout p1-layout"><div class="p0-heading"><div><button type="button" class="p0-back" id="p1Back">Voltar à gestão</button><h1>Operação da obra · P1</h1><p>RDO, vistorias, orçamento, medições, compras, estoque, contratos e documentos no mesmo projeto operacional.</p></div><button type="button" id="p1Refresh" class="p0-light">Atualizar</button></div>'+
       '<div class="p0-context"><div><small>Empresa</small><strong>'+escapeHtml(view.company.name)+'</strong></div><div><small>Obra</small><strong>'+escapeHtml(view.project.name)+'</strong></div></div>'+
       '<div class="p0-notice"><strong>Dados canônicos · sem cópia operacional</strong><p>As informações são projeções sincronizadas do Desktop/servidor próprio. RDO e checklist permitem edição restrita, aplicada na origem após sincronização. Lançamentos de orçamento, medição, compra, estoque, contratos e arquivos continuam somente leitura aqui para preservar regras financeiras, documentos e movimentações.</p></div>'+
       '<div class="p0-message" role="status" aria-live="polite">'+escapeHtml(message)+'</div>'+
       '<nav class="p0-tabs" aria-label="Módulos operacionais P1">'+navigation+'</nav>'+
-      '<div class="p0-section-title"><h2>'+escapeHtml(section.title)+'</h2><small>'+entries.length+' registro(s) sincronizados</small></div>'+
+      '<div class="p0-section-title"><h2>'+escapeHtml(section.title)+'</h2><small>'+entries.length+' registro(s) sincronizados</small>'+(canCreate?'<button type="button" id="p1Create" class="p0-primary">Novo '+escapeHtml(section.label)+'</button>':'')+'</div>'+
       (!section.editable.length?'<p class="p1-readonly">Este módulo está em modo somente leitura. Alterações devem ser feitas pelo fluxo canônico do Desktop/servidor até a liberação das operações transacionais Web.</p>':'')+
-      '<div class="p0-list">'+rows+'</div>'+
+      '<div class="p0-list">'+rows+'</div>'+createForm+commandView+
       (edit?'<form class="p0-editor" id="p1EditForm"><h3>Editar '+escapeHtml(section.label)+'</h3><p>Proteção por revisão do Desktop e da Web: alterações concorrentes exigem recarregar os dados.</p><div class="p0-form-grid">'+editFields+'</div><div class="p0-actions"><button type="button" id="p1Cancel" class="p0-light">Cancelar</button><button type="submit" class="p0-primary"'+(busy?' disabled':'')+'>Salvar alteração</button></div></form>':'')+
       '</section>';
     root.querySelector<HTMLButtonElement>('#p1Back')?.addEventListener('click',onBack);
     root.querySelector<HTMLButtonElement>('#p1Refresh')?.addEventListener('click',()=>void refresh());
-    root.querySelectorAll<HTMLButtonElement>('[data-p1-tab]').forEach(button=>button.addEventListener('click',()=>{active=button.dataset.p1Tab as Entity;editing=-1;expanded=-1;message='';draw()}));
+    root.querySelectorAll<HTMLButtonElement>('[data-p1-tab]').forEach(button=>button.addEventListener('click',()=>{active=button.dataset.p1Tab as Entity;editing=-1;expanded=-1;creating=false;createNonce='';message='';draw()}));
     root.querySelectorAll<HTMLButtonElement>('[data-p1-detail]').forEach(button=>button.addEventListener('click',()=>{expanded=expanded===Number(button.dataset.p1Detail)?-1:Number(button.dataset.p1Detail);draw()}));
     root.querySelectorAll<HTMLButtonElement>('[data-p1-edit]').forEach(button=>button.addEventListener('click',()=>{editing=Number(button.dataset.p1Edit);expanded=editing;message='';draw();root.querySelector('#p1EditForm')?.scrollIntoView?.({block:'nearest'})}));
     root.querySelector<HTMLButtonElement>('#p1Cancel')?.addEventListener('click',()=>{editing=-1;draw()});
+    root.querySelector<HTMLButtonElement>('#p1Create')?.addEventListener('click',()=>{creating=true;editing=-1;createNonce='';draw()});
+    root.querySelector<HTMLButtonElement>('#p1CancelCreate')?.addEventListener('click',()=>{creating=false;createNonce='';draw()});
+    root.querySelector<HTMLSelectElement>('#p1Source')?.addEventListener('change',event=>{
+      selectedSource=(event.target as HTMLSelectElement).value;createNonce='';draw();
+    });
+    root.querySelector<HTMLFormElement>('#p1CreateForm')?.addEventListener('submit',event=>{event.preventDefault();void submitCreate()});
     root.querySelector<HTMLFormElement>('#p1EditForm')?.addEventListener('submit',event=>{event.preventDefault();if(edit)void submit(edit)});
   };
   const refresh=async()=>{if(busy)return;try{await load();message='';draw()}catch(e){message=errorText(e);const area=root.querySelector('.p0-message');if(area)area.textContent=message}};
+  const submitCreate=async()=>{
+    if(busy||!overview||!creating||!selectedSource||!['rdos','checklist_frente_itens'].includes(active))return;
+    const form=root.querySelector<HTMLFormElement>('#p1CreateForm');if(!form)return;
+    const raw=new FormData(form),data:Record<string,unknown>={};
+    for(const [key,value] of raw.entries()){
+      if(key==='sourceDeviceId'||!String(value).trim())continue;
+      data[key]=key==='frente_id'?Number(value):String(value).trim();
+    }
+    if(active==='checklist_frente_itens'&&!overview.stages?.some(stage=>stage.entity==='frentes_obra'&&stage.sourceDeviceId===selectedSource&&stage.localId===data.frente_id)){
+      message='Selecione uma etapa válida para o checklist.';draw();return;
+    }
+    if(!createNonce)createNonce=crypto.randomUUID();
+    busy=true;const button=form.querySelector<HTMLButtonElement>('button[type="submit"]');if(button)button.disabled=true;
+    try{
+      await api.post('/api/web/p0/create',{commandId:createNonce,entity:active,sourceDeviceId:selectedSource,data});
+      creating=false;createNonce='';await load();message='Solicitação registrada. Aguardando confirmação da fonte operacional.';draw();
+    }catch(e){message=errorText(e);const status=root.querySelector('.p0-message');if(status)status.textContent=message;if(button)button.disabled=false}
+    finally{busy=false}
+  };
   const submit=async(row:Row)=>{
     if(busy)return;
     const form=root.querySelector<HTMLFormElement>('#p1EditForm');if(!form)return;

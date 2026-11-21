@@ -446,6 +446,12 @@ export const handler=router({
       project:{id:gate.member!.projectId,name:project.name},
       topology:{mode:topology.mode},
       items:p1Rows(asRecord(state?.desktopBridge)),
+      sources:await p0CreateDevices(gate.member!.companyId,gate.member!.projectId),
+      stages:bridgeRows(asRecord(state?.desktopBridge)).filter(row=>row.entity==='frentes_obra'||row.entity==='subfrentes_obra')
+        .map(row=>({entity:row.entity,localId:row.localId,sourceDeviceId:row.sourceDeviceId,name:String(row.payload.nome||''),
+          ... (row.entity==='subfrentes_obra'?{frenteId:Number(row.payload.frente_id||0)}:{})})),
+      commands:(await listWebP0Commands(gate.member!.projectId,ctx.user!.userId))
+        .filter(command=>command.entity==='rdos'||command.entity==='checklist_frente_itens').slice(0,20),
       limitations:['Edição de RDO/checklists aplicada na fonte após sincronização.','Orçamento, medições, compras, estoque, contratos e documentos são somente leitura na Web P1 até possuírem comandos transacionais especializados.']
     });
   }],
@@ -545,6 +551,13 @@ export const handler=router({
     }
     const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
     if(!sources.some(s=>s.deviceId===command.sourceDeviceId))return error('O Desktop selecionado não está autorizado para esta obra.',403);
+    if(command.entity==='checklist_frente_itens'&&command.data.subfrente_id){
+      const state=await assembleState(gate.member!.projectId);
+      const sub=bridgeRows(asRecord(state?.desktopBridge)).find(row=>
+        row.entity==='subfrentes_obra'&&row.sourceDeviceId===command.sourceDeviceId&&
+        row.localId===command.data.subfrente_id&&Number(row.payload.frente_id)===Number(command.data.frente_id));
+      if(!sub)return error('Subetapa não sincronizada ou incompatível com a etapa selecionada.',409);
+    }
     if(command.data.frente_id||command.data.cliente_id){
       const state=await assembleState(gate.member!.projectId);
       const stages=bridgeRows(asRecord(state?.desktopBridge)).filter(x=>x.entity==='frentes_obra'&&x.sourceDeviceId===command.sourceDeviceId);

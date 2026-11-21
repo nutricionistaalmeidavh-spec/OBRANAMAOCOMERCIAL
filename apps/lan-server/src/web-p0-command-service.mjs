@@ -8,7 +8,9 @@ const FIELDS={
  subfrentes_obra:new Set(['nome','codigo','pavimento','escopo','ordem','status','observacoes','frente_id']),
  tarefas_obra:new Set(['titulo','descricao','responsavel','prazo','prioridade','status','frente_id']),
  etapas_obra:new Set(['nome','frente_id','ordem','status']),
- cronograma_etapas:new Set(['nome','frente_id','etapa_id','responsavel','previsto_inicio','previsto_fim','percentual_previsto','percentual_realizado','status','observacoes'])
+ cronograma_etapas:new Set(['nome','frente_id','etapa_id','responsavel','previsto_inicio','previsto_fim','percentual_previsto','percentual_realizado','status','observacoes']),
+ checklist_frente_itens:new Set(['frente_id','subfrente_id','descricao','tipo','status','responsavel','prazo','observacoes','pavimento']),
+ rdos:new Set(['data','clima','atividades','observacoes'])
 };
 export class WebP0CommandError extends Error{
  constructor(message){super(message);this.name='WebP0CommandError';this.code='invalid_web_p0_command'}
@@ -40,6 +42,7 @@ function validateCommand(command){
  const entity=String(command?.entity||''),action=String(command?.action||'create'),fields=FIELDS[entity];
  if(!fields||!['create','update','delete'].includes(action)||!command||typeof command!=='object')reject('Cadastro ou operação não permitida.');
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(command.id||'')))reject('Comando sem UUID válido.');
+ if(['rdos','checklist_frente_itens'].includes(entity)&&action!=='create')reject('Use a edição canônica com revisões para este registro.');
  if(entity==='empresas'&&action!=='update')reject('Nova empresa requer tenant e licença independentes.');
  const data=command.data||{};
  if(!data||typeof data!=='object'||Array.isArray(data))reject('Dados inválidos.');
@@ -51,7 +54,7 @@ function validateCommand(command){
   for(const [key,v] of Object.entries(data)){
    if(!fields.has(key))reject('Campo não permitido: '+key);
    if(action==='update'&&key==='cliente_id'&&v===null){clean[key]=null;continue;}
-   if(['cliente_id','frente_id','etapa_id','ordem'].includes(key)){
+   if(['cliente_id','frente_id','etapa_id','subfrente_id','ordem'].includes(key)){
     if(!Number.isSafeInteger(v)||v<(key==='ordem'?0:1)||v>100000000)reject('Referência inválida.');
     clean[key]=v;continue;
    }
@@ -59,12 +62,13 @@ function validateCommand(command){
     if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>100)reject('Percentual fora da faixa permitida.');
     clean[key]=v;continue;
    }
-   if(typeof v!=='string'||v.length>(['nome','titulo'].includes(key)?250:['descricao','observacoes'].includes(key)?4000:255))reject('Campo inválido: '+key);
+   if(typeof v!=='string'||v.length>(['nome','titulo','descricao'].includes(key)?250:['atividades','observacoes'].includes(key)?4000:255))reject('Campo inválido: '+key);
    clean[key]=v.trim();
-   if(['prazo','data_inicio','previsao_termino','previsto_inicio','previsto_fim'].includes(key)&&clean[key]&&!validDate(clean[key]))reject('Data inválida.');
+   if(['prazo','data','data_inicio','previsao_termino','previsto_inicio','previsto_fim'].includes(key)&&clean[key]&&!validDate(clean[key]))reject('Data inválida.');
   }
   if(!Object.keys(clean).length)reject('Informe campos para salvar.');
-  if(action==='create'&&!String(clean[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':'nome']||'').trim())reject('Informe nome/título.');
+  if(action==='create'&&!String(clean[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':entity==='checklist_frente_itens'?'descricao':entity==='rdos'?'data':'nome']||'').trim())reject('Informe nome/descrição/data.');
+  if(action==='create'&&entity==='checklist_frente_itens'&&!Number.isSafeInteger(clean.frente_id))reject('Checklist exige etapa da obra.');
   if(action==='update'&&['nome','razao_social','titulo'].some(k=>Object.hasOwn(clean,k)&&!clean[k]))reject('Nome ou título não pode ficar vazio.');
   if(action==='create'&&entity==='subfrentes_obra'&&!Number.isSafeInteger(clean.frente_id))reject('Informe etapa.');
  }
@@ -110,6 +114,8 @@ export function applyLanWebP0Command({repository,versionedRepository,scope,comma
   }else{
    if(clean.frente_id!=null){const stage=repository.get('frentes_obra',clean.frente_id);if(!stage||stage.deleted_at||Number(stage.obra_id)!==workId)reject('Etapa pertence a outra obra.');}
    if(clean.cliente_id!=null){const client=repository.get('clientes',clean.cliente_id);if(!client||client.deleted_at||Number(client.empresa_id)!==companyId)reject('Cliente pertence a outra empresa.');}
+   if(clean.subfrente_id!=null){const sub=repository.get('subfrentes_obra',clean.subfrente_id);if(!sub||sub.deleted_at||Number(sub.obra_id)!==workId||Number(sub.frente_id)!==Number(clean.frente_id))reject('Subetapa não corresponde à etapa/obra.');}
+   if(entity==='rdos'&&db.prepare('SELECT id FROM rdos WHERE obra_id=? AND data=? AND deleted_at IS NULL LIMIT 1').get(workId,clean.data))reject('Já existe RDO nesta data da obra.');
    if(clean.etapa_id!=null){const plan=repository.get('etapas_obra',clean.etapa_id);if(!plan||plan.deleted_at||Number(plan.obra_id)!==workId)reject('Etapa do planejamento pertence a outra obra.');}
    const data=entity==='clientes'||entity==='obras'?{...clean,empresa_id:companyId}:{...clean,obra_id:workId};
    const saved=repository.save(entity,data);
