@@ -153,6 +153,8 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     start: (activationCode) => call('online:start', { activationCode }),
     status: () => call('online:status'),
     completeStorage: (address = '') => call('online:complete-storage', { address }),
+    localTransferPreview: () => call('online:local-transfer-preview'),
+    transferToLocal: (input) => call('online:local-transfer', input),
     session: () => call('online:session'),
     setStorageTopology: (input) => call('online:set-storage-topology', input),
     membersList: () => call('online:members-list'),

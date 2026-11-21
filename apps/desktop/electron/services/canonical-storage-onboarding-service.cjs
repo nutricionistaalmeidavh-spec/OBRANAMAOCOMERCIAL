@@ -24,6 +24,56 @@ class CanonicalStorageOnboardingService {
     }
   }
 
+  async prepareLocalTransfer() {
+    const required = this.required()
+    if (!required?.serverId || required.mode !== 'lan-server') {
+      throw new Error('Esta operação não está vinculada a um computador principal local.')
+    }
+    const session = await this.online.session()
+    if (session?.role !== 'admin') {
+      throw new Error('Somente o administrador da empresa pode transferir o computador principal.')
+    }
+    if (!session?.device?.id) throw new Error('Não foi possível identificar este computador autorizado.')
+    const topology = session.storageTopology
+    // A prior attempt may have updated Cloudflare but failed configuring local storage.
+    // Recovery is idempotent and must never re-enable an old server silently.
+    if (topology?.mode === 'local-single') {
+      return { serverId: String(required.serverId), devices: [], alreadyLocal: true }
+    }
+    if (topology?.mode !== 'lan-server' || String(topology.serverId || '') !== String(required.serverId)) {
+      throw new Error('A topologia da empresa foi alterada. Verifique a configuração atual antes de prosseguir.')
+    }
+    const response = await this.online.companyDevices()
+    const devices = (Array.isArray(response?.devices) ? response.devices : [])
+      .filter(device => device?.status === 'active' && String(device.id || '') !== String(session.device.id))
+      .map(device => ({ id: String(device.id), name: String(device.name || 'Computador'), email: String(device.email || '') }))
+      .sort((a, b) => a.id.localeCompare(b.id))
+    return { serverId: String(required.serverId), devices, alreadyLocal: false }
+  }
+
+  async transferToLocal({ confirmed = false, expectedServerId = '', otherDeviceIds = [] } = {}) {
+    if (confirmed !== true) throw new Error('Confirme a transferência e o aviso sobre os dados do computador antigo.')
+    const preview = await this.prepareLocalTransfer()
+    if (String(expectedServerId) !== preview.serverId) {
+      throw new Error('A identificação do servidor foi alterada. Confira novamente antes de transferir.')
+    }
+    const expected = preview.devices.map(device => device.id).sort()
+    const provided = Array.isArray(otherDeviceIds) ? otherDeviceIds.map(String).sort() : []
+    if (expected.length !== provided.length || expected.some((id, index) => id !== provided[index])) {
+      throw new Error('A lista de computadores ativos mudou. Revise os dispositivos antes de transferir.')
+    }
+    if (!preview.alreadyLocal) {
+      for (const device of preview.devices) await this.online.revokeCompanyDevice(device.id)
+      const result = await this.online.setStorageTopology({ mode: 'local-single' })
+      if (result?.storageTopology?.mode !== 'local-single') {
+        throw new Error('O servidor não confirmou a alteração para uso individual.')
+      }
+    }
+    // Do not clear the required binding here: the Electron main process must
+    // configure storage locally first. A failure keeps the login blocked.
+    return { serverId: preview.serverId, storageStatus: 'local-transfer-authorized' }
+  }
+
   async complete({ address = '' } = {}) {
     const required = this.required()
     if (!required?.serverId) return { linked: true, storageStatus: 'not-required', storageRequired: null }

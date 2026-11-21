@@ -112,6 +112,8 @@ interface Window { fluxoDre: {
     start(activationCode?:string):Promise<{approvalUrl:string;expiresAt:string}>;
     status():Promise<{status:'idle'|'pending'|'approved';linked:boolean;expiresAt?:string;deviceId?:string;storageRequired?:CompanyStorageRequirement|null;message?:string}>;
     completeStorage(address?:string):Promise<{linked:boolean;storageStatus:string;storageRequired?:CompanyStorageRequirement|null;message?:string}>;
+    localTransferPreview():Promise<{serverId:string;alreadyLocal:boolean;devices:Array<{id:string;name:string;email?:string}>}>;
+    transferToLocal(input:{confirmed:boolean;expectedServerId:string;otherDeviceIds:string[]}):Promise<{linked:boolean;storageStatus:string;storageRequired:CompanyStorageRequirement|null}>;
     setStorageTopology(input:{mode:'local-single'|'lan-server'|'remote';serverId?:string;validateOnly?:boolean}):Promise<any>;
     membersList():Promise<{members:Array<{id:string;email:string;name?:string;role:'admin'|'foreman'|'employee';employeeId?:string;userId?:string;joinCode?:string;status:'active'|'revoked';modules:string[];channels:string[];desktopStorage?:{mode:'lan-server'|'remote';serverId:string;autoEnroll?:boolean}|null;permissions?:Record<string,string[]>|null;effectivePermissions?:Record<string,string[]>;permissionsRevision?:string}>;companyAccess:{modules:string[];channels:string[]};storageTopology:{mode:'local-single'|'lan-server'|'remote';serverId?:string|null}}>;
     memberSave(input:{email:string;role:'admin'|'foreman'|'employee';employeeId?:string;modules?:string[];channels?:string[];permissions?:Record<string,string[]>}):Promise<any>;
