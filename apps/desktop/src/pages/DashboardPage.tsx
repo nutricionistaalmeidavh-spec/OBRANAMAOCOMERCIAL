@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { Card, Empty, ErrorState, Field, Kpi, Loading, PageHeader } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
 import { brl, competenceLabel, currentCompetence } from '../utils/format'
+import BankQuickSummary from './BankQuickSummary'
 
 export default function DashboardPage() {
   const [competencia, setCompetencia] = useState(currentCompetence())
   const { data, loading, error, reload } = useAsync(() => window.fluxoDre.relatorios.dashboard({ competencia }), [competencia])
   return <>
     <PageHeader title="Painel geral" description="Uma visão objetiva da operação, do caixa e das obras." actions={<Field label="Competência"><input type="month" value={competencia} onChange={(e) => setCompetencia(e.target.value)}/></Field>}/>
+    <BankQuickSummary/>
     {loading ? <Card><Loading/></Card> : error ? <Card><ErrorState error={error} retry={reload}/></Card> : data && <>
       <div className="kpi-grid">
         <Kpi label="Receitas" value={brl(data.receitas)} tone="positive" icon={<BanknoteArrowUp size={18}/>}/>

@@ -210,6 +210,39 @@ class LanDataClient {
     return this.request('POST', `/api/v1/finance/accounts/${Number(id)}/payment`, { body: { requestId, payment } })
   }
 
+  async bankList(payload) { return this.request('GET', '/api/v1/finance/bank-accounts', { query: payload }) }
+  async bankManualBalances(payload) { return this.request('GET', '/api/v1/finance/bank-balances', { query: payload }) }
+  async bankRecordBalance(payload) { return this.request('POST', '/api/v1/finance/bank-balances', { body: payload }) }
+  async bankSave(payload) {
+    return payload?.id
+      ? this.request('PATCH', '/api/v1/finance/bank-accounts/' + Number(payload.id), { body: payload })
+      : this.request('POST', '/api/v1/finance/bank-accounts', { body: payload })
+  }
+  async bankPreview(payload) { return this.request('POST', '/api/v1/finance/bank-imports/preview', { body: payload }) }
+  async bankConfirm(payload) { return this.request('POST', '/api/v1/finance/bank-imports/confirm', { body: payload }) }
+  async bankImports(payload) { return this.request('GET', '/api/v1/finance/bank-imports', { query: payload }) }
+  async bankTransactions(payload) { return this.request('GET', '/api/v1/finance/bank-transactions', { query: payload }) }
+
+  async bankSuggestions(payload) { return this.request('GET', '/api/v1/finance/bank-reconciliation/suggestions', { query: payload }) }
+  async bankReconcile(payload) { return this.request('POST', '/api/v1/finance/bank-reconciliation/confirm', { body: payload }) }
+  async bankReverse(payload) { return this.request('POST', '/api/v1/finance/bank-reconciliation/reverse', { body: payload }) }
+  async bankReconciliations(payload) { return this.request('GET', '/api/v1/finance/bank-reconciliation', { query: payload }) }
+  async bankCashFlow(payload) { return this.request('GET', '/api/v1/finance/cash-flow', { query: payload }) }
+
+  async bankWorks(payload) { return this.request('GET', '/api/v1/finance/works', { query: payload }) }
+  async bankPlannedAccounts(payload) { return this.request('GET', '/api/v1/finance/planned-banks', { query: payload }) }
+  async bankPlanAssignment(payload) { return this.request('POST', '/api/v1/finance/planned-banks', { body: payload }) }
+
+  async bankAudit(payload) { return this.request('GET', '/api/v1/finance/bank-period/audit', {query:payload}) }
+  async bankPeriodStatus(payload) { return this.request('GET', '/api/v1/finance/bank-period/status', {query:payload}) }
+  async bankPeriodEvents(payload) { return this.request('GET', '/api/v1/finance/bank-period/events', {query:payload}) }
+  async bankPeriodClose(payload) { return this.request('POST', '/api/v1/finance/bank-period/close', {body:payload}) }
+  async bankPeriodReopen(payload) { return this.request('POST', '/api/v1/finance/bank-period/reopen', {body:payload}) }
+  async bankSimulateCash(payload) { return this.request('POST', '/api/v1/finance/cash-simulate', {body:payload}) }
+  async bankCashReport(payload) { return this.request('GET', '/api/v1/finance/cash-report', {query:payload}) }
+  async bankCaptureForecast(payload) { return this.request('POST', '/api/v1/finance/forecast-snapshots', {body:payload}) }
+  async bankListForecasts(payload) { return this.request('GET', '/api/v1/finance/forecast-snapshots', {query:payload}) }
+
   async financeDre(filters = {}) {
     return this.request('GET', '/api/v1/finance/dre', { query: filters })
   }
