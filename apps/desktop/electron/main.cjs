@@ -478,6 +478,13 @@ function registerIpc() {
   ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
   ipcMain.handle('online:status', envelope(() => withSyncStopped(async () => completeCanonicalStorage(await services.online.status()))))
   ipcMain.handle('online:complete-storage', envelope((payload) => withSyncStopped(() => completeCanonicalStorage({ linked: false }, payload))))
+  ipcMain.handle('online:local-transfer-preview', envelope(() => services.canonicalStorage.prepareLocalTransfer()))
+  ipcMain.handle('online:local-transfer', envelope((payload) => withSyncStopped(async () => {
+    const result = await services.canonicalStorage.transferToLocal(payload)
+    await configureStorage({ operationalMode: 'local' })
+    services.online.clearRequiredStorage(result.serverId)
+    return { linked: true, storageStatus: 'local', storageRequired: null }
+  })))
   ipcMain.handle('online:session', envelope(() => services.online.session()))
   ipcMain.handle('online:set-storage-topology', envelope((payload) => services.online.setStorageTopology(payload)))
   ipcMain.handle('online:members-list', envelope(() => services.online.membersList()))
