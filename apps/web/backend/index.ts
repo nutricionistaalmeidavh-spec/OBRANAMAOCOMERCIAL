@@ -451,7 +451,7 @@ export const handler=router({
         .map(row=>({entity:row.entity,localId:row.localId,sourceDeviceId:row.sourceDeviceId,name:String(row.payload.nome||''),
           ... (row.entity==='subfrentes_obra'?{frenteId:Number(row.payload.frente_id||0)}:{})})),
       commands:(await listWebP0Commands(gate.member!.projectId,ctx.user!.userId))
-        .filter(command=>command.entity==='rdos'||command.entity==='checklist_frente_itens').slice(0,20),
+        .filter(command=>['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(command.entity)).slice(0,20),
       limitations:['Edição de RDO/checklists aplicada na fonte após sincronização.','Orçamento, medições, compras, estoque, contratos e documentos são somente leitura na Web P1 até possuírem comandos transacionais especializados.']
     });
   }],

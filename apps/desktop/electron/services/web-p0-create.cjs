@@ -9,7 +9,9 @@ const ALLOWED={
  etapas_obra:new Set(['nome','frente_id','ordem','status']),
  cronograma_etapas:new Set(['nome','frente_id','etapa_id','responsavel','previsto_inicio','previsto_fim','percentual_previsto','percentual_realizado','status','observacoes']),
  checklist_frente_itens:new Set(['frente_id','subfrente_id','descricao','tipo','status','responsavel','prazo','observacoes','pavimento']),
- rdos:new Set(['data','clima','atividades','observacoes'])
+ rdos:new Set(['data','clima','atividades','observacoes']),
+ itens_orcamentarios:new Set(['descricao','codigo','unidade','tipo','quantidade','valor_unitario_centavos','frente_id','etapa_id','observacoes']),
+ solicitacoes_compra:new Set(['descricao','solicitante','prazo','prioridade','observacoes','frente_id','etapa_id'])
 }
 class WebP0CommandError extends Error{
  constructor(message){super(message);this.name='WebP0CommandError';this.code='invalid_web_p0_command'}
@@ -46,7 +48,7 @@ function applyWebP0Create({database,scope,command}){
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(command?.id||'')))reject('ID do comando inválido.')
  if(String(command?.deviceId||'')!==String(scope.deviceId||''))reject('O comando não pertence ao Desktop autenticado.')
  const clean={}
- if(['rdos','checklist_frente_itens'].includes(entity)&&action!=='create')reject('Este registro exige edição via fluxo Web com revisão canônica.')
+ if(['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(entity)&&action!=='create')reject('Este registro exige edição via fluxo Web com revisão canônica.')
  if(entity==='empresas'&&action!=='update')reject('Empresa vinculada à licença não pode ser criada/excluída via comando operacional.')
  if(action!=='delete'){
   for(const [key,value] of Object.entries(data)){
@@ -56,6 +58,9 @@ function applyWebP0Create({database,scope,command}){
     if(!Number.isSafeInteger(value)||value<(key==='ordem'?0:1)||value>100000000)reject('Referência numérica inválida.')
     clean[key]=value;continue
    }
+   if(key==='quantidade'){if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>100000000)reject('Quantidade inválida.');clean[key]=value;continue}
+   if(key==='valor_unitario_centavos'){if(typeof value!=='number'||!Number.isSafeInteger(value)||value<0||value>100000000000)reject('Valor unitário inválido.');clean[key]=value;continue}
+   if(key==='tipo'&&entity==='itens_orcamentarios'&&!['material','mao_de_obra','equipamento','servico'].includes(value))reject('Tipo orçamentário inválido.')
    if(['percentual_previsto','percentual_realizado'].includes(key)){
     if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>100)reject('Percentual fora da faixa permitida.')
     clean[key]=value;continue
@@ -65,8 +70,10 @@ function applyWebP0Create({database,scope,command}){
    if(['prazo','data','data_inicio','previsao_termino','previsto_inicio','previsto_fim'].includes(key)&&clean[key]&&!validDate(clean[key]))reject('Data inválida.')
   }
   if(!Object.keys(clean).length)reject('Informe campos para alterar.')
-  if(action==='create'&&!String(clean[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':entity==='checklist_frente_itens'?'descricao':entity==='rdos'?'data':'nome']||'').trim())reject('Informe nome, descrição ou data.')
+  if(action==='create'&&!String(clean[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':['checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(entity)?'descricao':entity==='rdos'?'data':'nome']||'').trim())reject('Informe nome, descrição ou data.')
   if(action==='create'&&entity==='checklist_frente_itens'&&!Number.isSafeInteger(clean.frente_id))reject('Checklist precisa de etapa válida.')
+  if(action==='create'&&entity==='itens_orcamentarios'&&(!clean.unidade||!clean.tipo||typeof clean.quantidade!=='number'||typeof clean.valor_unitario_centavos!=='number'))reject('Unidade/tipo/quantidade/valor são obrigatórios no orçamento.')
+  if(action==='create'&&entity==='solicitacoes_compra'&&!clean.solicitante)reject('Solicitante obrigatório.')
   if(action==='update'&&['nome','razao_social','titulo'].some(k=>Object.hasOwn(clean,k)&&!clean[k]))reject('Nome ou título não pode ficar vazio.')
   if(action==='update'&&(!Number.isSafeInteger(command.localId)||command.localId<1||!(/^[a-f0-9]{64}$/i.test(String(command.expectedFingerprint||'')))))reject('Edição exige ID e versão canônica.')
   if(action==='create'&&entity==='subfrentes_obra'&&!Number.isSafeInteger(clean.frente_id))reject('Informe a etapa da subetapa.')

@@ -2,7 +2,7 @@
  * Commands posted by browser are queued, never written to a parallel operational table.
  * Authority and tenant identity come exclusively from the authenticated session/device.
  */
-export type P0CreateEntity='empresas'|'clientes'|'obras'|'frentes_obra'|'subfrentes_obra'|'tarefas_obra'|'etapas_obra'|'cronograma_etapas'|'checklist_frente_itens'|'rdos';
+export type P0CreateEntity='empresas'|'clientes'|'obras'|'frentes_obra'|'subfrentes_obra'|'tarefas_obra'|'etapas_obra'|'cronograma_etapas'|'checklist_frente_itens'|'rdos'|'itens_orcamentarios'|'solicitacoes_compra';
 export type P0CommandAction='create'|'update'|'delete';
 export type P0CreateCommand={
   commandId:string;sourceDeviceId:string;entity:P0CreateEntity;action:P0CommandAction;
@@ -18,7 +18,9 @@ export const P0_CREATE_FIELDS={
   etapas_obra:['nome','frente_id','ordem','status'],
   cronograma_etapas:['nome','frente_id','etapa_id','responsavel','previsto_inicio','previsto_fim','percentual_previsto','percentual_realizado','status','observacoes'],
   checklist_frente_itens:['frente_id','subfrente_id','descricao','tipo','status','responsavel','prazo','observacoes','pavimento'],
-  rdos:['data','clima','atividades','observacoes']
+  rdos:['data','clima','atividades','observacoes'],
+  itens_orcamentarios:['descricao','codigo','unidade','tipo','quantidade','valor_unitario_centavos','frente_id','etapa_id','observacoes'],
+  solicitacoes_compra:['descricao','solicitante','prazo','prioridade','observacoes','frente_id','etapa_id']
 } as const;
 const rec=(v:unknown):Record<string,unknown>=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:{};
 const validId=(v:unknown)=>typeof v==='number'&&Number.isSafeInteger(v)&&v>0;
@@ -34,7 +36,7 @@ export function assertP0Create(input:unknown):P0CreateCommand{
   if(!sourceDeviceId||sourceDeviceId.length>128||!/^[-\w]+$/.test(sourceDeviceId))throw new Error('Dispositivo operacional inválido.');
   if(!Object.prototype.hasOwnProperty.call(P0_CREATE_FIELDS,entity))throw new Error('Cadastro não habilitado para esta operação pelo Web.');
   if(!['create','update','delete'].includes(action))throw new Error('Operação não autorizada.');
-  if(['rdos','checklist_frente_itens'].includes(entity)&&action!=='create')throw new Error('Este módulo deve ser editado pelo fluxo Web com controle de revisões.');
+  if(['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(entity)&&action!=='create')throw new Error('Este módulo deve ser editado pelo fluxo Web com controle de revisões.');
   if(action==='create'&&entity==='empresas')throw new Error('Nova empresa exige tenant e licença próprios. Use o cadastro de empresas da administração.');
   if(action==='delete'&&entity==='empresas')throw new Error('Exclusão de empresa com tenant ativo exige desativação administrativa.');
   if(action==='delete'){
@@ -53,6 +55,16 @@ export function assertP0Create(input:unknown):P0CreateCommand{
       if(typeof value!=='number'||!Number.isSafeInteger(value)||value<(key==='ordem'?0:1)||value>100000000)throw new Error('Referência ou ordem inválida.');
       data[key]=value;continue;
     }
+    if(key==='quantidade'){
+      if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>100000000)throw new Error('Quantidade inválida.');
+      data[key]=value;continue;
+    }
+    if(key==='valor_unitario_centavos'){
+      if(typeof value!=='number'||!Number.isSafeInteger(value)||value<0||value>100000000000)throw new Error('Valor do orçamento inválido.');
+      data[key]=value;continue;
+    }
+    if(key==='tipo'&&entity==='itens_orcamentarios'&&!['material','mao_de_obra','equipamento','servico'].includes(String(value)))
+      throw new Error('Tipo de orçamento inválido.');
     if(['percentual_previsto','percentual_realizado'].includes(key)){
       if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>100)throw new Error('Percentual fora da faixa 0 a 100.');
       data[key]=value;continue;
@@ -64,8 +76,13 @@ export function assertP0Create(input:unknown):P0CreateCommand{
       throw new Error('Data inválida: '+key);
     data[key]=text;
   }
-  if(action==='create'&&!String(data[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':entity==='checklist_frente_itens'?'descricao':entity==='rdos'?'data':'nome']||''))throw new Error('Informe nome, descrição ou data.');
+  if(action==='create'&&!String(data[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':entity==='checklist_frente_itens'||entity==='itens_orcamentarios'||entity==='solicitacoes_compra'?'descricao':entity==='rdos'?'data':'nome']||''))throw new Error('Informe nome, descrição ou data.');
   if(action==='create'&&entity==='checklist_frente_itens'&&!validId(data.frente_id))throw new Error('Checklist exige etapa da obra.');
+  if(action==='create'&&entity==='itens_orcamentarios'&&
+    (!String(data.unidade||'').trim()||!['material','mao_de_obra','equipamento','servico'].includes(String(data.tipo))||
+      typeof data.quantidade!=='number'||typeof data.valor_unitario_centavos!=='number'))
+    throw new Error('Informe unidade, tipo, quantidade e valor do item orçamentário.');
+  if(action==='create'&&entity==='solicitacoes_compra'&&!String(data.solicitante||'').trim())throw new Error('Informe o solicitante da compra.');
   if(action==='update'&&['nome','razao_social','titulo'].some(key=>Object.prototype.hasOwnProperty.call(data,key)&&!String(data[key]||'')))throw new Error('Nome ou título não pode ficar vazio.');
   if(action==='create'&&entity==='subfrentes_obra'&&!validId(data.frente_id))throw new Error('Selecione a etapa da subetapa.');
   return{commandId,sourceDeviceId,entity,action,data,...(action==='update'?{localId:raw.localId as number,expectedFingerprint:(raw.expectedFingerprint as string).toLowerCase()}: {})};

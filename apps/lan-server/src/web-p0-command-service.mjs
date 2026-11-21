@@ -10,7 +10,9 @@ const FIELDS={
  etapas_obra:new Set(['nome','frente_id','ordem','status']),
  cronograma_etapas:new Set(['nome','frente_id','etapa_id','responsavel','previsto_inicio','previsto_fim','percentual_previsto','percentual_realizado','status','observacoes']),
  checklist_frente_itens:new Set(['frente_id','subfrente_id','descricao','tipo','status','responsavel','prazo','observacoes','pavimento']),
- rdos:new Set(['data','clima','atividades','observacoes'])
+ rdos:new Set(['data','clima','atividades','observacoes']),
+ itens_orcamentarios:new Set(['descricao','codigo','unidade','tipo','quantidade','valor_unitario_centavos','frente_id','etapa_id','observacoes']),
+ solicitacoes_compra:new Set(['descricao','solicitante','prazo','prioridade','observacoes','frente_id','etapa_id'])
 };
 export class WebP0CommandError extends Error{
  constructor(message){super(message);this.name='WebP0CommandError';this.code='invalid_web_p0_command'}
@@ -42,7 +44,7 @@ function validateCommand(command){
  const entity=String(command?.entity||''),action=String(command?.action||'create'),fields=FIELDS[entity];
  if(!fields||!['create','update','delete'].includes(action)||!command||typeof command!=='object')reject('Cadastro ou operação não permitida.');
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(command.id||'')))reject('Comando sem UUID válido.');
- if(['rdos','checklist_frente_itens'].includes(entity)&&action!=='create')reject('Use a edição canônica com revisões para este registro.');
+ if(['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(entity)&&action!=='create')reject('Use a edição canônica com revisões para este registro.');
  if(entity==='empresas'&&action!=='update')reject('Nova empresa requer tenant e licença independentes.');
  const data=command.data||{};
  if(!data||typeof data!=='object'||Array.isArray(data))reject('Dados inválidos.');
@@ -58,6 +60,9 @@ function validateCommand(command){
     if(!Number.isSafeInteger(v)||v<(key==='ordem'?0:1)||v>100000000)reject('Referência inválida.');
     clean[key]=v;continue;
    }
+   if(key==='quantidade'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>100000000)reject('Quantidade inválida.');clean[key]=v;continue;}
+   if(key==='valor_unitario_centavos'){if(typeof v!=='number'||!Number.isSafeInteger(v)||v<0||v>100000000000)reject('Valor unitário inválido.');clean[key]=v;continue;}
+   if(key==='tipo'&&entity==='itens_orcamentarios'&&!['material','mao_de_obra','equipamento','servico'].includes(v))reject('Tipo orçamentário inválido.');
    if(['percentual_previsto','percentual_realizado'].includes(key)){
     if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>100)reject('Percentual fora da faixa permitida.');
     clean[key]=v;continue;
@@ -67,8 +72,10 @@ function validateCommand(command){
    if(['prazo','data','data_inicio','previsao_termino','previsto_inicio','previsto_fim'].includes(key)&&clean[key]&&!validDate(clean[key]))reject('Data inválida.');
   }
   if(!Object.keys(clean).length)reject('Informe campos para salvar.');
-  if(action==='create'&&!String(clean[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':entity==='checklist_frente_itens'?'descricao':entity==='rdos'?'data':'nome']||'').trim())reject('Informe nome/descrição/data.');
+  if(action==='create'&&!String(clean[entity==='tarefas_obra'?'titulo':entity==='empresas'?'razao_social':['checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(entity)?'descricao':entity==='rdos'?'data':'nome']||'').trim())reject('Informe nome/descrição/data.');
   if(action==='create'&&entity==='checklist_frente_itens'&&!Number.isSafeInteger(clean.frente_id))reject('Checklist exige etapa da obra.');
+  if(action==='create'&&entity==='itens_orcamentarios'&&(!clean.unidade||!clean.tipo||typeof clean.quantidade!=='number'||typeof clean.valor_unitario_centavos!=='number'))reject('Orçamento exige unidade, tipo, quantidade e valor.');
+  if(action==='create'&&entity==='solicitacoes_compra'&&!clean.solicitante)reject('Solicitante obrigatório.');
   if(action==='update'&&['nome','razao_social','titulo'].some(k=>Object.hasOwn(clean,k)&&!clean[k]))reject('Nome ou título não pode ficar vazio.');
   if(action==='create'&&entity==='subfrentes_obra'&&!Number.isSafeInteger(clean.frente_id))reject('Informe etapa.');
  }

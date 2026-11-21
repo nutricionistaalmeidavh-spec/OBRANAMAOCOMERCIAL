@@ -57,12 +57,23 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
       if(field==='observacoes'||field==='atividades'||field==='descricao')return '<label class="p0-field"><span>'+title+'</span><textarea name="'+field+'" maxlength="'+(field==='descricao'?250:4000)+'">'+safe+'</textarea></label>';
       return '<label class="p0-field"><span>'+title+'</span><input name="'+field+'" value="'+safe+'" maxlength="250"'+(field==='prazo'?' type="date"':'')+'></label>';
     }).join(''):'';
-    const canCreate=(active==='rdos'||active==='checklist_frente_itens')&&!!view.sources?.length;
+    const canCreate=['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(active)&&!!view.sources?.length;
     const sources=(view.sources||[]).map(source=>'<option value="'+escapeHtml(source.deviceId)+'"'+(selectedSource===source.deviceId?' selected':'')+'>'+escapeHtml(source.name)+'</option>').join('');
     const stages=(view.stages||[]).filter(x=>x.entity==='frentes_obra'&&x.sourceDeviceId===selectedSource);
     const stageSelect=stages.map(x=>'<option value="'+x.localId+'">'+escapeHtml(x.name)+'</option>').join('');
+    const optionalStage='<label class="p0-field"><span>Etapa da obra (opcional)</span><select name="frente_id"><option value="">Sem etapa específica</option>'+stageSelect+'</select></label>';
     const createInputs=active==='rdos'
       ?'<label class="p0-field"><span>Data do RDO</span><input name="data" type="date" required></label><label class="p0-field"><span>Clima</span><input name="clima" maxlength="250"></label><label class="p0-field"><span>Atividades</span><textarea name="atividades" maxlength="4000"></textarea></label><label class="p0-field"><span>Observações</span><textarea name="observacoes" maxlength="4000"></textarea></label>'
+      :active==='itens_orcamentarios'
+      ?'<label class="p0-field"><span>Descrição do serviço/material</span><input name="descricao" maxlength="250" required></label>'+
+        '<label class="p0-field"><span>Unidade</span><input name="unidade" maxlength="20" value="un" required></label>'+
+        '<label class="p0-field"><span>Tipo</span><select name="tipo"><option value="material">Material</option><option value="mao_de_obra">Mão de obra</option><option value="equipamento">Equipamento</option><option value="servico">Serviço</option></select></label>'+
+        '<label class="p0-field"><span>Quantidade</span><input type="number" name="quantidade" min="0" step="0.001" value="1" required></label>'+
+        '<label class="p0-field"><span>Preço unitário (R$)</span><input type="number" name="valor_unitario_reais" min="0" step="0.01" value="0" required></label>'+optionalStage
+      :active==='solicitacoes_compra'
+      ?'<label class="p0-field"><span>Descrição do pedido</span><input name="descricao" maxlength="250" required></label>'+
+        '<label class="p0-field"><span>Solicitante</span><input name="solicitante" maxlength="250" required></label>'+
+        '<label class="p0-field"><span>Prazo</span><input type="date" name="prazo"></label>'+optionalStage
       :'<label class="p0-field"><span>Etapa da obra</span><select name="frente_id" required>'+stageSelect+'</select></label>'+
         '<label class="p0-field"><span>Descrição da vistoria</span><input name="descricao" maxlength="250" required></label>'+
         '<label class="p0-field"><span>Responsável</span><input name="responsavel" maxlength="250"></label>'+
@@ -71,9 +82,9 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
     const createForm=creating&&canCreate?'<form id="p1CreateForm" class="p0-editor"><h3>Novo '+escapeHtml(section.label)+'</h3><p>Solicitação idempotente. O registro só aparecerá após confirmação do Desktop ou servidor autorizado.</p>'+
       '<div class="p0-form-grid"><label class="p0-field"><span>Fonte operacional</span><select name="sourceDeviceId" id="p1Source">'+sources+'</select></label>'+createInputs+'</div>'+
       '<div class="p0-actions"><button id="p1CancelCreate" type="button" class="p0-light">Cancelar</button><button type="submit" class="p0-primary">Solicitar criação</button></div></form>':'';
-    const pending=(view.commands||[]).filter(cmd=>['rdos','checklist_frente_itens'].includes(cmd.entity)).slice(0,10);
+    const pending=(view.commands||[]).filter(cmd=>['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(cmd.entity)).slice(0,10);
     const commandView=pending.length?'<div class="p0-editor"><h3>Solicitações recentes</h3>'+pending.map(cmd=>
-      '<p>'+escapeHtml(cmd.entity==='rdos'?'RDO':'Checklist')+': '+escapeHtml(cmd.status==='pending'?'Aguardando sincronização':cmd.status==='applied'?'Confirmado':'Falha: '+String(cmd.error||'Revisar registro'))+'</p>').join('')+'</div>':'';
+      '<p>'+escapeHtml(cmd.entity==='rdos'?'RDO':cmd.entity==='checklist_frente_itens'?'Checklist':cmd.entity==='itens_orcamentarios'?'Orçamento':'Solicitação de compra')+': '+escapeHtml(cmd.status==='pending'?'Aguardando sincronização':cmd.status==='applied'?'Confirmado':'Falha: '+String(cmd.error||'Revisar registro'))+'</p>').join('')+'</div>':'';
     root.innerHTML='<section class="p0-layout p1-layout"><div class="p0-heading"><div><button type="button" class="p0-back" id="p1Back">Voltar à gestão</button><h1>Operação da obra · P1</h1><p>RDO, vistorias, orçamento, medições, compras, estoque, contratos e documentos no mesmo projeto operacional.</p></div><button type="button" id="p1Refresh" class="p0-light">Atualizar</button></div>'+
       '<div class="p0-context"><div><small>Empresa</small><strong>'+escapeHtml(view.company.name)+'</strong></div><div><small>Obra</small><strong>'+escapeHtml(view.project.name)+'</strong></div></div>'+
       '<div class="p0-notice"><strong>Dados canônicos · sem cópia operacional</strong><p>As informações são projeções sincronizadas do Desktop/servidor próprio. RDO e checklist permitem edição restrita, aplicada na origem após sincronização. Lançamentos de orçamento, medição, compra, estoque, contratos e arquivos continuam somente leitura aqui para preservar regras financeiras, documentos e movimentações.</p></div>'+
@@ -100,15 +111,20 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
   };
   const refresh=async()=>{if(busy)return;try{await load();message='';draw()}catch(e){message=errorText(e);const area=root.querySelector('.p0-message');if(area)area.textContent=message}};
   const submitCreate=async()=>{
-    if(busy||!overview||!creating||!selectedSource||!['rdos','checklist_frente_itens'].includes(active))return;
+    if(busy||!overview||!creating||!selectedSource||!['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(active))return;
     const form=root.querySelector<HTMLFormElement>('#p1CreateForm');if(!form)return;
     const raw=new FormData(form),data:Record<string,unknown>={};
     for(const [key,value] of raw.entries()){
       if(key==='sourceDeviceId'||!String(value).trim())continue;
-      data[key]=key==='frente_id'?Number(value):String(value).trim();
+      const trimmed=String(value).trim();
+      if(key==='valor_unitario_reais'){
+        if(!/^\d+(?:\.\d{1,2})?$/.test(trimmed)){message='Preço unitário inválido.';draw();return;}
+        data.valor_unitario_centavos=Math.round(Number(trimmed)*100);
+      }else if(key==='quantidade')data.quantidade=Number(trimmed);
+      else data[key]=key==='frente_id'?Number(trimmed):trimmed;
     }
-    if(active==='checklist_frente_itens'&&!overview.stages?.some(stage=>stage.entity==='frentes_obra'&&stage.sourceDeviceId===selectedSource&&stage.localId===data.frente_id)){
-      message='Selecione uma etapa válida para o checklist.';draw();return;
+    if(data.frente_id&&!overview.stages?.some(stage=>stage.entity==='frentes_obra'&&stage.sourceDeviceId===selectedSource&&stage.localId===data.frente_id)){
+      message='Selecione uma etapa válida da origem selecionada.';draw();return;
     }
     if(!createNonce)createNonce=crypto.randomUUID();
     busy=true;const button=form.querySelector<HTMLButtonElement>('button[type="submit"]');if(button)button.disabled=true;
