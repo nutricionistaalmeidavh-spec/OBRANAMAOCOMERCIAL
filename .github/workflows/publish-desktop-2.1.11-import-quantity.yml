@@ -1,0 +1,269 @@
+name: Publish Obra na Mao Desktop 2.1.11 - Estoque quantidade pt-BR
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - '.github/workflows/publish-desktop-2.1.11-import-quantity.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-desktop-2.1.11-import-quantity.yml'
+      - 'apps/desktop/package.json'
+      - 'apps/desktop/package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: obra-importador-qa-release-2.1.11
+  cancel-in-progress: false
+
+env:
+  DESKTOP_VERSION: '2.1.11'
+
+jobs:
+  validate:
+    # Publicação apenas mediante merge com marcador único e validações aprovadas.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[release-importador-quantidade-20261119]'))
+    name: Validate Desktop source and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Check package version, lockfile and release freeze
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./apps/desktop/package.json').version")" = "$DESKTOP_VERSION"
+          test "$(node -p "require('./apps/desktop/package-lock.json').version")" = "$DESKTOP_VERSION"
+          grep -F "DESKTOP_AUTO_RELEASE_ENABLED: 'false'" .github/workflows/commercial-desktop-ci.yml
+      - name: Desktop unit tests, lint, build
+        working-directory: apps/desktop
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run lint
+          npm test
+          npm run build
+
+  desktop-windows:
+    name: Build and verify Windows updater
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies and generate installer
+        working-directory: apps/desktop
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run lint
+          npm test
+          npm run dist
+      - name: Verify installer and updater metadata
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir='apps/desktop/release'
+          $exe="$dir/Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe"
+          $block="$exe.blockmap"
+          $manifest="$dir/latest.yml"
+          foreach($file in @($exe,$block,$manifest)){if(-not(Test-Path $file)){throw "Missing $file"}}
+          if((Get-Item $exe).Length -lt 100000000){throw 'Suspiciously small installer'}
+          $content=Get-Content $manifest -Raw
+          $sha=[Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData([IO.File]::ReadAllBytes((Resolve-Path $exe))))
+          if(-not $content.Contains("version: $env:DESKTOP_VERSION")){throw 'Invalid updater version'}
+          if(-not $content.Contains($sha)){throw 'SHA512 mismatch in latest.yml'}
+          if(-not $content.Contains("Obra-na-Mao-Desktop-Setup-$env:DESKTOP_VERSION.exe")){throw 'Wrong updater filename'}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hotfix-importador-windows-2.1.11
+          path: |
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.11.exe
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.11.exe.blockmap
+            apps/desktop/release/latest.yml
+          if-no-files-found: error
+          retention-days: 30
+
+  desktop-upgrade:
+    name: In-place Windows install and data preservation - ${{ matrix.scenario }}
+    needs: desktop-windows
+    runs-on: windows-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [inside-canonical, inside-nested, inside-stale, broken-share, external-canonical]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/download-artifact@v4
+        with:
+          name: hotfix-importador-windows-2.1.11
+          path: ${{ runner.temp }}/importador-hotfix
+      - name: Verify existing installer and SQLite are preserved
+        shell: pwsh
+        env:
+          CI_UPDATE_VERSION: '2.1.11'
+        run: ./scripts/ci/windows-install-over.ps1 -Scenario '${{ matrix.scenario }}' -Release "$env:RUNNER_TEMP/importador-hotfix" -TargetVersion '2.1.11'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: importador-upgrade-${{ matrix.scenario }}
+          path: ${{ runner.temp }}/obra-install-over/evidence/
+          if-no-files-found: warn
+
+  macos:
+    name: macOS installer - ${{ matrix.label }}
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            os: macos-15
+            label: Apple-Silicon
+          - arch: x64
+            os: macos-15-intel
+            label: Intel
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install, lint, test and build
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          npm run lint
+          npm test
+          npm run build
+          npx electron-builder install-app-deps
+      - name: Create and verify native DMG
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+          LABEL: ${{ matrix.label }}
+        run: |
+          set -euo pipefail
+          OUT="release/Obra-na-Mao-Desktop-v$DESKTOP_VERSION-macOS-$LABEL.dmg"
+          if [[ "$ARCH" == x64 ]]; then
+            npx electron-builder --mac --x64 --dir --publish never
+            APP=$(find release/mac -maxdepth 1 -type d -name '*.app' -print -quit)
+            test -n "$APP"
+            mkdir -p release/dmg-staging
+            ditto "$APP" "release/dmg-staging/$(basename "$APP")"
+            ln -s /Applications release/dmg-staging/Applications
+            hdiutil create -format UDZO -fs HFS+ -volname 'Obra na Mão Desktop' -srcfolder release/dmg-staging "$OUT"
+          else
+            npx electron-builder --mac dmg --arm64 --publish never
+            GENERATED=$(find release -maxdepth 1 -type f -name '*.dmg' -print -quit)
+            test -n "$GENERATED"
+            if [[ "$GENERATED" != "$OUT" ]]; then mv "$GENERATED" "$OUT"; fi
+          fi
+          hdiutil verify "$OUT"
+          test -s "$OUT"
+          shasum -a 256 "$OUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: importador-macos-${{ matrix.arch }}
+          path: apps/desktop/release/Obra-na-Mao-Desktop-v2.1.11-macOS-*.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish immutable 2.1.11 Desktop releases
+    needs: [desktop-upgrade, macos]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release-importador-quantidade-20261119]')) || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: hotfix-importador-windows-2.1.11
+          path: dist/windows
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: importador-macos-*
+          path: dist/mac
+          merge-multiple: true
+      - name: Check all assets and calculate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/windows/Obra-na-Mao-Desktop-Setup-2.1.11.exe
+          test -s dist/windows/Obra-na-Mao-Desktop-Setup-2.1.11.exe.blockmap
+          test -s dist/windows/latest.yml
+          test -s dist/mac/Obra-na-Mao-Desktop-v2.1.11-macOS-Apple-Silicon.dmg
+          test -s dist/mac/Obra-na-Mao-Desktop-v2.1.11-macOS-Intel.dmg
+          (cd dist/windows && sha256sum Obra-na-Mao-Desktop-Setup-* > SHA256SUMS.txt)
+          (cd dist/mac && sha256sum *.dmg > SHA256SUMS.txt)
+      - name: Create releases without replacing a prior installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          WIN="desktop-commercial-v$DESKTOP_VERSION"
+          MAC="desktop-commercial-macos-v$DESKTOP_VERSION"
+          for tag in "$WIN" "$MAC"; do
+            if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "::error::Release $tag already exists; refusing to replace assets."
+              exit 1
+            fi
+          done
+          cat > windows-notes.md <<'NOTES'
+          Obra na Mão Desktop 2.1.11 — correção do importador universal de estoque.
+          - Quantidades com vírgula decimal (como 0,5 e 16,364) reconhecidas sem perder precisão.
+          - Prévia valida quantidades da planilha antes de permitir a confirmação; linhas inválidas são identificadas.
+          - Importação transacional SQLite: erro durante a gravação desfaz todas as alterações do lote.
+          - Testes de regressão com 146 itens e rollback simulado aprovados.
+          - Instalador Windows com atualização sobre instalação anterior e preservação de dados verificada.
+          - Não exige serviços pagos; uso local/self-hosted.
+          NOTES
+          cat > mac-notes.md <<'NOTES'
+          Obra na Mão Desktop 2.1.11 para macOS Intel e Apple Silicon.
+          Importação de estoque com quantidades decimais pt-BR, validação de prévia e rollback transacional verificados.
+          DMGs não são assinados/notarizados pela Apple, podendo exigir autorização manual.
+          NOTES
+          gh release create "$MAC" dist/mac/*.dmg dist/mac/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Obra na Mão Desktop macOS v$DESKTOP_VERSION" --notes-file mac-notes.md --latest=false
+          gh release create "$WIN" dist/windows/Obra-na-Mao-Desktop-Setup-* dist/windows/latest.yml dist/windows/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Obra na Mão Desktop Comercial v$DESKTOP_VERSION" --notes-file windows-notes.md --latest
+      - name: Verify release assets and the Windows download checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view "desktop-commercial-v$DESKTOP_VERSION" --repo "$GITHUB_REPOSITORY" --json url,tagName,assets
+          gh release view "desktop-commercial-macos-v$DESKTOP_VERSION" --repo "$GITHUB_REPOSITORY" --json url,tagName,assets
+          mkdir -p checked
+          gh release download "desktop-commercial-v$DESKTOP_VERSION" --repo "$GITHUB_REPOSITORY" --dir checked --pattern "Obra-na-Mao-Desktop-Setup-$DESKTOP_VERSION.*"
+          cp dist/windows/SHA256SUMS.txt checked/
+          (cd checked && sha256sum -c SHA256SUMS.txt)

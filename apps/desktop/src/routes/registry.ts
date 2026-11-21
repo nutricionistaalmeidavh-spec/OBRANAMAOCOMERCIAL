@@ -10,6 +10,8 @@ export const ROUTES = Object.freeze({
   ai:'/assistente-ia',
   dre:'/dre',
   finance:'/financeiro',
+  bankAccounts:'/financeiro/bancos',
+  cashFlow:'/financeiro/fluxo-caixa',
   budget:'/orcamento',
   measurements:'/medicoes',
   procurementContracts:'/compras-contratos',
@@ -52,6 +54,8 @@ export const COMMAND_NAVIGATION_GROUPS:NavigationGroup[]=[
   {label:'Financeiro',items:[
     {to:ROUTES.dre,label:'DRE',icon:BarChart3},
     {to:ROUTES.finance,label:'Contas',icon:WalletCards},
+    {to:ROUTES.bankAccounts,label:'Contas bancárias',icon:Landmark},
+    {to:ROUTES.cashFlow,label:'Fluxo de caixa',icon:BarChart3},
     {to:ROUTES.budget,label:'Orcamento',icon:FileSpreadsheet},
     {to:ROUTES.measurements,label:'Medicoes',icon:ClipboardCheck},
     {to:ROUTES.procurementContracts,label:'Compras e Contratos',icon:PackageSearch},
@@ -83,6 +87,8 @@ export const CLASSIC_NAVIGATION_GROUPS:NavigationGroup[]=[
   ]},
   {label:'Financeiro',items:[
     {to:ROUTES.finance,label:'Contas',icon:WalletCards},
+    {to:ROUTES.bankAccounts,label:'Contas bancárias',icon:Landmark},
+    {to:ROUTES.cashFlow,label:'Fluxo de caixa',icon:BarChart3},
   ]},
   {label:'Operacao',items:[
     {to:ROUTES.works,label:'Obras',icon:HardHat},
@@ -114,6 +120,8 @@ const ROUTE_META:Record<string,{section:string;label:string}>={
   [ROUTES.ai]:{section:'Inteligencia',label:'Assistente IA'},
   [ROUTES.dre]:{section:'Financeiro',label:'DRE'},
   [ROUTES.finance]:{section:'Financeiro',label:'Contas'},
+  [ROUTES.bankAccounts]:{section:'Financeiro',label:'Contas bancárias'},
+  [ROUTES.cashFlow]:{section:'Financeiro',label:'Fluxo de caixa'},
   [ROUTES.budget]:{section:'Financeiro',label:'Orcamento'},
   [ROUTES.measurements]:{section:'Financeiro',label:'Medicoes'},
   [ROUTES.procurementContracts]:{section:'Financeiro',label:'Compras e Contratos'},

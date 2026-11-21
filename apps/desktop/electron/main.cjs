@@ -32,10 +32,13 @@ const { ReceiptPolicyService } = require('./services/receipt-policy-service.cjs'
 const { ScannerService } = require('./services/scanner-service.cjs')
 const { WorkImportService } = require('./services/work-import-service.cjs')
 const { UniversalImportService } = require('./services/universal-import-service.cjs')
+const { OperationalSheetService } = require('./services/operational-sheet-service.cjs')
+const { OperationalSheetP1Service } = require('./services/operational-sheet-p1-service.cjs')
 const { WorksService } = require('./services/works-service.cjs')
 const { PlanningService } = require('./services/planning-service.cjs')
 const { PlanningSourceService } = require('./services/planning-source-service.cjs')
 const { FinanceSourceService } = require('./services/finance-source-service.cjs')
+const { BankFinanceSourceService } = require('./services/bank-finance-source.cjs')
 const { MeasurementSourceService } = require('./services/measurement-source-service.cjs')
 const { FieldService } = require('./services/field-service.cjs')
 const { FieldSourceService } = require('./services/field-source-service.cjs')
@@ -101,6 +104,8 @@ function createServices() {
   const localPlanning = new PlanningService({ db })
   const planning = new PlanningSourceService({ local: localPlanning, lanClient: dataAccess.remote, moduleStorage })
   const finance = new FinanceSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
+  const { BankFinanceService } = require(path.join(path.dirname(resolveLanServerEntry()), 'bank-finance.cjs'))
+  const bankFinance = new BankFinanceSourceService({ local: new BankFinanceService({ db: db.db }), lanClient: dataAccess.remote, moduleStorage })
   const measurements = new MeasurementSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
   const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db, dataAccess, lanClient:dataAccess.remote, moduleStorage, storage })
@@ -161,8 +166,10 @@ function createServices() {
     time, receiptPolicy: new ReceiptPolicyService({ dataAccess }),
     scanner: new ScannerService({ db, fileService: files, dataDir: paths.dataDir }),
     workImport: new WorkImportService({ db }),
-    universalImport: new UniversalImportService({ db }),
-    works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, measurements,
+    universalImport: new UniversalImportService({ db, moduleStorage }),
+    operationalSheet: new OperationalSheetService({ db, moduleStorage, dialog }),
+    operationalSheetP1: new OperationalSheetP1Service({db,moduleStorage,timeService:localTime}),
+    works: new WorksService({ db, dataAccess, moduleStorage }), planning, field, finance, bankFinance, measurements,
     product, uiPreferences, procurement, contracts, demo: new DemoDataService({ db, product }), online, sync
   }
 }
@@ -338,6 +345,13 @@ function registerIpc() {
   ipcMain.handle('lan:refresh-identity', envelope(() => services.lanSetup.refreshIdentity()))
   ipcMain.handle('lan:start-at-login-state', envelope(() => ({ enabled: app.getLoginItemSettings().openAtLogin === true })))
   ipcMain.handle('lan:set-start-at-login', envelope(({ enabled }) => { app.setLoginItemSettings({ openAtLogin: enabled === true }); return { enabled: app.getLoginItemSettings().openAtLogin === true } }))
+  ipcMain.handle('operational-sheet:commit', envelope((payload) => services.operationalSheet.commit(payload)))
+  ipcMain.handle('operational-sheet:export', envelope((payload) => services.operationalSheet.exportFile(payload)))
+  ipcMain.handle('operational-sheet:load-note-items', envelope(() => services.operationalSheet.loadNoteItems()))
+  ipcMain.handle('operational-sheet:p1-commit', envelope(payload => services.operationalSheetP1.commit(payload)))
+  ipcMain.handle('operational-sheet:p1-measurements', envelope(payload => services.operationalSheetP1.measurementOverview(payload)))
+  ipcMain.handle('operational-sheet:p1-time-matrix', envelope(payload => services.operationalSheetP1.timeMatrix(payload)))
+  ipcMain.handle('operational-sheet:p1-time-commit', envelope(payload => services.operationalSheetP1.commitTime(payload)))
   ipcMain.handle('entity:list', envelope(({ table, filters }) => services.dataAccess.list(table, filters)))
   ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))
   ipcMain.handle('entity:save', envelope(({ table, data }) => services.dataAccess.save(table, data)))
@@ -356,11 +370,37 @@ function registerIpc() {
   ipcMain.handle('procurement:summary', envelope(({ obra_id }) => services.procurement.summary(obra_id)))
   ipcMain.handle('procurement:create-order', envelope((payload) => services.procurement.createOrder(payload)))
   ipcMain.handle('procurement:receive-material', envelope((payload) => services.procurement.receiveMaterial(payload)))
+  ipcMain.handle('procurement:receive-many', envelope((payload) => services.procurement.receiveMany(payload)))
   ipcMain.handle('procurement:move-stock', envelope((payload) => services.procurement.moveStock(payload)))
   ipcMain.handle('contracts:create', envelope((payload) => services.contracts.createReceivable(payload)))
   ipcMain.handle('contracts:addendum', envelope((payload) => services.contracts.createAddendum(payload)))
   ipcMain.handle('dre:get', envelope((filters) => services.finance.dre(filters)))
   ipcMain.handle('accounts:payment', envelope(({ id, payment }) => services.finance.accountPayment(id, payment)))
+  ipcMain.handle('bank:list', envelope(payload => services.bankFinance.listAccounts(payload)))
+  ipcMain.handle('bank:manual-balances', envelope(payload => services.bankFinance.listManualBalances(payload)))
+  ipcMain.handle('bank:record-balance', envelope(payload => services.bankFinance.recordManualBalance(payload)))
+  ipcMain.handle('bank:save', envelope(payload => services.bankFinance.saveAccount(payload)))
+  ipcMain.handle('bank:preview', envelope(payload => services.bankFinance.previewImport(payload)))
+  ipcMain.handle('bank:confirm', envelope(payload => services.bankFinance.confirmImport(payload)))
+  ipcMain.handle('bank:imports', envelope(payload => services.bankFinance.listImports(payload)))
+  ipcMain.handle('bank:transactions', envelope(payload => services.bankFinance.listTransactions(payload)))
+  ipcMain.handle('bank:suggestions', envelope(payload => services.bankFinance.suggestReconciliation(payload)))
+  ipcMain.handle('bank:reconcile', envelope(payload => services.bankFinance.confirmReconciliation(payload)))
+  ipcMain.handle('bank:reverse', envelope(payload => services.bankFinance.reverseReconciliation(payload)))
+  ipcMain.handle('bank:reconciliations', envelope(payload => services.bankFinance.listReconciliations(payload)))
+  ipcMain.handle('bank:cash-flow', envelope(payload => services.bankFinance.cashFlow(payload)))
+  ipcMain.handle('bank:works', envelope(payload => services.bankFinance.listWorks(payload)))
+  ipcMain.handle('bank:planned', envelope(payload => services.bankFinance.listPlannedAccounts(payload)))
+  ipcMain.handle('bank:assign-plan', envelope(payload => services.bankFinance.assignPlannedBank(payload)))
+  ipcMain.handle('bank:audit', envelope(payload => services.bankFinance.auditPeriod(payload)))
+  ipcMain.handle('bank:period-status', envelope(payload => services.bankFinance.periodStatus(payload)))
+  ipcMain.handle('bank:period-events', envelope(payload => services.bankFinance.periodEvents(payload)))
+  ipcMain.handle('bank:period-close', envelope(payload => services.bankFinance.closePeriod(payload)))
+  ipcMain.handle('bank:period-reopen', envelope(payload => services.bankFinance.reopenPeriod(payload)))
+  ipcMain.handle('bank:simulate-cash', envelope(payload => services.bankFinance.simulateCashFlow(payload)))
+  ipcMain.handle('bank:cash-report', envelope(payload => services.bankFinance.cashReport(payload)))
+  ipcMain.handle('bank:forecast-capture', envelope(payload => services.bankFinance.captureForecast(payload)))
+  ipcMain.handle('bank:forecasts', envelope(payload => services.bankFinance.listForecasts(payload)))
   ipcMain.handle('measurements:save', envelope((payload) => services.measurements.saveWithItems(payload)))
   ipcMain.handle('works:import-spreadsheets', envelope(() => services.workImport.chooseAndImport()))
   ipcMain.handle('files:import-employee', envelope((payload) => services.files.importForEmployee(payload)))
@@ -466,6 +506,13 @@ function registerIpc() {
   ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
   ipcMain.handle('online:status', envelope(() => withSyncStopped(async () => completeCanonicalStorage(await services.online.status()))))
   ipcMain.handle('online:complete-storage', envelope((payload) => withSyncStopped(() => completeCanonicalStorage({ linked: false }, payload))))
+  ipcMain.handle('online:local-transfer-preview', envelope(() => services.canonicalStorage.prepareLocalTransfer()))
+  ipcMain.handle('online:local-transfer', envelope((payload) => withSyncStopped(async () => {
+    const result = await services.canonicalStorage.transferToLocal(payload)
+    await configureStorage({ operationalMode: 'local' })
+    services.online.clearRequiredStorage(result.serverId)
+    return { linked: true, storageStatus: 'local', storageRequired: null }
+  })))
   ipcMain.handle('online:session', envelope(() => services.online.session()))
   ipcMain.handle('online:set-storage-topology', envelope((payload) => services.online.setStorageTopology(payload)))
   ipcMain.handle('online:members-list', envelope(() => services.online.membersList()))

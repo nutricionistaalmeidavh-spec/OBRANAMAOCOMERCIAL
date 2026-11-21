@@ -36,6 +36,13 @@ describe('folha automática por cargo',()=>{
     expect(updated.launches.find((item:any)=>item.tipo==='diaria').editavel).toBe(1)
   })
 
+  it('impede criar novas variáveis em quinzena já paga',()=>{
+    const {payroll,employee}=setup()
+    payroll.getEmployee({funcionario_id:employee.id,competencia:'2026-08'})
+    payroll.confirm({funcionario_id:employee.id,competencia:'2026-08',quinzena:1,data:'2026-08-15'})
+    expect(()=>payroll.saveVariable({funcionario_id:employee.id,competencia:'2026-08',tipo:'diaria',descricao:'Diária',natureza:'credito',quinzena:1,valor_centavos:5000})).toThrow(/paga|confirmada|bloqueada/i)
+  })
+
   it('confirma a quinzena e bloqueia alteração do histórico pago',()=>{
     const {payroll,employee}=setup()
     payroll.getEmployee({funcionario_id:employee.id,competencia:'2026-08'})

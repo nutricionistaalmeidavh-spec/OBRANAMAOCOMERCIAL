@@ -56,7 +56,7 @@ describe('LanSetupService',()=>{
       }
       throw new Error(`URL inesperada ${url}`)
     })
-    const service=new LanSetupService({...fx,fetchImpl,deviceName:'PC Principal',setupCodeProvider,setupCodeWaitMs:100,setupCodePollMs:1})
+    const service=new LanSetupService({...fx,fetchImpl,deviceName:'PC Principal',setupCodeProvider,setupCodeWaitMs:2000,setupCodePollMs:1})
     await expect(service.claimHostedServer()).resolves.toEqual(expect.objectContaining({claimed:true,serverId:'server-a'}))
     expect(setupCodeProvider).toHaveBeenCalledTimes(3)
   })

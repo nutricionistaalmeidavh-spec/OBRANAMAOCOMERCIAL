@@ -15,10 +15,11 @@ const migratedTables = [
   'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis',
   'module_migrations', 'module_migration_records', 'record_revisions',
   'fontes_documentais', 'arquivos', 'documentos', 'medicao_anexos', 'contrato_anexos', 'pedido_compra_anexos', 'documentos_editaveis', 'modelos_documento_rh', 'empresa_documentos_admissionais', 'cargo_epi_kits',
-  'notas_recebidas', 'nota_recebida_itens', 'importacoes', 'importacao_linhas', 'rdo_material_linhas', 'rdo_material_revisoes', 'rdo_material_requisicoes', 'rdo_material_efeitos', 'web_p0_command_receipts'
+  'notas_recebidas', 'nota_recebida_itens', 'importacoes', 'importacao_linhas', 'rdo_material_linhas', 'rdo_material_revisoes', 'rdo_material_requisicoes', 'rdo_material_efeitos', 'web_p0_command_receipts',
+  'contas_bancarias', 'extrato_importacoes', 'transacoes_bancarias', 'reconciliacao_lotes', 'reconciliacao_alocacoes', 'conta_previsao_bancaria', 'finance_bank_period_closures', 'finance_bank_period_events', 'finance_bank_forecast_snapshots','finance_bank_manual_balances'
 ]
 
-test('upgrade 31 preserva notas recebidas e inclui classificação orçamentária por subetapa', () => {
+test('upgrade 38 preserva notas recebidas e inclui classificação orçamentária por subetapa', () => {
   const repository=new LanRepository({filename:':memory:'})
   const db=repository.connection()
   try {
@@ -26,7 +27,7 @@ test('upgrade 31 preserva notas recebidas e inclui classificação orçamentári
     db.exec('PRAGMA user_version=27')
     db.prepare('INSERT INTO module_migrations(migration_id,module,source_fingerprint,expected_counts_json,status,created_at) VALUES(?,?,?,?,?,?)').run('rh-original','rh','source','{}','committed','2026-10-06')
     db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_at) VALUES(?,?,?,?,?,?)').run('rh-original','funcionarios','100','funcionarios',10,'2026-10-06')
-    assert.deepEqual(applyLanMigrations(db,migrationsDir).applied,[28,29,30,31,32])
+    assert.deepEqual(applyLanMigrations(db,migrationsDir).applied,[28,29,30,31,32,33,34,35,36,37,38])
     assert.equal(db.prepare('SELECT status FROM module_migrations WHERE migration_id=?').get('rh-original').status,'committed')
     assert.equal(db.prepare('SELECT target_id FROM module_migration_records WHERE migration_id=?').get('rh-original').target_id,10)
     db.prepare('INSERT INTO module_migrations(migration_id,module,source_fingerprint,expected_counts_json,created_at) VALUES(?,?,?,?,?)').run('docs','documents','source','{}','2026-10-06')
@@ -43,11 +44,11 @@ test('aplica schema LAN atual de forma idempotente e preserva core ao reabrir', 
   const first = applyLanMigrations(repository.connection(), migrationsDir)
   const second = applyLanMigrations(repository.connection(), migrationsDir)
 
-  assert.equal(first.version, 32)
+  assert.equal(first.version, 38)
   assert.equal(second.version, first.version)
-  assert.deepEqual(first.applied, [2, 3, 4, 5, 6, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32])
+  assert.deepEqual(first.applied, [2, 3, 4, 5, 6, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38])
   assert.deepEqual(second.applied, [])
-  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 32)
+  assert.equal(repository.connection().prepare('PRAGMA user_version').get().user_version, 38)
   for (const table of migratedTables) {
     assert.equal(repository.connection().prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name=?").get(table).n, 1)
   }
