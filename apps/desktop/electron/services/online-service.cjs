@@ -82,6 +82,9 @@ class OnlineService {
   }
 
   storageBinding(session) {
+    // An obsolete member binding must not reactivate an old LAN server after
+    // the company administrator explicitly moved the company to one PC.
+    if (session?.storageTopology?.mode === 'local-single') return null
     const explicit = session?.desktopStorage
     if (explicit?.serverId && ['lan-server', 'remote'].includes(String(explicit.mode || ''))) {
       return { mode: String(explicit.mode), serverId: String(explicit.serverId), autoEnroll: explicit.autoEnroll !== false }
