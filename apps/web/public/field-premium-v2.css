@@ -4,7 +4,14 @@
 /* Never paint the legacy static shell while auth/bootstrap/field state are loading. */
 body.field-booting{background:#f7f9fd}
 body.field-booting .top{visibility:hidden}
-body.field-booting main{visibility:hidden}
+body.field-booting main{visibility:visible}
+body.field-booting main>:not(.field-startup){visibility:hidden}
+.field-startup{min-height:75svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;padding:32px 16px;text-align:center;color:#19345f}
+.field-startup strong{font-size:22px;font-weight:800;letter-spacing:-.03em}
+.field-startup p{margin:0;color:#5f708a;font-size:14px}
+.field-startup-spinner{width:30px;height:30px;border:3px solid #c4d3eb;border-top-color:#235ee8;border-radius:50%;animation:field-startup-spin .8s linear infinite}
+@keyframes field-startup-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.field-startup-spinner{animation:none}}
 body.field-booting .nav{visibility:hidden}
 
 /* Shared premium material language. */
@@ -150,3 +157,103 @@ dialog#sheet:has(.premium-sheet){padding:0;border:0;background:transparent;box-s
 .conflict-diff-row{border-top:1px solid var(--line);font-size:12px}
 .conflict-diff-row span{overflow-wrap:anywhere}
 @media(max-width:520px){.conflict-diff-head,.conflict-diff-row{grid-template-columns:1fr}.conflict-diff-head span:first-child{display:none}.conflict-diff-row strong{padding-bottom:3px}.conflict-diff-row span::before{display:block;font-size:10px;font-weight:700;text-transform:uppercase;opacity:.62}.conflict-diff-row span:nth-child(2)::before{content:'Obra360'}.conflict-diff-row span:nth-child(3)::before{content:'Computador'}}
+
+/* P0 video fixes: prevent overlapping cards and keep the RDO completion action
+   reachable above the fixed tab bar and Safari bottom inset. */
+body.field-shell-active .shell{padding-bottom:calc(132px + env(safe-area-inset-bottom))}
+body.field-shell-active .quick-actions>*,
+body.field-shell-active .management-grid>*,
+body.field-shell-active .management-kpis>*,
+body.field-shell-active .bridge-card .row>div{min-width:0}
+body.field-shell-active .quick-action-copy strong,
+body.field-shell-active .quick-action-copy span,
+body.field-shell-active .stat span,
+body.field-shell-active .bridge-title{overflow-wrap:anywhere}
+body.field-shell-active .management-kpi-head strong{
+  white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.2
+}
+body.field-shell-active .management-kpi>b{
+  white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.15
+}
+body.field-shell-active .management-line{min-width:0;flex-wrap:wrap;align-items:baseline}
+body.field-shell-active .management-line span,
+body.field-shell-active .management-line b{min-width:0;overflow-wrap:anywhere}
+body.field-shell-active .management-line b{text-align:right}
+@media(max-width:420px){
+  body.field-shell-active .management-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body.field-shell-active .management-kpi:last-child{grid-column:1/-1}
+}
+
+
+/* P1 safe-area and readable navigation */
+:root{--field-safe-bottom:env(safe-area-inset-bottom, 0px)}
+html{scroll-padding-bottom:calc(140px + var(--field-safe-bottom))}
+body.field-shell-active{padding-bottom:0;overflow-x:clip}
+body.field-shell-active .shell{
+  min-height:100dvh;
+  padding-bottom:calc(142px + var(--field-safe-bottom));
+}
+body.field-shell-active .nav{
+  bottom:0;
+  width:min(760px,100%);
+  border-radius:20px 20px 0 0;
+  padding:8px 9px calc(9px + var(--field-safe-bottom));
+  gap:4px;
+}
+body.field-shell-active .nav button{
+  min-height:44px;min-width:0;padding:9px 3px;
+  font-size:12px;line-height:1.3;white-space:normal;
+}
+body.field-shell-active .toast{bottom:calc(96px + var(--field-safe-bottom))}
+body.field-shell-active .quick-action-copy>span,
+body.field-shell-active .quick-action span span,
+body.field-shell-active .day-next small,
+body.field-shell-active .section-head p,
+body.field-shell-active .management-line{font-size:12px;line-height:1.45}
+body.field-shell-active .management-kpi{min-height:164px}
+body.field-shell-active .management-kpi-head strong{
+  font-size:12px;line-height:1.25;letter-spacing:0
+}
+body.field-shell-active .management-kpi>span,
+body.field-shell-active .management-kpi-foot{font-size:12px;line-height:1.4}
+body.field-shell-active .management-summary-card small{font-size:12px;line-height:1.4}
+body.field-shell-active .internal-hero-copy p{font-size:12px;line-height:1.4}
+body.field-shell-active .management-loading .management-kpi,
+body.field-shell-active .management-loading .management-details{min-height:164px}
+body.field-shell-active .management-loading .management-summary-card{opacity:.8}
+body.field-shell-active .management-placeholder{
+  min-height:146px;padding:24px 16px;display:grid;place-items:center;
+  border:1px dashed #c2cee1;border-radius:16px;background:#f5f8fd;
+  color:#52617c;font-size:13px;text-align:center
+}
+body.field-shell-active .management-load-error{padding:18px}
+body.field-shell-active .management-load-error p{font-size:13px;margin:10px 0;overflow-wrap:anywhere}
+body.field-shell-active dialog{
+  max-height:calc(100dvh - env(safe-area-inset-top, 0px) - var(--field-safe-bottom) - 16px);
+  overflow-y:auto
+}
+@media(max-width:420px){
+  body.field-shell-active .management-kpi{min-height:176px}
+  body.field-shell-active .management-kpi-head strong,
+  body.field-shell-active .management-kpi-foot,
+  body.field-shell-active .management-kpi>span{font-size:12px}
+  body.field-shell-active .quick-action-copy>span{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  body.field-shell-active .nav,
+  body.field-shell-active .management-kpi{transition:none}
+}
+
+/* P1: screen transitions are composed before the next paint, not shown half-styled. */
+body.field-shell-active #content.field-screen-staging{visibility:hidden}
+
+/* P1 regression: the summary timestamp can occupy more lines than loading copy.
+   Reserve its height so the KPI grid does not jump when real data arrives. */
+body.field-shell-active .management-section>.section-head p{
+  min-height:calc(3 * 1.45em);
+}
+
+
+/* P2: old Desktop publications are historical, never presented as live. */
+body.field-shell-active .management-stale>.section-head p{color:#8e550e}
+body.field-shell-active .management-stale .management-kpi{border-color:#e2cba6}

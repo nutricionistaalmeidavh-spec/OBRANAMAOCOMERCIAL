@@ -1,5 +1,6 @@
 import { auth, api } from './cloudflare-client';
 import { renderManagementDashboard, managementHtml } from './mobile-dashboard';
+import { snapshotFreshness } from './summary-freshness';
 import './styles.css';
 import { createFieldSync, syncScope } from './field-sync';
 import { APP_VERSION, PROJECT_STATE_VERSION } from '../shared/version';
@@ -47,12 +48,14 @@ declare global {
     mobileReadOnlySummary?: any;
     mobileSyncConflicts?: any[];
     mobileManagementHtml?: (summary:any,access:any)=>string;
+    mobileSummaryFreshness?: typeof snapshotFreshness;
     obraDesktopBridge?: (route:string,payload?:Record<string,unknown>)=>Promise<{ok:boolean;data?:any;error?:string}>;
     fieldLifecycle?: {register(handlers:{screen?:()=>void;sheet?:()=>void}):()=>void;refresh():void;refreshSheet():void;counts():{screen:number;sheet:number}};
   }
 }
 
 window.appClient={auth,api};
+window.mobileSummaryFreshness=snapshotFreshness;
 const desktopBridgeRoutes=new Set(['/api/desktop/start','/api/desktop/status','/api/desktop/session','/api/desktop/sync/pull','/api/desktop/sync/push','/api/desktop/mobile-summary/publish','/api/desktop/finance-reference/publish','/api/desktop/sync/conflicts','/api/desktop/sync/conflicts/resolve']);
 window.obraDesktopBridge=async(route,payload={})=>{if(!desktopBridgeRoutes.has(route))return{ok:false,error:'Rota Desktop não autorizada.'};try{const result=await api.post(route,payload);return{ok:true,data:result.data}}catch(e){const x=e as {response?:{data?:{error?:string;message?:string}};message?:string};return{ok:false,error:x.response?.data?.error||x.response?.data?.message||x.message||'Não foi possível comunicar com o Obra na Mão Online.'}}};
 let activeBootstrap:Bootstrap|undefined;
@@ -68,7 +71,7 @@ const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 const DB='obra-na-mao-comercial';
 type AppMode='auto'|'obra'|'gestao';
 const routeMode=():AppMode=>location.hash.startsWith('#gestao')?'gestao':location.hash.startsWith('#obra')?'obra':'auto';
-function setProjectIdentity(b?:Bootstrap){const title=document.querySelector('.top h1') as HTMLElement|null;if(title)title.textContent=b?.project?.name||'Obra';document.title=b?.project?.name?`FluxoDRE Campo · ${b.project.name}`:'FluxoDRE Campo'}
+function setProjectIdentity(b?:Bootstrap){const title=document.querySelector('.top h1') as HTMLElement|null;if(title)title.textContent=b?.project?.name||'Obra';document.title=b?.project?.name?`Obra360 · ${b.project.name} · Obra na Mão`:'Obra360 · Obra na Mão'}
 
 function openDb():Promise<IDBDatabase>{return new Promise((ok,no)=>{const r=indexedDB.open(DB,2);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('kv'))r.result.createObjectStore('kv');if(!r.result.objectStoreNames.contains('rdo_photo_queue'))r.result.createObjectStore('rdo_photo_queue')};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
 async function readLocalState():Promise<ProjectState|null>{try{const db=await openDb(),tx=db.transaction('kv','readonly'),r=tx.objectStore('kv').get('state');return await new Promise((ok,no)=>{r.onsuccess=()=>ok((r.result as ProjectState)||null);r.onerror=()=>no(r.error)})}catch{return null}}
@@ -100,8 +103,8 @@ async function fieldAttendance(employeeId:string,status:string){return phoneMode
 async function fieldBridgeUpdate(payload:Record<string,unknown>){return phoneMode()?api.post('/api/phone/mobile/bridge/update',{token:phoneToken(),...payload}):api.post('/api/mobile/bridge/update',payload)}
 async function signOutCurrent(){fieldSync?.dispose();fieldSync=undefined;roleLifecycleUnsubscribe?.();roleLifecycleUnsubscribe=null;window.clearTimeout(syncTimer);localStorage.removeItem(PHONE_SESSION);if(auth.isSignedIn())await auth.signOut()}
 
-function renderLogin(){document.body.classList.remove('field-shell-active');nav().style.display='none';setHeader();(root().innerHTML=`<section class="auth-page"><div class="auth-card"><small>FluxoDRE Campo</small><h2>Gestão da obra em equipe</h2><p>Entre para acessar a obra conforme seu perfil: Admin, Encarregado ou Funcionário.</p><button id="loginBtn" class="btn auth-btn">Entrar</button><p class="meta">Se esta for sua primeira conta, você poderá criar a empresa e a obra e migrar os dados que já estão neste aparelho.</p></div></section>`, document.dispatchEvent(new CustomEvent('field:rendered')));document.getElementById('loginBtn')?.addEventListener('click',signIn)}
-async function signIn(){try{await auth.signIn({scope:'openid email profile offline_access'});await start()}catch(e){const code=(e as {code?:string}).code;const txt=code==='popup_blocked'?'Permita pop-ups para fazer login.':code==='popup_closed'?'Login cancelado.':'Não foi possível entrar.';showStandalone(txt)}}async function mountDesktopAuth(){nav().style.display='none';setHeader();const raw=location.hash.slice('#desktop-auth='.length),pair=raw.split('&')[0].split('.'),requestId=pair[0]||'',secret=pair.slice(1).join('.')||'';if(!requestId||!secret){(root().innerHTML=messageCard('Vínculo inválido','Abra novamente o login pelo FLUXODRE Desktop.'), document.dispatchEvent(new CustomEvent('field:rendered')));return}if(!auth.isSignedIn()){(root().innerHTML='<section class="auth-page"><div class="auth-card"><small>FLUXODRE Desktop</small><h2>Autorizar este computador</h2><p>Entre com a mesma conta Google autorizada na sua licença.</p><button id="desktopLoginBtn" class="btn auth-btn">Continuar com Google</button></div></section>', document.dispatchEvent(new CustomEvent('field:rendered')));document.getElementById('desktopLoginBtn')?.addEventListener('click',async()=>{try{await auth.signIn({scope:'openid email profile offline_access'});await mountDesktopAuth()}catch(e){showStandalone(apiError(e))}});return}try{const result=(await api.post('/api/desktop/approve',{requestId,secret})).data as {device?:{name?:string}};(root().innerHTML=`<section class="auth-page"><div class="auth-card"><small>FLUXODRE Desktop</small><h2>Computador autorizado</h2><p>${esc(result.device?.name||'Este computador')} foi vinculado à sua conta. Você já pode voltar ao aplicativo.</p><div class="card notice"><b>✓</b><div><strong>Autorização concluída</strong><div class="meta">Nenhuma senha Google é armazenada no Desktop.</div></div></div></div></section>`, document.dispatchEvent(new CustomEvent('field:rendered')))}catch(e){(root().innerHTML=`<section class="auth-page"><div class="auth-card"><h2>Não foi possível autorizar</h2><p>${esc(apiError(e))}</p><button id="desktopRetry" class="btn">Tentar novamente</button></div></section>`, document.dispatchEvent(new CustomEvent('field:rendered')));document.getElementById('desktopRetry')?.addEventListener('click',()=>void mountDesktopAuth())}}
+function renderLogin(){document.body.classList.remove('field-shell-active');nav().style.display='none';setHeader();(root().innerHTML=`<section class="auth-page"><div class="auth-card"><small>Obra na Mão · Campo</small><h2>Gestão da obra em equipe</h2><p>Entre para acessar a obra conforme seu perfil: Admin, Encarregado ou Funcionário.</p><button id="loginBtn" class="btn auth-btn">Entrar</button><p class="meta">Se esta for sua primeira conta, você poderá criar a empresa e a obra e migrar os dados que já estão neste aparelho.</p></div></section>`, document.dispatchEvent(new CustomEvent('field:rendered')));document.getElementById('loginBtn')?.addEventListener('click',signIn)}
+async function signIn(){try{await auth.signIn({scope:'openid email profile offline_access'});await start()}catch(e){const code=(e as {code?:string}).code;const txt=code==='popup_blocked'?'Permita pop-ups para fazer login.':code==='popup_closed'?'Login cancelado.':'Não foi possível entrar.';showStandalone(txt)}}async function mountDesktopAuth(){nav().style.display='none';setHeader();const raw=location.hash.slice('#desktop-auth='.length),pair=raw.split('&')[0].split('.'),requestId=pair[0]||'',secret=pair.slice(1).join('.')||'';if(!requestId||!secret){(root().innerHTML=messageCard('Vínculo inválido','Abra novamente o login pelo Obra na Mão Desktop.'), document.dispatchEvent(new CustomEvent('field:rendered')));return}if(!auth.isSignedIn()){(root().innerHTML='<section class="auth-page"><div class="auth-card"><small>Obra na Mão Desktop</small><h2>Autorizar este computador</h2><p>Entre com a mesma conta Google autorizada na sua licença.</p><button id="desktopLoginBtn" class="btn auth-btn">Continuar com Google</button></div></section>', document.dispatchEvent(new CustomEvent('field:rendered')));document.getElementById('desktopLoginBtn')?.addEventListener('click',async()=>{try{await auth.signIn({scope:'openid email profile offline_access'});await mountDesktopAuth()}catch(e){showStandalone(apiError(e))}});return}try{const result=(await api.post('/api/desktop/approve',{requestId,secret})).data as {device?:{name?:string}};(root().innerHTML=`<section class="auth-page"><div class="auth-card"><small>Obra na Mão Desktop</small><h2>Computador autorizado</h2><p>${esc(result.device?.name||'Este computador')} foi vinculado à sua conta. Você já pode voltar ao aplicativo.</p><div class="card notice"><b>✓</b><div><strong>Autorização concluída</strong><div class="meta">Nenhuma senha Google é armazenada no Desktop.</div></div></div></div></section>`, document.dispatchEvent(new CustomEvent('field:rendered')))}catch(e){(root().innerHTML=`<section class="auth-page"><div class="auth-card"><h2>Não foi possível autorizar</h2><p>${esc(apiError(e))}</p><button id="desktopRetry" class="btn">Tentar novamente</button></div></section>`, document.dispatchEvent(new CustomEvent('field:rendered')));document.getElementById('desktopRetry')?.addEventListener('click',()=>void mountDesktopAuth())}}
 function showStandalone(text:string){let el=document.getElementById('toast');if(!el){el=document.createElement('div');el.id='toast';el.className='toast';document.body.appendChild(el)}el.textContent=text;el.classList.add('show');setTimeout(()=>el?.classList.remove('show'),2600)}
 
 async function fetchBootstrap():Promise<Bootstrap>{return phoneMode()?(await api.post('/api/phone/bootstrap',{token:phoneToken()})).data as Bootstrap:(await api.get('/api/bootstrap')).data as Bootstrap}
@@ -201,13 +204,70 @@ function activateRoleUI(role:Role){
   document.addEventListener('click',e=>{if(role==='admin')return;const t=e.target as Element|null;if(!t)return;const forbidden=t.closest('[data-screen="settings"],[data-screen="more"],[data-screen="issues"],[data-screen="management"],#newPlan,#newSession,[data-field-action],.plan-delete,.plan-start,#compensate,.session-actions');if(forbidden){e.preventDefault();e.stopImmediatePropagation();showStandalone('Acesso não permitido para este perfil.')}},true);
 }
 
-async function loadSharedApp(b:Bootstrap){document.body.classList.add('field-shell-active');const role=b.role as Role;const response=await fieldProject();const remote=(response.data as {state:ProjectState}).state;configureSharedContext(role,b,remote);const pending=fieldSync?.read();await writeLocalState((pending?.state||remote) as ProjectState);if(pending)void fieldSync?.flush();window.mobileReadOnlySummary=null;window.mobileSyncConflicts=[];window.mobileRdoReceipts={};
-  const catalogProject=String(b.membership?.projectId||b.project?.id||'');
+async function loadSharedApp(b:Bootstrap){
+  document.body.classList.add('field-shell-active');
+  const role=b.role as Role;
+  // The canonical project is required before rendering. Secondary summaries,
+  // RDO receipts and catalogues are not dependencies of the first usable screen.
+  const response=await fieldProject();
+  const remote=(response.data as {state:ProjectState}).state;
+  configureSharedContext(role,b,remote);
+  const pending=fieldSync?.read();
+  const initialState=(pending?.state||remote) as ProjectState;
+  if(window.multiuserContext)window.multiuserContext.projectState=initialState;
+  // IndexedDB is a migration/offline convenience, not the live source for Field.
+  void writeLocalState(initialState);
+  if(pending)void fieldSync?.flush();
+  window.mobileReadOnlySummary=null;
+  window.mobileSyncConflicts=[];
+  window.mobileRdoReceipts={};
+  const projectId=String(b.membership?.projectId||b.project?.id||'');
   window.mobileRdoCatalog=null;
-  try{if(catalogProject)window.mobileRdoCatalog=JSON.parse(localStorage.getItem('obra-rdo-catalog:'+catalogProject)||'null')}catch{}
-  try{await window.multiuserRefreshReceipts?.()}catch{}
-  try{await window.multiuserRefreshCatalog?.()}catch{}if(role==='admin'){try{window.mobileReadOnlySummary=((await api.get('/api/mobile/summary')).data as {summary:any}).summary}catch{}try{window.mobileSyncConflicts=((await api.get('/api/mobile/sync/conflicts')).data as {conflicts:any[]}).conflicts||[]}catch{}}setHeader(role,true,pending?'pending':'idle');nav().style.display='grid';activateRoleUI(role);const fieldModule='/field.js?v=20260903-premium-1';await import(/* @vite-ignore */ fieldModule)}
-async function loadManagementOnly(b:Bootstrap){document.body.classList.add('field-shell-active');nav().style.display='none';if(b.role!=='admin'){setHeader(b.role,true);(root().innerHTML=messageCard('Sem operação mobile','Seu perfil não possui Obra360 e os painéis administrativos móveis são exclusivos do Admin.'), document.dispatchEvent(new CustomEvent('field:rendered')));return}setHeader('admin',true);try{const data=(await api.get('/api/mobile/summary')).data as {summary:any};renderManagementDashboard(root(),data.summary||{},b.access||{},'Gestão')}catch(e){(root().innerHTML=messageCard('Gestão mobile',apiError(e)), document.dispatchEvent(new CustomEvent('field:rendered')))}}
+  try{if(projectId)window.mobileRdoCatalog=JSON.parse(localStorage.getItem('obra-rdo-catalog:'+projectId)||'null')}catch{}
+  setHeader(role,true,pending?'pending':'idle');
+  nav().style.display='grid';
+  activateRoleUI(role);
+  const fieldModule='/field.js?v=20260903-premium-1';
+  await import(/* @vite-ignore */ fieldModule);
+
+  // Refresh only the active screen after each independent request completes.
+  // A failed optional endpoint must not block Dias, RDO or navigation.
+  const hydrate=(resource:'receipts'|'catalog'|'summary'|'conflicts',request:Promise<unknown>)=>{
+    void request.then(()=>document.dispatchEvent(new CustomEvent('field:aux-data-ready',{detail:{resource}}))).catch(()=>{});
+  };
+  if(window.multiuserRefreshReceipts)hydrate('receipts',window.multiuserRefreshReceipts());
+  if(projectId&&window.multiuserRefreshCatalog)hydrate('catalog',window.multiuserRefreshCatalog());
+  if(role==='admin'){
+    hydrate('summary',api.get('/api/mobile/summary').then(({data})=>{window.mobileReadOnlySummary=(data as {summary:any}).summary}));
+    hydrate('conflicts',api.get('/api/mobile/sync/conflicts').then(({data})=>{window.mobileSyncConflicts=(data as {conflicts:any[]}).conflicts||[]}));
+  }
+}
+async function loadManagementOnly(b:Bootstrap){
+  document.body.classList.add('field-shell-active');
+  nav().style.display='none';
+  if(b.role!=='admin'){
+    setHeader(b.role,true);
+    root().innerHTML=messageCard('Sem operação mobile','Seu perfil não possui Obra360 e os painéis administrativos móveis são exclusivos do Admin.');
+    document.dispatchEvent(new CustomEvent('field:rendered'));
+    return;
+  }
+  setHeader('admin',true);
+  // Show the complete authorized page geometry immediately. The remote summary
+  // is allowed to resolve later without flashing an empty or legacy layout.
+  renderManagementDashboard(root(),{},b.access||{},'Gestão',true);
+  try{
+    const data=(await api.get('/api/mobile/summary')).data as {summary:any};
+    renderManagementDashboard(root(),data.summary||{},b.access||{},'Gestão');
+  }catch(e){
+    renderManagementDashboard(root(),{},b.access||{},'Gestão');
+    const details=root().querySelector('.management-details');
+    if(details){
+      details.innerHTML=`<div class="card management-load-error" role="alert"><strong>Não foi possível carregar os indicadores.</strong><p>${esc(apiError(e))}</p><button type="button" class="btn" id="retryManagementSummary">Tentar novamente</button></div>`;
+      details.querySelector('#retryManagementSummary')?.addEventListener('click',()=>void loadManagementOnly(b));
+    }
+  }
+}
+
 
 function injectAdminSettings(){if(window.multiuserContext?.role!=='admin')return;const content=root();if(document.getElementById('multiuserAdminCard'))return;const section=document.createElement('section'),owner=activeBootstrap?.isOwner===true;section.id='multiuserAdminCard';section.className='card settings-card';section.innerHTML=`<div class="section-head"><div><strong>Usuários</strong><p>Administre quem acessa esta obra e o que cada perfil pode fazer.</p></div></div><button id="openUsersBtn" class="btn">Gerenciar usuários</button><div class="meta">Admin: tudo · Encarregado: operação e presença · Funcionário: somente suas tarefas.</div>${owner?'<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:16px"><strong>Comercial FLUXODRE</strong><div class="meta">Área exclusiva do proprietário para vendas e licenças.</div><button id="openOwnerPortalBtn" class="linkbtn" style="width:100%;margin-top:10px">Central Artisys · Empresas clientes</button></div>':''}`;content.appendChild(section);section.querySelector('#openUsersBtn')?.addEventListener('click',openUsers);section.querySelector('#openOwnerPortalBtn')?.addEventListener('click',openOwnerPortal)}
 async function openUsers(){if(window.multiuserContext?.role!=='admin')return showStandalone('Acesso não permitido para este perfil.');const dlg=document.getElementById('sheet') as HTMLDialogElement;(dlg.innerHTML='<div class="sheet"><div class="sheet-head"><div><h2>Usuários</h2><div class="meta">Carregando acessos...</div></div><button class="close">×</button></div></div>', document.dispatchEvent(new CustomEvent('field:sheet-rendered')));dlg.showModal();dlg.querySelector('.close')?.addEventListener('click',()=>dlg.close());try{const [{data},local]=await Promise.all([api.get('/api/members'),readLocalState()]);const members=(data as {members:Member[]}).members||[],employees=(local?.employees||[]) as Array<Record<string,unknown>>;(dlg.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Usuários</h2><div class="meta">Acessos desta obra</div></div><button class="close">×</button></div><div class="members-list">${members.map(m=>`<div class="card member-row"><div><strong>${esc(m.email)}</strong><div class="meta">${roleLabel(m.role)}${m.employeeId?` · ${esc(String(employees.find(e=>e.id===m.employeeId)?.name||m.employeeId))}`:''} · ${m.userId?'Ativo':`Aguardando login · Código ${esc(m.joinCode||'—')}`}</div></div></div>`).join('')}</div><div class="form member-form"><label>Email<input id="memberEmail" type="email" placeholder="nome@empresa.com"></label><label>Papel<select id="memberRole"><option value="employee">Funcionário</option><option value="foreman">Encarregado</option><option value="admin">Admin</option></select></label><label id="employeeLinkLabel">Vincular ao funcionário<select id="memberEmployee"><option value="">Selecione</option>${employees.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('')}</select></label></div><button id="saveMemberBtn" class="btn">Salvar acesso</button></div>`, document.dispatchEvent(new CustomEvent('field:sheet-rendered')));dlg.querySelector('.close')?.addEventListener('click',()=>dlg.close());const role=dlg.querySelector('#memberRole') as HTMLSelectElement,link=dlg.querySelector('#employeeLinkLabel') as HTMLElement;const toggle=()=>{link.style.display=role.value==='employee'?'block':'none'};role.addEventListener('change',toggle);toggle();dlg.querySelector('#saveMemberBtn')?.addEventListener('click',async()=>{const email=(dlg.querySelector('#memberEmail') as HTMLInputElement).value.trim(),r=role.value as Role,employeeId=(dlg.querySelector('#memberEmployee') as HTMLSelectElement).value||undefined;try{await api.post('/api/members',{email,role:r,employeeId});showStandalone('Acesso salvo.');await openUsers()}catch(e){showStandalone(apiError(e))}})}catch(e){showStandalone(apiError(e))}}
@@ -215,9 +275,20 @@ async function openUsers(){if(window.multiuserContext?.role!=='admin')return sho
 function renderWorker(b:Bootstrap,tasks:Task[],employee:{name?:string},project:{name?:string}){nav().style.display='none';configureSharedContext('employee',b);setHeader('employee',true);const today=localISODate(),todayTasks=tasks.filter(t=>t.date===today),next=tasks.filter(t=>t.date!==today);const cards=(arr:Task[])=>arr.length?arr.map(t=>`<div class="card task-card"><div class="row"><div><strong>${esc(serviceLabel(t.service))} · ${floorLabel(Number(t.floor))}</strong><div class="meta">${dateBR(t.date)} · ${esc(t.startTime||'07:30')}</div>${t.note?`<div class="meta">${esc(t.note)}</div>`:''}</div><span class="badge released">Atribuição</span></div></div>`).join(''):'<div class="empty card">Nenhuma atribuição.</div>';(root().innerHTML=`<div class="worker-head"><small>${esc(project.name||'Obra')}</small><h2>Olá, ${esc(employee.name||'')}</h2><p>Estas são somente as suas atribuições.</p></div><section class="section"><div class="section-head"><div><h2>Hoje</h2><p>${dateBR(today)} · início padrão 07:30</p></div></div>${cards(todayTasks)}</section><section class="section"><div class="section-head"><div><h2>Minha semana</h2><p>Próximos dias</p></div></div>${cards(next)}</section>`, document.dispatchEvent(new CustomEvent('field:rendered')))}
 async function loadWorker(b:Bootstrap){try{const data=(await api.get('/api/my-tasks',{today:localISODate()})).data as {tasks:Task[];employee:{name?:string};project:{name?:string}};renderWorker(b,data.tasks||[],data.employee||{},data.project||{})}catch(e){(root().innerHTML=messageCard('Acesso do funcionário',apiError(e)), document.dispatchEvent(new CustomEvent('field:rendered')));setHeader('employee',true)}}
 
-async function start(mode:AppMode=routeMode()){const phone=!!phoneToken();const user=await auth.getUser();if(!user&&!phone){renderLogin();return}try{
-  if(user){try{const {data:central}=await api.get<{role:string}>('/api/central/access');if(central.role==='debora'){location.replace('./sistema.html#owner');return}}catch{/* Standard Obra users continue with bootstrap. */}}
-  let b=await fetchBootstrap();const activation=location.hash.startsWith('#activate=')?location.hash.slice(10).trim().toUpperCase():'';if(b.needsClaim&&activation){try{await api.post('/api/license/claim',{code:activation});history.replaceState(null,'',location.pathname);b=await fetchBootstrap()}catch(e){showStandalone(apiError(e))}}activeBootstrap=b;setProjectIdentity(b);if(b.needsClaim){renderClaim(b);return}if(!b.access?.channels?.includes('mobile')){nav().style.display='none';(root().innerHTML=messageCard('Mobile não contratado','Esta conta não possui acesso ao FLUXODRE Mobile/PWA.'), document.dispatchEvent(new CustomEvent('field:rendered')));return}if(mode==='gestao'){await loadManagementOnly(b);return}if(!b.access?.modules?.includes('obra360')){await loadManagementOnly(b);return}if(!b.projectInitialized){if(b.role==='admin')await renderMigration(b);else{nav().style.display='none';setHeader(b.role,true);(root().innerHTML=messageCard('Obra em preparação','O Admin ainda precisa migrar ou inicializar os dados desta obra.'), document.dispatchEvent(new CustomEvent('field:rendered')))}return}if(b.role==='employee'){await loadWorker(b);return}await loadSharedApp(b)}catch(e){nav().style.display='none';(root().innerHTML=`<section class="auth-page"><div class="auth-card"><h2>Não foi possível carregar a obra</h2><p>${esc(apiError(e))}</p><button id="retryBtn" class="btn">Tentar novamente</button><button id="logoutBtn" class="linkbtn">Sair</button></div></section>`, document.dispatchEvent(new CustomEvent('field:rendered')));document.getElementById('retryBtn')?.addEventListener('click',start);document.getElementById('logoutBtn')?.addEventListener('click',async()=>{await signOutCurrent();location.reload()})}}
+async function start(mode:AppMode=routeMode()){const phone=!!phoneToken();
+  // For a known signed-in session, overlap identity and Central gate. Keep Obra
+  // bootstrap behind the gate: lactation-only accounts must not request Obra data.
+  const centralRequest=auth.isSignedIn()?api.get<{role:string}>('/api/central/access').catch(()=>null):null;
+  const user=await auth.getUser();if(!user&&!phone){renderLogin();return}try{
+  let b:Bootstrap;
+  if(user){
+    const central=centralRequest?await centralRequest:await api.get<{role:string}>('/api/central/access').catch(()=>null);
+    if(central?.data.role==='debora'){location.replace('./sistema.html#owner');return}
+    b=await fetchBootstrap();
+  }else{
+    b=await fetchBootstrap();
+  }
+  const activation=location.hash.startsWith('#activate=')?location.hash.slice(10).trim().toUpperCase():'';if(b.needsClaim&&activation){try{await api.post('/api/license/claim',{code:activation});history.replaceState(null,'',location.pathname);b=await fetchBootstrap()}catch(e){showStandalone(apiError(e))}}activeBootstrap=b;setProjectIdentity(b);if(b.needsClaim){renderClaim(b);return}if(!b.access?.channels?.includes('mobile')){nav().style.display='none';(root().innerHTML=messageCard('Mobile não contratado','Esta conta não possui acesso ao Obra na Mão Web/PWA.'), document.dispatchEvent(new CustomEvent('field:rendered')));return}if(mode==='gestao'){await loadManagementOnly(b);return}if(!b.access?.modules?.includes('obra360')){await loadManagementOnly(b);return}if(!b.projectInitialized){if(b.role==='admin')await renderMigration(b);else{nav().style.display='none';setHeader(b.role,true);(root().innerHTML=messageCard('Obra em preparação','O Admin ainda precisa migrar ou inicializar os dados desta obra.'), document.dispatchEvent(new CustomEvent('field:rendered')))}return}if(b.role==='employee'){await loadWorker(b);return}await loadSharedApp(b)}catch(e){nav().style.display='none';(root().innerHTML=`<section class="auth-page"><div class="auth-card"><h2>Não foi possível carregar a obra</h2><p>${esc(apiError(e))}</p><button id="retryBtn" class="btn">Tentar novamente</button><button id="logoutBtn" class="linkbtn">Sair</button></div></section>`, document.dispatchEvent(new CustomEvent('field:rendered')));document.getElementById('retryBtn')?.addEventListener('click',start);document.getElementById('logoutBtn')?.addEventListener('click',async()=>{await signOutCurrent();location.reload()})}}
 
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}));
 if(['#planos','#checkout','#assinatura','#plano-cobranca'].some(route=>location.hash.startsWith(route))){void import('./billing').then(m=>m.mountBillingRoute())}else if(location.hash.startsWith('#universidade')){void import('./university').then(m=>m.mountUniversity())}else if(location.hash==='#finance'){location.hash='#portal';void import('./portal').then(m=>m.mountMhPortal())}else if(location.hash==='#owner'){void import('./owner').then(m=>m.mountOwnerPortal())}else if(location.hash==='#desktop-bridge'){nav().style.display='none';setHeader();(root().innerHTML=messageCard('Obra na Mão Desktop','Ponte de sincronização ativa.'), document.dispatchEvent(new CustomEvent('field:rendered')))}else if(location.hash.startsWith('#desktop-auth=')){void mountDesktopAuth()}else if(location.hash.startsWith('#activate=')){void start('obra')}else if(location.hash.startsWith('#gestao')){void start('gestao')}else if(location.hash.startsWith('#obra')){void start('obra')}else{void import('./portal').then(m=>m.mountMhPortal())}

@@ -118,3 +118,43 @@
 .cp-passkey-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #c0d2dc;border-radius:8px;padding:12px;font-size:14px}
 .cp-passkey-row button{background:transparent;border:0;color:#ad3434;min-height:44px;padding:6px 8px}
 .cp-passkey-close{width:100%}
+
+/* P0: stable branded handoff while corporate session and permissions load. */
+.cp-startup{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px 24px;text-align:center;background:#e2e9ee;color:#102d49}
+.cp-startup-mark{font-size:26px;font-weight:800;letter-spacing:-.04em}
+.cp-startup-spinner{width:32px;height:32px;border:3px solid #b7c9d7;border-top-color:#007b8a;border-radius:50%;animation:cp-startup-spin .8s linear infinite}
+.cp-startup p{font-size:14px;color:#40586b}
+@keyframes cp-startup-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.cp-startup-spinner{animation:none;border-top-color:#007b8a}}
+
+
+/* P1: reserve authorized overview measurements before asynchronous updates. */
+.mh-portal-body{padding:env(safe-area-inset-top, 0px) 0 0}
+#portalOverview:not(:empty){min-height:300px;min-width:0}
+.cp-overview-skeleton{min-height:260px}
+.cp-overview-skeleton .cp-metrics{min-height:160px;align-items:stretch}
+.cp-overview-skeleton .cp-metrics>div{min-height:128px}
+.cp-skeleton-line,.cp-skeleton-value{display:block;border-radius:6px;background:#dce6ed}
+.cp-skeleton-line{height:13px;width:min(100%,110px)}
+.cp-skeleton-value{height:25px;width:min(100%,154px);margin-top:13px}
+.cp-overview-skeleton .cp-metrics strong{font-size:0}
+.cp-dashboard{min-height:50svh}
+@media(max-width:719px){
+  .cp-dashboard{padding-bottom:calc(118px + env(safe-area-inset-bottom, 0px))}
+  .cp-bottom-nav{padding-bottom:calc(9px + env(safe-area-inset-bottom, 0px))}
+  .cp-bottom-nav a,.cp-bottom-nav button{min-height:48px;min-width:56px}
+  #portalOverview:not(:empty){min-height:310px}
+}
+@media(prefers-reduced-motion:reduce){
+  .cp-overview-skeleton *{transition:none!important}
+}
+
+
+/* P2: use one visual product identity on login, portal and startup. */
+.cp-login-brand{display:flex;align-items:center;justify-content:center}
+.cp-login-wordmark{font-size:clamp(28px,7vw,44px);font-weight:800;letter-spacing:-.055em;line-height:1.15;text-align:center;color:#0a2e51}
+.cp-login-wordmark span{color:#087a89}
+.cp-snapshot-status{padding:9px 12px;margin:0 0 11px!important;font-size:12px;line-height:1.4;color:#37536b;background:#edf3f6;border:1px solid #c5d3dc;border-radius:9px;overflow-wrap:anywhere}
+.cp-snapshot-status.is-stale{color:#865016;background:#fff5e5;border-color:#efce95}
+.cp-snapshot-placeholder{color:transparent;background:#e0e9f0;border-color:transparent;min-height:38px}
+.cp-wordmark{overflow-wrap:anywhere;white-space:normal;line-height:1.05}

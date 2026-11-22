@@ -3,7 +3,7 @@
   const sheet=document.getElementById('sheet');
   if(!content)return;
   const glyphs=['◎','✓','↗','◫'];
-  const backHref='./index.html#portal';
+  const backHref='./sistema.html#portal';
   const internalSurfaces=['floors','floor-detail','issues','planning','settings'];
   let lastPrimary='obra360';
 
@@ -31,18 +31,6 @@
     actions.classList.add('day-focus-actions');
     actions.querySelectorAll('[data-screen="more"],[data-screen="settings"]').forEach(button=>button.remove());
   }
-  function shiftSecondaryActionsToObra360(actions){
-    if(!actions)return;
-    const dayButton=actions.querySelector(':scope > .quick-action[data-screen="today"]');
-    if(dayButton){
-      dayButton.dataset.screen='settings';
-      const title=dayButton.querySelector(':scope > strong');
-      const meta=dayButton.querySelector(':scope > span');
-      if(title)title.textContent='Configurações';
-      if(meta)meta.textContent='Checklists e horários';
-    }
-  }
-
   function cleanText(value){return String(value||'').replace(/\s+/g,' ').trim()}
   function firstHeading(){return cleanText(content.querySelector(':scope > .section-head h2,:scope > h2,:scope > .section-head strong')?.textContent)}
   function detectInternalSurface(){
@@ -140,7 +128,6 @@
       if(hero){hero.classList.add('field-hero','obra360-hero');ensureBack(hero)}
       const actions=content.querySelector(':scope > .quick-actions');
       if(actions){
-        shiftSecondaryActionsToObra360(actions);
         actions.classList.add('obra360-actions');
         normalizeQuickActions(actions);
       }
@@ -157,7 +144,8 @@
 
     if(internal)enhanceInternalSurface(internal);
     enhanceSheet();
-    if(content.childElementCount>0)document.body.classList.remove('field-booting');
+    content.classList.remove('field-screen-staging');
+    if(content.querySelector(':scope > :not(.field-startup)'))document.body.classList.remove('field-booting');
   }
 
   window.fieldLifecycle?.register({screen:enhance,sheet:enhanceSheet});

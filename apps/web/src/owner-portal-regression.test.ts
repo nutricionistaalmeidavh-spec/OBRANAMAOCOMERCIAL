@@ -6,10 +6,15 @@ const webRoot=resolve(import.meta.dirname,'..');
 const read=(path:string)=>readFile(resolve(webRoot,path),'utf8');
 
 describe('owner portal boot and reserved tenant access',()=>{
-  it('unmasks the lazy portal and owner routes instead of leaving a white screen',async()=>{
-    const enhancer=await read('public/field-premium-access.js');
-    expect(enhancer).toContain("location.hash==='#owner'||location.hash==='#portal'");
-    expect(enhancer).toContain("classList.remove('field-booting')");
+  it('keeps the owner route accessible and renders an explicit portal loading state instead of the legacy shell',async()=>{
+    const [enhancer,html,style]=await Promise.all([
+      read('public/field-premium-access.js'),
+      read('sistema.html'),
+      read('public/field-premium-v2.css')
+    ]);
+    expect(enhancer).toContain("if(location.hash==='#owner')document.body.classList.remove('field-booting')");
+    expect(html).toContain('class="field-startup"');
+    expect(style).toContain('body.field-booting main{visibility:visible}');
   });
 
   it('does not use the document shell as fallback for failed JS requests',async()=>{
