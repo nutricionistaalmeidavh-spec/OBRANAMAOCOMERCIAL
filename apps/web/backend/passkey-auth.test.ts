@@ -12,6 +12,7 @@ class TestDB {
   db=new DatabaseSync(':memory:');
   constructor(){
     this.db.exec('CREATE TABLE auth_sessions(id TEXT PRIMARY KEY,user_id TEXT,email TEXT,name TEXT,expires_at TEXT,created_at TEXT)');
+    this.db.exec('CREATE TABLE kv_records(collection TEXT,id TEXT,record_json TEXT,created_at TEXT,updated_at TEXT,PRIMARY KEY(collection,id))');
     this.db.prepare('INSERT INTO auth_sessions VALUES(?,?,?,?,?,?)').run('session-1','google-user-123','admin@example.com','Admin','2099-01-01T00:00:00Z','2026');
   }
   prepare(sql:string){
