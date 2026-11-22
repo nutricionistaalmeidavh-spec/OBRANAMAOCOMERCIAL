@@ -161,7 +161,6 @@ dialog#sheet:has(.premium-sheet){padding:0;border:0;background:transparent;box-s
 /* P0 video fixes: prevent overlapping cards and keep the RDO completion action
    reachable above the fixed tab bar and Safari bottom inset. */
 body.field-shell-active .shell{padding-bottom:calc(132px + env(safe-area-inset-bottom))}
-body.field-shell-active .nav{bottom:calc(6px + env(safe-area-inset-bottom))}
 body.field-shell-active .quick-actions>*,
 body.field-shell-active .management-grid>*,
 body.field-shell-active .management-kpis>*,
