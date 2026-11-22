@@ -115,16 +115,23 @@ describe('Commercial login and overview DOM flows', () => {
     await pending;
     expect(document.querySelector('h1')?.textContent).toBe('Acesse sua operação');
   });
-  it('begins bootstrap without waiting for the optional central-access lookup', async () => {
+  it('overlaps identity and Central access but gates Obra bootstrap until the product check completes', async () => {
+    let finishUser!:(value:unknown)=>void;
     let finishCentral!:(value:unknown)=>void;
-    client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
+    client.isSignedIn.mockReturnValue(true);
+    client.getUser.mockImplementation(()=>new Promise(resolve=>{finishUser=resolve}));
     client.get.mockImplementation(path=>path==='/api/central/access'
       ?new Promise(resolve=>{finishCentral=resolve})
       :Promise.resolve({data:bootstrap('employee')}));
     const pending=mountMhPortal();
-    await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/bootstrap'));
+    expect(client.get).toHaveBeenCalledWith('/api/central/access');
+    expect(client.get.mock.calls.map(call=>call[0])).not.toContain('/api/bootstrap');
+    finishUser({name:'Pessoa Teste',email:'person@example.test'});
+    await Promise.resolve();
+    expect(client.get.mock.calls.map(call=>call[0])).not.toContain('/api/bootstrap');
     finishCentral({data:{role:'regular'}});
     await pending;
+    expect(client.get).toHaveBeenCalledWith('/api/bootstrap');
     expect(document.querySelector('h1')?.textContent).toBe('Visão geral');
   });
 });
