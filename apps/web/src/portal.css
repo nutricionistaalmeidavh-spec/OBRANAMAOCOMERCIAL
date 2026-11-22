@@ -105,3 +105,16 @@
 @media(prefers-reduced-motion:reduce){.mh-portal-body *{scroll-behavior:auto!important;transition:none!important}}
 
 .mh-portal-body .cp-version{font-size:11px;color:#586c7e;margin-left:7px;white-space:nowrap}
+
+/* WebAuthn activation/login: mobile first, no extra overlays during native OS prompts. */
+.cp-passkey-login{margin-top:12px;border-color:#88adba;background:#e3f0f3;color:#0c3155}
+.cp-passkey-login:hover{background:#d4e9ee}
+.cp-passkey-login[hidden]{display:none}
+.cp-passkey-dialog{width:min(460px,calc(100vw - 32px));max-height:80dvh;overflow:auto;border:1px solid #b7c9d7;border-radius:14px;background:#f1f5f7;color:#102d49;padding:22px;box-shadow:0 20px 80px #102d4966}
+.cp-passkey-dialog::backdrop{background:rgba(10,30,48,.65)}
+.cp-passkey-dialog h2{font-size:20px;margin:0 0 8px}
+.cp-passkey-dialog p{font-size:14px;margin:0 0 18px;color:#40586b}
+.cp-passkey-list{display:grid;gap:8px;margin-bottom:14px}
+.cp-passkey-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #c0d2dc;border-radius:8px;padding:12px;font-size:14px}
+.cp-passkey-row button{background:transparent;border:0;color:#ad3434;min-height:44px;padding:6px 8px}
+.cp-passkey-close{width:100%}
