@@ -63,7 +63,9 @@ async function googleSignIn(){
   const config=(await api.get<{googleClientId:string}>('/api/auth/config')).data;
   const clientId=String(config.googleClientId||'').trim();
   if(!clientId)throw new Error('Login Google não configurado.');
-  return new Promise<void>((resolve,reject)=>{
+  // Success reloads the app; failures and cancellation reject so the UI can recover.
+  // Preserve the never-resolving success contract expected by the existing owner/University flows.
+  return new Promise<never>((_resolve,reject)=>{
     let finished=false;
     let fallbackTimer:number|undefined;
     const finish=(failure?:unknown)=>{
@@ -72,7 +74,6 @@ async function googleSignIn(){
       if(fallbackTimer!==undefined)window.clearTimeout(fallbackTimer);
       removeGoogleChooser();
       if(failure)reject(failure);
-      else resolve();
     };
     const cancel=()=>finish(new Error('O acesso pelo Google foi cancelado. Tente novamente.'));
     const fallback=()=>{
