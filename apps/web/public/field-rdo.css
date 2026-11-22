@@ -29,3 +29,10 @@
  .rdo-step .linkbtn{grid-column:2 / 4;width:100%;min-height:36px;margin-top:2px;text-align:center}
 }
 @media(prefers-reduced-motion:reduce){.rdo-checklist .rdo-progress i{transition:none}}
+
+/* P0: RDO close/review must not be hidden by the bottom navigation on iOS. */
+.rdo-checklist{min-width:0}
+.rdo-checklist .rdo-step-body{overflow-wrap:anywhere}
+.rdo-checklist .rdo-step .linkbtn{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.rdo-checklist-actions{padding-bottom:10px}
+.rdo-checklist-actions #reviewRdo{display:block;width:100%;min-height:48px;white-space:normal}
