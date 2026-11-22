@@ -37,6 +37,31 @@ describe('Commercial login and overview DOM flows', () => {
     byId<HTMLButtonElement>('togglePassword').click();expect(byId<HTMLInputElement>('phonePassword').type).toBe('password');
     expect(document.querySelector<HTMLAnchorElement>('.cp-login-switch')?.getAttribute('href')).toContain('#portal');
   });
+  it('enters the portal after Google login without a full-page reload', async () => {
+    await mountMhPortal();
+    expect(document.querySelector('h1')?.textContent).toBe('Acesse sua operação');
+    client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
+    client.get.mockImplementation(async path => ({data:path==='/api/bootstrap'?bootstrap('employee'):{role:'user'}}));
+    const handled=window.dispatchEvent(new Event('obn:authenticated',{cancelable:true}));
+    expect(handled).toBe(false);
+    await vi.waitFor(()=>expect(document.querySelector('h1')?.textContent).toBe('Visão geral'));
+    expect(document.querySelector('[data-resource="obra"]')).not.toBeNull();
+  });
+  it('keeps a loading panel instead of the obsolete login while bootstrap is pending', async () => {
+    client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
+    let release!:(data:unknown)=>void;
+    client.get.mockImplementation(path=>path==='/api/bootstrap'
+      ?new Promise(resolve=>{release=resolve})
+      :Promise.resolve({data:{role:'user'}}));
+    const pending=mountMhPortal();
+    await vi.waitFor(()=>expect(document.querySelector('.cp-loading-screen')).not.toBeNull());
+    expect(document.querySelector('#googleLogin')).toBeNull();
+    await vi.waitFor(()=>expect(release).toBeTypeOf('function'));
+    release({data:bootstrap('employee')});
+    await pending;
+    expect(document.querySelector('.cp-loading-screen')).toBeNull();
+    expect(document.querySelector('h1')?.textContent).toBe('Visão geral');
+  });
   it('recovers a valid server session when the readable auth hint is missing', async () => {
     client.isSignedIn.mockReturnValue(false);
     client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
@@ -58,6 +83,7 @@ describe('Commercial login and overview DOM flows', () => {
     expect(document.querySelector('[data-resource="universidade"]')).not.toBeNull();
     expect(document.body.textContent).not.toContain('Resumo da gestão');
     expect(client.get.mock.calls.map(call=>call[0])).toEqual(['/api/central/access','/api/bootstrap']);
+    expect(client.getUser).toHaveBeenCalledTimes(1);
   });
   it('shows real authorized aggregates and clears them immediately on logout', async () => {
     client.isSignedIn.mockReturnValue(true);

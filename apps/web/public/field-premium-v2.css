@@ -1,6 +1,15 @@
 /* Premium mobile field surfaces — 2026-09-03
    Loaded after field.css so it can safely repair/extend every field surface. */
 
+/* Stable first paint across portal, Gestão and Obra360 while session checks finish. */
+.field-loading{display:none}
+body.field-booting .field-loading{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;background:linear-gradient(180deg,#f7f9fd,#edf3fa);color:#102d49}
+.field-loading-mark{width:42px;height:42px;border:4px solid #d5e2f0;border-top-color:#1e60e9;border-radius:50%;animation:field-loading-spin .9s linear infinite}
+.field-loading strong{font-size:18px;line-height:1.3}
+.field-loading span:last-child{font-size:13px;color:#5b6a82}
+@keyframes field-loading-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.field-loading-mark{animation:none;border-top-color:#1e60e9}}
+
 /* Never paint the legacy static shell while auth/bootstrap/field state are loading. */
 body.field-booting{background:#f7f9fd}
 body.field-booting .top{visibility:hidden}
@@ -150,3 +159,12 @@ dialog#sheet:has(.premium-sheet){padding:0;border:0;background:transparent;box-s
 .conflict-diff-row{border-top:1px solid var(--line);font-size:12px}
 .conflict-diff-row span{overflow-wrap:anywhere}
 @media(max-width:520px){.conflict-diff-head,.conflict-diff-row{grid-template-columns:1fr}.conflict-diff-head span:first-child{display:none}.conflict-diff-row strong{padding-bottom:3px}.conflict-diff-row span::before{display:block;font-size:10px;font-weight:700;text-transform:uppercase;opacity:.62}.conflict-diff-row span:nth-child(2)::before{content:'Obra360'}.conflict-diff-row span:nth-child(3)::before{content:'Computador'}}
+
+/* Keep the final RDO action reachable above the iOS home indicator and bottom tabs. */
+body.field-shell-active #content{padding-bottom:calc(132px + env(safe-area-inset-bottom))}
+body.field-shell-active .nav{bottom:calc(6px + env(safe-area-inset-bottom));padding-bottom:7px}
+body.field-shell-active .quick-action-copy,
+body.field-shell-active .quick-action-copy strong,
+body.field-shell-active .quick-action-copy span,
+body.field-shell-active .management-summary-card,
+body.field-shell-active .management-summary-card strong{min-width:0;overflow-wrap:anywhere}

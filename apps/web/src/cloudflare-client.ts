@@ -57,8 +57,9 @@ function showGoogleButton(){
 }
 
 async function googleSignIn(){
-  await loadGoogleIdentity();
-  const config=(await api.get<{googleClientId:string}>('/api/auth/config')).data;
+  // Fetch configuration while the Google SDK loads; neither depends on the other.
+  const [,configResponse]=await Promise.all([loadGoogleIdentity(),api.get<{googleClientId:string}>('/api/auth/config')]);
+  const config=configResponse.data;
   const clientId=String(config.googleClientId||'').trim();
   if(!clientId)throw new Error('Login Google não configurado.');
   window.google!.accounts.id.initialize({
@@ -71,7 +72,9 @@ async function googleSignIn(){
         if(!credential)throw new Error('O Google não retornou a credencial.');
         await api.post('/api/auth/google-credential',{credential});
         removeGoogleChooser();
-        location.reload();
+        // Mounted login surfaces can enter the authenticated app without another full-page paint.
+        const handled=new Event('obn:authenticated',{cancelable:true});
+        if(window.dispatchEvent(handled))location.reload();
       }catch(error){removeGoogleChooser();console.error(error);alert((error as Error)?.message||'Não foi possível concluir o login Google.');}
     }
   });
@@ -86,18 +89,24 @@ async function googleSignIn(){
 }
 
 let verifiedWebSession:boolean|null=null;
+let verificationInFlight:Promise<{userId:string;email?:string;name?:string}|null>|null=null;
 function authHint(){return document.cookie.split(';').some(x=>x.trim()==='obn_auth=1')}
 function clearAuthHint(){document.cookie='obn_auth=; Path=/; Secure; SameSite=Lax; Max-Age=0'}
 async function currentUser(){
-  try{
-    const user=(await api.get<{user:{userId:string;email?:string;name?:string}}>('/api/auth/me')).data.user;
-    verifiedWebSession=true;
-    return user;
-  }catch{
-    verifiedWebSession=false;
-    clearAuthHint();
-    return null;
-  }
+  // Share concurrent validations without persisting permissions or trusting a stale client cache.
+  if(verificationInFlight)return verificationInFlight;
+  verificationInFlight=(async()=>{
+    try{
+      const user=(await api.get<{user:{userId:string;email?:string;name?:string}}>('/api/auth/me')).data.user;
+      verifiedWebSession=true;
+      return user;
+    }catch{
+      verifiedWebSession=false;
+      clearAuthHint();
+      return null;
+    }
+  })();
+  try{return await verificationInFlight}finally{verificationInFlight=null}
 }
 
 export const auth={
