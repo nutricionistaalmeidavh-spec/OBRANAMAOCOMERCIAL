@@ -31,18 +31,6 @@
     actions.classList.add('day-focus-actions');
     actions.querySelectorAll('[data-screen="more"],[data-screen="settings"]').forEach(button=>button.remove());
   }
-  function shiftSecondaryActionsToObra360(actions){
-    if(!actions)return;
-    const dayButton=actions.querySelector(':scope > .quick-action[data-screen="today"]');
-    if(dayButton){
-      dayButton.dataset.screen='settings';
-      const title=dayButton.querySelector(':scope > strong');
-      const meta=dayButton.querySelector(':scope > span');
-      if(title)title.textContent='Configurações';
-      if(meta)meta.textContent='Checklists e horários';
-    }
-  }
-
   function cleanText(value){return String(value||'').replace(/\s+/g,' ').trim()}
   function firstHeading(){return cleanText(content.querySelector(':scope > .section-head h2,:scope > h2,:scope > .section-head strong')?.textContent)}
   function detectInternalSurface(){
@@ -140,7 +128,6 @@
       if(hero){hero.classList.add('field-hero','obra360-hero');ensureBack(hero)}
       const actions=content.querySelector(':scope > .quick-actions');
       if(actions){
-        shiftSecondaryActionsToObra360(actions);
         actions.classList.add('obra360-actions');
         normalizeQuickActions(actions);
       }
