@@ -4,6 +4,7 @@
  * Supports ES256 platform credentials (iOS/Android), without paid services.
  */
 import { educationParticipantBySession, educationSessionForPasskey } from './education';
+import { corporatePasskeyEligible } from './corporate-password-auth';
 
 type Env={ DB:D1Database };
 type Scope='corporate'|'collaborator';
@@ -107,6 +108,7 @@ async function ensureTables(env:Env){
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS passkey_limits(ip TEXT NOT NULL,bucket INTEGER NOT NULL,count INTEGER NOT NULL,PRIMARY KEY(ip,bucket))').run();
 }
 async function limit(env:Env,request:Request,amount:number){
+  await env.DB.prepare('DELETE FROM passkey_limits WHERE bucket<?').bind(Math.floor(Date.now()/600000)-144).run();
   const ip=(request.headers.get('cf-connecting-ip')||'unknown').slice(0,80);
   const hash=encode((await sha256(new TextEncoder().encode(ip))).slice(0,16)),bucket=Math.floor(Date.now()/600000);
   await env.DB.prepare('INSERT INTO passkey_limits(ip,bucket,count) VALUES(?,?,1) ON CONFLICT(ip,bucket) DO UPDATE SET count=count+1').bind(hash,bucket).run();
@@ -121,9 +123,11 @@ async function principal(env:Env,request:Request,scope:Scope,token:unknown):Prom
   const sid=cookie(request,'obn_session');
   if(!sid)return null;
   const row=await env.DB.prepare('SELECT user_id,email,name,expires_at FROM auth_sessions WHERE id=?').bind(sid).first<{user_id:string;email:string;name:string;expires_at:string}>();
-  return row&&row.expires_at>now()?{scope,subject:row.user_id,email:row.email,name:row.name||row.email}:null;
+  if(!row||row.expires_at<=now()||!await corporatePasskeyEligible(env,row.user_id,row.email))return null;
+  return {scope,subject:row.user_id,email:row.email,name:row.name||row.email};
 }
 async function challenge(env:Env,purpose:string,scope:Scope,subject:string){
+  await env.DB.prepare('DELETE FROM passkey_challenges WHERE expires_at<?').bind(now()).run();
   const id=randomChallenge(),expiry=new Date(Date.now()+5*60*1000).toISOString();
   await env.DB.prepare('INSERT INTO passkey_challenges(id,purpose,scope,subject,expires_at) VALUES(?,?,?,?,?)').bind(id,purpose,scope,subject,expiry).run();
   return id;
@@ -185,6 +189,7 @@ async function loginVerify(request:Request,env:Env,b:Record<string,any>){
     const client=await clientData(request,response.response?.clientDataJSON,'webauthn.get',ch);
     const stored=await env.DB.prepare('SELECT id,scope,subject,email,name,public_x,public_y,counter FROM passkey_credentials WHERE id=? AND scope=?').bind(id,b.scope).first<{id:string;scope:Scope;subject:string;email:string;name:string;public_x:string;public_y:string;counter:number}>();
     if(!stored)return fail('Chave de acesso não reconhecida.',401);
+    if(b.scope==='corporate'&&!await corporatePasskeyEligible(env,stored.subject,stored.email))return fail('Acesso bloqueado ou licença desativada.',403);
     const auth=decode(response.response?.authenticatorData),signature=derSignature(decode(response.response?.signature));
     if(auth.length<37||!bytesEqual(auth.slice(0,32),await sha256(new TextEncoder().encode(new URL(request.url).hostname)))||(auth[32]&0x05)!==0x05)return fail('Autenticação do dispositivo inválida.',401);
     const count=new DataView(auth.buffer,auth.byteOffset,auth.byteLength).getUint32(33,false),old=Number(stored.counter);
