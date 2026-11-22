@@ -111,7 +111,7 @@ function setBody(html:string){document.body.className='mh-portal-body';document.
 function toast(text:string){const e=document.getElementById('mhToast');if(!e)return;e.textContent=text;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4500)}
 function card(key:string,title:string,text:string,href:string,_icon:string,role?:string){const names:Record<string,string>={gestao:'file-text',obra:'hard-hat',universidade:'graduation-cap',acessos:'shield-check',ativar:'plus',cobranca:'file-text'};return `<a class="cp-module" data-resource="${esc(key)}" href="${esc(href)}" aria-label="${esc(title)}${role?` — ${esc(role)}`:''}" title="${esc(text)}">${icon(names[key]||'file-text')}<span>${esc(title)}</span>${icon('chevron-right')}</a>`}
 
-export function shouldRouteCorporateToPlans(b:Pick<Bootstrap,'needsClaim'|'isOwner'|'platformRole'|'platformAccess'>){
+export function shouldRouteCorporateToPlans(b:Pick<Bootstrap,'needsClaim'|'isOwner'|'platformRole'|'platformAccess'|'authorized'|'license'>){
   const status=b.platformAccess?.status;
   return !!b.needsClaim&&!b.isOwner&&b.platformRole!=='superadmin'&&status!=='pending'&&status!=='blocked'&&!b.license?.licenseId&&!b.authorized;
 }
