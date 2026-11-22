@@ -118,3 +118,11 @@
 .cp-passkey-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #c0d2dc;border-radius:8px;padding:12px;font-size:14px}
 .cp-passkey-row button{background:transparent;border:0;color:#ad3434;min-height:44px;padding:6px 8px}
 .cp-passkey-close{width:100%}
+
+/* P0: stable branded handoff while corporate session and permissions load. */
+.cp-startup{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px 24px;text-align:center;background:#e2e9ee;color:#102d49}
+.cp-startup-mark{font-size:26px;font-weight:800;letter-spacing:-.04em}
+.cp-startup-spinner{width:32px;height:32px;border:3px solid #b7c9d7;border-top-color:#007b8a;border-radius:50%;animation:cp-startup-spin .8s linear infinite}
+.cp-startup p{font-size:14px;color:#40586b}
+@keyframes cp-startup-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.cp-startup-spinner{animation:none;border-top-color:#007b8a}}
