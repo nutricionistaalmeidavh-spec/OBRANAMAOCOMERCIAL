@@ -22,7 +22,7 @@ describe('P1 Google picker failure and cancellation',()=>{
       renderButton:vi.fn(),
     }}};
   });
-  afterEach(()=>{vi.unstubAllGlobals();vi.useRealTimers();document.querySelector('#obn-google-chooser')?.remove();});
+  afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals();vi.useRealTimers();document.querySelector('#obn-google-chooser')?.remove();});
   it('rejects a denied credential instead of leaving Google sign-in permanently waiting',async()=>{
     const pending=auth.signIn({scope:'openid email profile'});
     await vi.waitFor(()=>expect(callback).toBeTypeOf('function'));
@@ -32,16 +32,21 @@ describe('P1 Google picker failure and cancellation',()=>{
   });
   it('retries loading the official Google script after a transient network failure',async()=>{
     (window as any).google=undefined;
+    const appended:HTMLScriptElement[]=[];
+    // Keep this test deterministic: do not let happy-dom fetch an external script.
+    const realAppend=document.head.appendChild.bind(document.head);
+    vi.spyOn(document.head,'appendChild').mockImplementation(((node:Node)=>{
+      if(node instanceof HTMLScriptElement && node.dataset.obnGoogleIdentity){appended.push(node);return node;}
+      return realAppend(node);
+    }) as typeof document.head.appendChild);
     const first=auth.signIn();
-    await vi.waitFor(()=>expect(document.querySelector('script[data-obn-google-identity]')).not.toBeNull());
-    const script=document.querySelector<HTMLScriptElement>('script[data-obn-google-identity]');
-    script!.dispatchEvent(new Event('error'));
+    expect(appended).toHaveLength(1);
+    appended[0].dispatchEvent(new Event('error'));
     await expect(first).rejects.toThrow('Não foi possível carregar o login Google.');
     const retry=auth.signIn();
-    const next=document.querySelector<HTMLScriptElement>('script[data-obn-google-identity]');
-    expect(next).not.toBeNull();
-    expect(next).not.toBe(script);
-    next!.dispatchEvent(new Event('error'));
+    expect(appended).toHaveLength(2);
+    expect(appended[1]).not.toBe(appended[0]);
+    appended[1].dispatchEvent(new Event('error'));
     await expect(retry).rejects.toThrow('Não foi possível carregar o login Google.');
   });
   it('lets the customer cancel the chooser and retry without reloading',async()=>{
