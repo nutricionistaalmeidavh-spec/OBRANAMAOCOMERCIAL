@@ -141,9 +141,10 @@ async function testNavigation(engine,name){
     record('existing-session-to-panel',name,portalMs,{mockedAuthentication:true});
     await page.locator('.cp-overview-skeleton').waitFor({state:'visible',timeout:2500});
     assert.ok(await page.locator('[data-resource="obra"]').isVisible(),'Module navigation must remain usable while overview loads');
-    // Verify the slow overview independently. WebKit's intercepted 3.8s fetch can
+    // Verify the slow overview independently. WebKit's intercepted 6.5s fetch can
     // postpone route interception for a new document and contaminate navigation timing.
-    await page.locator('.cp-overview-skeleton').waitFor({state:'detached',timeout:7000});
+    await page.locator('.cp-overview-skeleton').waitFor({state:'detached',timeout:9000});
+    tracker.auxiliaryResponses.length=0; // Exclude the completed portal overview from the Obra readiness check.
     const obraStart=now();
     await page.locator('[data-resource="obra"]').click();
     await page.locator('#reviewRdo').waitFor({state:'visible',timeout:14000});
