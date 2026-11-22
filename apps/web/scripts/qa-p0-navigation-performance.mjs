@@ -139,6 +139,9 @@ async function testNavigation(engine,name){
     record('existing-session-to-panel',name,portalMs,{mockedAuthentication:true});
     await page.locator('.cp-overview-skeleton').waitFor({state:'visible',timeout:2500});
     assert.ok(await page.locator('[data-resource="obra"]').isVisible(),'Module navigation must remain usable while overview loads');
+    // Verify the slow overview independently. WebKit's intercepted 3.8s fetch can
+    // postpone route interception for a new document and contaminate navigation timing.
+    await page.locator('.cp-overview-skeleton').waitFor({state:'detached',timeout:7000});
     const obraStart=now();
     await page.locator('[data-resource="obra"]').click();
     await page.locator('#reviewRdo').waitFor({state:'visible',timeout:14000});
