@@ -379,6 +379,34 @@ describe('P0 critical web flows', () => {
     expect(employeeProject.status).toBe(403);
   });
 
+  it('does not change a member identity when the same authorized email switches login provider', async () => {
+    const routes=(handler as unknown as {routes:Record<string,readonly unknown[]>}).routes;
+    const owner={userId:'owner-identity-p0',email:'owner@example.com',name:'Owner'};
+    const setup=await last(routes['GET /api/bootstrap'])({user:owner,body:{},query:{},params:{}});
+    expect(setup.status).toBe(200);
+    const {membership}=await body(setup);
+    const created=await last(routes['POST /api/members'])({
+      user:owner,body:{email:'identity@test.local',role:'foreman',modules:['obra360'],channels:['mobile']},query:{},params:{}
+    });
+    expect(created.status).toBe(200);
+    const member=(await body(created)).member;
+    const passwordUser={userId:'pwd:canonical-user',email:'identity@test.local',name:'Funcionário'};
+    const claimed=await last(routes['POST /api/access/claim'])({
+      user:passwordUser,body:{code:member.joinCode},query:{},params:{}
+    });
+    expect(claimed.status).toBe(200);
+    const first=await last(routes['GET /api/bootstrap'])({user:passwordUser,body:{},query:{},params:{}});
+    expect(first.status).toBe(200);
+    const switched=await last(routes['GET /api/bootstrap'])({
+      user:{userId:'other-provider-id',email:passwordUser.email,name:'Funcionário Atualizado'},body:{},query:{},params:{}
+    });
+    expect(switched.status).toBe(200);
+    const members=await memory.db.list<any>('members_'+String(membership.projectId),{limit:20});
+    const persisted=members.items.find(x=>x.email==='identity@test.local');
+    expect(persisted.userId).toBe('pwd:canonical-user');
+    expect(persisted.name).toBe('Funcionário Atualizado');
+  });
+
   it('validates Desktop ↔ mobile synchronization on the canonical project state', async () => {
     const routes = (handler as unknown as { routes: Record<string, readonly unknown[]> }).routes;
     const adminUser = { userId:'sync-owner', email:'owner@example.com', name:'Admin Sync' };
