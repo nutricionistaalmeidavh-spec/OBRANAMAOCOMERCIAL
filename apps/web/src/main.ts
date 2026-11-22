@@ -210,7 +210,10 @@ async function loadSharedApp(b:Bootstrap){
   const remote=(response.data as {state:ProjectState}).state;
   configureSharedContext(role,b,remote);
   const pending=fieldSync?.read();
-  await writeLocalState((pending?.state||remote) as ProjectState);
+  const initialState=(pending?.state||remote) as ProjectState;
+  if(window.multiuserContext)window.multiuserContext.projectState=initialState;
+  // IndexedDB is a migration/offline convenience, not the live source for Field.
+  void writeLocalState(initialState);
   if(pending)void fieldSync?.flush();
   window.mobileReadOnlySummary=null;
   window.mobileSyncConflicts=[];
