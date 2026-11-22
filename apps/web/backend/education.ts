@@ -135,6 +135,13 @@ async function participant(t: string) { if (t.length < 40)
     return null; const table=sessionTable(t),s = (await db.list<EduSession>(table, { limit: 1 })).items[0]; if (!s)
     return null; if(s.expiresAt < now()){await db.delete(table,[s.id]);return null} const [p] = await db.get<EduParticipant>('edu_participants', [s.participantId]); return p?.status === 'active' ? { ...p, id: s.participantId } : null; }
 export async function educationParticipantBySession(token: string) { return participant(token); }
+/** Issue the existing collaborator session only after a verified WebAuthn assertion. */
+export async function educationSessionForPasskey(participantId: string) {
+  const [p] = await db.get<EduParticipant>('edu_participants', [participantId]);
+  if (!p || p.status !== 'active') return null;
+  return { token: await issue(participantId), participant: pub({ ...p, id: participantId }) };
+}
+
 const effectiveRole = (p: EduParticipant): EduRole => {
     const em = email(p.email || '');
     if (em && em === configuredSuperadminEmail()) return 'superadmin';
