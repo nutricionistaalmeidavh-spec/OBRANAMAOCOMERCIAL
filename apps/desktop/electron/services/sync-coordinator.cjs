@@ -121,7 +121,20 @@ class SyncCoordinator {
   for(const command of incoming.commands){
    this.assertScope(scope,generation)
    try{
-    const saved=await resolved(this.dataProvider.applyWebP0Create(scope,command))
+    let executable=command
+    if(command.entity==='documentos'){
+      if(typeof this.online.webP1StagedDocument!=='function')throw new Error('Transporte de documentos P1 indisponível.')
+      const input=command.data||{}
+      const transferred=await this.online.webP1StagedDocument({
+        commandId:command.id,stageId:input.stageId,sha256:input.sha256
+      })
+      this.assertScope(scope,generation)
+      if(transferred?.file?.stageId!==input.stageId||transferred.file.sha256!==input.sha256||
+         transferred.file.name!==input.name||transferred.file.mimeType!==input.mimeType)
+        throw new Error('Arquivo documental retornado não coincide com o comando autorizado.')
+      executable={...command,stagedFile:transferred.file}
+    }
+    const saved=await resolved(this.dataProvider.applyWebP0Create(scope,executable))
     this.assertScope(scope,generation)
     await this.online.webP0Ack({commandId:command.id,entity:saved.entity,localId:saved.localId})
    }catch(error){

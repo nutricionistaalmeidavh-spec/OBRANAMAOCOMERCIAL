@@ -1120,7 +1120,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if(!repository||!repositoryDb)return sendJson(response,503,{error:'repository_unavailable',message:'Banco operacional indisponível.'})
         const context=await authenticateLanRequest(request,security)
         requireAdminContext(context)
-        const input=await readJson(request),scope=input.scope&&typeof input.scope==='object'?input.scope:{},command=input.command&&typeof input.command==='object'?input.command:{}
+        const input=await readJson(request,MAX_DOCUMENT_BODY_BYTES),scope=input.scope&&typeof input.scope==='object'?input.scope:{},command=input.command&&typeof input.command==='object'?input.command:{}
         const state=security?.serverState?.()||{}
         if(!context.companyId||String(scope.remoteCompanyId||'')!==String(context.companyId)||
            (state.serverId&&String(scope.serverId||'')!==String(state.serverId))||
@@ -1129,7 +1129,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         }
         const table=String(command.entity||''),method=String(command.action||'create')==='delete'?'DELETE':'POST'
         authorizeBusinessRoute(context,{table,method})
-        const saved=applyLanWebP0Command({repository,versionedRepository,scope,command})
+        const saved=applyLanWebP0Command({repository,versionedRepository,scope,command,documents})
         return sendJson(response,200,saved)
       }
 

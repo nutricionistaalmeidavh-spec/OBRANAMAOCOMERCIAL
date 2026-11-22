@@ -393,6 +393,12 @@ class OnlineService {
     return this.request('/api/desktop/web-p0/project/select',{deviceToken:this.requireToken(),projectId,localWorkId})
   }
 
+  async webP1StagedDocument({commandId,stageId,sha256}) {
+    return this.request('/api/desktop/web-p1/document', {
+      deviceToken:this.requireToken(),commandId,stageId,sha256
+    },60000)
+  }
+
   async webP0Pending() {
     return this.request('/api/desktop/web-p0/pending', { deviceToken: this.requireToken() })
   }

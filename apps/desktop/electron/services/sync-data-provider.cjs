@@ -64,7 +64,8 @@ const payloadOf = (row,entity) => {
 }
 
 class LocalSyncDataProvider {
-  constructor({ database, now = Date.now }) {
+  constructor({ database, now = Date.now, documentsDir = null }) {
+    this.documentsDir = documentsDir
     this.database = database
     this.now = now
   }
@@ -298,7 +299,7 @@ class LocalSyncDataProvider {
   }
 
   applyWebP0Create(scope, command) {
-    return applyWebP0Create({ database: this.database, scope, command })
+    return applyWebP0Create({ database: this.database, scope, command, documentsDir:typeof this.documentsDir==='function'?this.documentsDir():this.documentsDir })
   }
 
   applyRemote(entity, localId, payload, scope) {

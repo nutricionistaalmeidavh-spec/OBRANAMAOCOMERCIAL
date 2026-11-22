@@ -7,7 +7,7 @@ type Entity='rdos'|'checklist_frente_itens'|'itens_orcamentarios'|'medicoes'|'so
 type Row={entity:Entity;localId:number;sourceDeviceId:string;revision:number;desktopRevision:number;payload:Record<string,unknown>};
 type Overview={
   company:{id:string;name:string};project:{id:string;name:string};
-  topology:{mode:string};items:Row[];limitations:string[];capabilities?:{finance:boolean;documents?:boolean};
+  topology:{mode:string};items:Row[];limitations:string[];capabilities?:{finance:boolean;documents?:boolean;documentTransport?:boolean};
   sources?:Array<{deviceId:string;name:string}>;
   stages?:Array<{entity:'frentes_obra'|'subfrentes_obra';localId:number;sourceDeviceId:string;name:string;frenteId?:number}>;
   commands?:Array<{id:string;entity:string;status:string;error?:string;createdAt:string}>;
@@ -38,7 +38,15 @@ const formatField=(field:string,value:unknown)=>{
 const itemTitle=(row:Row)=>String(row.payload.titulo||row.payload.descricao||row.payload.numero||row.payload.data||('Registro '+row.localId));
 const labelField=(field:string)=>labels[field]||field;
 
-const canCreateEntity=(entity:Entity,view:Overview)=>(['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(entity)||(isP1Domain(entity)&&view.capabilities?.finance===true));
+const sourceRelatedFrom=(items:Row[],source:string,relation:string):Row|null=>{
+  const match=relation.match(/^(rdos|medicoes|contratos_obra|pedidos_compra|recebimentos_materiais):(\\d+)$/);
+  if(!match)return null;
+  return items.find(x=>x.sourceDeviceId===source&&x.entity===match[1]&&x.localId===Number(match[2]))||null;
+};
+const canCreateEntity=(entity:Entity,view:Overview)=>
+  ['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(entity)||
+  (entity==='documentos'&&view.capabilities?.documents===true&&view.capabilities?.documentTransport===true)||
+  (isP1Domain(entity)&&view.capabilities?.finance===true);
 export async function mountP1Management(root:HTMLElement,onBack:()=>void){
   let overview:Overview|null=null,active:Entity='rdos',editing=-1,expanded=-1,message='',busy=false,creating=false,selectedSource='',createNonce='';
   const load=async()=>{const result=await api.get<Overview>('/api/web/p1/overview');overview=result.data;editing=-1;expanded=-1;if(!overview.sources?.some(x=>x.deviceId===selectedSource))selectedSource=overview.sources?.[0]?.deviceId||'';};
@@ -63,12 +71,22 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
       if(field==='observacoes'||field==='atividades'||field==='descricao')return '<label class="p0-field"><span>'+title+'</span><textarea name="'+field+'" maxlength="'+(field==='descricao'?250:4000)+'">'+safe+'</textarea></label>';
       return '<label class="p0-field"><span>'+title+'</span><input name="'+field+'" value="'+safe+'" maxlength="250"'+(field==='prazo'?' type="date"':'')+'></label>';
     }).join(''):'';
-    const canCreate=(['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(active)||(isP1Domain(active)&&view.capabilities?.finance===true))&&!!view.sources?.length;
+    const canCreate=canCreateEntity(active,view)&&!!view.sources?.length;
     const sources=(view.sources||[]).map(source=>'<option value="'+escapeHtml(source.deviceId)+'"'+(selectedSource===source.deviceId?' selected':'')+'>'+escapeHtml(source.name)+'</option>').join('');
     const stages=(view.stages||[]).filter(x=>x.entity==='frentes_obra'&&x.sourceDeviceId===selectedSource);
     const stageSelect=stages.map(x=>'<option value="'+x.localId+'">'+escapeHtml(x.name)+'</option>').join('');
     const optionalStage='<label class="p0-field"><span>Etapa da obra (opcional)</span><select name="frente_id"><option value="">Sem etapa específica</option>'+stageSelect+'</select></label>';
-    const createInputs=isP1Domain(active)?renderP1DomainFields(active,[...view.items,...(view.stages||[]).map(stage=>({entity:stage.entity,localId:stage.localId,sourceDeviceId:stage.sourceDeviceId,revision:0,desktopRevision:0,payload:{nome:stage.name}}))],selectedSource)
+    const sourceRelated=view.items.filter(row=>row.sourceDeviceId===selectedSource&&
+      ['rdos','medicoes','contratos_obra','pedidos_compra','recebimentos_materiais'].includes(row.entity));
+    const documentFields='<label class="p0-field"><span>Arquivo PDF, JPG ou PNG (até 2 MB)</span>'+
+      '<input type="file" name="document_file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required></label>'+
+      '<label class="p0-field"><span>Categoria</span><select name="categoria">'+
+      ['projeto','contrato','medicao','nota_fiscal','rdo','documento_obra'].map(x=>'<option value="'+x+'">'+escapeHtml(x.replace(/_/g,' '))+'</option>').join('')+
+      '</select></label><label class="p0-field"><span>Título (opcional)</span><input name="titulo" maxlength="250"></label>'+
+      '<label class="p0-field"><span>Vincular ao registro (opcional)</span><select name="relacao">'+
+      '<option value="">Documento da obra</option>'+sourceRelated.map(item=>'<option value="'+escapeHtml(item.entity+':'+item.localId)+'">'+
+        escapeHtml(groups[item.entity].label+' · '+itemTitle(item))+'</option>').join('')+'</select></label>';
+    const createInputs=active==='documentos'?documentFields:isP1Domain(active)?renderP1DomainFields(active,[...view.items,...(view.stages||[]).map(stage=>({entity:stage.entity,localId:stage.localId,sourceDeviceId:stage.sourceDeviceId,revision:0,desktopRevision:0,payload:{nome:stage.name}}))],selectedSource)
       :active==='rdos'
       ?'<label class="p0-field"><span>Data do RDO</span><input name="data" type="date" required></label><label class="p0-field"><span>Clima</span><input name="clima" maxlength="250"></label><label class="p0-field"><span>Atividades</span><textarea name="atividades" maxlength="4000"></textarea></label><label class="p0-field"><span>Observações</span><textarea name="observacoes" maxlength="4000"></textarea></label>'
       :active==='itens_orcamentarios'
@@ -114,6 +132,7 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
       selectedSource=(event.target as HTMLSelectElement).value;createNonce='';draw();
     });
     root.querySelector<HTMLButtonElement>('#p1AddLine')?.addEventListener('click',()=>{const f=root.querySelector<HTMLFormElement>('#p1CreateForm');if(f)appendP1DomainLine(f)});
+    root.querySelector<HTMLInputElement>('[name="document_file"]')?.addEventListener('change',()=>{createNonce=''});
     root.querySelector<HTMLFormElement>('#p1CreateForm')?.addEventListener('submit',event=>{event.preventDefault();void submitCreate()});
     root.querySelector<HTMLFormElement>('#p1EditForm')?.addEventListener('submit',event=>{event.preventDefault();if(edit)void submit(edit)});
   };
@@ -123,7 +142,19 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
     const form=root.querySelector<HTMLFormElement>('#p1CreateForm');if(!form)return;
     let data:Record<string,unknown>;
     try{
-      if(isP1Domain(active))data=parseP1DomainForm(active,form);
+      if(active==='documentos'){
+        const values=new FormData(form);
+        const file=form.querySelector<HTMLInputElement>('[name="document_file"]')?.files?.[0];
+        if(!file||!['application/pdf','image/jpeg','image/png'].includes(file.type)||!file.size||file.size>2*1024*1024)
+          throw new Error('Selecione PDF, PNG ou JPG com tamanho máximo de 2 MB.');
+        const relation=String(values.get('relacao')||'');
+        const linked=relation?sourceRelatedFrom(overview!.items,selectedSource,relation):null;
+        if(relation&&!linked)throw new Error('O registro do anexo não pertence à origem selecionada.');
+        data={name:file.name,mimeType:file.type,categoria:String(values.get('categoria')||'documento_obra')};
+        const title=String(values.get('titulo')||'').trim();
+        if(title)data.titulo=title;
+        if(linked){data.relacao_tipo=linked.entity;data.relacao_id=linked.localId}
+      }else if(isP1Domain(active))data=parseP1DomainForm(active,form);
       else{
         const raw=new FormData(form);data={};
         for(const [key,value] of raw.entries()){
@@ -142,8 +173,22 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
     if(!createNonce)createNonce=crypto.randomUUID();
     busy=true;const button=form.querySelector<HTMLButtonElement>('button[type="submit"]');if(button)button.disabled=true;
     try{
-      await api.post(isP1Domain(active)?'/api/web/p1/command':'/api/web/p0/create',
-        {commandId:createNonce,entity:active,sourceDeviceId:selectedSource,data});
+      if(active==='documentos'){
+        const file=form.querySelector<HTMLInputElement>('[name="document_file"]')?.files?.[0];
+        if(!file)throw new Error('Arquivo não selecionado.');
+        const bytes=new Uint8Array(await file.arrayBuffer());
+        let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.slice(i,i+8192));
+        const stage=await api.post<{file:{stageId:string;sha256:string;name:string;mimeType:string}}>(
+          '/api/web/p1/documents/stage',{
+            uploadId:createNonce,sourceDeviceId:selectedSource,name:file.name,mimeType:file.type,data:btoa(binary)
+          });
+        const uploaded=stage.data.file;
+        data={...data,stageId:uploaded.stageId,sha256:uploaded.sha256,name:uploaded.name,mimeType:uploaded.mimeType};
+        await api.post('/api/web/p1/command',{commandId:createNonce,entity:active,sourceDeviceId:selectedSource,data});
+      }else{
+        await api.post(isP1Domain(active)?'/api/web/p1/command':'/api/web/p0/create',
+          {commandId:createNonce,entity:active,sourceDeviceId:selectedSource,data});
+      }
       creating=false;createNonce='';await load();message='Solicitação registrada. Aguardando confirmação da fonte operacional.';draw();
     }catch(error){message=errorText(error);const status=root.querySelector('.p0-message');if(status)status.textContent=message;if(button)button.disabled=false}
     finally{busy=false}

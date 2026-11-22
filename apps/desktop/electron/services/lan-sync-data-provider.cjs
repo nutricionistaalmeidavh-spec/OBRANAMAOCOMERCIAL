@@ -138,9 +138,9 @@ class LanSyncDataProvider {
 }
 
 class OperationalSyncDataProvider {
-  constructor({ storage, localProvider, lanClient, database = null, now = Date.now }) {
+  constructor({ storage, localProvider, lanClient, database = null, documentsDir = null, now = Date.now }) {
     this.storage = storage
-    this.localProvider = localProvider || (database ? new LocalSyncDataProvider({ database, now }) : null)
+    this.localProvider = localProvider || (database ? new LocalSyncDataProvider({ database, now, documentsDir }) : null)
     this.lanProvider = new LanSyncDataProvider({ lanClient })
   }
 

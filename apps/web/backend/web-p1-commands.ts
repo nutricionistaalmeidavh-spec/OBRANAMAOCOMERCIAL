@@ -2,9 +2,10 @@
  * P1 domain commands: transport-only envelope, never a Web operational database.
  * All company/work identifiers are injected by the authorized Desktop/LAN source.
  */
+import {validateDocumentCommand} from './web-p1-document-stage';
 export const P1_DOMAIN_ENTITIES=[
   'medicoes','pedidos_compra','recebimentos_materiais',
-  'movimentacoes_estoque','contratos_obra','contrato_aditivos'
+  'movimentacoes_estoque','contratos_obra','contrato_aditivos','documentos'
 ] as const;
 export type P1DomainEntity=typeof P1_DOMAIN_ENTITIES[number];
 export const isP1DomainEntity=(v:unknown):v is P1DomainEntity=>
@@ -62,6 +63,7 @@ export function assertP1DomainCommand(input:unknown):P1DomainCommand{
   allowed(raw,['entity','action','commandId','sourceDeviceId','data']);
   const inputData=obj(raw.data),data:Record<string,unknown>={};
   if(!raw.data||typeof raw.data!=='object'||Array.isArray(raw.data))fail('Dados do comando inválidos.');
+  if(entity==='documentos')return{entity,action:'create',commandId,sourceDeviceId,data:validateDocumentCommand(inputData)};
   if(entity==='medicoes'){
     allowed(inputData,['numero','competencia','data','descricao','frente_id','itens']);
     data.numero=required(inputData.numero,'Número da medição');

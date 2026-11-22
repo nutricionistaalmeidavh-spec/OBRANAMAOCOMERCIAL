@@ -1,4 +1,5 @@
 const { createHash }=require('node:crypto')
+const {applyLocalP1Document}=require('./web-p1-document.cjs')
 const {applyLocalWebP1}=require('./web-p1-domain.cjs')
 const ALLOWED={
  empresas:new Set(['razao_social','nome_fantasia','cnpj','telefone','email','endereco','observacoes','status']),
@@ -42,8 +43,9 @@ function dependents(db,entity,id){
  }
  return null
 }
-function applyWebP0Create({database,scope,command}){
+function applyWebP0Create({database,scope,command,documentsDir}){
  const entity=String(command?.entity||''),action=String(command?.action||'create')
+ if(entity==='documentos')return applyLocalP1Document({database,scope,command,documentsDir})
  if(['medicoes','pedidos_compra','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos'].includes(entity))return applyLocalWebP1({database,scope,command})
  const allowed=ALLOWED[entity],data=command?.data||{}
  if(!allowed||!['create','update','delete'].includes(action)||!data||typeof data!=='object'||Array.isArray(data))reject('Entidade, operação ou dados não autorizados.')

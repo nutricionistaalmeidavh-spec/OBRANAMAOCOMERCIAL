@@ -107,8 +107,9 @@ function createServices() {
   const { BankFinanceService } = require(path.join(path.dirname(resolveLanServerEntry()), 'bank-finance.cjs'))
   const bankFinance = new BankFinanceSourceService({ local: new BankFinanceService({ db: db.db }), lanClient: dataAccess.remote, moduleStorage })
   const measurements = new MeasurementSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
-  const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db, dataAccess, lanClient:dataAccess.remote, moduleStorage, storage })
+  const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db,
+    documentsDir:()=>files.documentsDir })
   const localPayroll = new PayrollService({ db })
   const localTime = new TimeService({ db, fileService: files })
   const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })

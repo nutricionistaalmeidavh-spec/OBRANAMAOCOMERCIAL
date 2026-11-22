@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {applyLanWebP1} from './web-p1-domain.mjs';
+import {applyLanP1Document} from './web-p1-document.mjs';
 
 const FIELDS={
  empresas:new Set(['razao_social','nome_fantasia','cnpj','telefone','email','endereco','observacoes','status']),
@@ -82,7 +83,8 @@ function validateCommand(command){
  }
  return{entity,action,clean};
 }
-export function applyLanWebP0Command({repository,versionedRepository,scope,command}){
+export function applyLanWebP0Command({repository,versionedRepository,scope,command,documents}){
+ if(String(command?.entity||'')==='documentos')return applyLanP1Document({repository,scope,command,documents});
  if(['medicoes','pedidos_compra','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos'].includes(String(command?.entity||'')))return applyLanWebP1({repository,scope,command});
  const db=repository?.connection?.();
  if(!db?.prepare||!db?.exec)throw new WebP0CommandError('Fonte central indisponível.');

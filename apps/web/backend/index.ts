@@ -1,6 +1,7 @@
 import { assertBridgeEdit, BridgeConflict, bridgeRows } from './web-p0-policy';
 import { p1Rows,assertP1Edit } from './web-p1-policy';
 import {assertP1DomainCommand} from './web-p1-commands';
+import {uploadP1StagedDocument,readP1StagedDocument,completeP1StagedDocument,authorizeP1StagedCommand} from './web-p1-document-stage';
 import { assertP0Create } from './web-p0-create';
 import { ensureP0WorkProject } from './web-p0-project-provision';
 import { enqueueWebP0Command, getWebP0Command, pendingWebP0Commands, ackWebP0Command, listWebP0Commands } from './web-p0-command-store';
@@ -434,17 +435,56 @@ export const handler=router({
   'PUT /api/owner/devices/:id':[...ownerSecured,async(ctx)=>{const [device]=await db.get<Device>('devices',[ctx.params.id]);if(!device)return error('Computador não encontrado.',404);const status=String(asRecord(ctx.body).status)==='active'?'active':'revoked';await db.update('devices',[{id:ctx.params.id,record:{...device,status,updatedAt:now()} as unknown as Record<string,unknown>}]);return json({ok:true,status})}],
   'POST /api/access/claim':[...secured,async(ctx)=>{const current=await resolveMembership(ctx.user!);if(current)return json({role:current.role,membership:current});const body=asRecord(ctx.body),code=String(body.code||'').trim().toUpperCase();if(!/^[A-Z0-9]{8}$/.test(code))return error('Código de acesso inválido.',400);const table=inviteTable(code),{items}=await db.list<Record<string,unknown>>(table,{limit:1}),ref=items[0];if(!ref)return error('Código de acesso inválido ou já utilizado.',404);const projectId=String(ref.projectId||''),memberId=String(ref.projectMemberId||'');const [member]=await db.get<Member>(membersTable(projectId),[memberId]);if(!member||member.joinCode!==code)return error('Convite não encontrado.',404);if(member.status==='revoked')return error('Este convite foi revogado pelo administrador.',403);if(member.userId&&member.userId!==ctx.user!.userId)return error('Este convite já foi utilizado.',409);const oldEmail=member.email,email=norm(ctx.user!.email),stamp=now(),next:Member={...member,email,userId:ctx.user!.userId,name:ctx.user!.name||member.name,joinCode:undefined,claimedAt:stamp,updatedAt:stamp};await db.update(membersTable(projectId),[{id:memberId,record:next as unknown as Record<string,unknown>}]);const oldAccess=await findAccess(oldEmail),oldIds=oldAccess.filter(a=>a.projectId===projectId).map(a=>a.id);if(oldIds.length)await db.delete(accessTable(oldEmail),oldIds);const actual=await findAccess(email),same=actual.find(a=>a.projectId===projectId),accessRecord={...next,projectMemberId:memberId} as unknown as Record<string,unknown>;if(same)await db.update(accessTable(email),[{id:same.id,record:accessRecord}]);else await db.add(accessTable(email),[accessRecord]);await db.delete(table,[ref.id]);await audit(next,ctx.user!,'access_code_claimed',{role:next.role,employeeId:next.employeeId});return json({role:next.role,membership:{...next,id:memberId}})}],
   // P1: only the central operational source executes financial, inventory and contractual rules.
+  // Staged binary transport is optional; the permanent file is always stored at Desktop/LAN source.
+  'POST /api/web/p1/documents/stage':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    if(!gate.access!.modules.includes('documents'))return error('Módulo Documentos não autorizado.',403);
+    const input=asRecord(ctx.body),sourceDeviceId=String(input.sourceDeviceId||'');
+    const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
+    if(!sources.some(s=>s.deviceId===sourceDeviceId))return error('Origem do arquivo não autorizada para a obra.',403);
+    if(!runtimeEnv().FILES)return error('Upload Web opcional não configurado. Use o Desktop/servidor próprio.',503);
+    try{return json({file:await uploadP1StagedDocument({
+      companyId:gate.member!.companyId,projectId:gate.member!.projectId,
+      userId:ctx.user!.userId,input
+    })})}catch(cause){return error((cause as Error).message,400)}
+  }],
+  'POST /api/desktop/web-p1/document':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||session.member?.role!=='admin'||!session.device.projectId||!session.device.companyId||
+      !session.access.modules.includes('obra360')||!session.access.modules.includes('documents'))
+      return error('Dispositivo não autorizado a receber arquivos da obra.',403);
+    const ownerGate=await remoteSyncOwnerError(session);if(ownerGate)return ownerGate;
+    const command=await getWebP0Command(session.device.projectId,String(body.commandId||''));
+    if(!command||command.status!=='pending'||command.entity!=='documentos'||command.deviceId!==session.device.id||
+      command.companyId!==session.device.companyId||command.projectId!==session.device.projectId||
+      command.id!==body.stageId||String(command.data.stageId)!==String(body.stageId)||String(command.data.sha256)!==String(body.sha256))
+      return error('Arquivo não está pendente para a origem autorizada.',403);
+    try{return json({file:await readP1StagedDocument({
+      projectId:session.device.projectId,companyId:session.device.companyId,
+      sourceDeviceId:session.device.id,stageId:String(body.stageId),sha256:String(body.sha256)
+    })})}catch(cause){return error((cause as Error).message,409)}
+  }],
   'POST /api/web/p1/command':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
     if(gate.response)return gate.response;
     let command:ReturnType<typeof assertP1DomainCommand>;
     try{command=assertP1DomainCommand(ctx.body)}
     catch(cause){return error((cause as Error).message,400)}
-    const finance=command.entity!=='medicoes';
+    const finance=!['medicoes','documentos'].includes(command.entity);
     if(finance&&!gate.access!.modules.includes('finance'))return error('Módulo Financeiro não autorizado para esta operação.',403);
+    if(command.entity==='documentos'&&!gate.access!.modules.includes('documents'))return error('Documentos não está liberado.',403);
     const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
     if(!sources.some(source=>source.deviceId===command.sourceDeviceId))return error('Fonte operacional não autorizada para esta obra.',403);
     try{
+      if(command.entity==='documentos'){
+        if(command.commandId!==command.data.stageId||!await authorizeP1StagedCommand({
+          projectId:gate.member!.projectId,companyId:gate.member!.companyId,
+          stageId:String(command.data.stageId),sha256:String(command.data.sha256),
+          actorId:ctx.user!.userId,sourceDeviceId:command.sourceDeviceId,
+          name:String(command.data.name),mimeType:String(command.data.mimeType)
+        }))return error('Arquivo não pertence ao usuário, obra ou dispositivo autorizado.',403);
+      }
       const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,
         actorId:ctx.user!.userId,actorEmail:gate.member!.email,command});
       if(record.status==='pending')await audit(gate.member!,ctx.user!,'web_p1_domain_command_enqueued',{
@@ -465,7 +505,7 @@ export const handler=router({
       company:{id:gate.member!.companyId,name:String(company.name||'')},
       project:{id:gate.member!.projectId,name:project.name},
       topology:{mode:topology.mode},
-      capabilities:{finance:gate.access!.modules.includes('finance'),documents:gate.access!.modules.includes('documents')},
+      capabilities:{finance:gate.access!.modules.includes('finance'),documents:gate.access!.modules.includes('documents'),documentTransport:!!runtimeEnv().FILES},
       items:p1Rows(asRecord(state?.desktopBridge)).filter(row=>gate.access!.modules.includes('finance')||
         !['solicitacoes_compra','pedidos_compra','pedido_compra_itens','movimentacoes_estoque',
           'recebimentos_materiais','contratos_obra','contrato_aditivos'].includes(row.entity)),
@@ -661,6 +701,10 @@ export const handler=router({
         error:typeof body.error==='string'?body.error:undefined
       });
       if(!saved)return error('Comando não encontrado na obra.',404);
+      if(saved.status==='applied'&&queued?.entity==='documentos'&&queued.deviceId===session.device.id){
+        try{await completeP1StagedDocument(session.device.projectId,String(queued.data.stageId||''))}
+        catch(cause){console.warn('Limpeza de documento transitório pendente: '+String((cause as Error).message).slice(0,150))}
+      }
       return json({ok:true,status:saved.status,localId:saved.localId||null});
     }catch(e){return error((e as Error).message,409)}
   }],
