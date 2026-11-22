@@ -98,7 +98,7 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
       '<div class="p0-message" role="status" aria-live="polite">'+escapeHtml(message)+'</div>'+
       '<nav class="p0-tabs" aria-label="Módulos operacionais P1">'+navigation+'</nav>'+
       '<div class="p0-section-title"><h2>'+escapeHtml(section.title)+'</h2><small>'+entries.length+' registro(s) sincronizados</small>'+(canCreate?'<button type="button" id="p1Create" class="p0-primary">Novo '+escapeHtml(section.label)+'</button>':'')+'</div>'+
-      (!section.editable.length&&!canCreate?'<p class="p1-readonly">Consulta da fonte operacional. Alterações deste módulo dependem do fluxo autorizado e do acesso correspondente.</p>':'')+
+      (!section.editable.length&&!canCreate?'<p class="p1-readonly">Este módulo está em modo somente leitura. Consulta da fonte operacional. Alterações deste módulo dependem do fluxo autorizado e do acesso correspondente.</p>':'')+
       '<div class="p0-list">'+rows+'</div>'+createForm+commandView+
       (edit?'<form class="p0-editor" id="p1EditForm"><h3>Editar '+escapeHtml(section.label)+'</h3><p>Proteção por revisão do Desktop e da Web: alterações concorrentes exigem recarregar os dados.</p><div class="p0-form-grid">'+editFields+'</div><div class="p0-actions"><button type="button" id="p1Cancel" class="p0-light">Cancelar</button><button type="submit" class="p0-primary"'+(busy?' disabled':'')+'>Salvar alteração</button></div></form>':'')+
       '</section>';

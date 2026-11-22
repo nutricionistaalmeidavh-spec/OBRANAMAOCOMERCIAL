@@ -1,6 +1,6 @@
 import { assertBridgeEdit, BridgeConflict, bridgeRows } from './web-p0-policy';
 import { p1Rows,assertP1Edit } from './web-p1-policy';
-import {assertP1DomainCommand,isP1DomainEntity} from './web-p1-commands';
+import {assertP1DomainCommand} from './web-p1-commands';
 import { assertP0Create } from './web-p0-create';
 import { ensureP0WorkProject } from './web-p0-project-provision';
 import { enqueueWebP0Command, getWebP0Command, pendingWebP0Commands, ackWebP0Command, listWebP0Commands } from './web-p0-command-store';

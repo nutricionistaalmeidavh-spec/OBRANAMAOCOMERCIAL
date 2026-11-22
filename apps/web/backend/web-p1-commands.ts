@@ -30,7 +30,6 @@ const positiveId=(v:unknown,name:string)=>{
   if(typeof v!=='number'||!Number.isSafeInteger(v)||v<1||v>100000000)fail('Referência inválida: '+name);
   return v as number;
 };
-const optId=(v:unknown,name:string)=>v===undefined||v===null||v===''?undefined:positiveId(v,name);
 const number=(v:unknown,name:string,{allowZero=false,integer=false,allowNegative=false}={}):number=>{
   if(typeof v!=='number'||!Number.isFinite(v)||(integer&&!Number.isSafeInteger(v))||
      (!allowNegative&&(allowZero?v<0:v<=0))||Math.abs(v)>100000000000)fail('Número inválido: '+name);
