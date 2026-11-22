@@ -2,6 +2,18 @@ import { api } from './cloudflare-client';
 import { canReadOverview, type OverviewAccess, type PortalOverview } from '../shared/portal-overview';
 
 const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]!));
+export function portalOverviewLoading():string{
+  // Keep overview height and metric columns stable without exposing data before authorization.
+  return `<section class="cp-section cp-summary cp-overview-skeleton" role="status" aria-busy="true" aria-label="Carregando resumo da gestão">
+    <div class="cp-section-heading"><h2>Resumo da gestão</h2><small>Carregando indicadores…</small></div>
+    <div class="cp-metrics" aria-hidden="true">
+      <div><span class="cp-skeleton-line"></span><strong class="cp-skeleton-value"></strong></div>
+      <div><span class="cp-skeleton-line"></span><strong class="cp-skeleton-value"></strong></div>
+      <div><span class="cp-skeleton-line"></span><strong class="cp-skeleton-value"></strong></div>
+    </div>
+  </section>`;
+}
+
 export async function loadPortalOverview(context: OverviewAccess): Promise<string> {
   // Deny before requesting: an employee's browser must not fetch administrative data.
   if (!canReadOverview(context)) return '';
