@@ -72,7 +72,9 @@ async function googleSignIn(){
         if(!credential)throw new Error('O Google não retornou a credencial.');
         await api.post('/api/auth/google-credential',{credential});
         removeGoogleChooser();
-        location.reload();
+        // Mounted login surfaces can enter the authenticated app without another full-page paint.
+        const handled=new Event('obn:authenticated',{cancelable:true});
+        if(window.dispatchEvent(handled))location.reload();
       }catch(error){removeGoogleChooser();console.error(error);alert((error as Error)?.message||'Não foi possível concluir o login Google.');}
     }
   });
