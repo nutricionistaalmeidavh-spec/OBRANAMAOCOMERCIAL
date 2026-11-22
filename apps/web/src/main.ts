@@ -225,7 +225,7 @@ async function loadSharedApp(b:Bootstrap){
   setHeader(role,true,pending?'pending':'idle');
   nav().style.display='grid';
   activateRoleUI(role);
-  const fieldModule='/field.js?v=20260903-premium-1';
+  const fieldModule='/field.js?v=20261122-mobile-p0-1';
   const fieldReady=import(/* @vite-ignore */ fieldModule);
   const refreshWhenReady=(task?:Promise<unknown>)=>{
     if(task)void task.then(()=>document.dispatchEvent(new CustomEvent('field:reference-updated'))).catch(()=>{});
