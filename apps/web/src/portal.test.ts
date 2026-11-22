@@ -37,6 +37,72 @@ describe('Commercial login and overview DOM flows', () => {
     byId<HTMLButtonElement>('togglePassword').click();expect(byId<HTMLInputElement>('phonePassword').type).toBe('password');
     expect(document.querySelector<HTMLAnchorElement>('.cp-login-switch')?.getAttribute('href')).toContain('#portal');
   });
+  it('does not launch two Google flows on repeated taps and exposes an accessible error', async () => {
+    await mountMhPortal();
+    let reject!: (error: Error) => void;
+    client.signIn.mockReturnValue(new Promise((_resolve, fail) => { reject = fail; }));
+    const button=byId<HTMLButtonElement>('googleLogin');
+    button.click();button.click();
+    expect(client.signIn).toHaveBeenCalledTimes(1);
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toContain('Abrindo Google');
+    reject(new Error('Login indisponível'));
+    await vi.waitFor(()=>expect(button.disabled).toBe(false));
+    expect(byId('loginFeedback').getAttribute('role')).toBe('alert');
+    expect(byId('loginFeedback').textContent).toBe('Login indisponível');
+  });
+  it('shows an already licensed client an activation path without buying another plan', async () => {
+    client.getUser.mockResolvedValue({name:'Cliente',email:'cliente@example.test'});
+    client.get.mockImplementation(async (path:string)=>({data:path==='/api/bootstrap'?
+      {needsClaim:true,authorized:true,license:{licenseId:'lic-1',status:'active',modules:['obra360'],channels:['mobile']},platformRole:'user'}:
+      {role:'user'}}));
+    await mountMhPortal();
+    expect(location.hash).toBe('#portal');
+    expect(document.querySelector('[data-resource="ativar"]')).not.toBeNull();
+    expect(document.body.textContent).toContain('licença ativa');
+    expect(document.body.textContent).not.toContain('Nenhuma licença vinculada');
+  });
+  it('explains an unregistered Google account without creating a company or immediately sending it to checkout', async () => {
+    client.getUser.mockResolvedValue({name:'Visitante',email:'visitante@example.test'});
+    client.get.mockImplementation(async (path:string)=>({data:path==='/api/bootstrap'?
+      {needsClaim:true,authorized:false,license:null,platformRole:'user'}:
+      {role:'user'}}));
+    await mountMhPortal();
+    expect(location.hash).toBe('#portal');
+    expect(document.body.textContent).toContain('Nenhuma licença vinculada');
+    expect(document.querySelector('[data-resource="ativar"]')).toBeNull();
+    expect(document.querySelector('a[href*="#planos"]')).not.toBeNull();
+  });
+  it('keeps a blocked client inside a restricted authenticated screen with logout', async () => {
+    client.getUser.mockResolvedValue({name:'Cliente',email:'cliente@example.test'});
+    client.get.mockImplementation(async (path:string)=>({data:path==='/api/bootstrap'?
+      {needsClaim:false,platformAccess:{status:'blocked',systems:{}},platformRole:'user'}:
+      {role:'user'}}));
+    await mountMhPortal();
+    expect(document.body.textContent).toContain('Acesso bloqueado');
+    expect(document.querySelector('[data-resource="obra"]')).toBeNull();
+    expect(byId('logoutBtn')).not.toBeNull();
+  });
+  it('explains a pending credential while retaining the existing activation code flow', async () => {
+    client.getUser.mockResolvedValue({name:'Cliente',email:'cliente@example.test'});
+    client.get.mockImplementation(async (path:string)=>({data:path==='/api/bootstrap'?
+      {needsClaim:false,platformAccess:{status:'pending',systems:{}},platformRole:'user'}:
+      {role:'user'}}));
+    await mountMhPortal();
+    expect(document.body.textContent).toContain('Liberação pendente');
+    expect(byId<HTMLInputElement>('platformCode')).not.toBeNull();
+    expect(document.querySelector('[data-resource="gestao"]')).toBeNull();
+  });
+  it('keeps an authenticated desktop-only account visible when Web/PWA is not licensed', async () => {
+    client.getUser.mockResolvedValue({name:'Cliente',email:'cliente@example.test'});
+    client.get.mockImplementation(async (path:string)=>path==='/api/bootstrap'?
+      Promise.reject(Object.assign(new Error('Sua conta não possui acesso Mobile/PWA.'),{response:{status:403,data:{error:'Sua conta não possui acesso Mobile/PWA.'}}})):
+      Promise.reject(new Error('not a central admin')));
+    await mountMhPortal();
+    expect(document.body.textContent).toContain('não possui acesso Mobile/PWA');
+    expect(byId('logoutBtn')).not.toBeNull();
+    expect(byId('googleLogin')).toBeNull();
+  });
   it('recovers a valid server session when the readable auth hint is missing', async () => {
     client.isSignedIn.mockReturnValue(false);
     client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
