@@ -226,14 +226,14 @@ async function loadSharedApp(b:Bootstrap){
 
   // Refresh only the active screen after each independent request completes.
   // A failed optional endpoint must not block Dias, RDO or navigation.
-  const hydrate=(request:Promise<unknown>)=>{
-    void request.then(()=>document.dispatchEvent(new CustomEvent('field:aux-data-ready'))).catch(()=>{});
+  const hydrate=(resource:'receipts'|'catalog'|'summary'|'conflicts',request:Promise<unknown>)=>{
+    void request.then(()=>document.dispatchEvent(new CustomEvent('field:aux-data-ready',{detail:{resource}}))).catch(()=>{});
   };
-  if(window.multiuserRefreshReceipts)hydrate(window.multiuserRefreshReceipts());
-  if(projectId&&window.multiuserRefreshCatalog)hydrate(window.multiuserRefreshCatalog());
+  if(window.multiuserRefreshReceipts)hydrate('receipts',window.multiuserRefreshReceipts());
+  if(projectId&&window.multiuserRefreshCatalog)hydrate('catalog',window.multiuserRefreshCatalog());
   if(role==='admin'){
-    hydrate(api.get('/api/mobile/summary').then(({data})=>{window.mobileReadOnlySummary=(data as {summary:any}).summary}));
-    hydrate(api.get('/api/mobile/sync/conflicts').then(({data})=>{window.mobileSyncConflicts=(data as {conflicts:any[]}).conflicts||[]}));
+    hydrate('summary',api.get('/api/mobile/summary').then(({data})=>{window.mobileReadOnlySummary=(data as {summary:any}).summary}));
+    hydrate('conflicts',api.get('/api/mobile/sync/conflicts').then(({data})=>{window.mobileSyncConflicts=(data as {conflicts:any[]}).conflicts||[]}));
   }
 }
 async function loadManagementOnly(b:Bootstrap){document.body.classList.add('field-shell-active');nav().style.display='none';if(b.role!=='admin'){setHeader(b.role,true);(root().innerHTML=messageCard('Sem operação mobile','Seu perfil não possui Obra360 e os painéis administrativos móveis são exclusivos do Admin.'), document.dispatchEvent(new CustomEvent('field:rendered')));return}setHeader('admin',true);try{const data=(await api.get('/api/mobile/summary')).data as {summary:any};renderManagementDashboard(root(),data.summary||{},b.access||{},'Gestão')}catch(e){(root().innerHTML=messageCard('Gestão mobile',apiError(e)), document.dispatchEvent(new CustomEvent('field:rendered')))}}
