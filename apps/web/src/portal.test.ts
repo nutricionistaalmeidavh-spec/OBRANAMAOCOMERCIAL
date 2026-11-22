@@ -98,4 +98,33 @@ describe('Commercial login and overview DOM flows', () => {
     expect(document.querySelector('[data-resource="obra"]')).not.toBeNull();
     expect(client.get).not.toHaveBeenCalled();
   });
+
+  it('validates the corporate session only once when mounting the portal', async () => {
+    client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
+    client.get.mockImplementation(async path=>({data:path==='/api/bootstrap'?bootstrap('employee'):{role:'regular'}}));
+    await mountMhPortal();
+    expect(document.querySelector('h1')?.textContent).toBe('Visão geral');
+    expect(client.getUser).toHaveBeenCalledTimes(1);
+  });
+  it('shows a stable branded loading screen while server authentication is pending', async () => {
+    let complete!:(value:unknown)=>void;
+    client.getUser.mockImplementation(()=>new Promise(resolve=>{complete=resolve}));
+    const pending=mountMhPortal();
+    expect(document.body.textContent).toContain('Carregando seus acessos');
+    complete(null);
+    await pending;
+    expect(document.querySelector('h1')?.textContent).toBe('Acesse sua operação');
+  });
+  it('begins bootstrap without waiting for the optional central-access lookup', async () => {
+    let finishCentral!:(value:unknown)=>void;
+    client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
+    client.get.mockImplementation(path=>path==='/api/central/access'
+      ?new Promise(resolve=>{finishCentral=resolve})
+      :Promise.resolve({data:bootstrap('employee')}));
+    const pending=mountMhPortal();
+    await vi.waitFor(()=>expect(client.get).toHaveBeenCalledWith('/api/bootstrap'));
+    finishCentral({data:{role:'regular'}});
+    await pending;
+    expect(document.querySelector('h1')?.textContent).toBe('Visão geral');
+  });
 });
