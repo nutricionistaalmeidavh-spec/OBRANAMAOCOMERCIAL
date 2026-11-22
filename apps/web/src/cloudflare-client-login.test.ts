@@ -8,6 +8,8 @@ describe('P1 Google picker failure and cancellation',()=>{
   let promptCallback:((value:{isNotDisplayed:()=>boolean})=>void)|undefined;
   beforeEach(()=>{
     document.body.innerHTML='';
+    callback=undefined as unknown as GoogleCallback;
+    promptCallback=undefined;
     vi.stubGlobal('fetch',vi.fn(async (input:RequestInfo|URL)=>{
       const url=String(input);
       if(url.includes('/api/auth/config'))return {ok:true,json:async()=>({googleClientId:'client-id'})};
