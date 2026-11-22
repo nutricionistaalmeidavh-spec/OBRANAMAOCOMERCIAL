@@ -258,6 +258,10 @@ async function logout(){
   if(hadPhoneSession){location.hash='#colaborador';collaboratorHome();return}
   location.hash='';publicHome()
 }
+window.addEventListener('obn:authenticated',event=>{
+  event.preventDefault();
+  void renderCorporatePortal();
+});
 export async function mountMhPortal(){
   document.title='Canteiro360 — Acesso e visão geral';
   if(['#phone-login','#celular'].includes(location.hash))location.hash='#colaborador';
