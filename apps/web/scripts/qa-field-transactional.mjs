@@ -77,6 +77,10 @@ try{
     await page.goto(`${base}/obra.html#obra`,{waitUntil:'domcontentloaded'});await page.locator('#newPlan').waitFor({state:'visible'});
     if(!(await page.title()).includes('Obra QA Integrada'))throw new Error(`${viewport.name}: project identity was not loaded from remote bootstrap`);await page.getByText('Fixture QA').waitFor({state:'visible'});await shot('01-day-remote-state');
 
+    const nextActions=page.locator('.rdo-next-link');
+    if(await nextActions.count()!==5)throw new Error(`${viewport.name}: expected all five pending RDO sections to be visible, found ${await nextActions.count()}`);
+    await page.locator('#goRdoPending').click();
+    await page.locator('#rdoChecklist').waitFor({state:'visible'});
     await page.locator('#newPlan').click();await page.locator('#pservice').selectOption('afaq');await page.locator('#pfloor').selectOption('0');await page.locator('#pcrew').fill('2');await page.locator('#planEmployees input[value="emp-1"]').check();await page.locator('#planEmployees input[value="emp-2"]').check();await page.locator('#pnote').fill('Planejamento QA');const planSync=nextSnapshotSync();await page.locator('#savePlan').click();await page.locator('.plan-card').filter({hasText:'AF/AQ'}).waitFor({state:'visible'});await waitForSnapshotSync('plan creation',planSync);await shot('02-plan-created');
 
     await page.locator('.plan-card').filter({hasText:'AF/AQ'}).locator('.plan-start').click();await page.locator('#createSession').waitFor({state:'visible'});const crewChecks=page.locator('#sessionCrew input');if(await crewChecks.count()>=2){await crewChecks.nth(0).check();await crewChecks.nth(1).check()}await page.locator('#sstart').fill('00:01');await page.locator('#createSession').click();await page.locator('.session-card').waitFor({state:'visible'});await shot('03-session-running');
@@ -92,6 +96,8 @@ try{
     await page.locator('#addRdoMaterial').click();await page.locator('.remove-material').waitFor({state:'visible'});
     await shot('06-material-canonical');
     await page.locator('#confirmRdoMaterials').click();
+    await page.locator('#openRdoOccurrences').click();
+    await page.locator('#confirmRdoOccurrences').waitFor({state:'visible'});
     await page.locator('#confirmRdoOccurrences').click();
     await page.locator('#openRdoPhotos').click();
     const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==','base64');
