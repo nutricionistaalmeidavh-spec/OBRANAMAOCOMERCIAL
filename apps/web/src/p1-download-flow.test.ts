@@ -17,3 +17,11 @@ it('requests document bytes through canonical source; browser path is never trus
  await vi.waitFor(()=>expect(client.post).toHaveBeenCalledWith('/api/web/p1/documents/download/request',{sourceDeviceId:'pc-1',localId:33}));
  await vi.waitFor(()=>expect(root.textContent).toContain('sincronização'));
 });
+it('shows a source-side download failure without generating an empty/corrupt PDF',async()=>{
+ client.post.mockResolvedValueOnce({data:{request:{id:'request-id',status:'failed',error:'Arquivo excede 2 MB'}}});
+ const root=document.querySelector<HTMLElement>('#app')!;await mountP1Management(root,()=>{});
+ root.querySelector<HTMLButtonElement>('[data-p1-tab="documentos"]')!.click();
+ root.querySelector<HTMLButtonElement>('[data-p1-download="0"]')!.click();
+ await vi.waitFor(()=>expect(root.textContent).toContain('Arquivo excede 2 MB'));
+ expect(client.post).toHaveBeenCalledTimes(1);
+});

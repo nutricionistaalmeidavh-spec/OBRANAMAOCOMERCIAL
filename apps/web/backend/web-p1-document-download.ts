@@ -20,7 +20,7 @@ const files=()=>{
 const obj=(value:unknown):Record<string,unknown>=>value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};
 export type P1DownloadRecord={
  id:string;projectId:string;companyId:string;sourceDeviceId:string;documentLocalId:number;actorId:string;
- status:'pending'|'ready';name?:string;mimeType?:string;sha256?:string;sizeBytes?:number;key?:string;
+ status:'pending'|'ready'|'failed';error?:string;name?:string;mimeType?:string;sha256?:string;sizeBytes?:number;key?:string;
  createdAt:string;updatedAt:string;expiresAt:string
 };
 async function load(projectId:string,id:string):Promise<P1DownloadRecord|null>{
@@ -45,8 +45,8 @@ export async function validateDownloadFilePayload(raw:unknown){
    invalid('Conteúdo e formato do documento não correspondem.');
  return{name,mimeType,sha256,localId,sizeBytes:bytes.length,bytes};
 }
-export async function requestP1DocumentDownload({companyId,projectId,actorId,sourceDeviceId,documentLocalId}:{
-  companyId:string;projectId:string;actorId:string;sourceDeviceId:string;documentLocalId:number
+export async function requestP1DocumentDownload({companyId,projectId,actorId,sourceDeviceId,documentLocalId,retry=false}:{
+  companyId:string;projectId:string;actorId:string;sourceDeviceId:string;documentLocalId:number;retry?:boolean
 }):Promise<P1DownloadRecord>{
  if(!Number.isSafeInteger(documentLocalId)||documentLocalId<1||!/^[-\w]{1,128}$/.test(sourceDeviceId))invalid('Origem/documento inválido.');
  files(); // feature must be explicitly configured; no silent storage fallback.
@@ -59,7 +59,7 @@ export async function requestP1DocumentDownload({companyId,projectId,actorId,sou
     ORDER BY updated_at DESC LIMIT 1`
  ).bind(collection(projectId),actorId,sourceDeviceId,documentLocalId,now).first<{record_json:string}>();
  if(prior){const record=JSON.parse(prior.record_json) as P1DownloadRecord;
-   if(record.projectId===projectId&&record.companyId===companyId)return record;
+   if(record.projectId===projectId&&record.companyId===companyId&&!(record.status==='failed'&&retry))return record;
  }
  const request:P1DownloadRecord={
    id:crypto.randomUUID(),projectId,companyId,actorId,sourceDeviceId,documentLocalId,
@@ -102,6 +102,22 @@ export async function receiveP1DocumentDownload({projectId,companyId,sourceDevic
  if(Number(result.meta?.changes||0)!==1)invalid('Download foi confirmado concorrentemente; atualize a solicitação.');
  return{ok:true,id,status:'ready',duplicate:false};
 }
+export async function failP1DocumentDownload({projectId,companyId,sourceDeviceId,id,errorMessage}:{
+ projectId:string;companyId:string;sourceDeviceId:string;id:string;errorMessage:string
+}){
+ if(!UUID.test(id))invalid('Pedido documental inválido.');
+ const existing=await load(projectId,id);
+ if(!existing||existing.companyId!==companyId||existing.sourceDeviceId!==sourceDeviceId||
+    existing.status!=='pending')invalid('Solicitação documental não está pendente para este Desktop.');
+ const now=new Date().toISOString();
+ const record:P1DownloadRecord={...existing,status:'failed',updatedAt:now,
+   error:String(errorMessage||'Falha ao ler arquivo na origem.').slice(0,180)};
+ const result=await runtimeEnv().DB.prepare(`UPDATE kv_records SET record_json=?,updated_at=? WHERE
+  collection=? AND id=? AND json_extract(record_json,'$.status')='pending'`)
+  .bind(JSON.stringify(record),now,collection(projectId),id).run();
+ if(Number(result.meta?.changes||0)!==1)invalid('Solicitação documental alterada simultaneamente.');
+ return{ok:true,status:'failed',id};
+}
 export async function readP1DocumentDownload({projectId,companyId,actorId,id}:{
  projectId:string;companyId:string;actorId:string;id:string
 }){
@@ -109,6 +125,7 @@ export async function readP1DocumentDownload({projectId,companyId,actorId,id}:{
  const record=await load(projectId,id);
  if(!record||record.actorId!==actorId||record.companyId!==companyId||record.projectId!==projectId)
    invalid('Solicitação de arquivo não pertence ao usuário/obra.');
+ if(record.status==='failed')return{status:'failed',id,error:record.error||'Arquivo não disponível na origem.'};
  if(record.status!=='ready'||!record.key)return{status:'pending',id};
  if(record.expiresAt<new Date().toISOString())invalid('Link temporário expirou; solicite novamente.');
  const source=await files().get(record.key);

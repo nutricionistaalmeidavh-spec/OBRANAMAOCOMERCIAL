@@ -2,7 +2,7 @@ import { assertBridgeEdit, BridgeConflict, bridgeRows } from './web-p0-policy';
 import { p1Rows,assertP1Edit } from './web-p1-policy';
 import {assertP1DomainCommand} from './web-p1-commands';
 import {uploadP1StagedDocument,readP1StagedDocument,completeP1StagedDocument,authorizeP1StagedCommand} from './web-p1-document-stage';
-import {requestP1DocumentDownload,pendingP1DocumentDownloads,receiveP1DocumentDownload,readP1DocumentDownload} from './web-p1-document-download';
+import {requestP1DocumentDownload,pendingP1DocumentDownloads,receiveP1DocumentDownload,readP1DocumentDownload,failP1DocumentDownload} from './web-p1-document-download';
 import { assertP0Create } from './web-p0-create';
 import { ensureP0WorkProject } from './web-p0-project-provision';
 import { enqueueWebP0Command, getWebP0Command, pendingWebP0Commands, ackWebP0Command, listWebP0Commands } from './web-p0-command-store';
@@ -452,10 +452,10 @@ export const handler=router({
     try{
       const request=await requestP1DocumentDownload({
         projectId:gate.member!.projectId,companyId:gate.member!.companyId,
-        actorId:ctx.user!.userId,sourceDeviceId,documentLocalId:localId
+        actorId:ctx.user!.userId,sourceDeviceId,documentLocalId:localId,retry:input.retry===true
       });
       await audit(gate.member!,ctx.user!,'web_p1_document_download_requested',{localId,requestId:request.id});
-      return json({request:{id:request.id,status:request.status}},202);
+      return json({request:{id:request.id,status:request.status,...(request.status==='failed'?{error:request.error}: {})}},202);
     }catch(cause){return error((cause as Error).message,409)}
   }],
   'POST /api/web/p1/documents/download/read':[...secured,async(ctx)=>{
@@ -483,6 +483,18 @@ export const handler=router({
     try{return json(await receiveP1DocumentDownload({
       projectId:session.device.projectId,companyId:session.device.companyId,
       sourceDeviceId:session.device.id,id:String(body.requestId||''),raw:body.file
+    }))}catch(cause){return error((cause as Error).message,409)}
+  }],
+  'POST /api/desktop/web-p1/documents/download/fail':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||!session.device.projectId||!session.device.companyId||session.member?.role!=='admin'||
+      !session.access.modules.includes('documents')||!session.access.modules.includes('obra360'))
+      return error('Dispositivo não autorizado para falha documental.',403);
+    const ownerGate=await remoteSyncOwnerError(session);if(ownerGate)return ownerGate;
+    try{return json(await failP1DocumentDownload({
+      projectId:session.device.projectId,companyId:session.device.companyId,
+      sourceDeviceId:session.device.id,id:String(body.requestId||''),
+      errorMessage:String(body.error||'Documento indisponível na origem.').slice(0,180)
     }))}catch(cause){return error((cause as Error).message,409)}
   }],
   // Staged binary transport is optional; the permanent file is always stored at Desktop/LAN source.

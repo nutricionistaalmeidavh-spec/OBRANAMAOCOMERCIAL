@@ -163,9 +163,16 @@ class SyncCoordinator {
       throw new Error('Fonte documental não confirmou arquivo solicitado.')
     await this.online.webP1DocumentDownloadComplete(item.id,file)
    }catch(error){
-    // Missing or oversized documents must not stop ordinary operational sync.
-    if(error?.code==='invalid_web_p0_command')continue
-    if(/fora da pasta|não pertence|limite 2 MB|sem arquivo central/i.test(String(error?.message||'')))continue
+    // Permanent source problems are reported to the requesting user rather than
+    // aborting unrelated sync. Network failures remain retryable.
+    const reason=String(error?.message||'');
+    if(/fora da pasta|não pertence|limite 2 MB|excede 2 MB|sem arquivo central|raiz documental|tipo documental|não encontrado na origem|arquivo indisponível/i.test(reason)){
+      if(typeof this.online.webP1DocumentDownloadFail==='function'){
+        this.assertScope(scope,generation)
+        await this.online.webP1DocumentDownloadFail(item.id,reason.slice(0,180))
+        continue
+      }
+    }
     throw error
    }
   }

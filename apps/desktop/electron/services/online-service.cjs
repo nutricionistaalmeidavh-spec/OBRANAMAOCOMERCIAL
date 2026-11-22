@@ -396,6 +396,11 @@ class OnlineService {
   async webP1DocumentDownloadsPending(){
     return this.request('/api/desktop/web-p1/documents/download/pending',{deviceToken:this.requireToken()})
   }
+  async webP1DocumentDownloadFail(requestId,error){
+    return this.request('/api/desktop/web-p1/documents/download/fail',{
+      deviceToken:this.requireToken(),requestId,error:String(error||'Arquivo indisponível').slice(0,180)
+    })
+  }
   async webP1DocumentDownloadComplete(requestId,file){
     return this.request('/api/desktop/web-p1/documents/download/complete',{
       deviceToken:this.requireToken(),requestId,file

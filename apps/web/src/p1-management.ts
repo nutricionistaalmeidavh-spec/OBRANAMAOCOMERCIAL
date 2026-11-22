@@ -49,6 +49,7 @@ const canCreateEntity=(entity:Entity,view:Overview)=>
   (isP1Domain(entity)&&view.capabilities?.finance===true);
 export async function mountP1Management(root:HTMLElement,onBack:()=>void){
   let overview:Overview|null=null,active:Entity='rdos',editing=-1,expanded=-1,message='',busy=false,creating=false,selectedSource='',createNonce='';
+  const downloadRetries=new Set<string>();
   const load=async()=>{const result=await api.get<Overview>('/api/web/p1/overview');overview=result.data;editing=-1;expanded=-1;if(!overview.sources?.some(x=>x.deviceId===selectedSource))selectedSource=overview.sources?.[0]?.deviceId||'';};
   const draw=()=>{
     if(!overview)return;
@@ -146,9 +147,18 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
     busy=true;message='';
     const button=root.querySelector<HTMLButtonElement>('[data-p1-download]');if(button)button.disabled=true;
     try{
-      const created=await api.post<{request:{id:string;status:string}}>('/api/web/p1/documents/download/request',{
-        sourceDeviceId:row.sourceDeviceId,localId:row.localId
+      const retryKey=row.sourceDeviceId+':'+row.localId;
+      const created=await api.post<{request:{id:string;status:string;error?:string}}>('/api/web/p1/documents/download/request',{
+        sourceDeviceId:row.sourceDeviceId,localId:row.localId,
+        ...(downloadRetries.has(retryKey)?{retry:true}:{})
       });
+      if(created.data.request.status==='failed'){
+        downloadRetries.add(retryKey);
+        message='Download indisponível: '+String(created.data.request.error||'Verifique o arquivo no Desktop.')+
+          ' Corrija na origem e clique novamente para tentar.';
+        draw();return;
+      }
+      downloadRetries.delete(retryKey);
       if(created.data.request.status!=='ready'){
         message='Download solicitado à origem. Aguardando sincronização do Desktop/servidor. Clique novamente para verificar.';
         draw();return;
