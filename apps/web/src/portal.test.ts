@@ -47,6 +47,20 @@ describe('Commercial login and overview DOM flows', () => {
     await vi.waitFor(()=>expect(document.querySelector('h1')?.textContent).toBe('Visão geral'));
     expect(document.querySelector('[data-resource="obra"]')).not.toBeNull();
   });
+  it('keeps a loading panel instead of the obsolete login while bootstrap is pending', async () => {
+    client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
+    let release!:(data:unknown)=>void;
+    client.get.mockImplementation(path=>path==='/api/bootstrap'
+      ?new Promise(resolve=>{release=resolve})
+      :Promise.resolve({data:{role:'user'}}));
+    const pending=mountMhPortal();
+    await vi.waitFor(()=>expect(document.querySelector('.cp-loading-screen')).not.toBeNull());
+    expect(document.querySelector('#googleLogin')).toBeNull();
+    release({data:bootstrap('employee')});
+    await pending;
+    expect(document.querySelector('.cp-loading-screen')).toBeNull();
+    expect(document.querySelector('h1')?.textContent).toBe('Visão geral');
+  });
   it('recovers a valid server session when the readable auth hint is missing', async () => {
     client.isSignedIn.mockReturnValue(false);
     client.getUser.mockResolvedValue({name:'Pessoa Teste',email:'person@example.test'});
