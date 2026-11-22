@@ -1,0 +1,34 @@
+name: LAN - 10 clients load and concurrency
+
+on:
+  pull_request:
+    paths:
+      - 'apps/lan-server/**'
+      - '.github/workflows/lan-ten-client-load.yml'
+  workflow_dispatch:
+    inputs:
+      rounds:
+        description: 'Number of daily-report cycles per client (1-100)'
+        required: false
+        default: '100'
+
+permissions:
+  contents: read
+
+jobs:
+  lan-ten-client-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run 10-client load and same-record conflict checks
+        working-directory: apps/lan-server
+        env:
+          LAN_LOAD_ROUNDS: ${{ github.event_name == 'workflow_dispatch' && inputs.rounds || '100' }}
+        run: npm run test:lan10
+      - name: Run all LAN server regression tests
+        working-directory: apps/lan-server
+        run: npm test
