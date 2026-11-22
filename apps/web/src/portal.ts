@@ -210,9 +210,9 @@ async function renderPhonePortal(p:Participant){
   }catch{}
   portalShell(p.name,meta,cards,undefined,'collaborator')
 }
-async function renderCorporatePortal(){
+async function renderCorporatePortal(sessionUser?:NonNullable<Awaited<ReturnType<typeof auth.getUser>>>){
   try{
-    const user=await auth.getUser();if(!user)return publicHome();
+    const user=sessionUser||await auth.getUser();if(!user)return publicHome();
     // A lactation administrator has no Obra membership and must never enter the Obra bootstrap.
     try{
       const {data:central}=await api.get<{role:string}>('/api/central/access');
@@ -239,7 +239,7 @@ async function renderCorporatePortal(){
 async function openPortal(){
   location.hash='#portal';
   const user=await auth.getUser();
-  if(user){await renderCorporatePortal();return}
+  if(user){await renderCorporatePortal(user);return}
   const token=localStorage.getItem(SESSION);
   if(token){try{const data=(await api.post('/api/edu/me',{token})).data as {participant:Participant};await renderPhonePortal(data.participant);return}catch{localStorage.removeItem(SESSION)}}
   publicHome()
@@ -263,6 +263,7 @@ export async function mountMhPortal(){
   if(['#phone-login','#celular'].includes(location.hash))location.hash='#colaborador';
   if(location.hash==='#colaborador'){await openCollaborator();return}
   if(location.hash==='#portal'){await openPortal();return}
-  if(await auth.getUser()){location.hash='#portal';await renderCorporatePortal();return}
+  const sessionUser=await auth.getUser();
+  if(sessionUser){location.hash='#portal';await renderCorporatePortal(sessionUser);return}
   publicHome()
 }
