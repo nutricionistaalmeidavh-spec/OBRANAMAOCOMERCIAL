@@ -246,3 +246,9 @@ body.field-shell-active dialog{
 
 /* P1: screen transitions are composed before the next paint, not shown half-styled. */
 body.field-shell-active #content.field-screen-staging{visibility:hidden}
+
+/* P1 regression: the summary timestamp can occupy more lines than loading copy.
+   Reserve its height so the KPI grid does not jump when real data arrives. */
+body.field-shell-active .management-section>.section-head p{
+  min-height:calc(3 * 1.45em);
+}
