@@ -30,6 +30,7 @@ describe('P1 mobile UX stability',()=>{
     expect(skeleton).toContain('aria-busy="true"');
     expect(skeleton).toContain('cp-metrics');
     expect(skeleton).toContain('cp-summary');
+    expect(skeleton).toContain('cp-snapshot-placeholder');
     expect(skeleton).not.toContain('R$');
   });
 
