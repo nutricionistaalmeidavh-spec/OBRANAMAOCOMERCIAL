@@ -12,6 +12,85 @@ type Bootstrap={needsClaim:boolean;authorized?:boolean;isOwner?:boolean;platform
 type Participant={id:string;name:string;phone:string;email?:string|null;jobRole:string;mustChangePassword:boolean};
 
 const SESSION='obn-edu-session';
+type PasskeyScope='corporate'|'collaborator';
+type PasskeyClient={
+  supported:()=>boolean;
+  login:(scope:PasskeyScope)=>Promise<{scope:PasskeyScope;token?:string;participant?:Participant}>;
+  enroll:(scope:PasskeyScope,token?:string)=>Promise<{ok:boolean}>;
+  list:(scope:PasskeyScope,token?:string)=>Promise<{credentials:{id:string;createdAt:string;lastUsedAt?:string|null}[]}>;
+  remove:(scope:PasskeyScope,id:string,token?:string)=>Promise<{ok:boolean}>;
+};
+const passkeys=()=> (window as typeof window & {obnPasskeys?:PasskeyClient}).obnPasskeys;
+const passkeyToken=(scope:PasskeyScope)=>scope==='collaborator'?localStorage.getItem(SESSION)||undefined:undefined;
+async function signInWithPasskey(scope:PasskeyScope){
+  const provider=passkeys();
+  if(!provider?.supported())throw new Error('Este navegador não permite o uso de chaves de acesso.');
+  const result=await provider.login(scope);
+  if(scope==='collaborator'){
+    if(!result.token||!result.participant)throw new Error('Sessão do colaborador inválida.');
+    localStorage.setItem(SESSION,result.token);
+    location.hash='#portal';
+    await renderPhonePortal(result.participant);
+    return;
+  }
+  location.hash='#portal';
+  await renderCorporatePortal();
+}
+function bindPasskeyLogin(id:string,scope:PasskeyScope){
+  const button=document.getElementById(id) as HTMLButtonElement|null;
+  if(!button)return;
+  if(!passkeys()?.supported()){button.hidden=true;return}
+  button.addEventListener('click',async()=>{
+    button.disabled=true;
+    try{await signInWithPasskey(scope)}catch(error){toast(apiErr(error))}
+    finally{button.disabled=false}
+  });
+}
+async function showPasskeyManager(scope:PasskeyScope){
+  const provider=passkeys();
+  if(!provider?.supported())return toast('Chaves de acesso indisponíveis neste navegador.');
+  const dialog=document.createElement('dialog');
+  dialog.className='cp-passkey-dialog';
+  dialog.innerHTML='<h2>Chaves de acesso</h2><p>Revogue aqui os dispositivos que não devem mais acessar a conta.</p><div class="cp-passkey-list"></div><button type="button" class="cp-text-button cp-passkey-close">Fechar</button>';
+  document.body.appendChild(dialog);
+  dialog.querySelector('.cp-passkey-close')?.addEventListener('click',()=>dialog.close());
+  dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+  const list=dialog.querySelector('.cp-passkey-list')!;
+  const refresh=async()=>{
+    list.textContent='Carregando…';
+    try{
+      const result=await provider.list(scope,passkeyToken(scope));
+      list.textContent='';
+      if(!result.credentials.length){list.textContent='Nenhuma chave cadastrada.';return}
+      for(const [index,item] of result.credentials.entries()){
+        const row=document.createElement('div');row.className='cp-passkey-row';
+        const text=document.createElement('span');
+        text.textContent='Chave '+(index+1)+' · '+new Date(item.createdAt).toLocaleDateString('pt-BR');
+        const revoke=document.createElement('button');revoke.type='button';revoke.textContent='Revogar';
+        revoke.addEventListener('click',async()=>{
+          if(!confirm('Revogar esta chave de acesso?'))return;
+          revoke.disabled=true;
+          try{await provider.remove(scope,item.id,passkeyToken(scope));await refresh()}catch(error){toast(apiErr(error));revoke.disabled=false}
+        });
+        row.append(text,revoke);list.appendChild(row);
+      }
+    }catch(error){list.textContent='Não foi possível carregar suas chaves.';toast(apiErr(error))}
+  };
+  dialog.showModal();
+  await refresh();
+}
+function bindPasskeyAccount(scope:PasskeyScope){
+  const enroll=document.getElementById('passkeyEnroll') as HTMLButtonElement|null;
+  const manage=document.getElementById('passkeyManage') as HTMLButtonElement|null;
+  if(!passkeys()?.supported()){enroll?.remove();manage?.remove();return}
+  enroll?.addEventListener('click',async()=>{
+    enroll.disabled=true;
+    try{await passkeys()!.enroll(scope,passkeyToken(scope));toast('Chave de acesso cadastrada. No próximo login, use Face ID, digital ou PIN.')}
+    catch(error){toast(apiErr(error))}finally{enroll.disabled=false}
+  });
+  manage?.addEventListener('click',()=>void showPasskeyManager(scope));
+}
+
 const esc=(v:unknown)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] as string));
 const digits=(v:string)=>v.replace(/\D/g,'');
 const apiErr=(e:unknown)=>{const x=e as {response?:{data?:{error?:string;message?:string}};message?:string};return x.response?.data?.error||x.response?.data?.message||x.message||'Não foi possível concluir.'};
@@ -42,11 +121,13 @@ function publicHome(){
     <a class="cp-back" href="./">${icon('arrow-left')}<span>Página principal</span></a>
     <div class="cp-login-content"><div class="cp-login-brand"><img src="./canteiro360-logo.png" alt="Canteiro360 — controle total da obra" width="1448" height="1086"></div>
     <section class="cp-login-form" aria-labelledby="loginTitle"><h1 id="loginTitle">Acesse sua operação</h1><p>Entre com a conta responsável pela sua empresa.</p>
-    <button id="googleLogin" type="button" class="cp-google">${googleMark()}<span>Continuar com Google</span></button></section></div>
+    <button id="googleLogin" type="button" class="cp-google">${googleMark()}<span>Continuar com Google</span></button>
+    <button id="passkeyCompany" type="button" class="cp-google cp-passkey-login">Entrar com Face ID ou chave de acesso</button></section></div>
     <a class="cp-login-switch" href="./sistema.html#colaborador"><span>Acesso do colaborador</span>${icon('chevron-right')}</a>
     <footer class="cp-login-footer"><span>Controle total da obra <small class="cp-version">v${APP_VERSION}</small></span>${vendor()}</footer>
   </main>`);
   document.getElementById('googleLogin')?.addEventListener('click',async()=>{try{await auth.signIn({scope:'openid email profile'})}catch(e){toast(apiErr(e))}});
+  bindPasskeyLogin('passkeyCompany','corporate');
 }
 function collaboratorHome(){
   setBody(`<main class="cp-login cp-collaborator-login">
@@ -58,7 +139,7 @@ function collaboratorHome(){
       <label for="phonePassword">Senha</label><div class="cp-password"><input id="phonePassword" type="password" autocomplete="current-password" required><button id="togglePassword" type="button" aria-label="Mostrar senha" aria-pressed="false">${icon('eye')}</button></div>
       <button class="mh-primary" id="phoneSubmit" type="submit">Entrar</button>
       <button class="cp-text-button" type="button" id="phoneFirst">Primeiro acesso</button>
-    </form></section></div>
+    </form><button id="passkeyCollaborator" type="button" class="cp-google cp-passkey-login">Entrar com Face ID ou chave de acesso</button></section></div>
     <a class="cp-login-switch" href="./sistema.html#portal"><span>Acesso da empresa</span>${icon('chevron-right')}</a>
     <footer class="cp-login-footer"><span>Acesso exclusivo de colaboradores <small class="cp-version">v${APP_VERSION}</small></span>${vendor()}</footer>
   </main>`);
@@ -78,6 +159,7 @@ function collaboratorHome(){
     }catch(err){toast(apiErr(err))}finally{submit.disabled=false;submit.textContent='Entrar'}
   });
   document.getElementById('phoneFirst')?.addEventListener('click',showFirstAccess);
+  bindPasskeyLogin('passkeyCollaborator','collaborator');
 }
 async function showFirstAccess(){
   const identifier=(document.getElementById('phoneIdentity') as HTMLInputElement|null)?.value.trim()||'';
@@ -100,10 +182,10 @@ async function showFirstAccess(){
     })
   }catch(err){toast(apiErr(err))}
 }
-function portalShell(name:string,meta:string,cards:string,context?:Bootstrap){
+function portalShell(name:string,meta:string,cards:string,context?:Bootstrap,passkeyScope?:PasskeyScope){
   const hasObra=cards.includes('data-resource="obra"');
   const initials=name.trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase();
-  setBody(`<header class="cp-header"><div class="cp-header-inner">${brand()}<details class="cp-account"><summary aria-label="Menu da conta">${esc(initials||'EU')}</summary><div><strong>${esc(name)}</strong><a href="./">Página principal</a><button id="logoutBtn" type="button">${icon('log-out')}Sair</button></div></details></div></header>
+  setBody(`<header class="cp-header"><div class="cp-header-inner">${brand()}<details class="cp-account"><summary aria-label="Menu da conta">${esc(initials||'EU')}</summary><div><strong>${esc(name)}</strong><a href="./">Página principal</a>${passkeyScope?'<button id="passkeyEnroll" type="button">Cadastrar chave de acesso</button><button id="passkeyManage" type="button">Gerenciar chaves</button>':''}<button id="logoutBtn" type="button">${icon('log-out')}Sair</button></div></details></div></header>
     <main class="cp-dashboard"><div class="cp-context">${icon('building-2')}<span>${esc(meta)}</span></div>
     <section class="cp-welcome"><h1>Visão geral</h1><p>${esc(portalGreeting(name))}</p></section>
     <div class="cp-dashboard-grid"><div id="portalOverview" aria-live="polite">${context&&canReadOverview(context)?'<p class="cp-loading" role="status">Carregando resumo…</p>':''}</div>
@@ -111,6 +193,7 @@ function portalShell(name:string,meta:string,cards:string,context?:Bootstrap){
     <footer class="cp-dashboard-footer"><span>Acessos conforme seu perfil. <small class="cp-version">v${APP_VERSION}</small></span>${vendor()}</footer></main>
     <nav class="cp-bottom-nav" aria-label="Navegação principal"><a href="#portal" aria-current="page">${icon('house')}<span>Início</span></a>${hasObra?`<a href="./obra.html#obra">${icon('hard-hat')}<span>Obras</span></a>`:''}<button id="moreModules" type="button">${icon('ellipsis')}<span>Mais</span></button></nav>`);
   document.getElementById('logoutBtn')?.addEventListener('click',()=>void logout());
+  if(passkeyScope)bindPasskeyAccount(passkeyScope);
   document.getElementById('moreModules')?.addEventListener('click',()=>{document.getElementById('portalModules')?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'center'});document.querySelector<HTMLAnchorElement>('.cp-module')?.focus({preventScroll:true})});
   if(context&&canReadOverview(context)){
     const target=document.getElementById('portalOverview')!;
@@ -125,7 +208,7 @@ async function renderPhonePortal(p:Participant){
     if(b.access?.modules?.includes('obra360'))cards=card('obra','Obra360','Dias, etapas, equipe, presença e rotina de campo.','./obra.html#obra','⌂','encarregado')+cards;
     meta=b.company?.name||'Empresa';
   }catch{}
-  portalShell(p.name,meta,cards)
+  portalShell(p.name,meta,cards,undefined,'collaborator')
 }
 async function renderCorporatePortal(){
   try{
@@ -150,7 +233,7 @@ async function renderCorporatePortal(){
     if(b.needsClaim)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
     if(b.role==='admin'||b.platformRole==='superadmin'||b.isOwner)cards+=card('cobranca','Plano e cobrança','Consulte sua assinatura, pagamentos ou conheça outros planos.','./sistema.html#plano-cobranca','▤');
     if(!cards)cards='<article class="mh-empty"><h3>Nenhum sistema liberado</h3><p>Seu login está válido, mas ainda não há módulos liberados para este perfil.</p></article>';
-    portalShell(user.name||user.email||'Usuário',`${b.platformRole==='superadmin'?'Superadmin · ':''}${b.company?.name||'Empresa'}`,cards,b)
+    portalShell(user.name||user.email||'Usuário',`${b.platformRole==='superadmin'?'Superadmin · ':''}${b.company?.name||'Empresa'}`,cards,b,'corporate')
   }catch(e){publicHome();toast(apiErr(e))}
 }
 async function openPortal(){
