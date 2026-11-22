@@ -37,6 +37,17 @@ describe('video 2026-11-22 P0 mobile delivery contracts',()=>{
     expect(field).toContain("if(!state||sheet?.open)return");
   });
 
+  it('returns directly to the authenticated portal without the marketing-page redirect',()=>{
+    for(const page of ['./mobile-dashboard.ts','../public/field.js','../public/field-premium-v2.js','./owner.ts','./university-shell.ts']){
+      const content=read(page);
+      expect(content).not.toContain('./index.html#portal');
+      expect(content).toContain('./sistema.html#portal');
+    }
+    for(const page of ['../obra.html','../gestao.html','../sistema.html']){
+      expect(read(page)).toContain('/field-premium-v2.js?v=20261122-mobile-p0-1');
+    }
+  });
+
   it('installs the updated runtime and field assets for PWA clients',()=>{
     const sw=read('../public/sw.js');
     expect(sw).toContain('obra-na-mao-comercial-v27-mobile-p0');
