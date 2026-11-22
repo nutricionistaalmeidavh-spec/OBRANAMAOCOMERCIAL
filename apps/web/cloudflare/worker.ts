@@ -3,6 +3,7 @@ import { drainLicenseDeliveries } from '../backend/license-delivery';
 import { handleAsaasWebhook } from '../backend/asaas-webhook';
 import { ensureBillingSchema } from '../backend/billing-schema-runtime';
 import { handleCorporatePasswordAuth } from '../backend/corporate-password-auth';
+import { handlePasskeyAuth } from '../backend/passkey-auth';
 import { handleProductLicenseInternal } from '../backend/product-license-internal';
 import { handleLicenseCenterReadonlyInternal } from '../backend/license-center-readonly-internal';
 import { handleLicenseCenterAdminInternal } from '../backend/license-center-admin-internal';
@@ -117,6 +118,8 @@ export default {
     if(licenseCenterAdmin)return licenseCenterAdmin;
     const licenseCenter=await handleLicenseCenterReadonlyInternal(request,env);
     if(licenseCenter)return licenseCenter;
+    const passkeys=await handlePasskeyAuth(request,env);
+    if(passkeys)return passkeys;
     const passwordAuth=await handleCorporatePasswordAuth(request,env);
     if(passwordAuth)return passwordAuth;
     const url = new URL(request.url);
