@@ -63,7 +63,7 @@ function header(){
     <small>${product?(limited?'ADMINISTRAÇÃO DÉBORA LACTAÇÃO':'CENTRAL ARTISYS'):(limited?'ADMINISTRAÇÃO DÉBORA LACTAÇÃO':'SUPERADMIN ARTISYS')}</small>
     <h1>${product?'Débora Lactação':'Central Artisys'}</h1>
     <p>${product?'Consultoras, licenças, vendas e uso do sistema.':limited?'Gestão comercial e licenciamento de Débora Lactação.':'Produtos, clientes e licenças em áreas separadas para reduzir risco operacional.'}</p>
-  </div><div class="owner-hero-actions">${limited||product?'':'<a class="owner-secondary" href="./index.html#portal">Minha operação</a>'}<button id="centralLogout" class="owner-secondary" type="button">Sair</button></div></header>`;
+  </div><div class="owner-hero-actions">${limited||product?'':'<a class="owner-secondary" href="./sistema.html#portal">Minha operação</a>'}<button id="centralLogout" class="owner-secondary" type="button">Sair</button></div></header>`;
 }
 function navigation(active:OwnerView){
   const product=active==='debora';
@@ -309,6 +309,6 @@ async function render(){
     try{await refreshDeboraOverview()}catch{deboraOverview=emptyDeboraOverview();deboraClients=[]}
     if(centralRole==='owner'){try{await refreshLicenseHistory()}catch{licenseHistory=[]}}
     renderCurrentView();
-  }catch(e){root().innerHTML=`<section class="card"><h1>Central Artisys</h1><p>${esc(message(e))}</p><a href="./index.html#portal">Voltar</a></section>`}
+  }catch(e){root().innerHTML=`<section class="card"><h1>Central Artisys</h1><p>${esc(message(e))}</p><a href="./sistema.html#portal">Voltar</a></section>`}
 }
 export async function mountOwnerPortal(){centralRole='owner';ownerView='overview';createMessage='';deboraOverview=emptyDeboraOverview();deboraClients=[];licenseHistory=[];await render()}
