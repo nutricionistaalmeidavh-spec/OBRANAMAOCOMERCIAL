@@ -265,7 +265,7 @@ async function logout(){
   if(hadPhoneSession){location.hash='#colaborador';collaboratorHome();return}
   location.hash='';publicHome()
 }
-window.addEventListener('obn:authenticated',event=>{
+if(typeof window!=='undefined')window.addEventListener('obn:authenticated',event=>{
   event.preventDefault();
   void renderCorporatePortal();
 });
