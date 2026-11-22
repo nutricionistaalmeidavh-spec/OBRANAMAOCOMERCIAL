@@ -7,6 +7,7 @@ export function portalOverviewLoading():string{
   // Keep overview height and metric columns stable without exposing data before authorization.
   return `<section class="cp-section cp-summary cp-overview-skeleton" role="status" aria-busy="true" aria-label="Carregando resumo da gestão">
     <div class="cp-section-heading"><h2>Resumo da gestão</h2><small>Carregando indicadores…</small></div>
+    <p class="cp-snapshot-status cp-snapshot-placeholder" aria-hidden="true">Carregando data da publicação…</p>
     <div class="cp-metrics" aria-hidden="true">
       <div><span class="cp-skeleton-line"></span><strong class="cp-skeleton-value"></strong></div>
       <div><span class="cp-skeleton-line"></span><strong class="cp-skeleton-value"></strong></div>
