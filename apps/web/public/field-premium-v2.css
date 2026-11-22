@@ -252,3 +252,8 @@ body.field-shell-active #content.field-screen-staging{visibility:hidden}
 body.field-shell-active .management-section>.section-head p{
   min-height:calc(3 * 1.45em);
 }
+
+
+/* P2: old Desktop publications are historical, never presented as live. */
+body.field-shell-active .management-stale>.section-head p{color:#8e550e}
+body.field-shell-active .management-stale .management-kpi{border-color:#e2cba6}
