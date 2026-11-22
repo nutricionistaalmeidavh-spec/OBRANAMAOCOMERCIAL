@@ -59,7 +59,7 @@ describe('Commercial login and overview DOM flows', () => {
     await mountMhPortal();
     expect(location.hash).toBe('#portal');
     expect(document.querySelector('[data-resource="ativar"]')).not.toBeNull();
-    expect(document.body.textContent).toContain('licença ativa');
+    expect(document.body.textContent).toContain('Licença ativa');
     expect(document.body.textContent).not.toContain('Nenhuma licença vinculada');
   });
   it('explains an unregistered Google account without creating a company or immediately sending it to checkout', async () => {
