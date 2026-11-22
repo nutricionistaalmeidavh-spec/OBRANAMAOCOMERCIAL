@@ -56,6 +56,7 @@ describe('Commercial login and overview DOM flows', () => {
     const pending=mountMhPortal();
     await vi.waitFor(()=>expect(document.querySelector('.cp-loading-screen')).not.toBeNull());
     expect(document.querySelector('#googleLogin')).toBeNull();
+    await vi.waitFor(()=>expect(release).toBeTypeOf('function'));
     release({data:bootstrap('employee')});
     await pending;
     expect(document.querySelector('.cp-loading-screen')).toBeNull();
