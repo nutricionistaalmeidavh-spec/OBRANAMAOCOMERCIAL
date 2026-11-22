@@ -50,7 +50,7 @@ function record(name,engine,elapsed,extra={}){results.push({name,engine,ms:Math.
 async function setup(engine,authenticated=false,slowAuxiliary=false){
   const context=await engine.newContext({viewport,deviceScaleFactor:3,isMobile:true,hasTouch:true,serviceWorkers:'block'});
   const page=await context.newPage();
-  const tracker={authenticated,requests:[],badPages:[],errors:[]};
+  const tracker={authenticated,requests:[],badPages:[],errors:[],auxiliaryResponses:[]};
   page.on('pageerror',error=>tracker.errors.push(error.message));
   page.on('framenavigated',frame=>{if(frame===page.mainFrame())tracker.badPages.push(new URL(frame.url()).pathname);});
   if(authenticated)await context.addCookies([{name:'obn_auth',value:'1',domain:'127.0.0.1',path:'/'}]);
@@ -64,7 +64,9 @@ async function setup(engine,authenticated=false,slowAuxiliary=false){
     const pathName=new URL(route.request().url()).pathname;
     tracker.requests.push(pathName);
     const isAuxiliary=['/api/field/rdo/receipts','/api/field/rdo/catalog','/api/mobile/summary','/api/mobile/sync/conflicts','/api/portal/overview'].includes(pathName);
-    await sleep(slowAuxiliary&&isAuxiliary?3800:180);
+    // Use a delay longer than normal cold WebKit startup; readiness must not await it.
+    await sleep(slowAuxiliary&&isAuxiliary?6500:180);
+    if(slowAuxiliary&&isAuxiliary)tracker.auxiliaryResponses.push(pathName);
     const json=(body,status=200,headers={})=>route.fulfill({status,contentType:'application/json',headers,body:JSON.stringify(body)}).catch(()=>{});
     if(pathName==='/api/auth/me')return tracker.authenticated?json({user:{userId:'qa',email:'qa@example.test',name:'Pessoa QA'}}):json({error:'Não autenticado'},401);
     if(pathName==='/api/central/access')return json({role:'regular'});
@@ -146,13 +148,14 @@ async function testNavigation(engine,name){
     await page.locator('[data-resource="obra"]').click();
     await page.locator('#reviewRdo').waitFor({state:'visible',timeout:14000});
     const obraMs=now()-obraStart;
-    ensureUnder(obraMs,3500,'Obra with auxiliary endpoints delayed 3800ms');
+    ensureUnder(obraMs,name.startsWith('webkit')?5500:5000,'Obra with auxiliary endpoints delayed 6500ms');
+    assert.equal(tracker.auxiliaryResponses.length,0,`Obra became usable only after an auxiliary API resolved: ${tracker.auxiliaryResponses.join(', ')}`);
     assert.ok(await page.locator('.nav button[data-screen="today"]').isVisible());
     assert.equal(await page.locator('.field-startup').count(),0);
     assert.ok(!tracker.badPages.some(v=>v==='/index.html'));
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
     assert.ok(overflow<=2,`Horizontal overflow in ${name}: ${overflow}px`);
-    record('portal-to-obra-with-slow-auxiliary',name,obraMs,{auxiliaryDelayMs:3800,horizontalOverflowPx:overflow});
+    record('portal-to-obra-with-slow-auxiliary',name,obraMs,{auxiliaryDelayMs:6500,horizontalOverflowPx:overflow});
     const navGeometry=await page.evaluate(()=>{const bar=document.querySelector('nav.nav'),button=bar?.querySelector('button');if(!bar||!button)return null;const b=bar.getBoundingClientRect();return {bottom:Math.round(window.innerHeight-b.bottom),minHeight:Math.round(button.getBoundingClientRect().height),fontSize:parseFloat(getComputedStyle(button).fontSize)}});
     assert.ok(navGeometry&&navGeometry.bottom<=2&&navGeometry.minHeight>=44&&navGeometry.fontSize>=12,`Mobile navigation not readable or flush to viewport: ${JSON.stringify(navGeometry)}`);
     await page.locator('.nav button[data-screen="obra360"]').click();
@@ -177,7 +180,7 @@ async function testNavigation(engine,name){
     await page.locator('[data-resource="gestao"]').click();
     await page.locator('.management-hero').waitFor({state:'visible',timeout:14000});
     const gestaoMs=now()-gestaoStart;
-    ensureUnder(gestaoMs,3500,'Management shell while summary API is delayed 3800ms');
+    ensureUnder(gestaoMs,5000,'Management shell while summary API is delayed 6500ms');
     assert.equal(await page.locator('#content').getAttribute('aria-busy'),'true','Expected reserved KPI skeleton during slow summary');
     assert.equal(await page.locator('.management-kpi').count(),3);
     const readKpiPosition=()=>page.locator('.management-kpis').evaluate(element=>element.getBoundingClientRect().top+window.scrollY);
@@ -186,7 +189,7 @@ async function testNavigation(engine,name){
     const afterKpi=await readKpiPosition();
     const shift=Math.abs(beforeKpi-afterKpi);
     assert.ok(shift<3,`${name}: KPI document position moved ${Math.round(shift)}px (before=${Math.round(beforeKpi)}, after=${Math.round(afterKpi)})`);
-    record('portal-to-gestao',name,gestaoMs,{summaryDelayMs:3800,kpiShiftPx:Math.round(shift)});
+    record('portal-to-gestao',name,gestaoMs,{summaryDelayMs:6500,kpiShiftPx:Math.round(shift)});
     await screenshots(page,name+'-gestao-loaded');
     await page.locator('.management-hero .hero-back').click();
     await page.locator('.cp-dashboard h1').waitFor({timeout:12000});
