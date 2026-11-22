@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { grantManualDeboraLicenseWithSale, listManualSales, manualSalesSummary } from './manual-license-sales';
+import { resolveProductAccess, revokeManualDeboraLicense, syncProductLicense } from './product-license-service';
 
 const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite');
 
@@ -63,5 +64,51 @@ describe('manual Debora sales service',()=>{
     expect(new Set([...p1.items,...p2.items].map(item=>item.email)).size).toBe(3);
     const summary=await manualSalesSummary(db);
     expect(summary.paid).toBe(1);expect(summary.pending).toBe(1);expect(summary.notApplicable).toBe(1);expect(summary.realizedRevenueCents).toBe(8000);
+  });
+});
+
+describe('calendar integration access from the existing manual-sale source',()=> {
+  it('uses the latest manual acquisition channel, without a second partner registry',async()=> {
+    const {db}=runtimeDb();
+    const email='parceira@example.test';
+    await grantManualDeboraLicenseWithSale(db,email,{
+      acquisitionChannel:'partnership', paymentStatus:'not_applicable',
+    },'owner','2026-09-25T12:00:00.000Z');
+    expect((await resolveProductAccess(db,'debora-lactacao',email,'2026-10-29T12:00:00.000Z')).calendarAccess).toBe(true);
+    await grantManualDeboraLicenseWithSale(db,email,{
+      acquisitionChannel:'courtesy', paymentStatus:'not_applicable',
+    },'owner','2026-10-01T12:00:00.000Z');
+    expect((await resolveProductAccess(db,'debora-lactacao',email,'2026-10-29T12:00:00.000Z')).calendarAccess).toBe(false);
+    await grantManualDeboraLicenseWithSale(db,email,{
+      acquisitionChannel:'direct_sale', paymentStatus:'paid',
+    },'owner','2026-10-02T12:00:00.000Z');
+    expect((await resolveProductAccess(db,'debora-lactacao',email,'2026-10-29T12:00:00.000Z')).calendarAccess).toBe(true);
+    await revokeManualDeboraLicense(db,email,'owner','2026-10-29T12:00:00.000Z');
+    expect((await resolveProductAccess(db,'debora-lactacao',email,'2026-10-29T12:00:00.000Z')).calendarAccess).toBeUndefined();
+  });
+
+  it('does not treat pending/manual courtesy or expired licenses as paid calendar access',async()=> {
+    const {db}=runtimeDb();
+    const sources=[
+      ['mercadolivre@example.test','mercado_livre','paid',true],
+      ['pending@example.test','direct_sale','pending',false],
+      ['courtesy@example.test','courtesy','not_applicable',false],
+    ] as const;
+    for(const [email,acquisitionChannel,paymentStatus,expected] of sources){
+      await grantManualDeboraLicenseWithSale(db,email,{acquisitionChannel,paymentStatus},'owner','2026-09-25T12:00:00.000Z');
+      expect((await resolveProductAccess(db,'debora-lactacao',email,'2026-10-29T12:00:00.000Z')).calendarAccess).toBe(expected);
+    }
+    expect((await resolveProductAccess(db,'debora-lactacao','mercadolivre@example.test','2030-10-29T12:00:00.000Z')).calendarAccess).toBeUndefined();
+    expect((await resolveProductAccess(db,'debora-lactacao','unknown@example.test')).calendarAccess).toBeUndefined();
+  });
+
+  it('recognizes verified active non-manual Pro, not a trialing subscription',async()=> {
+    const {db}=runtimeDb();
+    await syncProductLicense(db,{email:'paid@example.test',planCode:'pro_monthly',status:'active',
+      source:'asaas',expiresAt:'2027-01-01T00:00:00.000Z'});
+    expect((await resolveProductAccess(db,'debora-lactacao','paid@example.test','2026-10-29T12:00:00.000Z')).calendarAccess).toBe(true);
+    await syncProductLicense(db,{email:'trial@example.test',planCode:'pro_monthly',status:'trialing',
+      source:'asaas',expiresAt:'2027-01-01T00:00:00.000Z'});
+    expect((await resolveProductAccess(db,'debora-lactacao','trial@example.test','2026-10-29T12:00:00.000Z')).calendarAccess).toBe(false);
   });
 });
