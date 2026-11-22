@@ -157,7 +157,7 @@
 
     if(internal)enhanceInternalSurface(internal);
     enhanceSheet();
-    if(content.childElementCount>0)document.body.classList.remove('field-booting');
+    if(content.querySelector(':scope > :not(.field-startup)'))document.body.classList.remove('field-booting');
   }
 
   window.fieldLifecycle?.register({screen:enhance,sheet:enhanceSheet});
