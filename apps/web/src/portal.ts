@@ -108,6 +108,10 @@ function portalGreeting(name:string){
 }
 
 function setBody(html:string){document.body.className='mh-portal-body';document.body.innerHTML=`<div id="mhPortal">${html}</div><div id="mhToast" class="mh-toast" role="status" aria-live="polite"></div>`;createIcons({icons});}
+function showPortalLoading(){
+  // The previous page must never remain visible while identity and permissions resolve.
+  setBody('<main class="cp-startup" role="status" aria-live="polite"><span class="cp-startup-mark">Canteiro360</span><span class="cp-startup-spinner" aria-hidden="true"></span><p>Carregando seus acessos…</p></main>');
+}
 function toast(text:string){const e=document.getElementById('mhToast');if(!e)return;e.textContent=text;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4500)}
 function card(key:string,title:string,text:string,href:string,_icon:string,role?:string){const names:Record<string,string>={gestao:'file-text',obra:'hard-hat',universidade:'graduation-cap',acessos:'shield-check',ativar:'plus',cobranca:'file-text'};return `<a class="cp-module" data-resource="${esc(key)}" href="${esc(href)}" aria-label="${esc(title)}${role?` — ${esc(role)}`:''}" title="${esc(text)}">${icon(names[key]||'file-text')}<span>${esc(title)}</span>${icon('chevron-right')}</a>`}
 
@@ -210,15 +214,21 @@ async function renderPhonePortal(p:Participant){
   }catch{}
   portalShell(p.name,meta,cards,undefined,'collaborator')
 }
-async function renderCorporatePortal(){
+async function renderCorporatePortal(verifiedUser?:Awaited<ReturnType<typeof auth.getUser>>){
   try{
-    const user=await auth.getUser();if(!user)return publicHome();
-    // A lactation administrator has no Obra membership and must never enter the Obra bootstrap.
-    try{
-      const {data:central}=await api.get<{role:string}>('/api/central/access');
-      if(central.role==='debora'){location.replace('./sistema.html#owner');return}
-    }catch{/* Other users continue through their existing corporate portal. */}
-    const b=(await api.get('/api/bootstrap')).data as Bootstrap,pa=b.platformAccess;
+    const user=verifiedUser??await auth.getUser();if(!user)return publicHome();
+    // Parallel lookups shorten the critical path, but never bypass the server checks.
+    // A Debora administrator can lack an Obra membership, so honor central routing
+    // even if the concurrent Obra bootstrap returns 403.
+    const [central,bootstrap]=await Promise.allSettled([
+      api.get<{role:string}>('/api/central/access'),
+      api.get<Bootstrap>('/api/bootstrap')
+    ]);
+    if(central.status==='fulfilled'&&central.value.data.role==='debora'){
+      location.replace('./sistema.html#owner');return;
+    }
+    if(bootstrap.status==='rejected')throw bootstrap.reason;
+    const b=bootstrap.value.data,pa=b.platformAccess;
     if(pa?.status==='blocked'){portalShell(user.name||user.email||'Usuário','Acesso bloqueado','<article class="mh-empty"><h3>Acesso bloqueado</h3><p>Procure o administrador da sua empresa.</p></article>');return}
     if(pa?.status==='pending'){
       portalShell(user.name||user.email||'Usuário','Credencial provisória pendente','<article class="mh-empty"><h3>Ativar credencial</h3><p>Informe o código provisório fornecido pelo administrador.</p><input id="platformCode" maxlength="12" placeholder="CÓDIGO"><button id="claimPlatform" class="mh-primary">Ativar acesso</button></article>');
@@ -239,7 +249,7 @@ async function renderCorporatePortal(){
 async function openPortal(){
   location.hash='#portal';
   const user=await auth.getUser();
-  if(user){await renderCorporatePortal();return}
+  if(user){await renderCorporatePortal(user);return}
   const token=localStorage.getItem(SESSION);
   if(token){try{const data=(await api.post('/api/edu/me',{token})).data as {participant:Participant};await renderPhonePortal(data.participant);return}catch{localStorage.removeItem(SESSION)}}
   publicHome()
@@ -260,9 +270,11 @@ async function logout(){
 }
 export async function mountMhPortal(){
   document.title='Canteiro360 — Acesso e visão geral';
+  showPortalLoading();
   if(['#phone-login','#celular'].includes(location.hash))location.hash='#colaborador';
   if(location.hash==='#colaborador'){await openCollaborator();return}
   if(location.hash==='#portal'){await openPortal();return}
-  if(await auth.getUser()){location.hash='#portal';await renderCorporatePortal();return}
+  const user=await auth.getUser();
+  if(user){location.hash='#portal';await renderCorporatePortal(user);return}
   publicHome()
 }
