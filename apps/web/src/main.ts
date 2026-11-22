@@ -201,12 +201,43 @@ function activateRoleUI(role:Role){
   document.addEventListener('click',e=>{if(role==='admin')return;const t=e.target as Element|null;if(!t)return;const forbidden=t.closest('[data-screen="settings"],[data-screen="more"],[data-screen="issues"],[data-screen="management"],#newPlan,#newSession,[data-field-action],.plan-delete,.plan-start,#compensate,.session-actions');if(forbidden){e.preventDefault();e.stopImmediatePropagation();showStandalone('Acesso não permitido para este perfil.')}},true);
 }
 
-async function loadSharedApp(b:Bootstrap){document.body.classList.add('field-shell-active');const role=b.role as Role;const response=await fieldProject();const remote=(response.data as {state:ProjectState}).state;configureSharedContext(role,b,remote);const pending=fieldSync?.read();await writeLocalState((pending?.state||remote) as ProjectState);if(pending)void fieldSync?.flush();window.mobileReadOnlySummary=null;window.mobileSyncConflicts=[];window.mobileRdoReceipts={};
+async function loadSharedApp(b:Bootstrap){
+  document.body.classList.add('field-shell-active');
+  const role=b.role as Role;
+  const response=await fieldProject();
+  const remote=(response.data as {state:ProjectState}).state;
+  configureSharedContext(role,b,remote);
+  const pending=fieldSync?.read();
+  await writeLocalState((pending?.state||remote) as ProjectState);
+  if(pending)void fieldSync?.flush();
+
+  window.mobileReadOnlySummary=null;
+  window.mobileSyncConflicts=[];
+  window.mobileRdoReceipts={};
   const catalogProject=String(b.membership?.projectId||b.project?.id||'');
   window.mobileRdoCatalog=null;
-  try{if(catalogProject)window.mobileRdoCatalog=JSON.parse(localStorage.getItem('obra-rdo-catalog:'+catalogProject)||'null')}catch{}
-  try{await window.multiuserRefreshReceipts?.()}catch{}
-  try{await window.multiuserRefreshCatalog?.()}catch{}if(role==='admin'){try{window.mobileReadOnlySummary=((await api.get('/api/mobile/summary')).data as {summary:any}).summary}catch{}try{window.mobileSyncConflicts=((await api.get('/api/mobile/sync/conflicts')).data as {conflicts:any[]}).conflicts||[]}catch{}}setHeader(role,true,pending?'pending':'idle');nav().style.display='grid';activateRoleUI(role);const fieldModule='/field.js?v=20260903-premium-1';await import(/* @vite-ignore */ fieldModule)}
+  try{
+    if(catalogProject)window.mobileRdoCatalog=JSON.parse(localStorage.getItem('obra-rdo-catalog:'+catalogProject)||'null');
+  }catch{}
+
+  // The project is authoritative for the first render. RDO catalog, receipts, management
+  // metrics and conflict counts are secondary reads: do not serialize them before Dias.
+  setHeader(role,true,pending?'pending':'idle');
+  nav().style.display='grid';
+  activateRoleUI(role);
+  const fieldModule='/field.js?v=20260903-premium-1';
+  const fieldReady=import(/* @vite-ignore */ fieldModule);
+  const refreshWhenReady=(task?:Promise<unknown>)=>{
+    if(task)void task.then(()=>document.dispatchEvent(new CustomEvent('field:reference-updated'))).catch(()=>{});
+  };
+  refreshWhenReady(window.multiuserRefreshReceipts?.());
+  refreshWhenReady(window.multiuserRefreshCatalog?.());
+  if(role==='admin'){
+    refreshWhenReady(api.get<{summary:any}>('/api/mobile/summary').then(({data})=>{window.mobileReadOnlySummary=data.summary}));
+    refreshWhenReady(api.get<{conflicts:any[]}>('/api/mobile/sync/conflicts').then(({data})=>{window.mobileSyncConflicts=data.conflicts||[]}));
+  }
+  await fieldReady;
+}
 async function loadManagementOnly(b:Bootstrap){document.body.classList.add('field-shell-active');nav().style.display='none';if(b.role!=='admin'){setHeader(b.role,true);(root().innerHTML=messageCard('Sem operação mobile','Seu perfil não possui Obra360 e os painéis administrativos móveis são exclusivos do Admin.'), document.dispatchEvent(new CustomEvent('field:rendered')));return}setHeader('admin',true);try{const data=(await api.get('/api/mobile/summary')).data as {summary:any};renderManagementDashboard(root(),data.summary||{},b.access||{},'Gestão')}catch(e){(root().innerHTML=messageCard('Gestão mobile',apiError(e)), document.dispatchEvent(new CustomEvent('field:rendered')))}}
 
 function injectAdminSettings(){if(window.multiuserContext?.role!=='admin')return;const content=root();if(document.getElementById('multiuserAdminCard'))return;const section=document.createElement('section'),owner=activeBootstrap?.isOwner===true;section.id='multiuserAdminCard';section.className='card settings-card';section.innerHTML=`<div class="section-head"><div><strong>Usuários</strong><p>Administre quem acessa esta obra e o que cada perfil pode fazer.</p></div></div><button id="openUsersBtn" class="btn">Gerenciar usuários</button><div class="meta">Admin: tudo · Encarregado: operação e presença · Funcionário: somente suas tarefas.</div>${owner?'<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:16px"><strong>Comercial FLUXODRE</strong><div class="meta">Área exclusiva do proprietário para vendas e licenças.</div><button id="openOwnerPortalBtn" class="linkbtn" style="width:100%;margin-top:10px">Central Artisys · Empresas clientes</button></div>':''}`;content.appendChild(section);section.querySelector('#openUsersBtn')?.addEventListener('click',openUsers);section.querySelector('#openOwnerPortalBtn')?.addEventListener('click',openOwnerPortal)}
