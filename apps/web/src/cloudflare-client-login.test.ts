@@ -28,6 +28,20 @@ describe('P1 Google picker failure and cancellation',()=>{
     await expect(pending).rejects.toThrow('Acesso bloqueado');
     expect(document.querySelector('#obn-google-chooser')).toBeNull();
   });
+  it('retries loading the official Google script after a transient network failure',async()=>{
+    delete (window as any).google;
+    const first=auth.signIn();
+    const script=document.querySelector<HTMLScriptElement>('script[data-obn-google-identity]');
+    expect(script).not.toBeNull();
+    script!.dispatchEvent(new Event('error'));
+    await expect(first).rejects.toThrow('Não foi possível carregar o login Google.');
+    const retry=auth.signIn();
+    const next=document.querySelector<HTMLScriptElement>('script[data-obn-google-identity]');
+    expect(next).not.toBeNull();
+    expect(next).not.toBe(script);
+    next!.dispatchEvent(new Event('error'));
+    await expect(retry).rejects.toThrow('Não foi possível carregar o login Google.');
+  });
   it('lets the customer cancel the chooser and retry without reloading',async()=>{
     const pending=auth.signIn();
     await vi.waitFor(()=>expect(promptCallback).toBeTypeOf('function'));
