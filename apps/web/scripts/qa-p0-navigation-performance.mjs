@@ -152,6 +152,16 @@ async function testNavigation(engine,name){
     record('portal-to-obra-with-slow-auxiliary',name,obraMs,{auxiliaryDelayMs:3800,horizontalOverflowPx:overflow});
     const navGeometry=await page.evaluate(()=>{const bar=document.querySelector('nav.nav'),button=bar?.querySelector('button');if(!bar||!button)return null;const b=bar.getBoundingClientRect();return {bottom:Math.round(window.innerHeight-b.bottom),minHeight:Math.round(button.getBoundingClientRect().height),fontSize:parseFloat(getComputedStyle(button).fontSize)}});
     assert.ok(navGeometry&&navGeometry.bottom<=2&&navGeometry.minHeight>=44&&navGeometry.fontSize>=12,`Mobile navigation not readable or flush to viewport: ${JSON.stringify(navGeometry)}`);
+    await page.locator('.nav button[data-screen="obra360"]').click();
+    const settingsAction=page.locator('.quick-action[data-screen="settings"]');
+    await settingsAction.waitFor({state:'visible',timeout:5000});
+    assert.ok((await settingsAction.textContent()).includes('Configurações'),'Obra360 shortcut label does not match its destination');
+    await settingsAction.click();
+    await page.locator('#defaultStart').waitFor({state:'visible',timeout:5000});
+    assert.equal(await page.locator('#content').evaluate(element=>getComputedStyle(element).visibility),'visible','Premium screen remained hidden after route change');
+    await page.locator('.nav button[data-screen="today"]').click();
+    await page.locator('#reviewRdo').waitFor({state:'visible',timeout:5000});
+    assert.equal(await page.locator('#content').evaluate(element=>getComputedStyle(element).visibility),'visible','Dias remained hidden after route change');
     await page.locator('#reviewRdo').scrollIntoViewIfNeeded();
     await page.locator('#reviewRdo').click({timeout:4000});
     await page.locator('#prepareRdo').waitFor({state:'visible',timeout:4000});
