@@ -102,11 +102,24 @@ try{
     await page.locator('#reviewRdo').click();await page.locator('#prepareRdo').waitFor({state:'visible'});
     await shot('08-rdo-five-step-review');const rdoSaved=nextSnapshotSync();await page.locator('#prepareRdo').click();await waitForSnapshotSync('RDO closure with photos and materials',rdoSaved);
     await page.getByText('Pendente de integração').first().waitFor({state:'visible'});
+    // Autosync is debounced; the first successful PUT response might still belong
+    // to the previous photo-review write. Verify the *canonical acknowledged state*.
+    const rdoAckDeadline=Date.now()+8000;
+    while(Date.now()<rdoAckDeadline){
+      const current=state.days[today];
+      if(current?.rdoStatus==='ready_for_desktop'&&current?.photos?.length===1)break;
+      await page.waitForTimeout(100);
+    }
     const result=state.days[today];
     if(result?.materials?.[0]?.material_id!=='mat_aaaaaaaaaaaaaaaaaaaaaaaa'||result.materials[0].frente_id!==1||result.materials[0].servico!=='afaq')
       throw new Error('Field material did not persist with canonical stock, front, and service');
     if(result?.rdoStatus!=='ready_for_desktop'||result?.photos?.length!==1)
-      throw new Error('RDO was not prepared with recorded photo evidence');
+      throw new Error('RDO was not prepared with recorded photo evidence: '+JSON.stringify({
+        rdoStatus:result?.rdoStatus,photoCount:result?.photos?.length,
+        attendanceCount:result?.presentCount,finishedSessions:result?.sessions?.filter(x=>x.state==='finished').length,
+        materialsReviewed:result?.materialsReviewed,photosReviewed:result?.photosReviewed,
+        occurrencesReviewed:result?.occurrencesReviewed,submissionId:result?.rdoSubmissionId
+      }));
     await shot('09-rdo-pending-not-confirmed');
 
     await page.locator('[data-screen="issues"]').first().click();await page.locator('#newIssue').click();await page.locator('#itype').selectOption('blocked');await page.locator('#ititle').fill('Material pendente QA');await page.locator('#ireason').fill('Aguardando material de teste');const issueSync=nextSnapshotSync();await page.locator('#saveIssue').click();await page.getByText('Material pendente QA').waitFor({state:'visible'});await waitForSnapshotSync('issue creation',issueSync);await shot('07-issue-created');

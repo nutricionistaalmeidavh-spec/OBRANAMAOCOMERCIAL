@@ -7,7 +7,9 @@ import { AREAS, CONTENT, QUESTION_BANK, QUESTION_COVERAGE, T, selectQuestions } 
 
 describe('P2 maintenance boundaries', () => {
   it('keeps explicit application and schema versions', () => {
-    expect(APP_VERSION).toBe('0.2.0');
+    const packageVersion = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8')).version;
+    expect(APP_VERSION).toBe(packageVersion);
+    expect(APP_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
     expect(API_CONTRACT_VERSION).toBeGreaterThanOrEqual(3);
     expect(DB_SCHEMA_VERSION).toBe(6);
     expect(PROJECT_STATE_VERSION).toBeGreaterThanOrEqual(7);
