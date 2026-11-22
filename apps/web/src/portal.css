@@ -118,3 +118,11 @@
 .cp-passkey-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #c0d2dc;border-radius:8px;padding:12px;font-size:14px}
 .cp-passkey-row button{background:transparent;border:0;color:#ad3434;min-height:44px;padding:6px 8px}
 .cp-passkey-close{width:100%}
+
+/* Keep the portal visually stable while validating a session and fetching module access. */
+.cp-pending{justify-content:center}
+.cp-loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:60svh;margin:auto;text-align:center;color:#102d49}
+.cp-loading-screen strong{font-size:18px;line-height:1.3}
+.cp-loading-screen p{font-size:13px;color:#5b6a82}
+.cp-loading-mark{display:block;width:42px;height:42px;border:4px solid #d5e2f0;border-top-color:#1e60e9;border-radius:50%;animation:field-loading-spin .9s linear infinite}
+@media(prefers-reduced-motion:reduce){.cp-loading-mark{animation:none}}
