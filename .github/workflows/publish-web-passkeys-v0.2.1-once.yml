@@ -1,0 +1,125 @@
+name: Publish Obra na Mao Web PWA v0.2.1 - Passkeys Once
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-web-passkeys-v0.2.1-once.yml'
+      - 'apps/web/shared/version.ts'
+      - 'apps/web/package.json'
+      - 'apps/web/package-lock.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-web-passkeys-v0.2.1-once.yml'
+      - 'apps/web/shared/version.ts'
+      - 'apps/web/package.json'
+      - 'apps/web/package-lock.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-web-pwa-passkeys-v0.2.1
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Web/PWA release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source version and release scope
+        shell: bash
+        run: |
+          test "$(node -p 'require("./package.json").version')" = "0.2.1"
+          grep -q "APP_VERSION='0.2.1'" shared/version.ts
+          grep -q 'passkey-auth.js' sistema.html
+          grep -q 'handlePasskeyAuth' cloudflare/worker.ts
+          grep -q 'handlePasskeyAuth' 'functions/[[path]].ts'
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Test including WebAuthn signature and session regression suite
+        run: npm test
+      - name: Validate UI and admin parity
+        run: npm run ux:verify && npm run qa:admin-parity
+      - name: Build PWA assets
+        run: npm run build
+      - name: Compile Pages Functions
+        run: npx wrangler pages functions build functions --outfile .cf-pages-worker.js --external "node:*"
+      - name: Compile Worker without altering production
+        run: npx wrangler deploy --dry-run --config wrangler.ci.jsonc
+
+  publish:
+    name: Publish tagged Web/PWA GitHub release
+    needs: validate
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release-web-passkeys-v0.2.1]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PRODUCTION_URL: https://artisys.dev
+      EXPECTED_SHA: ${{ github.sha }}
+      DEPLOY_WAIT_MS: '360000'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Refuse to overwrite an existing immutable release
+        shell: bash
+        run: |
+          if gh release view web-pwa-v0.2.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release web-pwa-v0.2.1 already exists. Refusing overwrite."
+            exit 1
+          fi
+      - name: Verify deployed Git SHA and canonical production health
+        shell: bash
+        run: node scripts/smoke-production.mjs
+      - name: Verify public Face ID and Android passkey assets in production
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const base=process.env.PRODUCTION_URL;
+          const system=await fetch(base+'/sistema.html',{cache:'no-store'});
+          assert.equal(system.status,200);
+          assert.match(await system.text(),/\/passkey-auth\.js\?v=20261122-passkeys-1/);
+          const script=await fetch(base+'/passkey-auth.js',{cache:'no-store'});
+          assert.equal(script.status,200);
+          const content=await script.text();
+          assert.match(content,/navigator\.credentials\.get/);
+          assert.match(content,/navigator\.credentials\.create/);
+          const probe=await fetch(base+'/api/auth/passkey/login/options',{method:'GET',cache:'no-store'});
+          assert.equal(probe.status,405,'Passkey API should refuse wrong HTTP method');
+          console.log('WebAuthn browser helper and API live on production origin.');
+          JS
+      - name: Publish release notes on this immutable commit, without Desktop binaries
+        shell: bash
+        run: |
+          cat > web-release-notes.md <<'NOTES'
+          ## Obra na Mão Web/PWA v0.2.1 — Chaves de acesso
+
+          - Login por passkey WebAuthn/FIDO2 para contas corporativas e colaboradores.
+          - Face ID/Touch ID no iPhone e biometria/digital/PIN no Android, conforme o aparelho.
+          - Cadastro e revogação de passkeys no menu da conta.
+          - Desafios assinados com validação da origem, proteção antirreplay e verificação de usuário.
+          - Fluxos atuais de login Google, senha e primeiro acesso preservados.
+          - Sem dados biométricos no servidor e sem serviços pagos adicionais.
+
+          **Distribuição:** aplicação Web/PWA servida automaticamente pelo Cloudflare.
+          **Não há instalador Desktop nesta release.** A linha Desktop continua na sua própria versão.
+          NOTES
+          gh release create web-pwa-v0.2.1 --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Obra na Mão Web/PWA v0.2.1 — Face ID e Android" --notes-file web-release-notes.md --latest=false
