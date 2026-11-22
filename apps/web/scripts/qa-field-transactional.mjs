@@ -15,8 +15,8 @@ const baseState=()=>({
   project:{name:'Obra QA Integrada',customer:'Cliente QA',startFloor:0,targetFloor:1},
   settings:{defaultWorkStart:'07:30',marginalEfficiency:.7,averageWeeklyAbsences:0,unassignedCompensationDays:0,attendanceTimesheetMode:'disabled'},
   employees:[
-    {id:'emp-1',name:'Ana QA',phone:'16999990001',frontKey:'afaq:0',compensationDays:0},
-    {id:'emp-2',name:'Bruno QA',phone:'16999990002',frontKey:'afaq:0',compensationDays:0},
+    {id:'emp-1',name:'Ana QA',phone:'16999990001',frontKey:'afaq:0',compensationDays:2},
+    {id:'emp-2',name:'Bruno QA',phone:'16999990002',frontKey:'afaq:0',compensationDays:1},
   ],
   floors:[0,1].map(number=>({number,stages:services.map(service=>stage(service,service==='afaq'&&number===0?'in_progress':'not_started'))})),
   days:{[today]:{date:today,presentCount:0,absentCount:0,attendance:{},assignments:[{service:'afaq',label:'AF/AQ',floor:0,crew:2,status:'in_progress',note:'Fixture QA'}],events:[],note:'',plans:[],sessions:[],rdoStatus:'draft',rdoDraft:null}},
@@ -87,6 +87,20 @@ try{
     await page.locator('.session-card .session-pause').click();await page.locator('.session-card .session-resume').waitFor({state:'visible'});await page.locator('.session-card .session-resume').click();await page.locator('.session-card .session-finish').waitFor({state:'visible'});await page.locator('.session-card .session-finish').click();await page.locator('#sresult').selectOption('completed');await page.locator('#snote').fill('Execução concluída QA');const sessionSync=nextSnapshotSync();await page.locator('#finishSession').click();await page.locator('.session-card').filter({hasText:'Sessão concluída'}).waitFor({state:'visible'});await waitForSnapshotSync('session completion',sessionSync);await shot('04-session-finished');
 
     await page.locator('[data-screen="team"]').first().click();await page.locator('h2').filter({hasText:'Equipe'}).first().waitFor({state:'visible'});const attendanceSync=nextSnapshotSync();await page.locator('.att[data-id="emp-1"]').click();await page.locator('.att[data-id="emp-1"]').filter({hasText:'Presente'}).waitFor({state:'visible'});await waitForSnapshotSync('authoritative attendance reconciliation',attendanceSync);await shot('05-team-attendance');
+
+    // Compensation is selected by the administrator and persisted in canonical audit history.
+    await page.locator('#compensate').click();
+    await page.locator('#compensationEmployee').selectOption('emp-1');
+    await page.locator('#compensationDate').fill(today);
+    const compensationSync=nextSnapshotSync();
+    await page.locator('#confirmCompensation').click();
+    await waitForSnapshotSync('individual compensation with audit event',compensationSync);
+    if(state.employees.find(e=>e.id==='emp-1')?.compensationDays!==1||
+       state.employees.find(e=>e.id==='emp-2')?.compensationDays!==1||
+       !state.history.some(event=>event.kind==='compensation'&&event.employeeId==='emp-1'&&event.days===1)){
+      throw new Error(`${viewport.name}: compensation changed the wrong employee or was not audited`);
+    }
+    await shot('05b-individual-compensation');
 
     await page.locator('[data-screen="today"]').first().click();
     await page.locator('#openRdoMaterials').click();await page.locator('#rdoMaterialSelect').selectOption('mat_aaaaaaaaaaaaaaaaaaaaaaaa');
