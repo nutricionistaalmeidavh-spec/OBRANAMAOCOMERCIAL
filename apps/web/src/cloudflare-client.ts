@@ -57,8 +57,12 @@ function showGoogleButton(){
 }
 
 async function googleSignIn(){
-  await loadGoogleIdentity();
-  const config=(await api.get<{googleClientId:string}>('/api/auth/config')).data;
+  // Independent public configuration and identity SDK must not add serial latency.
+  const [,configuration]=await Promise.all([
+    loadGoogleIdentity(),
+    api.get<{googleClientId:string}>('/api/auth/config')
+  ]);
+  const config=configuration.data;
   const clientId=String(config.googleClientId||'').trim();
   if(!clientId)throw new Error('Login Google não configurado.');
   window.google!.accounts.id.initialize({
