@@ -29,3 +29,8 @@
  .rdo-step .linkbtn{grid-column:2 / 4;width:100%;min-height:36px;margin-top:2px;text-align:center}
 }
 @media(prefers-reduced-motion:reduce){.rdo-checklist .rdo-progress i{transition:none}}
+
+/* Long RDO steps must wrap rather than overlap status and action columns. */
+.rdo-step-body,.rdo-step-body strong,.rdo-step-body .meta{min-width:0;overflow-wrap:anywhere}
+.rdo-step .linkbtn{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.rdo-checklist-actions{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
