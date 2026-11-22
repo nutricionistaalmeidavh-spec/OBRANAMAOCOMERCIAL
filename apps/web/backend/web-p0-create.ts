@@ -2,7 +2,7 @@
  * Commands posted by browser are queued, never written to a parallel operational table.
  * Authority and tenant identity come exclusively from the authenticated session/device.
  */
-export type P0CreateEntity='empresas'|'clientes'|'obras'|'frentes_obra'|'subfrentes_obra'|'tarefas_obra'|'etapas_obra'|'cronograma_etapas'|'checklist_frente_itens'|'rdos'|'itens_orcamentarios'|'solicitacoes_compra';
+export type P0CreateEntity='empresas'|'clientes'|'obras'|'frentes_obra'|'subfrentes_obra'|'tarefas_obra'|'etapas_obra'|'cronograma_etapas'|'checklist_frente_itens'|'rdos'|'itens_orcamentarios'|'solicitacoes_compra'|'medicoes'|'pedidos_compra'|'recebimentos_materiais'|'movimentacoes_estoque'|'contratos_obra'|'contrato_aditivos';
 export type P0CommandAction='create'|'update'|'delete';
 export type P0CreateCommand={
   commandId:string;sourceDeviceId:string;entity:P0CreateEntity;action:P0CommandAction;

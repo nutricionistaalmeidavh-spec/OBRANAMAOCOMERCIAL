@@ -1,4 +1,5 @@
 const { createHash }=require('node:crypto')
+const {applyLocalWebP1}=require('./web-p1-domain.cjs')
 const ALLOWED={
  empresas:new Set(['razao_social','nome_fantasia','cnpj','telefone','email','endereco','observacoes','status']),
  clientes:new Set(['nome','documento','telefone','email','observacoes']),
@@ -43,6 +44,7 @@ function dependents(db,entity,id){
 }
 function applyWebP0Create({database,scope,command}){
  const entity=String(command?.entity||''),action=String(command?.action||'create')
+ if(['medicoes','pedidos_compra','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos'].includes(entity))return applyLocalWebP1({database,scope,command})
  const allowed=ALLOWED[entity],data=command?.data||{}
  if(!allowed||!['create','update','delete'].includes(action)||!data||typeof data!=='object'||Array.isArray(data))reject('Entidade, operação ou dados não autorizados.')
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(command?.id||'')))reject('ID do comando inválido.')

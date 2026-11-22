@@ -1,5 +1,6 @@
 import { assertBridgeEdit, BridgeConflict, bridgeRows } from './web-p0-policy';
 import { p1Rows,assertP1Edit } from './web-p1-policy';
+import {assertP1DomainCommand,isP1DomainEntity} from './web-p1-commands';
 import { assertP0Create } from './web-p0-create';
 import { ensureP0WorkProject } from './web-p0-project-provision';
 import { enqueueWebP0Command, getWebP0Command, pendingWebP0Commands, ackWebP0Command, listWebP0Commands } from './web-p0-command-store';
@@ -432,6 +433,25 @@ export const handler=router({
   'GET /api/owner/devices':[...ownerSecured,async()=>{const {items}=await db.list<Device>('devices',{limit:100});return json({devices:items.map(d=>({id:d.id,name:d.name,platform:d.platform,email:d.email,companyId:d.companyId,status:d.status,lastSeenAt:d.lastSeenAt,installationId:d.installationId}))})}],
   'PUT /api/owner/devices/:id':[...ownerSecured,async(ctx)=>{const [device]=await db.get<Device>('devices',[ctx.params.id]);if(!device)return error('Computador não encontrado.',404);const status=String(asRecord(ctx.body).status)==='active'?'active':'revoked';await db.update('devices',[{id:ctx.params.id,record:{...device,status,updatedAt:now()} as unknown as Record<string,unknown>}]);return json({ok:true,status})}],
   'POST /api/access/claim':[...secured,async(ctx)=>{const current=await resolveMembership(ctx.user!);if(current)return json({role:current.role,membership:current});const body=asRecord(ctx.body),code=String(body.code||'').trim().toUpperCase();if(!/^[A-Z0-9]{8}$/.test(code))return error('Código de acesso inválido.',400);const table=inviteTable(code),{items}=await db.list<Record<string,unknown>>(table,{limit:1}),ref=items[0];if(!ref)return error('Código de acesso inválido ou já utilizado.',404);const projectId=String(ref.projectId||''),memberId=String(ref.projectMemberId||'');const [member]=await db.get<Member>(membersTable(projectId),[memberId]);if(!member||member.joinCode!==code)return error('Convite não encontrado.',404);if(member.status==='revoked')return error('Este convite foi revogado pelo administrador.',403);if(member.userId&&member.userId!==ctx.user!.userId)return error('Este convite já foi utilizado.',409);const oldEmail=member.email,email=norm(ctx.user!.email),stamp=now(),next:Member={...member,email,userId:ctx.user!.userId,name:ctx.user!.name||member.name,joinCode:undefined,claimedAt:stamp,updatedAt:stamp};await db.update(membersTable(projectId),[{id:memberId,record:next as unknown as Record<string,unknown>}]);const oldAccess=await findAccess(oldEmail),oldIds=oldAccess.filter(a=>a.projectId===projectId).map(a=>a.id);if(oldIds.length)await db.delete(accessTable(oldEmail),oldIds);const actual=await findAccess(email),same=actual.find(a=>a.projectId===projectId),accessRecord={...next,projectMemberId:memberId} as unknown as Record<string,unknown>;if(same)await db.update(accessTable(email),[{id:same.id,record:accessRecord}]);else await db.add(accessTable(email),[accessRecord]);await db.delete(table,[ref.id]);await audit(next,ctx.user!,'access_code_claimed',{role:next.role,employeeId:next.employeeId});return json({role:next.role,membership:{...next,id:memberId}})}],
+  // P1: only the central operational source executes financial, inventory and contractual rules.
+  'POST /api/web/p1/command':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
+    if(gate.response)return gate.response;
+    let command:ReturnType<typeof assertP1DomainCommand>;
+    try{command=assertP1DomainCommand(ctx.body)}
+    catch(cause){return error((cause as Error).message,400)}
+    const finance=command.entity!=='medicoes';
+    if(finance&&!gate.access!.modules.includes('finance'))return error('Módulo Financeiro não autorizado para esta operação.',403);
+    const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
+    if(!sources.some(source=>source.deviceId===command.sourceDeviceId))return error('Fonte operacional não autorizada para esta obra.',403);
+    try{
+      const record=await enqueueWebP0Command({projectId:gate.member!.projectId,companyId:gate.member!.companyId,
+        actorId:ctx.user!.userId,actorEmail:gate.member!.email,command});
+      if(record.status==='pending')await audit(gate.member!,ctx.user!,'web_p1_domain_command_enqueued',{
+        entity:command.entity,commandId:command.commandId,sourceDeviceId:command.sourceDeviceId});
+      return json({ok:true,command:{id:record.id,status:record.status,entity:record.entity,localId:record.localId}},202);
+    }catch(cause){return error((cause as Error).message,409)}
+  }],
   // P1: read-only previews for financial/material/document domains and guarded editing of RDO/checklists.
   'GET /api/web/p1/overview':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');
@@ -451,7 +471,7 @@ export const handler=router({
         .map(row=>({entity:row.entity,localId:row.localId,sourceDeviceId:row.sourceDeviceId,name:String(row.payload.nome||''),
           ... (row.entity==='subfrentes_obra'?{frenteId:Number(row.payload.frente_id||0)}:{})})),
       commands:(await listWebP0Commands(gate.member!.projectId,ctx.user!.userId))
-        .filter(command=>['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(command.entity)).slice(0,20),
+        .filter(command=>['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra','medicoes','pedidos_compra','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos'].includes(command.entity)).slice(0,20),
       limitations:['Edição de RDO/checklists aplicada na fonte após sincronização.','Orçamento, medições, compras, estoque, contratos e documentos são somente leitura na Web P1 até possuírem comandos transacionais especializados.']
     });
   }],
