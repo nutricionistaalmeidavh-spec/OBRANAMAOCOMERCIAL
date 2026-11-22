@@ -60,6 +60,7 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
         '<div><dt>'+escapeHtml(labelField(field))+'</dt><dd>'+escapeHtml(formatField(field,row.payload[field]))+'</dd></div>').join('');
       return '<article class="p1-record"><div class="p1-record-head"><div><strong>'+escapeHtml(itemTitle(row))+'</strong><small>'+escapeHtml(String(row.payload.status||row.payload.categoria||'Registro publicado'))+' · Origem '+escapeHtml(row.sourceDeviceId)+'</small></div><div class="p1-record-actions">'+
         '<button data-p1-detail="'+i+'" type="button" class="p0-light" aria-expanded="'+(expanded===i)+'">Detalhes</button>'+
+        (row.entity==='documentos'&&view.capabilities?.documents&&view.capabilities?.documentTransport?'<button data-p1-download="'+i+'" type="button" class="p0-light">Baixar</button>':'')+
         (section.editable.length?'<button data-p1-edit="'+i+'" type="button" class="p0-light">Editar</button>':'')+
         '</div></div>'+(expanded===i?'<dl class="p1-details">'+fields+'</dl>':'')+'</article>';
     }).join('')||'<p class="p0-empty">Nenhum registro desta categoria foi publicado pela fonte operacional desta obra.</p>';
@@ -124,6 +125,9 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
     root.querySelector<HTMLButtonElement>('#p1Refresh')?.addEventListener('click',()=>void refresh());
     root.querySelectorAll<HTMLButtonElement>('[data-p1-tab]').forEach(button=>button.addEventListener('click',()=>{active=button.dataset.p1Tab as Entity;editing=-1;expanded=-1;creating=false;createNonce='';message='';draw()}));
     root.querySelectorAll<HTMLButtonElement>('[data-p1-detail]').forEach(button=>button.addEventListener('click',()=>{expanded=expanded===Number(button.dataset.p1Detail)?-1:Number(button.dataset.p1Detail);draw()}));
+    root.querySelectorAll<HTMLButtonElement>('[data-p1-download]').forEach(button=>button.addEventListener('click',()=>{
+      const target=entries[Number(button.dataset.p1Download)];if(target)void downloadDocument(target);
+    }));
     root.querySelectorAll<HTMLButtonElement>('[data-p1-edit]').forEach(button=>button.addEventListener('click',()=>{editing=Number(button.dataset.p1Edit);expanded=editing;message='';draw();root.querySelector('#p1EditForm')?.scrollIntoView?.({block:'nearest'})}));
     root.querySelector<HTMLButtonElement>('#p1Cancel')?.addEventListener('click',()=>{editing=-1;draw()});
     root.querySelector<HTMLButtonElement>('#p1Create')?.addEventListener('click',()=>{creating=true;editing=-1;createNonce='';draw()});
@@ -137,6 +141,37 @@ export async function mountP1Management(root:HTMLElement,onBack:()=>void){
     root.querySelector<HTMLFormElement>('#p1EditForm')?.addEventListener('submit',event=>{event.preventDefault();if(edit)void submit(edit)});
   };
   const refresh=async()=>{if(busy)return;try{await load();message='';draw()}catch(e){message=errorText(e);const area=root.querySelector('.p0-message');if(area)area.textContent=message}};
+  const downloadDocument=async(row:Row)=>{
+    if(busy||row.entity!=='documentos'||!overview?.capabilities?.documents||!overview.capabilities.documentTransport)return;
+    busy=true;message='';
+    const button=root.querySelector<HTMLButtonElement>('[data-p1-download]');if(button)button.disabled=true;
+    try{
+      const created=await api.post<{request:{id:string;status:string}}>('/api/web/p1/documents/download/request',{
+        sourceDeviceId:row.sourceDeviceId,localId:row.localId
+      });
+      if(created.data.request.status!=='ready'){
+        message='Download solicitado à origem. Aguardando sincronização do Desktop/servidor. Clique novamente para verificar.';
+        draw();return;
+      }
+      const result=await api.post<{file:{status:string;data?:string;name?:string;mimeType?:string}}>(
+        '/api/web/p1/documents/download/read',{requestId:created.data.request.id});
+      const file=result.data.file;
+      if(file.status!=='ready'||!file.data||!file.name||!file.mimeType)throw new Error('O arquivo ainda não está disponível na origem.');
+      const content=atob(file.data),bytes=new Uint8Array(content.length);
+      for(let i=0;i<content.length;i++)bytes[i]=content.charCodeAt(i);
+      const fileBlob=new Blob([bytes],{type:file.mimeType});
+      const href=URL.createObjectURL(fileBlob);
+      const anchor=document.createElement('a');
+      anchor.href=href;anchor.download=file.name.replace(/[\\/]/g,'-');anchor.hidden=true;
+      document.body.append(anchor);anchor.click();anchor.remove();
+      setTimeout(()=>URL.revokeObjectURL(href),2000);
+      message='Documento recebido da fonte autorizada.';
+      draw();
+    }catch(error){
+      message=errorText(error);const status=root.querySelector('.p0-message');if(status)status.textContent=message;
+      if(button)button.disabled=false;
+    }finally{busy=false}
+  };
   const submitCreate=async()=>{
     if(busy||!overview||!creating||!selectedSource||!canCreateEntity(active,overview))return;
     const form=root.querySelector<HTMLFormElement>('#p1CreateForm');if(!form)return;

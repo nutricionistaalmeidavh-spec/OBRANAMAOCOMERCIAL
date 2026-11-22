@@ -1,4 +1,5 @@
 const { LocalSyncDataProvider, BRIDGE, EDITABLE } = require('./sync-data-provider.cjs')
+const {safeFile:outboundP1Document}=require('./p1-document-read.cjs')
 
 const PAUSE_REASONS = {
   'lan-client': 'A sincronização central é responsabilidade do PC principal.'
@@ -92,6 +93,19 @@ class LanSyncDataProvider {
     return row && (entity==='empresas'?Number(row.id)===Number(scope.companyId):['clientes','obras'].includes(entity)?Number(row.empresa_id)===Number(scope.companyId):Number(row.obra_id)===Number(scope.workId))?row:null
   }
 
+  async readP1Document(scope,localId){
+    const doc=await this.lanClient.get('documentos',Number(localId));
+    if(!doc||doc.deleted_at||Number(doc.obra_id)!==Number(scope.workId)||
+       Number(doc.empresa_id||scope.companyId)!==Number(scope.companyId))
+      throw new Error('Documento fora da empresa/obra autorizada.');
+    if(!Number.isSafeInteger(Number(doc.arquivo_id))||Number(doc.arquivo_id)<1)
+      throw new Error('Documento sem arquivo central associado.');
+    const file=await this.lanClient.get('arquivos',Number(doc.arquivo_id));
+    if(!file)throw new Error('Metadados do arquivo central não encontrados.');
+    const bytes=await this.lanClient.downloadFile(Number(doc.arquivo_id));
+    return outboundP1Document(doc,file,bytes);
+  }
+
   async applyWebP0Create(scope,command) {
     const capabilities=await this.capabilities()
     if(!Array.isArray(capabilities?.features)||!capabilities.features.includes('web-p0-idempotent-commands-v1'))
@@ -172,6 +186,9 @@ class OperationalSyncDataProvider {
   async getBridge(entity, localId, scope) { return this.activeProvider().getBridge(entity, localId, scope) }
   async summary(scope, modules) { return this.activeProvider().summary(scope, modules) }
   async obligations(scope) { return this.activeProvider().obligations(scope) }
+  async readP1Document(scope,localId){
+    return this.activeProvider().readP1Document(scope,localId)
+  }
   async applyWebP0Create(scope,command) {
     const runtime=this.runtimeState()
     if(runtime.paused)throw new Error('Sincronização operacional pausada.')

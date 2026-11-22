@@ -2,6 +2,7 @@ import { assertBridgeEdit, BridgeConflict, bridgeRows } from './web-p0-policy';
 import { p1Rows,assertP1Edit } from './web-p1-policy';
 import {assertP1DomainCommand} from './web-p1-commands';
 import {uploadP1StagedDocument,readP1StagedDocument,completeP1StagedDocument,authorizeP1StagedCommand} from './web-p1-document-stage';
+import {requestP1DocumentDownload,pendingP1DocumentDownloads,receiveP1DocumentDownload,readP1DocumentDownload} from './web-p1-document-download';
 import { assertP0Create } from './web-p0-create';
 import { ensureP0WorkProject } from './web-p0-project-provision';
 import { enqueueWebP0Command, getWebP0Command, pendingWebP0Commands, ackWebP0Command, listWebP0Commands } from './web-p0-command-store';
@@ -435,6 +436,55 @@ export const handler=router({
   'PUT /api/owner/devices/:id':[...ownerSecured,async(ctx)=>{const [device]=await db.get<Device>('devices',[ctx.params.id]);if(!device)return error('Computador não encontrado.',404);const status=String(asRecord(ctx.body).status)==='active'?'active':'revoked';await db.update('devices',[{id:ctx.params.id,record:{...device,status,updatedAt:now()} as unknown as Record<string,unknown>}]);return json({ok:true,status})}],
   'POST /api/access/claim':[...secured,async(ctx)=>{const current=await resolveMembership(ctx.user!);if(current)return json({role:current.role,membership:current});const body=asRecord(ctx.body),code=String(body.code||'').trim().toUpperCase();if(!/^[A-Z0-9]{8}$/.test(code))return error('Código de acesso inválido.',400);const table=inviteTable(code),{items}=await db.list<Record<string,unknown>>(table,{limit:1}),ref=items[0];if(!ref)return error('Código de acesso inválido ou já utilizado.',404);const projectId=String(ref.projectId||''),memberId=String(ref.projectMemberId||'');const [member]=await db.get<Member>(membersTable(projectId),[memberId]);if(!member||member.joinCode!==code)return error('Convite não encontrado.',404);if(member.status==='revoked')return error('Este convite foi revogado pelo administrador.',403);if(member.userId&&member.userId!==ctx.user!.userId)return error('Este convite já foi utilizado.',409);const oldEmail=member.email,email=norm(ctx.user!.email),stamp=now(),next:Member={...member,email,userId:ctx.user!.userId,name:ctx.user!.name||member.name,joinCode:undefined,claimedAt:stamp,updatedAt:stamp};await db.update(membersTable(projectId),[{id:memberId,record:next as unknown as Record<string,unknown>}]);const oldAccess=await findAccess(oldEmail),oldIds=oldAccess.filter(a=>a.projectId===projectId).map(a=>a.id);if(oldIds.length)await db.delete(accessTable(oldEmail),oldIds);const actual=await findAccess(email),same=actual.find(a=>a.projectId===projectId),accessRecord={...next,projectMemberId:memberId} as unknown as Record<string,unknown>;if(same)await db.update(accessTable(email),[{id:same.id,record:accessRecord}]);else await db.add(accessTable(email),[accessRecord]);await db.delete(table,[ref.id]);await audit(next,ctx.user!,'access_code_claimed',{role:next.role,employeeId:next.employeeId});return json({role:next.role,membership:{...next,id:memberId}})}],
   // P1: only the central operational source executes financial, inventory and contractual rules.
+  // Download requests never expose LAN storage paths or temporary R2 object URLs.
+  'POST /api/web/p1/documents/download/request':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;
+    if(!gate.access!.modules.includes('documents'))return error('Documentos não está autorizado.',403);
+    if(!runtimeEnv().FILES)return error('Consulta temporária de arquivos não configurada. Use o Desktop.',503);
+    const input=asRecord(ctx.body),localId=Number(input.localId),sourceDeviceId=String(input.sourceDeviceId||'');
+    if(!Number.isSafeInteger(localId)||localId<1)return error('Documento inválido.',400);
+    const sources=await p0CreateDevices(gate.member!.companyId,gate.member!.projectId);
+    if(!sources.some(x=>x.deviceId===sourceDeviceId))return error('Dispositivo documental não autorizado.',403);
+    const state=await assembleState(gate.member!.projectId);
+    const record=p1Rows(asRecord(state?.desktopBridge)).find(row=>row.entity==='documentos'&&
+      row.localId===localId&&row.sourceDeviceId===sourceDeviceId);
+    if(!record)return error('Documento não pertence à obra/sincronização.',404);
+    try{
+      const request=await requestP1DocumentDownload({
+        projectId:gate.member!.projectId,companyId:gate.member!.companyId,
+        actorId:ctx.user!.userId,sourceDeviceId,documentLocalId:localId
+      });
+      await audit(gate.member!,ctx.user!,'web_p1_document_download_requested',{localId,requestId:request.id});
+      return json({request:{id:request.id,status:request.status}},202);
+    }catch(cause){return error((cause as Error).message,409)}
+  }],
+  'POST /api/web/p1/documents/download/read':[...secured,async(ctx)=>{
+    const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');if(gate.response)return gate.response;
+    if(!gate.access!.modules.includes('documents'))return error('Documentos não autorizado.',403);
+    try{return json({file:await readP1DocumentDownload({
+      projectId:gate.member!.projectId,companyId:gate.member!.companyId,
+      actorId:ctx.user!.userId,id:String(asRecord(ctx.body).requestId||'')
+    })})}catch(cause){return error((cause as Error).message,404)}
+  }],
+  'POST /api/desktop/web-p1/documents/download/pending':[async(ctx)=>{
+    const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''));
+    if(!session||!session.device.projectId||session.member?.role!=='admin'||
+      !session.access.modules.includes('documents')||!session.access.modules.includes('obra360'))
+      return error('Desktop não autorizado a ler solicitações documentais.',403);
+    const ownerGate=await remoteSyncOwnerError(session);if(ownerGate)return ownerGate;
+    return json({requests:await pendingP1DocumentDownloads(session.device.projectId,session.device.id)});
+  }],
+  'POST /api/desktop/web-p1/documents/download/complete':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||!session.device.projectId||!session.device.companyId||session.member?.role!=='admin'||
+      !session.access.modules.includes('documents')||!session.access.modules.includes('obra360'))
+      return error('Desktop não autorizado a entregar arquivos.',403);
+    const ownerGate=await remoteSyncOwnerError(session);if(ownerGate)return ownerGate;
+    try{return json(await receiveP1DocumentDownload({
+      projectId:session.device.projectId,companyId:session.device.companyId,
+      sourceDeviceId:session.device.id,id:String(body.requestId||''),raw:body.file
+    }))}catch(cause){return error((cause as Error).message,409)}
+  }],
   // Staged binary transport is optional; the permanent file is always stored at Desktop/LAN source.
   'POST /api/web/p1/documents/stage':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin'],'mobile','obra360');

@@ -393,6 +393,14 @@ class OnlineService {
     return this.request('/api/desktop/web-p0/project/select',{deviceToken:this.requireToken(),projectId,localWorkId})
   }
 
+  async webP1DocumentDownloadsPending(){
+    return this.request('/api/desktop/web-p1/documents/download/pending',{deviceToken:this.requireToken()})
+  }
+  async webP1DocumentDownloadComplete(requestId,file){
+    return this.request('/api/desktop/web-p1/documents/download/complete',{
+      deviceToken:this.requireToken(),requestId,file
+    },60000)
+  }
   async webP1StagedDocument({commandId,stageId,sha256}) {
     return this.request('/api/desktop/web-p1/document', {
       deviceToken:this.requireToken(),commandId,stageId,sha256

@@ -15,6 +15,7 @@ async function loadFieldRdoImporter() {
 }
 
 const { applyWebP0Create } = require('./web-p0-create.cjs')
+const {safeFile:outboundP1Document}=require('./p1-document-read.cjs')
 
 const BRIDGE = { empresas:'companies',clientes:'clients',obras:'works',frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', etapas_obra:'planStages', rdos: 'rdos', checklist_frente_itens:'checklists', itens_orcamentarios:'budgets', medicoes:'measurements', solicitacoes_compra:'purchaseRequests', pedidos_compra:'purchases', pedido_compra_itens:'purchaseItems', medicao_itens:'measurementItems', contrato_aditivos:'addenda', recebimentos_materiais:'receipts', movimentacoes_estoque:'stock', contratos_obra:'contracts', documentos:'documents', cronograma_etapas: 'schedule' }
 const EDITABLE = {
@@ -296,6 +297,23 @@ class LocalSyncDataProvider {
         components: this.accountComponents(account),
         ...this.accountProvenance(account, scope)
       }))
+  }
+
+  async readP1Document(scope,localId){
+    const doc=this.database.get('documentos',Number(localId));
+    if(!doc||doc.deleted_at||Number(doc.obra_id)!==Number(scope.workId)||
+       Number(doc.empresa_id||scope.companyId)!==Number(scope.companyId))
+      throw new Error('Documento não pertence à empresa/obra da sincronização.');
+    const file=this.database.get('arquivos',Number(doc.arquivo_id));
+    if(!file)throw new Error('Arquivo documental não encontrado na origem.');
+    const configured=typeof this.documentsDir==='function'?this.documentsDir():this.documentsDir;
+    if(!configured)throw new Error('Raiz documental não está configurada na origem.');
+    const root=fs.realpathSync(configured),target=fs.realpathSync(String(file.caminho||''));
+    if(target!==root&&!target.startsWith(root+path.sep))
+      throw new Error('Arquivo fora da pasta documental gerenciada.');
+    const stats=fs.statSync(target);
+    if(!stats.isFile()||stats.size<1||stats.size>2*1024*1024)throw new Error('Arquivo indisponível para download Web (limite 2 MB).');
+    return outboundP1Document(doc,file,fs.readFileSync(target));
   }
 
   applyWebP0Create(scope, command) {
