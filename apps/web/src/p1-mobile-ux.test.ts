@@ -55,6 +55,7 @@ describe('P1 mobile UX stability',()=>{
     expect(css).toContain('min-height:44px');
     expect(css).toContain('font-size:12px');
     expect(css).toContain('scroll-padding-bottom');
+    expect(css).toContain('.management-section>.section-head p{');
   });
 
   it('renders a usable Gestão shell before requesting the remote summary',()=>{
