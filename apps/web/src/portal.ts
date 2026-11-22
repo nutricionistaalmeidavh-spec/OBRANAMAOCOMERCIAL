@@ -3,7 +3,7 @@ import { APP_VERSION } from '../shared/version';
 import './portal.css';
 import { createIcons, Eye, EyeOff, ChevronRight, FileText, HardHat, GraduationCap, House, Ellipsis, LogOut, ArrowLeft, ShieldCheck, Plus, Building2 } from 'lucide';
 import { canReadOverview } from '../shared/portal-overview';
-import { loadPortalOverview } from './portal-overview';
+import { loadPortalOverview, portalOverviewLoading } from './portal-overview';
 
 type Role='admin'|'foreman'|'employee';
 type SystemKey='gestao'|'obra360'|'universidade'|'finance';
@@ -192,7 +192,7 @@ function portalShell(name:string,meta:string,cards:string,context?:Bootstrap,pas
   setBody(`<header class="cp-header"><div class="cp-header-inner">${brand()}<details class="cp-account"><summary aria-label="Menu da conta">${esc(initials||'EU')}</summary><div><strong>${esc(name)}</strong><a href="./">Página principal</a>${passkeyScope?'<button id="passkeyEnroll" type="button">Cadastrar chave de acesso</button><button id="passkeyManage" type="button">Gerenciar chaves</button>':''}<button id="logoutBtn" type="button">${icon('log-out')}Sair</button></div></details></div></header>
     <main class="cp-dashboard"><div class="cp-context">${icon('building-2')}<span>${esc(meta)}</span></div>
     <section class="cp-welcome"><h1>Visão geral</h1><p>${esc(portalGreeting(name))}</p></section>
-    <div class="cp-dashboard-grid"><div id="portalOverview" aria-live="polite">${context&&canReadOverview(context)?'<p class="cp-loading" role="status">Carregando resumo…</p>':''}</div>
+    <div class="cp-dashboard-grid"><div id="portalOverview" aria-live="polite">${context&&canReadOverview(context)?portalOverviewLoading():''}</div>
     <section class="cp-section cp-module-section" id="portalModules"><h2>Seus módulos</h2><div class="cp-modules">${cards}</div></section></div>
     <footer class="cp-dashboard-footer"><span>Acessos conforme seu perfil. <small class="cp-version">v${APP_VERSION}</small></span>${vendor()}</footer></main>
     <nav class="cp-bottom-nav" aria-label="Navegação principal"><a href="#portal" aria-current="page">${icon('house')}<span>Início</span></a>${hasObra?`<a href="./obra.html#obra">${icon('hard-hat')}<span>Obras</span></a>`:''}<button id="moreModules" type="button">${icon('ellipsis')}<span>Mais</span></button></nav>`);
