@@ -27,7 +27,7 @@ export function verifiedGoogleClaims(info:Record<string,unknown>,clientId:string
   if(!clientId||String(info.aud||'')!==clientId||
     !['accounts.google.com','https://accounts.google.com'].includes(issuer)||
     !(info.email_verified===true||info.email_verified==='true')||
-    !sub||!email||!/^\\S+@\\S+\\.\\S+$/.test(email)) {
+    !sub||!email||!/\S+@\S+\.\S+$/.test(email)) {
     throw new GoogleIdentityFailure('Identidade Google inválida.',401);
   }
   return{sub,email,name:String(info.name||'')};
