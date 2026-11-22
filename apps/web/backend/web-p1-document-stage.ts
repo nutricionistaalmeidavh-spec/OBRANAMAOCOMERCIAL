@@ -61,11 +61,26 @@ export async function validateDocumentUpload(rawInput:unknown){
   if(!bytes.length||bytes.length>MAX_BYTES||!MIME_SIGNATURES[mimeType](bytes))invalid('Arquivo vazio, excessivo ou tipo real incompatível.');
   return{uploadId,sourceDeviceId,name,mimeType,sha256:await digest(bytes),bytes};
 }
+async function sweepExpiredUploads(projectId:string){
+  const now=new Date().toISOString();
+  const expired=await runtimeEnv().DB.prepare(`SELECT id,record_json FROM kv_records WHERE collection=? AND
+    json_extract(record_json,'$.expiresAt')<? LIMIT 20`)
+    .bind(collection(projectId),now).all<{id:string;record_json:string}>();
+  for(const row of expired.results||[]){
+    try{
+      const info=JSON.parse(row.record_json) as StagedP1Document;
+      if(info.key&&info.key.startsWith('p1-staged/'))await bucket().delete(info.key);
+      await runtimeEnv().DB.prepare('DELETE FROM kv_records WHERE collection=? AND id=?')
+        .bind(collection(projectId),row.id).run();
+    }catch(error){console.warn('Limpeza de anexo expirado pendente: '+String((error as Error).message).slice(0,120))}
+  }
+}
 export async function uploadP1StagedDocument({companyId,projectId,userId,input}:{
   companyId:string;projectId:string;userId:string;input:unknown
 }){
   const file=await validateDocumentUpload(input);
   const active=bucket(),collectionId=collection(projectId),createdAt=new Date().toISOString();
+  await sweepExpiredUploads(projectId);
   const existing=await metadata(projectId,file.uploadId);
   if(existing){
     if(existing.sha256!==file.sha256||existing.sourceDeviceId!==file.sourceDeviceId||

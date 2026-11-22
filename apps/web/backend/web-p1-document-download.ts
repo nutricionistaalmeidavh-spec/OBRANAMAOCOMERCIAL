@@ -45,11 +45,26 @@ export async function validateDownloadFilePayload(raw:unknown){
    invalid('Conteúdo e formato do documento não correspondem.');
  return{name,mimeType,sha256,localId,sizeBytes:bytes.length,bytes};
 }
+async function sweepExpiredDownloads(projectId:string){
+  const now=new Date().toISOString();
+  const expired=await runtimeEnv().DB.prepare(`SELECT id,record_json FROM kv_records WHERE collection=? AND
+    json_extract(record_json,'$.expiresAt')<? LIMIT 20`)
+    .bind(collection(projectId),now).all<{id:string;record_json:string}>();
+  for(const row of expired.results||[]){
+    try{
+      const item=JSON.parse(row.record_json) as P1DownloadRecord;
+      if(item.key&&item.key.startsWith('p1-download/'))await files().delete(item.key);
+      await runtimeEnv().DB.prepare('DELETE FROM kv_records WHERE collection=? AND id=?')
+        .bind(collection(projectId),row.id).run();
+    }catch(error){console.warn('Limpeza de download expirado pendente: '+String((error as Error).message).slice(0,120))}
+  }
+}
 export async function requestP1DocumentDownload({companyId,projectId,actorId,sourceDeviceId,documentLocalId,retry=false}:{
   companyId:string;projectId:string;actorId:string;sourceDeviceId:string;documentLocalId:number;retry?:boolean
 }):Promise<P1DownloadRecord>{
  if(!Number.isSafeInteger(documentLocalId)||documentLocalId<1||!/^[-\w]{1,128}$/.test(sourceDeviceId))invalid('Origem/documento inválido.');
  files(); // feature must be explicitly configured; no silent storage fallback.
+ await sweepExpiredDownloads(projectId);
  const now=new Date().toISOString();
  const prior=await runtimeEnv().DB.prepare(
    `SELECT record_json FROM kv_records WHERE collection=? AND
@@ -133,5 +148,10 @@ export async function readP1DocumentDownload({projectId,companyId,actorId,id}:{
  const bytes=new Uint8Array(await source.arrayBuffer());
  if(bytes.length!==record.sizeBytes||bytes.length>MAX||await digest(bytes)!==record.sha256)
    invalid('Arquivo temporário não passou na verificação SHA256.');
- return{status:'ready',id,name:record.name,mimeType:record.mimeType,data:base64(bytes)};
+ const response={status:'ready' as const,id,name:record.name,mimeType:record.mimeType,data:base64(bytes)};
+ try{
+   await files().delete(record.key);
+   await runtimeEnv().DB.prepare('DELETE FROM kv_records WHERE collection=? AND id=?').bind(collection(projectId),id).run();
+ }catch(error){console.warn('Limpeza pós-download pendente: '+String((error as Error).message).slice(0,120))}
+ return response;
 }

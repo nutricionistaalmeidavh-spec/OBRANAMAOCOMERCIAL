@@ -46,7 +46,7 @@ const sourceRelatedFrom=(items:Row[],source:string,relation:string):Row|null=>{
 const canCreateEntity=(entity:Entity,view:Overview)=>
   ['rdos','checklist_frente_itens','itens_orcamentarios','solicitacoes_compra'].includes(entity)||
   (entity==='documentos'&&view.capabilities?.documents===true&&view.capabilities?.documentTransport===true)||
-  (isP1Domain(entity)&&view.capabilities?.finance===true);
+  (isP1Domain(entity)&&(entity==='medicoes'||view.capabilities?.finance===true));
 export async function mountP1Management(root:HTMLElement,onBack:()=>void){
   let overview:Overview|null=null,active:Entity='rdos',editing=-1,expanded=-1,message='',busy=false,creating=false,selectedSource='',createNonce='';
   const downloadRetries=new Set<string>();
