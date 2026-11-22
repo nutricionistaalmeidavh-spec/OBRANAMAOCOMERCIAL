@@ -34,12 +34,12 @@ function loadGoogleIdentity(){
   if(googleScriptPromise)return googleScriptPromise;
   googleScriptPromise=new Promise<void>((resolve,reject)=>{
     const existing=document.querySelector('script[data-obn-google-identity]') as HTMLScriptElement|null;
-    if(existing){existing.addEventListener('load',()=>resolve(),{once:true});existing.addEventListener('error',()=>reject(new Error('Não foi possível carregar o login Google.')),{once:true});return}
+    if(existing){existing.addEventListener('load',()=>resolve(),{once:true});existing.addEventListener('error',()=>{existing.remove();reject(new Error('Não foi possível carregar o login Google.'))},{once:true});return}
     const script=document.createElement('script');
     script.src='https://accounts.google.com/gsi/client';script.async=true;script.defer=true;script.dataset.obnGoogleIdentity='1';
-    script.onload=()=>resolve();script.onerror=()=>reject(new Error('Não foi possível carregar o login Google.'));
+    script.onload=()=>resolve();script.onerror=()=>{script.remove();reject(new Error('Não foi possível carregar o login Google.'))};
     document.head.appendChild(script);
-  });
+  }).catch(error=>{googleScriptPromise=null;throw error});
   return googleScriptPromise;
 }
 
