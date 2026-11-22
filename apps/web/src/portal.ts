@@ -214,21 +214,18 @@ async function renderPhonePortal(p:Participant){
   }catch{}
   portalShell(p.name,meta,cards,undefined,'collaborator')
 }
-async function renderCorporatePortal(verifiedUser?:Awaited<ReturnType<typeof auth.getUser>>){
+async function corporateCentralAccess(){
+  try{return (await api.get<{role:string}>('/api/central/access')).data}
+  catch{return null}
+}
+async function renderCorporatePortal(verifiedUser?:Awaited<ReturnType<typeof auth.getUser>>,centralRequest?:Promise<{role:string}|null>){
   try{
     const user=verifiedUser??await auth.getUser();if(!user)return publicHome();
-    // Parallel lookups shorten the critical path, but never bypass the server checks.
-    // A Debora administrator can lack an Obra membership, so honor central routing
-    // even if the concurrent Obra bootstrap returns 403.
-    const [central,bootstrap]=await Promise.allSettled([
-      api.get<{role:string}>('/api/central/access'),
-      api.get<Bootstrap>('/api/bootstrap')
-    ]);
-    if(central.status==='fulfilled'&&central.value.data.role==='debora'){
-      location.replace('./sistema.html#owner');return;
-    }
-    if(bootstrap.status==='rejected')throw bootstrap.reason;
-    const b=bootstrap.value.data,pa=b.platformAccess;
+    // Confirm the product gate before requesting Obra data. The central lookup
+    // starts alongside auth/me for existing sessions, not after it.
+    const central=await (centralRequest??corporateCentralAccess());
+    if(central?.role==='debora'){location.replace('./sistema.html#owner');return}
+    const b=(await api.get<Bootstrap>('/api/bootstrap')).data,pa=b.platformAccess;
     if(pa?.status==='blocked'){portalShell(user.name||user.email||'Usuário','Acesso bloqueado','<article class="mh-empty"><h3>Acesso bloqueado</h3><p>Procure o administrador da sua empresa.</p></article>');return}
     if(pa?.status==='pending'){
       portalShell(user.name||user.email||'Usuário','Credencial provisória pendente','<article class="mh-empty"><h3>Ativar credencial</h3><p>Informe o código provisório fornecido pelo administrador.</p><input id="platformCode" maxlength="12" placeholder="CÓDIGO"><button id="claimPlatform" class="mh-primary">Ativar acesso</button></article>');
@@ -248,8 +245,9 @@ async function renderCorporatePortal(verifiedUser?:Awaited<ReturnType<typeof aut
 }
 async function openPortal(){
   location.hash='#portal';
+  const centralRequest=auth.isSignedIn()?corporateCentralAccess():undefined;
   const user=await auth.getUser();
-  if(user){await renderCorporatePortal(user);return}
+  if(user){await renderCorporatePortal(user,centralRequest);return}
   const token=localStorage.getItem(SESSION);
   if(token){try{const data=(await api.post('/api/edu/me',{token})).data as {participant:Participant};await renderPhonePortal(data.participant);return}catch{localStorage.removeItem(SESSION)}}
   publicHome()
@@ -274,7 +272,8 @@ export async function mountMhPortal(){
   if(['#phone-login','#celular'].includes(location.hash))location.hash='#colaborador';
   if(location.hash==='#colaborador'){await openCollaborator();return}
   if(location.hash==='#portal'){await openPortal();return}
+  const centralRequest=auth.isSignedIn()?corporateCentralAccess():undefined;
   const user=await auth.getUser();
-  if(user){location.hash='#portal';await renderCorporatePortal(user);return}
+  if(user){location.hash='#portal';await renderCorporatePortal(user,centralRequest);return}
   publicHome()
 }
