@@ -14,7 +14,7 @@ test('P1 medição transacional é idempotente, não excede orçamento nem mede 
  const f=fixture();try{
   const budget=f.repository.save('itens_orcamentarios',{obra_id:f.work.id,descricao:'PVC',unidade:'m',tipo:'material',quantidade:10,valor_unitario_centavos:1000});
   const other=f.repository.save('itens_orcamentarios',{obra_id:f.foreign.id,descricao:'Cobre',unidade:'m',tipo:'material',quantidade:5,valor_unitario_centavos:1000});
-  const data={numero:'M01',competencia:'2026-11',data:'2026-11-22',status:'rascunho',valor_bruto_centavos:2000,valor_liquido_centavos:2000,itens:[{item_orcamentario_id:budget.id,quantidade_periodo:2,valor_periodo_centavos:2000}]};
+  const data={numero:'M01',competencia:'2026-11',data:'2026-11-22',status:'rascunho',retencoes_centavos:0,descontos_centavos:0,valor_bruto_centavos:2000,valor_liquido_centavos:2000,itens:[{item_orcamentario_id:budget.id,quantidade_periodo:2,valor_periodo_centavos:2000}]};
   const c=cmd('medicoes','11111111-1111-4111-8111-111111111111',data);
   const a=applyLanWebP0Command({repository:f.repository,scope:f.scope,command:c}),b=applyLanWebP0Command({repository:f.repository,scope:f.scope,command:c});
   assert.equal(b.duplicate,true);assert.equal(a.localId,b.localId);
@@ -24,7 +24,7 @@ test('P1 medição transacional é idempotente, não excede orçamento nem mede 
 });
 test('P1 ordem, recebimento e saída não duplicam estoque, rejeitam outra obra e saldo negativo',()=>{
  const f=fixture();try{
-  const order=applyLanWebP0Command({repository:f.repository,scope:f.scope,command:cmd('pedidos_compra','33333333-3333-4333-8333-333333333333',{descricao:'Tubos',valor_centavos:5000,gerar_conta:false,itens:[{descricao:'PVC',unidade:'un',quantidade_pedida:5,valor_centavos:5000}]})});
+  const order=applyLanWebP0Command({repository:f.repository,scope:f.scope,command:cmd('pedidos_compra','33333333-3333-4333-8333-333333333333',{descricao:'Tubos',status:'emitido',valor_centavos:5000,gerar_conta:false,itens:[{descricao:'PVC',unidade:'un',quantidade_pedida:5,valor_centavos:5000}]})});
   const item=f.repository.list('pedido_compra_itens',{pedido_compra_id:order.localId})[0];
   const receive=cmd('recebimentos_materiais','44444444-4444-4444-8444-444444444444',{pedido_item_id:item.id,quantidade_recebida:3,data:'2026-11-22'});
   const a=applyLanWebP0Command({repository:f.repository,scope:f.scope,command:receive});
@@ -39,7 +39,7 @@ test('P1 ordem, recebimento e saída não duplicam estoque, rejeitam outra obra 
 });
 test('P1 contrato e aditivo solicitado são idempotentes e isolados por obra',()=>{
  const f=fixture();try{
-  const c=cmd('contratos_obra','77777777-7777-4777-8777-777777777777',{descricao:'Instalação hidráulica',valor_centavos:100000,gerar_conta:false});
+  const c=cmd('contratos_obra','77777777-7777-4777-8777-777777777777',{descricao:'Instalação hidráulica',valor_centavos:100000,status:'ativo',gerar_conta:false});
   const first=applyLanWebP0Command({repository:f.repository,scope:f.scope,command:c});
   assert.equal(applyLanWebP0Command({repository:f.repository,scope:f.scope,command:c}).duplicate,true);
   const add=cmd('contrato_aditivos','88888888-8888-4888-8888-888888888888',{contrato_id:first.localId,descricao:'Aditivo',valor_centavos:1000,status:'solicitado'});

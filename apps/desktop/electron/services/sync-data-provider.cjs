@@ -16,7 +16,7 @@ async function loadFieldRdoImporter() {
 
 const { applyWebP0Create } = require('./web-p0-create.cjs')
 
-const BRIDGE = { empresas:'companies',clientes:'clients',obras:'works',frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', etapas_obra:'planStages', rdos: 'rdos', checklist_frente_itens:'checklists', itens_orcamentarios:'budgets', medicoes:'measurements', solicitacoes_compra:'purchaseRequests', pedidos_compra:'purchases', movimentacoes_estoque:'stock', contratos_obra:'contracts', documentos:'documents', cronograma_etapas: 'schedule' }
+const BRIDGE = { empresas:'companies',clientes:'clients',obras:'works',frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', etapas_obra:'planStages', rdos: 'rdos', checklist_frente_itens:'checklists', itens_orcamentarios:'budgets', medicoes:'measurements', solicitacoes_compra:'purchaseRequests', pedidos_compra:'purchases', pedido_compra_itens:'purchaseItems', medicao_itens:'measurementItems', contrato_aditivos:'addenda', recebimentos_materiais:'receipts', movimentacoes_estoque:'stock', contratos_obra:'contracts', documentos:'documents', cronograma_etapas: 'schedule' }
 const EDITABLE = {
   frentes_obra: ['nome','codigo','status', 'observacoes'],
   subfrentes_obra: ['nome','codigo','pavimento','escopo','status','observacoes'],
@@ -44,7 +44,11 @@ const payloadOf = (row,entity) => {
     pedidos_compra:['numero','descricao','status','valor_centavos','entrega_prevista','observacoes','frente_id'],
     movimentacoes_estoque:['tipo','descricao','unidade','quantidade','data','observacoes','frente_id'],
     contratos_obra:['numero','tipo','descricao','valor_centavos','retencao_centavos','status','data_inicio','data_fim','observacoes','frente_id'],
-    documentos:['titulo','categoria','status_assinatura','versao','vencimento','observacoes','rdo_id','medicao_id','contrato_id','pedido_compra_id']
+    documentos:['titulo','categoria','status_assinatura','versao','vencimento','observacoes','rdo_id','medicao_id','contrato_id','pedido_compra_id'],
+    pedido_compra_itens:['pedido_compra_id','descricao','unidade','quantidade_pedida','quantidade_recebida','valor_centavos'],
+    medicao_itens:['medicao_id','item_orcamentario_id','descricao','quantidade_periodo','quantidade_acumulada','valor_periodo_centavos','unidade'],
+    contrato_aditivos:['contrato_id','numero','descricao','valor_centavos','status','data','impacto_prazo_dias'],
+    recebimentos_materiais:['pedido_compra_id','pedido_item_id','data','quantidade_recebida','nota_fiscal']
   }
   if(Object.hasOwn(P1_FIELDS,entity)){
     const out={deleted:canonical.deleted}
@@ -182,6 +186,16 @@ class LocalSyncDataProvider {
   }
 
   rowsByWork(table, scope) {
+    const parents={
+      pedido_compra_itens:['pedidos_compra','pedido_compra_id'],
+      medicao_itens:['medicoes','medicao_id'],
+      contrato_aditivos:['contratos_obra','contrato_id'],
+      recebimentos_materiais:['pedidos_compra','pedido_compra_id']
+    };
+    if(Object.hasOwn(parents,table)){
+      const [parent,key]=parents[table];
+      return this.db.prepare(`SELECT child.* FROM ${table} child JOIN ${parent} p ON p.id=child.${key} WHERE p.obra_id=? AND p.deleted_at IS NULL ORDER BY child.id DESC LIMIT 250`).all(scope.workId)
+    }
     this.assertWorkTable(table)
     return this.db.prepare(`SELECT * FROM ${table} WHERE obra_id=?`).all(scope.workId)
   }
@@ -197,6 +211,8 @@ class LocalSyncDataProvider {
     if (!Object.hasOwn(BRIDGE, entity)) return null
     if(entity==='empresas')return Number(localId)===Number(scope.companyId)?this.database.get('empresas',localId):null
     if(COMPANY_SCOPED.has(entity))return this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND empresa_id=?`).get(Number(localId),scope.companyId)||null
+    if(['pedido_compra_itens','medicao_itens','contrato_aditivos','recebimentos_materiais'].includes(entity))
+      return this.rowsByWork(entity,scope).find(row=>Number(row.id)===Number(localId))||null
     return this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND obra_id=?`).get(Number(localId), scope.workId) || null
   }
 

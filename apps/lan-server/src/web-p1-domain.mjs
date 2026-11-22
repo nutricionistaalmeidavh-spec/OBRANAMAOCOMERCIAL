@@ -99,7 +99,8 @@ export function applyLanWebP1({repository,scope,command}){
   result=new ProcurementService({repository}).moveStock({...data,obra_id:workId,requestId:command.id})
  }else if(entity==='contratos_obra'){
   const {gerar_conta,...row}=data
-  const edition=db.prepare("SELECT valor FROM configuracoes WHERE chave='edicao_produto'").get()?.valor||'construtora'
+  const hasSettings=db.prepare("SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='configuracoes'").get()
+  const edition=hasSettings?db.prepare("SELECT valor FROM configuracoes WHERE chave='edicao_produto'").get()?.valor||'construtora':'construtora'
   if(gerar_conta&&edition!=='empreiteira')invalid('Conta a receber requer edição empreiteira.')
   result=new ContractsService({repository}).saveContract({...row,obra_id:workId,requestId:command.id,edition,...(gerar_conta?{conta:{empresa_id:companyId}}:{})})
  }else{

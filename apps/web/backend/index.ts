@@ -465,7 +465,10 @@ export const handler=router({
       company:{id:gate.member!.companyId,name:String(company.name||'')},
       project:{id:gate.member!.projectId,name:project.name},
       topology:{mode:topology.mode},
-      items:p1Rows(asRecord(state?.desktopBridge)),
+      capabilities:{finance:gate.access!.modules.includes('finance'),documents:gate.access!.modules.includes('documents')},
+      items:p1Rows(asRecord(state?.desktopBridge)).filter(row=>gate.access!.modules.includes('finance')||
+        !['solicitacoes_compra','pedidos_compra','pedido_compra_itens','movimentacoes_estoque',
+          'recebimentos_materiais','contratos_obra','contrato_aditivos'].includes(row.entity)),
       sources:await p0CreateDevices(gate.member!.companyId,gate.member!.projectId),
       stages:bridgeRows(asRecord(state?.desktopBridge)).filter(row=>row.entity==='frentes_obra'||row.entity==='subfrentes_obra')
         .map(row=>({entity:row.entity,localId:row.localId,sourceDeviceId:row.sourceDeviceId,name:String(row.payload.nome||''),

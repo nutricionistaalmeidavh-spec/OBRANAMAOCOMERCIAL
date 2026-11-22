@@ -8,7 +8,11 @@ export const P1_SECTIONS = Object.freeze({
   pedidos_compra:{ bucket:'purchases', fields:['numero','descricao','status','valor_centavos','entrega_prevista','observacoes','frente_id'], editable:[] },
   movimentacoes_estoque:{ bucket:'stock', fields:['tipo','descricao','unidade','quantidade','data','observacoes','frente_id'], editable:[] },
   contratos_obra:{ bucket:'contracts', fields:['numero','tipo','descricao','valor_centavos','retencao_centavos','status','data_inicio','data_fim','observacoes','frente_id'], editable:[] },
-  documentos:{ bucket:'documents', fields:['titulo','categoria','status_assinatura','versao','vencimento','observacoes','rdo_id','medicao_id','contrato_id','pedido_compra_id'], editable:[] }
+  documentos:{ bucket:'documents', fields:['titulo','categoria','status_assinatura','versao','vencimento','observacoes','rdo_id','medicao_id','contrato_id','pedido_compra_id'], editable:[] },
+  pedido_compra_itens:{bucket:'purchaseItems',fields:['pedido_compra_id','descricao','unidade','quantidade_pedida','quantidade_recebida','valor_centavos'],editable:[]},
+  medicao_itens:{bucket:'measurementItems',fields:['medicao_id','item_orcamentario_id','descricao','unidade','quantidade_periodo','quantidade_acumulada','valor_periodo_centavos'],editable:[]},
+  contrato_aditivos:{bucket:'addenda',fields:['contrato_id','numero','descricao','status','valor_centavos','data','impacto_prazo_dias'],editable:[]},
+  recebimentos_materiais:{bucket:'receipts',fields:['pedido_compra_id','pedido_item_id','data','quantidade_recebida','nota_fiscal'],editable:[]}
 } as const);
 export type P1Entity=keyof typeof P1_SECTIONS;
 export type P1Row={entity:P1Entity;localId:number;sourceDeviceId:string;revision:number;desktopRevision:number;payload:Record<string,unknown>};
