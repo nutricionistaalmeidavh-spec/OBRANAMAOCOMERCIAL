@@ -99,7 +99,7 @@ const icons = { Eye, EyeOff, ChevronRight, FileText, HardHat, GraduationCap, Hou
 const icon = (name:string) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
 const googleMark = () => '<svg class="cp-google-mark" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.797 2.716v2.258h2.909c1.702-1.567 2.684-3.875 2.684-6.614z"/><path fill="#34A853" d="M9 18c2.43 0 4.468-.806 5.956-2.18l-2.909-2.259c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.585-5.036-3.714H.956v2.332A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.707A5.42 5.42 0 0 1 3.682 9c0-.592.102-1.168.282-1.707V4.961H.956A9 9 0 0 0 0 9c0 1.45.347 2.824.956 4.039l3.008-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.507.454 3.442 1.345l2.581-2.582C13.464.892 11.426 0 9 0A9 9 0 0 0 .956 4.961l3.008 2.332C4.672 5.164 6.656 3.58 9 3.58z"/></svg>';
 const vendor = () => '<a class="cp-vendor" href="./" aria-label="ArtiSys — página principal" title="ArtiSys"><img src="./artisys-icon.svg" alt="ArtiSys" width="26" height="26"></a>';
-function brand(){return '<span class="cp-wordmark">Canteiro<span>360</span></span>'}
+function brand(){return '<span class="cp-wordmark">Obra <span>na Mão</span></span>'}
 function portalGreeting(name:string){
   const first=name.trim().split(/\s+/)[0]||name;
   const hour=new Date().getHours();
@@ -110,7 +110,7 @@ function portalGreeting(name:string){
 function setBody(html:string){document.body.className='mh-portal-body';document.body.innerHTML=`<div id="mhPortal">${html}</div><div id="mhToast" class="mh-toast" role="status" aria-live="polite"></div>`;createIcons({icons});}
 function showPortalLoading(){
   // The previous page must never remain visible while identity and permissions resolve.
-  setBody('<main class="cp-startup" role="status" aria-live="polite"><span class="cp-startup-mark">Canteiro360</span><span class="cp-startup-spinner" aria-hidden="true"></span><p>Carregando seus acessos…</p></main>');
+  setBody('<main class="cp-startup" role="status" aria-live="polite"><span class="cp-startup-mark">Obra na Mão</span><span class="cp-startup-spinner" aria-hidden="true"></span><p>Carregando seus acessos…</p></main>');
 }
 function toast(text:string){const e=document.getElementById('mhToast');if(!e)return;e.textContent=text;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4500)}
 function card(key:string,title:string,text:string,href:string,_icon:string,role?:string){const names:Record<string,string>={gestao:'file-text',obra:'hard-hat',universidade:'graduation-cap',acessos:'shield-check',ativar:'plus',cobranca:'file-text'};return `<a class="cp-module" data-resource="${esc(key)}" href="${esc(href)}" aria-label="${esc(title)}${role?` — ${esc(role)}`:''}" title="${esc(text)}">${icon(names[key]||'file-text')}<span>${esc(title)}</span>${icon('chevron-right')}</a>`}
@@ -123,7 +123,7 @@ export function shouldRouteCorporateToPlans(b:Pick<Bootstrap,'needsClaim'|'isOwn
 function publicHome(){
   setBody(`<main class="cp-login">
     <a class="cp-back" href="./">${icon('arrow-left')}<span>Página principal</span></a>
-    <div class="cp-login-content"><div class="cp-login-brand"><img src="./canteiro360-logo.png" alt="Canteiro360 — controle total da obra" width="1448" height="1086"></div>
+    <div class="cp-login-content"><div class="cp-login-brand"><div class="cp-login-wordmark" role="img" aria-label="Obra na Mão — gestão de obras">Obra <span>na Mão</span></div></div>
     <section class="cp-login-form" aria-labelledby="loginTitle"><h1 id="loginTitle">Acesse sua operação</h1><p>Entre com a conta responsável pela sua empresa.</p>
     <button id="googleLogin" type="button" class="cp-google">${googleMark()}<span>Continuar com Google</span></button>
     <button id="passkeyCompany" type="button" class="cp-google cp-passkey-login">Entrar com Face ID ou chave de acesso</button></section></div>
@@ -136,7 +136,7 @@ function publicHome(){
 function collaboratorHome(){
   setBody(`<main class="cp-login cp-collaborator-login">
     <a class="cp-back" href="./">${icon('arrow-left')}<span>Página principal</span></a>
-    <div class="cp-login-content"><div class="cp-login-brand"><img src="./canteiro360-logo.png" alt="Canteiro360 — controle total da obra" width="1448" height="1086"></div>
+    <div class="cp-login-content"><div class="cp-login-brand"><div class="cp-login-wordmark" role="img" aria-label="Obra na Mão — gestão de obras">Obra <span>na Mão</span></div></div>
     <section class="cp-login-form" aria-labelledby="collaboratorLoginTitle"><h1 id="collaboratorLoginTitle">Acesso do colaborador</h1><p>Use o celular liberado pela sua empresa e a sua senha.</p>
     <form id="phoneLogin">
       <label for="phoneIdentity">Celular</label><input id="phoneIdentity" type="tel" inputmode="tel" autocomplete="username" placeholder="(11) 99999-9999" required maxlength="22">
@@ -267,7 +267,7 @@ async function logout(){
   location.hash='';publicHome()
 }
 export async function mountMhPortal(){
-  document.title='Canteiro360 — Acesso e visão geral';
+  document.title='Obra na Mão — Acesso e visão geral';
   showPortalLoading();
   if(['#phone-login','#celular'].includes(location.hash))location.hash='#colaborador';
   if(location.hash==='#colaborador'){await openCollaborator();return}
