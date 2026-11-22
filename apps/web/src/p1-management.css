@@ -1,0 +1,23 @@
+
+.p1-layout .p1-record{border:1px solid #dce5ee;border-radius:13px;background:#fff;overflow:hidden}
+.p1-layout .p1-record-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 16px}
+.p1-layout .p1-record-head>div:first-child{min-width:0;display:flex;flex-direction:column;gap:5px}
+.p1-layout .p1-record-head strong{overflow-wrap:anywhere}
+.p1-layout .p1-record-head small{color:#667b8b;overflow-wrap:anywhere}
+.p1-layout .p1-record-actions{display:flex;gap:7px;flex-shrink:0}
+.p1-layout .p1-details{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;background:#f7fafc;border-top:1px solid #dce5ee;padding:16px}
+.p1-layout .p1-details>div{min-width:0}
+.p1-layout .p1-details dt{font-size:12px;font-weight:600;color:#617789;margin-bottom:5px}
+.p1-layout .p1-details dd{margin:0;font-size:14px;overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.5}
+.p1-layout .p1-readonly{font-size:13px;color:#52687b;line-height:1.55;padding:10px 12px;border-radius:9px;background:#eef3f7}
+.p1-layout .p0-field textarea,.p1-layout .p0-field select{font:inherit;color:#19374d;background:#fff;border:1px solid #b9c9d6;border-radius:8px;padding:9px 10px;min-height:42px;width:100%}
+.p1-layout .p0-field textarea{resize:vertical;min-height:110px}
+.p1-layout .p0-field select:focus-visible,.p1-layout .p0-field textarea:focus-visible,.p1-layout .p0-field input:focus-visible{outline:2px solid #327eb2;outline-offset:2px}
+@media(max-width:650px){.p1-layout .p1-record-head{align-items:flex-start;flex-direction:column}.p1-layout .p1-record-actions{width:100%}.p1-layout .p1-details{grid-template-columns:1fr}.p1-layout .p1-record-actions button{flex:1}}
+
+.p1-layout .p1-line-set{grid-column:1 / -1;border:1px solid #dae3ed;border-radius:10px;padding:13px;min-width:0}
+.p1-layout .p1-line-set legend{padding:0 5px;font-size:13px;font-weight:700}
+.p1-layout .p1-form-line{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.p1-layout .p1-confirm{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:13px}
+.p1-layout .p1-form-line .p0-field{min-width:0}
+@media(max-width:650px){.p1-layout .p1-form-line{grid-template-columns:1fr}}

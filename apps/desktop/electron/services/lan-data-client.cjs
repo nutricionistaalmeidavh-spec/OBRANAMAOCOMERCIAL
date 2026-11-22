@@ -66,6 +66,11 @@ class LanDataClient {
         if (response?.status === 409 && payload?.error === 'revision_conflict') {
           throw new RevisionConflictError(payload)
         }
+        if(String(payload?.error||'')==='web_p0_conflict'){
+          const conflict=new Error(this.sanitizeMessage(payload?.message||'Comando Web recusado pelo servidor próprio.',state.token))
+          conflict.code='invalid_web_p0_command'
+          throw conflict
+        }
         if (TERMINAL_AUTH_ERRORS.has(String(payload?.error || ''))) this.credentials?.clear?.(state.serverKey)
         const rawMessage = payload?.message || `Servidor da empresa respondeu HTTP ${response?.status ?? 'inválido'}.`
         throw new Error(this.sanitizeMessage(rawMessage, state.token))
@@ -73,7 +78,7 @@ class LanDataClient {
       return payload
     } catch (error) {
       if (error?.name === 'AbortError') throw new Error('Tempo esgotado ao acessar o servidor da empresa.')
-      if (error instanceof RevisionConflictError) throw error
+      if (error instanceof RevisionConflictError || error?.code==='invalid_web_p0_command') throw error
       if (error instanceof Error) throw new Error(this.sanitizeMessage(error.message, state.token))
       throw new Error('Não foi possível acessar o servidor da empresa.')
     } finally {

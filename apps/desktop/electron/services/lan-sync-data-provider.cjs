@@ -1,4 +1,5 @@
-const { LocalSyncDataProvider, BRIDGE } = require('./sync-data-provider.cjs')
+const { LocalSyncDataProvider, BRIDGE, EDITABLE } = require('./sync-data-provider.cjs')
+const {safeFile:outboundP1Document}=require('./p1-document-read.cjs')
 
 const PAUSE_REASONS = {
   'lan-client': 'A sincronização central é responsabilidade do PC principal.'
@@ -70,13 +71,46 @@ class LanSyncDataProvider {
 
   async listBridge(entity, scope) {
     await this.requireBridge(entity)
-    return this.lanClient.list(entity, { obra_id: scope.workId })
+    if(['pedido_compra_itens','medicao_itens','contrato_aditivos','recebimentos_materiais'].includes(entity))
+      return this.lanClient.request('GET','/api/v1/sync-source/p1-children',{query:{
+        entity,obra_id:scope.workId,company_id:scope.companyId,remote_company_id:scope.remoteCompanyId
+      }}).then(result=>result.items||[])
+    if(entity==='empresas')return [await this.lanClient.get('empresas',scope.companyId)]
+    return this.lanClient.list(entity, ['clientes','obras'].includes(entity)?{empresa_id:scope.companyId}:{obra_id:scope.workId})
   }
 
   async getBridge(entity, localId, scope) {
     await this.requireBridge(entity)
+    const childParents={pedido_compra_itens:['pedidos_compra','pedido_compra_id'],medicao_itens:['medicoes','medicao_id'],
+      contrato_aditivos:['contratos_obra','contrato_id'],recebimentos_materiais:['pedidos_compra','pedido_compra_id']}
+    if(Object.hasOwn(childParents,entity)){
+      const row=await this.lanClient.get(entity,Number(localId))
+      if(!row)return null
+      const [parent,key]=childParents[entity],source=await this.lanClient.get(parent,Number(row[key]))
+      return source&&!source.deleted_at&&Number(source.obra_id)===Number(scope.workId)?row:null
+    }
     const row = await this.lanClient.get(entity, Number(localId))
-    return row && Number(row.obra_id) === Number(scope.workId) ? row : null
+    return row && (entity==='empresas'?Number(row.id)===Number(scope.companyId):['clientes','obras'].includes(entity)?Number(row.empresa_id)===Number(scope.companyId):Number(row.obra_id)===Number(scope.workId))?row:null
+  }
+
+  async readP1Document(scope,localId){
+    const doc=await this.lanClient.get('documentos',Number(localId));
+    if(!doc||doc.deleted_at||Number(doc.obra_id)!==Number(scope.workId)||
+       Number(doc.empresa_id||scope.companyId)!==Number(scope.companyId))
+      throw new Error('Documento fora da empresa/obra autorizada.');
+    if(!Number.isSafeInteger(Number(doc.arquivo_id))||Number(doc.arquivo_id)<1)
+      throw new Error('Documento sem arquivo central associado.');
+    const file=await this.lanClient.get('arquivos',Number(doc.arquivo_id));
+    if(!file)throw new Error('Metadados do arquivo central não encontrados.');
+    const bytes=await this.lanClient.downloadFile(Number(doc.arquivo_id));
+    return outboundP1Document(doc,file,bytes);
+  }
+
+  async applyWebP0Create(scope,command) {
+    const capabilities=await this.capabilities()
+    if(!Array.isArray(capabilities?.features)||!capabilities.features.includes('web-p0-idempotent-commands-v1'))
+      throw new Error('Atualize o servidor próprio para receber cadastros Web com idempotência.')
+    return this.lanClient.request('POST','/api/v1/web-p0/commands',{body:{scope,command}})
   }
 
   async applyRemote(entity, localId, payload, scope) {
@@ -84,7 +118,13 @@ class LanSyncDataProvider {
     if (payload?.deleted) throw new Error('Exclusão remota exige revisão manual no cadastro central.')
     const current = await this.getBridge(entity, localId, scope)
     if (!current) return false
-    await this.lanClient.save(entity, { ...current, ...payload, id: Number(localId), obra_id: current.obra_id })
+    // Never write a complete cloud projection back into central SQLite.
+    // Only explicitly editable fields may be applied; financial / stock / document
+    // projections are read-only and their domain services remain authoritative.
+    const allowed=EDITABLE[entity]||[]
+    const patch=Object.fromEntries(allowed.filter(key=>Object.hasOwn(payload,key)).map(key=>[key,payload[key]]))
+    if(Object.keys(patch).length)
+      await this.lanClient.save(entity, { ...current, ...patch, id: Number(localId), obra_id: current.obra_id })
     return true
   }
 
@@ -112,9 +152,9 @@ class LanSyncDataProvider {
 }
 
 class OperationalSyncDataProvider {
-  constructor({ storage, localProvider, lanClient, database = null, now = Date.now }) {
+  constructor({ storage, localProvider, lanClient, database = null, documentsDir = null, now = Date.now }) {
     this.storage = storage
-    this.localProvider = localProvider || (database ? new LocalSyncDataProvider({ database, now }) : null)
+    this.localProvider = localProvider || (database ? new LocalSyncDataProvider({ database, now, documentsDir }) : null)
     this.lanProvider = new LanSyncDataProvider({ lanClient })
   }
 
@@ -146,6 +186,16 @@ class OperationalSyncDataProvider {
   async getBridge(entity, localId, scope) { return this.activeProvider().getBridge(entity, localId, scope) }
   async summary(scope, modules) { return this.activeProvider().summary(scope, modules) }
   async obligations(scope) { return this.activeProvider().obligations(scope) }
+  async readP1Document(scope,localId){
+    return this.activeProvider().readP1Document(scope,localId)
+  }
+  async applyWebP0Create(scope,command) {
+    const runtime=this.runtimeState()
+    if(runtime.paused)throw new Error('Sincronização operacional pausada.')
+    if(runtime.source==='local')return this.localProvider.applyWebP0Create(scope,command)
+    if(runtime.source==='lan-host'||runtime.source==='remote')return this.lanProvider.applyWebP0Create(scope,command)
+    throw new Error('Fonte operacional indisponível para criação Web.')
+  }
   async applyRemote(entity, localId, payload, scope) { return this.activeProvider().applyRemote(entity, localId, payload, scope) }
   async applyFieldRdo(scope,report) { return this.activeProvider().applyFieldRdo(scope,report) }
   async fieldRdoCatalog(scope) { return this.activeProvider().fieldRdoCatalog(scope) }

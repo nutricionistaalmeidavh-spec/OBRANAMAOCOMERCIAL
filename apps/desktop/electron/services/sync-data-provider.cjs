@@ -1,6 +1,7 @@
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const fs = require('node:fs')
+const { createHash } = require('node:crypto')
 let fieldRdoImporter = null
 async function loadFieldRdoImporter() {
   if (fieldRdoImporter) return fieldRdoImporter
@@ -13,24 +14,59 @@ async function loadFieldRdoImporter() {
   return FieldRdoImport
 }
 
-const BRIDGE = { frentes_obra: 'fronts', tarefas_obra: 'tasks', rdos: 'rdos', cronograma_etapas: 'schedule' }
+const { applyWebP0Create } = require('./web-p0-create.cjs')
+const {safeFile:outboundP1Document}=require('./p1-document-read.cjs')
+
+const BRIDGE = { empresas:'companies',clientes:'clients',obras:'works',frentes_obra: 'fronts', subfrentes_obra: 'subfronts', tarefas_obra: 'tasks', etapas_obra:'planStages', rdos: 'rdos', checklist_frente_itens:'checklists', itens_orcamentarios:'budgets', medicoes:'measurements', solicitacoes_compra:'purchaseRequests', pedidos_compra:'purchases', pedido_compra_itens:'purchaseItems', medicao_itens:'measurementItems', contrato_aditivos:'addenda', recebimentos_materiais:'receipts', movimentacoes_estoque:'stock', contratos_obra:'contracts', documentos:'documents', cronograma_etapas: 'schedule' }
 const EDITABLE = {
-  frentes_obra: ['status', 'observacoes'],
+  frentes_obra: ['nome','codigo','status', 'observacoes'],
+  subfrentes_obra: ['nome','codigo','pavimento','escopo','status','observacoes'],
   tarefas_obra: ['status', 'responsavel', 'prazo', 'prioridade', 'descricao', 'observacoes', 'titulo', 'concluido_em'],
   rdos: ['status', 'clima', 'atividades', 'observacoes'],
+  checklist_frente_itens: ['descricao','status','responsavel','prazo','observacoes'],
   cronograma_etapas: ['status', 'percentual_realizado', 'observacoes', 'responsavel', 'previsto_inicio', 'previsto_fim']
 }
 const WORK_SCOPED = new Set([...Object.keys(BRIDGE), 'documentos'])
+const COMPANY_SCOPED = new Set(['clientes','obras','empresas'])
 
 const json = JSON.stringify
-const payloadOf = row => Object.fromEntries(
-  Object.entries({ ...row, deleted: !!row.deleted_at })
-    .filter(([key]) => !['created_at', 'updated_at'].includes(key))
-    .sort(([a], [b]) => a.localeCompare(b))
-)
+const payloadOf = (row,entity) => {
+  const canonical=Object.fromEntries(
+    Object.entries({...row,deleted:!!row.deleted_at})
+      .filter(([key])=>!['created_at','updated_at'].includes(key))
+      .sort(([a],[b])=>a.localeCompare(b))
+  )
+  const P1_FIELDS={
+    rdos:['data','frente_id','clima','status','atividades','observacoes'],
+    checklist_frente_itens:['descricao','tipo','status','responsavel','prazo','concluido_em','observacoes','frente_id','subfrente_id','pavimento'],
+    itens_orcamentarios:['codigo','descricao','unidade','quantidade','valor_unitario_centavos','tipo','frente_id','etapa_id','subfrente_id','observacoes'],
+    medicoes:['numero','competencia','data','status','descricao','valor_bruto_centavos','valor_liquido_centavos','observacoes','frente_id'],
+    solicitacoes_compra:['descricao','solicitante','status','prioridade','prazo','observacoes','frente_id'],
+    pedidos_compra:['numero','descricao','status','valor_centavos','entrega_prevista','observacoes','frente_id'],
+    movimentacoes_estoque:['tipo','descricao','unidade','quantidade','data','observacoes','frente_id'],
+    contratos_obra:['numero','tipo','descricao','valor_centavos','retencao_centavos','status','data_inicio','data_fim','observacoes','frente_id'],
+    documentos:['titulo','categoria','status_assinatura','versao','vencimento','observacoes','rdo_id','medicao_id','contrato_id','pedido_compra_id'],
+    pedido_compra_itens:['pedido_compra_id','descricao','unidade','quantidade_pedida','quantidade_recebida','valor_centavos'],
+    medicao_itens:['medicao_id','item_orcamentario_id','descricao','quantidade_periodo','quantidade_acumulada','valor_periodo_centavos','unidade'],
+    contrato_aditivos:['contrato_id','numero','descricao','valor_centavos','status','data','impacto_prazo_dias'],
+    recebimentos_materiais:['pedido_compra_id','pedido_item_id','data','quantidade_recebida','nota_fiscal']
+  }
+  if(Object.hasOwn(P1_FIELDS,entity)){
+    const out={deleted:canonical.deleted}
+    for(const field of P1_FIELDS[entity])if(Object.hasOwn(canonical,field))out[field]=canonical[field]
+    return out
+  }
+  if(!['empresas','clientes','obras','frentes_obra','subfrentes_obra','tarefas_obra','etapas_obra','cronograma_etapas'].includes(entity))return canonical
+  const sourceFingerprint=createHash('sha256').update(JSON.stringify(canonical)).digest('hex')
+  if(entity==='empresas')return{id:canonical.id,razao_social:canonical.razao_social,nome_fantasia:canonical.nome_fantasia,status:canonical.status,deleted:canonical.deleted,sourceFingerprint}
+  if(entity==='clientes')return{id:canonical.id,empresa_id:canonical.empresa_id,nome:canonical.nome,deleted:canonical.deleted,sourceFingerprint}
+  if(entity==='obras')return{id:canonical.id,empresa_id:canonical.empresa_id,cliente_id:canonical.cliente_id,nome:canonical.nome,status:canonical.status,deleted:canonical.deleted,sourceFingerprint}
+  return{...canonical,sourceFingerprint}
+}
 
 class LocalSyncDataProvider {
-  constructor({ database, now = Date.now }) {
+  constructor({ database, now = Date.now, documentsDir = null }) {
+    this.documentsDir = documentsDir
     this.database = database
     this.now = now
   }
@@ -152,17 +188,33 @@ class LocalSyncDataProvider {
   }
 
   rowsByWork(table, scope) {
+    const parents={
+      pedido_compra_itens:['pedidos_compra','pedido_compra_id'],
+      medicao_itens:['medicoes','medicao_id'],
+      contrato_aditivos:['contratos_obra','contrato_id'],
+      recebimentos_materiais:['pedidos_compra','pedido_compra_id']
+    };
+    if(Object.hasOwn(parents,table)){
+      const [parent,key]=parents[table];
+      return this.db.prepare(`SELECT child.* FROM ${table} child JOIN ${parent} p ON p.id=child.${key} WHERE p.obra_id=? AND p.deleted_at IS NULL ORDER BY child.id DESC LIMIT 250`).all(scope.workId)
+    }
     this.assertWorkTable(table)
     return this.db.prepare(`SELECT * FROM ${table} WHERE obra_id=?`).all(scope.workId)
   }
 
   listBridge(entity, scope) {
     if (!Object.hasOwn(BRIDGE, entity)) throw new Error('Entidade não disponível na bridge de sincronização.')
+    if(entity==='empresas')return [this.database.get('empresas',scope.companyId)].filter(row=>row&&!row.deleted_at)
+    if(COMPANY_SCOPED.has(entity))return this.database.list(entity,{empresa_id:scope.companyId})
     return this.rowsByWork(entity, scope)
   }
 
   getBridge(entity, localId, scope) {
     if (!Object.hasOwn(BRIDGE, entity)) return null
+    if(entity==='empresas')return Number(localId)===Number(scope.companyId)?this.database.get('empresas',localId):null
+    if(COMPANY_SCOPED.has(entity))return this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND empresa_id=?`).get(Number(localId),scope.companyId)||null
+    if(['pedido_compra_itens','medicao_itens','contrato_aditivos','recebimentos_materiais'].includes(entity))
+      return this.rowsByWork(entity,scope).find(row=>Number(row.id)===Number(localId))||null
     return this.db.prepare(`SELECT * FROM ${entity} WHERE id=? AND obra_id=?`).get(Number(localId), scope.workId) || null
   }
 
@@ -245,6 +297,27 @@ class LocalSyncDataProvider {
         components: this.accountComponents(account),
         ...this.accountProvenance(account, scope)
       }))
+  }
+
+  async readP1Document(scope,localId){
+    const doc=this.database.get('documentos',Number(localId));
+    if(!doc||doc.deleted_at||Number(doc.obra_id)!==Number(scope.workId)||
+       Number(doc.empresa_id||scope.companyId)!==Number(scope.companyId))
+      throw new Error('Documento não pertence à empresa/obra da sincronização.');
+    const file=this.database.get('arquivos',Number(doc.arquivo_id));
+    if(!file)throw new Error('Arquivo documental não encontrado na origem.');
+    const configured=typeof this.documentsDir==='function'?this.documentsDir():this.documentsDir;
+    if(!configured)throw new Error('Raiz documental não está configurada na origem.');
+    const root=fs.realpathSync(configured),target=fs.realpathSync(String(file.caminho||''));
+    if(target!==root&&!target.startsWith(root+path.sep))
+      throw new Error('Arquivo fora da pasta documental gerenciada.');
+    const stats=fs.statSync(target);
+    if(!stats.isFile()||stats.size<1||stats.size>2*1024*1024)throw new Error('Arquivo indisponível para download Web (limite 2 MB).');
+    return outboundP1Document(doc,file,fs.readFileSync(target));
+  }
+
+  applyWebP0Create(scope, command) {
+    return applyWebP0Create({ database: this.database, scope, command, documentsDir:typeof this.documentsDir==='function'?this.documentsDir():this.documentsDir })
   }
 
   applyRemote(entity, localId, payload, scope) {

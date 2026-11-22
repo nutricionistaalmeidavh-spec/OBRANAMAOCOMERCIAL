@@ -385,6 +385,41 @@ class OnlineService {
     return result
   }
 
+  async p0Projects() {
+    return this.request('/api/desktop/web-p0/projects',{deviceToken:this.requireToken()})
+  }
+
+  async selectP0Project({projectId,localWorkId}) {
+    return this.request('/api/desktop/web-p0/project/select',{deviceToken:this.requireToken(),projectId,localWorkId})
+  }
+
+  async webP1DocumentDownloadsPending(){
+    return this.request('/api/desktop/web-p1/documents/download/pending',{deviceToken:this.requireToken()})
+  }
+  async webP1DocumentDownloadFail(requestId,error){
+    return this.request('/api/desktop/web-p1/documents/download/fail',{
+      deviceToken:this.requireToken(),requestId,error:String(error||'Arquivo indisponível').slice(0,180)
+    })
+  }
+  async webP1DocumentDownloadComplete(requestId,file){
+    return this.request('/api/desktop/web-p1/documents/download/complete',{
+      deviceToken:this.requireToken(),requestId,file
+    },60000)
+  }
+  async webP1StagedDocument({commandId,stageId,sha256}) {
+    return this.request('/api/desktop/web-p1/document', {
+      deviceToken:this.requireToken(),commandId,stageId,sha256
+    },60000)
+  }
+
+  async webP0Pending() {
+    return this.request('/api/desktop/web-p0/pending', { deviceToken: this.requireToken() })
+  }
+
+  async webP0Ack({commandId,entity,localId,error}) {
+    return this.request('/api/desktop/web-p0/ack', { deviceToken: this.requireToken(),commandId,entity,localId,error })
+  }
+
   async syncPull(sinceRevision = 0) {
     return this.request('/api/desktop/sync/pull', { deviceToken: this.requireToken(), sinceRevision })
   }

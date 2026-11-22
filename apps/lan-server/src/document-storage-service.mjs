@@ -39,6 +39,12 @@ export class DocumentStorageService {
     check('medicoes',document.medicao_id,'Medição')
     check('contratos_obra',document.contrato_id,'Contrato')
     check('pedidos_compra',document.pedido_compra_id,'Pedido de compra')
+    check('recebimentos_materiais',document.recebimento_material_id,'Recebimento')
+    if(document.contrato_aditivo_id){
+      const add=this.repository.get('contrato_aditivos',Number(document.contrato_aditivo_id))
+      if(!add||add.deleted_at)throw new Error('Aditivo inexistente.')
+      check('contratos_obra',add.contrato_id,'Contrato do aditivo')
+    }
     return true
   }
   storeFileRecord(data,contentBase64){
@@ -90,7 +96,7 @@ export class DocumentStorageService {
       return saved
     }catch(error){try{this.db.exec('ROLLBACK')}catch{};if(destination)try{fs.unlinkSync(destination)}catch{};throw error}
   }
-  store({file,document}={}){
+  store({file,document,receipt}={}){
     this.assertWork(document||{})
     const bytes=this.bytes(file?.contentBase64)
     const extension=String(path.extname(String(file?.name||''))||'').toLowerCase().slice(0,20)
@@ -109,6 +115,17 @@ export class DocumentStorageService {
       if(document?.medicao_id)this.repository.save('medicao_anexos',{medicao_id:Number(document.medicao_id),documento_id:savedDocument.id,tipo:document.tipo||'comprovante'})
       if(document?.contrato_id)this.repository.save('contrato_anexos',{contrato_id:Number(document.contrato_id),documento_id:savedDocument.id,tipo:document.tipo||'contrato'})
       if(document?.pedido_compra_id)this.repository.save('pedido_compra_anexos',{pedido_compra_id:Number(document.pedido_compra_id),documento_id:savedDocument.id,tipo:document.tipo||'nota'})
+      // For Web P1 imports, persist transport receipt in the *same* SQLite transaction.
+      // Existing Desktop document uploads do not supply receipt and are unchanged.
+      if(receipt){
+        const valid=receipt?.entity==='documentos'&&/^[0-9a-f-]{36}$/i.test(String(receipt.id||''))&&
+          /^[a-f0-9]{64}$/i.test(String(receipt.fingerprint||''))&&
+          Number.isSafeInteger(Number(receipt.companyId))&&Number.isSafeInteger(Number(receipt.workId))&&
+          String(receipt.deviceId||'').length>0;
+        if(!valid)throw new Error('Recibo de documento não autorizado.')
+        this.db.prepare('INSERT INTO web_p0_command_receipts(command_id,device_id,empresa_id,obra_id,entity,payload_hash,local_id) VALUES(?,?,?,?,?,?,?)')
+          .run(receipt.id,receipt.deviceId,receipt.companyId,receipt.workId,'documentos',receipt.fingerprint,savedDocument.id)
+      }
       this.db.exec('COMMIT')
       return{file:savedFile,document:savedDocument}
     }catch(error){try{this.db.exec('ROLLBACK')}catch{};try{fs.unlinkSync(destination)}catch{};throw error}

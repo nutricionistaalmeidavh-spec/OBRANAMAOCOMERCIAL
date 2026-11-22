@@ -73,6 +73,14 @@ try{
     // Synchronization is only complete after the mocked server acknowledges and saves the snapshot.
     // waitForRequest fires before the request handler updates `state`, causing false negatives.
     const nextSnapshotSync=()=>page.waitForResponse(response=>response.request().method()==='PUT'&&new URL(response.url()).pathname==='/api/project/state'&&response.ok(),{timeout:7000});
+    // A photos/materials autosave may still be in flight when Prepare is clicked.
+    // Wait for the specific *closure payload*, not an unrelated successful PUT.
+    const nextRdoClosureSync=()=>page.waitForResponse(response=>{
+      if(!response.ok()||response.request().method()!=='PUT'||new URL(response.url()).pathname!=='/api/project/state')return false;
+      try{const day=response.request().postDataJSON()?.state?.days?.[today];
+        return day?.rdoStatus==='ready_for_desktop'&&Array.isArray(day?.photos)&&day.photos.length===1&&day.photosReviewed===true;
+      }catch{return false}
+    },{timeout:12000});
 
     await page.goto(`${base}/obra.html#obra`,{waitUntil:'domcontentloaded'});await page.locator('#newPlan').waitFor({state:'visible'});
     if(!(await page.title()).includes('Obra QA Integrada'))throw new Error(`${viewport.name}: project identity was not loaded from remote bootstrap`);await page.getByText('Fixture QA').waitFor({state:'visible'});await shot('01-day-remote-state');
@@ -100,7 +108,7 @@ try{
     await shot('07-rdo-photo-uploaded');
     await page.locator('#confirmRdoPhotos').click();
     await page.locator('#reviewRdo').click();await page.locator('#prepareRdo').waitFor({state:'visible'});
-    await shot('08-rdo-five-step-review');const rdoSaved=nextSnapshotSync();await page.locator('#prepareRdo').click();await waitForSnapshotSync('RDO closure with photos and materials',rdoSaved);
+    await shot('08-rdo-five-step-review');const rdoSaved=nextRdoClosureSync();await page.locator('#prepareRdo').click();await waitForSnapshotSync('RDO closure with photos and materials',rdoSaved);
     await page.getByText('Pendente de integração').first().waitFor({state:'visible'});
     const result=state.days[today];
     if(result?.materials?.[0]?.material_id!=='mat_aaaaaaaaaaaaaaaaaaaaaaaa'||result.materials[0].frente_id!==1||result.materials[0].servico!=='afaq')

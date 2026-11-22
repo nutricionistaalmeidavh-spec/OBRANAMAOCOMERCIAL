@@ -161,6 +161,8 @@ export function rateLimitPolicy(method:string,pathname:string):RateLimitPolicy|n
     'POST /api/license/claim':{scope:'license-claim',limit:10,windowSeconds:900},
     'POST /api/bootstrap/claim':{scope:'bootstrap-claim',limit:8,windowSeconds:900},
     'POST /api/billing/checkout':{scope:'billing-checkout',limit:8,windowSeconds:900},
+    'POST /api/web/p0/create':{scope:'web-p0-create',limit:40,windowSeconds:600},
+    'POST /api/web/p0/delete':{scope:'web-p0-delete',limit:15,windowSeconds:600},
     'POST /api/desktop/start':{scope:'desktop-start',limit:20,windowSeconds:300},
     'POST /api/desktop/status':{scope:'desktop-status',limit:60,windowSeconds:300},
     'POST /api/desktop/approve':{scope:'desktop-approve',limit:20,windowSeconds:300}

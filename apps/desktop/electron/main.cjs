@@ -107,8 +107,9 @@ function createServices() {
   const { BankFinanceService } = require(path.join(path.dirname(resolveLanServerEntry()), 'bank-finance.cjs'))
   const bankFinance = new BankFinanceSourceService({ local: new BankFinanceService({ db: db.db }), lanClient: dataAccess.remote, moduleStorage })
   const measurements = new MeasurementSourceService({ local: db, lanClient: dataAccess.remote, moduleStorage })
-  const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db })
   const files = new FileService({ documentsDir: paths.documentsDir, db, dataAccess, lanClient:dataAccess.remote, moduleStorage, storage })
+  const syncDataProvider = new OperationalSyncDataProvider({ storage, lanClient: dataAccess.remote, database: db,
+    documentsDir:()=>files.documentsDir })
   const localPayroll = new PayrollService({ db })
   const localTime = new TimeService({ db, fileService: files })
   const rh = new RhSourceService({ localPayroll, localTime, lanClient: dataAccess.remote, moduleStorage })
@@ -523,6 +524,23 @@ function registerIpc() {
   ipcMain.handle('online:disconnect', envelope(() => withSyncStopped(() => services.online.disconnect())))
   ipcMain.handle('online:sync-state', envelope(() => services.sync.state()))
   ipcMain.handle('online:sync-configure', envelope((scope) => withSyncStopped(() => services.sync.configure(scope))))
+  ipcMain.handle('online:p0-projects', envelope(() => services.online.p0Projects()))
+  ipcMain.handle('online:p0-project-select', envelope(({projectId,companyId,workId}) => withSyncStopped(async () => {
+    const previous=await services.online.session(),priorScope=services.sync.binding()?.scope
+    await services.online.selectP0Project({projectId,localWorkId:Number(workId)})
+    try{
+      const selected=await services.sync.configure({companyId:Number(companyId),workId:Number(workId)})
+      return {selected:true,projectId,state:selected}
+    }catch(cause){
+      if(previous?.project?.id&&priorScope){
+        try{
+          await services.online.selectP0Project({projectId:previous.project.id,localWorkId:priorScope.workId})
+          await services.sync.configure({companyId:priorScope.companyId,workId:priorScope.workId})
+        }catch{/* original error is more important; preserve paused state if rollback fails */}
+      }
+      throw cause
+    }
+  })))
   ipcMain.handle('online:sync-now', envelope(() => { requireSyncAvailable(); return services.sync.run({ retryNow: true }) }))
   ipcMain.handle('online:sync-resolve-local', envelope(({ id, resolution }) => withSyncStopped(() => services.sync.resolveLocalConflict(id, resolution))))
   ipcMain.handle('online:sync-pull', envelope(({ sinceRevision }) => services.online.syncPull(sinceRevision)))

@@ -227,6 +227,7 @@ async function renderCorporatePortal(){
     if(shouldRouteCorporateToPlans(b)){location.hash='#planos';await import('./billing').then(module=>module.mountBillingRoute());return}
     const systems=pa?.systems;let cards='';
     if(systems?.gestao?.enabled&&b.role==='admin'&&!b.needsClaim&&b.access?.modules?.some(module=>['rh','dre','contracts','procurement','measurements','documents'].includes(module)))cards+=card('gestao','Gestão','RH, documentos, contratos, compras, medições e visão administrativa.','./gestao.html#gestao','▥',systems.gestao.role);
+    else if(systems?.obra360?.enabled&&b.role==='admin'&&!b.needsClaim&&b.access?.modules?.includes('obra360'))cards+=card('gestao','Gestão operacional','Etapas, tarefas e cronograma sincronizados.','./gestao.html#gestao/operacao','▥','admin');
     if(systems?.obra360?.enabled&&!b.needsClaim)cards+=card('obra','Obra360','Dias, etapas, equipe, tarefas, RDO e rotina de campo.','./obra.html#obra','⌂',systems.obra360.role);
     if(systems?.universidade?.enabled)cards+=card('universidade','Universidade','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱',systems.universidade.role);
     if(b.platformRole==='superadmin'||b.isOwner)cards+=card('acessos','Central Artisys','Empresas clientes, licenças e ativações independentes.','./index.html#owner','◇','superadmin');

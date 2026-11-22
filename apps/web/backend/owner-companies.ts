@@ -2,7 +2,7 @@ import { error, json, type RouterRoutes } from '../cloudflare/sdk';
 import { createDeboraLicenseAdminRoutes } from './debora-license-admin';
 import { createDeboraObservabilityAdminRoutes } from './debora-observability-admin';
 import { createDeboraPartnerAdminRoutes } from './debora-partner-admin';
-import { ManagedAdminError, companyViews, createManagedCompany, managedCompanyInventory, updateManagedCompany } from './owner-company-service';
+import { ManagedAdminError, companyViews, createManagedCompany, managedCompanyInventory, retireManagedCompany, updateManagedCompany } from './owner-company-service';
 
 export { companyViews } from './owner-company-service';
 
@@ -20,5 +20,6 @@ export function createCompanyRoutes(secured:RouterRoutes[string],deboraSecured:R
  'GET /api/owner/companies':[...secured,async()=>json(await managedCompanyInventory())],
  'GET /api/owner/companies/:id':[...secured,async(ctx)=>{const company=(await managedCompanyInventory()).companies.find(item=>item.id===ctx.params.id);return company?json({company}):error('Empresa não encontrada.',404)}],
  'POST /api/owner/companies':[...secured,async(ctx)=>respond(()=>createManagedCompany((ctx.body||{}) as Record<string,unknown>,{userId:ctx.user!.userId,email:ctx.user!.email}),201)],
- 'PUT /api/owner/companies/:id':[...secured,async(ctx)=>respond(()=>updateManagedCompany(ctx.params.id,(ctx.body||{}) as Record<string,unknown>,{userId:ctx.user!.userId,email:ctx.user!.email}))]
+ 'PUT /api/owner/companies/:id':[...secured,async(ctx)=>respond(()=>updateManagedCompany(ctx.params.id,(ctx.body||{}) as Record<string,unknown>,{userId:ctx.user!.userId,email:ctx.user!.email}))],
+ 'DELETE /api/owner/companies/:id':[...secured,async(ctx)=>respond(()=>retireManagedCompany(ctx.params.id,{userId:ctx.user!.userId,email:ctx.user!.email}))]
 };}

@@ -50,6 +50,59 @@ it('persists changes while offline and retries the same id after restart', async
   await expect(f.sync.run()).rejects.toThrow('offline')
   expect(f.sync.state().pending).toBeGreaterThan(0)
 })
+it('recebe criação Web uma única vez, persiste no SQLite e publica a nova etapa para a ponte', async () => {
+  const f=fixture();
+  const command={id:'11111111-1111-4111-8111-111111111111',entity:'frentes_obra',deviceId:'device-a',data:{nome:'Etapa Web'}};
+  f.online.webP0Pending=vi.fn(async()=>({commands:[command]}));
+  f.online.webP0Ack=vi.fn(async()=>({ok:true}));
+  await f.sync.configure({companyId:f.company.id,workId:f.work.id});
+  await f.sync.run();
+  const records=f.database.list('frentes_obra',{obra_id:f.work.id}).filter((x:any)=>x.nome==='Etapa Web');
+  expect(records).toHaveLength(1);
+  expect(f.online.webP0Ack).toHaveBeenCalledWith({commandId:command.id,entity:'frentes_obra',localId:records[0].id});
+  expect(f.online.syncPush.mock.calls.flatMap((args:any[])=>args[0]).some((x:any)=>x.entity==='frentes_obra'&&x.localId===records[0].id)).toBe(true);
+  await f.sync.run();
+  expect(f.database.list('frentes_obra',{obra_id:f.work.id}).filter((x:any)=>x.nome==='Etapa Web')).toHaveLength(1);
+});
+it('repete comando após ACK offline sem duplicar obra e confirma no próximo ciclo',async()=>{
+  const f=fixture();
+  const command={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',entity:'obras',action:'create',deviceId:'device-a',data:{nome:'Obra remota 2'}};
+  f.online.webP0Pending=vi.fn(async()=>({commands:[command]}));
+  f.online.webP0Ack=vi.fn().mockRejectedValueOnce(new Error('Falha de rede no ACK')).mockResolvedValue({ok:true});
+  await f.sync.configure({companyId:f.company.id,workId:f.work.id});
+  await expect(f.sync.run()).rejects.toThrow(/ACK/);
+  expect(f.database.list('obras',{empresa_id:f.company.id}).filter((w:any)=>w.nome==='Obra remota 2')).toHaveLength(1);
+  await f.sync.run({retryNow:true});
+  const works=f.database.list('obras',{empresa_id:f.company.id}).filter((w:any)=>w.nome==='Obra remota 2');
+  expect(works).toHaveLength(1);
+  expect(f.online.webP0Ack).toHaveBeenCalledTimes(2);
+  expect(f.online.webP0Ack.mock.calls[1][0]).toMatchObject({entity:'obras',localId:works[0].id});
+});
+it('aplica comando Web na fonte LAN e confirma sem criar cadastro no SQLite do Desktop',async()=>{
+  const f=fixture();
+  const command={id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',entity:'clientes',action:'create',deviceId:'device-a',data:{nome:'Cliente LAN'}};
+  const dataProvider={
+    storage:{state:()=>({serverId:'server-lan-001'})},
+    runtimeState:()=>({source:'lan-host',paused:false,pauseReason:null}),
+    resolveScope:vi.fn(async()=>({companyId:501,workId:601,companyName:'Empresa central',workName:'Obra central'})),
+    syncCapabilities:vi.fn(async()=>({modules:[],bridgeEntities:[]})),
+    listBridge:vi.fn(async()=>[]),
+    applyWebP0Create:vi.fn(async()=>({entity:'clientes',action:'create',localId:701,duplicate:false})),
+    summary:vi.fn(async()=>({modules:{}})),
+    obligations:vi.fn(async()=>[])
+  };
+  f.session.access.modules=['obra360'];
+  f.online.webP0Pending=vi.fn(async()=>({commands:[command]}));
+  f.online.webP0Ack=vi.fn(async()=>({ok:true}));
+  f.sync=new SyncCoordinator({database:f.database,online:f.online,dataProvider});
+  await f.sync.configure({companyId:501,workId:601});
+  await f.sync.run();
+  expect(dataProvider.applyWebP0Create).toHaveBeenCalledWith(expect.objectContaining({
+    companyId:501,workId:601,remoteCompanyId:'company-a',serverId:'server-lan-001'
+  }),command);
+  expect(f.online.webP0Ack).toHaveBeenCalledWith({commandId:command.id,entity:'clientes',localId:701});
+  expect(f.database.list('clientes',{empresa_id:f.company.id})).toHaveLength(0);
+});
 it('publishes state transitions without renderer polling', async () => {
   const f = fixture()
   await f.sync.configure({ companyId: f.company.id, workId: f.work.id })

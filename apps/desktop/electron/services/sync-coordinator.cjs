@@ -43,6 +43,10 @@ class SyncCoordinator {
   const session=await this.online.session(),connection=this.online.state()
   if(!session.authorized||!session.company?.id||!session.project?.id||!session.device?.id)throw new Error('Vincule o dispositivo a uma empresa e obra online primeiro.')
   const scope={...source,baseUrl:connection.baseUrl,deviceId:String(session.device.id),remoteCompanyId:String(session.company.id),remoteProjectId:String(session.project.id)}
+  if(runtime.source==='lan-host'){
+   const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim()
+   if(serverId)scope.serverId=serverId
+  }
   if(runtime.source==='remote'){
    if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.')
    const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim()
@@ -78,7 +82,7 @@ class SyncCoordinator {
   const summary=plan.summary?await resolved(this.summary(scope,modules)):null
   const obligations=plan.obligations?await resolved(this.obligations(scope)):[]
   this.db.transaction(()=>{
-   for(const [entity,rows] of bridge){for(const row of rows)this.enqueue(scope,'bridge',entity,row.id,payloadOf(row));const seen=new Set(rows.map(x=>x.id));for(const old of this.db.prepare('SELECT local_id FROM desktop_sync_heads WHERE scope_key=? AND entity=?').all(this.key(scope),entity))if(!seen.has(old.local_id))this.enqueue(scope,'bridge',entity,old.local_id,{id:old.local_id,obra_id:scope.workId,deleted:true})}
+   for(const [entity,rows] of bridge){for(const row of rows)this.enqueue(scope,'bridge',entity,row.id,payloadOf(row,entity));const seen=new Set(rows.map(x=>x.id));for(const old of this.db.prepare('SELECT local_id FROM desktop_sync_heads WHERE scope_key=? AND entity=?').all(this.key(scope),entity))if(!seen.has(old.local_id))this.enqueue(scope,'bridge',entity,old.local_id,{id:old.local_id,obra_id:scope.workId,deleted:true})}
    if(summary!==null)this.enqueue(scope,'summary','mobile_summary',0,summary)
    for(const obligation of obligations)this.enqueue(scope,'finance','finance_reference',Number(obligation.sourceId.split(':').at(-1)),obligation)
   })()
@@ -90,8 +94,8 @@ class SyncCoordinator {
  applyRemote(scope,entity,id,payload){return this.dataProvider.applyRemote(entity,id,payload,scope)}
  async ingest(scope,pull,bridgeEntities=Object.keys(BRIDGE)){if(!pull.changed)return;const snapshot=pull.snapshot;if(!snapshot||typeof snapshot!=='object')throw new Error('Snapshot online inválido.');
   for(const entity of bridgeEntities){const bucket=BRIDGE[entity];for(const item of snapshot.desktopBridge?.[bucket]||[]){if(String(item.sourceDeviceId)!==scope.deviceId||!Number.isSafeInteger(Number(item.localId)))continue;const id=Number(item.localId),head=this.db.prepare('SELECT * FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),entity,id);if(!head||Number(item.mobileEditedRevision||0)<=head.remote_revision)continue;const row=await resolved(this.dataProvider.getBridge(entity,id,scope)),pending=this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND entity=? AND local_id=? AND status='pending'").get(this.key(scope),entity,id).n;
-   if(!row||pending||hash(payloadOf(row))!==head.acknowledged_hash||item.payload?.deleted){this.conflict(scope,entity,id,item.payload||{},Number(item.mobileEditedRevision));continue}
-   await resolved(this.applyRemote(scope,entity,id,item.payload||{}));const updated=await resolved(this.dataProvider.getBridge(entity,id,scope)),digest=hash(payloadOf(updated));this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(digest,digest,Number(item.mobileEditedRevision),this.key(scope),entity,id)
+   if(!row||pending||hash(payloadOf(row,entity))!==head.acknowledged_hash||item.payload?.deleted){this.conflict(scope,entity,id,item.payload||{},Number(item.mobileEditedRevision));continue}
+   await resolved(this.applyRemote(scope,entity,id,item.payload||{}));const updated=await resolved(this.dataProvider.getBridge(entity,id,scope)),digest=hash(payloadOf(updated,entity));this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(digest,digest,Number(item.mobileEditedRevision),this.key(scope),entity,id)
   }}
   this.db.prepare('UPDATE desktop_sync_scope SET snapshot=?,remote_revision=? WHERE id=1').run(json(snapshot),Number(pull.remoteRevision||0))
  }
@@ -107,6 +111,71 @@ class SyncCoordinator {
   this.running=task
   this.notify()
   return task
+ }
+ async syncWebP0Commands(scope,generation){
+  if(typeof this.dataProvider.applyWebP0Create!=='function'||typeof this.online.webP0Pending!=='function'||typeof this.online.webP0Ack!=='function')return
+  this.assertScope(scope,generation)
+  const incoming=await this.online.webP0Pending()
+  if(!Array.isArray(incoming?.commands))throw new Error('Resposta da fila de cadastros Web inválida.')
+  if(incoming.commands.length>25)throw new Error('Fila de cadastros excede o limite de processamento.')
+  for(const command of incoming.commands){
+   this.assertScope(scope,generation)
+   try{
+    let executable=command
+    if(command.entity==='documentos'){
+      if(typeof this.online.webP1StagedDocument!=='function')throw new Error('Transporte de documentos P1 indisponível.')
+      const input=command.data||{}
+      const transferred=await this.online.webP1StagedDocument({
+        commandId:command.id,stageId:input.stageId,sha256:input.sha256
+      })
+      this.assertScope(scope,generation)
+      if(transferred?.file?.stageId!==input.stageId||transferred.file.sha256!==input.sha256||
+         transferred.file.name!==input.name||transferred.file.mimeType!==input.mimeType)
+        throw new Error('Arquivo documental retornado não coincide com o comando autorizado.')
+      executable={...command,stagedFile:transferred.file}
+    }
+    const saved=await resolved(this.dataProvider.applyWebP0Create(scope,executable))
+    this.assertScope(scope,generation)
+    await this.online.webP0Ack({commandId:command.id,entity:saved.entity,localId:saved.localId})
+   }catch(error){
+    if(error?.code!=='invalid_web_p0_command')throw error
+    this.assertScope(scope,generation)
+    await this.online.webP0Ack({commandId:command.id,entity:command.entity,error:String(error.message).slice(0,250)})
+   }
+  }
+ }
+ async syncP1DocumentDownloads(scope,generation){
+  if(typeof this.dataProvider.readP1Document!=='function'||
+     typeof this.online.webP1DocumentDownloadsPending!=='function'||
+     typeof this.online.webP1DocumentDownloadComplete!=='function')return
+  this.assertScope(scope,generation)
+  const result=await this.online.webP1DocumentDownloadsPending()
+  if(!Array.isArray(result?.requests))throw new Error('Fila documental Web inválida.')
+  if(result.requests.length>10)throw new Error('Limite de downloads documentais pendentes excedido.')
+  for(const item of result.requests){
+   this.assertScope(scope,generation)
+   if(!Number.isSafeInteger(Number(item?.documentLocalId))||Number(item.documentLocalId)<1||!item?.id)
+     throw new Error('Pedido documental sem identidade da origem.')
+   try{
+    const file=await resolved(this.dataProvider.readP1Document(scope,Number(item.documentLocalId)))
+    this.assertScope(scope,generation)
+    if(Number(file?.localId)!==Number(item.documentLocalId)||!file.sha256||!file.data)
+      throw new Error('Fonte documental não confirmou arquivo solicitado.')
+    await this.online.webP1DocumentDownloadComplete(item.id,file)
+   }catch(error){
+    // Permanent source problems are reported to the requesting user rather than
+    // aborting unrelated sync. Network failures remain retryable.
+    const reason=String(error?.message||'');
+    if(/fora da pasta|não pertence|limite 2 MB|excede 2 MB|sem arquivo central|raiz documental|tipo documental|não encontrado na origem|arquivo indisponível/i.test(reason)){
+      if(typeof this.online.webP1DocumentDownloadFail==='function'){
+        this.assertScope(scope,generation)
+        await this.online.webP1DocumentDownloadFail(item.id,reason.slice(0,180))
+        continue
+      }
+    }
+    throw error
+   }
+  }
  }
  async syncFieldRdos(scope,generation){
   if(typeof this.dataProvider.applyFieldRdo!=='function'||typeof this.online.fieldRdoPending!=='function'||typeof this.online.fieldRdoAck!=='function')return
@@ -146,7 +215,8 @@ class SyncCoordinator {
    this.assertScope(scope,generation)
   }
  }
- async perform({retryNow=false}={}){const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{this.assertScope(scope,generation);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare('UPDATE desktop_sync_scope SET allowed_modules=? WHERE id=1').run(json(modules));const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities)}if(modules.includes('obra360'))await this.syncFieldRdos(scope,generation);
+ async perform({retryNow=false}={}){const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{this.assertScope(scope,generation);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare('UPDATE desktop_sync_scope SET allowed_modules=? WHERE id=1').run(json(modules));if(modules.includes('obra360'))await this.syncWebP0Commands(scope,generation);
+  if(modules.includes('obra360')&&modules.includes('documents'))await this.syncP1DocumentDownloads(scope,generation);const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities)}if(modules.includes('obra360'))await this.syncFieldRdos(scope,generation);
   const adminModules=modules.some(m=>['finance','rh','dre'].includes(m)),queue=this.db.prepare("SELECT * FROM desktop_sync_outbox WHERE scope_key=? AND status='pending' ORDER BY id").all(this.key(scope));for(const job of queue){this.assertScope(scope,generation);if(job.kind==='bridge'&&!modules.includes('obra360')){this.supersede(scope,job,'Módulo Obra360 não está mais liberado para este Desktop.');continue}if(job.kind==='bridge'&&!plan.bridgeEntities.includes(job.entity)){this.supersede(scope,job,'Entidade não disponível na fonte operacional atual.');continue}if(job.kind==='summary'&&!plan.summary){this.supersede(scope,job,'Resumo ainda não está disponível na fonte operacional atual.');continue}if(job.kind==='finance'&&!adminModules){this.supersede(scope,job,'Módulos administrativos não estão mais liberados para este Desktop.');continue}if(job.kind==='finance'&&!plan.obligations){this.supersede(scope,job,'Financeiro ainda não está disponível na fonte operacional atual.');continue}if(!retryNow&&job.next_attempt_at>this.now())continue;if(this.hasEarlierPending(scope,job))continue;if(this.db.prepare("SELECT id FROM desktop_sync_conflicts WHERE scope_key=? AND entity=? AND local_id=? AND status='open'").get(this.key(scope),job.entity,job.local_id))continue;
    try{const payload=JSON.parse(job.payload);let reply;if(job.kind==='bridge'){const head=this.db.prepare('SELECT remote_revision FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),job.entity,job.local_id);reply=await this.online.syncPush([{changeId:job.change_id,entity:job.entity,localId:job.local_id,baseMobileRevision:head?.remote_revision||0,payload}]);this.assertScope(scope,generation);const result=reply.accepted?.find(x=>x.changeId===job.change_id);if(!result)throw new Error('Servidor não confirmou a alteração.');if(result.conflict||result.status==='conflict'){this.conflict(scope,job.entity,job.local_id,payload,Number(result.currentMobileRevision||0),result.conflictId);continue}if(!['accepted','duplicate'].includes(result.status)||result.bridged===false)throw new Error('Alteração não aplicada à obra online.')}
     else if(job.kind==='summary'){reply=await this.online.publishMobileSummary({...payload,modules:Object.fromEntries(Object.entries(payload.modules||{}).filter(([key])=>modules.includes(key))),generatedAt:new Date(this.now()).toISOString()});if(!reply.ok)throw new Error('Resumo não confirmado.')}
@@ -159,7 +229,7 @@ class SyncCoordinator {
  async resolveLocalConflict(id,resolution){if(this.running)throw new Error('Aguarde a sincronização atual terminar.');if(!['keep_local','accept_remote'].includes(resolution))throw new Error('Resolução inválida.');const runtime=this.runtimeState();if(runtime.paused)throw new Error(`Sincronização pausada: ${runtime.pauseReason}`);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};const scope=this.binding()?.scope;if(!scope)throw new Error('Configure a sincronização.');const generation=this.generation;await this.validate(scope,generation);const conflict=this.db.prepare("SELECT * FROM desktop_sync_conflicts WHERE id=? AND scope_key=? AND status='open'").get(Number(id),this.key(scope));if(!conflict)throw new Error('Conflito não encontrado.');const pull=await this.online.syncPull(0);this.assertScope(scope,generation);const item=(pull.snapshot?.desktopBridge?.[BRIDGE[conflict.entity]]||[]).find(x=>String(x.sourceDeviceId)===scope.deviceId&&Number(x.localId)===conflict.local_id);if(!item)throw new Error('Registro remoto não encontrado; revise o vínculo antes de resolver.');if(Number(item.mobileEditedRevision||0)!==conflict.remote_revision){this.conflict(scope,conflict.entity,conflict.local_id,item.payload||{},Number(item.mobileEditedRevision||0),conflict.remote_conflict_id);throw new Error('O registro online mudou; atualize e revise o conflito novamente.');}if(conflict.remote_conflict_id){
    const result=await this.online.resolveConflict(conflict.remote_conflict_id,'keep_mobile');this.assertScope(scope,generation);if(result?.ok===false)throw new Error('Conflito online não confirmado.')}
   if(resolution==='accept_remote'&&!await resolved(this.applyRemote(scope,conflict.entity,conflict.local_id,item.payload)))throw new Error('Registro local ausente.')
-  const row=await resolved(this.dataProvider.getBridge(conflict.entity,conflict.local_id,scope));if(!row)throw new Error('Registro local ausente.');const digest=hash(payloadOf(row));
+  const row=await resolved(this.dataProvider.getBridge(conflict.entity,conflict.local_id,scope));if(!row)throw new Error('Registro local ausente.');const digest=hash(payloadOf(row,conflict.entity));
   this.db.transaction(()=>{this.db.prepare("UPDATE desktop_sync_outbox SET status='superseded' WHERE scope_key=? AND entity=? AND local_id=? AND status='pending'").run(this.key(scope),conflict.entity,conflict.local_id);this.db.prepare("UPDATE desktop_sync_conflicts SET status=? WHERE id=?").run(resolution,id);this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(resolution==='accept_remote'?digest:'',resolution==='accept_remote'?digest:null,Number(item.mobileEditedRevision||0),this.key(scope),conflict.entity,conflict.local_id)})();return this.notify()
  }
 }

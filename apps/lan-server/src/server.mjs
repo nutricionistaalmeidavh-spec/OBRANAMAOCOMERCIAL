@@ -21,6 +21,8 @@ import { CompensationPolicyService } from './compensation-policy-service.mjs'
 import { MigrationService } from './migration-service.mjs'
 import { RevisionConflictError } from './concurrency-service.mjs'
 import { createVersionedRepository } from './versioned-repository.mjs'
+import { applyLanWebP0Command } from './web-p0-command-service.mjs'
+import {isP1ChildEntity,p1ChildRows} from './web-p1-children.mjs'
 
 export const LAN_API_VERSION = '1'
 export const LAN_SERVER_VERSION = '0.4.2'
@@ -73,8 +75,8 @@ const SERVER_CAPABILITIES = Object.freeze({
   version:1,
   modules:['core','operation','planning','finance','rh','documents','summary'],
   moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:3,documents:2},
-  bridgeEntities:['frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra'],
-  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1']
+  bridgeEntities:['empresas','clientes','obras','frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','etapas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra','itens_orcamentarios','solicitacoes_compra','movimentacoes_estoque','documentos','pedido_compra_itens','medicao_itens','contrato_aditivos','recebimentos_materiais'],
+  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1','web-p0-idempotent-commands-v1']
 })
 
 function publicServerCapabilities(versionedRepository) {
@@ -475,6 +477,23 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         await authenticateLanRequest(request, security)
         return sendJson(response, 200, publicServerCapabilities(versionedRepository))
+      }
+
+      if(url.pathname==='/api/v1/sync-source/p1-children'){
+        if(request.method!=='GET')return methodNotAllowed(response,['GET'])
+        const context=await authenticateLanRequest(request,security)
+        requireAdminContext(context)
+        const entity=String(url.searchParams.get('entity')||'')
+        if(!isP1ChildEntity(entity))return sendJson(response,400,{error:'invalid_p1_child',message:'Tipo de detalhe não permitido.'})
+        authorizeBusinessRoute(context,{table:entity,method:'GET'})
+        const companyId=Number(url.searchParams.get('company_id')),workId=Number(url.searchParams.get('obra_id'))
+        const cloudCompany=String(url.searchParams.get('remote_company_id')||'')
+        const work=repository?.get('obras',workId)
+        if(!Number.isSafeInteger(companyId)||companyId<1||!Number.isSafeInteger(workId)||workId<1||
+          !cloudCompany||cloudCompany!==String(context.companyId||'')||
+          !work||work.deleted_at||Number(work.empresa_id)!==companyId)
+          return sendJson(response,403,{error:'tenant_mismatch',message:'Catálogo P1 de outra empresa ou obra.'})
+        return sendJson(response,200,{items:p1ChildRows(repository,entity,workId)})
       }
 
       if (url.pathname === '/api/v1/sync-source/summary') {
@@ -1096,6 +1115,24 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response, 200, { device })
       }
 
+      if(url.pathname==='/api/v1/web-p0/commands'){
+        if(request.method!=='POST')return methodNotAllowed(response,['POST'])
+        if(!repository||!repositoryDb)return sendJson(response,503,{error:'repository_unavailable',message:'Banco operacional indisponível.'})
+        const context=await authenticateLanRequest(request,security)
+        requireAdminContext(context)
+        const input=await readJson(request,MAX_DOCUMENT_BODY_BYTES),scope=input.scope&&typeof input.scope==='object'?input.scope:{},command=input.command&&typeof input.command==='object'?input.command:{}
+        const state=security?.serverState?.()||{}
+        if(!context.companyId||String(scope.remoteCompanyId||'')!==String(context.companyId)||
+           (state.serverId&&String(scope.serverId||'')!==String(state.serverId))||
+           String(scope.deviceId||'')!==String(command.deviceId||'')){
+          return sendJson(response,403,{error:'tenant_mismatch',message:'Comando Web não pertence à empresa, servidor ou dispositivo vinculados.'})
+        }
+        const table=String(command.entity||''),method=String(command.action||'create')==='delete'?'DELETE':'POST'
+        authorizeBusinessRoute(context,{table,method})
+        const saved=applyLanWebP0Command({repository,versionedRepository,scope,command,documents})
+        return sendJson(response,200,saved)
+      }
+
       const entityMatch = url.pathname.match(ENTITY_ROUTE)
       if (entityMatch) {
         const context = await authenticateLanRequest(request, security)
@@ -1115,6 +1152,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
           current: error.current
         })
       }
+      if (error?.code === 'invalid_web_p0_command') return sendJson(response, 409, { error:'web_p0_conflict',message:error.message })
       if (error?.code === 'invalid_json') return sendJson(response, 400, { error: 'invalid_json', message: error.message })
       if (error?.code === 'payload_too_large') return sendJson(response, 413, { error: 'payload_too_large', message: error.message })
       const message = error instanceof Error ? error.message : String(error)

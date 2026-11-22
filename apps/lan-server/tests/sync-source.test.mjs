@@ -68,7 +68,7 @@ test('sync source capabilities anuncia o contrato central das fases 0-6', async 
       version: 1,
       modules: ['core', 'operation', 'planning', 'finance', 'rh', 'documents', 'summary'],
       moduleContractVersions: { core:2, operation:2, planning:2, finance:2, rh:3, documents:2 },
-      bridgeEntities: ['frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'tarefas_obra', 'rdos', 'cronograma_etapas', 'medicoes', 'pedidos_compra', 'contratos_obra']
+      bridgeEntities: ['empresas', 'clientes', 'obras', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'tarefas_obra', 'etapas_obra', 'rdos', 'cronograma_etapas', 'medicoes', 'pedidos_compra', 'contratos_obra', 'itens_orcamentarios', 'solicitacoes_compra', 'movimentacoes_estoque', 'documentos', 'pedido_compra_itens', 'medicao_itens', 'contrato_aditivos', 'recebimentos_materiais']
     })
     assert.equal(capabilities.modules.includes('rh'), true)
     assert.equal(capabilities.modules.includes('documents'), true)
