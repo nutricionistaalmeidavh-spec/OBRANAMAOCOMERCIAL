@@ -8,7 +8,7 @@ import { loadPortalOverview } from './portal-overview';
 type Role='admin'|'foreman'|'employee';
 type SystemKey='gestao'|'obra360'|'universidade'|'finance';
 type PlatformAccess={id:string;email:string;platformRole:string;status:'pending'|'active'|'blocked';employeeId?:string|null;companyIds:string[];projectIds:string[];systems:Record<SystemKey,{enabled:boolean;role:string}>};
-type Bootstrap={needsClaim:boolean;authorized?:boolean;isOwner?:boolean;platformRole?:string;platformAccess?:PlatformAccess;role?:Role;access?:{modules:string[];channels:string[]};license?:{modules?:string[];channels?:string[]}|null;company?:{name?:string};project?:{name?:string};user?:{email?:string;name?:string};membership?:{email?:string}};
+type Bootstrap={needsClaim:boolean;authorized?:boolean;isOwner?:boolean;platformRole?:string;platformAccess?:PlatformAccess;role?:Role;access?:{modules:string[];channels:string[]};license?:{licenseId?:string;status?:string;modules?:string[];channels?:string[]}|null;company?:{name?:string};project?:{name?:string};user?:{email?:string;name?:string};membership?:{email?:string}};
 type Participant={id:string;name:string;phone:string;email?:string|null;jobRole:string;mustChangePassword:boolean};
 
 const SESSION='obn-edu-session';
@@ -113,7 +113,7 @@ function card(key:string,title:string,text:string,href:string,_icon:string,role?
 
 export function shouldRouteCorporateToPlans(b:Pick<Bootstrap,'needsClaim'|'isOwner'|'platformRole'|'platformAccess'>){
   const status=b.platformAccess?.status;
-  return !!b.needsClaim&&!b.isOwner&&b.platformRole!=='superadmin'&&status!=='pending'&&status!=='blocked';
+  return !!b.needsClaim&&!b.isOwner&&b.platformRole!=='superadmin'&&status!=='pending'&&status!=='blocked'&&!b.license?.licenseId&&!b.authorized;
 }
 
 function publicHome(){
@@ -121,12 +121,22 @@ function publicHome(){
     <a class="cp-back" href="./">${icon('arrow-left')}<span>Página principal</span></a>
     <div class="cp-login-content"><div class="cp-login-brand"><img src="./canteiro360-logo.png" alt="Canteiro360 — controle total da obra" width="1448" height="1086"></div>
     <section class="cp-login-form" aria-labelledby="loginTitle"><h1 id="loginTitle">Acesse sua operação</h1><p>Entre com a conta responsável pela sua empresa.</p>
-    <button id="googleLogin" type="button" class="cp-google">${googleMark()}<span>Continuar com Google</span></button>
+    <button id="googleLogin" type="button" class="cp-google">${googleMark()}<span>Continuar com Google</span></button><p id="loginFeedback" class="cp-login-feedback" role="alert" aria-live="assertive" hidden></p>
     <button id="passkeyCompany" type="button" class="cp-google cp-passkey-login">Entrar com Face ID ou chave de acesso</button></section></div>
     <a class="cp-login-switch" href="./sistema.html#colaborador"><span>Acesso do colaborador</span>${icon('chevron-right')}</a>
     <footer class="cp-login-footer"><span>Controle total da obra <small class="cp-version">v${APP_VERSION}</small></span>${vendor()}</footer>
   </main>`);
-  document.getElementById('googleLogin')?.addEventListener('click',async()=>{try{await auth.signIn({scope:'openid email profile'})}catch(e){toast(apiErr(e))}});
+  document.getElementById('googleLogin')?.addEventListener('click',async()=>{
+    const button=document.getElementById('googleLogin') as HTMLButtonElement|null;
+    const feedback=document.getElementById('loginFeedback') as HTMLParagraphElement|null;
+    if(!button||button.disabled)return;
+    button.disabled=true;
+    button.querySelector('span')!.textContent='Abrindo Google…';
+    if(feedback){feedback.textContent='';feedback.hidden=true}
+    try{await auth.signIn({scope:'openid email profile'})}
+    catch(e){const message=apiErr(e);if(feedback){feedback.textContent=message;feedback.hidden=false}toast(message)}
+    finally{if(button.isConnected){button.disabled=false;button.querySelector('span')!.textContent='Continuar com Google'}}
+  });
   bindPasskeyLogin('passkeyCompany','corporate');
 }
 function collaboratorHome(){
@@ -211,8 +221,10 @@ async function renderPhonePortal(p:Participant){
   portalShell(p.name,meta,cards,undefined,'collaborator')
 }
 async function renderCorporatePortal(){
+  let accountName='Sua conta';
   try{
     const user=await auth.getUser();if(!user)return publicHome();
+    accountName=user.name||user.email||'Sua conta';
     // A lactation administrator has no Obra membership and must never enter the Obra bootstrap.
     try{
       const {data:central}=await api.get<{role:string}>('/api/central/access');
@@ -221,20 +233,38 @@ async function renderCorporatePortal(){
     const b=(await api.get('/api/bootstrap')).data as Bootstrap,pa=b.platformAccess;
     if(pa?.status==='blocked'){portalShell(user.name||user.email||'Usuário','Acesso bloqueado','<article class="mh-empty"><h3>Acesso bloqueado</h3><p>Procure o administrador da sua empresa.</p></article>');return}
     if(pa?.status==='pending'){
-      portalShell(user.name||user.email||'Usuário','Credencial provisória pendente','<article class="mh-empty"><h3>Ativar credencial</h3><p>Informe o código provisório fornecido pelo administrador.</p><input id="platformCode" maxlength="12" placeholder="CÓDIGO"><button id="claimPlatform" class="mh-primary">Ativar acesso</button></article>');
+      portalShell(user.name||user.email||'Usuário','Liberação pendente','<article class="mh-empty"><h3>Liberação pendente</h3><p>Seu acesso à empresa ainda precisa ser ativado. Informe o código provisório fornecido pelo administrador. Se você já recebeu uma licença, procure o responsável pela liberação.</p><input id="platformCode" maxlength="12" placeholder="CÓDIGO" aria-label="Código de liberação"><button id="claimPlatform" class="mh-primary">Ativar acesso</button></article>');
       document.getElementById('claimPlatform')?.addEventListener('click',async()=>{try{const code=(document.getElementById('platformCode') as HTMLInputElement).value.trim().toUpperCase();await api.post('/api/platform/claim',{code});await renderCorporatePortal()}catch(e){toast(apiErr(e))}});return
     }
-    if(shouldRouteCorporateToPlans(b)){location.hash='#planos';await import('./billing').then(module=>module.mountBillingRoute());return}
+    if(shouldRouteCorporateToPlans(b)){
+      portalShell(accountName,'Conta não cadastrada','<article class="mh-empty"><h3>Nenhuma licença vinculada</h3><p>Sua identidade Google foi confirmada, mas este e-mail ainda não possui acesso a uma empresa do Obra na Mão. Se você já comprou uma licença, entre com o mesmo e-mail informado na compra ou solicite a conferência do cadastro.</p><a class="mh-primary cp-access-link" href="./sistema.html#planos">Conhecer planos</a></article>',undefined,'corporate');
+      return;
+    }
+    if(b.needsClaim&&b.license&&!b.license.channels?.includes('mobile')&&!b.isOwner){
+      portalShell(accountName,'Acesso Web não incluído','<article class="mh-empty"><h3>Acesso Web não liberado</h3><p>Encontramos sua licença, mas ela não inclui o canal Web/PWA. Você pode continuar usando o Desktop autorizado ou solicitar liberação do acesso Web.</p></article>',undefined,'corporate');
+      return;
+    }
     const systems=pa?.systems;let cards='';
     if(systems?.gestao?.enabled&&b.role==='admin'&&!b.needsClaim&&b.access?.modules?.some(module=>['rh','dre','contracts','procurement','measurements','documents'].includes(module)))cards+=card('gestao','Gestão','RH, documentos, contratos, compras, medições e visão administrativa.','./gestao.html#gestao','▥',systems.gestao.role);
     if(systems?.obra360?.enabled&&!b.needsClaim)cards+=card('obra','Obra360','Dias, etapas, equipe, tarefas, RDO e rotina de campo.','./obra.html#obra','⌂',systems.obra360.role);
     if(systems?.universidade?.enabled)cards+=card('universidade','Universidade','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱',systems.universidade.role);
     if(b.platformRole==='superadmin'||b.isOwner)cards+=card('acessos','Central Artisys','Empresas clientes, licenças e ativações independentes.','./index.html#owner','◇','superadmin');
-    if(b.needsClaim)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
+    if(b.needsClaim&&b.license?.channels?.includes('mobile')){
+      cards='<article class="mh-empty cp-activation-notice"><h3>Licença ativa</h3><p>Seu acesso já foi identificado. Falta apenas configurar a empresa e a primeira obra; não é necessário comprar outra licença.</p></article>'+cards;
+      cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
+    }else if(b.needsClaim&&b.isOwner)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
     if(b.role==='admin'||b.platformRole==='superadmin'||b.isOwner)cards+=card('cobranca','Plano e cobrança','Consulte sua assinatura, pagamentos ou conheça outros planos.','./sistema.html#plano-cobranca','▤');
     if(!cards)cards='<article class="mh-empty"><h3>Nenhum sistema liberado</h3><p>Seu login está válido, mas ainda não há módulos liberados para este perfil.</p></article>';
     portalShell(user.name||user.email||'Usuário',`${b.platformRole==='superadmin'?'Superadmin · ':''}${b.company?.name||'Empresa'}`,cards,b,'corporate')
-  }catch(e){publicHome();toast(apiErr(e))}
+  }catch(e){
+    const detail=apiErr(e),status=Number((e as {response?:{status?:number}})?.response?.status||0);
+    if(status===403||status===409){
+      portalShell(accountName,'Acesso restrito',`<article class="mh-empty"><h3>Acesso não liberado</h3><p>${esc(detail)}</p><p>Se sua licença já foi ativada, confira o e-mail cadastrado e solicite ao administrador a revisão do acesso.</p></article>`,undefined,'corporate');
+      return;
+    }
+    portalShell(accountName,'Conexão indisponível',`<article class="mh-empty"><h3>Não foi possível carregar sua operação</h3><p>${esc(detail)}</p><button id="retryCorporatePortal" class="mh-primary" type="button">Tentar novamente</button></article>`,undefined,'corporate');
+    document.getElementById('retryCorporatePortal')?.addEventListener('click',()=>void renderCorporatePortal());
+  }
 }
 async function openPortal(){
   location.hash='#portal';
