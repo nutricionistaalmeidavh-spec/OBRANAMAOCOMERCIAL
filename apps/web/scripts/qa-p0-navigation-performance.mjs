@@ -177,6 +177,9 @@ async function testNavigation(engine,name){
     await page.locator('.hero-back').first().click();
     await page.locator('.cp-dashboard h1').waitFor({timeout:13000});
     assert.ok(page.url().includes('/sistema.html#portal'));
+    // Complete the portal's independent, deliberately slow overview fetch before
+    // measuring the new document transition, keeping WebKit interception isolated.
+    await page.locator('.cp-overview-skeleton').waitFor({state:'detached',timeout:9000});
     const gestaoStart=now();
     await page.locator('[data-resource="gestao"]').click();
     await page.locator('.management-hero').waitFor({state:'visible',timeout:14000});
