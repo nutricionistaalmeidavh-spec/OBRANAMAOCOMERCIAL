@@ -19,7 +19,7 @@ describe('Commercial login and overview DOM flows', () => {
   it('renders the corporate login without phone fields and keeps phone controls on the collaborator route', async () => {
     await mountMhPortal();
     expect(document.querySelector('h1')?.textContent).toBe('Acesse sua operação');
-    expect(document.querySelector('.cp-login-brand img')?.getAttribute('src')).toContain('canteiro360-logo.png');
+    expect(document.querySelector('.cp-login-wordmark')?.getAttribute('aria-label')).toContain('Obra na Mão');
     expect(document.querySelector('.cp-google-mark')).not.toBeNull();
     expect(document.querySelector('.cp-vendor img')?.getAttribute('src')).toContain('artisys-icon.svg');
     expect(document.body.textContent).not.toContain('SISTEMA LIBERADO');
