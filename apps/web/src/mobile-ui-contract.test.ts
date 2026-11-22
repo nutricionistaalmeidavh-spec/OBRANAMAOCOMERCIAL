@@ -47,9 +47,9 @@ describe('mobile premium UI contract',()=>{
     expect(day).toContain('Próximas ações');
     expect(enhancer).toContain("active==='today'");
     expect(enhancer).toContain("[data-screen=\"more\"],[data-screen=\"settings\"]");
-    expect(enhancer).toContain("dayButton.dataset.screen='settings'");
-    expect(enhancer).toContain("title.textContent='Configurações'");
-    expect(enhancer).toContain("meta.textContent='Checklists e horários'");
+    expect(field).toContain('data-screen="settings"><strong>Configurações</strong><span>Checklists e horários</span>');
+    expect(enhancer).not.toContain("dayButton.dataset.screen='settings'");
+    expect(enhancer).not.toContain('shiftSecondaryActionsToObra360');
     expect(css).toContain('.day-focus-actions{grid-template-columns:1fr');
   });
 
