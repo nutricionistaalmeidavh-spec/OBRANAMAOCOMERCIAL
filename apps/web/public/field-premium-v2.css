@@ -183,3 +183,63 @@ body.field-shell-active .management-line b{text-align:right}
   body.field-shell-active .management-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
   body.field-shell-active .management-kpi:last-child{grid-column:1/-1}
 }
+
+
+/* P1 safe-area and readable navigation */
+:root{--field-safe-bottom:env(safe-area-inset-bottom, 0px)}
+html{scroll-padding-bottom:calc(140px + var(--field-safe-bottom))}
+body.field-shell-active{padding-bottom:0;overflow-x:clip}
+body.field-shell-active .shell{
+  min-height:100dvh;
+  padding-bottom:calc(142px + var(--field-safe-bottom));
+}
+body.field-shell-active .nav{
+  bottom:0;
+  width:min(760px,100%);
+  border-radius:20px 20px 0 0;
+  padding:8px 9px calc(9px + var(--field-safe-bottom));
+  gap:4px;
+}
+body.field-shell-active .nav button{
+  min-height:44px;min-width:0;padding:9px 3px;
+  font-size:12px;line-height:1.3;white-space:normal;
+}
+body.field-shell-active .toast{bottom:calc(96px + var(--field-safe-bottom))}
+body.field-shell-active .quick-action-copy>span,
+body.field-shell-active .quick-action span span,
+body.field-shell-active .day-next small,
+body.field-shell-active .section-head p,
+body.field-shell-active .management-line{font-size:12px;line-height:1.45}
+body.field-shell-active .management-kpi{min-height:164px}
+body.field-shell-active .management-kpi-head strong{
+  font-size:12px;line-height:1.25;letter-spacing:0
+}
+body.field-shell-active .management-kpi>span,
+body.field-shell-active .management-kpi-foot{font-size:12px;line-height:1.4}
+body.field-shell-active .management-summary-card small{font-size:12px;line-height:1.4}
+body.field-shell-active .internal-hero-copy p{font-size:12px;line-height:1.4}
+body.field-shell-active .management-loading .management-kpi,
+body.field-shell-active .management-loading .management-details{min-height:164px}
+body.field-shell-active .management-loading .management-summary-card{opacity:.8}
+body.field-shell-active .management-placeholder{
+  min-height:146px;padding:24px 16px;display:grid;place-items:center;
+  border:1px dashed #c2cee1;border-radius:16px;background:#f5f8fd;
+  color:#52617c;font-size:13px;text-align:center
+}
+body.field-shell-active .management-load-error{padding:18px}
+body.field-shell-active .management-load-error p{font-size:13px;margin:10px 0;overflow-wrap:anywhere}
+body.field-shell-active dialog{
+  max-height:calc(100dvh - env(safe-area-inset-top, 0px) - var(--field-safe-bottom) - 16px);
+  overflow-y:auto
+}
+@media(max-width:420px){
+  body.field-shell-active .management-kpi{min-height:176px}
+  body.field-shell-active .management-kpi-head strong,
+  body.field-shell-active .management-kpi-foot,
+  body.field-shell-active .management-kpi>span{font-size:12px}
+  body.field-shell-active .quick-action-copy>span{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  body.field-shell-active .nav,
+  body.field-shell-active .management-kpi{transition:none}
+}
