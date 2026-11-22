@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { GoogleIdentityFailure, resolveGoogleIdentity, verifiedGoogleClaims } from './google-identity';
 import { APP_VERSION, API_CONTRACT_VERSION, DB_SCHEMA_VERSION } from '../shared/version';
 
 export type AuthUser = { userId:string; email?:string; name?:string };
@@ -297,16 +298,18 @@ async function authGoogleCredential(request:Request){
   const idToken=String(body.credential||body.idToken||'');
   if(!idToken)return error('Credencial Google ausente.',400);
   const infoResp=await fetch('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(idToken));
+  if(!infoResp.ok)return error('Identidade Google inválida.',401);
   const info=await infoResp.json() as Record<string,unknown>;
-  if(!infoResp.ok||String(info.aud||'')!==clientId||String(info.email_verified||'')!=='true')return error('Identidade Google inválida.',401);
+  let user:{userId:string;email:string;name:string};
+  try{user=await resolveGoogleIdentity(env.DB,verifiedGoogleClaims(info,clientId))}
+  catch(e){if(e instanceof GoogleIdentityFailure)return error(e.message,e.status);throw e}
   const sessionId=id()+id(),expiresAt=new Date(Date.now()+AUTH_SESSION_TTL_MS).toISOString();
-  const email=String(info.email||'').toLowerCase(),name=String(info.name||'');
   await env.DB.prepare('INSERT INTO auth_sessions(id,user_id,email,name,expires_at,created_at) VALUES(?,?,?,?,?,?)')
-    .bind(sessionId,String(info.sub||email),email,name,expiresAt,now()).run();
+    .bind(sessionId,user.userId,user.email,user.name,expiresAt,now()).run();
   const headers=new Headers({'content-type':'application/json; charset=utf-8','cache-control':'no-store'});
   headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}`);
   headers.append('set-cookie',authHintCookie());
-  return new Response(JSON.stringify({ok:true,user:{userId:String(info.sub||email),email,name}}),{status:200,headers});
+  return new Response(JSON.stringify({ok:true,user}),{status:200,headers});
 }
 
 async function authStart(request:Request){
@@ -346,11 +349,14 @@ async function authCallback(request:Request){
     },401);
   }
   const infoResp=await fetch('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(idToken));
+  if(!infoResp.ok)return error('Identidade Google inválida.',401);
   const info=await infoResp.json() as Record<string,unknown>;
-  if(!infoResp.ok||String(info.aud||'')!==clientId||String(info.email_verified||'')!=='true')return error('Identidade Google inválida.',401);
+  let user:{userId:string;email:string;name:string};
+  try{user=await resolveGoogleIdentity(env.DB,verifiedGoogleClaims(info,clientId))}
+  catch(e){if(e instanceof GoogleIdentityFailure)return error(e.message,e.status);throw e}
   const sessionId=id()+id(),expiresAt=new Date(Date.now()+AUTH_SESSION_TTL_MS).toISOString();
   await env.DB.prepare('INSERT INTO auth_sessions(id,user_id,email,name,expires_at,created_at) VALUES(?,?,?,?,?,?)')
-    .bind(sessionId,String(info.sub||info.email),String(info.email||'').toLowerCase(),String(info.name||''),expiresAt,now()).run();
+    .bind(sessionId,user.userId,user.email,user.name,expiresAt,now()).run();
   const headers=new Headers({location:stateRow.return_to});
   headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${AUTH_SESSION_MAX_AGE_SECONDS}`);
   headers.append('set-cookie',authHintCookie());

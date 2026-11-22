@@ -1,4 +1,5 @@
 import { createPasswordRecord, sha256Hex, type PasswordRecord, verifyPasswordRecord } from './password-credentials';
+import { linkedUserIdForPassword } from '../cloudflare/google-identity';
 
 type Env={DB:D1Database;OWNER_EMAIL?:string};
 type PlatformAccess={snapshot:string;id:string;email:string;name?:string;platformRole:'superadmin'|'user';status:'pending'|'active'|'blocked';companyIds:string[];projectIds:string[];systems:Record<string,{enabled:boolean;role:string}>;provisionalCode?:string;claimedBy?:string;sessionVersion?:number;createdAt:string;updatedAt:string};
@@ -66,7 +67,7 @@ async function sessionUser(env:Env,request:Request){
 }
 async function stableUserId(email:string){return'pwd:'+(await sha256Hex(norm(email))).slice(0,24)}
 async function createSession(env:Env,email:string,name?:string,extra:Record<string,unknown>={}){
-  const normalized=norm(email),userId=await stableUserId(normalized),sessionId=crypto.randomUUID().replace(/-/g,'')+crypto.randomUUID().replace(/-/g,''),stamp=now(),expiresAt=new Date(Date.now()+SESSION_TTL_MS).toISOString();
+  const normalized=norm(email),userId=await linkedUserIdForPassword(env.DB,normalized,await stableUserId(normalized)),sessionId=crypto.randomUUID().replace(/-/g,'')+crypto.randomUUID().replace(/-/g,''),stamp=now(),expiresAt=new Date(Date.now()+SESSION_TTL_MS).toISOString();
   await env.DB.prepare('INSERT INTO auth_sessions(id,user_id,email,name,expires_at,created_at) VALUES(?,?,?,?,?,?)').bind(sessionId,userId,normalized,name||'',expiresAt,stamp).run();
   const headers=new Headers({'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'same-origin'});
   headers.append('set-cookie',`obn_session=${encodeURIComponent(sessionId)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}`);
@@ -127,7 +128,7 @@ async function firstAccess(request:Request,env:Env){
     return fail('O primeiro acesso desta conta já foi concluído. Entre com e-mail e senha.',409);
   }
 
-  const userId=await stableUserId(email);
+  const userId=await linkedUserIdForPassword(env.DB,email,await stableUserId(email));
   if(license?.claimedBy&&license.claimedBy!==userId)return fail('Este código de liberação já foi utilizado.',409);
   const record=await createPasswordRecord(password),stamp=now();
   const statements:any[]=[];

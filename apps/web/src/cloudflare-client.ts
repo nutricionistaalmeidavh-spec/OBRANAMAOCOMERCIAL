@@ -34,26 +34,28 @@ function loadGoogleIdentity(){
   if(googleScriptPromise)return googleScriptPromise;
   googleScriptPromise=new Promise<void>((resolve,reject)=>{
     const existing=document.querySelector('script[data-obn-google-identity]') as HTMLScriptElement|null;
-    if(existing){existing.addEventListener('load',()=>resolve(),{once:true});existing.addEventListener('error',()=>reject(new Error('Não foi possível carregar o login Google.')),{once:true});return}
+    if(existing){existing.addEventListener('load',()=>resolve(),{once:true});existing.addEventListener('error',()=>{existing.remove();reject(new Error('Não foi possível carregar o login Google.'))},{once:true});return}
     const script=document.createElement('script');
     script.src='https://accounts.google.com/gsi/client';script.async=true;script.defer=true;script.dataset.obnGoogleIdentity='1';
-    script.onload=()=>resolve();script.onerror=()=>reject(new Error('Não foi possível carregar o login Google.'));
+    script.onload=()=>resolve();script.onerror=()=>{script.remove();reject(new Error('Não foi possível carregar o login Google.'))};
     document.head.appendChild(script);
-  });
+  }).catch(error=>{googleScriptPromise=null;throw error});
   return googleScriptPromise;
 }
 
 function removeGoogleChooser(){document.getElementById('obn-google-chooser')?.remove()}
-function showGoogleButton(){
+function showGoogleButton(onCancel:()=>void){
   removeGoogleChooser();
   const overlay=document.createElement('div');overlay.id='obn-google-chooser';
   overlay.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:24px';
   const box=document.createElement('div');box.style.cssText='background:#fff;border-radius:18px;padding:24px;max-width:360px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3);text-align:center';
   const title=document.createElement('div');title.textContent=location.hash==='#owner'?'Entrar na Central Artisys':'Entrar no Obra na Mão';title.style.cssText='font:600 18px system-ui;color:#111;margin-bottom:16px';
   const target=document.createElement('div');target.style.cssText='display:flex;justify-content:center';
-  const cancel=document.createElement('button');cancel.textContent='Cancelar';cancel.type='button';cancel.style.cssText='margin-top:16px;border:0;background:transparent;color:#555;font:14px system-ui;padding:8px 12px';cancel.onclick=removeGoogleChooser;
-  box.append(title,target,cancel);overlay.appendChild(box);overlay.addEventListener('click',e=>{if(e.target===overlay)removeGoogleChooser()});document.body.appendChild(overlay);
-  window.google?.accounts.id.renderButton(target,{theme:'outline',size:'large',type:'standard',shape:'rectangular',text:'signin_with',width:280});
+  const cancel=document.createElement('button');cancel.textContent='Cancelar';cancel.type='button';cancel.style.cssText='margin-top:16px;border:0;background:transparent;color:#555;font:14px system-ui;padding:8px 12px';cancel.onclick=onCancel;
+  box.append(title,target,cancel);overlay.appendChild(box);overlay.addEventListener('click',e=>{if(e.target===overlay)onCancel()});document.body.appendChild(overlay);
+  try{
+    window.google?.accounts.id.renderButton(target,{theme:'outline',size:'large',type:'standard',shape:'rectangular',text:'signin_with',width:280});
+  }catch{onCancel()}
 }
 
 async function googleSignIn(){
@@ -61,28 +63,55 @@ async function googleSignIn(){
   const config=(await api.get<{googleClientId:string}>('/api/auth/config')).data;
   const clientId=String(config.googleClientId||'').trim();
   if(!clientId)throw new Error('Login Google não configurado.');
-  window.google!.accounts.id.initialize({
-    client_id:clientId,
-    auto_select:false,
-    cancel_on_tap_outside:true,
-    callback:async response=>{
-      try{
-        const credential=String(response.credential||'');
-        if(!credential)throw new Error('O Google não retornou a credencial.');
-        await api.post('/api/auth/google-credential',{credential});
-        removeGoogleChooser();
-        location.reload();
-      }catch(error){removeGoogleChooser();console.error(error);alert((error as Error)?.message||'Não foi possível concluir o login Google.');}
+  // Success reloads the app; failures and cancellation reject so the UI can recover.
+  // Preserve the never-resolving success contract expected by the existing owner/University flows.
+  return new Promise<never>((_resolve,reject)=>{
+    let finished=false;
+    let fallbackTimer:number|undefined;
+    const finish=(failure?:unknown)=>{
+      if(finished)return;
+      finished=true;
+      if(fallbackTimer!==undefined)window.clearTimeout(fallbackTimer);
+      removeGoogleChooser();
+      if(failure)reject(failure);
+    };
+    const cancel=()=>finish(new Error('O acesso pelo Google foi cancelado. Tente novamente.'));
+    const fallback=()=>{
+      if(finished||document.getElementById('obn-google-chooser'))return;
+      showGoogleButton(cancel);
+    };
+    try{
+      window.google!.accounts.id.initialize({
+        client_id:clientId,
+        auto_select:false,
+        cancel_on_tap_outside:true,
+        callback:async response=>{
+          try{
+            const credential=String(response.credential||'');
+            if(!credential)throw new Error('O Google não retornou a credencial.');
+            await api.post('/api/auth/google-credential',{credential});
+            finish();
+            location.reload();
+          }catch(error){
+            console.error('[google-auth] Login não concluído',error);
+            finish(error);
+          }
+        }
+      });
+      // On browsers without One Tap / FedCM (including Safari), use the official Google button.
+      fallbackTimer=window.setTimeout(fallback,900);
+      window.google!.accounts.id.prompt(notification=>{
+        if(notification?.isNotDisplayed?.()||notification?.isSkippedMoment?.()){
+          if(fallbackTimer!==undefined)window.clearTimeout(fallbackTimer);
+          fallback();
+        }
+      });
+    }catch(error){
+      if(fallbackTimer!==undefined)window.clearTimeout(fallbackTimer);
+      // The Google picker may be unsupported while the official button still works.
+      try{fallback()}catch{finish(error)}
     }
   });
-  // One Tap/FedCM first; if the browser does not surface it, show the official Google button.
-  let fallbackTimer=window.setTimeout(showGoogleButton,900);
-  try{
-    window.google!.accounts.id.prompt(notification=>{
-      if(notification?.isNotDisplayed?.()||notification?.isSkippedMoment?.()){window.clearTimeout(fallbackTimer);showGoogleButton()}
-    });
-  }catch{window.clearTimeout(fallbackTimer);showGoogleButton()}
-  return new Promise<never>(()=>{});
 }
 
 let verifiedWebSession:boolean|null=null;

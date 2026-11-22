@@ -27,6 +27,11 @@
 .cp-google{width:100%;min-height:50px;border:1px solid #b6c7d6;border-radius:9px;background:#edf2f5;color:#102d49;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px}
 .cp-google-mark{width:18px!important;height:18px!important;stroke-width:0!important}
 .cp-google:hover{background:#f3f6f8}
+.cp-google:disabled{opacity:.68;cursor:progress}
+.cp-login-feedback{margin:10px 0 0!important;padding:10px 12px;border:1px solid #d9aaa4;border-radius:9px;background:#fff4f1;color:#72332b!important;font-size:13px!important;line-height:1.45}
+.cp-login-feedback[hidden]{display:none}
+.cp-access-link{display:inline-flex!important;justify-content:center;align-items:center;text-decoration:none;min-height:44px;margin-top:14px;padding:10px 16px;border-radius:9px}
+.cp-activation-notice{margin-bottom:12px}
 .cp-divider{display:flex;gap:14px;align-items:center;color:#465f73;font-size:13px;margin:22px 0}
 .cp-divider::before,.cp-divider::after{content:"";height:1px;background:#b9cbd8;flex:1}
 :is(#phoneLogin,#phoneSetup){display:grid;gap:9px}
