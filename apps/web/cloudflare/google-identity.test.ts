@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GoogleIdentityFailure, resolveGoogleIdentity, verifiedGoogleClaims } from './google-identity';
+import { GoogleIdentityFailure, linkedUserIdForPassword, resolveGoogleIdentity, verifiedGoogleClaims } from './google-identity';
 
 type Row = Record<string, any>;
 class FakeD1 {
@@ -106,6 +106,12 @@ describe('P0 Google identity and canonical account links',()=>{
     const state=new FakeD1();state.platform.set('blocked',{id:'blocked',email:'client@example.com',status:'blocked'});
     await expect(resolveGoogleIdentity(db(state),claims())).rejects.toMatchObject({status:403});
     expect(state.links).toHaveLength(0);
+  });
+  it('preserves the linked canonical user ID when signing in later with a password',async()=>{
+    const state=new FakeD1();
+    state.members.set(membershipKey('client@example.com'),[{userId:'legacy-canonical-id',status:'active'}]);
+    await resolveGoogleIdentity(db(state),claims());
+    expect(await linkedUserIdForPassword(db(state),'CLIENT@example.com','pwd:other-id')).toBe('legacy-canonical-id');
   });
   it('reuses an existing link with password sign-in, rather than rebinding membership',async()=>{
     const state=new FakeD1();state.members.set(membershipKey('client@example.com'),[{userId:'old-google-id',status:'active'}]);
