@@ -36,3 +36,18 @@
 .rdo-checklist .rdo-step .linkbtn{max-width:100%;white-space:normal;overflow-wrap:anywhere}
 .rdo-checklist-actions{padding-bottom:10px}
 .rdo-checklist-actions #reviewRdo{display:block;width:100%;min-height:48px;white-space:normal}
+
+
+/* P2: every missing RDO checkpoint is visible and directly actionable. */
+.rdo-section,#productionSessions{scroll-margin-top:20px;scroll-margin-bottom:calc(130px + env(safe-area-inset-bottom, 0px))}
+.day-next-block{margin-top:14px}
+.day-next-block .day-next{margin-top:0}
+.rdo-next-items{display:grid;gap:7px;margin:9px 0 0;padding:0;list-style:none}
+.rdo-next-link{width:100%;min-height:48px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border:1px solid #d6dfed;border-radius:13px;padding:11px 14px;background:#fff;color:#192c48;white-space:normal;overflow-wrap:anywhere}
+.rdo-next-link strong{font-size:13px;line-height:1.4}
+.rdo-next-link small{font-size:12px;line-height:1.45;color:#52647d}
+.rdo-next-link:focus-visible{outline:3px solid #3c70d8;outline-offset:2px}
+.rdo-occurrences-list{display:grid;gap:8px;padding-left:21px;margin:12px 0 0}
+.rdo-occurrences-list li{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.rdo-step .linkbtn{min-height:44px}
+#confirmRdoOccurrences,#confirmCompensation{min-height:48px}
