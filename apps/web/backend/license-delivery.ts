@@ -23,6 +23,7 @@ const MAC_ARM=RELEASE+'desktop-commercial-macos-v2.1.6/Obra-na-Mao-Desktop-v2.1.
 const MAC_INTEL=RELEASE+'desktop-commercial-macos-v2.1.6/Obra-na-Mao-Desktop-v2.1.6-macOS-Intel.dmg';
 const DRIVE='https://drive.google.com/drive/folders/1CzvNIJNEGavXAzwH5hVfMHCaofq6HatW';
 const MANUAL='https://drive.google.com/file/d/1V1m7gGMbLN4Z9SY0UkCT5hF549ZeL0I9/view';
+const WEB_PORTAL='https://artisys.dev/sistema.html#portal';
 const now=()=>new Date().toISOString();
 const normalizedEmail=(value:unknown)=>String(value||'').trim().toLowerCase();
 const escaped=(value:unknown)=>String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
@@ -53,6 +54,10 @@ export function buildLicenseWelcome(license:License){
     'Mac Apple Silicon: '+MAC_ARM,
     'Mac Intel: '+MAC_INTEL,
     '',
+    'ACESSO WEB — COMPLEMENTO DO DESKTOP',
+    'Portal Web: '+WEB_PORTAL,
+    'A parte Web complementa o aplicativo Desktop com os módulos e funcionalidades disponíveis online para sua licença e perfil, inclusive pelo celular.',
+    '',
     'Manual PDF: '+MANUAL,
     'Pasta de materiais: '+DRIVE,
     'Também enviamos anexo um guia de instalação e ativação em PDF.',
@@ -77,6 +82,9 @@ export function buildLicenseWelcome(license:License){
     '<h3>Downloads diretos</h3><ul>'+
     '<li><a href="'+WIN+'">Windows</a></li><li><a href="'+MAC_ARM+'">Mac Apple Silicon</a></li>'+
     '<li><a href="'+MAC_INTEL+'">Mac Intel</a></li></ul>'+
+    '<h3>Acesso Web — complemento do Desktop</h3>'+
+    '<p>Utilize também os módulos e funcionalidades disponíveis online para sua licença e perfil, inclusive pelo celular. O portal Web integra a solução Obra na Mão e complementa o aplicativo instalado no computador.</p>'+
+    '<p><a href="'+WEB_PORTAL+'">Acessar o Obra na Mão pela Web</a><br><small>'+WEB_PORTAL+'</small></p>'+
     '<p><a href="'+MANUAL+'">Manual em PDF</a> · <a href="'+DRIVE+'">Pasta de materiais</a></p>'+
     '<p><strong>Primeiro acesso:</strong> instale, abra o aplicativo, informe seu código quando solicitado e siga a configuração. Um guia de instalação está anexado em PDF.</p>'+
     '<p>As atualizações do Windows são oferecidas automaticamente ao abrir o aplicativo com internet.</p>'+

@@ -17,6 +17,17 @@ describe('Obra na Mão automatic licensing email',()=>{
     expect(message.html).not.toContain('<script>');
   });
 
+  it('includes the Web portal as a complementary part of the Desktop system in text and HTML',()=>{
+    const message=buildLicenseWelcome(license);
+    const webUrl='https://artisys.dev/sistema.html#portal';
+    expect(message.text).toContain(webUrl);
+    expect(message.html).toContain('href="'+webUrl+'"');
+    expect(message.text).toMatch(/Web[^\n]*complemento do Desktop/i);
+    expect(message.html).toMatch(/Web[^<]*complemento do Desktop/i);
+    expect(message.text).not.toMatch(/alternativa (?:ao|à|para o) Desktop/i);
+    expect(message.html).not.toMatch(/alternativa (?:ao|à|para o) Desktop/i);
+  });
+
   it('generates a valid PDF quick start with per-license activation steps',()=>{
     const bytes=makeQuickStartPdf(license);
     expect(new TextDecoder().decode(bytes.slice(0,8))).toBe('%PDF-1.4');
