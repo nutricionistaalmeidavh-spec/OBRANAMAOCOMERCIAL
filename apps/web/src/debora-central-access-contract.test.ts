@@ -17,7 +17,13 @@ describe('Debora owner product isolation contracts',()=>{
     expect(owner).toContain("if(centralRole==='owner')await refreshCompanies()");
     expect(owner).toContain("if(centralRole==='owner'){try{await refreshLicenseHistory()}");
     expect(owner).toContain("if(centralRole==='debora')ownerView='debora'");
-    expect(portal).toContain("if(central.role==='debora'){location.replace('./sistema.html#owner');return}");
-    expect(field).toContain("if(central.role==='debora'){location.replace('./sistema.html#owner');return}");
+    expect(portal).toContain("if(central?.role==='debora'){location.replace('./sistema.html#owner');return}");
+    expect(field).toContain("if(central?.data.role==='debora'){location.replace('./sistema.html#owner');return}");
+    const portalGate=portal.indexOf("if(central?.role==='debora')");
+    const portalBootstrap=portal.indexOf("const b=(await api.get<Bootstrap>('/api/bootstrap'))");
+    const fieldStart=field.slice(field.indexOf('async function start('));
+    expect(portalGate).toBeGreaterThan(0);
+    expect(portalBootstrap).toBeGreaterThan(portalGate);
+    expect(fieldStart.indexOf("if(central?.data.role==='debora')")).toBeLessThan(fieldStart.indexOf('b=await fetchBootstrap()'));
   });
 });
