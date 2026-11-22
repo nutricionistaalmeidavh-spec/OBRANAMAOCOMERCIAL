@@ -108,6 +108,10 @@ function portalGreeting(name:string){
 }
 
 function setBody(html:string){document.body.className='mh-portal-body';document.body.innerHTML=`<div id="mhPortal">${html}</div><div id="mhToast" class="mh-toast" role="status" aria-live="polite"></div>`;createIcons({icons});}
+function portalLoading(){
+  if(document.querySelector('.cp-loading-screen'))return;
+  setBody('<main class="cp-login cp-pending" aria-busy="true"><div class="cp-loading-screen" role="status" aria-live="polite"><span class="cp-loading-mark" aria-hidden="true"></span><strong>Preparando sua operação</strong><p>Verificando seu acesso e carregando os módulos…</p></div></main>');
+}
 function toast(text:string){const e=document.getElementById('mhToast');if(!e)return;e.textContent=text;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4500)}
 function card(key:string,title:string,text:string,href:string,_icon:string,role?:string){const names:Record<string,string>={gestao:'file-text',obra:'hard-hat',universidade:'graduation-cap',acessos:'shield-check',ativar:'plus',cobranca:'file-text'};return `<a class="cp-module" data-resource="${esc(key)}" href="${esc(href)}" aria-label="${esc(title)}${role?` — ${esc(role)}`:''}" title="${esc(text)}">${icon(names[key]||'file-text')}<span>${esc(title)}</span>${icon('chevron-right')}</a>`}
 
@@ -202,6 +206,7 @@ function portalShell(name:string,meta:string,cards:string,context?:Bootstrap,pas
   }
 }
 async function renderPhonePortal(p:Participant){
+  portalLoading();
   let cards=card('universidade','Universidade','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱','colaborador'),meta=`${p.jobRole||'Colaborador'} · acesso por celular`;
   try{
     const token=localStorage.getItem(SESSION)||'',b=(await api.post('/api/phone/bootstrap',{token})).data as Bootstrap;
@@ -211,6 +216,7 @@ async function renderPhonePortal(p:Participant){
   portalShell(p.name,meta,cards,undefined,'collaborator')
 }
 async function renderCorporatePortal(sessionUser?:NonNullable<Awaited<ReturnType<typeof auth.getUser>>>){
+  portalLoading();
   try{
     const user=sessionUser||await auth.getUser();if(!user)return publicHome();
     // A lactation administrator has no Obra membership and must never enter the Obra bootstrap.
@@ -238,6 +244,7 @@ async function renderCorporatePortal(sessionUser?:NonNullable<Awaited<ReturnType
 }
 async function openPortal(){
   location.hash='#portal';
+  portalLoading();
   const user=await auth.getUser();
   if(user){await renderCorporatePortal(user);return}
   const token=localStorage.getItem(SESSION);
@@ -247,7 +254,7 @@ async function openPortal(){
 async function openCollaborator(){
   if(location.hash!=='#colaborador')location.hash='#colaborador';
   const token=localStorage.getItem(SESSION);
-  if(token){try{const data=(await api.post('/api/edu/me',{token})).data as {participant:Participant};location.hash='#portal';await renderPhonePortal(data.participant);return}catch{localStorage.removeItem(SESSION)}}
+  if(token){try{portalLoading();const data=(await api.post('/api/edu/me',{token})).data as {participant:Participant};location.hash='#portal';await renderPhonePortal(data.participant);return}catch{localStorage.removeItem(SESSION)}}
   collaboratorHome()
 }
 async function logout(){
