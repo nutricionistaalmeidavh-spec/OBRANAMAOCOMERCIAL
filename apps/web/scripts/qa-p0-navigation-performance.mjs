@@ -177,11 +177,13 @@ async function testNavigation(engine,name){
     ensureUnder(gestaoMs,3500,'Management shell while summary API is delayed 3800ms');
     assert.equal(await page.locator('#content').getAttribute('aria-busy'),'true','Expected reserved KPI skeleton during slow summary');
     assert.equal(await page.locator('.management-kpi').count(),3);
-    const beforeKpi=await page.locator('.management-kpis').boundingBox();
-    await page.waitForFunction(()=>document.querySelector('#content')?.getAttribute('aria-busy')==='false',{timeout:10000});
-    const afterKpi=await page.locator('.management-kpis').boundingBox();
-    assert.ok(beforeKpi&&afterKpi&&Math.abs(beforeKpi.y-afterKpi.y)<3,'KPI location shifted after hydration');
-    record('portal-to-gestao',name,gestaoMs,{summaryDelayMs:3800,kpiShiftPx:Math.round(Math.abs(beforeKpi.y-afterKpi.y))});
+    const readKpiPosition=()=>page.locator('.management-kpis').evaluate(element=>element.getBoundingClientRect().top+window.scrollY);
+    const beforeKpi=await readKpiPosition();
+    await page.waitForFunction(()=>document.querySelector('#content')?.getAttribute('aria-busy')==='false',null,{timeout:10000});
+    const afterKpi=await readKpiPosition();
+    const shift=Math.abs(beforeKpi-afterKpi);
+    assert.ok(shift<3,`${name}: KPI document position moved ${Math.round(shift)}px (before=${Math.round(beforeKpi)}, after=${Math.round(afterKpi)})`);
+    record('portal-to-gestao',name,gestaoMs,{summaryDelayMs:3800,kpiShiftPx:Math.round(shift)});
     await screenshots(page,name+'-gestao-loaded');
     await page.locator('.management-hero .hero-back').click();
     await page.locator('.cp-dashboard h1').waitFor({timeout:12000});
