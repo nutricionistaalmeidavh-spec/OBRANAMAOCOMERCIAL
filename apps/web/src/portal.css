@@ -148,3 +148,12 @@
 @media(prefers-reduced-motion:reduce){
   .cp-overview-skeleton *{transition:none!important}
 }
+
+
+/* P2: use one visual product identity on login, portal and startup. */
+.cp-login-brand{display:flex;align-items:center;justify-content:center}
+.cp-login-wordmark{font-size:clamp(28px,7vw,44px);font-weight:800;letter-spacing:-.055em;line-height:1.15;text-align:center;color:#0a2e51}
+.cp-login-wordmark span{color:#087a89}
+.cp-snapshot-status{padding:9px 12px;margin:0 0 11px!important;font-size:12px;line-height:1.4;color:#37536b;background:#edf3f6;border:1px solid #c5d3dc;border-radius:9px;overflow-wrap:anywhere}
+.cp-snapshot-status.is-stale{color:#865016;background:#fff5e5;border-color:#efce95}
+.cp-wordmark{overflow-wrap:anywhere;white-space:normal;line-height:1.05}
