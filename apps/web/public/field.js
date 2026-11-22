@@ -314,6 +314,28 @@ async function openRdoPhotos(){
  });
 }
 window.addEventListener('online',()=>{if(state?.days?.[selectedDate])void flushRdoPhotos(selectedDate).then(result=>{if(result.uploaded)renderDay()}).catch(()=>{})});
+function openRdoOccurrences(){
+ const day=getDay(selectedDate,true),issues=(state.issues||[]).filter(i=>i.status==='open');
+ const events=(day.events||[]).map(e=>`<li><strong>${esc(e.time||'—')}</strong> ${esc(e.label||'Registro de obra')}</li>`).join('');
+ const pending=issues.map(i=>`<li>${esc(i.title||'Pendência da obra')}</li>`).join('');
+ sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Conferir ocorrências · ${dateBR(day.date)}</h2><div class="meta">Revise os registros desta data antes de confirmar o RDO.</div></div><button class="close" type="button" aria-label="Fechar">×</button></div>
+ <div class="card"><strong>Registros do dia</strong>${events?`<ul class="rdo-occurrences-list">${events}</ul>`:'<p class="meta">Nenhuma ocorrência registrada nesta data.</p>'}</div>
+ <div class="card"><strong>Pendências abertas na obra</strong>${pending?`<ul class="rdo-occurrences-list">${pending}</ul>`:'<p class="meta">Nenhuma pendência aberta.</p>'}</div>
+ <div class="card"><strong>Observação do dia</strong><p class="meta">${day.note?esc(day.note):'Nenhuma observação adicionada.'}</p></div>
+ <button id="confirmRdoOccurrences" class="btn" type="button">Confirmar conferência das ocorrências</button>
+ <p class="meta" id="rdoOccurrenceError" role="alert"></p></div>`;
+ document.dispatchEvent(new CustomEvent('field:sheet-rendered'));sheet.showModal();
+ sheet.querySelector('.close')?.addEventListener('click',()=>sheet.close());
+ sheet.querySelector('#confirmRdoOccurrences')?.addEventListener('click',async()=>{
+  const button=sheet.querySelector('#confirmRdoOccurrences');
+  if(button.disabled)return;
+  button.disabled=true;
+  const previous={reviewed:day.occurrencesReviewed,fingerprint:day.occurrencesReviewedFingerprint};
+  day.occurrencesReviewed=true;day.occurrencesReviewedFingerprint=rdoOccurrencesFingerprint(day);
+  try{await save();sheet.close();renderDay();show('Ocorrências conferidas para o fechamento.')}
+  catch(e){day.occurrencesReviewed=previous.reviewed;day.occurrencesReviewedFingerprint=previous.fingerprint;sheet.querySelector('#rdoOccurrenceError').textContent=e?.message||'Falha ao salvar a conferência.';button.disabled=false}
+ });
+}
 function openRdoReview(){
  const day=getDay(selectedDate,true),d=rdoDraftFor(day),missing=pendingRdoActions(d).map(item=>item.label);
  sheet.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Revisão · ${dateBR(day.date)}</h2><div class="meta">Confira as informações antes de enviar para integração.</div></div><button class="close" type="button">×</button></div>
