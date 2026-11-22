@@ -247,17 +247,16 @@ async function openUsers(){if(window.multiuserContext?.role!=='admin')return sho
 function renderWorker(b:Bootstrap,tasks:Task[],employee:{name?:string},project:{name?:string}){nav().style.display='none';configureSharedContext('employee',b);setHeader('employee',true);const today=localISODate(),todayTasks=tasks.filter(t=>t.date===today),next=tasks.filter(t=>t.date!==today);const cards=(arr:Task[])=>arr.length?arr.map(t=>`<div class="card task-card"><div class="row"><div><strong>${esc(serviceLabel(t.service))} · ${floorLabel(Number(t.floor))}</strong><div class="meta">${dateBR(t.date)} · ${esc(t.startTime||'07:30')}</div>${t.note?`<div class="meta">${esc(t.note)}</div>`:''}</div><span class="badge released">Atribuição</span></div></div>`).join(''):'<div class="empty card">Nenhuma atribuição.</div>';(root().innerHTML=`<div class="worker-head"><small>${esc(project.name||'Obra')}</small><h2>Olá, ${esc(employee.name||'')}</h2><p>Estas são somente as suas atribuições.</p></div><section class="section"><div class="section-head"><div><h2>Hoje</h2><p>${dateBR(today)} · início padrão 07:30</p></div></div>${cards(todayTasks)}</section><section class="section"><div class="section-head"><div><h2>Minha semana</h2><p>Próximos dias</p></div></div>${cards(next)}</section>`, document.dispatchEvent(new CustomEvent('field:rendered')))}
 async function loadWorker(b:Bootstrap){try{const data=(await api.get('/api/my-tasks',{today:localISODate()})).data as {tasks:Task[];employee:{name?:string};project:{name?:string}};renderWorker(b,data.tasks||[],data.employee||{},data.project||{})}catch(e){(root().innerHTML=messageCard('Acesso do funcionário',apiError(e)), document.dispatchEvent(new CustomEvent('field:rendered')));setHeader('employee',true)}}
 
-async function start(mode:AppMode=routeMode()){const phone=!!phoneToken();const user=await auth.getUser();if(!user&&!phone){renderLogin();return}try{
+async function start(mode:AppMode=routeMode()){const phone=!!phoneToken();
+  // For a known signed-in session, overlap identity and Central gate. Keep Obra
+  // bootstrap behind the gate: lactation-only accounts must not request Obra data.
+  const centralRequest=auth.isSignedIn()?api.get<{role:string}>('/api/central/access').catch(()=>null):null;
+  const user=await auth.getUser();if(!user&&!phone){renderLogin();return}try{
   let b:Bootstrap;
   if(user){
-    // Keep the Central/Debora routing gate, but do not serialize it with bootstrap.
-    const [central,bootstrap]=await Promise.allSettled([
-      api.get<{role:string}>('/api/central/access'),
-      api.get<Bootstrap>('/api/bootstrap')
-    ]);
-    if(central.status==='fulfilled'&&central.value.data.role==='debora'){location.replace('./sistema.html#owner');return}
-    if(bootstrap.status==='rejected')throw bootstrap.reason;
-    b=bootstrap.value.data;
+    const central=centralRequest?await centralRequest:await api.get<{role:string}>('/api/central/access').catch(()=>null);
+    if(central?.data.role==='debora'){location.replace('./sistema.html#owner');return}
+    b=await fetchBootstrap();
   }else{
     b=await fetchBootstrap();
   }
