@@ -16,11 +16,16 @@ describe('P0 video regression: mobile entry and navigation contracts',()=>{
   });
 
   it('navigates from the field and management back to the system portal, not the marketing home',()=>{
-    for(const path of ['../public/field.js','../public/field-premium-v2.js','./mobile-dashboard.ts']){
+    for(const path of ['../public/field.js','../public/field-premium-v2.js','./mobile-dashboard.ts','./owner.ts','./university-shell.ts']){
       const text=source(path);
       expect(text).not.toContain('./index.html#portal');
       expect(text).toContain('./sistema.html#portal');
     }
+  });
+
+  it('opens the Central directly from the system shell',()=>{
+    expect(source('./portal.ts')).not.toContain('./index.html#owner');
+    expect(source('./portal.ts')).toContain('./sistema.html#owner');
   });
 
   it('keeps sufficient scroll clearance and a full-width RDO review action',()=>{
