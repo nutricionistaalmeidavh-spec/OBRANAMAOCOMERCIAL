@@ -151,7 +151,7 @@ async function enrollOptions(request:Request,env:Env,b:Record<string,any>){
   const count=await env.DB.prepare('SELECT COUNT(*) AS n FROM passkey_credentials WHERE scope=? AND subject=?').bind(user.scope,user.subject).first<{n:number}>();
   if(Number(count?.n||0)>=8)return fail('Limite de oito chaves por conta atingido.',409);
   const rpID=new URL(request.url).hostname,ch=await challenge(env,'register',user.scope,user.subject);
-  return respond({challenge:ch,rp:{name:'Obra na Mão',id:rpID},user:{id:encode(new TextEncoder().encode(user.scope+':'+user.subject)),name:user.email||user.name,displayName:user.name},pubKeyCredParams:[{type:'public-key',alg:-7}],timeout:60000,attestation:'none',authenticatorSelection:{residentKey:'required',requireResidentKey:true,userVerification:'required'}});
+  return respond({challenge:ch,rp:{name:'Obra na Mão',id:rpID},user:{id:encode(await sha256(new TextEncoder().encode(user.scope+':'+user.subject))),name:user.email||user.name,displayName:user.name},pubKeyCredParams:[{type:'public-key',alg:-7}],timeout:60000,attestation:'none',authenticatorSelection:{residentKey:'required',requireResidentKey:true,userVerification:'required'}});
 }
 async function enrollVerify(request:Request,env:Env,b:Record<string,any>){
   if(!validScope(b.scope))return fail('Tipo de acesso inválido.');
