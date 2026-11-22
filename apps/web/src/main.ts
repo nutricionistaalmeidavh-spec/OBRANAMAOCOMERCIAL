@@ -239,7 +239,32 @@ async function loadSharedApp(b:Bootstrap){
     hydrate('conflicts',api.get('/api/mobile/sync/conflicts').then(({data})=>{window.mobileSyncConflicts=(data as {conflicts:any[]}).conflicts||[]}));
   }
 }
-async function loadManagementOnly(b:Bootstrap){document.body.classList.add('field-shell-active');nav().style.display='none';if(b.role!=='admin'){setHeader(b.role,true);(root().innerHTML=messageCard('Sem operação mobile','Seu perfil não possui Obra360 e os painéis administrativos móveis são exclusivos do Admin.'), document.dispatchEvent(new CustomEvent('field:rendered')));return}setHeader('admin',true);try{const data=(await api.get('/api/mobile/summary')).data as {summary:any};renderManagementDashboard(root(),data.summary||{},b.access||{},'Gestão')}catch(e){(root().innerHTML=messageCard('Gestão mobile',apiError(e)), document.dispatchEvent(new CustomEvent('field:rendered')))}}
+async function loadManagementOnly(b:Bootstrap){
+  document.body.classList.add('field-shell-active');
+  nav().style.display='none';
+  if(b.role!=='admin'){
+    setHeader(b.role,true);
+    root().innerHTML=messageCard('Sem operação mobile','Seu perfil não possui Obra360 e os painéis administrativos móveis são exclusivos do Admin.');
+    document.dispatchEvent(new CustomEvent('field:rendered'));
+    return;
+  }
+  setHeader('admin',true);
+  // Show the complete authorized page geometry immediately. The remote summary
+  // is allowed to resolve later without flashing an empty or legacy layout.
+  renderManagementDashboard(root(),{},b.access||{},'Gestão',true);
+  try{
+    const data=(await api.get('/api/mobile/summary')).data as {summary:any};
+    renderManagementDashboard(root(),data.summary||{},b.access||{},'Gestão');
+  }catch(e){
+    renderManagementDashboard(root(),{},b.access||{},'Gestão');
+    const details=root().querySelector('.management-details');
+    if(details){
+      details.innerHTML=`<div class="card management-load-error" role="alert"><strong>Não foi possível carregar os indicadores.</strong><p>${esc(apiError(e))}</p><button type="button" class="btn" id="retryManagementSummary">Tentar novamente</button></div>`;
+      details.querySelector('#retryManagementSummary')?.addEventListener('click',()=>void loadManagementOnly(b));
+    }
+  }
+}
+
 
 function injectAdminSettings(){if(window.multiuserContext?.role!=='admin')return;const content=root();if(document.getElementById('multiuserAdminCard'))return;const section=document.createElement('section'),owner=activeBootstrap?.isOwner===true;section.id='multiuserAdminCard';section.className='card settings-card';section.innerHTML=`<div class="section-head"><div><strong>Usuários</strong><p>Administre quem acessa esta obra e o que cada perfil pode fazer.</p></div></div><button id="openUsersBtn" class="btn">Gerenciar usuários</button><div class="meta">Admin: tudo · Encarregado: operação e presença · Funcionário: somente suas tarefas.</div>${owner?'<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:16px"><strong>Comercial FLUXODRE</strong><div class="meta">Área exclusiva do proprietário para vendas e licenças.</div><button id="openOwnerPortalBtn" class="linkbtn" style="width:100%;margin-top:10px">Central Artisys · Empresas clientes</button></div>':''}`;content.appendChild(section);section.querySelector('#openUsersBtn')?.addEventListener('click',openUsers);section.querySelector('#openOwnerPortalBtn')?.addEventListener('click',openOwnerPortal)}
 async function openUsers(){if(window.multiuserContext?.role!=='admin')return showStandalone('Acesso não permitido para este perfil.');const dlg=document.getElementById('sheet') as HTMLDialogElement;(dlg.innerHTML='<div class="sheet"><div class="sheet-head"><div><h2>Usuários</h2><div class="meta">Carregando acessos...</div></div><button class="close">×</button></div></div>', document.dispatchEvent(new CustomEvent('field:sheet-rendered')));dlg.showModal();dlg.querySelector('.close')?.addEventListener('click',()=>dlg.close());try{const [{data},local]=await Promise.all([api.get('/api/members'),readLocalState()]);const members=(data as {members:Member[]}).members||[],employees=(local?.employees||[]) as Array<Record<string,unknown>>;(dlg.innerHTML=`<div class="sheet"><div class="sheet-head"><div><h2>Usuários</h2><div class="meta">Acessos desta obra</div></div><button class="close">×</button></div><div class="members-list">${members.map(m=>`<div class="card member-row"><div><strong>${esc(m.email)}</strong><div class="meta">${roleLabel(m.role)}${m.employeeId?` · ${esc(String(employees.find(e=>e.id===m.employeeId)?.name||m.employeeId))}`:''} · ${m.userId?'Ativo':`Aguardando login · Código ${esc(m.joinCode||'—')}`}</div></div></div>`).join('')}</div><div class="form member-form"><label>Email<input id="memberEmail" type="email" placeholder="nome@empresa.com"></label><label>Papel<select id="memberRole"><option value="employee">Funcionário</option><option value="foreman">Encarregado</option><option value="admin">Admin</option></select></label><label id="employeeLinkLabel">Vincular ao funcionário<select id="memberEmployee"><option value="">Selecione</option>${employees.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('')}</select></label></div><button id="saveMemberBtn" class="btn">Salvar acesso</button></div>`, document.dispatchEvent(new CustomEvent('field:sheet-rendered')));dlg.querySelector('.close')?.addEventListener('click',()=>dlg.close());const role=dlg.querySelector('#memberRole') as HTMLSelectElement,link=dlg.querySelector('#employeeLinkLabel') as HTMLElement;const toggle=()=>{link.style.display=role.value==='employee'?'block':'none'};role.addEventListener('change',toggle);toggle();dlg.querySelector('#saveMemberBtn')?.addEventListener('click',async()=>{const email=(dlg.querySelector('#memberEmail') as HTMLInputElement).value.trim(),r=role.value as Role,employeeId=(dlg.querySelector('#memberEmployee') as HTMLSelectElement).value||undefined;try{await api.post('/api/members',{email,role:r,employeeId});showStandalone('Acesso salvo.');await openUsers()}catch(e){showStandalone(apiError(e))}})}catch(e){showStandalone(apiError(e))}}
