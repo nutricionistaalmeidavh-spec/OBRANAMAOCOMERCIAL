@@ -40,6 +40,14 @@ describe('P1 mobile UX stability',()=>{
     expect(enhancer).not.toContain('shiftSecondaryActionsToObra360(actions)');
   });
 
+  it('keeps intermediate field-tab DOM invisible until the premium lifecycle finishes',()=>{
+    const field=source('../public/field.js'),enhancer=source('../public/field-premium-v2.js');
+    const css=source('../public/field-premium-v2.css');
+    expect(field).toContain("content.classList.add('field-screen-staging')");
+    expect(enhancer).toContain("content.classList.remove('field-screen-staging')");
+    expect(css).toContain('#content.field-screen-staging{visibility:hidden}');
+  });
+
   it('keeps all mobile actions readable and above the Safari inset',()=>{
     const css=source('../public/field-premium-v2.css');
     expect(css).toContain('/* P1 safe-area and readable navigation */');
