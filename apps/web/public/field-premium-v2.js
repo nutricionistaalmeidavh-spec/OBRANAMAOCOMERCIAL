@@ -144,6 +144,7 @@
 
     if(internal)enhanceInternalSurface(internal);
     enhanceSheet();
+    content.classList.remove('field-screen-staging');
     if(content.querySelector(':scope > :not(.field-startup)'))document.body.classList.remove('field-booting');
   }
 
