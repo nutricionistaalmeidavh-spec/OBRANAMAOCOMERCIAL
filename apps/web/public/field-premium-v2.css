@@ -243,3 +243,6 @@ body.field-shell-active dialog{
   body.field-shell-active .nav,
   body.field-shell-active .management-kpi{transition:none}
 }
+
+/* P1: screen transitions are composed before the next paint, not shown half-styled. */
+body.field-shell-active #content.field-screen-staging{visibility:hidden}
