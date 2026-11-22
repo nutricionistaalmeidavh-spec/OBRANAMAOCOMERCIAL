@@ -157,3 +157,30 @@ dialog#sheet:has(.premium-sheet){padding:0;border:0;background:transparent;box-s
 .conflict-diff-row{border-top:1px solid var(--line);font-size:12px}
 .conflict-diff-row span{overflow-wrap:anywhere}
 @media(max-width:520px){.conflict-diff-head,.conflict-diff-row{grid-template-columns:1fr}.conflict-diff-head span:first-child{display:none}.conflict-diff-row strong{padding-bottom:3px}.conflict-diff-row span::before{display:block;font-size:10px;font-weight:700;text-transform:uppercase;opacity:.62}.conflict-diff-row span:nth-child(2)::before{content:'Obra360'}.conflict-diff-row span:nth-child(3)::before{content:'Computador'}}
+
+/* P0 video fixes: prevent overlapping cards and keep the RDO completion action
+   reachable above the fixed tab bar and Safari bottom inset. */
+body.field-shell-active .shell{padding-bottom:calc(132px + env(safe-area-inset-bottom))}
+body.field-shell-active .nav{bottom:calc(6px + env(safe-area-inset-bottom))}
+body.field-shell-active .quick-actions>*,
+body.field-shell-active .management-grid>*,
+body.field-shell-active .management-kpis>*,
+body.field-shell-active .bridge-card .row>div{min-width:0}
+body.field-shell-active .quick-action-copy strong,
+body.field-shell-active .quick-action-copy span,
+body.field-shell-active .stat span,
+body.field-shell-active .bridge-title{overflow-wrap:anywhere}
+body.field-shell-active .management-kpi-head strong{
+  white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.2
+}
+body.field-shell-active .management-kpi>b{
+  white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.15
+}
+body.field-shell-active .management-line{min-width:0;flex-wrap:wrap;align-items:baseline}
+body.field-shell-active .management-line span,
+body.field-shell-active .management-line b{min-width:0;overflow-wrap:anywhere}
+body.field-shell-active .management-line b{text-align:right}
+@media(max-width:420px){
+  body.field-shell-active .management-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body.field-shell-active .management-kpi:last-child{grid-column:1/-1}
+}
