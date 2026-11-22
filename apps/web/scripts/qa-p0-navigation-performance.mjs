@@ -63,7 +63,7 @@ async function setup(engine,authenticated=false,slowAuxiliary=false){
   await page.route('**/api/**',async route=>{
     const pathName=new URL(route.request().url()).pathname;
     tracker.requests.push(pathName);
-    const isAuxiliary=['/api/field/rdo/receipts','/api/field/rdo/catalog','/api/mobile/summary','/api/mobile/sync/conflicts'].includes(pathName);
+    const isAuxiliary=['/api/field/rdo/receipts','/api/field/rdo/catalog','/api/mobile/summary','/api/mobile/sync/conflicts','/api/portal/overview'].includes(pathName);
     await sleep(slowAuxiliary&&isAuxiliary?3800:180);
     const json=(body,status=200,headers={})=>route.fulfill({status,contentType:'application/json',headers,body:JSON.stringify(body)}).catch(()=>{});
     if(pathName==='/api/auth/me')return tracker.authenticated?json({user:{userId:'qa',email:'qa@example.test',name:'Pessoa QA'}}):json({error:'Não autenticado'},401);
@@ -137,6 +137,8 @@ async function testNavigation(engine,name){
     const portalMs=now()-start;
     ensureUnder(portalMs,4500,'Corporate portal load');
     record('existing-session-to-panel',name,portalMs,{mockedAuthentication:true});
+    await page.locator('.cp-overview-skeleton').waitFor({state:'visible',timeout:2500});
+    assert.ok(await page.locator('[data-resource="obra"]').isVisible(),'Module navigation must remain usable while overview loads');
     const obraStart=now();
     await page.locator('[data-resource="obra"]').click();
     await page.locator('#reviewRdo').waitFor({state:'visible',timeout:14000});
@@ -148,6 +150,8 @@ async function testNavigation(engine,name){
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
     assert.ok(overflow<=2,`Horizontal overflow in ${name}: ${overflow}px`);
     record('portal-to-obra-with-slow-auxiliary',name,obraMs,{auxiliaryDelayMs:3800,horizontalOverflowPx:overflow});
+    const navGeometry=await page.evaluate(()=>{const bar=document.querySelector('nav.nav'),button=bar?.querySelector('button');if(!bar||!button)return null;const b=bar.getBoundingClientRect();return {bottom:Math.round(window.innerHeight-b.bottom),minHeight:Math.round(button.getBoundingClientRect().height),fontSize:parseFloat(getComputedStyle(button).fontSize)}});
+    assert.ok(navGeometry&&navGeometry.bottom<=2&&navGeometry.minHeight>=44&&navGeometry.fontSize>=12,`Mobile navigation not readable or flush to viewport: ${JSON.stringify(navGeometry)}`);
     await page.locator('#reviewRdo').scrollIntoViewIfNeeded();
     await page.locator('#reviewRdo').click({timeout:4000});
     await page.locator('#prepareRdo').waitFor({state:'visible',timeout:4000});
@@ -160,7 +164,15 @@ async function testNavigation(engine,name){
     await page.locator('[data-resource="gestao"]').click();
     await page.locator('.management-hero').waitFor({state:'visible',timeout:14000});
     const gestaoMs=now()-gestaoStart;
-    record('portal-to-gestao',name,gestaoMs);
+    ensureUnder(gestaoMs,3500,'Management shell while summary API is delayed 3800ms');
+    assert.equal(await page.locator('#content').getAttribute('aria-busy'),'true','Expected reserved KPI skeleton during slow summary');
+    assert.equal(await page.locator('.management-kpi').count(),3);
+    const beforeKpi=await page.locator('.management-kpis').boundingBox();
+    await page.waitForFunction(()=>document.querySelector('#content')?.getAttribute('aria-busy')==='false',{timeout:10000});
+    const afterKpi=await page.locator('.management-kpis').boundingBox();
+    assert.ok(beforeKpi&&afterKpi&&Math.abs(beforeKpi.y-afterKpi.y)<3,'KPI location shifted after hydration');
+    record('portal-to-gestao',name,gestaoMs,{summaryDelayMs:3800,kpiShiftPx:Math.round(Math.abs(beforeKpi.y-afterKpi.y))});
+    await screenshots(page,name+'-gestao-loaded');
     await page.locator('.management-hero .hero-back').click();
     await page.locator('.cp-dashboard h1').waitFor({timeout:12000});
     await assertNoMarketing(tracker);
