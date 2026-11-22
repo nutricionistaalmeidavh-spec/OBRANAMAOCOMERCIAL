@@ -86,18 +86,26 @@ async function googleSignIn(){
 }
 
 let verifiedWebSession:boolean|null=null;
+type VerifiedUser={userId:string;email?:string;name?:string};
+let activeSessionCheck:Promise<VerifiedUser|null>|null=null;
 function authHint(){return document.cookie.split(';').some(x=>x.trim()==='obn_auth=1')}
 function clearAuthHint(){document.cookie='obn_auth=; Path=/; Secure; SameSite=Lax; Max-Age=0'}
-async function currentUser(){
-  try{
-    const user=(await api.get<{user:{userId:string;email?:string;name?:string}}>('/api/auth/me')).data.user;
-    verifiedWebSession=true;
-    return user;
-  }catch{
-    verifiedWebSession=false;
-    clearAuthHint();
-    return null;
-  }
+function currentUser():Promise<VerifiedUser|null>{
+  // Coalesce only in-flight checks. Never reuse a completed authorization result:
+  // each new page or permission-sensitive entry still verifies the server session.
+  if(activeSessionCheck)return activeSessionCheck;
+  activeSessionCheck=(async()=>{
+    try{
+      const user=(await api.get<{user:VerifiedUser}>('/api/auth/me')).data.user;
+      verifiedWebSession=true;
+      return user;
+    }catch{
+      verifiedWebSession=false;
+      clearAuthHint();
+      return null;
+    }
+  })().finally(()=>{activeSessionCheck=null});
+  return activeSessionCheck;
 }
 
 export const auth={
