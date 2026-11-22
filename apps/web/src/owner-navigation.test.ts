@@ -90,7 +90,7 @@ describe('Central Artisys owner navigation',()=>{
     expect(document.querySelector('[data-metric="active"]')?.textContent).toContain('2');
     expect(document.getElementById('companyForm')).toBeNull();
     expect(document.getElementById('deboraLicenseForm')).toBeNull();
-    expect(document.querySelector('a[href="./index.html#portal"]')).not.toBeNull();
+    expect(document.querySelector('a[href="./sistema.html#portal"]')).not.toBeNull();
   });
 
   it('opens Leads ArtiSys inside the existing owner navigation without exposing other products',async()=>{
