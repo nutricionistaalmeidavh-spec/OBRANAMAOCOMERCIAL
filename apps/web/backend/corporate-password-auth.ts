@@ -53,6 +53,12 @@ async function licenseByEmail(env:Env,email:string):Promise<License|null>{
   for(const row of refs.results||[]){let licenseId='';try{licenseId=String(JSON.parse(row.record_json).licenseId||'')}catch{}if(!licenseId)continue;const lic=await env.DB.prepare("SELECT id,record_json FROM kv_records WHERE collection='licenses' AND id=?").bind(licenseId).first<{id:string;record_json:string}>();if(!lic)continue;try{const parsed={...JSON.parse(lic.record_json),id:lic.id,snapshot:lic.record_json} as License;if(norm(parsed.email)===norm(email)&&parsed.status==='active'&&(!parsed.expiresAt||parsed.expiresAt>=now()))return parsed}catch{}}
   return null;
 }
+/** Apply existing corporate account restrictions to passkey sessions, without changing Google onboarding. */
+export async function corporatePasskeyEligible(env:Env,subject:string,email:string){
+  const access=await platformAccess(env,email);
+  if(access&&access.status!=='active')return false;
+  return !subject.startsWith('pwd:')||!!access||!!(await licenseByEmail(env,email));
+}
 async function sessionUser(env:Env,request:Request){
   const sessionId=cookie(request,'obn_session');if(!sessionId)return null;
   const row=await env.DB.prepare('SELECT user_id,email,name,expires_at FROM auth_sessions WHERE id=?').bind(sessionId).first<{user_id:string;email:string;name:string;expires_at:string}>();
