@@ -515,8 +515,8 @@ function registerIpc() {
     app.quit()
     return { switched: true }
   }))
-  ipcMain.handle('online:password-auth', envelope((payload) => withSyncStopped(async () => completeCanonicalStorage(await services.online.passwordAuth(payload)).then(result => { accounts.bind(payload.email); return result }))))
-  ipcMain.handle('online:password-setup', envelope((payload) => withSyncStopped(async () => completeCanonicalStorage(await services.online.completePasswordLink(payload)))))
+  ipcMain.handle('online:password-auth', envelope((payload) => withSyncStopped(async () => { const expected = accounts.current()?.email; if (expected && String(payload.email || '').trim().toLowerCase() !== expected) throw new Error('Entre com o e-mail da conta selecionada.'); const result = await completeCanonicalStorage(await services.online.passwordAuth(payload)); accounts.bind(payload.email); return result })))
+  ipcMain.handle('online:password-setup', envelope((payload) => withSyncStopped(async () => { const result = await completeCanonicalStorage(await services.online.completePasswordLink(payload)); return result })))
   ipcMain.handle('online:set-base-url', envelope(({ baseUrl }) => withSyncStopped(() => services.online.setBaseUrl(baseUrl))))
   ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
   ipcMain.handle('online:status', envelope(() => withSyncStopped(async () => completeCanonicalStorage(await services.online.status()))))
