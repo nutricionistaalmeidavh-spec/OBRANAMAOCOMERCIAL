@@ -137,6 +137,7 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     commit: (token, options) => call('universal-import:commit', { token, options })
   },
   relatorios: { dashboard: (filters) => call('dashboard:get', filters), dre: (filters) => call('dre:get', filters) },
+  accounts: { list: () => call('accounts:list'), add: (email) => call('accounts:add', { email }), switch: (id) => call('accounts:switch', { id }) },
   online: {
     passwordAuth: (input) => call('online:password-auth', input),
     passwordSetup: (input) => call('online:password-setup', input),
