@@ -10,7 +10,7 @@ export default function AccountSwitcher() {
   const [busy, setBusy] = useState(false)
   const [available, setAvailable] = useState(false)
   const api = (window.fluxoDre as any).accounts
-  useEffect(() => { let active = true; api.list().then((value: {current:string;accounts:Account[];available:boolean}) => { if (active) { setCurrent(value.current); setAccounts(value.accounts); setAvailable(value.available) } }).catch((error: Error) => { if (active) setMessage(error.message) }); return () => { active = false } }, [])
+  useEffect(() => { if (!api?.list) return; let active = true; api.list().then((value: {current:string;accounts:Account[];available:boolean}) => { if (active) { setCurrent(value.current); setAccounts(value.accounts); setAvailable(value.available) } }).catch((error: Error) => { if (active) setMessage(error.message) }); return () => { active = false } }, [])
   async function add() {
     setBusy(true); setMessage('')
     try { const account:Account = await api.add(email); await api.switch(account.id) }
@@ -23,7 +23,7 @@ export default function AccountSwitcher() {
     try { await api.switch(id) }
     catch (error) { setMessage(error instanceof Error ? error.message : String(error)); setBusy(false) }
   }
-  if (!available) return null
+  if (!api?.list || !available) return null
   return <section aria-label="Contas deste computador" style={{ display:'grid', gap:10, padding:12, border:'1px solid #d6dce4', borderRadius:10, marginTop:16 }}>
     <strong>Contas neste computador</strong>
     <p style={{margin:0}}>Cada e-mail usa sua própria licença e seus próprios dados neste PC.</p>
