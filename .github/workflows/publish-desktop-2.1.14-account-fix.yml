@@ -5,13 +5,13 @@ on:
     branches: [main]
     paths:
       - 'apps/desktop/**'
-      - '.github/workflows/publish-desktop-2.1.14-accounts.yml'
+      - '.github/workflows/publish-desktop-2.1.14-account-fix.yml'
 
 permissions:
   contents: write
 
 concurrency:
-  group: publish-desktop-2.1.14-accounts
+  group: publish-desktop-2.1.14-account-fix
   cancel-in-progress: false
 
 jobs:
