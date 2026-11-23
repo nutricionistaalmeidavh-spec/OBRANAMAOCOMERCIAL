@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button, Field } from './ui'
 
 type Account = { id: string; email: string | null }
-export default function AccountSwitcher() {
+export default function AccountSwitcher({ onSelectedEmail }: { onSelectedEmail?: (email: string | null) => void } = {}) {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [current, setCurrent] = useState('')
   const [email, setEmail] = useState('')
@@ -10,7 +10,7 @@ export default function AccountSwitcher() {
   const [busy, setBusy] = useState(false)
   const [available, setAvailable] = useState(false)
   const api = (window.fluxoDre as any).accounts
-  useEffect(() => { if (!api?.list) return; let active = true; api.list().then((value: {current:string;accounts:Account[];available:boolean}) => { if (active) { setCurrent(value.current); setAccounts(value.accounts); setAvailable(value.available) } }).catch((error: Error) => { if (active) setMessage(error.message) }); return () => { active = false } }, [])
+  useEffect(() => { if (!api?.list) return; let active = true; api.list().then((value: {current:string;accounts:Account[];available:boolean}) => { if (active) { setCurrent(value.current); setAccounts(value.accounts); setAvailable(value.available); onSelectedEmail?.(value.accounts.find(account => account.id === value.current)?.email || null) } }).catch((error: Error) => { if (active) setMessage(error.message) }); return () => { active = false } }, [])
   async function add() {
     setBusy(true); setMessage('')
     try { const account:Account = await api.add(email); await api.switch(account.id) }

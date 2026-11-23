@@ -137,7 +137,7 @@ function createServices() {
   const localContracts = new ContractsService({ db, product })
   const contracts = new ContractsSourceService({ local: localContracts, lanClient: dataAccess.remote, moduleStorage, dataAccess, product })
   const uiPreferences = new UiPreferencesService({ db })
-  const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage, expectedEmail: () => accounts.current()?.email })
+  const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage, expectedEmail: () => accounts.current()?.email, sharedInstallationIdPath: accounts.isolated ? path.join(app.getPath('appData'), 'obra-na-mao-comercial', 'installation-id') : null })
   const sync = new SyncCoordinator({
     database: db,
     online,

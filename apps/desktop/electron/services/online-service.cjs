@@ -7,9 +7,10 @@ const DEFAULT_BASE_URL = process.env.OBRA_NA_MAO_PLATFORM_URL || process.env.FLU
 const CONFIG_FILE = 'online-connection.json'
 
 class OnlineService {
-  constructor({ dataDir, shell, safeStorage, fetchImpl = global.fetch, baseUrl = DEFAULT_BASE_URL, qaLinked = process.env.NODE_ENV === 'test' && process.env.ARTISYS_QA === '1', expectedEmail = null }) {
+  constructor({ dataDir, shell, safeStorage, fetchImpl = global.fetch, baseUrl = DEFAULT_BASE_URL, qaLinked = process.env.NODE_ENV === 'test' && process.env.ARTISYS_QA === '1', expectedEmail = null, sharedInstallationIdPath = null }) {
     this.dataDir = dataDir
     this.expectedEmail = expectedEmail
+    this.sharedInstallationIdPath = sharedInstallationIdPath
     this.shell = shell
     this.safeStorage = safeStorage
     this.fetchImpl = fetchImpl
@@ -37,9 +38,24 @@ class OnlineService {
 
   installationId() {
     const current = this.readConfig()
-    if (current.installationId) return current.installationId
-    const installationId = crypto.randomUUID().replace(/-/g, '')
-    this.writeConfig({ installationId })
+    // A linked profile retains its registered device identity across upgrades.
+    if (current.tokenValue && current.installationId) return current.installationId
+    let shared = ''
+    if (this.sharedInstallationIdPath) {
+      try { shared = fs.readFileSync(this.sharedInstallationIdPath, 'utf8').trim() } catch {}
+      if (!shared) {
+        try {
+          const principal = JSON.parse(fs.readFileSync(path.join(path.dirname(this.sharedInstallationIdPath), CONFIG_FILE), 'utf8'))
+          shared = String(principal.installationId || '')
+        } catch {}
+      }
+    }
+    const installationId = shared || current.installationId || crypto.randomUUID().replace(/-/g, '')
+    if (current.installationId !== installationId) this.writeConfig({ installationId })
+    else if (!current.installationId) this.writeConfig({ installationId })
+    if (this.sharedInstallationIdPath && !shared) {
+      try { fs.writeFileSync(this.sharedInstallationIdPath, installationId, { flag: 'wx', mode: 0o600 }) } catch {}
+    }
     return installationId
   }
 

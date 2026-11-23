@@ -8,6 +8,7 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
   const [mode, setMode] = useState<AccessMode>('login')
   const [setup, setSetup] = useState(false)
   const [email, setEmail] = useState('')
+  const [selectedAccountEmail, setSelectedAccountEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
   const [companyName, setCompanyName] = useState('')
@@ -181,14 +182,14 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
   return <Card style={{ width: '100%', maxWidth: 480, margin: '32px auto', padding: 28 }}>
     <small>OBRA NA MÃO · DESKTOP COMERCIAL</small>
     <h1>{title}</h1>
-    <AccountSwitcher/>
+    <AccountSwitcher onSelectedEmail={selected => { setSelectedAccountEmail(selected || ''); setEmail(selected || '') }}/>
     <p>{description}</p>
     <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
       {setup ? <>
         <Field label="Nome da empresa" required><input value={companyName} onChange={e => setCompanyName(e.target.value)} autoComplete="organization" required maxLength={160}/></Field>
         <Field label="Primeira obra" required><input value={projectName} onChange={e => setProjectName(e.target.value)} required maxLength={160}/></Field>
       </> : <>
-        <Field label="E-mail" required><input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="username" required/></Field>
+        {!selectedAccountEmail && <Field label="E-mail" required><input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="username" required/></Field>}
         {firstAccess && <Field label={mode === 'company' ? 'Código de ativação da empresa' : 'Código de convite'} required><input value={code} onChange={e => setCode(e.target.value)} autoComplete="off" required/></Field>}
         <Field label={firstAccess ? 'Crie sua senha (mínimo 8 caracteres)' : 'Senha'} required><input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={firstAccess ? 'new-password' : 'current-password'} minLength={firstAccess ? 8 : undefined} required/></Field>
       </>}
