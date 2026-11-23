@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react'
 import { Button, Card, Field } from './ui'
+import AccountSwitcher from './AccountSwitcher'
 
 type AccessMode = 'login'|'company'|'member'
 
@@ -180,6 +181,7 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
   return <Card style={{ width: '100%', maxWidth: 480, margin: '32px auto', padding: 28 }}>
     <small>OBRA NA MÃO · DESKTOP COMERCIAL</small>
     <h1>{title}</h1>
+    <AccountSwitcher/>
     <p>{description}</p>
     <form onSubmit={submit} style={{ display: 'grid', gap: 14 }}>
       {setup ? <>

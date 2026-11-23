@@ -7,8 +7,9 @@ const DEFAULT_BASE_URL = process.env.OBRA_NA_MAO_PLATFORM_URL || process.env.FLU
 const CONFIG_FILE = 'online-connection.json'
 
 class OnlineService {
-  constructor({ dataDir, shell, safeStorage, fetchImpl = global.fetch, baseUrl = DEFAULT_BASE_URL, qaLinked = process.env.NODE_ENV === 'test' && process.env.ARTISYS_QA === '1' }) {
+  constructor({ dataDir, shell, safeStorage, fetchImpl = global.fetch, baseUrl = DEFAULT_BASE_URL, qaLinked = process.env.NODE_ENV === 'test' && process.env.ARTISYS_QA === '1', expectedEmail = null }) {
     this.dataDir = dataDir
+    this.expectedEmail = expectedEmail
     this.shell = shell
     this.safeStorage = safeStorage
     this.fetchImpl = fetchImpl
@@ -199,6 +200,7 @@ class OnlineService {
     if (result.status !== 'approved' || !result.deviceToken) throw new Error('Não foi possível concluir o vínculo deste computador.')
     const session = await this.request('/api/desktop/session', { deviceToken: result.deviceToken })
     if (!session.authorized || String(session.company?.id) !== String(bootstrap.company.id)) throw new Error('A empresa da sessão não corresponde à conta autenticada.')
+    this.assertAccountEmail(session.user?.email)
     this.assertTenant(session.company.id)
     const storageRequired = this.storageBinding(session) || this.storageBinding(bootstrap)
     this.writeConfig({
@@ -208,6 +210,11 @@ class OnlineService {
     this.storeToken(result.deviceToken)
     this.passwordSession = null
     return { linked: !storageRequired, needsSetup: false, company: session.company, project: session.project, storageRequired }
+  }
+
+  assertAccountEmail(email) {
+    const expected = this.expectedEmail?.()
+    if (expected && String(email || '').trim().toLowerCase() !== expected) throw new Error('A autorização pertence a outro e-mail. Selecione a conta correspondente neste computador.')
   }
 
   assertTenant(companyId) {
@@ -247,6 +254,7 @@ class OnlineService {
     if (result.status === 'approved' && result.deviceToken) {
       const session = await this.request('/api/desktop/session', { deviceToken: result.deviceToken })
       if (!session.authorized || !session.company?.id) throw new Error('Conclua o vínculo da sua empresa antes de autorizar este computador.')
+      this.assertAccountEmail(session.user?.email)
       this.assertTenant(session.company.id)
       const storageRequired = this.storageBinding(session)
       this.writeConfig({

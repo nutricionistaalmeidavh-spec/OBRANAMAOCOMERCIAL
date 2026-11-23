@@ -1,0 +1,83 @@
+name: Publish Obra na Mao Desktop 2.1.13 - Multicontas por email
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - '.github/workflows/publish-desktop-2.1.13-accounts.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-desktop-2.1.13-accounts
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # One-time opt-in: normal commits and merges must NEVER publish installers.
+    if: contains(github.event.head_commit.message, '[release-multicontas-20261123]')
+    runs-on: windows-latest
+    timeout-minutes: 50
+    env:
+      VERSION: '2.1.13'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Validate version and release freeze
+        shell: pwsh
+        run: |
+          if ((node -p "require('./apps/desktop/package.json').version") -ne "$env:VERSION") { throw 'Unexpected package version' }
+          if ((node -p "require('./apps/desktop/package-lock.json').version") -ne "$env:VERSION") { throw 'Unexpected lockfile version' }
+          if (-not (Select-String -Path '.github/workflows/commercial-desktop-ci.yml' -SimpleMatch "DESKTOP_AUTO_RELEASE_ENABLED: 'false'")) { throw 'Automatic release protection must stay disabled' }
+      - name: Install and verify Desktop
+        working-directory: apps/desktop
+        shell: pwsh
+        run: |
+          npm install --workspaces=false --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'npm install failed' }
+          npm run lint
+          if ($LASTEXITCODE -ne 0) { throw 'lint failed' }
+          npm test
+          if ($LASTEXITCODE -ne 0) { throw 'test failed' }
+          npm run dist
+          if ($LASTEXITCODE -ne 0) { throw 'installer build failed' }
+      - name: Verify installer and updater metadata
+        shell: pwsh
+        run: |
+          $exe = "apps/desktop/release/Obra-na-Mao-Desktop-Setup-$env:VERSION.exe"
+          $blockmap = "$exe.blockmap"
+          $manifest = "apps/desktop/release/latest.yml"
+          foreach ($file in @($exe,$blockmap,$manifest)) {
+            if (-not (Test-Path $file)) { throw "Missing release asset: $file" }
+          }
+          if ((Get-Item $exe).Length -lt 100000000) { throw 'Installer size is unexpectedly small' }
+          $yaml = Get-Content $manifest -Raw
+          $sha512 = [Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData([IO.File]::ReadAllBytes((Resolve-Path $exe))))
+          if (-not $yaml.Contains("version: $env:VERSION")) { throw 'Wrong latest.yml version' }
+          if (-not $yaml.Contains($sha512)) { throw 'SHA512 mismatch' }
+          if (-not $yaml.Contains("Obra-na-Mao-Desktop-Setup-$env:VERSION.exe")) { throw 'Wrong updater filename' }
+      - name: Preserve installer as CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Obra-na-Mao-Desktop-2.1.13-Windows
+          path: |
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.13.exe
+            apps/desktop/release/Obra-na-Mao-Desktop-Setup-2.1.13.exe.blockmap
+            apps/desktop/release/latest.yml
+          if-no-files-found: error
+      - name: Publish immutable GitHub Release
+        shell: pwsh
+        run: |
+          $tag = "desktop-commercial-v$env:VERSION"
+          gh release view $tag --repo "$env:GITHUB_REPOSITORY" *> $null
+          if ($LASTEXITCODE -eq 0) { throw "Release $tag already exists; refusing to replace prior files" }
+          $exe = "apps/desktop/release/Obra-na-Mao-Desktop-Setup-$env:VERSION.exe"
+          $blockmap = "$exe.blockmap"
+          $manifest = "apps/desktop/release/latest.yml"
+          gh release create $tag $exe $blockmap $manifest --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "Obra na Mão Desktop Comercial v$env:VERSION" --notes "Permite adicionar e alternar contas licenciadas por e-mail no mesmo computador. Cada conta utiliza pasta local, sessão e banco separados. A instalação principal existente é preservada; contas adicionais exigem login no e-mail correspondente. A base da demonstração criada anteriormente em pasta personalizada não é migrada automaticamente."
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to publish GitHub Release' }

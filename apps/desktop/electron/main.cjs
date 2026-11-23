@@ -1,5 +1,8 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu, Tray, safeStorage } = require('electron')
 const path = require('node:path')
+const { createAccountProfiles } = require('./services/account-profiles.cjs')
+const accounts = createAccountProfiles(app)
+if (accounts.isolated && accounts.selected !== 'principal') { require('node:fs').mkdirSync(accounts.dataDir, { recursive: true }); app.setPath('userData', accounts.dataDir) }
 const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
 const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
@@ -78,7 +81,7 @@ function requireSyncAvailable() {
 }
 
 function resolvePaths() {
-  const dataDir = process.env.OBRA_NA_MAO_DATA_DIR || path.join(app.getPath('appData'), 'obra-na-mao-comercial')
+  const dataDir = accounts.dataDir
   return { dataDir, documentsDir: path.join(dataDir, 'documentos'), migrationsDir: path.join(app.getAppPath(), 'database', 'migrations') }
 }
 
@@ -134,7 +137,7 @@ function createServices() {
   const localContracts = new ContractsService({ db, product })
   const contracts = new ContractsSourceService({ local: localContracts, lanClient: dataAccess.remote, moduleStorage, dataAccess, product })
   const uiPreferences = new UiPreferencesService({ db })
-  const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage })
+  const online = new OnlineService({ dataDir: paths.dataDir, shell, safeStorage, expectedEmail: () => accounts.current()?.email })
   const sync = new SyncCoordinator({
     database: db,
     online,
@@ -500,11 +503,22 @@ function registerIpc() {
   ipcMain.handle('catalog:save-link', envelope((data) => services.catalog.saveLink(data)))
   ipcMain.handle('catalog:deactivate', envelope((data) => services.catalog.deactivate(data.type, data.id)))
   ipcMain.handle('online:state', envelope(() => services.online.state()))
-  ipcMain.handle('online:password-auth', envelope((payload) => withSyncStopped(async () => completeCanonicalStorage(await services.online.passwordAuth(payload)))))
-  ipcMain.handle('online:password-setup', envelope((payload) => withSyncStopped(async () => completeCanonicalStorage(await services.online.completePasswordLink(payload)))))
+  ipcMain.handle('accounts:list', envelope(() => ({ current: accounts.selected, accounts: accounts.list(), available: accounts.isolated })))
+  ipcMain.handle('accounts:add', envelope(({ email }) => { if (!accounts.isolated) throw new Error('Abra o aplicativo pelo atalho normal para gerenciar as contas.'); return accounts.add(email) }))
+  ipcMain.handle('accounts:switch', envelope(async ({ id }) => {
+    if (!accounts.isolated) throw new Error('Troca de contas indisponível com pasta de dados personalizada.')
+    if (!accounts.list().some(account => account.id === id)) throw new Error('Conta não cadastrada.')
+    if (id === accounts.selected) return { switched: false }
+    await services.sync.stop()
+    app.relaunch({ args: [...process.argv.slice(1).filter(arg => !arg.startsWith('--obra-account=')), '--obra-account=' + id] })
+    app.quit()
+    return { switched: true }
+  }))
+  ipcMain.handle('online:password-auth', envelope((payload) => withSyncStopped(async () => { const expected = accounts.current()?.email; if (expected && String(payload.email || '').trim().toLowerCase() !== expected) throw new Error('Entre com o e-mail da conta selecionada.'); const result = await completeCanonicalStorage(await services.online.passwordAuth(payload)); accounts.bind(payload.email); return result })))
+  ipcMain.handle('online:password-setup', envelope((payload) => withSyncStopped(async () => { const result = await completeCanonicalStorage(await services.online.completePasswordLink(payload)); return result })))
   ipcMain.handle('online:set-base-url', envelope(({ baseUrl }) => withSyncStopped(() => services.online.setBaseUrl(baseUrl))))
   ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
-  ipcMain.handle('online:status', envelope(() => withSyncStopped(async () => completeCanonicalStorage(await services.online.status()))))
+  ipcMain.handle('online:status', envelope(() => withSyncStopped(async () => { const result = await completeCanonicalStorage(await services.online.status()); if (result.status === 'approved') { const session = await services.online.session(); accounts.bind(session.user?.email) } return result })))
   ipcMain.handle('online:complete-storage', envelope((payload) => withSyncStopped(() => completeCanonicalStorage({ linked: false }, payload))))
   ipcMain.handle('online:local-transfer-preview', envelope(() => services.canonicalStorage.prepareLocalTransfer()))
   ipcMain.handle('online:local-transfer', envelope((payload) => withSyncStopped(async () => {
@@ -560,6 +574,10 @@ async function createWindow() {
 app.whenReady().then(async () => {
   try {
     services = createServices()
+    if (!accounts.current()?.email && services.online.state().linked) {
+      try { const session = await services.online.session(); accounts.bind(session.user?.email) }
+      catch (error) { console.warn('Identidade da conta principal pendente de confirmação:', error?.message || error) }
+    }
     registerIpc()
     if (isLanHostMode()) {
       await services.lanHost.start()
