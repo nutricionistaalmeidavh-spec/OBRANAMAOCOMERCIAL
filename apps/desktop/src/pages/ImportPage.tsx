@@ -1,12 +1,12 @@
 import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, ShieldCheck, UploadCloud } from 'lucide-react'
 import { useEffect, useState, type DragEvent } from 'react'
-import { Button, Card, Empty, Field, Loading, PageHeader, Segmented } from '../components/ui'
+import { Button, Card, Empty, Field, Loading, PageHeader } from '../components/ui'
 import { brl, competenceLabel } from '../utils/format'
 import { useAsync } from '../hooks/useAsync'
 
 const labels:any={financeiro:'Financeiro',obras:'Obras',orcamento:'Orcamento',funcionarios:'Funcionarios',compras:'Compras',contratos:'Contratos',aditivos:'Aditivos',medicoes:'Medicoes',ponto:'Ponto',documentos:'Documentos',estoque:'Estoque'}
 export default function ImportPage() {
-  const [mode, setMode] = useState('universal')
+  const mode = new URLSearchParams(location.search).get('modelo') === '2026' ? 'legado' : 'universal'
   const [preview, setPreview] = useState<any>(null)
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -119,9 +119,6 @@ export default function ImportPage() {
       description={universal ? 'Importe Excel ou CSV para a empresa escolhida, com revisão de todas as linhas.' : 'Assistente auditável da planilha histórica com aba 2026.'}
       actions={<Button icon={<UploadCloud size={16}/>} disabled={loading || (universal && !companyId)} onClick={universal ? choose : legacyChoose}>Selecionar planilha</Button>}
     />
-    <Segmented options={[{value:'universal',label:'Importador universal'},{value:'legado',label:'Modelo 2026'}]} value={mode} onChange={(value) => {
-      setMode(value); setPreview(null); setResult(null); setError(''); setMessage('')
-    }}/>
     {universal && <Card style={{marginTop:14}}>
       <div className="card-body">
         <Field label="Empresa de destino" required>
