@@ -574,6 +574,10 @@ async function createWindow() {
 app.whenReady().then(async () => {
   try {
     services = createServices()
+    if (!accounts.current()?.email && services.online.state().linked) {
+      try { const session = await services.online.session(); accounts.bind(session.user?.email) }
+      catch (error) { console.warn('Identidade da conta principal pendente de confirmação:', error?.message || error) }
+    }
     registerIpc()
     if (isLanHostMode()) {
       await services.lanHost.start()
