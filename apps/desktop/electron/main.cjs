@@ -511,7 +511,6 @@ function registerIpc() {
     if (id === accounts.selected) return { switched: false }
     await services.sync.stop()
     app.relaunch({ args: [...process.argv.slice(1).filter(arg => !arg.startsWith('--obra-account=')), '--obra-account=' + id] })
-    quitting = true
     app.quit()
     return { switched: true }
   }))
@@ -528,7 +527,7 @@ function registerIpc() {
     services.online.clearRequiredStorage(result.serverId)
     return { linked: true, storageStatus: 'local', storageRequired: null }
   })))
-  ipcMain.handle('online:session', envelope(async () => { const session = await services.online.session(); if (accounts.current()?.email && session.user?.email?.toLowerCase() !== accounts.current().email) throw new Error('Sessão de outra conta. Faça login no e-mail selecionado.'); return session }))
+  ipcMain.handle('online:session', envelope(async () => { const session = await services.online.session(); accounts.bind(session.user?.email); return session }))
   ipcMain.handle('online:set-storage-topology', envelope((payload) => services.online.setStorageTopology(payload)))
   ipcMain.handle('online:members-list', envelope(() => services.online.membersList()))
   ipcMain.handle('online:member-save', envelope((payload) => services.online.memberSave(payload)))
