@@ -518,7 +518,7 @@ function registerIpc() {
   ipcMain.handle('online:password-setup', envelope((payload) => withSyncStopped(async () => { const result = await completeCanonicalStorage(await services.online.completePasswordLink(payload)); return result })))
   ipcMain.handle('online:set-base-url', envelope(({ baseUrl }) => withSyncStopped(() => services.online.setBaseUrl(baseUrl))))
   ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
-  ipcMain.handle('online:status', envelope(() => withSyncStopped(async () => completeCanonicalStorage(await services.online.status()))))
+  ipcMain.handle('online:status', envelope(() => withSyncStopped(async () => { const result = await completeCanonicalStorage(await services.online.status()); if (result.status === 'approved') { const session = await services.online.session(); accounts.bind(session.user?.email) } return result })))
   ipcMain.handle('online:complete-storage', envelope((payload) => withSyncStopped(() => completeCanonicalStorage({ linked: false }, payload))))
   ipcMain.handle('online:local-transfer-preview', envelope(() => services.canonicalStorage.prepareLocalTransfer()))
   ipcMain.handle('online:local-transfer', envelope((payload) => withSyncStopped(async () => {
@@ -527,7 +527,7 @@ function registerIpc() {
     services.online.clearRequiredStorage(result.serverId)
     return { linked: true, storageStatus: 'local', storageRequired: null }
   })))
-  ipcMain.handle('online:session', envelope(async () => { const session = await services.online.session(); accounts.bind(session.user?.email); return session }))
+  ipcMain.handle('online:session', envelope(() => services.online.session()))
   ipcMain.handle('online:set-storage-topology', envelope((payload) => services.online.setStorageTopology(payload)))
   ipcMain.handle('online:members-list', envelope(() => services.online.membersList()))
   ipcMain.handle('online:member-save', envelope((payload) => services.online.memberSave(payload)))
