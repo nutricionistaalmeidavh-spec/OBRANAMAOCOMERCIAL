@@ -1,5 +1,8 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu, Tray, safeStorage } = require('electron')
 const path = require('node:path')
+const { createAccountProfiles } = require('./services/account-profiles.cjs')
+const accounts = createAccountProfiles(app)
+if (accounts.isolated && accounts.selected !== 'principal') { require('node:fs').mkdirSync(accounts.dataDir, { recursive: true }); app.setPath('userData', accounts.dataDir) }
 const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
 const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
@@ -78,7 +81,7 @@ function requireSyncAvailable() {
 }
 
 function resolvePaths() {
-  const dataDir = process.env.OBRA_NA_MAO_DATA_DIR || path.join(app.getPath('appData'), 'obra-na-mao-comercial')
+  const dataDir = accounts.dataDir
   return { dataDir, documentsDir: path.join(dataDir, 'documentos'), migrationsDir: path.join(app.getAppPath(), 'database', 'migrations') }
 }
 
@@ -500,7 +503,19 @@ function registerIpc() {
   ipcMain.handle('catalog:save-link', envelope((data) => services.catalog.saveLink(data)))
   ipcMain.handle('catalog:deactivate', envelope((data) => services.catalog.deactivate(data.type, data.id)))
   ipcMain.handle('online:state', envelope(() => services.online.state()))
-  ipcMain.handle('online:password-auth', envelope((payload) => withSyncStopped(async () => completeCanonicalStorage(await services.online.passwordAuth(payload)))))
+  ipcMain.handle('accounts:list', envelope(() => ({ current: accounts.selected, accounts: accounts.list() })))
+  ipcMain.handle('accounts:add', envelope(({ email }) => accounts.add(email)))
+  ipcMain.handle('accounts:switch', envelope(async ({ id }) => {
+    if (!accounts.isolated) throw new Error('Troca de contas indisponível com pasta de dados personalizada.')
+    if (!accounts.list().some(account => account.id === id)) throw new Error('Conta não cadastrada.')
+    if (id === accounts.selected) return { switched: false }
+    await services.sync.stop()
+    app.relaunch({ args: [...process.argv.slice(1).filter(arg => !arg.startsWith('--obra-account=')), '--obra-account=' + id] })
+    quitting = true
+    app.quit()
+    return { switched: true }
+  }))
+  ipcMain.handle('online:password-auth', envelope((payload) => withSyncStopped(async () => completeCanonicalStorage(await services.online.passwordAuth(payload)).then(result => { accounts.bind(payload.email); return result }))))
   ipcMain.handle('online:password-setup', envelope((payload) => withSyncStopped(async () => completeCanonicalStorage(await services.online.completePasswordLink(payload)))))
   ipcMain.handle('online:set-base-url', envelope(({ baseUrl }) => withSyncStopped(() => services.online.setBaseUrl(baseUrl))))
   ipcMain.handle('online:start', envelope((payload) => services.online.start(payload)))
@@ -513,7 +528,7 @@ function registerIpc() {
     services.online.clearRequiredStorage(result.serverId)
     return { linked: true, storageStatus: 'local', storageRequired: null }
   })))
-  ipcMain.handle('online:session', envelope(() => services.online.session()))
+  ipcMain.handle('online:session', envelope(async () => { const session = await services.online.session(); if (accounts.current()?.email && session.user?.email?.toLowerCase() !== accounts.current().email) throw new Error('Sessão de outra conta. Faça login no e-mail selecionado.'); return session }))
   ipcMain.handle('online:set-storage-topology', envelope((payload) => services.online.setStorageTopology(payload)))
   ipcMain.handle('online:members-list', envelope(() => services.online.membersList()))
   ipcMain.handle('online:member-save', envelope((payload) => services.online.memberSave(payload)))
