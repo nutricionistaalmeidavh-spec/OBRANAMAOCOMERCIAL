@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useAsync } from '../hooks/useAsync'
 import SyncSettings from '../components/SyncSettings'
+import AccountSwitcher from '../components/AccountSwitcher'
 import StorageServerSettings from '../components/StorageServerSettings'
 import TeamAccessSettings from '../components/TeamAccessSettings'
 import UpdaterSettingsCard from '../components/UpdaterSettingsCard'
@@ -34,6 +35,7 @@ export default function SettingsPage(){
   return <>
     <PageHeader title="Configurações" description="Conectividade, armazenamento, proteção, preferências e manutenção do aplicativo."/>
 
+    <AccountSwitcher/>
     <SettingsGroup title="Dados e conectividade" description="Defina onde os dados operacionais vivem e como este Desktop se conecta aos demais canais.">
       <SyncSettings/>
       <Card className="setting-card setting-card-wide">
