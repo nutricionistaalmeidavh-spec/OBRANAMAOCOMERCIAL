@@ -35,6 +35,7 @@ export default function SettingsPage(){
     <PageHeader title="Configurações" description="Conectividade, armazenamento, proteção, preferências e manutenção do aplicativo."/>
 
     <SettingsGroup title="Dados e conectividade" description="Defina onde os dados operacionais vivem e como este Desktop se conecta aos demais canais.">
+      <SyncSettings/>
       <Card className="setting-card setting-card-wide">
         <Cloud size={21}/>
         <div className="setting-card-copy">
@@ -53,10 +54,6 @@ export default function SettingsPage(){
         </div>
         <small className="path-text">{online.data?.baseUrl||'Carregando endpoint...'}</small>
       </Card>
-      <details className="setting-card setting-card-wide">
-        <summary>Sincronização com Obra360 (opcional)</summary>
-        <SyncSettings/>
-      </details>
       <StorageServerSettings onMessage={setMessage}/>
     </SettingsGroup>
 
