@@ -255,7 +255,7 @@ class OnlineService {
       const session = await this.request('/api/desktop/session', { deviceToken: result.deviceToken })
       if (!session.authorized || !session.company?.id) throw new Error('Conclua o vínculo da sua empresa antes de autorizar este computador.')
       this.assertAccountEmail(session.user?.email)
-    this.assertTenant(session.company.id)
+      this.assertTenant(session.company.id)
       const storageRequired = this.storageBinding(session)
       this.writeConfig({
         tenant: { companyId: String(session.company.id), companyName: session.company.name || '', baseUrl: this.baseUrl },
