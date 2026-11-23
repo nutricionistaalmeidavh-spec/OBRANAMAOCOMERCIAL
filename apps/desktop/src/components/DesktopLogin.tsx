@@ -189,7 +189,7 @@ export function DesktopLogin({ onLinked, storageRequired }: { onLinked: () => vo
         <Field label="Nome da empresa" required><input value={companyName} onChange={e => setCompanyName(e.target.value)} autoComplete="organization" required maxLength={160}/></Field>
         <Field label="Primeira obra" required><input value={projectName} onChange={e => setProjectName(e.target.value)} required maxLength={160}/></Field>
       </> : <>
-        <Field label="E-mail" required><input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="username" readOnly={!!selectedAccountEmail} required/></Field>
+        {!selectedAccountEmail && <Field label="E-mail" required><input type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="username" required/></Field>}
         {firstAccess && <Field label={mode === 'company' ? 'Código de ativação da empresa' : 'Código de convite'} required><input value={code} onChange={e => setCode(e.target.value)} autoComplete="off" required/></Field>}
         <Field label={firstAccess ? 'Crie sua senha (mínimo 8 caracteres)' : 'Senha'} required><input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={firstAccess ? 'new-password' : 'current-password'} minLength={firstAccess ? 8 : undefined} required/></Field>
       </>}
