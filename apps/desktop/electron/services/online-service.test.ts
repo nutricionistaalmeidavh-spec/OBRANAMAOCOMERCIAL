@@ -19,6 +19,21 @@ afterEach(() => {
 })
 
 describe('OnlineService', () => {
+  it('reusa o identificador físico entre perfis sem substituir um vínculo existente', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'obra-multicontas-')); dirs.push(root)
+    const primary = path.join(root, 'obra-na-mao-comercial')
+    const secondary = path.join(primary, 'accounts', 'demo')
+    fs.mkdirSync(primary, { recursive: true })
+    fs.writeFileSync(path.join(primary, 'online-connection.json'), JSON.stringify({ installationId: 'principal-existing-id' }))
+    const sharedInstallationIdPath = path.join(primary, 'installation-id')
+    const demo = new OnlineService({ dataDir: secondary, sharedInstallationIdPath })
+    expect(demo.installationId()).toBe('principal-existing-id')
+    expect(JSON.parse(fs.readFileSync(path.join(secondary, 'online-connection.json'), 'utf8')).installationId).toBe('principal-existing-id')
+
+    const linked = new OnlineService({ dataDir: path.join(primary, 'accounts', 'linked'), sharedInstallationIdPath })
+    linked.writeConfig({ installationId: 'previously-authorized-id', tokenValue: 'encoded-token' })
+    expect(linked.installationId()).toBe('previously-authorized-id')
+  })
   it('vincula o Desktop, guarda o token e valida a sessão', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fluxo-online-'))
     dirs.push(dir)
