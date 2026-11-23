@@ -503,8 +503,8 @@ function registerIpc() {
   ipcMain.handle('catalog:save-link', envelope((data) => services.catalog.saveLink(data)))
   ipcMain.handle('catalog:deactivate', envelope((data) => services.catalog.deactivate(data.type, data.id)))
   ipcMain.handle('online:state', envelope(() => services.online.state()))
-  ipcMain.handle('accounts:list', envelope(() => ({ current: accounts.selected, accounts: accounts.list() })))
-  ipcMain.handle('accounts:add', envelope(({ email }) => accounts.add(email)))
+  ipcMain.handle('accounts:list', envelope(() => ({ current: accounts.selected, accounts: accounts.list(), available: accounts.isolated })))
+  ipcMain.handle('accounts:add', envelope(({ email }) => { if (!accounts.isolated) throw new Error('Abra o aplicativo pelo atalho normal para gerenciar as contas.'); return accounts.add(email) }))
   ipcMain.handle('accounts:switch', envelope(async ({ id }) => {
     if (!accounts.isolated) throw new Error('Troca de contas indisponível com pasta de dados personalizada.')
     if (!accounts.list().some(account => account.id === id)) throw new Error('Conta não cadastrada.')
