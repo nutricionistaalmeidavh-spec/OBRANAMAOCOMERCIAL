@@ -1,5 +1,39 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu, Tray, safeStorage } = require('electron')
 const path = require('node:path')
+
+// Preserve the original profile path for existing installations and QA overrides.
+const desktopProfileArg = '--obra-na-mao-profile='
+const desktopProfile = process.env.OBRA_NA_MAO_DATA_DIR ? 'principal'
+  : process.argv.includes(desktopProfileArg + 'demo') ? 'demo' : 'principal'
+const demoProfileRoot = path.join(app.getPath('appData'), 'obra-na-mao-comercial-perfis', 'demo')
+if (desktopProfile === 'demo') {
+  require('node:fs').mkdirSync(demoProfileRoot, { recursive: true })
+  app.setPath('userData', demoProfileRoot)
+}
+function installDesktopProfileMenu() {
+  if (!app.isPackaged || process.env.OBRA_NA_MAO_DATA_DIR) {
+    Menu.setApplicationMenu(null)
+    return
+  }
+  const switchProfile = async (target) => {
+    if (target === desktopProfile || quitting) return
+    const answer = await dialog.showMessageBox(mainWindow, {
+      type: 'question', buttons: ['Trocar perfil', 'Cancelar'], defaultId: 1, cancelId: 1,
+      message: 'Trocar de perfil do desktop?', detail: 'Salve o trabalho aberto. O aplicativo será reiniciado com os dados do perfil escolhido.'
+    })
+    if (answer.response !== 0 || quitting) return
+    app.relaunch({ args: [...process.argv.slice(1).filter(arg => !arg.startsWith(desktopProfileArg)), desktopProfileArg + target] })
+    app.quit()
+  }
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    { label: 'Perfil', submenu: [
+      { label: 'Principal', type: 'radio', checked: desktopProfile === 'principal', enabled: desktopProfile !== 'principal', click: () => void switchProfile('principal').finally(installDesktopProfileMenu) },
+      { label: 'Demonstração', type: 'radio', checked: desktopProfile === 'demo', enabled: desktopProfile !== 'demo', click: () => void switchProfile('demo').finally(installDesktopProfileMenu) }
+    ] },
+    { role: 'editMenu' }
+  ]))
+}
+
 const { DatabaseService } = require('./services/database-safe.cjs')
 const { DataAccessService } = require('./services/data-access-service.cjs')
 const { StorageConnectionService } = require('./services/storage-connection-service.cjs')
@@ -78,7 +112,7 @@ function requireSyncAvailable() {
 }
 
 function resolvePaths() {
-  const dataDir = process.env.OBRA_NA_MAO_DATA_DIR || path.join(app.getPath('appData'), 'obra-na-mao-comercial')
+  const dataDir = process.env.OBRA_NA_MAO_DATA_DIR || (desktopProfile === 'demo' ? path.join(demoProfileRoot, 'dados') : path.join(app.getPath('appData'), 'obra-na-mao-comercial'))
   return { dataDir, documentsDir: path.join(dataDir, 'documentos'), migrationsDir: path.join(app.getAppPath(), 'database', 'migrations') }
 }
 
@@ -541,7 +575,7 @@ function fallbackPage(message, details = '') {
 }
 
 async function createWindow() {
-  Menu.setApplicationMenu(null)
+  installDesktopProfileMenu()
   mainWindow = new BrowserWindow({ icon: trayIcon(), width: 1440, height: 900, minWidth: 1024, minHeight: 700, backgroundColor: '#f3f5f8', show: false, autoHideMenuBar: true, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
   mainWindow.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/.test(url)) shell.openExternal(url); return { action: 'deny' } })
   mainWindow.webContents.on('will-navigate', (event, url) => { const allowed = process.env.VITE_DEV_SERVER_URL ? url.startsWith(process.env.VITE_DEV_SERVER_URL) : url.startsWith('file:'); if (!allowed) event.preventDefault() })
