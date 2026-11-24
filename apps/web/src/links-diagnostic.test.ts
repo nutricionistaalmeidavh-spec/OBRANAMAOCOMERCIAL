@@ -15,16 +15,22 @@ describe('Central ArtiSys /links e Diagnóstico Gratuito atual',()=>{
    expect(ids).toEqual(['sistemas','mercado-livre']);
    expect((links.match(/data-link-id="diagnostico"/g)||[])).toHaveLength(1);
  });
- it('preserva destaque, motion e canais da Central sem apresentar formulário antigo',()=>{
+ it('exibe diagnóstico compacto após os demais cards e antes dos canais sociais',()=>{
    const diagnosticIndex=links.indexOf('class="diagnostic-callout"');
    const systemsIndex=links.indexOf('data-link-id="sistemas"');
    const socialIndex=links.indexOf('class="social-nav"');
    expect(diagnosticIndex).toBeGreaterThan(0);
-   expect(systemsIndex).toBeGreaterThan(diagnosticIndex);
-   expect(socialIndex).toBeGreaterThan(systemsIndex);
+   const marketIndex=links.indexOf('data-link-id="mercado-livre"');
+   expect(marketIndex).toBeGreaterThan(systemsIndex);
+   expect(diagnosticIndex).toBeGreaterThan(marketIndex);
+   expect(socialIndex).toBeGreaterThan(diagnosticIndex);
+   const callout=links.split('class="diagnostic-callout"')[1]?.split('</section>')[0]||'';
+   expect(callout).not.toContain('<p>');
+   expect(callout).toContain('Iniciar diagnóstico gratuito');
    const motion=read('../public/links/links-motion.js');
    expect(motion).toContain('reveal(".diagnostic-callout"');
    expect(motion).toContain('destinationCards.forEach');
+   expect(motion.indexOf('reveal(".diagnostic-callout"')).toBeGreaterThan(motion.indexOf('destinationCards.forEach'));
    expect(motion).toContain('prefers-reduced-motion: reduce');
  });
  it('transfere a origem do TikTok e UTM para o único formulário rápido',()=>{
