@@ -28,9 +28,9 @@
   reveal(hero, 85, 900, 22);
   reveal(".hero-copy", 230, 730, 14);
   reveal(orb, 350, 1100, 28);
-  // O diagnóstico aparece primeiro, seguido pelos destinos oficiais em sequência.
-  reveal(".diagnostic-callout", 505, 810, 18);
-  destinationCards.forEach((link, index) => reveal(link, 625 + index * 110, 810, 18));
+  // Os destinos oficiais aparecem primeiro e o diagnóstico encerra os cards.
+  destinationCards.forEach((link, index) => reveal(link, 505 + index * 110, 810, 18));
+  reveal(".diagnostic-callout", 505 + destinationCards.length * 110, 810, 18);
   socialLinks.forEach((link, index) => reveal(link, 925 + index * 85, 570, 12));
   reveal(".footer", 850, 600, 10);
 
