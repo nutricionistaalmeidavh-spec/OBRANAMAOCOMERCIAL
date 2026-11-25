@@ -18,8 +18,8 @@ type DeboraClient={email:string;planCode:string;status:'active'|'freemium'|'revo
 type LicenseEvent={id:string;product:'obra-na-mao'|'debora-lactacao';licenseId?:string;email?:string;action:string;source?:string;actor?:string;createdAt:string;details?:Record<string,unknown>};
 type OwnerView='overview'|'obra'|'debora'|'clients'|'licenses'|'leads'|'links'|'marketing';
 
-const modules=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'];
-const labels:Record<string,string>={finance:'Financeiro',rh:'RH',contracts:'Contratos',rdo:'RDO',obra360:'Obra360',dre:'DRE',procurement:'Compras',measurements:'Medições',documents:'Documentos',universidade:'Universidade',ai:'IA',desktop:'Desktop',mobile:'Web / mobile'};
+const modules=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','ai'];
+const labels:Record<string,string>={finance:'Financeiro',rh:'RH',contracts:'Contratos',rdo:'RDO',obra360:'Obra360',dre:'DRE',procurement:'Compras',measurements:'Medições',documents:'Documentos',ai:'IA',desktop:'Desktop',mobile:'Web / mobile'};
 const viewLabels:Record<OwnerView,string>={overview:'Visão geral',obra:'Obra na Mão',debora:'Débora Lactação',clients:'Clientes',licenses:'Licenças',leads:'Leads ArtiSys',links:'Visitas e cliques',marketing:'Marketing e SEO'};
 const productLabels={'obra-na-mao':'Obra na Mão','debora-lactacao':'Débora Lactação'} as const;
 const deboraTaskLabels={
@@ -40,7 +40,7 @@ const companyStatus=(c:Company)=>c.status==='expired'?'expired':c.status==='susp
 const statusLabel=(status:string)=>({active:'Ativa',pending:'Pendente',freemium:'Freemium',expiring:'Expira em breve',expired:'Vencida',revoked:'Revogada'} as Record<string,string>)[status]||status;
 const formatDate=(value?:string|null)=>value?new Date(value).toLocaleDateString('pt-BR'):'Sem vencimento';
 const dateInput=(value?:string|null)=>value?String(value).slice(0,10):'';
-function choices(name:string,items:string[],selected:string[]){return items.map(k=>`<label class="check"><input type="checkbox" name="${name}" value="${k}" ${selected.includes(k)?'checked':''}>${labels[k]||k}</label>`).join('')}
+function choices(name:string,items:string[],selected:string[]){return items.filter(k=>k!=='universidade').map(k=>`<label class="check"><input type="checkbox" name="${name}" value="${k}" ${selected.includes(k)?'checked':''}>${labels[k]||k}</label>`).join('')}
 function selected(form:HTMLFormElement,name:string){return [...form.querySelectorAll<HTMLInputElement>(`input[name="${name}"]:checked`)].map(x=>x.value)}
 function brlToCents(value:unknown){
   const text=String(value??'').trim();if(!text)return null;

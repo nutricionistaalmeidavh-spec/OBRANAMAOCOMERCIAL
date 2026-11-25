@@ -33,6 +33,12 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": [
       "/api/*",
+      "/universidade*",
+      "/manifest-universidade.webmanifest",
+      "/icon-universidade.svg",
+      "/question-images/*",
+      "/resources/question-visual-map.json",
+      "/resources/question-visuals-manifest.json",
       "/devkits*",
       "/devkitools*",
       "/sistemas/",

@@ -16,9 +16,9 @@ describe('authorization wiring', () => {
     expect(platformSource).toContain("(access.companyIds||[]).includes(scopedCompany)")
   })
 
-  it('rechecks the current company license for Finance and Universidade', () => {
+  it('rechecks Finance and forces the retired university grant off', () => {
     expect(indexSource).toContain("companyAccess.modules.includes('finance')")
-    expect(indexSource).toContain("companyAccess?.modules.includes('universidade')")
+    expect(indexSource).toContain('systems.universidade.enabled=false')
   })
 
   it('requires current Finance + IA entitlement for desktop AI', () => {
