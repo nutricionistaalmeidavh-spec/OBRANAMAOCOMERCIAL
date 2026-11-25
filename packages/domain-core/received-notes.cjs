@@ -728,4 +728,105 @@ function confirmMaterialReclassification(db,saveEntity,payload,actor){
  return saveEntity('material_reclassificacoes',{empresa_id:Number(payload.empresa_id),origem_id:impact.origem.id,destino_id:impact.destino.id,operador:operator,motivo:reason,movimentacoes:impact.movimentacoes,pedidos:impact.pedidos})
 }
 
-module.exports={materialReclassificationPreview,confirmMaterialReclassification,stockRevision,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}
+
+// P1: no model, network or external dependency. Scores are rankings, not probabilities.
+const nfeWords=Object.freeze({tb:'tubo',tub:'tubo',esg:'esgoto',sold:'soldavel',rosc:'roscavel',sn:'normal',sr:'reforcada',reg:'registro',jo:'joelho',red:'reducao',lu:'luva',cx:'caixa',br:'barra',mt:'m',mts:'m',milimetros:'mm',metros:'m'})
+function normalizeNfeDescription(value){
+ return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/(\d),(\d)/g,'$1.$2').replace(/\bdn\s*(\d+)/g,'dn $1').replace(/(\d)(mm|cm|mts?|m)\b/g,'$1 $2').replace(/[^a-z0-9.]+/g,' ').trim().split(/\s+/).filter(Boolean).map(w=>nfeWords[w]||w).join(' ')
+}
+function nfeTechnicalAttributes(description,explicit={}){
+ const text=normalizeNfeDescription(description),tokens=new Set(text.split(' '))
+ const pick=values=>values.find(x=>tokens.has(x))||''
+ const diameter=[...text.matchAll(/\b(?:dn\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*mm)\b/g)].map(m=>String(Number(m[1]||m[2])))
+ const lengths=[...text.matchAll(/\b(\d+(?:\.\d+)?)\s*(cm|m)\b/g)].map(m=>String(Number(m[1])*(m[2]==='cm'?0.01:1)))
+ const attributes={categoria:pick(['tubo','joelho','luva','registro','reducao','adaptador','te','cimento','areia','brita','cabo','fio','parafuso']),material:pick(['pvc','cpvc','ppr','pex','cobre','aco','ferro','concreto','polietileno']),aplicacao:pick(['esgoto','soldavel','roscavel','gas','eletrico','agua']),diametro:[...new Set(diameter)].sort().join('/'),comprimento:[...new Set(lengths)].sort().join('/'),serie:pick(['normal','reforcada'])}
+ for(const key of ['categoria','material','aplicacao','diametro','comprimento','serie','marca','referencia','dimensoes','especificacao']){
+  if(!explicit[key])continue
+  const v=normalizeNfeDescription(explicit[key])
+  if(key==='diametro'){const match=v.match(/^(?:dn )?(\d+(?:\.\d+)?)(?: mm)?$/);attributes[key]=match?String(Number(match[1])):v}
+  else if(key==='comprimento'){const match=v.match(/^(\d+(?:\.\d+)?)\s*(m|cm)?$/);attributes[key]=match?String(Number(match[1])*(match[2]==='cm'?0.01:1)):v}
+  else attributes[key]=v
+ }
+ return Object.fromEntries(Object.entries(attributes).filter(([,v])=>v))
+}
+function nfeTechnicalConflicts(a,b){return Object.keys(a).filter(k=>b[k]&&a[k]!==b[k])}
+function validNfeGtin(value){
+ const gtin=String(value??'').trim()
+ if(!/^(?:\d{8}|\d{12}|\d{13}|\d{14})$/.test(gtin)||/^0+$/.test(gtin))return ''
+ let sum=0,w=3
+ for(let i=gtin.length-2;i>=0;i--){sum+=Number(gtin[i])*w;w=w===3?1:3}
+ return Number(gtin.at(-1))===(10-sum%10)%10?gtin.padStart(14,'0'):''
+}
+function classifyNfeOperation(items){
+ // Explicit allowlist: supplier outgoing sale; not a generic CFOP-prefix inference.
+ const purchases=new Set(['5101','5102','5401','5403','5405','6101','6102','6401','6403','6404'])
+ const returns=new Set(['5201','5202','5410','5411','6201','6202','6410','6411','1201','1202','2201','2202'])
+ const remittance=new Set(['5901','5902','5904','5905','5908','5909','5910','5911','5912','5913','5915','5916','5917','5949','6901','6902','6904','6905','6908','6909','6910','6911','6912','6913','6915','6916','6917','6949'])
+ const classes=(items||[]).map(item=>purchases.has(item.cfop)?'compra':returns.has(item.cfop)?'devolucao':remittance.has(item.cfop)?'remessa':'revisar')
+ return classes.length&&classes.every(x=>x===classes[0])?classes[0]:'revisar'
+}
+function convertNfeQuantity(value,num,den){
+ const n=positiveFiscalId(num,'Fator numerador'),d=positiveFiscalId(den,'Fator denominador')
+ if(n>1e9||d>1e9)throw new Error('Fator inválido.')
+ const scaled=fixedDecimal(value,6,'Quantidade fiscal')*BigInt(n)
+ if(scaled%BigInt(d)!==0n)throw new Error('Conversão excede a precisão de estoque; revise a unidade.')
+ const converted=scaled/BigInt(d)
+ safeInt(converted,'Quantidade convertida')
+ return quantityText(converted)
+}
+function nfeSimilarity(a,b){
+ const aa=new Set(a.split(' ').filter(Boolean)),bb=new Set(b.split(' ').filter(Boolean))
+ if(!aa.size||!bb.size)return 0
+ const common=[...aa].filter(x=>bb.has(x)).length
+ return Math.round(200*common/(aa.size+bb.size))
+}
+function recognizeNfeMaterials(db,payload){
+ const company=positiveFiscalId(payload.empresa_id,'Empresa'),supplier=fiscalRow(db,'fornecedores',payload.fornecedor_id,'Fornecedor')
+ fiscalRow(db,'empresas',company,'Empresa')
+ if(supplier.empresa_id!=null&&Number(supplier.empresa_id)!==company)throw new Error('Fornecedor de outra empresa.')
+ if(payload.documento&&digits(supplier.documento)!==digits(payload.documento))throw new Error('Emitente não corresponde ao fornecedor.')
+ if(!Array.isArray(payload.itens)||!payload.itens.length||payload.itens.length>990)throw new Error('Quantidade de itens fiscais inválida.')
+ // One company-scoped read per catalog/alias set; never a query per invoice line.
+ const catalog=db.prepare("SELECT c.* FROM materiais_estoque c WHERE c.empresa_id=? AND NOT EXISTS(SELECT 1 FROM material_reclassificacoes r WHERE r.origem_id=c.id) ORDER BY c.id LIMIT 20001").all(company)
+ if(catalog.length>20000)throw new Error('Catálogo excede o limite de reconhecimento em lote; revise antes de importar.')
+ const entries=catalog.map(m=>({...m,normalized:normalizeNfeDescription(m.descricao),technical:nfeTechnicalAttributes(m.descricao,JSON.parse(m.atributos_json||'{}'))}))
+ const byId=new Map(entries.map(m=>[Number(m.id),m]))
+ const aliases=db.prepare("SELECT e.* FROM material_fornecedor_equivalencias e JOIN fornecedores f ON f.id=e.fornecedor_id WHERE e.empresa_id=? AND f.deleted_at IS NULL ORDER BY e.id LIMIT 100001").all(company)
+ if(aliases.length>100000)throw new Error('Equivalências excedem o limite de reconhecimento em lote.')
+ const aliasKeys=new Map(),gtins=new Map()
+ const aliasKey=(id,code,unit)=>JSON.stringify([Number(id),String(code).trim(),String(unit).trim().toLowerCase()])
+ for(const a of aliases){
+  aliasKeys.set(aliasKey(a.fornecedor_id,a.codigo,a.unidade_comercial),a)
+  const gtin=validNfeGtin(a.gtin)
+  if(gtin){if(!gtins.has(gtin))gtins.set(gtin,new Set());gtins.get(gtin).add(Number(a.material_id))}
+ }
+ const results=payload.itens.map(item=>{
+  const numero=String(item.numero??''),codigo=String(item.codigo??'').trim(),descricao=String(item.descricao??'').trim(),unidade=String(item.unidade??'').trim()
+  if(!numero||!codigo||codigo.length>120||!descricao||descricao.length>500||!unidade||unidade.length>24)throw new Error('Item fiscal inválido.')
+  const normalized=normalizeNfeDescription(descricao),technical=nfeTechnicalAttributes(descricao),gtin=validNfeGtin(item.gtin),gtinIds=gtins.get(gtin)||new Set()
+  const linked=aliasKeys.get(aliasKey(supplier.id,codigo,unidade))
+  if(linked){
+   const material=byId.get(Number(linked.material_id)),conflicts=material?nfeTechnicalConflicts(technical,material.technical):['material_indisponivel']
+   const aliasTechnical=nfeTechnicalAttributes(linked.descricao_origem)
+   conflicts.push(...nfeTechnicalConflicts(technical,aliasTechnical))
+   if(gtin&&validNfeGtin(linked.gtin)&&gtin!==validNfeGtin(linked.gtin))conflicts.push('gtin')
+   if(gtinIds.size&&(gtinIds.size!==1||!gtinIds.has(Number(linked.material_id))))conflicts.push('gtin_ambiguo')
+   if(!conflicts.length)return {numero,status:'confirmado',material_id:Number(material.id),descricao:material.descricao,unidade:material.unidade,fator_num:linked.fator_num,fator_den:linked.fator_den,conflitos:[],candidatos:[]}
+   return {numero,status:'conflito',material_id:null,conflitos:[...new Set(conflicts)],candidatos:[]}
+  }
+  const candidates=[]
+  for(const m of entries){
+   const score=nfeSimilarity(normalized,m.normalized),barcode=gtinIds.has(Number(m.id)),reference=m.technical.referencia&&normalized.split(' ').includes(m.technical.referencia)
+   if(score<30&&!barcode&&!reference)continue
+   const conflicts=nfeTechnicalConflicts(technical,m.technical)
+   const sameUnit=unidade.toLowerCase()===String(m.unidade).trim().toLowerCase()
+   candidates.push({material_id:Number(m.id),descricao:m.descricao,unidade:m.unidade,pontuacao:barcode?100:reference?Math.max(95,score):score,conflitos:conflicts,conversao_necessaria:!sameUnit,origem:barcode?'gtin':reference?'referencia':'texto'})
+  }
+  candidates.sort((a,b)=>Number(!!a.conflitos.length)-Number(!!b.conflitos.length)||b.pontuacao-a.pontuacao||a.material_id-b.material_id)
+  return {numero,status:candidates.length?'revisar':'sem_correspondencia',material_id:null,conflitos:[],candidatos:candidates.slice(0,8)}
+ })
+ if(new Set(results.map(x=>x.numero)).size!==results.length)throw new Error('Itens fiscais repetidos.')
+ return {operacao:classifyNfeOperation(payload.itens),itens:results}
+}
+
+module.exports={recognizeNfeMaterials,normalizeNfeDescription,nfeTechnicalAttributes,nfeTechnicalConflicts,validNfeGtin,classifyNfeOperation,convertNfeQuantity,materialReclassificationPreview,confirmMaterialReclassification,stockRevision,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}
