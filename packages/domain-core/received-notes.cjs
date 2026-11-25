@@ -400,9 +400,7 @@ function fiscalRow(db,table,id,label){
   if(!r||r.deleted_at)throw new Error(label+' inexistente.')
   return r
 }
-function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
-  if(typeof parseXml!=='function'||typeof saveEntity!=='function')throw new Error('Adaptador fiscal de confiança obrigatório.')
-  const readXml=payload=>{
+function decodeNfeSource(payload,parseXml){
     const source=payload?.xml_base64
     if(typeof source!=='string'||source.length>12*1024*1024||!/^[A-Za-z0-9+/]+={0,2}$/.test(source))throw new Error('Arquivo XML inválido.')
     const bytes=Buffer.from(source,'base64')
@@ -410,6 +408,20 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
     // Never trust a preview object supplied by the renderer.
     const xml=new TextDecoder('utf-8',{fatal:true}).decode(bytes)
     const parsed=parseXml(xml)
+ return {bytes,parsed}
+}
+function inspectNfeSource(db,payload,parseXml){
+ const {parsed}=decodeNfeSource(payload,parseXml)
+ const work=fiscalRow(db,'obras',payload.obra_id,'Obra'),company=fiscalRow(db,'empresas',work.empresa_id,'Empresa')
+ if(company.status==='inativa'||digits(company.cnpj)!==digits(parsed.destinatario))throw new Error('Destinatário da NF-e não corresponde à empresa da obra.')
+ const recognition=recognizeNfeMaterials(db,{obra_id:work.id,documento:parsed.documento,fornecedor_id:payload.fornecedor_id,itens:parsed.itens})
+ const existing=db.prepare('SELECT id,status_integracao FROM notas_recebidas WHERE empresa_id=? AND (chave_acesso=? OR (fornecedor_id=? AND numero=? AND serie=? AND deleted_at IS NULL)) ORDER BY id LIMIT 1').get(company.id,parsed.chave,recognition.fornecedor_id,parsed.numero,parsed.serie)
+ return {...recognition,fiscal:parsed,registro_existente:existing||null}
+}
+function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
+  if(typeof parseXml!=='function'||typeof saveEntity!=='function')throw new Error('Adaptador fiscal de confiança obrigatório.')
+  const readXml=payload=>{
+    const {bytes,parsed}=decodeNfeSource(payload,parseXml)
     const operation={empresa_id:payload.empresa_id,fornecedor_id:payload.fornecedor_id,categoria_id:payload.categoria_id,data_recebimento:payload.data_recebimento,destinos:payload.destinos,parcelas:payload.parcelas}
     const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().filter(k=>v[k]!==undefined).map(k=>[k,canonical(v[k])])):v
     return {bytes,parsed,hash:createHash('sha256').update(bytes).digest('hex'),operationHash:createHash('sha256').update(JSON.stringify(canonical(operation))).digest('hex')}
@@ -851,4 +863,4 @@ function recognizeNfeMaterials(db,payload){
  return {empresa_id:company,fornecedor_id:Number(supplier.id),operacao:classifyNfeOperation(payload.itens),itens:results}
 }
 
-module.exports={recognizeNfeMaterials,normalizeNfeDescription,nfeTechnicalAttributes,nfeTechnicalConflicts,validNfeGtin,classifyNfeOperation,convertNfeQuantity,materialReclassificationPreview,confirmMaterialReclassification,stockRevision,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}
+module.exports={inspectNfeSource,recognizeNfeMaterials,normalizeNfeDescription,nfeTechnicalAttributes,nfeTechnicalConflicts,validNfeGtin,classifyNfeOperation,convertNfeQuantity,materialReclassificationPreview,confirmMaterialReclassification,stockRevision,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}

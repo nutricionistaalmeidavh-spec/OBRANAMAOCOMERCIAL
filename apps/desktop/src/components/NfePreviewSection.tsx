@@ -21,15 +21,16 @@ export default function NfePreviewSection({obraId}:{obraId:number|null}){
   const [fileName,setFileName]=useState('')
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
+  const [xmlBase64,setXmlBase64]=useState('')
   const [recognition,setRecognition]=useState<Recognition|null>(null)
   const [recognitionError,setRecognitionError]=useState('')
   const [review,setReview]=useState<{numero:string;candidate:Candidate;num:string;den:string;confirmed:boolean}|null>(null)
   const [page,setPage]=useState(0)
   const lock=useRef(false)
-  const recognize=async(data:NfePreview)=>{
+  const recognize=async(source:string)=>{
     if(!obraId)return
     setRecognition(null);setRecognitionError('');setReview(null);setPage(0)
-    try{setRecognition(await window.fluxoDre.compras.nfeRecognize({obra_id:obraId,documento:data.documento,itens:data.itens.map(({numero,codigo,descricao,unidade,gtin,cfop})=>({numero,codigo,descricao,unidade,gtin,cfop}))}))}
+    try{setRecognition(await window.fluxoDre.compras.nfeRecognize({obra_id:obraId,xml_base64:source}))}
     catch(e){setRecognitionError(e instanceof Error?e.message:'Não foi possível consultar o catálogo.')}
   }
   const confirm=async()=>{
@@ -41,7 +42,7 @@ export default function NfePreviewSection({obraId}:{obraId:number|null}){
     lock.current=true;setBusy(true);setRecognitionError('')
     try{
       await window.fluxoDre.compras.catalogConfirm({empresa_id:recognition.empresa_id,fornecedor_id:recognition.fornecedor_id,material_id:review.candidate.material_id,codigo:item.codigo,unidade_comercial:item.unidade,descricao_origem:item.descricao,gtin:/^(?:\d{8}|\d{12}|\d{13}|\d{14})$/.test(item.gtin)?item.gtin:'',fator_num:num,fator_den:den})
-      await recognize(preview)
+      await recognize(xmlBase64)
     }catch(e){setRecognitionError(e instanceof Error?e.message:'Não foi possível confirmar a equivalência.')}
     finally{lock.current=false;setBusy(false)}
   }
@@ -50,8 +51,11 @@ export default function NfePreviewSection({obraId}:{obraId:number|null}){
     setBusy(true);setError('')
     try{
       if(!/\.xml$/i.test(file.name)||!file.size||file.size>MAX_NFE_BYTES)throw new Error('Selecione um XML de NF-e de até 8 MB.')
-      const data=parseNfePreview(await file.text())
-      setPreview(data);setFileName(file.name);await recognize(data)
+      const bytes=new Uint8Array(await file.arrayBuffer())
+      const data=parseNfePreview(new TextDecoder('utf-8',{fatal:true}).decode(bytes))
+      let raw='';for(let start=0;start<bytes.length;start+=8192)raw+=String.fromCharCode(...bytes.subarray(start,start+8192))
+      const source=btoa(raw)
+      setXmlBase64(source);setPreview(data);setFileName(file.name);await recognize(source)
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível ler o XML.')}
     finally{setBusy(false);if(input.current)input.current.value=''}
   }
@@ -61,14 +65,15 @@ export default function NfePreviewSection({obraId}:{obraId:number|null}){
     <div className="card-body">
       <p>{!obraId?'Escolha a obra antes de conferir o XML.':'Arquivo XML de NF-e modelo 55, até 8 MB. A leitura não consulta a SEFAZ.'}</p>
       {error&&<div className="notice" role="alert">{error}{preview?' A prévia anterior foi preservada.':''}</div>}
-      {preview&&<><div className="row-actions"><strong>{fileName}</strong><Button variant="secondary" disabled={busy} onClick={()=>{setPreview(null);setFileName('');setError('');setRecognition(null);setRecognitionError('');setReview(null)}}>Limpar prévia</Button></div>
+      {preview&&<><div className="row-actions"><strong>{fileName}</strong><Button variant="secondary" disabled={busy} onClick={()=>{setPreview(null);setXmlBase64('');setFileName('');setError('');setRecognition(null);setRecognitionError('');setReview(null)}}>Limpar prévia</Button></div>
         <dl><dt>Fornecedor</dt><dd>{preview.fornecedor} — {preview.documento}</dd><dt>Nota e série</dt><dd>{preview.numero} / {preview.serie}</dd><dt>Chave de acesso</dt><dd style={{overflowWrap:'anywhere'}}>{preview.chave}</dd><dt>Emissão</dt><dd>{brDate(preview.emissao)}</dd><dt>Total fiscal</dt><dd>{money(preview.total)}</dd><dt>Protocolo</dt><dd>{preview.protocolo||'Não consta no XML'} {preview.status?'(status informado no arquivo '+preview.status+')':''}</dd></dl>
         <OperationalSheetGrid area="compras" title="Itens do XML — somente conferência" rows={preview.itens.map(i=>({...i,id:i.numero}))} columns={columns} showImport={false} filename={'nfe-'+preview.numero}/>
         <h3>Reconhecimento de materiais</h3>
         <p>Consulta determinística do catálogo da empresa. Sugestões não criam lançamentos e exigem confirmação.</p>
         {recognitionError&&<p role="alert">{recognitionError}</p>}
-        <Button variant="secondary" disabled={busy} onClick={async()=>{if(lock.current)return;lock.current=true;setBusy(true);try{await recognize(preview)}finally{lock.current=false;setBusy(false)}}}>Atualizar reconhecimento</Button>
+        <Button variant="secondary" disabled={busy} onClick={async()=>{if(lock.current)return;lock.current=true;setBusy(true);try{await recognize(xmlBase64)}finally{lock.current=false;setBusy(false)}}}>Atualizar reconhecimento</Button>
         {recognition&&<>
+          {recognition.registro_existente&&<p role="status">Nota já registrada (#{recognition.registro_existente.id}). A importação deve preservar o registro anterior.</p>}
           <p><strong>Classificação: {operationLabels[recognition.operacao]||'Revisar'}</strong> · {recognition.itens.filter(i=>i.status==='confirmado').length}/{recognition.itens.length} vínculos confirmados</p>
           {recognition.itens.slice(page*20,page*20+20).map(row=>{
             const item=preview.itens.find(i=>i.numero===row.numero)

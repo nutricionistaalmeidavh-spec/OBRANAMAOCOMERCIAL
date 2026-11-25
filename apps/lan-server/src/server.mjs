@@ -645,7 +645,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if(!procurement?.nfeRecognize)return sendJson(response,503,{error:'procurement_unavailable'})
         const context=await authenticateLanRequest(request,security)
         authorizeAction(context,{domain:'finance',action:'view'})
-        return sendJson(response,200,procurement.nfeRecognize(await readJson(request)))
+        return sendJson(response,200,procurement.nfeRecognize(await readJson(request,12*1024*1024)))
       }
       if(url.pathname==='/api/v1/procurement/materials'||url.pathname==='/api/v1/procurement/material-aliases'){
         if(!['GET','POST'].includes(request.method))return methodNotAllowed(response,['GET','POST'])
