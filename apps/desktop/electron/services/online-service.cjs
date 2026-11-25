@@ -221,7 +221,7 @@ class OnlineService {
     const storageRequired = this.storageBinding(session) || this.storageBinding(bootstrap)
     this.writeConfig({
       tenant: { companyId: String(session.company.id), companyName: session.company.name || '', baseUrl: this.baseUrl },
-      ...(setup && session.project?.id ? { firstProject: { baseUrl:this.baseUrl, companyId:String(session.company.id), projectId:String(session.project.id), deviceId:String(session.device.id) } } : {}),
+      ...(setup && session.project?.id && session.device?.id ? { firstProject: { baseUrl:this.baseUrl, companyId:String(session.company.id), projectId:String(session.project.id), deviceId:String(session.device.id) } } : {}),
       storageRequired
     })
     this.storeToken(result.deviceToken)
