@@ -11,4 +11,13 @@ function fixture(){
 describe('estoque canônico',()=>{
  it('separa empresas, agrega unidade e descrição normalizadas e pagina',()=>{const db=fixture();try{expect(stockPage(db,{empresa_id:1}).rows[0].saldo).toBe(8);expect(stockPage(db,{limit:1}).total).toBe(2);expect(stockPage(db,{history:true,limit:1}).rows).toHaveLength(1)}finally{db.close()}})
  it('rejeita saída acima do saldo e etapa de outra obra',()=>{const db=fixture();try{expect(()=>validateStockMovement(db,{obra_id:1,frente_id:1,descricao:'Tubo',unidade:'un',tipo:'saida',quantidade:9})).toThrow();expect(()=>validateStockMovement(db,{obra_id:2,frente_id:1,descricao:'Tubo',unidade:'un',tipo:'entrada',quantidade:1})).toThrow()}finally{db.close()}})
+ it('trata etapa como apropriação e mantém saldo físico único por obra',()=>{const db=fixture();try{
+ db.exec("INSERT INTO frentes_obra VALUES(2,1,'Outra etapa',NULL);INSERT INTO movimentacoes_estoque VALUES(4,1,2,'Tubo','un','entrada',5,'2026-11-03',NULL);")
+ expect(stockPage(db,{obra_id:1}).rows).toHaveLength(1)
+ expect(stockPage(db,{obra_id:1}).rows[0].saldo).toBe(13)
+ expect(stockPage(db,{obra_id:1,frente_id:1}).rows[0]).toMatchObject({saldo:13,entradas:10,saidas:2,liquido_etapa:8})
+ expect(()=>validateStockMovement(db,{obra_id:1,frente_id:2,descricao:'Tubo',unidade:'un',tipo:'saida',quantidade:12})).not.toThrow()
+ expect(()=>validateStockMovement(db,{obra_id:1,frente_id:2,descricao:'Tubo',unidade:'un',tipo:'saida',quantidade:14})).toThrow()
+ }finally{db.close()}})
+
 })
