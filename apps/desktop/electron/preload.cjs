@@ -109,7 +109,7 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     discard: (data) => call('scanner:discard', data),
     saveSigned: (data) => call('scanner:save-signed', data)
   },
-  planejamento: { overview: (obra_id) => call('planning:overview', { obra_id }) }, campo: { saveRdo: (data) => call('field:save-rdo', data) }, tarefas: entity('tarefas_obra'), compras: { ...entity('solicitacoes_compra'), notas: {
+  planejamento: { overview: (obra_id) => call('planning:overview', { obra_id }) }, campo: { materials:(rdoId,update)=>call('field:rdo-materials',{rdoId,update}), saveRdo: (data) => call('field:save-rdo', data) }, tarefas: entity('tarefas_obra'), compras: { ...entity('solicitacoes_compra'), notas: {
     list: obra_id => call('received-notes:list', { obra_id }),
     get: id => call('received-notes:get', { id }),
     summary: obra_id => call('received-notes:summary', { obra_id }),

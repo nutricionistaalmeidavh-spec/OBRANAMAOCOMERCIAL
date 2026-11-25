@@ -1,6 +1,26 @@
 import { createHash } from 'node:crypto'
 import { RdoMaterialConsumption } from './rdo-material-consumption.mjs'
 
+import { FieldRdoCatalog } from './field-rdo-catalog.mjs'
+
+function crewRows(sessions,people) {
+  const byId=new Map(people.map(p=>[p.id,p])), minutes=new Map()
+  const time=t=>/^([01]\d|2[0-3]):[0-5]\d$/.test(t)?Number(t.slice(0,2))*60+Number(t.slice(3)):null
+  for(const session of list(sessions)){
+    const events=list(session?.crewEvents).map(e=>({t:time(e.time),ids:[...new Set(list(e.employeeIds).filter(id=>typeof id==='string'&&id.startsWith('rdo_emp_')))]})).sort((a,b)=>a.t-b.t)
+    for(const e of events)for(const id of e.ids){if(!byId.has(id))throw new Error('Funcionário do apontamento não pertence à equipe ativa desta obra.');if(!minutes.has(id))minutes.set(id,0)}
+    for(const seg of list(session?.segments)){
+      const start=time(seg.start),end=time(seg.end)
+      if(start===null||end===null||end<=start)continue
+      for(let i=0;i<events.length;i++){const e=events[i];if(e.t===null)continue
+        const duration=Math.max(0,Math.min(end,events[i+1]?.t??end)-Math.max(start,e.t))
+        for(const id of e.ids)minutes.set(id,minutes.get(id)+duration)
+      }
+    }
+  }
+  return [...minutes].map(([id,m])=>({...byId.get(id),hours:m/60}))
+}
+
 const digest=value=>createHash('sha256').update(value).digest('hex')
 const clean=value=>String(value??'').trim()
 const record=value=>value&&typeof value==='object'&&!Array.isArray(value)?value:{}
@@ -61,6 +81,8 @@ export class FieldRdoImport {
     const oldLink=this.db.prepare('SELECT * FROM field_rdo_links WHERE remote_project_id=? AND day=?').get(remoteProjectId,date)
     const photos=validatePhotos(list(day.photos))
     const fields=buildReport(report)
+    const crew=()=>crewRows(day.sessions,new FieldRdoCatalog({repository:this.repository}).crew(companyId,workId))
+    let team
     let rdo
     if(oldLink){
       rdo=this.repository.get('rdos',Number(oldLink.rdo_id))
@@ -73,12 +95,20 @@ export class FieldRdoImport {
         return {localRdoId:rdo.id,materialRevision:materials.revision,replayed:true}
       }
       if(oldLink.last_rdo_hash&&oldLink.last_rdo_hash!==contentHash(rdo))throw new Error('O RDO foi alterado no Desktop após a última integração. Revise antes de importar novamente.')
-      if(['fechado','finalizado'].includes(rdo.status))throw new Error('Reabra o RDO canônico antes de atualizar o consumo.')
+      const currentRevision=this.materials.list(rdo.id).revision
+      if(oldLink.last_material_revision!=null && currentRevision!==Number(oldLink.last_material_revision)){
+        const key='field-rdo:'+digest(remoteProjectId+'|'+date+'|'+fingerprint).slice(0,64)
+        const receipt=this.db.prepare('SELECT revisao FROM rdo_material_requisicoes WHERE rdo_id=? AND request_id=?').get(rdo.id,key)
+        if(Number(receipt?.revisao)!==currentRevision)throw new Error('O consumo foi alterado no Desktop após a última integração.')
+      }
+      if(['fechado','finalizado','concluido'].includes(rdo.status))throw new Error('Reabra o RDO canônico antes de atualizar o consumo.')
+      team=crew()
       rdo=this.repository.save('rdos',{id:rdo.id,atividades:fields.activities,observacoes:fields.notes})
       this.db.prepare('UPDATE field_rdo_links SET last_rdo_hash=? WHERE remote_project_id=? AND day=?').run(contentHash(rdo),remoteProjectId,date)
     }else{
       const existing=this.db.prepare('SELECT id FROM rdos WHERE obra_id=? AND data=? AND deleted_at IS NULL').get(workId,date)
       if(existing)throw new Error('Já existe RDO manual nesta obra e data. Vincule-o após conferência para evitar duplicações.')
+      team=crew()
       rdo=this.repository.save('rdos',{obra_id:workId,frente_id:null,data:date,clima:null,status:'rascunho',atividades:fields.activities,observacoes:fields.notes})
       this.db.prepare('INSERT INTO field_rdo_links(remote_project_id,day,rdo_id,last_rdo_hash) VALUES(?,?,?,?)')
         .run(remoteProjectId,date,rdo.id,contentHash(rdo))
@@ -90,6 +120,9 @@ export class FieldRdoImport {
     const materialReceipt=this.materials.save({rdoId:rdo.id,requestId,expectedRevision:oldRevision,items:list(day.materials)})
     this.db.exec('BEGIN IMMEDIATE')
     try {
+      this.db.prepare("DELETE FROM rdo_equipe WHERE rdo_id=? AND observacoes='[Obra360:equipe]'").run(rdo.id)
+      const writePerson=this.db.prepare("INSERT INTO rdo_equipe(rdo_id,funcionario_id,nome,horas,observacoes) VALUES(?,?,?,?,'[Obra360:equipe]')")
+      for(const p of team)writePerson.run(rdo.id,p.localId,p.name,p.hours)
       this.db.prepare('UPDATE field_rdo_evidencias SET active=0 WHERE rdo_id=?').run(rdo.id)
       const write=this.db.prepare(`INSERT INTO field_rdo_evidencias
         (rdo_id,photo_id,mime_type,sha256,bytes,uploaded_at,active) VALUES(?,?,?,?,?,?,1)

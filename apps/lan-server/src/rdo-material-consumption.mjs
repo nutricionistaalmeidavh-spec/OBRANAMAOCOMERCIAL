@@ -63,7 +63,7 @@ export class RdoMaterialConsumption {
       }
       const rdo = this.repository.get('rdos', rdoId)
       if (!rdo || rdo.deleted_at) throw new Error('RDO não encontrado.')
-      if (['fechado','finalizado'].includes(String(rdo.status))) throw new Error('Reabra o RDO antes de alterar o consumo de materiais.')
+      if (['fechado','finalizado','concluido'].includes(String(rdo.status))) throw new Error('Reabra o RDO antes de alterar o consumo de materiais.')
       const current = this.db.prepare('SELECT revisao FROM rdo_material_revisoes WHERE rdo_id=?').get(rdoId)
       const revision = Number(current?.revisao || 0)
       if (expectedRevision !== revision) throw new Error('Conflito de revisão: outro usuário atualizou os materiais deste RDO.')

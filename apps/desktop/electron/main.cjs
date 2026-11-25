@@ -363,6 +363,28 @@ function registerIpc() {
   ipcMain.handle('works:overview', envelope(({ obra_id }) => services.works.overview(obra_id)))
   ipcMain.handle('works:timeline', envelope(({ obra_id }) => services.works.timeline(obra_id)))
   ipcMain.handle('planning:overview', envelope(({ obra_id }) => services.planning.overview(obra_id)))
+  ipcMain.handle('field:rdo-materials', envelope(async ({rdoId, update}) => {
+    const states=['operation','finance'].map(domain=>services.moduleStorage.state(domain).state)
+    const id=Number(rdoId)
+    if(!Number.isSafeInteger(id)||id<1)throw new Error('Diário inválido.')
+    if(states.every(state=>state==='central-active')){
+      const api=services.dataAccess.remote
+      if(update)return api.request('POST','/api/v1/field/rdo/materials',{body:{...update,rdoId:id}})
+      const current=await api.request('GET','/api/v1/field/rdo/materials',{query:{rdo_id:id}})
+      const catalog=await api.request('GET','/api/v1/field/rdo/catalog',{query:{obra_id:current.obraId,remote_company_id:services.online.readConfig().tenant?.companyId}})
+      return {...current,materials:catalog.materials}
+    }
+    if(!states.every(state=>state==='local'))throw new Error('Operação e estoque precisam estar disponíveis na mesma base.')
+    const dir=path.dirname(resolveLanServerEntry())
+    const {pathToFileURL}=require('node:url')
+    const {RdoMaterialConsumption}=await import(pathToFileURL(path.join(dir,'rdo-material-consumption.mjs')).href)
+    const {FieldRdoCatalog}=await import(pathToFileURL(path.join(dir,'field-rdo-catalog.mjs')).href)
+    const repository={get:(table,key)=>services.db.get(table,key),save:(table,value)=>services.db.save(table,value),connection:()=>services.db.db}
+    const consumption=new RdoMaterialConsumption({repository})
+    if(update)return consumption.save({...update,rdoId:id})
+    const current=consumption.list(id),work=repository.get('obras',current.obraId)
+    return {...current,materials:new FieldRdoCatalog({repository}).list({companyId:work.empresa_id,workId:work.id}).materials}
+  }))
   ipcMain.handle('field:save-rdo', envelope((payload) => services.field.saveDailyReport(payload)))
   ipcMain.handle('received-notes:list', envelope(({ obra_id }) => services.procurement.listReceivedNotes(obra_id)))
   ipcMain.handle('received-notes:get', envelope(({ id }) => services.procurement.getReceivedNote(id)))

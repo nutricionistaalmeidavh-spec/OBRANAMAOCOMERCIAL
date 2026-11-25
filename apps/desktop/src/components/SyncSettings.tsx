@@ -57,12 +57,12 @@ export default function SyncSettings() {
   return <>
     <Card className="setting-card setting-card-feature" id="sync-settings">
       <h3>Sincronização da obra</h3>
-      <p>Escolha qual obra deste computador deve continuar disponível também no Obra360. As demais obras permanecem separadas.</p>
+      <p>O aplicativo sincroniza automaticamente a obra identificada na conta. Se houver um conflito de identificação, os dados locais ficam preservados.</p>
       <p><strong>Celular e Desktop trabalham sobre a mesma obra.</strong> Depois do vínculo, as alterações são conciliadas automaticamente quando houver conexão.</p>
       <details><summary>Como funciona entre computadores</summary><p><strong>Web/PWA continua incluído.</strong> {remoteCoordinator ? "No modo servidor próprio, este Desktop autorizado precisa permanecer ligado e conectado para manter a sincronização entre o servidor central e o PWA. Enquanto estiver desligado, o PWA conserva sua operação Cloudflare/D1, mas as alterações aguardam a próxima sincronização." : "Na rede local, a sincronização central é responsabilidade do PC principal."}</p></details>
       {remoteCoordinator && <p role="status"><strong>Coordenador do servidor próprio.</strong> Somente o Desktop autorizado para esta obra pode enviar e receber alterações do PWA. A troca do coordenador exige migração assistida.</p>}
       {lanClient && <p role="status"><strong>A sincronização central é responsabilidade do PC principal.</strong> Este computador continua usando os dados do servidor da empresa e acompanha o estado online, mas não executa push/pull central diretamente.</p>}
-      <div className="form-grid">
+      <details><summary>Diagnóstico e recuperação de vínculo</summary><div className="form-grid">
         <Field label="Empresa local"><select value={companyId} disabled={busy || lanClient} onChange={event => { setCompanyId(event.target.value); setWorkId('') }}><option value="">Selecione...</option>{companies.data?.map(item => <option key={item.id} value={item.id}>{item.razao_social || item.nome_fantasia}</option>)}</select></Field>
         <Field label="Obra local"><select value={workId} disabled={busy || lanClient || !companyId} onChange={event => setWorkId(event.target.value)}><option value="">Selecione...</option>{choices.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
       </div>
@@ -70,7 +70,7 @@ export default function SyncSettings() {
         <Button disabled={busy || lanClient || !company || !work} onClick={prepare}>Conferir vínculo e ativar</Button>
         <Button variant="secondary" disabled={busy || !state?.configured || state.paused || state.running} onClick={() => perform(() => window.fluxoDre.online.syncNow(), 'Tentativa concluída. Confira as pendências abaixo.')}>Sincronizar agora</Button>
       </div>
-      <div role="status" aria-live="polite" style={{ marginTop: 12 }}>
+      </details><div role="status" aria-live="polite" style={{ marginTop: 12 }}>
         <strong>{state?.running ? 'Sincronizando...' : state?.paused ? (state.pauseReason || 'Pausada — confira o vínculo') : state?.configured ? 'Sincronização automática ativa' : 'Ainda não configurada'}</strong>
         <p>{state?.pending ?? 0} alteração(ões) aguardando envio · {state?.conflicts.length ?? 0} conflito(s)</p>
         <small>Última atualização: {state?.lastSyncAt ? new Date(state.lastSyncAt).toLocaleString('pt-BR') : 'nenhuma'}. Se a rede falhar, o trabalho deste computador é preservado.</small>

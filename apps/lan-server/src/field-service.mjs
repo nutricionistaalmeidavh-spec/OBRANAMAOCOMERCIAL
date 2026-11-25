@@ -32,7 +32,7 @@ export class FieldService {
         db.prepare('DELETE FROM rdo_equipe WHERE rdo_id=?').run(rdo.id)
         db.prepare('DELETE FROM rdo_equipamentos WHERE rdo_id=?').run(rdo.id)
         db.prepare('DELETE FROM rdo_ocorrencias WHERE rdo_id=?').run(rdo.id)
-        db.prepare('DELETE FROM rdo_anexos WHERE rdo_id=?').run(rdo.id)
+        if (Array.isArray(payload.anexos)) db.prepare('DELETE FROM rdo_anexos WHERE rdo_id=?').run(rdo.id)
       }
 
       for (const row of rdoChildRows(equipe, rdo.id, data.frente_id, 'equipe')) this.repository.save('rdo_equipe', row)

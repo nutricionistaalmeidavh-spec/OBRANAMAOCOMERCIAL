@@ -7,7 +7,7 @@ const array=(v:unknown)=>Array.isArray(v)?v:[]
 export type FieldRdoCatalogRecord={
   schemaVersion:number;workId:number;materials:Array<{id:string;descricao:string;unidade:string;saldo:number}>;
   fronts:Array<{id:number;nome:string}>;services:Array<{id:number;nome:string;frente_id:number|null}>;
-  version:string;updatedAt:string;sourceDeviceId:string
+  employees?:Array<{id:string;name:string}>;version:string;updatedAt:string;sourceDeviceId:string
 }
 export async function getFieldRdoCatalog(projectId:string):Promise<FieldRdoCatalogRecord|null>{
  const row=await runtimeEnv().DB.prepare('SELECT record_json FROM kv_records WHERE collection=? AND id=?')
@@ -37,11 +37,12 @@ export async function publishFieldRdoCatalog(projectId:string,deviceId:string,pa
    throw new Error('Serviço inválido no catálogo.')
   return{id,nome,frente_id}
  })
+ const employees=array(v.employees).map(input=>{const e=record(input),id=strings(e.id,40),name=strings(e.name,250);if(!/^rdo_emp_[a-f0-9]{24}$/.test(id)||!name)throw new Error('Funcionário da obra inválido.');return{id,name}})
  const previous=await getFieldRdoCatalog(projectId)
  if(previous?.version===version&&previous.workId===workId&&previous.sourceDeviceId===deviceId)return previous
  const data:FieldRdoCatalogRecord={
   schemaVersion:1,workId,materials:mat,fronts:frontsValidated,services:servicesValidated,
-  version,sourceDeviceId:deviceId,updatedAt:new Date().toISOString()
+  employees,version,sourceDeviceId:deviceId,updatedAt:new Date().toISOString()
  }
  const stamp=data.updatedAt
  await runtimeEnv().DB.prepare(`INSERT INTO kv_records(collection,id,record_json,created_at,updated_at) VALUES(?,?,?,?,?)

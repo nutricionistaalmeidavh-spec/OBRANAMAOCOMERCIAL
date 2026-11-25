@@ -1,5 +1,6 @@
 const { createHash, randomUUID } = require('node:crypto')
 const { LocalSyncDataProvider, BRIDGE, EDITABLE, payloadOf } = require('./sync-data-provider.cjs')
+const {localRdoBinding}=require('./local-rdo-binding.cjs')
 const json = JSON.stringify
 const hash = value => createHash('sha256').update(json(value)).digest('hex')
 const resolved = value => Promise.resolve(value)
@@ -14,7 +15,7 @@ class SyncCoordinator {
   const b=this.binding(),connection=this.online.state(),scope=b?.scope,runtime=this.runtimeState()
   const mismatch=!!scope&&((runtime.source==='remote'&&(scope.storageMode!=='remote'||String(scope.serverId||'')!==String(this.dataProvider.storage?.state?.()?.serverId||'')))||(runtime.source!=='remote'&&scope.storageMode==='remote'))
   const paused=runtime.paused||mismatch||!scope||!connection.linked||connection.baseUrl!==scope.baseUrl
-  const pauseReason=mismatch?'O servidor operacional mudou. Confirme novamente o vínculo da obra antes de sincronizar.':runtime.paused?runtime.pauseReason:null
+  const pauseReason=!scope && !runtime.paused && this.bootstrapReason ? this.bootstrapReason : mismatch?'O servidor operacional mudou. Confirme novamente o vínculo da obra antes de sincronizar.':runtime.paused?runtime.pauseReason:null
   const conflicts=scope?this.db.prepare("SELECT id,entity,local_id AS localId,remote_revision AS remoteRevision,remote_conflict_id AS remoteConflictId,created_at AS createdAt,remote_payload FROM desktop_sync_conflicts WHERE scope_key=? AND status='open'").all(this.key(scope)).map(c=>{
    const fields=EDITABLE[c.entity]||[]
    let local=null
@@ -146,7 +147,28 @@ class SyncCoordinator {
    this.assertScope(scope,generation)
   }
  }
- async perform({retryNow=false}={}){const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{this.assertScope(scope,generation);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare('UPDATE desktop_sync_scope SET allowed_modules=? WHERE id=1').run(json(modules));const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities)}if(modules.includes('obra360'))await this.syncFieldRdos(scope,generation);
+ async bootstrapBinding(){
+  const runtime=this.runtimeState(), connection=this.online.state(), generation=this.generation
+  if(runtime.paused || runtime.source!=='local' || !connection.linked || !this.online.readConfig)return
+  try {
+   const session=await this.online.session()
+   if(session.authorized && session.role==='admin' && session.project && !session.project.workSource && this.online.fieldRdoCatalogOrigin){
+    const result=await this.online.fieldRdoCatalogOrigin().catch(()=>null)
+    if(result?.origin)session.project={...session.project,workSource:result.origin}
+   }
+   const current=this.online.state()
+   if(generation!==this.generation || !current.linked || current.baseUrl!==connection.baseUrl || this.binding() || this.runtimeState().source!=='local')return
+   this.online.assertAccountEmail?.(session.user?.email)
+   this.db.transaction(()=>{
+    const source=localRdoBinding(this.db,session,this.online.readConfig(),connection.baseUrl)
+    if(!source){this.bootstrapReason='A obra online ainda não tem uma correspondência comprovada nesta base. Os dados locais estão preservados.';return}
+    const scope={...source,companyName:session.company.name,workName:session.project.name,baseUrl:connection.baseUrl,deviceId:String(session.device.id),remoteCompanyId:String(session.company.id),remoteProjectId:String(session.project.id)}
+    this.db.prepare('INSERT INTO desktop_sync_scope(id,binding,allowed_modules) VALUES(1,?,?)').run(json(scope),json(session.access?.modules||[]))
+    this.bootstrapReason=null
+   })()
+  }catch(error){this.bootstrapReason='Não foi possível identificar a obra online. Nova tentativa automática: '+String(error.message)}
+ }
+ async perform({retryNow=false}={}){if(!this.binding())await this.bootstrapBinding();const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{this.assertScope(scope,generation);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare('UPDATE desktop_sync_scope SET allowed_modules=? WHERE id=1').run(json(modules));const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities)}if(modules.some(module=>module==='obra360'||module==='rdo'))await this.syncFieldRdos(scope,generation);
   const adminModules=modules.some(m=>['finance','rh','dre'].includes(m)),queue=this.db.prepare("SELECT * FROM desktop_sync_outbox WHERE scope_key=? AND status='pending' ORDER BY id").all(this.key(scope));for(const job of queue){this.assertScope(scope,generation);if(job.kind==='bridge'&&!modules.includes('obra360')){this.supersede(scope,job,'Módulo Obra360 não está mais liberado para este Desktop.');continue}if(job.kind==='bridge'&&!plan.bridgeEntities.includes(job.entity)){this.supersede(scope,job,'Entidade não disponível na fonte operacional atual.');continue}if(job.kind==='summary'&&!plan.summary){this.supersede(scope,job,'Resumo ainda não está disponível na fonte operacional atual.');continue}if(job.kind==='finance'&&!adminModules){this.supersede(scope,job,'Módulos administrativos não estão mais liberados para este Desktop.');continue}if(job.kind==='finance'&&!plan.obligations){this.supersede(scope,job,'Financeiro ainda não está disponível na fonte operacional atual.');continue}if(!retryNow&&job.next_attempt_at>this.now())continue;if(this.hasEarlierPending(scope,job))continue;if(this.db.prepare("SELECT id FROM desktop_sync_conflicts WHERE scope_key=? AND entity=? AND local_id=? AND status='open'").get(this.key(scope),job.entity,job.local_id))continue;
    try{const payload=JSON.parse(job.payload);let reply;if(job.kind==='bridge'){const head=this.db.prepare('SELECT remote_revision FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),job.entity,job.local_id);reply=await this.online.syncPush([{changeId:job.change_id,entity:job.entity,localId:job.local_id,baseMobileRevision:head?.remote_revision||0,payload}]);this.assertScope(scope,generation);const result=reply.accepted?.find(x=>x.changeId===job.change_id);if(!result)throw new Error('Servidor não confirmou a alteração.');if(result.conflict||result.status==='conflict'){this.conflict(scope,job.entity,job.local_id,payload,Number(result.currentMobileRevision||0),result.conflictId);continue}if(!['accepted','duplicate'].includes(result.status)||result.bridged===false)throw new Error('Alteração não aplicada à obra online.')}
     else if(job.kind==='summary'){reply=await this.online.publishMobileSummary({...payload,modules:Object.fromEntries(Object.entries(payload.modules||{}).filter(([key])=>modules.includes(key))),generatedAt:new Date(this.now()).toISOString()});if(!reply.ok)throw new Error('Resumo não confirmado.')}

@@ -96,6 +96,7 @@ try{
   await page.screenshot({path:path.join(outDir,'01-electron-settings-sync.png'),fullPage:true});
 
   await page.getByRole('button',{name:'Testar conexão'}).click();await page.getByText('Conexão online ativa — Empresa QA.').waitFor({state:'visible'});
+  await syncCard.getByText('Diagnóstico e recuperação de vínculo').click();
   await syncCard.getByLabel('Empresa local').selectOption('1');await syncCard.getByLabel('Obra local').selectOption('10');await syncCard.getByRole('button',{name:'Conferir vínculo e ativar'}).click();
   const publishDialog=page.getByRole('dialog',{name:'Confirmar publicação desta obra'});await publishDialog.waitFor({state:'visible'});await publishDialog.getByRole('button',{name:'Confirmar'}).click();await syncCard.getByText('Vínculo de sincronização configurado.').waitFor({state:'visible'});
 
