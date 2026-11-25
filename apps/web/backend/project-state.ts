@@ -16,6 +16,26 @@ const metaTable=(projectId:string)=>'project_meta_'+safe(projectId);
 const floorsTable=(projectId:string)=>'project_floors_'+safe(projectId);
 const dayTable=(projectId:string,date:string)=>'project_day_'+safe(projectId)+'_'+safe(date);
 
+/** Compare-and-set of the Obra360 metadata document on its revision. */
+export async function compareAndSetMeta(projectId:string,current:{id?:string;revision?:number},next:Record<string,unknown>){
+  if(!current.id)throw new SnapshotRevisionConflict();
+  const clean={...next} as Record<string,unknown>;delete clean.id;
+  const result=await runtimeEnv().DB.prepare("UPDATE kv_records SET record_json=?,updated_at=? WHERE collection=? AND id=? AND CAST(json_extract(record_json,'$.revision') AS INTEGER)=?")
+    .bind(JSON.stringify(clean),String(clean.updatedAt||now()),metaTable(projectId),String(current.id),Number(current.revision||0)).run();
+  if(Number(result.meta?.changes||0)!==1)throw new SnapshotRevisionConflict();
+}
+/** Re-runs a read-modify-write of the metadata when another writer won the race. */
+export async function retryOnMetaConflict<T>(operation:()=>Promise<T>,attempts=10):Promise<T>{
+  for(let attempt=1;;attempt++){
+    try{return await operation()}
+    catch(e){
+      if(!(e instanceof SnapshotRevisionConflict)||attempt>=attempts)throw e
+      // Jittered backoff so competing writers do not retry in lockstep.
+      await new Promise(resolve=>setTimeout(resolve,Math.min(200,10*attempt)+Math.random()*25))
+    }
+  }
+}
+
 export async function getProject(projectId:string){const[p]=await db.get<ProjectRecord>('projects',[projectId]);return p}
 export async function getCompany(companyId:string){const[c]=await db.get<Record<string,unknown>>('companies',[companyId]);return c}
 export async function getMeta(projectId:string){const{items}=await db.list<ProjectMetaRecord>(metaTable(projectId),{limit:1});return items[0]||null}
@@ -87,6 +107,10 @@ export async function carryForwardActiveAssignments(projectId:string,date:string
   if(!carried.length)return;
   const repaired={...current,date,assignments:[...existing,...carried],attendance:record(current.attendance),events:list(current.events),plans:list(current.plans),sessions:list(current.sessions),note:String(current.note||'')};
   await saveDay(projectId,date,repaired,actor);
-  const dayKeys=Array.from(new Set([...(meta.dayKeys||[]),date])).sort();
-  await db.update(metaTable(projectId),[{id:String(meta.id),record:{...meta,dayKeys,revision:meta.revision+1,updatedAt:now(),updatedBy:actor} as unknown as Record<string,unknown>}]);
+  // Never write back a stale copy of the metadata: re-read and compare-and-set.
+  await retryOnMetaConflict(async()=>{
+    const latest=await getMeta(projectId);if(!latest)return;
+    const dayKeys=Array.from(new Set([...(latest.dayKeys||[]),date])).sort();
+    await compareAndSetMeta(projectId,latest,{...latest,dayKeys,revision:latest.revision+1,updatedAt:now(),updatedBy:actor});
+  });
 }

@@ -25,15 +25,18 @@ export async function pendingFieldRdos(projectId:string):Promise<FieldRdoDeliver
    WHERE d.collection GLOB ?
      AND json_extract(d.record_json,'$.day.rdoStatus')='ready_for_desktop'
      AND json_extract(d.record_json,'$.day.materialsReviewed')=1
-     AND (ack.record_json IS NULL OR json_extract(ack.record_json,'$.fingerprint')<>json_extract(d.record_json,'$.day.rdoClosedFingerprint') OR json_extract(ack.record_json,'$.status')<>'applied')
+     AND (ack.record_json IS NULL OR json_extract(ack.record_json,'$.fingerprint')<>json_extract(d.record_json,'$.day.rdoClosedFingerprint')
+       OR (json_extract(ack.record_json,'$.status')='rejected' AND COALESCE(json_extract(ack.record_json,'$.retryAfter'),'')<=?)
+       OR json_extract(ack.record_json,'$.status') NOT IN ('applied','rejected'))
    ORDER BY d.updated_at ASC LIMIT 50`
-  const query=await runtimeEnv().DB.prepare(sql).bind(ackCollection,prefix.length+1,prefix+'*').all<{source:string;receipt:string|null;source_collection:string}>()
+  const query=await runtimeEnv().DB.prepare(sql).bind(ackCollection,prefix.length+1,prefix+'*',new Date().toISOString()).all<{source:string;receipt:string|null;source_collection:string}>()
   const reports:FieldRdoDelivery[]=[]
   for(const row of query.results||[]){
     const day=record(decode(row.source).day),receipt=decode(row.receipt||'{}')
     const date=String(day.date||'').trim(),fingerprint=String(day.rdoClosedFingerprint||'')
     if(!validDate(date)||row.source_collection!==prefix+date||!fingerprint||fingerprint.length>128000)continue
     if(receipt.fingerprint===fingerprint&&receipt.status==='applied')continue
+    if(receipt.fingerprint===fingerprint&&receipt.status==='rejected'&&String(receipt.retryAfter||'')>new Date().toISOString())continue
     reports.push({date,fingerprint,report:{
       date,note:String(day.note||'').slice(0,20000),events:list(day.events).slice(0,200),
       sessions:list(day.sessions).slice(0,200),attendance:record(day.attendance),
@@ -65,6 +68,26 @@ export async function confirmFieldRdo(projectId:string,input:Record<string,unkno
     throw new Error('O servidor não forneceu identificadores canônicos válidos.')
   const stamp=new Date().toISOString()
   const data={status:'applied',date,fingerprint,localRdoId,materialRevision,sourceDeviceId:deviceId,confirmedAt:stamp}
+  await runtimeEnv().DB.prepare(`INSERT INTO kv_records(collection,id,record_json,created_at,updated_at) VALUES(?,?,?,?,?)
+    ON CONFLICT(collection,id) DO UPDATE SET record_json=excluded.record_json,updated_at=excluded.updated_at`)
+    .bind(collection(projectId),date,JSON.stringify(data),stamp,stamp).run()
+  return data
+}
+
+// A rejected RDO stays on the phone with the reason; the Desktop retries it
+// automatically after a pause (for example, once stock is replenished).
+export const FIELD_RDO_RETRY_MS=10*60*1000
+export async function rejectFieldRdo(projectId:string,input:Record<string,unknown>,deviceId:string){
+  const date=String(input.date||''),fingerprint=String(input.fingerprint||'')
+  if(!validDate(date)||!fingerprint||fingerprint.length>128000)throw new Error('Identificação do diário inválida.')
+  const current=record(await getDay(projectId,date))
+  if(current.rdoStatus!=='ready_for_desktop'||current.rdoClosedFingerprint!==fingerprint)return {status:'stale',date}
+  const existing=await runtimeEnv().DB.prepare('SELECT record_json FROM kv_records WHERE collection=? AND id=?').bind(collection(projectId),date).first<{record_json:string}>()
+  const previous=decode(existing?.record_json)
+  if(previous.status==='applied'&&previous.fingerprint===fingerprint)return previous
+  const reason=String(input.reason||'').replace(/\s+/g,' ').trim().slice(0,300)||'O Desktop não conseguiu integrar este diário.'
+  const stamp=new Date().toISOString()
+  const data={status:'rejected',date,fingerprint,reason,sourceDeviceId:deviceId,rejectedAt:stamp,retryAfter:new Date(Date.now()+FIELD_RDO_RETRY_MS).toISOString()}
   await runtimeEnv().DB.prepare(`INSERT INTO kv_records(collection,id,record_json,created_at,updated_at) VALUES(?,?,?,?,?)
     ON CONFLICT(collection,id) DO UPDATE SET record_json=excluded.record_json,updated_at=excluded.updated_at`)
     .bind(collection(projectId),date,JSON.stringify(data),stamp,stamp).run()

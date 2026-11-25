@@ -77,6 +77,7 @@ export default function SyncSettings() {
         {state?.scope && <div><p><strong>{state.scope.companyName} / {state.scope.workName}</strong></p><details><summary>Detalhes técnicos</summary><small>Destino: {state.scope.baseUrl} · obra remota {state.scope.remoteProjectId}</small></details></div>}
       </div>
       {(error || state?.lastError) && <p role="alert" className="error-box">{error || state?.lastError}</p>}
+      {!!state?.fieldRdoIssues?.length && <section aria-label="Diários do celular com pendência" className="error-box" role="status"><strong>Diários do celular que precisam de atenção</strong><p>O restante da sincronização continua normalmente. Os recusados aparecem com o motivo no celular e são tentados de novo automaticamente.</p><ul>{state.fieldRdoIssues.map((issue, index) => <li key={index}>{issue.date ? new Date(issue.date + 'T12:00:00').toLocaleDateString('pt-BR') + ': ' : ''}{issue.kind === 'catalog' ? 'Catálogo do celular não atualizado — ' : issue.kind === 'transport' ? 'Falha de conexão, nova tentativa automática — ' : ''}{issue.message}</li>)}</ul></section>}
       {notice && <p role="status">{notice}</p>}
       {!!state?.conflicts.length && <section aria-label="Conflitos de sincronização"><h4>Escolha a versão correta</h4><p>Estes itens foram alterados no computador e no Obra360 antes da sincronização. Compare somente os campos diferentes.</p>{state.conflicts.map(item => {
         const rows=conflictRows(item)

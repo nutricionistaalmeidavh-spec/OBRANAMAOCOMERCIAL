@@ -244,3 +244,47 @@ it('remote nunca envia fila anterior de SQLite local ou de outro serverId',async
  await expect(remoteSync.run()).rejects.toThrow(/reconfirme o vínculo/)
  expect(f.online.syncPush).not.toHaveBeenCalled()
 })
+it('isolates a rejected field RDO: other days, catalog failures and the outbox keep flowing', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  f.online.publishMobileSummary.mockClear()
+  const reports = [
+    { date: '2026-11-20', fingerprint: 'fp-a', report: { photos: [] } },
+    { date: '2026-11-21', fingerprint: 'fp-b', report: { photos: [] } }
+  ]
+  Object.assign(f.online, {
+    fieldRdoCatalogPublish: vi.fn(async () => { throw new Error('Catálogo de materiais não corresponde ao contrato operacional.') }),
+    fieldRdoPending: vi.fn(async () => ({ reports })),
+    fieldRdoPhoto: vi.fn(),
+    fieldRdoAck: vi.fn(async () => ({ ok: true })),
+    fieldRdoReject: vi.fn(async () => ({ status: 'rejected' }))
+  })
+  f.sync.dataProvider.fieldRdoCatalog = vi.fn(async () => ({ schemaVersion: 1 }))
+  f.sync.dataProvider.applyFieldRdo = vi.fn(async (_scope: any, report: any) => {
+    if (report.date === '2026-11-20') throw new Error('Saldo insuficiente para Tubo PVC (m). Disponível: 2.')
+    return { localRdoId: 9, materialRevision: 1 }
+  })
+  f.database.save('tarefas_obra', { ...f.task, titulo: 'Alteração que precisa ir para a web' })
+  await f.sync.run()
+  expect(f.online.fieldRdoReject).toHaveBeenCalledWith({ date: '2026-11-20', fingerprint: 'fp-a', reason: expect.stringContaining('Saldo insuficiente') })
+  expect(f.online.fieldRdoAck).toHaveBeenCalledWith(expect.objectContaining({ date: '2026-11-21', localRdoId: 9 }))
+  expect(f.online.publishMobileSummary).toHaveBeenCalled()
+  expect(f.sync.state().pending).toBe(0)
+  const issues = f.sync.state().fieldRdoIssues
+  expect(issues.map((i: any) => i.kind).sort()).toEqual(['catalog', 'rdo'])
+})
+it('does not reject an RDO when only the photo transport failed', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  Object.assign(f.online, {
+    fieldRdoPending: vi.fn(async () => ({ reports: [{ date: '2026-11-22', fingerprint: 'fp-c', report: { photos: [{ id: 'p1', sha256: 'a'.repeat(64), contentType: 'image/jpeg' }] } }] })),
+    fieldRdoPhoto: vi.fn(async () => { throw new Error('A conexão online excedeu 30 segundos.') }),
+    fieldRdoAck: vi.fn(),
+    fieldRdoReject: vi.fn()
+  })
+  f.sync.dataProvider.applyFieldRdo = vi.fn()
+  await f.sync.run()
+  expect(f.online.fieldRdoReject).not.toHaveBeenCalled()
+  expect(f.sync.dataProvider.applyFieldRdo).not.toHaveBeenCalled()
+  expect(f.sync.state().fieldRdoIssues[0]).toMatchObject({ kind: 'transport', date: '2026-11-22' })
+})

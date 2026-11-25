@@ -18,5 +18,7 @@ export type DesktopSyncState = {
   source: 'local' | 'lan-host' | 'lan-client' | 'remote'; pauseReason: string | null;
   pending: number; lastSyncAt: string | null; lastError: string | null;
   conflicts: Array<{id: number; entity: string; localId: number; remoteRevision: number; remoteConflictId: string | null; createdAt: string}>;
+  /** Field RDO problems isolated in the last cycle; they never block the rest of the synchronization. */
+  fieldRdoIssues?: Array<{kind: 'catalog' | 'transport' | 'rdo'; date: string | null; message: string; at: string}>;
 };
 export type LocalConflictResolution = 'keep_local' | 'accept_remote';

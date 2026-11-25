@@ -231,7 +231,7 @@ async function loadSharedApp(b:Bootstrap){
   setHeader(role,true,pending?'pending':'idle');
   nav().style.display='grid';
   activateRoleUI(role);
-  const fieldModule='/field.js?v=20260903-premium-1';
+  const fieldModule='/field.js?v=20261125-rdo-reject-1';
   await import(/* @vite-ignore */ fieldModule);
 
   // Refresh only the active screen after each independent request completes.

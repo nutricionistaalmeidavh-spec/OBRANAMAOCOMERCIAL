@@ -401,6 +401,10 @@ class OnlineService {
     },30000)
   }
 
+  async fieldRdoReject({ date, fingerprint, reason }) {
+    return this.request('/api/desktop/field/rdo/reject', { deviceToken: this.requireToken(), date, fingerprint, reason: String(reason || '').slice(0, 300) })
+  }
+
   async fieldRdoAck(input) {
     return this.request('/api/desktop/field/rdo/ack', { deviceToken: this.requireToken(), ...input })
   }
