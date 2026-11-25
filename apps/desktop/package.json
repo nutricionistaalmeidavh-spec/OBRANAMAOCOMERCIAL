@@ -43,7 +43,22 @@
         "filter": [
           "index.cjs",
           "received-notes.cjs",
-          "package.json"
+          "package.json",
+          "nfe-xml.mjs"
+        ]
+      },
+      {
+        "from": "node_modules/saxes",
+        "to": "lan-server/node_modules/saxes",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "node_modules/xmlchars",
+        "to": "lan-server/node_modules/xmlchars",
+        "filter": [
+          "**/*"
         ]
       }
     ],

@@ -41,6 +41,8 @@ if [[ ! -x "$NODE_BINARY" ]]; then
   exit 1
 fi
 
+npm --prefix "$REPO_ROOT/apps/lan-server" ci --workspaces=false --ignore-scripts --no-audit --no-fund
+
 export OBRA_PACKAGE_BUILDER="$COMMON_DIR/build-package.mjs"
 export OBRA_PACKAGE_REPO_ROOT="$REPO_ROOT"
 export OBRA_PACKAGE_OUTPUT="$OUTPUT_DIR"
