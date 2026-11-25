@@ -61,10 +61,10 @@ export default function NfePreviewSection({obraId,onImported}:{obraId:number|nul
     finally{setBusy(false);if(input.current)input.current.value=''}
   }
   return <Card style={{marginTop:14}}>
-    <div className="card-header"><div><h2>Conferir XML de NF-e</h2><p>Leitura local para revisão dos dados fiscais. Nenhum lançamento será criado nesta etapa.</p></div><Button type="button" variant="secondary" icon={<FilePlus size={16}/>} disabled={!obraId||busy} onClick={()=>input.current?.click()}>{busy?'Lendo XML...':'Selecionar XML'}</Button></div>
+    <div className="card-header"><div><h2>Importar nota fiscal (XML)</h2><p>Leia o XML, confira os materiais, escolha obra, etapa e subetapa e confirme para lançar no estoque e no financeiro. Nada é gravado antes da sua confirmação.</p></div><Button type="button" variant="secondary" icon={<FilePlus size={16}/>} disabled={!obraId||busy} onClick={()=>input.current?.click()}>{busy?'Lendo XML...':'Selecionar XML'}</Button></div>
     <input ref={input} type="file" accept=".xml,application/xml,text/xml" hidden onChange={e=>void read(e.target.files?.[0])}/>
     <div className="card-body">
-      <p>{!obraId?'Escolha a obra antes de conferir o XML.':'Arquivo XML de NF-e modelo 55, até 8 MB. A leitura não consulta a SEFAZ.'}</p>
+      <p>{!obraId?'Escolha a obra antes de importar o XML.':'Arquivo XML de NF-e modelo 55, até 8 MB. A leitura não consulta a SEFAZ.'}</p>
       {error&&<div className="notice" role="alert">{error}{preview?' A prévia anterior foi preservada.':''}</div>}
       {preview&&<><div className="row-actions"><strong>{fileName}</strong><Button variant="secondary" disabled={busy} onClick={()=>{setPreview(null);setXmlBase64('');setFileName('');setError('');setRecognition(null);setRecognitionError('');setReview(null)}}>Limpar prévia</Button></div>
         <dl><dt>Fornecedor</dt><dd>{preview.fornecedor} — {preview.documento}</dd><dt>Nota e série</dt><dd>{preview.numero} / {preview.serie}</dd><dt>Chave de acesso</dt><dd style={{overflowWrap:'anywhere'}}>{preview.chave}</dd><dt>Emissão</dt><dd>{brDate(preview.emissao)}</dd><dt>Total fiscal</dt><dd>{money(preview.total)}</dd><dt>Protocolo</dt><dd>{preview.protocolo||'Não consta no XML'} {preview.status?'(status informado no arquivo '+preview.status+')':''}</dd></dl>
