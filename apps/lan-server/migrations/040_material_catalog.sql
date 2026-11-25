@@ -79,8 +79,8 @@ CREATE TRIGGER order_material_resolve AFTER INSERT ON pedido_compra_itens WHEN N
  UPDATE pedido_compra_itens SET material_id=(SELECT c.id FROM materiais_estoque c JOIN obras o ON o.empresa_id=c.empresa_id JOIN pedidos_compra p ON p.obra_id=o.id WHERE p.id=NEW.pedido_compra_id AND lower(trim(c.descricao))=lower(trim(NEW.descricao)) AND lower(trim(c.unidade))=lower(trim(NEW.unidade))) WHERE id=NEW.id;
 END;
 -- An existing item cannot silently change company, canonical unit or historical identity.
-CREATE TRIGGER material_identity_immutable BEFORE UPDATE OF empresa_id,uid,unidade ON materiais_estoque
- WHEN NEW.empresa_id<>OLD.empresa_id OR NEW.uid<>OLD.uid OR lower(trim(NEW.unidade))<>lower(trim(OLD.unidade))
+CREATE TRIGGER material_identity_immutable BEFORE UPDATE OF empresa_id,uid,descricao,unidade ON materiais_estoque
+ WHEN NEW.empresa_id<>OLD.empresa_id OR NEW.uid<>OLD.uid OR NEW.descricao<>OLD.descricao OR lower(trim(NEW.unidade))<>lower(trim(OLD.unidade))
  BEGIN SELECT RAISE(ABORT,'Identidade ou unidade canônica não pode ser alterada'); END;
 
 CREATE TRIGGER material_alias_immutable BEFORE UPDATE OF empresa_id,fornecedor_id,material_id,codigo,unidade_comercial,fator_num,fator_den,gtin ON material_fornecedor_equivalencias WHEN NEW.empresa_id<>OLD.empresa_id OR NEW.fornecedor_id<>OLD.fornecedor_id OR NEW.material_id<>OLD.material_id OR NEW.codigo<>OLD.codigo OR NEW.unidade_comercial<>OLD.unidade_comercial OR NEW.fator_num<>OLD.fator_num OR NEW.fator_den<>OLD.fator_den OR NEW.gtin IS NOT OLD.gtin BEGIN SELECT RAISE(ABORT,'Equivalência confirmada não pode ser reclassificada sem revisão'); END;

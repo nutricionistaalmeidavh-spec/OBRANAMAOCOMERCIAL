@@ -41,6 +41,8 @@
     "finance": {
       "tables": [
         "fornecedores",
+        "materiais_estoque",
+        "material_fornecedor_equivalencias",
         "categorias_financeiras",
         "contas",
         "pagamentos_conta",
