@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal } from './ui'
 import { useAsync } from '../hooks/useAsync'
-import { today, brDate } from '../utils/format'
+import { today, brDate, brl } from '../utils/format'
 type Scope={companyId?:string;workId?:string;revision?:number}
 type Draft={obra_id:number;frente_id:number|null;descricao:string;unidade:string;tipo:string;quantidade:string;data:string}
 export default function StockWorkspace({companyId='',workId='',revision=0}:Scope){
@@ -13,6 +13,8 @@ export default function StockWorkspace({companyId='',workId='',revision=0}:Scope
   const [stage,setStage]=useState('')
   const [draft,setDraft]=useState<Draft|null>(null)
   const [error,setError]=useState('')
+  const [exportMessage,setExportMessage]=useState('')
+  const [exporting,setExporting]=useState(false)
   const [saving,setSaving]=useState(false)
   const savingRef=useRef(false)
   const [version,setVersion]=useState(0)
@@ -34,9 +36,14 @@ export default function StockWorkspace({companyId='',workId='',revision=0}:Scope
     finally{savingRef.current=false;setSaving(false)}
   }
   const canImport=storage.data?.state==='local'
+  const template=async()=>{try{const saved=await window.fluxoDre.importadorUniversal.template('estoque');if(saved?.path)setExportMessage('Modelo salvo.')}catch(e){setExportMessage(e instanceof Error?e.message:'Falha ao gerar modelo.')}}
+  const exportPage=async(format:'xlsx'|'csv')=>{if(!current||exporting)return;setExporting(true);setExportMessage('');try{const keys=mode==='saldo'?['empresa_nome','obra_nome','etapa_nome','descricao','unidade','entradas','saidas','saldo','custo_medio_centavos','saldo_estimado_centavos']:['empresa_nome','obra_nome','etapa_nome','descricao','unidade','tipo','quantidade','data'];const labels:Record<string,string>={empresa_nome:'Empresa',obra_nome:'Obra',etapa_nome:'Etapa',descricao:'Material',unidade:'Unidade',entradas:'Entradas',saidas:'Saídas',saldo:'Saldo',custo_medio_centavos:'Custo médio estimado (R$)',saldo_estimado_centavos:'Saldo valorizado estimado (R$)',tipo:'Tipo',quantidade:'Quantidade',data:'Data'};const rows=current.rows.map(r=>Object.fromEntries(keys.map(k=>[k,k.endsWith('_centavos')&&r[k]!=null?r[k]/100:r[k]??''])));const out=await window.fluxoDre.operationalSheet.exportFile({area:'estoque',format,filename:'estoque-pagina-'+(page+1),columns:keys.map(key=>({key,label:labels[key]})),rows});if(out?.path)setExportMessage('Página exportada.')}catch(e){setExportMessage(e instanceof Error?e.message:'Não foi possível exportar.')}finally{setExporting(false)}}
   return <Card>
     <div className="card-header"><div><h2>Materiais e movimentações</h2><p>Saldo calculado no banco a partir dos registros de estoque.</p></div><div className="row-actions">
       {canImport&&<Link className="button button-secondary" to={'/importacao?'+new URLSearchParams({area:'estoque',...(companyId?{empresa:companyId}:{})})}>Importar planilha</Link>}
+      {canImport&&<Button variant="secondary" onClick={()=>void template()}>Modelo</Button>}
+      <Button variant="secondary" disabled={!current?.rows.length||exporting||result.loading} onClick={()=>void exportPage('xlsx')}>Excel (página)</Button>
+      <Button variant="secondary" disabled={!current?.rows.length||exporting||result.loading} onClick={()=>void exportPage('csv')}>CSV (página)</Button>
       {workId&&<Button disabled={saving||stages.loading||!!stages.error} onClick={()=>open({obra_id:workId,descricao:'',unidade:'un'})}>Movimentar estoque</Button>}
     </div></div>
     <div className="card-body"><div className="row-actions">
@@ -47,7 +54,8 @@ export default function StockWorkspace({companyId='',workId='',revision=0}:Scope
       {workId&&<Field label="Etapa"><select disabled={stages.loading||!!stages.error} value={stage} onChange={e=>{setStage(e.target.value);setPage(0)}}><option value="">Todas</option>{stages.data?.map((s:any)=><option key={s.id} value={s.id}>{s.nome}</option>)}</select></Field>}
       <Button variant="secondary" onClick={()=>void result.reload()}>Atualizar</Button>
     </div></div>
-    {result.loading||!current&&!result.error?<Loading label="Consultando estoque..."/>:result.error?<div className="card-body" role="alert">Não foi possível consultar o estoque. <Button onClick={()=>void result.reload()}>Tentar novamente</Button></div>:current?.rows.length?<div className="table-wrap"><table className="data-table"><thead><tr><th>Obra</th><th>Etapa</th><th>Material</th><th>Unidade</th>{mode==='saldo'?<><th>Entradas</th><th>Saídas</th><th>Saldo</th><th/></>:<><th>Tipo</th><th>Quantidade</th><th>Data</th></>}</tr></thead><tbody>{current.rows.map(r=><tr key={r.id}><td>{r.obra_nome}</td><td>{r.etapa_nome}</td><td>{r.descricao}</td><td>{r.unidade}</td>{mode==='saldo'?<><td>{r.entradas}</td><td>{r.saidas}</td><td>{r.saldo}</td><td><Button variant="secondary" onClick={()=>open(r)}>Movimentar</Button></td></>:<><td>{r.tipo}</td><td>{r.quantidade}</td><td>{brDate(r.data)}</td></>}</tr>)}</tbody></table></div>:<Empty title="Nenhum material nesta seleção" description="Altere os filtros ou importe os materiais."/>}
+    {exportMessage&&<p role="status" className="card-body">{exportMessage}</p>}
+    {result.loading||!current&&!result.error?<Loading label="Consultando estoque..."/>:result.error?<div className="card-body" role="alert">Não foi possível consultar o estoque. <Button onClick={()=>void result.reload()}>Tentar novamente</Button></div>:current?.rows.length?<div className="table-wrap"><table className="data-table"><thead><tr><th>Empresa</th><th>Obra</th><th>Etapa</th><th>Material</th><th>Unidade</th>{mode==='saldo'?<><th>Entradas</th><th>Saídas</th><th>Saldo</th><th>Custo médio estimado</th><th>Saldo valorizado estimado</th><th/></>:<><th>Tipo</th><th>Quantidade</th><th>Data</th></>}</tr></thead><tbody>{current.rows.map(r=><tr key={r.id}><td>{r.empresa_nome}</td><td>{r.obra_nome}</td><td>{r.etapa_nome}</td><td>{r.descricao}</td><td>{r.unidade}</td>{mode==='saldo'?<><td>{r.entradas}</td><td>{r.saidas}</td><td>{r.saldo}</td><td>{r.custo_medio_centavos===null?'—':brl(r.custo_medio_centavos)}</td><td>{r.saldo_estimado_centavos===null?'—':brl(r.saldo_estimado_centavos)}</td><td>{workId?<Button variant="secondary" onClick={()=>open(r)}>Movimentar</Button>:<Link to={'/estoque?'+new URLSearchParams({empresa:String(r.empresa_id),obra:String(r.obra_id)})}>Abrir obra</Link>}</td></>:<><td>{r.tipo}</td><td>{r.quantidade}</td><td>{brDate(r.data)}</td></>}</tr>)}</tbody></table></div>:<Empty title="Nenhum material nesta seleção" description="Altere os filtros ou importe os materiais."/>}
     {current&&<div className="card-body row-actions"><span>{current.total} registros</span><Button variant="secondary" disabled={!page||result.loading} onClick={()=>setPage(p=>Math.max(0,p-1))}>Anterior</Button><Button variant="secondary" disabled={result.loading||(page+1)*50>=current.total} onClick={()=>setPage(p=>p+1)}>Próxima</Button></div>}
     <Modal open={!!draft} title="Movimentar estoque" onClose={()=>{if(!saving)setDraft(null)}}><form onSubmit={save}><div className="modal-body form-grid">
     {error&&<div role="alert" className="notice">{error}</div>}

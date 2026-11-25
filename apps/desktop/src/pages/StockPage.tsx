@@ -10,8 +10,8 @@ export default function StockPage(){
   const context=useWorkContext()
   const works=useAsync(()=>window.fluxoDre.obras.list(),[])
   const companies=useAsync(()=>window.fluxoDre.empresas.list(),[])
-  const companyId=params.get('empresa')??context.empresaId
   const selectedWork=params.get('obra')||''
+  const companyId=params.get('empresa')??(selectedWork?String(works.data?.find((w:any)=>String(w.id)===selectedWork)?.empresa_id||''):context.empresaId)
   const available=(works.data||[]).filter((work:any)=>!companyId||String(work.empresa_id)===companyId) as Work[]
   const work=available.find(w=>String(w.id)===selectedWork)
   const change=(company:string,obra:string)=>setParams({empresa:company,...(obra?{obra}:{})})

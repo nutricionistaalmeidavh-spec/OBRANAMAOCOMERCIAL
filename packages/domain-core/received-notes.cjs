@@ -301,19 +301,22 @@ function stockPage(db, filters={}) {
     if(filters[field]!==undefined&&filters[field]!==null&&filters[field]!==''){conditions.push(sql+'=?');args.push(positive(filters[field],field))}
   }
   const q=String(filters.q??'').trim().slice(0,200)
-  if(q){conditions.push("(instr(lower(m.descricao),lower(?))>0 OR instr(lower(m.unidade),lower(?))>0 OR instr(lower(o.nome),lower(?))>0 OR instr(lower(COALESCE(f.nome,'')),lower(?))>0)");args.push(q,q,q,q)}
-  const from=" FROM movimentacoes_estoque m JOIN obras o ON o.id=m.obra_id LEFT JOIN frentes_obra f ON f.id=m.frente_id WHERE "+conditions.join(' AND ')
+  if(q){conditions.push("(instr(lower(trim(m.descricao)),lower(?))>0 OR instr(lower(trim(m.unidade)),lower(?))>0 OR instr(lower(o.nome),lower(?))>0 OR instr(lower(COALESCE(f.nome,'')),lower(?))>0 OR instr(lower(COALESCE(e.nome_fantasia,e.razao_social)),lower(?))>0)");args.push(q,q,q,q,q)}
+  const from=" FROM movimentacoes_estoque m JOIN obras o ON o.id=m.obra_id JOIN empresas e ON e.id=o.empresa_id LEFT JOIN frentes_obra f ON f.id=m.frente_id LEFT JOIN pedido_compra_itens pi ON pi.id=m.pedido_item_id WHERE "+conditions.join(' AND ')
   const history=filters.history===true||filters.history==='true'
   const grouped=" GROUP BY m.obra_id,COALESCE(m.frente_id,0),lower(trim(m.descricao)),lower(trim(m.unidade))"
+  const covered="SUM(CASE WHEN m.tipo IN ('entrada','ajuste') AND pi.quantidade_pedida>0 THEN m.quantidade ELSE 0 END)"
+  const cost="SUM(CASE WHEN m.tipo IN ('entrada','ajuste') AND pi.quantidade_pedida>0 THEN 1.0*pi.valor_centavos*m.quantidade/pi.quantidade_pedida ELSE 0 END)"
+  const valuation=", CASE WHEN "+covered+">0 THEN CAST(ROUND("+cost+"/"+covered+") AS INTEGER) END custo_medio_centavos"
   const sql=history
-    ? "SELECT m.id,m.obra_id,o.empresa_id,o.nome obra_nome,m.frente_id,COALESCE(f.nome,'Obra geral') etapa_nome,m.descricao,m.unidade,m.tipo,m.quantidade,m.data"+from
-    : "SELECT MIN(m.id) id,m.obra_id,o.empresa_id,o.nome obra_nome,m.frente_id,COALESCE(f.nome,'Obra geral') etapa_nome,MIN(trim(m.descricao)) descricao,MIN(trim(m.unidade)) unidade,SUM(CASE WHEN m.tipo IN ('entrada','ajuste') THEN m.quantidade ELSE 0 END) entradas,SUM(CASE WHEN m.tipo='saida' THEN m.quantidade ELSE 0 END) saidas,SUM(CASE WHEN m.tipo IN ('entrada','ajuste') THEN m.quantidade ELSE -m.quantidade END) saldo"+from+grouped
+    ? "SELECT m.id,m.obra_id,o.empresa_id,o.nome obra_nome,COALESCE(e.nome_fantasia,e.razao_social) empresa_nome,m.frente_id,COALESCE(f.nome,'Obra geral') etapa_nome,m.descricao,m.unidade,m.tipo,m.quantidade,m.data"+from
+    : "SELECT MIN(m.id) id,m.obra_id,o.empresa_id,o.nome obra_nome,COALESCE(e.nome_fantasia,e.razao_social) empresa_nome,m.frente_id,COALESCE(f.nome,'Obra geral') etapa_nome,MIN(trim(m.descricao)) descricao,MIN(trim(m.unidade)) unidade,SUM(CASE WHEN m.tipo IN ('entrada','ajuste') THEN m.quantidade ELSE 0 END) entradas,SUM(CASE WHEN m.tipo='saida' THEN m.quantidade ELSE 0 END) saidas,SUM(CASE WHEN m.tipo IN ('entrada','ajuste') THEN m.quantidade ELSE -m.quantidade END) saldo"+valuation+from+grouped
   const total=Number(db.prepare('SELECT COUNT(*) total FROM ('+sql+')').get(...args).total)
   const rows=db.prepare(sql+(history?' ORDER BY m.data DESC,m.id DESC':' ORDER BY obra_nome,descricao,unidade,etapa_nome,id')+' LIMIT ? OFFSET ?').all(...args,limit,offset)
-  return {rows,total,limit,offset}
+  return {rows:history?rows:rows.map(r=>({...r,saldo_estimado_centavos:r.custo_medio_centavos===null?null:Math.round(r.custo_medio_centavos*r.saldo)})),total,limit,offset}
 }
-function stockBalance(db,payload){
-  return Number(db.prepare("SELECT COALESCE(SUM(CASE WHEN tipo IN ('entrada','ajuste') THEN quantidade ELSE -quantidade END),0) total FROM movimentacoes_estoque WHERE obra_id=? AND COALESCE(frente_id,0)=COALESCE(?,0) AND lower(trim(descricao))=lower(trim(?)) AND lower(trim(unidade))=lower(trim(?))").get(payload.obra_id,payload.frente_id||null,payload.descricao,payload.unidade||'un').total)
+function stockBalance(db,payload,{allStages=false}={}){
+  return Number(db.prepare("SELECT COALESCE(SUM(CASE WHEN tipo IN ('entrada','ajuste') THEN quantidade ELSE -quantidade END),0) total FROM movimentacoes_estoque WHERE obra_id=? AND (?=1 OR COALESCE(frente_id,0)=COALESCE(?,0)) AND lower(trim(descricao))=lower(trim(?)) AND lower(trim(unidade))=lower(trim(?))").get(payload.obra_id,allStages?1:0,payload.frente_id||null,payload.descricao,payload.unidade||'un').total)
 }
 function validateStockMovement(db,payload){
   const qty=Number(payload.quantidade),obra=Number(payload.obra_id)

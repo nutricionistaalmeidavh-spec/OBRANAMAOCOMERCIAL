@@ -1,3 +1,5 @@
+import domainCore from './domain-core.cjs'
+const { stockBalance }=domainCore
 import { createHash } from 'node:crypto'
 import { FieldRdoCatalog } from './field-rdo-catalog.mjs'
 
@@ -94,11 +96,7 @@ export class RdoMaterialConsumption {
       for(const row of deltas.values()){const key=materialKey(row.descricao,row.unidade);const total=netByMaterial.get(key)||{descricao:row.descricao,unidade:row.unidade,delta:0};total.delta=quantity(total.delta+row.delta);netByMaterial.set(key,total)}
       for (const row of netByMaterial.values()) {
         if (row.delta <= 0) continue
-        const balance = Number(this.db.prepare(`
-          SELECT COALESCE(SUM(CASE WHEN tipo='saida' THEN -quantidade ELSE quantidade END),0) AS saldo
-          FROM movimentacoes_estoque
-          WHERE obra_id=? AND lower(trim(descricao))=lower(trim(?)) AND lower(trim(unidade))=lower(trim(?))
-        `).get(rdo.obra_id, row.descricao, row.unidade)?.saldo || 0)
+        const balance=stockBalance(this.db,{obra_id:rdo.obra_id,descricao:row.descricao,unidade:row.unidade},{allStages:true})
         if (balance + 1e-6 < row.delta) throw new Error(`Saldo insuficiente para ${row.descricao} (${row.unidade}). Disponível: ${balance}.`)
       }
 
