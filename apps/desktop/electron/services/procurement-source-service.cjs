@@ -37,6 +37,11 @@ class ProcurementSourceService {
   async reclassificationPreview(payload){const state=this.state();if(state==='local'||state==='migration-required')return this.local.reclassificationPreview(payload);if(state==='central-active')return this.lanClient.reclassificationPreview(payload);return this.blocked()}
   async reclassificationConfirm(payload,actor){const state=this.state();if(state==='local'||state==='migration-required')return this.local.reclassificationConfirm(payload,actor);if(state==='central-active')return this.lanClient.reclassificationConfirm(payload);return this.blocked()}
   async stockRevision(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.stockRevision(filters);if(state==='central-active')return this.lanClient.procurementStockRevision(filters);return this.blocked()}
+  async nfeOperation(method,payload,actor){const state=this.state();if(state==='local')return this.local[method](payload,actor);if(state==='central-active')return this.lanClient[method](payload);return this.blocked()}
+  async nfeCommit(payload){return this.nfeOperation('nfeCommit',payload)}
+  async nfeDetails(payload){return this.nfeOperation('nfeDetails',payload)}
+  async nfeReceive(payload){return this.nfeOperation('nfeReceive',payload)}
+  async nfeReverse(payload,actor){return this.nfeOperation('nfeReverse',payload,actor)}
   async nfeRecognize(payload){const state=this.state();if(state==='local'||state==='migration-required')return this.local.nfeRecognize(payload);if(state==='central-active')return this.lanClient.nfeRecognize(payload);return this.blocked()}
   async catalogPage(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogPage(filters);if(state==='central-active')return this.lanClient.catalogPage(filters);return this.blocked()}
   async catalogAliases(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogAliases(filters);if(state==='central-active')return this.lanClient.catalogAliases(filters);return this.blocked()}

@@ -185,6 +185,10 @@ class LanDataClient {
   async reclassificationPreview(payload){return this.request('POST','/api/v1/procurement/material-reclassification/preview',{body:payload})}
   async reclassificationConfirm(payload){return this.request('POST','/api/v1/procurement/material-reclassification/confirm',{body:payload})}
   async procurementStockRevision(filters){return this.request('GET','/api/v1/procurement/stock-revision',{query:filters})}
+  async nfeCommit(payload){return this.request('POST','/api/v1/procurement/nfe-commit',{body:payload})}
+  async nfeDetails(payload){return this.request('POST','/api/v1/procurement/nfe-details',{body:payload})}
+  async nfeReceive(payload){return this.request('POST','/api/v1/procurement/nfe-receive',{body:payload})}
+  async nfeReverse(payload){return this.request('POST','/api/v1/procurement/nfe-reverse',{body:payload})}
   async nfeRecognize(payload){return this.request('POST','/api/v1/procurement/nfe-recognize',{body:payload})}
   async catalogPage(filters){return this.request('GET','/api/v1/procurement/materials',{query:filters})}
   async catalogAliases(filters){return this.request('GET','/api/v1/procurement/material-aliases',{query:filters})}

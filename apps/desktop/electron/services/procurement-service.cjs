@@ -1,4 +1,4 @@
-const { inspectNfeSource, materialReclassificationPreview,confirmMaterialReclassification,stockRevision, stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = require('./domain-core.cjs')
+const { nfeDetails,createNfeIntegrationService,inspectNfeSource, materialReclassificationPreview,confirmMaterialReclassification,stockRevision, stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = require('./domain-core.cjs')
 const nfeFs=require('node:fs'),nfePath=require('node:path')
 function trustedNfeParser(xml){
  const dev=nfePath.resolve(__dirname,'../../../../packages/domain-core/nfe-xml.mjs'),pack=nfePath.join(process.resourcesPath||'','domain-core','nfe-xml.mjs')
@@ -10,6 +10,11 @@ class ProcurementService {
   reclassificationPreview(payload){return materialReclassificationPreview(this.db.db,payload)}
   reclassificationConfirm(payload,actor){const fn=()=>confirmMaterialReclassification(this.db.db,(table,data)=>this.db.save(table,data),payload,actor);return this.db.db.transaction(fn).immediate()}
   stockRevision(filters){return stockRevision(this.db.db,filters)}
+  nfeService(){return createNfeIntegrationService(this.db.db,{parseXml:trustedNfeParser,saveEntity:(table,data)=>this.db.save(table,data)})}
+  nfeCommit(payload){return this.nfeService().commit(payload)}
+  nfeDetails(payload){return nfeDetails(this.db.db,payload)}
+  nfeReceive(payload){return this.nfeService().receive(payload)}
+  nfeReverse(payload,actor){return this.nfeService().reverse({...payload,operador:actor})}
   nfeRecognize(payload){return inspectNfeSource(this.db.db,payload,trustedNfeParser)}
   catalogPage(filters){return materialCatalog(this.db.db,filters)}
   catalogAliases(filters){return materialAliases(this.db.db,filters)}

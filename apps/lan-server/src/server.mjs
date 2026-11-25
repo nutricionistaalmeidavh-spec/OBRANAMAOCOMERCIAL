@@ -640,6 +640,16 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response,200,receivedNotes.read(id))
       }
 
+      if(['/api/v1/procurement/nfe-commit','/api/v1/procurement/nfe-details','/api/v1/procurement/nfe-receive','/api/v1/procurement/nfe-reverse'].includes(url.pathname)){
+        if(request.method!=='POST')return methodNotAllowed(response,['POST'])
+        const action=url.pathname.split('/').pop(),methods={'nfe-commit':'nfeCommit','nfe-details':'nfeDetails','nfe-receive':'nfeReceive','nfe-reverse':'nfeReverse'},method=methods[action]
+        if(!procurement?.[method])return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'finance',action:action==='nfe-details'?'view':'edit'})
+        const payload=await readJson(request,action==='nfe-commit'?12*1024*1024:MAX_BODY_BYTES)
+        const actor=String(context.member?.memberId||context.member?.id||context.member?.email||'')
+        return sendJson(response,200,procurement[method](payload,actor))
+      }
       if(url.pathname==='/api/v1/procurement/nfe-recognize'){
         if(request.method!=='POST')return methodNotAllowed(response,['POST'])
         if(!procurement?.nfeRecognize)return sendJson(response,503,{error:'procurement_unavailable'})

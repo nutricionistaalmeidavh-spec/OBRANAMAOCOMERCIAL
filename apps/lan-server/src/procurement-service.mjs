@@ -4,7 +4,7 @@ import nfeFs from 'node:fs'
 import nfePath from 'node:path'
 const nfeRequire=createRequire(import.meta.url)
 function trustedNfeParser(xml){const paths=[nfePath.join(import.meta.dirname,'nfe-xml.mjs'),nfePath.resolve(import.meta.dirname,'../../../packages/domain-core/nfe-xml.mjs'),nfePath.resolve(import.meta.dirname,'../../domain-core/nfe-xml.mjs')];const file=paths.find(p=>nfeFs.existsSync(p));if(!file)throw new Error('Parser fiscal não instalado. Atualize o servidor.');return nfeRequire(file).parseNfeXml(xml,nfeRequire('saxes').SaxesParser)}
-const { inspectNfeSource, materialReclassificationPreview,confirmMaterialReclassification,stockRevision, stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = domainCore
+const { nfeDetails,createNfeIntegrationService,inspectNfeSource, materialReclassificationPreview,confirmMaterialReclassification,stockRevision, stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = domainCore
 function idempotencyKey(value) {
   const key = String(value || '').trim()
   if (!key) throw new Error('Identificador idempotente da operação não informado.')
@@ -21,6 +21,11 @@ export class ProcurementService {
   reclassificationPreview(payload){return materialReclassificationPreview(this.db,payload)}
   reclassificationConfirm(payload,actor){const fn=()=>confirmMaterialReclassification(this.db,(table,data)=>this.repository.save(table,data),payload,actor);return (()=>{this.db.exec('BEGIN IMMEDIATE');try{const result=fn();this.db.exec('COMMIT');return result}catch(e){try{this.db.exec('ROLLBACK')}catch{}throw e}})()}
   stockRevision(filters){return stockRevision(this.db,filters)}
+  nfeService(){return createNfeIntegrationService(this.db,{parseXml:trustedNfeParser,saveEntity:(table,data)=>this.repository.save(table,data)})}
+  nfeCommit(payload){return this.nfeService().commit(payload)}
+  nfeDetails(payload){return nfeDetails(this.db,payload)}
+  nfeReceive(payload){return this.nfeService().receive(payload)}
+  nfeReverse(payload,actor){return this.nfeService().reverse({...payload,operador:actor})}
   nfeRecognize(payload){return inspectNfeSource(this.db,payload,trustedNfeParser)}
   catalogPage(filters){return materialCatalog(this.db,filters)}
   catalogAliases(filters){return materialAliases(this.db,filters)}
