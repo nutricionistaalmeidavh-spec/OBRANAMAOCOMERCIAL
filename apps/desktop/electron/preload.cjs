@@ -149,6 +149,8 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     },
     configureSync: (scope) => call('online:sync-configure', scope),
     linkFieldRdo: (date) => call('online:sync-link-field-rdo', { date }),
+    syncProjects: () => call('online:sync-projects'),
+    addSyncProject: (workId, remoteProjectId) => call('online:sync-add-project', { workId, remoteProjectId }),
     syncNow: () => call('online:sync-now'),
     resolveLocalConflict: (id, resolution) => call('online:sync-resolve-local', { id, resolution }),
     state: () => call('online:state'),

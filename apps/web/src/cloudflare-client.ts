@@ -1,9 +1,13 @@
 type ApiResponse<T=any>={data:T};
+const PROJECT_KEY='obn:selected-project';
+/** Multiobra: the project chosen on this device; the server validates it against the user's access. */
+export function selectedProject(){try{return localStorage.getItem(PROJECT_KEY)||''}catch{return ''}}
+export function setSelectedProject(projectId:string){try{if(projectId)localStorage.setItem(PROJECT_KEY,projectId);else localStorage.removeItem(PROJECT_KEY)}catch{}}
 async function request<T=any>(method:string,path:string,body?:unknown,query?:Record<string,unknown>):Promise<ApiResponse<T>>{
   const url=new URL(path,location.origin);
   if(query)for(const [key,value] of Object.entries(query))if(value!==undefined&&value!==null)url.searchParams.set(key,String(value));
   const response=await fetch(url.toString(),{
-    method,credentials:'include',headers:body===undefined?{}:{'content-type':'application/json'},
+    method,credentials:'include',headers:{...(body===undefined?{}:{'content-type':'application/json'}),...(selectedProject()?{'x-obn-project':selectedProject()}:{})},
     body:body===undefined?undefined:JSON.stringify(body)
   });
   let data:any={};try{data=await response.json()}catch{}

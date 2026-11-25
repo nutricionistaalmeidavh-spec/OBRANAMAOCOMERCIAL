@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Card, Confirm, Field } from './ui'
 import { useAsync } from '../hooks/useAsync'
+import SyncProjectsCard from './SyncProjectsCard'
 import type { DesktopSyncState, LocalConflictResolution } from '../../../../packages/contracts/src/desktop-sync'
 
 const ENTITY_LABELS:Record<string,string>={tarefas_obra:'Tarefa',frentes_obra:'Etapa',rdos:'RDO',cronograma_etapas:'Planejamento'}
@@ -76,6 +77,8 @@ export default function SyncSettings() {
         <small>Última atualização: {state?.lastSyncAt ? new Date(state.lastSyncAt).toLocaleString('pt-BR') : 'nenhuma'}. Se a rede falhar, o trabalho deste computador é preservado.</small>
         {state?.scope && <div><p><strong>{state.scope.companyName} / {state.scope.workName}</strong></p><details><summary>Detalhes técnicos</summary><small>Destino: {state.scope.baseUrl} · obra remota {state.scope.remoteProjectId}</small></details></div>}
       </div>
+      {!!state?.projects?.length && <section aria-label="Outras obras sincronizadas"><h4>Outras obras no celular</h4><ul>{state.projects.map(project => <li key={project.id}><strong>{project.workName}</strong> · {project.lastError ? <span role="alert">{project.lastError}</span> : project.lastSyncAt ? 'Atualizada em ' + new Date(project.lastSyncAt).toLocaleString('pt-BR') : 'Aguardando a primeira sincronização'}{project.pending ? ` · ${project.pending} alteração(ões) aguardando envio` : ''}{project.fieldRdoIssues.map((issue, index) => <div key={index}><small>{issue.date ? new Date(issue.date + 'T12:00:00').toLocaleDateString('pt-BR') + ': ' : ''}{issue.message}</small></div>)}</li>)}</ul></section>}
+      {!!state?.projectIssues?.length && <p role="status" className="error-box">{state.projectIssues[0].message}</p>}
       {(error || state?.lastError) && <p role="alert" className="error-box">{error || state?.lastError}</p>}
       {!!state?.fieldRdoIssues?.length && <section aria-label="Diários do celular com pendência" className="error-box" role="status"><strong>Diários do celular que precisam de atenção</strong><p>O restante da sincronização continua normalmente. Os recusados aparecem com o motivo no celular e são tentados de novo automaticamente.</p><ul>{state.fieldRdoIssues.map((issue, index) => <li key={index}>{issue.date ? new Date(issue.date + 'T12:00:00').toLocaleDateString('pt-BR') + ': ' : ''}{issue.kind === 'catalog' ? 'Catálogo do celular não atualizado — ' : issue.kind === 'transport' ? 'Falha de conexão, nova tentativa automática — ' : ''}{issue.message}{issue.code === 'manual_rdo_exists' && issue.date && <> <Button variant="secondary" disabled={busy} onClick={() => perform(() => window.fluxoDre.online.linkFieldRdo(issue.date as string), 'Diário do celular juntado ao RDO do escritório. O texto e os materiais já digitados foram mantidos.')}>Juntar ao RDO do escritório</Button></>}{issue.code === 'material_pending' && issue.date && <> <a href="#/rdo">Abrir o Diário de obra para aplicar o consumo</a></>}</li>)}</ul></section>}
       {notice && <p role="status">{notice}</p>}
@@ -93,5 +96,6 @@ export default function SyncSettings() {
       <Confirm open={confirmation} title="Confirmar publicação desta obra" description={`${company?.razao_social || ''} / ${work?.nome || ''} → ${remote?.company || ''} / ${remote?.project || ''}. A sincronização enviará dados operacionais e indicadores dos módulos autorizados, além de obrigações financeiras quando houver permissão. Não vincule obras diferentes.`} onCancel={() => setConfirmation(false)} onConfirm={() => { setConfirmation(false); void perform(() => window.fluxoDre.online.configureSync({ companyId: Number(companyId), workId: Number(workId) }), 'Vínculo de sincronização configurado.') }}/>
       <Confirm open={!!resolution} title="Resolver divergência" description={resolution?.choice === 'accept_remote' ? 'A versão do Obra360 substituirá os campos divergentes deste computador. Esta decisão será registrada.' : 'A versão deste computador será mantida e enviada ao Obra360 na próxima sincronização. Esta decisão será registrada.'} onCancel={() => setResolution(null)} onConfirm={() => { const selected = resolution!; setResolution(null); void perform(() => window.fluxoDre.online.resolveLocalConflict(selected.id, selected.choice), 'Conflito revisado. Acompanhe a próxima sincronização.') }}/>
     </Card>
+    <SyncProjectsCard/>
   </>
 }

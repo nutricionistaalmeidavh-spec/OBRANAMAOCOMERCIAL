@@ -21,6 +21,9 @@ export type DesktopSyncState = {
   /** Field RDO problems isolated in the last cycle; they never block the rest of the synchronization. */
   /** Phone diaries imported whose material consumption waits for stock in the office. */
   fieldRdoPendingConsumption?: Array<{rdoId: number; date: string; message: string}>;
+  /** Multiobra: additional works synchronized with their own online project. */
+  projects?: Array<{id: number; workId: number; workName: string; remoteProjectId: string; lastSyncAt: string | null; lastError: string | null; pending: number; fieldRdoIssues: Array<{kind: string; date: string | null; message: string; at: string; code?: string}>}>;
+  projectIssues?: Array<{message: string; at: string}>;
   fieldRdoIssues?: Array<{kind: 'catalog' | 'transport' | 'rdo' | 'material'; date: string | null; message: string; at: string; code?: 'manual_rdo_exists' | 'material_pending'}>;
 };
 export type LocalConflictResolution = 'keep_local' | 'accept_remote';

@@ -6,9 +6,9 @@ const hash = value => createHash('sha256').update(json(value)).digest('hex')
 const resolved = value => Promise.resolve(value)
 
 class SyncCoordinator {
- constructor({database,online,dataProvider=null,now=Date.now,onStateChanged=null}) { this.database=database; this.online=online; this.now=now; this.dataProvider=dataProvider||new LocalSyncDataProvider({database,now}); this.onStateChanged=typeof onStateChanged==='function'?onStateChanged:null; this.lastStateDigest=''; this.running=null; this.timer=null; this.generation=0 }
+ constructor({database,online,dataProvider=null,now=Date.now,onStateChanged=null,scopeRow=null}) { this.scopeTable=scopeRow?.table||'desktop_sync_scope'; this.scopeId=Number(scopeRow?.id||1); this.isPrimary=this.scopeTable==='desktop_sync_scope'; this.database=database; this.online=online; this.now=now; this.dataProvider=dataProvider||new LocalSyncDataProvider({database,now}); this.onStateChanged=typeof onStateChanged==='function'?onStateChanged:null; this.lastStateDigest=''; this.running=null; this.timer=null; this.generation=0 }
  get db(){return this.database.db}
- binding(){const row=this.db.prepare('SELECT * FROM desktop_sync_scope WHERE id=1').get();return row?{...row,scope:JSON.parse(row.binding)}:null}
+ binding(){const row=this.db.prepare(`SELECT * FROM ${this.scopeTable} WHERE id=?`).get(this.scopeId);return row?{...row,scope:JSON.parse(row.binding)}:null}
  key(scope){if(!scope)return hash(null);const parts=[scope.companyId,scope.workId,scope.baseUrl,scope.deviceId,scope.remoteCompanyId,scope.remoteProjectId];if(scope.storageMode==='remote')parts.push('remote',scope.serverId);return hash(parts)}
  runtimeState(){return this.dataProvider.runtimeState?.()||{source:'local',paused:false,pauseReason:null}}
  state(){
@@ -28,7 +28,7 @@ class SyncCoordinator {
    const {remote_payload,...item}=c
    return {...item,localPayload:select(local),remotePayload:select(remote)}
   }):[]
-  return {configured:!!scope,paused,source:runtime.source,pauseReason,running:!!this.running,scope:scope||null,lastSyncAt:b?.last_sync_at||null,lastError:b?.last_error||null,pending:scope?this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND status='pending'").get(this.key(scope)).n:0,conflicts,fieldRdoIssues:Array.isArray(this.fieldRdoIssues)?this.fieldRdoIssues.slice(0,20):[],fieldRdoPendingConsumption:this.pendingConsumption(scope,runtime)}
+  return {configured:!!scope,paused,source:runtime.source,pauseReason,running:!!this.running,scope:scope||null,lastSyncAt:b?.last_sync_at||null,lastError:b?.last_error||null,pending:scope?this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND status='pending'").get(this.key(scope)).n:0,conflicts,fieldRdoIssues:Array.isArray(this.fieldRdoIssues)?this.fieldRdoIssues.slice(0,20):[],fieldRdoPendingConsumption:this.pendingConsumption(scope,runtime),...(this.isPrimary?{projects:this.projectStates(),projectIssues:Array.isArray(this.projectIssues)?this.projectIssues:[]}:{})}
  }
  notify(){
   const next=this.state(),digest=json(next)
@@ -53,7 +53,7 @@ class SyncCoordinator {
   }
   const old=this.binding();if(old&&this.key(old.scope)===this.key(scope))return this.state()
   this.db.prepare('INSERT INTO desktop_sync_scope(id,binding) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET binding=excluded.binding,remote_revision=0,last_sync_at=NULL,last_error=NULL,snapshot=NULL').run(json(scope))
-  this.db.prepare('UPDATE desktop_sync_scope SET allowed_modules=? WHERE id=1').run(json(session.access?.modules||[]))
+  this.db.prepare(`UPDATE ${this.scopeTable} SET allowed_modules=? WHERE id=?`).run(json(session.access?.modules||[]),this.scopeId)
   await this.capture(scope,session.access?.modules||[]);return this.notify()
  }
  async stop(){this.generation++;if(this.timer)clearInterval(this.timer);this.timer=null;await this.running?.catch(()=>{});this.notify()}
@@ -94,14 +94,20 @@ class SyncCoordinator {
    if(!row||pending||hash(payloadOf(row))!==head.acknowledged_hash||item.payload?.deleted){this.conflict(scope,entity,id,item.payload||{},Number(item.mobileEditedRevision));continue}
    await resolved(this.applyRemote(scope,entity,id,item.payload||{}));const updated=await resolved(this.dataProvider.getBridge(entity,id,scope)),digest=hash(payloadOf(updated));this.db.prepare('UPDATE desktop_sync_heads SET captured_hash=?,acknowledged_hash=?,remote_revision=? WHERE scope_key=? AND entity=? AND local_id=?').run(digest,digest,Number(item.mobileEditedRevision),this.key(scope),entity,id)
   }}
-  this.db.prepare('UPDATE desktop_sync_scope SET snapshot=?,remote_revision=? WHERE id=1').run(json(snapshot),Number(pull.remoteRevision||0))
+  this.db.prepare(`UPDATE ${this.scopeTable} SET snapshot=?,remote_revision=? WHERE id=?`).run(json(snapshot),Number(pull.remoteRevision||0),this.scopeId)
  }
  supersede(scope,job,reason){this.db.transaction(()=>{this.db.prepare("UPDATE desktop_sync_outbox SET status='superseded',last_error=? WHERE id=? AND status='pending'").run(reason,job.id);this.db.prepare("UPDATE desktop_sync_heads SET captured_hash=COALESCE(acknowledged_hash,'') WHERE scope_key=? AND entity=? AND local_id=?").run(this.key(scope),job.entity,job.local_id)})()}
  hasEarlierPending(scope,job){return !!this.db.prepare("SELECT id FROM desktop_sync_outbox WHERE scope_key=? AND kind=? AND entity=? AND local_id=? AND status='pending' AND id<? LIMIT 1").get(this.key(scope),job.kind,job.entity,job.local_id,job.id)}
  run(options={}){
   if(this.running)return this.running
   const task=(async()=>{
-   try{await this.perform(options)}
+   try{
+    let primaryError=null
+    try{await this.perform(options)}catch(error){primaryError=error}
+    // Each additional work is independent: one failing work never stops the others.
+    if(this.isPrimary)await this.performProjects(options)
+    if(primaryError)throw primaryError
+   }
    finally{this.running=null;this.notify()}
    return this.state()
   })()
@@ -193,6 +199,108 @@ class SyncCoordinator {
   this.run({retryNow:true}).catch(()=>{})
   return result
  }
+ projectStates(){
+  return this.extraRows().map(row=>{const scope=JSON.parse(row.binding),item=this.projectCoordinators?.get(row.id)
+   return {id:row.id,workId:row.work_id,workName:scope.workName,remoteProjectId:row.remote_project_id,lastSyncAt:row.last_sync_at||null,lastError:row.last_error||null,
+    pending:this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND status='pending'").get(this.key(scope)).n,
+    fieldRdoIssues:Array.isArray(item?.fieldRdoIssues)?item.fieldRdoIssues.slice(0,10):[]}})
+ }
+ hasTable(name){try{return !!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name)}catch{return false}}
+ extraRows(){return this.hasTable('desktop_sync_extra_scopes')?this.db.prepare('SELECT * FROM desktop_sync_extra_scopes ORDER BY id').all():[]}
+ /** Online access scoped to one project: every Desktop call carries projectId, validated by the Cloud. */
+ projectOnline(projectId){
+  const base=this.online,coordinator=this,proxy=Object.create(base)
+  proxy.request=(route,payload,...rest)=>base.request.call(proxy,route,payload&&typeof payload==='object'&&!Array.isArray(payload)&&String(route).startsWith('/api/desktop/')?{...payload,projectId}:payload,...rest)
+  proxy.session=async()=>{
+   const session=await base.session(),list=await coordinator.authorizedProjects()
+   const project=(list.projects||[]).find(item=>String(item.id)===String(projectId))
+   if(!project)return {...session,authorized:false}
+   return {...session,project:{id:project.id,name:project.name,companyId:session.company?.id},access:{...session.access,modules:project.modules||[]}}
+  }
+  return proxy
+ }
+ async authorizedProjects(force=false){
+  if(typeof this.online.listAuthorizedProjects!=='function')return {projects:[],limits:null}
+  const cached=this.projectListCache
+  if(!force&&cached&&this.now()-cached.at<30000)return cached.value
+  const value=await this.online.listAuthorizedProjects()
+  this.projectListCache={at:this.now(),value}
+  return value
+ }
+ projectCoordinator(row){
+  this.projectCoordinators=this.projectCoordinators||new Map()
+  let item=this.projectCoordinators.get(row.id)
+  if(!item){item=new SyncCoordinator({database:this.database,online:this.projectOnline(row.remote_project_id),dataProvider:this.dataProvider,now:this.now,scopeRow:{table:'desktop_sync_extra_scopes',id:row.id}});this.projectCoordinators.set(row.id,item)}
+  return item
+ }
+ async performProjects(options={}){
+  const primary=this.binding()
+  if(!primary||this.runtimeState().paused)return
+  for(const row of this.extraRows()){
+   try{await this.projectCoordinator(row).perform(options)}catch{/* recorded in the work's own last_error */}
+  }
+  try{await this.autoPublishWorks()}catch(error){this.projectIssue(String(error?.message||error))}
+ }
+ projectIssue(message){this.projectIssues=[{message:String(message).slice(0,300),at:new Date(this.now()).toISOString()}]}
+ boundWorkIds(){const ids=new Set();const primary=this.binding();if(primary)ids.add(Number(primary.scope.workId));for(const row of this.extraRows())ids.add(Number(row.work_id));return ids}
+ /** Lists online projects and local works so the office can publish every work once. */
+ async listProjects(){
+  const primary=this.binding()
+  if(!primary)return {configured:false,projects:[],localWorks:[],limits:null}
+  const list=await this.authorizedProjects(true),rows=this.extraRows()
+  const boundRemote=new Map([[String(primary.scope.remoteProjectId),Number(primary.scope.workId)],...rows.map(row=>[String(row.remote_project_id),Number(row.work_id)])])
+  const works=this.runtimeState().source==='local'?this.db.prepare('SELECT id,nome,empresa_id FROM obras WHERE deleted_at IS NULL ORDER BY nome').all():[]
+  const bound=this.boundWorkIds()
+  return {configured:true,limits:list.limits||null,
+   projects:(list.projects||[]).map(project=>({...project,localWorkId:boundRemote.get(String(project.id))??null})),
+   localWorks:works.map(work=>({id:work.id,nome:work.nome,empresaId:work.empresa_id,bound:bound.has(Number(work.id))}))}
+ }
+ /** Office decision (or automatic for a brand-new work): bind a local work to an online project, creating it when needed. */
+ async addProject({workId,remoteProjectId=''}={}){
+  const primary=this.binding()
+  if(!primary)throw new Error('Ligue primeiro a obra principal ao celular.')
+  if(!this.hasTable('desktop_sync_extra_scopes'))throw new Error('Atualize o Obra na Mão Desktop para publicar outras obras.')
+  const id=Number(workId),work=this.db.prepare('SELECT id,nome,empresa_id FROM obras WHERE id=? AND deleted_at IS NULL').get(id)
+  if(!work)throw new Error('Obra local não encontrada.')
+  if(this.boundWorkIds().has(id))throw new Error('Esta obra já recebe dados do celular.')
+  let project
+  if(remoteProjectId){
+   const list=await this.authorizedProjects(true)
+   project=(list.projects||[]).find(item=>String(item.id)===String(remoteProjectId))
+   if(!project)throw new Error('Obra online não autorizada para esta conta.')
+   if(String(primary.scope.remoteProjectId)===String(project.id)||this.extraRows().some(row=>row.remote_project_id===String(project.id)))throw new Error('Esta obra online já está ligada a outra obra local.')
+  }else{
+   if(typeof this.online.createProject!=='function')throw new Error('Criação de obra online indisponível nesta versão.')
+   project=(await this.online.createProject({name:work.nome,localWorkId:id})).project
+   this.projectListCache=null
+  }
+  const company=this.db.prepare('SELECT razao_social,nome_fantasia FROM empresas WHERE id=?').get(work.empresa_id)||{}
+  const scope={companyId:work.empresa_id,workId:id,companyName:company.nome_fantasia||company.razao_social||primary.scope.companyName,workName:work.nome,
+   baseUrl:primary.scope.baseUrl,deviceId:primary.scope.deviceId,remoteCompanyId:primary.scope.remoteCompanyId,remoteProjectId:String(project.id),
+   ...(primary.scope.storageMode?{storageMode:primary.scope.storageMode,serverId:primary.scope.serverId}:{})}
+  this.db.prepare('INSERT INTO desktop_sync_extra_scopes(remote_project_id,work_id,binding) VALUES(?,?,?)').run(String(project.id),id,json(scope))
+  this.notify()
+  return {workId:id,remoteProjectId:String(project.id),name:project.name||work.nome}
+ }
+ /** New works created after this version are published automatically, within the license limit. */
+ async autoPublishWorks(){
+  if(this.runtimeState().source!=='local'||!this.hasTable('desktop_sync_settings')||typeof this.online.createProject!=='function')return
+  const primary=this.binding();if(!primary)return
+  const setting=this.db.prepare("SELECT value FROM desktop_sync_settings WHERE key='auto_publish_after_work_id'").get()
+  if(!setting){
+   // Baseline: existing works are offered in the Painel, never published silently.
+   const max=this.db.prepare('SELECT COALESCE(MAX(id),0) AS id FROM obras').get().id
+   this.db.prepare("INSERT INTO desktop_sync_settings(key,value) VALUES('auto_publish_after_work_id',?)").run(String(max))
+   return
+  }
+  const bound=this.boundWorkIds()
+  const skip=this.hasTable('desktop_sync_skip_auto')?'AND id NOT IN (SELECT work_id FROM desktop_sync_skip_auto)':''
+  const candidates=this.db.prepare(`SELECT id FROM obras WHERE id>? AND empresa_id=? AND deleted_at IS NULL ${skip} ORDER BY id`).all(Number(setting.value),Number(primary.scope.companyId)).filter(row=>!bound.has(Number(row.id)))
+  for(const row of candidates){
+   try{await this.addProject({workId:row.id})}
+   catch(error){this.projectIssue(String(error?.message||error));break}
+  }
+ }
  async bootstrapBinding(){
   const runtime=this.runtimeState(), connection=this.online.state(), generation=this.generation
   if(runtime.paused || runtime.source!=='local' || !connection.linked || !this.online.readConfig)return
@@ -214,7 +322,7 @@ class SyncCoordinator {
    })()
   }catch(error){this.bootstrapReason='Não foi possível identificar a obra online. Nova tentativa automática: '+String(error.message)}
  }
- async perform({retryNow=false}={}){if(!this.binding())await this.bootstrapBinding();const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{this.assertScope(scope,generation);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare('UPDATE desktop_sync_scope SET allowed_modules=? WHERE id=1').run(json(modules));const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities)}if(modules.some(module=>module==='obra360'||module==='rdo'))await this.syncFieldRdos(scope,generation);
+ async perform({retryNow=false}={}){if(!this.binding()&&this.isPrimary)await this.bootstrapBinding();const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{this.assertScope(scope,generation);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare(`UPDATE ${this.scopeTable} SET allowed_modules=? WHERE id=?`).run(json(modules),this.scopeId);const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities)}if(modules.some(module=>module==='obra360'||module==='rdo'))await this.syncFieldRdos(scope,generation);
   const adminModules=modules.some(m=>['finance','rh','dre'].includes(m)),queue=this.db.prepare("SELECT * FROM desktop_sync_outbox WHERE scope_key=? AND status='pending' ORDER BY id").all(this.key(scope));for(const job of queue){this.assertScope(scope,generation);if(job.kind==='bridge'&&!modules.includes('obra360')){this.supersede(scope,job,'Módulo Obra360 não está mais liberado para este Desktop.');continue}if(job.kind==='bridge'&&!plan.bridgeEntities.includes(job.entity)){this.supersede(scope,job,'Entidade não disponível na fonte operacional atual.');continue}if(job.kind==='summary'&&!plan.summary){this.supersede(scope,job,'Resumo ainda não está disponível na fonte operacional atual.');continue}if(job.kind==='finance'&&!adminModules){this.supersede(scope,job,'Módulos administrativos não estão mais liberados para este Desktop.');continue}if(job.kind==='finance'&&!plan.obligations){this.supersede(scope,job,'Financeiro ainda não está disponível na fonte operacional atual.');continue}if(!retryNow&&job.next_attempt_at>this.now())continue;if(this.hasEarlierPending(scope,job))continue;if(this.db.prepare("SELECT id FROM desktop_sync_conflicts WHERE scope_key=? AND entity=? AND local_id=? AND status='open'").get(this.key(scope),job.entity,job.local_id))continue;
    try{const payload=JSON.parse(job.payload);let reply;if(job.kind==='bridge'){const head=this.db.prepare('SELECT remote_revision FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),job.entity,job.local_id);reply=await this.online.syncPush([{changeId:job.change_id,entity:job.entity,localId:job.local_id,baseMobileRevision:head?.remote_revision||0,payload}]);this.assertScope(scope,generation);const result=reply.accepted?.find(x=>x.changeId===job.change_id);if(!result)throw new Error('Servidor não confirmou a alteração.');if(result.conflict||result.status==='conflict'){this.conflict(scope,job.entity,job.local_id,payload,Number(result.currentMobileRevision||0),result.conflictId);continue}if(!['accepted','duplicate'].includes(result.status)||result.bridged===false)throw new Error('Alteração não aplicada à obra online.')}
     else if(job.kind==='summary'){reply=await this.online.publishMobileSummary({...payload,modules:Object.fromEntries(Object.entries(payload.modules||{}).filter(([key])=>modules.includes(key))),generatedAt:new Date(this.now()).toISOString()});if(!reply.ok)throw new Error('Resumo não confirmado.')}
@@ -222,8 +330,8 @@ class SyncCoordinator {
     this.assertScope(scope,generation);this.db.transaction(()=>{this.db.prepare("UPDATE desktop_sync_outbox SET status='sent',last_error=NULL WHERE id=?").run(job.id);this.db.prepare('UPDATE desktop_sync_heads SET acknowledged_hash=? WHERE scope_key=? AND entity=? AND local_id=?').run(job.payload_hash,this.key(scope),job.entity,job.local_id)})()
    }catch(error){this.db.prepare('UPDATE desktop_sync_outbox SET attempts=attempts+1,next_attempt_at=?,last_error=? WHERE id=?').run(this.now()+Math.min(3600000,15000*2**Math.min(job.attempts,8)),String(error.message),job.id);throw error}
   }
-  this.assertScope(scope,generation);this.db.prepare('UPDATE desktop_sync_scope SET last_sync_at=?,last_error=NULL WHERE id=1').run(new Date(this.now()).toISOString())
- }catch(error){if(this.db?.open)this.db.prepare('UPDATE desktop_sync_scope SET last_error=? WHERE id=1').run(String(error.message));throw error}return this.state()}
+  this.assertScope(scope,generation);this.db.prepare(`UPDATE ${this.scopeTable} SET last_sync_at=?,last_error=NULL WHERE id=?`).run(new Date(this.now()).toISOString(),this.scopeId)
+ }catch(error){if(this.db?.open)this.db.prepare(`UPDATE ${this.scopeTable} SET last_error=? WHERE id=?`).run(String(error.message),this.scopeId);throw error}return this.state()}
  async resolveLocalConflict(id,resolution){if(this.running)throw new Error('Aguarde a sincronização atual terminar.');if(!['keep_local','accept_remote'].includes(resolution))throw new Error('Resolução inválida.');const runtime=this.runtimeState();if(runtime.paused)throw new Error(`Sincronização pausada: ${runtime.pauseReason}`);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};const scope=this.binding()?.scope;if(!scope)throw new Error('Configure a sincronização.');const generation=this.generation;await this.validate(scope,generation);const conflict=this.db.prepare("SELECT * FROM desktop_sync_conflicts WHERE id=? AND scope_key=? AND status='open'").get(Number(id),this.key(scope));if(!conflict)throw new Error('Conflito não encontrado.');const pull=await this.online.syncPull(0);this.assertScope(scope,generation);const item=(pull.snapshot?.desktopBridge?.[BRIDGE[conflict.entity]]||[]).find(x=>String(x.sourceDeviceId)===scope.deviceId&&Number(x.localId)===conflict.local_id);if(!item)throw new Error('Registro remoto não encontrado; revise o vínculo antes de resolver.');if(Number(item.mobileEditedRevision||0)!==conflict.remote_revision){this.conflict(scope,conflict.entity,conflict.local_id,item.payload||{},Number(item.mobileEditedRevision||0),conflict.remote_conflict_id);throw new Error('O registro online mudou; atualize e revise o conflito novamente.');}if(conflict.remote_conflict_id){
    const result=await this.online.resolveConflict(conflict.remote_conflict_id,'keep_mobile');this.assertScope(scope,generation);if(result?.ok===false)throw new Error('Conflito online não confirmado.')}
   if(resolution==='accept_remote'&&!await resolved(this.applyRemote(scope,conflict.entity,conflict.local_id,item.payload)))throw new Error('Registro local ausente.')

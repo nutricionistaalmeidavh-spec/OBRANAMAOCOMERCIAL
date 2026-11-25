@@ -1,4 +1,4 @@
-import { api, auth } from './cloudflare-client';
+import { api, auth, setSelectedProject } from './cloudflare-client';
 import { APP_VERSION } from '../shared/version';
 import './portal.css';
 import { createIcons, Eye, EyeOff, ChevronRight, FileText, HardHat, GraduationCap, House, Ellipsis, LogOut, ArrowLeft, ShieldCheck, Plus, Building2 } from 'lucide';
@@ -8,7 +8,7 @@ import { loadPortalOverview, portalOverviewLoading } from './portal-overview';
 type Role='admin'|'foreman'|'employee';
 type SystemKey='gestao'|'obra360'|'universidade'|'finance';
 type PlatformAccess={id:string;email:string;platformRole:string;status:'pending'|'active'|'blocked';employeeId?:string|null;companyIds:string[];projectIds:string[];systems:Record<SystemKey,{enabled:boolean;role:string}>};
-type Bootstrap={needsClaim:boolean;authorized?:boolean;isOwner?:boolean;platformRole?:string;platformAccess?:PlatformAccess;role?:Role;access?:{modules:string[];channels:string[]};license?:{modules?:string[];channels?:string[]}|null;company?:{name?:string};project?:{name?:string};user?:{email?:string;name?:string};membership?:{email?:string}};
+type Bootstrap={needsClaim:boolean;authorized?:boolean;isOwner?:boolean;platformRole?:string;platformAccess?:PlatformAccess;role?:Role;access?:{modules:string[];channels:string[]};license?:{modules?:string[];channels?:string[]}|null;company?:{name?:string};project?:{name?:string};projectCount?:number;user?:{email?:string;name?:string};membership?:{email?:string}};
 type Participant={id:string;name:string;phone:string;email?:string|null;jobRole:string;mustChangePassword:boolean};
 
 const SESSION='obn-edu-session';
@@ -190,7 +190,7 @@ function portalShell(name:string,meta:string,cards:string,context?:Bootstrap,pas
   const hasObra=cards.includes('data-resource="obra"');
   const initials=name.trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase();
   setBody(`<header class="cp-header"><div class="cp-header-inner">${brand()}<details class="cp-account"><summary aria-label="Menu da conta">${esc(initials||'EU')}</summary><div><strong>${esc(name)}</strong><a href="./">Página principal</a>${passkeyScope?'<button id="passkeyEnroll" type="button">Cadastrar chave de acesso</button><button id="passkeyManage" type="button">Gerenciar chaves</button>':''}<button id="logoutBtn" type="button">${icon('log-out')}Sair</button></div></details></div></header>
-    <main class="cp-dashboard"><div class="cp-context">${icon('building-2')}<span>${esc(meta)}</span></div>
+    <main class="cp-dashboard"><div class="cp-context">${icon('building-2')}<span>${esc(meta)}</span></div><div id="portalProjectSwitch"></div>
     <section class="cp-welcome"><h1>Visão geral</h1><p>${esc(portalGreeting(name))}</p></section>
     <div class="cp-dashboard-grid"><div id="portalOverview" aria-live="polite">${context&&canReadOverview(context)?portalOverviewLoading():''}</div>
     <section class="cp-section cp-module-section" id="portalModules"><h2>Seus módulos</h2><div class="cp-modules">${cards}</div></section></div>
@@ -240,7 +240,7 @@ async function renderCorporatePortal(verifiedUser?:Awaited<ReturnType<typeof aut
     if(b.needsClaim)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
     if(b.role==='admin'||b.platformRole==='superadmin'||b.isOwner)cards+=card('cobranca','Plano e cobrança','Consulte sua assinatura, pagamentos ou conheça outros planos.','./sistema.html#plano-cobranca','▤');
     if(!cards)cards='<article class="mh-empty"><h3>Nenhum sistema liberado</h3><p>Seu login está válido, mas ainda não há módulos liberados para este perfil.</p></article>';
-    portalShell(user.name||user.email||'Usuário',`${b.platformRole==='superadmin'?'Superadmin · ':''}${b.company?.name||'Empresa'}`,cards,b,'corporate')
+    portalShell(user.name||user.email||'Usuário',`${b.platformRole==='superadmin'?'Superadmin · ':''}${b.company?.name||'Empresa'}`,cards,b,'corporate');if(Number(b.projectCount||0)>1)void hydrateProjectSwitch()
   }catch(e){publicHome();toast(apiErr(e))}
 }
 async function openPortal(){
@@ -276,4 +276,15 @@ export async function mountMhPortal(){
   const user=await auth.getUser();
   if(user){location.hash='#portal';await renderCorporatePortal(user,centralRequest);return}
   publicHome()
+}
+
+/** Multiobra: lets a user with access to several works choose which one the apps open. */
+export async function hydrateProjectSwitch(){
+  const host=document.getElementById('portalProjectSwitch');if(!host)return;
+  try{
+    const {data}=await api.get<{projects:Array<{id:string;name:string;current:boolean}>}>('/api/projects/mine');
+    const projects=data.projects||[];if(projects.length<2){host.innerHTML='';return}
+    host.innerHTML=`<label class="cp-project-switch">Obra <select id="portalProjectSelect">${projects.map(p=>`<option value="${esc(p.id)}"${p.current?' selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`;
+    host.querySelector('select')?.addEventListener('change',event=>{setSelectedProject((event.target as HTMLSelectElement).value);location.reload()});
+  }catch{host.innerHTML=''}
 }

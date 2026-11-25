@@ -382,6 +382,14 @@ class OnlineService {
     return this.state()
   }
 
+  async listAuthorizedProjects() {
+    return this.request('/api/desktop/projects', { deviceToken: this.requireToken() })
+  }
+
+  async createProject({ name, localWorkId }) {
+    return this.request('/api/desktop/projects/create', { deviceToken: this.requireToken(), name: String(name || '').slice(0, 160), localWorkId: Number(localWorkId) })
+  }
+
   async fieldRdoCatalogOrigin() {
     return this.request('/api/desktop/field/rdo/catalog/origin', {deviceToken:this.requireToken()})
   }

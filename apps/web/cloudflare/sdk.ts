@@ -36,6 +36,9 @@ export const runtimeEnv = () => {
   return state.env;
 };
 
+/** Current request (for per-request preferences such as the selected project). */
+export const runtimeRequest=():Request|null=>runtime.getStore()?.request||null;
+
 const now=()=>new Date().toISOString();
 const parseJson=<T=Record<string,unknown>>(value:string|null, fallback:T={} as T):T=>{
   if(!value)return fallback;

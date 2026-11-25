@@ -142,7 +142,9 @@ class WorkImportService {
       }
       return existing
     }
-    return this.db.save('obras', { empresa_id: data.companyId, cliente_id: data.clientId, nome: data.name, codigo: 'CHIANTI', valor_contratado_centavos: data.contracted, data_inicio: new Date().toISOString().slice(0, 10), status: 'ativa', observacoes: `Criada por importação: ${path.basename(data.source || '')}` })
+    const work = this.db.save('obras', { empresa_id: data.companyId, cliente_id: data.clientId, nome: data.name, codigo: 'CHIANTI', valor_contratado_centavos: data.contracted, data_inicio: new Date().toISOString().slice(0, 10), status: 'ativa', observacoes: `Criada por importação: ${path.basename(data.source || '')}` })
+    try { this.db.db.prepare('INSERT OR IGNORE INTO desktop_sync_skip_auto(work_id) VALUES (?)').run(work.id) } catch {}
+    return work
   }
 
   importBudgetFromProposal(obraId, parsed, filePath) {
