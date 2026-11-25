@@ -781,7 +781,18 @@ function nfeSimilarity(a,b){
  return Math.round(200*common/(aa.size+bb.size))
 }
 function recognizeNfeMaterials(db,payload){
- const company=positiveFiscalId(payload.empresa_id,'Empresa'),supplier=fiscalRow(db,'fornecedores',payload.fornecedor_id,'Fornecedor')
+ const work=payload.obra_id?fiscalRow(db,'obras',payload.obra_id,'Obra'):null
+ const company=positiveFiscalId(payload.empresa_id??work?.empresa_id,'Empresa')
+ if(work&&Number(work.empresa_id)!==company)throw new Error('Obra de outra empresa.')
+ let supplierId=payload.fornecedor_id
+ if(!supplierId){
+  const document=digits(payload.documento)
+  if(!/^\d{11}$|^\d{14}$/.test(document))throw new Error('Documento fiscal inválido.')
+  const matches=db.prepare("SELECT id,documento FROM fornecedores WHERE (empresa_id=? OR empresa_id IS NULL) AND deleted_at IS NULL").all(company).filter(f=>digits(f.documento)===document)
+  if(matches.length!==1)throw new Error(matches.length?'Há fornecedores duplicados para o documento fiscal. Selecione o cadastro correto.':'Cadastre o fornecedor com o CPF/CNPJ da nota antes de reconhecer materiais.')
+  supplierId=matches[0].id
+ }
+ const supplier=fiscalRow(db,'fornecedores',supplierId,'Fornecedor')
  fiscalRow(db,'empresas',company,'Empresa')
  if(supplier.empresa_id!=null&&Number(supplier.empresa_id)!==company)throw new Error('Fornecedor de outra empresa.')
  if(payload.documento&&digits(supplier.documento)!==digits(payload.documento))throw new Error('Emitente não corresponde ao fornecedor.')
@@ -826,7 +837,7 @@ function recognizeNfeMaterials(db,payload){
   return {numero,status:candidates.length?'revisar':'sem_correspondencia',material_id:null,conflitos:[],candidatos:candidates.slice(0,8)}
  })
  if(new Set(results.map(x=>x.numero)).size!==results.length)throw new Error('Itens fiscais repetidos.')
- return {operacao:classifyNfeOperation(payload.itens),itens:results}
+ return {empresa_id:company,fornecedor_id:Number(supplier.id),operacao:classifyNfeOperation(payload.itens),itens:results}
 }
 
 module.exports={recognizeNfeMaterials,normalizeNfeDescription,nfeTechnicalAttributes,nfeTechnicalConflicts,validNfeGtin,classifyNfeOperation,convertNfeQuantity,materialReclassificationPreview,confirmMaterialReclassification,stockRevision,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}

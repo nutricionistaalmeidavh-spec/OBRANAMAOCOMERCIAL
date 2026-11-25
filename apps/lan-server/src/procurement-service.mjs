@@ -1,5 +1,5 @@
 import domainCore from './domain-core.cjs'
-const { materialReclassificationPreview,confirmMaterialReclassification,stockRevision, stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = domainCore
+const { recognizeNfeMaterials, materialReclassificationPreview,confirmMaterialReclassification,stockRevision, stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = domainCore
 function idempotencyKey(value) {
   const key = String(value || '').trim()
   if (!key) throw new Error('Identificador idempotente da operação não informado.')
@@ -16,6 +16,7 @@ export class ProcurementService {
   reclassificationPreview(payload){return materialReclassificationPreview(this.db,payload)}
   reclassificationConfirm(payload,actor){const fn=()=>confirmMaterialReclassification(this.db,(table,data)=>this.repository.save(table,data),payload,actor);return (()=>{this.db.exec('BEGIN IMMEDIATE');try{const result=fn();this.db.exec('COMMIT');return result}catch(e){try{this.db.exec('ROLLBACK')}catch{}throw e}})()}
   stockRevision(filters){return stockRevision(this.db,filters)}
+  nfeRecognize(payload){return recognizeNfeMaterials(this.db,payload)}
   catalogPage(filters){return materialCatalog(this.db,filters)}
   catalogAliases(filters){return materialAliases(this.db,filters)}
   catalogSave(payload){const fn=()=>saveMaterialCatalog(this.db,(table,data)=>this.repository.save(table,data),payload);return (()=>{this.db.exec('BEGIN IMMEDIATE');try{const value=fn();this.db.exec('COMMIT');return value}catch(e){try{this.db.exec('ROLLBACK')}catch{}throw e}})()}

@@ -382,6 +382,7 @@ function registerIpc() {
   ipcMain.handle('procurement:reclassification-preview',envelope(payload=>services.procurement.reclassificationPreview(payload)))
   ipcMain.handle('procurement:reclassification-confirm',envelope(payload=>stockWrite(()=>services.procurement.reclassificationConfirm(payload,accounts.current()?.email||'operador-local'))))
   ipcMain.handle('procurement:stock-revision',envelope(filters=>services.procurement.stockRevision(filters)))
+  ipcMain.handle('procurement:nfe-recognize',envelope(payload=>services.procurement.nfeRecognize(payload)))
   ipcMain.handle('procurement:catalog-page',envelope(filters=>services.procurement.catalogPage(filters)))
   ipcMain.handle('procurement:catalog-aliases',envelope(filters=>services.procurement.catalogAliases(filters)))
   ipcMain.handle('procurement:catalog-save',envelope(payload=>stockWrite(()=>services.procurement.catalogSave(payload))))
