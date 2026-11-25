@@ -109,3 +109,35 @@ test('trocar consumo de frente não cria consumo líquido duplicado',()=>{
   assert.equal(f.service.list(f.rdo.id).items[0].servico,'esgoto')
  }finally{f.repository.close()}
 })
+
+
+test('catálogo mantém todos os 1.501 materiais, sem prefixo truncado',()=>{
+ const f=fixture()
+ try{
+  const db=f.repository.connection()
+  db.exec('BEGIN IMMEDIATE')
+  const insert=db.prepare("INSERT INTO movimentacoes_estoque(obra_id,descricao,unidade,tipo,quantidade,data) VALUES(?,?,'m','entrada',1,'2026-11-25')")
+  for(let i=0;i<1500;i++)insert.run(f.work.id,'Material '+i)
+  db.exec('COMMIT')
+  const catalog=new FieldRdoCatalog({repository:f.repository}).list({companyId:f.company.id,workId:f.work.id})
+  assert.equal(catalog.materials.length,1501)
+  assert.equal(new Set(catalog.materials.map(m=>m.id)).size,1501)
+ }finally{f.repository.close()}
+})
+test('RDO antigo usa identidade redirecionada sem duplicar consumo após reclassificação',()=>{
+ const f=fixture()
+ try{
+  const db=f.repository.connection(),catalog=new FieldRdoCatalog({repository:f.repository})
+  const old=catalog.list({companyId:f.company.id,workId:f.work.id}).materials[0]
+  const before=payload(f,12,'old-consumption',0);before.items[0].material_id=old.id
+  f.service.save(before)
+  f.repository.save('movimentacoes_estoque',{obra_id:f.work.id,descricao:'Tubo canonical 25 mm',unidade:'m',tipo:'entrada',quantidade:5,data:'2026-11-25'})
+  const a=db.prepare("SELECT id FROM materiais_estoque WHERE uid=?").get(old.id.slice(4)),b=db.prepare("SELECT id FROM materiais_estoque WHERE descricao='Tubo canonical 25 mm'").get()
+  db.prepare("INSERT INTO material_reclassificacoes(empresa_id,origem_id,destino_id,operador,motivo,movimentacoes,pedidos) VALUES(?,?,?,'teste','Mesmo tubo',2,0)").run(f.company.id,a.id,b.id)
+  const corrected=payload(f,10,'old-consumption-correction',1);corrected.items[0].material_id=old.id
+  f.service.save(corrected)
+  assert.equal(balance(f),35)
+  assert.equal(catalog.list({companyId:f.company.id,workId:f.work.id}).materials.length,1)
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM movimentacoes_estoque WHERE material_id=?').get(a.id).n,0)
+ }finally{f.repository.close()}
+})

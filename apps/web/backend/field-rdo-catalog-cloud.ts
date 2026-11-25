@@ -78,6 +78,7 @@ export async function publishFieldRdoCatalog(projectId:string,deviceId:string,pa
  const pages=Math.max(1,Math.ceil(mat.length/PAGE_SIZE))
  const {materials:_,...meta}=data
  const manifest:Manifest={...meta,paged:true,total:mat.length,pages}
+ if(new TextEncoder().encode(JSON.stringify(manifest)).byteLength>1500000)throw new Error('Etapas e serviços excedem o tamanho seguro do catálogo; nenhuma versão parcial será publicada.')
  // Atomic batch: readers see the previous snapshot or the new complete snapshot.
  const statements=[]
  for(let page=0;page<pages;page++)statements.push(upsert('p:'+version+':'+page,mat.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE)))

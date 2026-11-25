@@ -173,21 +173,22 @@ class ModuleStorageStateService {
     return tables.reduce((total, table) => total + this.countActive(table), 0)
   }
 
-  dependencyBlockedBy(moduleName) {
+  dependencyBlockedBy(moduleName,options={}) {
     const module = this.assertModule(moduleName)
     for (const dependency of MODULE_DEPENDENCIES[module]) {
-      if (this.state(dependency).state !== 'central-active') return dependency
+      if (this.state(dependency,options).state !== 'central-active') return dependency
     }
     return null
   }
 
-  state(moduleName) {
+  state(moduleName,{routingOnly=false}={}) {
     const module = this.assertModule(moduleName)
-    const localRecords = this.localRecordCount(module)
-    const details = { module, localRecords }
-    if (this.operationalMode() === 'local') return { ...details, state: 'local' }
-
-    const persisted = this.read(module)
+    const mode=this.operationalMode()
+    const persisted=mode==='local'?null:this.read(module)
+    const needCount=!routingOnly||(mode!=='local'&&persisted!=='central-active'&&persisted!=='migration-required')
+    const localRecords=needCount?this.localRecordCount(module):undefined
+    const details=needCount?{module,localRecords}:{module}
+    if(mode==='local')return {...details,state:'local'}
     const requiredVersion = Number(MODULE_CONTRACT_VERSIONS[module] || 1)
     const recordedVersion = this.readVersion(module) || (persisted === 'central-active' ? 1 : 0)
     if (persisted === 'migration-required') return { ...details, state: persisted, contractVersion: recordedVersion, requiredContractVersion: requiredVersion }
@@ -200,7 +201,7 @@ class ModuleStorageStateService {
       return { ...details, state: 'migration-required' }
     }
 
-    const dependencyBlockedBy = this.dependencyBlockedBy(module)
+    const dependencyBlockedBy = this.dependencyBlockedBy(module,{routingOnly})
     if (dependencyBlockedBy) {
       if (persisted !== 'central-ready') this.write(module, 'central-ready')
       return {

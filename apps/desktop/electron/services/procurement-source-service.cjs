@@ -10,7 +10,7 @@ class ProcurementSourceService {
     this.pending = new Map()
   }
 
-  state() { const info=this.moduleStorage.state('finance'); if(info.state==='migration-required'&&(info.contractUpgradeRequired||Number(info.contractVersion||0)>0))return 'central-upgrade-blocked';return info.state }
+  state() { const info=this.moduleStorage.state('finance',{routingOnly:true}); if(info.state==='migration-required'&&(info.contractUpgradeRequired||Number(info.contractVersion||0)>0))return 'central-upgrade-blocked';return info.state }
   blocked() { throw new Error('Compras/estoque centrais ainda não estão ativos; nenhum dado será salvo localmente como fallback.') }
 
   key(kind, payload) {

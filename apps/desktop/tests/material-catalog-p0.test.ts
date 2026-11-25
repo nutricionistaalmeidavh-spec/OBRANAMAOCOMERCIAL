@@ -36,7 +36,7 @@ describe('identidade persistente por empresa',()=>{
  const id=db.prepare('SELECT material_id FROM movimentacoes_estoque WHERE id=1').get().material_id
  const plan=db.prepare('EXPLAIN QUERY PLAN SELECT SUM(quantidade) FROM movimentacoes_estoque WHERE obra_id=? AND material_id=?').all(1,id)
  expect(plan.some((r:any)=>String(r.detail).includes('idx_mov_material_obra'))).toBe(true)
- const data=stockPage(db,{obra_id:1,limit:50});expect(data.rows).toHaveLength(50);expect(data.total).toBe(252)
+ const started=performance.now();const data=stockPage(db,{obra_id:1,limit:50});console.info('[stock-benchmark] 10.000 movimentos / 50 linhas:',(performance.now()-started).toFixed(2),'ms');expect(data.rows).toHaveLength(50);expect(data.total).toBe(252)
  }finally{db.close()}})
 
  it('reclassifica após prévia atual e preserva histórico e entradas futuras',()=>{const db=fixture();try{
