@@ -12,7 +12,7 @@ export function retiredUniversityResponse(request: Request): Response | null {
   }
   if ((path.startsWith('/api/edu/') && !operationalEducationRoutes.has(request.method+' '+path))
       || path === '/manifest-universidade.webmanifest' || path === '/icon-universidade.svg'
-      || path.startsWith('/question-images/') || path === '/resources/question-visual-map.json') {
+      || path.startsWith('/question-images/') || (path === '/resources/question-visual-map.json' || path === '/resources/question-visuals-manifest.json')) {
     return new Response('Conteúdo desativado.', {status:410,headers:{...headers,'content-type':'text/plain; charset=utf-8'}});
   }
   return null;
