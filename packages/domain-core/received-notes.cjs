@@ -426,7 +426,20 @@ function inspectNfeSource(db,payload,parseXml){
  }
  const operation=recognition.operacao==='compra'&&(parsed.tipo_operacao!=='1'||parsed.finalidade!=='1')?'revisar':recognition.operacao
  const eligible=parsed.ambiente==='1'&&['100','150'].includes(parsed.status)&&!!parsed.protocolo&&operation==='compra'&&!existing
- return {...recognition,operacao:operation,fiscal:parsed,registro_existente:existing||null,pedidos_referenciados:orderCandidates,elegivel_compra:eligible}
+ const options={obras:[],etapas:[],subetapas:[],categorias:[],pedidos:[],recebimentos:[],contas:[]}
+ if(eligible&&recognition.itens.every(i=>i.status==='confirmado')){
+  options.obras=db.prepare('SELECT id,nome FROM obras WHERE empresa_id=? AND deleted_at IS NULL ORDER BY nome').all(company.id)
+  options.etapas=db.prepare('SELECT f.id,f.obra_id,f.nome FROM frentes_obra f JOIN obras o ON o.id=f.obra_id WHERE o.empresa_id=? AND o.deleted_at IS NULL AND f.deleted_at IS NULL ORDER BY f.nome').all(company.id)
+  options.subetapas=db.prepare('SELECT s.id,s.obra_id,s.frente_id,s.nome FROM subfrentes_obra s JOIN obras o ON o.id=s.obra_id WHERE o.empresa_id=? AND o.deleted_at IS NULL AND s.deleted_at IS NULL ORDER BY s.nome').all(company.id)
+  options.categorias=db.prepare("SELECT id,nome FROM categorias_financeiras WHERE natureza='despesa' AND ativa=1 ORDER BY nome").all()
+  const materialIds=[...new Set(recognition.itens.map(i=>i.material_id))]
+  const placeholders=materialIds.map(()=>'?').join(',')
+  options.pedidos=db.prepare("SELECT i.id,i.material_id,i.descricao,i.quantidade_pedida,i.quantidade_recebida,i.unidade,p.id pedido_id,p.numero,p.obra_id,p.frente_id,p.status FROM pedido_compra_itens i JOIN pedidos_compra p ON p.id=i.pedido_compra_id JOIN obras o ON o.id=p.obra_id WHERE o.empresa_id=? AND o.deleted_at IS NULL AND p.fornecedor_id=? AND p.deleted_at IS NULL AND p.status!='cancelado' AND i.material_id IN ("+placeholders+") ORDER BY p.id,i.id LIMIT 5001").all(company.id,recognition.fornecedor_id,...materialIds)
+  options.recebimentos=db.prepare("SELECT r.id,r.pedido_item_id,r.quantidade_recebida,r.data FROM recebimentos_materiais r JOIN pedido_compra_itens i ON i.id=r.pedido_item_id JOIN pedidos_compra p ON p.id=i.pedido_compra_id JOIN obras o ON o.id=p.obra_id WHERE o.empresa_id=? AND p.fornecedor_id=? AND p.deleted_at IS NULL AND o.deleted_at IS NULL AND i.material_id IN ("+placeholders+") AND NOT EXISTS(SELECT 1 FROM nota_recebida_recebimentos l WHERE l.recebimento_id=r.id) ORDER BY r.id LIMIT 5001").all(company.id,recognition.fornecedor_id,...materialIds)
+  options.contas=db.prepare("SELECT c.id,c.descricao,c.valor_centavos,c.vencimento,c.status,c.pedido_compra_id FROM contas c WHERE c.empresa_id=? AND c.fornecedor_id=? AND c.tipo='pagar' AND c.deleted_at IS NULL AND c.status!='cancelado' AND NOT EXISTS(SELECT 1 FROM nota_recebida_contas l WHERE l.conta_id=c.id) ORDER BY c.vencimento,c.id LIMIT 5001").all(company.id,recognition.fornecedor_id)
+  if(Object.values(options).some(rows=>rows.length>5000))throw new Error('Volume de opções excede o limite da conferência. Refine cadastros antes de integrar.')
+ }
+ return {...recognition,operacao:operation,fiscal:parsed,registro_existente:existing||null,pedidos_referenciados:orderCandidates,elegivel_compra:eligible,opcoes:options}
 }
 function allocateNfeAccounts(db,noteId,destinations,schedule,accounts,total){
  const scopes=new Map()

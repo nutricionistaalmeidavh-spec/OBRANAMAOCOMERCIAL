@@ -3,6 +3,7 @@ import { FilePlus } from 'lucide-react'
 import { Button, Card } from './ui'
 import OperationalSheetGrid, { type SheetColumn } from './OperationalSheetGrid'
 import { MAX_NFE_BYTES, parseNfePreview, type NfePreview } from '../utils/nfe-preview'
+import NfeCommitPanel from './NfeCommitPanel'
 import { brDate } from '../utils/format'
 
 type Recognition=Awaited<ReturnType<typeof window.fluxoDre.compras.nfeRecognize>>
@@ -15,7 +16,7 @@ const columns:SheetColumn[]=[
   {key:'quantidade',label:'Quantidade'},{key:'valor_unitario',label:'Preço unitário (R$)'},
   {key:'valor_produto',label:'Total (R$)'}
 ]
-export default function NfePreviewSection({obraId}:{obraId:number|null}){
+export default function NfePreviewSection({obraId,onImported}:{obraId:number|null;onImported?:()=>void}){
   const input=useRef<HTMLInputElement>(null)
   const [preview,setPreview]=useState<NfePreview|null>(null)
   const [fileName,setFileName]=useState('')
@@ -98,7 +99,8 @@ export default function NfePreviewSection({obraId}:{obraId:number|null}){
         </>}
         <h3>Parcelas informadas no XML</h3>
         {preview.parcelas.length?<ul>{preview.parcelas.map((p,i)=><li key={i}>{p.numero} — {p.vencimento?brDate(p.vencimento):'Sem vencimento'} — {money(p.valor)}</li>)}</ul>:<p>Nenhuma duplicata informada. Não é possível inferir vencimentos.</p>}
-        <p role="status">Prévia concluída. O arquivo não foi arquivado, a nota não foi cadastrada e não houve movimentação de estoque ou financeiro.</p>
+        {obraId&&recognition?.elegivel_compra&&recognition.itens.every(i=>i.status==='confirmado')&&<NfeCommitPanel key={preview.chave} obraId={obraId} preview={preview} recognition={recognition} source={xmlBase64} onImported={async()=>{onImported?.();await recognize(xmlBase64)}}/>}
+        <p role="status">Prévia concluída. A conferência isolada não movimenta estoque ou financeiro. A importação integrada exige confirmação separada.</p>
       </>}
     </div>
   </Card>
