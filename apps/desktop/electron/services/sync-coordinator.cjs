@@ -28,7 +28,7 @@ class SyncCoordinator {
    const {remote_payload,...item}=c
    return {...item,localPayload:select(local),remotePayload:select(remote)}
   }):[]
-  return {configured:!!scope,paused,source:runtime.source,pauseReason,running:!!this.running,scope:scope||null,lastSyncAt:b?.last_sync_at||null,lastError:b?.last_error||null,pending:scope?this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND status='pending'").get(this.key(scope)).n:0,conflicts}
+  return {configured:!!scope,paused,source:runtime.source,pauseReason,running:!!this.running,scope:scope||null,lastSyncAt:b?.last_sync_at||null,lastError:b?.last_error||null,pending:scope?this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND status='pending'").get(this.key(scope)).n:0,conflicts,fieldRdoIssues:Array.isArray(this.fieldRdoIssues)?this.fieldRdoIssues.slice(0,20):[]}
  }
  notify(){
   const next=this.state(),digest=json(next)
@@ -112,38 +112,55 @@ class SyncCoordinator {
  async syncFieldRdos(scope,generation){
   if(typeof this.dataProvider.applyFieldRdo!=='function'||typeof this.online.fieldRdoPending!=='function'||typeof this.online.fieldRdoAck!=='function')return
   this.assertScope(scope,generation)
+  const issues=[]
+  this.fieldRdoIssues=issues
+  // A field RDO problem must never stop the rest of the synchronization: scope
+  // errors still abort, every other failure is recorded and isolated.
+  const isolate=(kind,report,error)=>{this.assertScope(scope,generation);const message=String(error?.message||error||'Falha desconhecida.').slice(0,300);issues.push({kind,date:report?.date||null,message,at:new Date(this.now()).toISOString()});return message}
   if(typeof this.dataProvider.fieldRdoCatalog==='function'&&typeof this.online.fieldRdoCatalogPublish==='function'){
-   const catalog=await resolved(this.dataProvider.fieldRdoCatalog(scope))
-   this.assertScope(scope,generation)
-   if(catalog?.schemaVersion===1)await this.online.fieldRdoCatalogPublish(catalog)
+   try{
+    const catalog=await resolved(this.dataProvider.fieldRdoCatalog(scope))
+    this.assertScope(scope,generation)
+    if(catalog?.schemaVersion===1)await this.online.fieldRdoCatalogPublish(catalog)
+   }catch(error){isolate('catalog',null,error)}
   }
-  const pending=await this.online.fieldRdoPending()
+  let pending
+  try{pending=await this.online.fieldRdoPending()}catch(error){isolate('transport',null,error);return}
   if(!Array.isArray(pending?.reports)||!pending.reports.length)return
   for(const report of pending.reports){
    this.assertScope(scope,generation)
-   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(report.date||''))||!report.fingerprint)throw new Error('RDO mobile recebido sem identidade verificável.')
+   const identified=/^\d{4}-\d{2}-\d{2}$/.test(String(report?.date||''))&&!!report?.fingerprint
+   const reject=async reason=>{if(identified&&typeof this.online.fieldRdoReject==='function')await this.online.fieldRdoReject({date:report.date,fingerprint:report.fingerprint,reason}).catch(error=>isolate('transport',report,error))}
+   if(!identified){isolate('rdo',report,new Error('RDO mobile recebido sem identidade verificável.'));continue}
    const photos=Array.isArray(report.report?.photos)?report.report.photos:[]
-   if(photos.length>60)throw new Error('Evidências fotográficas do RDO excederam o limite.')
+   if(photos.length>60){await reject(isolate('rdo',report,new Error('Evidências fotográficas do RDO excederam o limite.')));continue}
    const verifiedPhotos=[]
-   for(const p of photos){
-    this.assertScope(scope,generation)
-    if(typeof this.online.fieldRdoPhoto!=='function')throw new Error('Desktop não possui transporte autenticado de fotos.')
-    if(!p?.id||!p?.sha256)throw new Error('Foto do RDO sem identidade ou SHA256.')
-    const result=await this.online.fieldRdoPhoto({date:report.date,id:p.id,sha256:p.sha256})
-    if(result?.photo?.id!==p.id||result.photo.contentType!==p.contentType||!result.photo.data)
-     throw new Error('Servidor não retornou a fotografia canônica solicitada.')
-    verifiedPhotos.push({...p,data:result.photo.data})
-   }
+   try{
+    for(const p of photos){
+     this.assertScope(scope,generation)
+     if(typeof this.online.fieldRdoPhoto!=='function')throw new Error('Desktop não possui transporte autenticado de fotos.')
+     if(!p?.id||!p?.sha256)throw new Error('Foto do RDO sem identidade ou SHA256.')
+     const result=await this.online.fieldRdoPhoto({date:report.date,id:p.id,sha256:p.sha256})
+     if(result?.photo?.id!==p.id||result.photo.contentType!==p.contentType||!result.photo.data)
+      throw new Error('Servidor não retornou a fotografia canônica solicitada.')
+     verifiedPhotos.push({...p,data:result.photo.data})
+    }
+   }catch(error){isolate('transport',report,error);continue}
    const complete={...report,report:{...report.report,photos:verifiedPhotos}}
    this.assertScope(scope,generation)
-   const imported=await resolved(this.dataProvider.applyFieldRdo(scope,complete))
-   this.assertScope(scope,generation)
-   if(!Number.isSafeInteger(Number(imported?.localRdoId))||Number(imported?.localRdoId)<1)throw new Error('Fonte operacional não confirmou o RDO canônico.')
-   if(!Number.isSafeInteger(Number(imported?.materialRevision)))throw new Error('Fonte operacional não confirmou a revisão do estoque.')
-   await this.online.fieldRdoAck({
+   let imported
+   try{
+    imported=await resolved(this.dataProvider.applyFieldRdo(scope,complete))
+    this.assertScope(scope,generation)
+    if(!Number.isSafeInteger(Number(imported?.localRdoId))||Number(imported?.localRdoId)<1)throw new Error('Fonte operacional não confirmou o RDO canônico.')
+    if(!Number.isSafeInteger(Number(imported?.materialRevision)))throw new Error('Fonte operacional não confirmou a revisão do estoque.')
+   }catch(error){await reject(isolate('rdo',report,error));continue}
+   try{
+    await this.online.fieldRdoAck({
      date:report.date,fingerprint:report.fingerprint,
      localRdoId:Number(imported.localRdoId),materialRevision:Number(imported.materialRevision)
-   })
+    })
+   }catch(error){isolate('transport',report,error)}
    this.assertScope(scope,generation)
   }
  }

@@ -85,8 +85,9 @@ function rdoClosure(day){
  const d=rdoDraftFor(day),queued=day.rdoStatus==='ready_for_desktop',
  receipt=window.mobileRdoReceipts?.[day.date],
  confirmed=queued&&receipt?.status==='applied'&&receipt.fingerprint===day.rdoClosedFingerprint,
- status=confirmed?'Confirmado pelo Desktop':queued?'Pendente de integração':d.ready?'Pronto para enviar':'Em preenchimento',
- tone=confirmed?'completed':queued||d.ready?'released':'progress',
+ rejected=queued&&!confirmed&&receipt?.status==='rejected'&&receipt.fingerprint===day.rdoClosedFingerprint,
+ status=confirmed?'Confirmado pelo Desktop':rejected?'Recusado pelo Desktop':queued?'Pendente de integração':d.ready?'Pronto para enviar':'Em preenchimento',
+ tone=confirmed?'completed':rejected?'blocked':queued||d.ready?'released':'progress',
  items=[
   {title:'Equipe e presença',detail:d.attendanceMarked+' colaborador(es) conferido(s)',done:d.attendanceMarked>0,button:'goRdoTeam',label:'Ver'},
   {title:'Produção executada',detail:d.finishedSessions+' apontamento(s) concluído(s) · '+d.openSessions+' aberto(s)',done:d.finishedSessions>0&&d.openSessions===0,button:'goRdoProduction',label:'Ver'},
@@ -100,6 +101,7 @@ function rdoClosure(day){
  <div class="card rdo-card rdo-checklist">
  <div class="row rdo-checklist-heading"><div><strong>Fechamento do dia</strong><div class="meta">${completed} de 5 seções revisadas</div></div>
  <span class="badge ${tone}">${status}</span></div>
+ ${rejected?`<div class="meta rdo-rejection" role="alert"><strong>Motivo:</strong> ${esc(String(receipt.reason||'O Desktop não conseguiu integrar este diário.'))} Reabra o RDO, ajuste e envie novamente.</div>`:''}
  <div class="rdo-progress"><i style="width:${completed/5*100}%"></i></div>
  <div class="rdo-steps">${items.map((item,index)=>`<div class="rdo-step ${item.done?'is-done':'is-pending'}">
  <span class="rdo-step-icon" aria-hidden="true">${index+1}</span><div class="rdo-step-body"><strong>${esc(item.title)}</strong><div class="meta">${esc(item.detail)}</div></div>

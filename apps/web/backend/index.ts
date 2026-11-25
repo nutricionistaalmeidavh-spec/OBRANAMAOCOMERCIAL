@@ -1,6 +1,6 @@
 import { createCompanyRoutes } from './owner-companies';
 import { restrictForemanSnapshot } from './field-snapshot-rules';
-import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts } from './field-rdo-delivery';
+import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts, rejectFieldRdo } from './field-rdo-delivery';
 import { fieldRdoOrigin, getFieldRdoCatalog, publishFieldRdoCatalog } from './field-rdo-catalog-cloud';
 import { uploadFieldPhoto, readFieldPhoto, removeFieldPhoto } from './field-rdo-photos';
 import { centralRoleForEmail, requireCentralAccess } from './central-access';
@@ -350,6 +350,14 @@ export const handler=router({
     if(!linked)return error('A foto não pertence a esta revisão do RDO.',403);
     try{return json({photo:await readFieldPhoto(session.device.projectId,photoId)})}
     catch(e){return error((e as Error).message||'Evidência indisponível.',404)}
+  }],
+  'POST /api/desktop/field/rdo/reject':[async(ctx)=>{
+    const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
+    if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
+    const ownerError=await remoteSyncOwnerError(session);if(ownerError)return ownerError;
+    if(!session.access.modules.includes('rdo')&&!session.access.modules.includes('obra360'))return error('Módulo de diário não autorizado.',403);
+    try{return json({receipt:await rejectFieldRdo(session.device.projectId,body,session.device.id)})}
+    catch(e){return error((e as Error).message,400)}
   }],
   'POST /api/desktop/field/rdo/ack':[async(ctx)=>{
     const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));

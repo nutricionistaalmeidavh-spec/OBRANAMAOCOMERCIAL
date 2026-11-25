@@ -8,6 +8,13 @@ const source=(relative:string)=>readFileSync(new URL(relative,import.meta.url),'
 const access={modules:['dre','documents','obra360','rdo'],channels:['mobile']};
 
 describe('P1 mobile UX stability',()=>{
+  it('mostra no celular o RDO recusado pelo Desktop com o motivo, em vez de pendência eterna',()=>{
+    const field=source('../public/field.js');
+    expect(field).toContain("receipt?.status==='rejected'");
+    expect(field).toContain('Recusado pelo Desktop');
+    expect(field).toMatch(/rdo-rejection[^`]*esc\(String\(receipt\.reason/);
+    expect(source('./main.ts')).toContain('/field.js?v=20261125-rdo-reject-1');
+  });
   it('mantém título e subtítulo dos cards de ação legíveis antes da normalização visual',()=>{
     const css=source('../public/field.css');
     expect(css).toContain('.quick-action:not(.quick-action-enhanced)>strong');

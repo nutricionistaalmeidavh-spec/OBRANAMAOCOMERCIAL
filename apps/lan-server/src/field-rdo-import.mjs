@@ -8,7 +8,7 @@ function crewRows(sessions,people) {
   const time=t=>/^([01]\d|2[0-3]):[0-5]\d$/.test(t)?Number(t.slice(0,2))*60+Number(t.slice(3)):null
   for(const session of list(sessions)){
     const events=list(session?.crewEvents).map(e=>({t:time(e.time),ids:[...new Set(list(e.employeeIds).filter(id=>typeof id==='string'&&id.startsWith('rdo_emp_')))]})).sort((a,b)=>a.t-b.t)
-    for(const e of events)for(const id of e.ids){if(!byId.has(id))throw new Error('Funcionário do apontamento não pertence à equipe ativa desta obra.');if(!minutes.has(id))minutes.set(id,0)}
+    for(const e of events)for(const id of e.ids){if(!byId.has(id))throw new Error('Funcionário do apontamento não pertence à equipe desta obra.');if(!minutes.has(id))minutes.set(id,0)}
     for(const seg of list(session?.segments)){
       const start=time(seg.start),end=time(seg.end)
       if(start===null||end===null||end<=start)continue
@@ -48,10 +48,20 @@ function validatePhotos(rows){
  })
 }
 
-function buildReport(report){
+// Field keys are transport identifiers; the canonical RDO stores readable text.
+const FIELD_SERVICES={corte:'Corte',fixacao:'Fixação',chumbamento:'Chumbamento',afaq:'AF/AQ',esgoto:'Esgoto aéreo',dreno:'Dreno'}
+const FIELD_RESULTS={completed:'concluído',in_progress:'continua em execução',no_progress:'sem avanço relevante',blocked:'bloqueado',inspection:'em verificação',finished:'finalizado',running:'em execução',paused:'pausado'}
+const floorLabel=n=>n===0?'Térreo':n<0?'Subsolo '+Math.abs(n):n+'º pavimento'
+function serviceLabel(key,stages){
+  const value=clean(key)
+  const stage=/^etapa:(\d+)$/.exec(value)
+  if(stage)return stages.get(Number(stage[1]))||'Etapa da obra'
+  return FIELD_SERVICES[value]||value||'Serviço'
+}
+function buildReport(report,stages=new Map()){
   const day=record(report.report)
   const activities=list(day.sessions).filter(s=>s&&typeof s==='object').slice(0,200)
-    .map(s=>`${clean(s.service)||'Serviço'}${Number.isFinite(Number(s.floor))?' · pav. '+Number(s.floor):''} · ${clean(s.result||s.state)||'apontamento'}`).join('\n').slice(0,20000)
+    .map(s=>`${serviceLabel(s.service,stages)}${Number.isFinite(Number(s.floor))&&clean(s.floor)!==''?' · '+floorLabel(Number(s.floor)):''} · ${FIELD_RESULTS[clean(s.result||s.state)]||clean(s.result||s.state)||'apontamento'}`).join('\n').slice(0,20000)
   const notes=[clean(day.note),...list(day.events).slice(0,100).map(e=>clean(record(e).label)).filter(Boolean)]
     .filter(Boolean).join('\n').slice(0,20000)
   return {activities,notes}
@@ -80,8 +90,11 @@ export class FieldRdoImport {
     if(!work||work.deleted_at||Number(work.empresa_id)!==companyId)throw new Error('Obra não pertence à empresa autorizada.')
     const oldLink=this.db.prepare('SELECT * FROM field_rdo_links WHERE remote_project_id=? AND day=?').get(remoteProjectId,date)
     const photos=validatePhotos(list(day.photos))
-    const fields=buildReport(report)
-    const crew=()=>crewRows(day.sessions,new FieldRdoCatalog({repository:this.repository}).crew(companyId,workId))
+    const stages=new Map(this.db.prepare('SELECT id,nome FROM etapas_obra WHERE obra_id=? AND deleted_at IS NULL').all(workId).map(row=>[Number(row.id),clean(row.nome)]))
+    const fields=buildReport(report,stages)
+    // Resolve people who belong to the company, not only today's active crew:
+    // an RDO from yesterday stays valid after an employee changes work or leaves.
+    const crew=()=>crewRows(day.sessions,new FieldRdoCatalog({repository:this.repository}).companyPeople(companyId,workId))
     let team
     let rdo
     if(oldLink){

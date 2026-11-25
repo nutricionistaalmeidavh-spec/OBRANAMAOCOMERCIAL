@@ -113,7 +113,40 @@ test('equipe por obra: identidade, horas por intervalo, isolamento e reenvio',as
   const team=f.repository.connection().prepare('SELECT funcionario_id,horas FROM rdo_equipe WHERE rdo_id=?').all(receipt.localRdoId)
   assert.equal(team.length,1);assert.equal(team[0].funcionario_id,a.id);assert.equal(team[0].horas,1.5)
   input.fingerprint='other';input.report.sessions[0].crewEvents[0].employeeIds=[catalog.crew(f.company.id,another.id)[0].id]
-  assert.throws(()=>f.importer.apply(delivery),/equipe ativa/)
+  assert.throws(()=>f.importer.apply(delivery),/equipe desta obra/)
   assert.equal(balance(f),28)
+ }finally{f.repository.close()}
+})
+
+test('RDO de ontem mantém as horas de quem saiu da obra ou foi desligado depois do apontamento',async()=>{
+ const {FieldRdoCatalog}=await import('../src/field-rdo-catalog.mjs')
+ const f=fixture()
+ try{
+  const other=f.repository.save('obras',{empresa_id:f.company.id,nome:'Obra B'})
+  const maria=f.repository.save('funcionarios',{empresa_id:f.company.id,obra_atual_id:f.work.id,nome:'Maria',status:'ativo'})
+  const person=new FieldRdoCatalog({repository:f.repository}).list(scope(f)).employees[0].id
+  // After the phone recorded the day, Maria was moved to another work and deactivated.
+  f.repository.save('funcionarios',{id:maria.id,obra_atual_id:other.id,status:'inativo'})
+  const input=report()
+  input.report.sessions=[{service:'afaq',floor:0,result:'completed',segments:[{start:'07:00',end:'11:00'}],crewEvents:[{time:'07:00',employeeIds:[person]}]}]
+  const receipt=f.importer.apply({scope:scope(f),report:input})
+  const team=f.repository.connection().prepare('SELECT funcionario_id,horas FROM rdo_equipe WHERE rdo_id=?').all(receipt.localRdoId)
+  assert.deepEqual(team.map(row=>[row.funcionario_id,row.horas]),[[maria.id,4]])
+  // The canonical RDO text is readable, not transport keys.
+  const rdo=f.repository.get('rdos',receipt.localRdoId)
+  assert.match(rdo.atividades,/AF\/AQ · Térreo · concluído/)
+  assert.doesNotMatch(rdo.atividades,/afaq|completed/)
+ }finally{f.repository.close()}
+})
+
+test('apontamento em etapa canônica grava o nome da etapa no RDO',()=>{
+ const f=fixture()
+ try{
+  const front=f.repository.save('frentes_obra',{obra_id:f.work.id,nome:'Hidráulica'})
+  const stage=f.repository.save('etapas_obra',{obra_id:f.work.id,frente_id:front.id,nome:'Prumadas de água fria'})
+  const input=report()
+  input.report.sessions=[{service:'etapa:'+stage.id,floor:2,result:'in_progress'}]
+  const receipt=f.importer.apply({scope:scope(f),report:input})
+  assert.match(f.repository.get('rdos',receipt.localRdoId).atividades,/Prumadas de água fria · 2º pavimento · continua em execução/)
  }finally{f.repository.close()}
 })

@@ -53,16 +53,11 @@ const memory = vi.hoisted(() => {
       OWNER_COMPANY: 'Obra na Mão',
       OWNER_PROJECT: 'Operação Comercial',
       OWNER_CUSTOMER: 'Obra na Mão',
-      DB: {
-        prepare() {
-          return {
-            bind() { return this; },
-            async run() { return { success: true }; },
-            async first() { return null; },
-            async all() { return { results: [] }; },
-          };
-        },
-      },
+      DB: {prepare(sql:string){let args:any[]=[];return{bind(...values:any[]){args=values;return this},async run(){
+        // Emulates the two conditional kv_records writes used by production code.
+        if(sql.startsWith('UPDATE kv_records SET record_json=')){const [raw,,collection,id,expected]=args,current=bucket(String(collection)).get(String(id));if(!current||Number(current.revision)!==Number(expected))return{meta:{changes:0}};bucket(String(collection)).set(String(id),JSON.parse(raw));return{meta:{changes:1}}}
+        if(sql.startsWith('INSERT INTO kv_records')&&sql.includes('DO NOTHING')){const [collection,id,raw]=args,target=bucket(String(collection));if(target.has(String(id)))return{meta:{changes:0}};target.set(String(id),JSON.parse(raw));return{meta:{changes:1}}}
+        return{success:true,meta:{changes:0}}},async first(){return null},async all(){return{results:[]}}}}},
     },
   };
 });
