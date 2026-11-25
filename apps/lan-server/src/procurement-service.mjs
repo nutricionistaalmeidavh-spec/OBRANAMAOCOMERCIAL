@@ -14,6 +14,7 @@ export class ProcurementService {
   }
 
   stockPage(filters){ return stockPage(this.db,filters) }
+  stockExport(filters){return stockPage(this.db,filters,{exportMode:true})}
 
   summary(obraId) {
     const id = Number(obraId)

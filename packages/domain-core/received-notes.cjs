@@ -291,11 +291,11 @@ function createReceivedNotesService(db) {
 }
 
 /** Shared stock read model. Filter and aggregate before transferring rows. */
-function stockPage(db, filters={}) {
+function stockPage(db, filters={}, {exportMode=false}={}) {
   const positive=(v,label)=>{const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw new Error(label+' inválida.');return n}
-  const limit=filters.limit===undefined?50:positive(filters.limit,'Página')
-  const offset=Number(filters.offset??0)
-  if(limit>100||!Number.isSafeInteger(offset)||offset<0)throw new Error('Paginação inválida.')
+  const limit=exportMode?10000:filters.limit===undefined?50:positive(filters.limit,'Página')
+  const offset=exportMode?0:Number(filters.offset??0)
+  if(limit>(exportMode?10000:100)||!Number.isSafeInteger(offset)||offset<0)throw new Error('Paginação inválida.')
   const conditions=['o.deleted_at IS NULL'],args=[]
   for(const [field,sql] of [['empresa_id','o.empresa_id'],['obra_id','m.obra_id'],['frente_id','m.frente_id']]){
     if(filters[field]!==undefined&&filters[field]!==null&&filters[field]!==''){conditions.push(sql+'=?');args.push(positive(filters[field],field))}
@@ -312,6 +312,7 @@ function stockPage(db, filters={}) {
     ? "SELECT m.id,m.obra_id,o.empresa_id,o.nome obra_nome,COALESCE(e.nome_fantasia,e.razao_social) empresa_nome,m.frente_id,COALESCE(f.nome,'Obra geral') etapa_nome,m.descricao,m.unidade,m.tipo,m.quantidade,m.data"+from
     : "SELECT MIN(m.id) id,m.obra_id,o.empresa_id,o.nome obra_nome,COALESCE(e.nome_fantasia,e.razao_social) empresa_nome,m.frente_id,COALESCE(f.nome,'Obra geral') etapa_nome,MIN(trim(m.descricao)) descricao,MIN(trim(m.unidade)) unidade,SUM(CASE WHEN m.tipo IN ('entrada','ajuste') THEN m.quantidade ELSE 0 END) entradas,SUM(CASE WHEN m.tipo='saida' THEN m.quantidade ELSE 0 END) saidas,SUM(CASE WHEN m.tipo IN ('entrada','ajuste') THEN m.quantidade ELSE -m.quantidade END) saldo"+valuation+from+grouped
   const total=Number(db.prepare('SELECT COUNT(*) total FROM ('+sql+')').get(...args).total)
+  if(exportMode&&total>limit)throw new Error('A exportação excede 10.000 registros. Refine os filtros para exportar todos os resultados.')
   const rows=db.prepare(sql+(history?' ORDER BY m.data DESC,m.id DESC':' ORDER BY obra_nome,descricao,unidade,etapa_nome,id')+' LIMIT ? OFFSET ?').all(...args,limit,offset)
   return {rows:history?rows:rows.map(r=>({...r,saldo_estimado_centavos:r.custo_medio_centavos===null?null:Math.round(r.custo_medio_centavos*r.saldo)})),total,limit,offset}
 }
@@ -516,7 +517,8 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
         db.prepare('INSERT INTO nota_recebida_contas(nota_id,conta_id,parcela,criada_na_importacao) VALUES(?,?,?,?)').run(id,account.id,part.number,part.linked?0:1)
         accounts.push(Number(account.id))
       }
-      db.prepare('UPDATE notas_recebidas SET conta_id=?,data_recebimento=? WHERE id=?').run(accounts.length===1?accounts[0]:null,date,id)
+      const receiptDate=p.destinos.some(d=>d.received>0n)?(date||p.destinos.find(d=>d.existingReceipt)?.existingReceipt?.data||null):null
+      db.prepare('UPDATE notas_recebidas SET conta_id=?,data_recebimento=? WHERE id=?').run(accounts.length===1?accounts[0]:null,receiptDate,id)
       db.exec('COMMIT')
       return {nota_id:id,contas:accounts,replayed:false}
     }catch(e){try{db.exec('ROLLBACK')}catch{}throw e}

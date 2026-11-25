@@ -3,6 +3,7 @@ class ProcurementService {
   constructor({ db }) { this.db = db }
 
   stockPage(filters){ return stockPage(this.db.db,filters) }
+  stockExport(filters){return stockPage(this.db.db,filters,{exportMode:true})}
 
   summary(obraId) {
     const id = Number(obraId)
