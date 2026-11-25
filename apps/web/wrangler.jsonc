@@ -38,6 +38,7 @@
       "/icon-universidade.svg",
       "/question-images/*",
       "/resources/question-visual-map.json",
+      "/resources/question-visuals-manifest.json",
       "/devkits*",
       "/devkitools*",
       "/sistemas/",
