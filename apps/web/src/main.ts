@@ -95,7 +95,7 @@ const phoneToken=()=>localStorage.getItem(PHONE_SESSION)||'';
 const phoneMode=()=>!auth.isSignedIn()&&!!phoneToken();
 async function fieldProject(){return phoneMode()?api.post('/api/phone/project',{token:phoneToken(),date:localISODate()}):api.get('/api/project',{date:localISODate()})}
 async function fieldRdoReceipts(){return phoneMode()?api.post('/api/phone/field/rdo/receipts',{token:phoneToken()}):api.get('/api/field/rdo/receipts')}
-async function fieldRdoCatalog(){return phoneMode()?api.post('/api/phone/field/rdo/catalog',{token:phoneToken()}):api.get('/api/field/rdo/catalog')}
+async function fieldRdoCatalog(page=0,version?:string){const params={page:String(page),...(version?{version}:{})};return phoneMode()?api.post('/api/phone/field/rdo/catalog',{token:phoneToken(),...params}):api.get('/api/field/rdo/catalog',params)}
 async function fieldRdoPhotoUpload(value:{date:string;mimeType:string;data:string;clientId?:string}){return phoneMode()?api.post('/api/phone/field/rdo/photos/upload',{token:phoneToken(),...value}):api.post('/api/field/rdo/photos/upload',value)}
 async function fieldRdoPhotoView(id:string){return phoneMode()?api.post('/api/phone/field/rdo/photos/view',{token:phoneToken(),id}):api.get('/api/field/rdo/photos',{id})}
 async function fieldRdoPhotoDelete(date:string,id:string){return phoneMode()?api.post('/api/phone/field/rdo/photos/delete',{token:phoneToken(),date,id}):api.post('/api/field/rdo/photos/delete',{date,id})}
@@ -182,9 +182,11 @@ function configureSharedContext(role:Role,b:Bootstrap,state?:ProjectState){
     const projectId=String(window.multiuserContext?.bootstrap?.membership?.projectId||window.multiuserContext?.bootstrap?.project?.id||'');
     if(!projectId)throw new Error('Obra não identificada para atualizar catálogo.')
     const cacheKey='obra-rdo-catalog:'+projectId;
-    const result=await fieldRdoCatalog(),catalog=(result.data as {catalog?:any}).catalog||null;
+    const result=await fieldRdoCatalog(0),catalog=(result.data as {catalog?:any}).catalog||null;
+    if(catalog&&Number(catalog.pages)>1){const all=[...catalog.materials];for(let p=1;p<Number(catalog.pages);p++){const response=await fieldRdoCatalog(p,catalog.version),next=(response.data as {catalog?:any}).catalog;if(!next||next.version!==catalog.version||next.page!==p)throw new Error('Catálogo alterado durante a consulta. Atualize novamente.');all.push(...next.materials)}if(all.length!==catalog.total)throw new Error('Catálogo incompleto. Atualize novamente.');catalog.materials=all}
+    // Offline cache is best-effort, never discard the current online catalog on quota failure.
     window.mobileRdoCatalog=catalog;
-    if(catalog)localStorage.setItem(cacheKey,JSON.stringify(catalog));
+    try{if(catalog)localStorage.setItem(cacheKey,JSON.stringify(catalog));else localStorage.removeItem(cacheKey)}catch{}
     return catalog;
   };window.mobileResolveConflict=async(conflictId,resolution)=>{const res=await api.post('/api/mobile/sync/conflicts/resolve',{conflictId,resolution});try{window.mobileSyncConflicts=((await api.get('/api/mobile/sync/conflicts')).data as {conflicts:any[]}).conflicts||[]}catch{}return res.data};window.mobileManagementHtml=(summary,access)=>managementHtml(summary,access);window.multiuserInjectAdminSettings=injectAdminSettings;window.multiuserOpenUsers=openUsers}
 

@@ -22,14 +22,13 @@ export class FieldRdoCatalog {
     if(!Number.isSafeInteger(id)||id<1||!Number.isSafeInteger(company)||company<1)throw new Error('Obra e empresa inválidas para o catálogo.')
     const work=this.repository.get('obras',id)
     if(!work||work.deleted_at||Number(work.empresa_id)!==company)throw new Error('Catálogo solicitado fora da obra autorizada.')
-    const rows=stockWorkBalances(this.db,id,{includeZero:true,limit:1201})
-    if(rows.length>1200)throw new Error('Catálogo excede a capacidade da sincronização móvel (1.200 materiais). Nenhum catálogo parcial será publicado.')
+    const rows=stockWorkBalances(this.db,id,{includeZero:true})
     const materials=rows.filter(row=>row.material_uid&&row.descricao&&row.unidade).map(row=>({
       id:'mat_'+row.material_uid,
       descricao:row.descricao,unidade:row.unidade,saldo:Number(row.saldo)||0
     }))
-    const fronts=this.db.prepare(`SELECT id,nome FROM frentes_obra WHERE obra_id=? AND deleted_at IS NULL ORDER BY ordem,id LIMIT 250`).all(id)
-    const services=this.db.prepare(`SELECT id,nome,frente_id FROM etapas_obra WHERE obra_id=? AND deleted_at IS NULL ORDER BY id LIMIT 250`).all(id)
+    const fronts=this.db.prepare(`SELECT id,nome FROM frentes_obra WHERE obra_id=? AND deleted_at IS NULL ORDER BY ordem,id`).all(id)
+    const services=this.db.prepare(`SELECT id,nome,frente_id FROM etapas_obra WHERE obra_id=? AND deleted_at IS NULL ORDER BY id`).all(id)
     const version=digest(JSON.stringify({materials,fronts,services})).slice(0,32)
     return {schemaVersion:1,workId:id,materials,fronts,services,version}
   }

@@ -117,7 +117,7 @@ function openRdoMaterials(){
  const entries=(day.materials||[]).map(row=>`<div class="card" style="margin-top:8px"><div class="row">
  <div><strong>${esc(row.descricao)}</strong><div class="meta">${esc(String(row.quantidade))} ${esc(row.unidade)} · ${row.frente_id?'Etapa '+esc(row.frente_id):'Geral da obra'} · ${esc(row.servico||'Serviço não informado')}</div></div>
  <button type="button" class="linkbtn remove-material" data-id="${esc(row.id)}">Remover</button></div></div>`).join('');
- const materialOptions=materials.map(m=>`<option value="${esc(m.id)}">${esc(m.descricao)} · ${esc(m.unidade)} (saldo ${esc(m.saldo)})</option>`).join('');
+ const materialOptions=materials.slice(0,50).map(m=>`<option value="${esc(m.id)}">${esc(m.descricao)} · ${esc(m.unidade)} (saldo ${esc(m.saldo)})</option>`).join('');
  const frontOptions=fronts.map(f=>`<option value="${f.id}">${esc(f.nome)}</option>`).join('');
  const serviceOptions=[
   ...Object.entries(SERVICES).map(([key,value])=>`<option value="${esc(key)}">${esc(value[0])}</option>`),
@@ -130,7 +130,7 @@ function openRdoMaterials(){
  <button type="button" id="refreshRdoCatalog" class="linkbtn">Atualizar</button></div>
  ${!materials.length?'<p class="meta">Cadastre uma entrada de material no estoque do Desktop e sincronize. Não será criado um estoque paralelo no celular.</p>':''}</div>
  <div class="form">
- <label>Material do estoque<select id="rdoMaterialSelect" ${materials.length?'':'disabled'}><option value="">Selecione o material</option>${materialOptions}</select></label>
+ <label>Pesquisar material<input id="rdoMaterialSearch" placeholder="Descrição ou unidade"></label><div class="row"><button type="button" id="rdoMaterialPrev" class="linkbtn" disabled>Anterior</button><span id="rdoMaterialPage" class="meta"></span><button type="button" id="rdoMaterialNext" class="linkbtn">Próxima</button></div><label>Material do estoque<select id="rdoMaterialSelect" ${materials.length?'':'disabled'}><option value="">Selecione o material</option>${materialOptions}</select></label>
  <label>Etapa de execução<select id="rdoMaterialFront"><option value="">Geral da obra</option>${frontOptions}</select></label>
  <label>Subetapa / serviço executado<select id="rdoMaterialService"><option value="">Selecione o serviço</option>${serviceOptions}</select></label>
  <label>Quantidade consumida <input id="rdoMaterialQuantity" type="text" inputmode="decimal" placeholder="Ex.: 12,5"></label>
@@ -141,6 +141,9 @@ function openRdoMaterials(){
  document.dispatchEvent(new CustomEvent('field:sheet-rendered'));sheet.showModal();
  const errorBox=sheet.querySelector('#rdoMaterialError'),showError=e=>{errorBox.textContent=e?.message||'Não foi possível salvar. Os dados permanecem no aparelho.'};
  sheet.querySelector('.close').addEventListener('click',()=>sheet.close());
+ let materialPage=0;const materialSearch=sheet.querySelector('#rdoMaterialSearch'),materialSelect=sheet.querySelector('#rdoMaterialSelect');
+ const showMaterials=()=>{const q=materialSearch.value.trim().toLocaleLowerCase('pt-BR'),filtered=materials.filter(m=>!q||(m.descricao+' '+m.unidade).toLocaleLowerCase('pt-BR').includes(q));const pages=Math.max(1,Math.ceil(filtered.length/50));materialPage=Math.max(0,Math.min(materialPage,pages-1));materialSelect.innerHTML='<option value="">Selecione o material</option>'+filtered.slice(materialPage*50,(materialPage+1)*50).map(m=>`<option value="${esc(m.id)}">${esc(m.descricao)} · ${esc(m.unidade)} (saldo ${esc(m.saldo)})</option>`).join('');sheet.querySelector('#rdoMaterialPage').textContent=`${materialPage+1}/${pages} · ${filtered.length} materiais`;sheet.querySelector('#rdoMaterialPrev').disabled=materialPage===0;sheet.querySelector('#rdoMaterialNext').disabled=materialPage>=pages-1};
+ materialSearch.addEventListener('input',()=>{materialPage=0;showMaterials()});sheet.querySelector('#rdoMaterialPrev').addEventListener('click',()=>{materialPage--;showMaterials()});sheet.querySelector('#rdoMaterialNext').addEventListener('click',()=>{materialPage++;showMaterials()});showMaterials();
  let busy=false;const submit=async(fn)=>{
   if(busy)return;busy=true;const buttons=[...sheet.querySelectorAll('button')];buttons.forEach(button=>button.disabled=true);
   try{await fn();sheet.close();renderDay();openRdoMaterials()}

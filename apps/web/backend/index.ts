@@ -209,7 +209,7 @@ export const handler=router({
   'POST /api/phone/field/rdo/catalog':[async(ctx)=>{
     const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));
     if('response'in gate)return gate.response;
-    return json({catalog:await getFieldRdoCatalog(gate.phoneAccess.projectId)})
+    const body=asRecord(ctx.body);try{return json({catalog:await getFieldRdoCatalog(gate.phoneAccess.projectId,{page:body.page===undefined?undefined:Number(body.page),version:body.version?String(body.version):undefined})})}catch(e){return error((e as Error).message,409)}
   }],
   'POST /api/phone/field/rdo/receipts':[async(ctx)=>{
     const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));
@@ -433,7 +433,7 @@ export const handler=router({
   'GET /api/field/rdo/catalog':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
     if(gate.response)return gate.response;
-    return json({catalog:await getFieldRdoCatalog(gate.member!.projectId)})
+    try{return json({catalog:await getFieldRdoCatalog(gate.member!.projectId,{page:ctx.query.page===undefined?undefined:Number(ctx.query.page),version:ctx.query.version?String(ctx.query.version):undefined})})}catch(e){return error((e as Error).message,409)}
   }],
   'GET /api/field/rdo/receipts':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
