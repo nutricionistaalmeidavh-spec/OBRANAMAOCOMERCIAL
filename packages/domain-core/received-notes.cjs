@@ -423,6 +423,10 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
     // Key encodes issuer, model, series and invoice number. A valid check digit alone is insufficient.
     if(!fiscalKeyValid(n.chave)||n.chave.slice(6,20)!==digits(n.documento).padStart(14,'0')||n.chave.slice(20,22)!=='55'||n.chave.slice(22,25)!==String(n.serie).padStart(3,'0')||n.chave.slice(25,34)!==String(n.numero).padStart(9,'0'))throw new Error('Identidade fiscal divergente da chave.')
     fiscalDate(n.emissao)
+    if(n.tipo_operacao!=='1'||n.finalidade!=='1'||classifyNfeOperation(n.itens)!=='compra')throw new Error('Somente NF-e de compra normal com CFOP reconhecido pode ser integrada. Devoluções, remessas e operações mistas exigem tratamento próprio.')
+    const recognized=recognizeNfeMaterials(db,{empresa_id:company.id,fornecedor_id:supplier.id,documento:n.documento,itens:n.itens})
+    const recognizedByNumber=new Map(recognized.itens.map(r=>[r.numero,r]))
+    if(recognized.itens.some(r=>r.status!=='confirmado'))throw new Error('Confirme a equivalência de cada material antes de integrar.')
     const total=fixedDecimal(n.total,2,'Total fiscal')
     if(total<=0n)throw new Error('Total fiscal deve ser positivo.')
     const sourceItems=new Map(n.itens.map(i=>[String(i.numero),i]))
@@ -443,6 +447,10 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
       const qty=fixedDecimal(row.quantidade,6,'Quantidade destinada'),received=fixedDecimal(row.quantidade_recebida??'0',6,'Quantidade recebida'),cost=fixedDecimal(row.valor_alocado,2,'Custo destinado')
       if(qty<=0n||received>qty)throw new Error('Quantidade destinada ou recebida inválida.')
       safeInt(qty,'Quantidade')
+      const material=recognizedByNumber.get(String(item.numero))
+      if(!material||material.status!=='confirmado')throw new Error('Equivalência de material indisponível.')
+      const stockQty=fixedDecimal(convertNfeQuantity(quantityText(qty),material.fator_num,material.fator_den),6,'Quantidade canônica')
+      const stockReceived=fixedDecimal(convertNfeQuantity(quantityText(received),material.fator_num,material.fator_den),6,'Recebimento canônico')
       const actual=byItem.get(String(item.numero))||{qty:0n,cost:0n}
       actual.qty+=qty;actual.cost+=cost;byItem.set(String(item.numero),actual)
       const category=fiscalRow(db,'categorias_financeiras',row.categoria_id??payload.categoria_id,'Categoria')
@@ -452,20 +460,20 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
         orderItem=fiscalRow(db,'pedido_compra_itens',row.pedido_item_id,'Item do pedido')
         order=fiscalRow(db,'pedidos_compra',orderItem.pedido_compra_id,'Pedido')
         if(Number(order.obra_id)!==Number(work.id)||Number(order.fornecedor_id)!==Number(supplier.id)||Number(order.frente_id||0)!==Number(stage?.id||0))throw new Error('Pedido incompatível com destino ou fornecedor.')
-        if(String(orderItem.descricao).trim().toLowerCase()!==String(item.descricao).trim().toLowerCase()||String(orderItem.unidade).trim().toLowerCase()!==String(item.unidade).trim().toLowerCase())throw new Error('Material do pedido diverge do item fiscal; concilie antes de confirmar.')
+        if(Number(orderItem.material_id)!==material.material_id||String(orderItem.unidade).trim().toLowerCase()!==String(material.unidade).trim().toLowerCase())throw new Error('Material canônico do pedido diverge do item fiscal; concilie antes de confirmar.')
         if(usedOrderItems.has(orderItem.id))throw new Error('O mesmo item de pedido não pode ser apropriado duas vezes.')
         usedOrderItems.add(orderItem.id)
-        if(Number(received)/1e6+Number(orderItem.quantidade_recebida)>Number(orderItem.quantidade_pedida)+1e-9&&!row.recebimento_existente_id)throw new Error('Recebimento excede o pedido.')
+        if(Number(stockReceived)/1e6+Number(orderItem.quantidade_recebida)>Number(orderItem.quantidade_pedida)+1e-9&&!row.recebimento_existente_id)throw new Error('Recebimento excede o pedido.')
       }
       let existingReceipt=null
       if(row.recebimento_existente_id){
         existingReceipt=fiscalRow(db,'recebimentos_materiais',row.recebimento_existente_id,'Recebimento')
-        if(!orderItem||Number(existingReceipt.pedido_item_id)!==Number(orderItem.id)||fixedDecimal(existingReceipt.quantidade_recebida,6,'Recebimento existente')!==received||received<=0n)throw new Error('Recebimento existente incompatível.')
+        if(!orderItem||Number(existingReceipt.pedido_item_id)!==Number(orderItem.id)||fixedDecimal(existingReceipt.quantidade_recebida,6,'Recebimento existente')!==stockReceived||received<=0n)throw new Error('Recebimento existente incompatível.')
         if(db.prepare('SELECT id FROM nota_recebida_recebimentos WHERE recebimento_id=?').get(existingReceipt.id))throw new Error('Recebimento já vinculado a uma NF-e.')
       }else if(orderItem&&Number(orderItem.quantidade_recebida)>0&&received>0n)throw new Error('Pedido já possui recebimentos: concilie os recebimentos anteriores antes de registrar novas entradas.')
       const key=JSON.stringify([work.id,stage?.id||null,category.id])
       scopeKeys.add(key)
-      destinos.push({index,item,work,stage,sub,qty,received,cost,category,orderItem,order,existingReceipt})
+      destinos.push({index,item,work,stage,sub,qty,received,stockQty,stockReceived,material,cost,category,orderItem,order,existingReceipt})
     }
     for(const [number,item] of sourceItems){
       const allocated=byItem.get(number)
@@ -527,20 +535,20 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
       const result=db.prepare("INSERT INTO notas_recebidas(empresa_id,obra_id,fornecedor_id,numero,serie,emissao,valor_total_centavos,pedido_compra_id,chave_acesso,status_integracao,total_produtos_centavos) VALUES(?,?,?,?,?,?,?,?,?,'integrada',?)").run(p.company.id,principal,p.supplier.id,n.numero,n.serie,n.emissao,safeInt(p.total,'Total'),orderIds.length===1?orderIds[0]:null,n.chave,safeInt(p.products,'Produtos'))
       const id=Number(result.lastInsertRowid)
       db.prepare('INSERT INTO nota_recebida_xml(nota_id,sha256,operacao_sha256,xml_original,ambiente,protocolo) VALUES(?,?,?,?,?,?)').run(id,raw.hash,raw.operationHash,raw.bytes,n.ambiente,n.protocolo)
-      const insert=db.prepare('INSERT INTO nota_recebida_itens(nota_id,obra_id,frente_id,subfrente_id,pedido_item_id,descricao,unidade,quantidade,valor_unitario_centavos,valor_total_centavos,nfe_item_numero,quantidade_decimal,valor_unitario_decimal) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      const insert=db.prepare('INSERT INTO nota_recebida_itens(nota_id,obra_id,frente_id,subfrente_id,pedido_item_id,descricao,unidade,quantidade,valor_unitario_centavos,valor_total_centavos,nfe_item_numero,quantidade_decimal,valor_unitario_decimal,material_id,unidade_canonica,fator_num,fator_den,quantidade_canonica_decimal) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
       const receipt=db.prepare('INSERT INTO nota_recebida_recebimentos(nota_id,nota_item_id,movimento_id,recebimento_id,quantidade_decimal,origem,request_id,data) VALUES(?,?,?,?,?,?,?,?)')
       const date=payload.data_recebimento?fiscalDate(payload.data_recebimento):null
       for(const dest of p.destinos){
         const qty=Number(dest.qty)/1e6
         const cost=safeInt(dest.cost,'Custo')
-        const itemId=Number(insert.run(id,dest.work.id,dest.stage?.id??null,dest.sub?.id??null,dest.orderItem?.id??null,dest.item.descricao,dest.item.unidade,qty,Math.round(cost/qty),cost,String(dest.item.numero),quantityText(dest.qty),String(dest.item.valor_unitario)).lastInsertRowid)
+        const itemId=Number(insert.run(id,dest.work.id,dest.stage?.id??null,dest.sub?.id??null,dest.orderItem?.id??null,dest.item.descricao,dest.item.unidade,qty,Math.round(cost/qty),cost,String(dest.item.numero),quantityText(dest.qty),String(dest.item.valor_unitario),dest.material.material_id,dest.material.unidade,dest.material.fator_num,dest.material.fator_den,quantityText(dest.stockQty)).lastInsertRowid)
         if(dest.received===0n)continue
         if(!date&&!dest.existingReceipt)throw new Error('Confirme a data do recebimento físico.')
         let movement=null,receivedId=null
         if(dest.existingReceipt){receivedId=dest.existingReceipt.id}
         else {
-          const quantity=Number(dest.received)/1e6
-          const stock={obra_id:dest.work.id,frente_id:dest.stage?.id??null,pedido_item_id:dest.orderItem?.id??null,tipo:'entrada',descricao:dest.item.descricao,unidade:dest.item.unidade,quantidade:quantity,data:date,observacoes:'NF-e '+n.chave,request_id:'nfe:'+id+':'+itemId}
+          const quantity=Number(dest.stockReceived)/1e6
+          const stock={obra_id:dest.work.id,frente_id:dest.stage?.id??null,pedido_item_id:dest.orderItem?.id??null,tipo:'entrada',material_id:dest.material.material_id,descricao:dest.material.descricao,unidade:dest.material.unidade,quantidade:quantity,data:date,observacoes:'NF-e '+n.chave,request_id:'nfe:'+id+':'+itemId}
           validateStockMovement(db,stock)
           if(dest.orderItem){
             const r=saveEntity('recebimentos_materiais',{pedido_compra_id:dest.order.id,pedido_item_id:dest.orderItem.id,obra_id:dest.work.id,frente_id:dest.stage?.id??null,data:date,quantidade_pedida:dest.orderItem.quantidade_pedida,quantidade_recebida:quantity,nota_fiscal:n.numero,request_id:'nfe-receipt:'+id+':'+itemId})
@@ -594,7 +602,10 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
       const prior=db.prepare('SELECT quantidade_decimal FROM nota_recebida_recebimentos WHERE nota_item_id=?').all(item.id).reduce((sum,r)=>sum+fixedDecimal(r.quantidade_decimal,6,'Quantidade registrada'),0n)
       if(prior+qty>fixedDecimal(item.quantidade_decimal,6,'Quantidade destinada'))throw new Error('Recebimento supera quantidade destinada.')
       if(item.pedido_item_id)throw new Error('Recebimento posterior vinculado a pedido exige conciliação de pedido; não será criado movimento isolado.')
-      const stock={obra_id:item.obra_id||note.obra_id,frente_id:item.frente_id??null,tipo:'entrada',descricao:item.descricao,unidade:item.unidade,quantidade:Number(qty)/1e6,data,observacoes:'NF-e '+note.chave_acesso+' — recebimento posterior',request_id:requestId}
+      if(!item.material_id||!item.unidade_canonica||!item.fator_num||!item.fator_den)throw new Error('Destino fiscal sem equivalência canônica; conciliação necessária.')
+      const material=resolveStockMaterial(db,{obra_id:item.obra_id||note.obra_id,material_id:item.material_id,unidade:item.unidade_canonica})
+      const converted=convertNfeQuantity(quantityText(qty),item.fator_num,item.fator_den)
+      const stock={obra_id:item.obra_id||note.obra_id,frente_id:item.frente_id??null,tipo:'entrada',material_id:material.id,descricao:material.descricao,unidade:material.unidade,quantidade:Number(converted),data,observacoes:'NF-e '+note.chave_acesso+' — recebimento posterior',request_id:requestId}
       validateStockMovement(db,stock)
       const movement=saveEntity('movimentacoes_estoque',stock)
       const result=db.prepare("INSERT INTO nota_recebida_recebimentos(nota_id,nota_item_id,movimento_id,quantidade_decimal,origem,request_id,data) VALUES(?,?,?,?,'novo',?,?)").run(note.id,item.id,movement.id,quantityText(qty),requestId,data)
@@ -616,14 +627,14 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
       const note=activeNote(payload)
       const accounts=db.prepare('SELECT l.*,c.status,c.deleted_at FROM nota_recebida_contas l JOIN contas c ON c.id=l.conta_id WHERE l.nota_id=?').all(note.id)
       if(accounts.some(a=>!a.criada_na_importacao||a.deleted_at||!['pendente','vencido'].includes(a.status)||db.prepare('SELECT id FROM pagamentos_conta WHERE conta_id=? LIMIT 1').get(a.conta_id)))throw new Error('Existem contas preexistentes, pagas ou alteradas; concilie antes de estornar.')
-      const receipts=db.prepare('SELECT r.*,i.pedido_item_id FROM nota_recebida_recebimentos r JOIN nota_recebida_itens i ON i.id=r.nota_item_id WHERE r.nota_id=?').all(note.id)
+      const receipts=db.prepare('SELECT r.*,i.pedido_item_id,i.fator_num,i.fator_den FROM nota_recebida_recebimentos r JOIN nota_recebida_itens i ON i.id=r.nota_item_id WHERE r.nota_id=?').all(note.id)
       if(note.pedido_compra_id||receipts.some(r=>r.origem!=='novo'||r.recebimento_id||r.pedido_item_id||!r.movimento_id))throw new Error('Nota possui vínculo com pedido ou recebimento anterior; estorno coordenado obrigatório.')
       const result=db.prepare('INSERT INTO nota_recebida_estornos(nota_id,request_id,motivo,operador,data) VALUES(?,?,?,?,?)').run(note.id,requestId,reason,actor,data)
       const id=Number(result.lastInsertRowid)
       for(const r of receipts){
         const movement=fiscalRow(db,'movimentacoes_estoque',r.movimento_id,'Movimentação original')
-        if(movement.tipo!=='entrada'||fixedDecimal(r.quantidade_decimal,6,'Quantidade original')!==fixedDecimal(movement.quantidade,6,'Movimentação original'))throw new Error('Movimentação original divergente.')
-        const reversal={obra_id:movement.obra_id,frente_id:movement.frente_id??null,tipo:'saida',descricao:movement.descricao,unidade:movement.unidade,quantidade:movement.quantidade,data,observacoes:'Estorno NF-e '+note.chave_acesso,request_id:'nfe-reverse-mov:'+id+':'+r.id}
+        if(movement.tipo!=='entrada'||fixedDecimal(convertNfeQuantity(r.quantidade_decimal,r.fator_num,r.fator_den),6,'Quantidade original')!==fixedDecimal(movement.quantidade,6,'Movimentação original'))throw new Error('Movimentação original divergente.')
+        const reversal={obra_id:movement.obra_id,frente_id:movement.frente_id??null,tipo:'saida',material_id:movement.material_id,descricao:movement.descricao,unidade:movement.unidade,quantidade:movement.quantidade,data,observacoes:'Estorno NF-e '+note.chave_acesso,request_id:'nfe-reverse-mov:'+id+':'+r.id}
         validateStockMovement(db,reversal)
         const saved=saveEntity('movimentacoes_estoque',reversal)
         db.prepare('INSERT INTO nota_recebida_estorno_movimentos(estorno_id,recebimento_fiscal_id,movimento_id) VALUES(?,?,?)').run(id,r.id,saved.id)

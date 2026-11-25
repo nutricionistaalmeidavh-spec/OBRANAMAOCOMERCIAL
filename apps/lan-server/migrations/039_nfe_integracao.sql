@@ -53,3 +53,11 @@ CREATE TABLE IF NOT EXISTS nota_recebida_estorno_movimentos (
   movimento_id INTEGER NOT NULL UNIQUE REFERENCES movimentacoes_estoque(id),
   PRIMARY KEY(estorno_id,recebimento_fiscal_id)
 );
+
+-- Fiscal quantities stay original; these columns snapshot the approved canonical conversion.
+-- The material catalog is introduced by the subsequent migration in this unreleased branch.
+ALTER TABLE nota_recebida_itens ADD COLUMN material_id INTEGER REFERENCES materiais_estoque(id);
+ALTER TABLE nota_recebida_itens ADD COLUMN unidade_canonica TEXT;
+ALTER TABLE nota_recebida_itens ADD COLUMN fator_num INTEGER CHECK(fator_num IS NULL OR fator_num BETWEEN 1 AND 1000000000);
+ALTER TABLE nota_recebida_itens ADD COLUMN fator_den INTEGER CHECK(fator_den IS NULL OR fator_den BETWEEN 1 AND 1000000000);
+ALTER TABLE nota_recebida_itens ADD COLUMN quantidade_canonica_decimal TEXT;
