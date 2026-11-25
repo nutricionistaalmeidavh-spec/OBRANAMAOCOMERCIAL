@@ -37,3 +37,19 @@ CREATE TABLE IF NOT EXISTS nota_recebida_recebimentos (
   data TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_nota_recebimentos_item ON nota_recebida_recebimentos(nota_item_id,id);
+
+CREATE TABLE IF NOT EXISTS nota_recebida_estornos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nota_id INTEGER NOT NULL UNIQUE REFERENCES notas_recebidas(id),
+  request_id TEXT NOT NULL UNIQUE,
+  motivo TEXT NOT NULL,
+  operador TEXT NOT NULL,
+  data TEXT NOT NULL,
+  criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS nota_recebida_estorno_movimentos (
+  estorno_id INTEGER NOT NULL REFERENCES nota_recebida_estornos(id),
+  recebimento_fiscal_id INTEGER NOT NULL UNIQUE REFERENCES nota_recebida_recebimentos(id),
+  movimento_id INTEGER NOT NULL UNIQUE REFERENCES movimentacoes_estoque(id),
+  PRIMARY KEY(estorno_id,recebimento_fiscal_id)
+);

@@ -523,7 +523,75 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
       return {nota_id:id,contas:accounts,replayed:false}
     }catch(e){try{db.exec('ROLLBACK')}catch{}throw e}
   }
-  return {commit}
+
+  function activeNote(payload){
+    const note=fiscalRow(db,'notas_recebidas',payload.nota_id,'Nota')
+    if(Number(note.empresa_id)!==positiveFiscalId(payload.empresa_id,'Empresa')||note.status_integracao!=='integrada'||!note.chave_acesso)throw new Error('Nota fiscal ativa não encontrada nesta empresa.')
+    return note
+  }
+  function operationId(value){
+    const id=String(value??'').trim()
+    if(!/^[A-Za-z0-9:_-]{1,100}$/.test(id))throw new Error('Identificador de operação inválido.')
+    return id
+  }
+  function receive(payload){
+    const requestId='nfe-followup:'+operationId(payload.request_id),data=fiscalDate(payload.data)
+    const qty=fixedDecimal(payload.quantidade,6,'Quantidade recebida')
+    if(qty<=0n)throw new Error('Quantidade recebida deve ser positiva.')
+    safeInt(qty,'Quantidade')
+    db.exec('BEGIN IMMEDIATE')
+    try{
+      const note=activeNote(payload),item=fiscalRow(db,'nota_recebida_itens',payload.nota_item_id,'Destino fiscal')
+      if(Number(item.nota_id)!==Number(note.id))throw new Error('Destino não pertence à nota.')
+      const replay=db.prepare('SELECT * FROM nota_recebida_recebimentos WHERE request_id=?').get(requestId)
+      if(replay){
+        if(Number(replay.nota_id)!==Number(note.id)||Number(replay.nota_item_id)!==Number(item.id)||fixedDecimal(replay.quantidade_decimal,6,'Quantidade')!==qty||replay.data!==data)throw new Error('Identificador já utilizado em outro recebimento.')
+        db.exec('COMMIT');return {recebimento_id:Number(replay.id),replayed:true}
+      }
+      const prior=db.prepare('SELECT quantidade_decimal FROM nota_recebida_recebimentos WHERE nota_item_id=?').all(item.id).reduce((sum,r)=>sum+fixedDecimal(r.quantidade_decimal,6,'Quantidade registrada'),0n)
+      if(prior+qty>fixedDecimal(item.quantidade_decimal,6,'Quantidade destinada'))throw new Error('Recebimento supera quantidade destinada.')
+      if(item.pedido_item_id)throw new Error('Recebimento posterior vinculado a pedido exige conciliação de pedido; não será criado movimento isolado.')
+      const stock={obra_id:item.obra_id||note.obra_id,frente_id:item.frente_id??null,tipo:'entrada',descricao:item.descricao,unidade:item.unidade,quantidade:Number(qty)/1e6,data,observacoes:'NF-e '+note.chave_acesso+' — recebimento posterior',request_id:requestId}
+      validateStockMovement(db,stock)
+      const movement=saveEntity('movimentacoes_estoque',stock)
+      const result=db.prepare("INSERT INTO nota_recebida_recebimentos(nota_id,nota_item_id,movimento_id,quantidade_decimal,origem,request_id,data) VALUES(?,?,?,?,'novo',?,?)").run(note.id,item.id,movement.id,quantityText(qty),requestId,data)
+      db.prepare('UPDATE notas_recebidas SET data_recebimento=COALESCE(data_recebimento,?),updated_at=CURRENT_TIMESTAMP WHERE id=?').run(data,note.id)
+      db.exec('COMMIT');return {recebimento_id:Number(result.lastInsertRowid),replayed:false}
+    }catch(e){try{db.exec('ROLLBACK')}catch{}throw e}
+  }
+  function reverse(payload){
+    const requestId='nfe-reverse:'+operationId(payload.request_id),data=fiscalDate(payload.data)
+    const reason=String(payload.motivo??'').trim(),actor=String(payload.operador??'').trim()
+    if(!reason||reason.length>2000||!actor||actor.length>120)throw new Error('Informe motivo e operador do estorno.')
+    db.exec('BEGIN IMMEDIATE')
+    try{
+      const replay=db.prepare('SELECT e.*,n.empresa_id FROM nota_recebida_estornos e JOIN notas_recebidas n ON n.id=e.nota_id WHERE e.request_id=?').get(requestId)
+      if(replay){
+        if(Number(replay.nota_id)!==Number(payload.nota_id)||Number(replay.empresa_id)!==Number(payload.empresa_id)||replay.motivo!==reason||replay.operador!==actor||replay.data!==data)throw new Error('Identificador já utilizado em outro estorno.')
+        db.exec('COMMIT');return {estorno_id:Number(replay.id),replayed:true}
+      }
+      const note=activeNote(payload)
+      const accounts=db.prepare('SELECT l.*,c.status,c.deleted_at FROM nota_recebida_contas l JOIN contas c ON c.id=l.conta_id WHERE l.nota_id=?').all(note.id)
+      if(accounts.some(a=>!a.criada_na_importacao||a.deleted_at||!['pendente','vencido'].includes(a.status)||db.prepare('SELECT id FROM pagamentos_conta WHERE conta_id=? LIMIT 1').get(a.conta_id)))throw new Error('Existem contas preexistentes, pagas ou alteradas; concilie antes de estornar.')
+      const receipts=db.prepare('SELECT r.*,i.pedido_item_id FROM nota_recebida_recebimentos r JOIN nota_recebida_itens i ON i.id=r.nota_item_id WHERE r.nota_id=?').all(note.id)
+      if(note.pedido_compra_id||receipts.some(r=>r.origem!=='novo'||r.recebimento_id||r.pedido_item_id||!r.movimento_id))throw new Error('Nota possui vínculo com pedido ou recebimento anterior; estorno coordenado obrigatório.')
+      const result=db.prepare('INSERT INTO nota_recebida_estornos(nota_id,request_id,motivo,operador,data) VALUES(?,?,?,?,?)').run(note.id,requestId,reason,actor,data)
+      const id=Number(result.lastInsertRowid)
+      for(const r of receipts){
+        const movement=fiscalRow(db,'movimentacoes_estoque',r.movimento_id,'Movimentação original')
+        if(movement.tipo!=='entrada'||fixedDecimal(r.quantidade_decimal,6,'Quantidade original')!==fixedDecimal(movement.quantidade,6,'Movimentação original'))throw new Error('Movimentação original divergente.')
+        const reversal={obra_id:movement.obra_id,frente_id:movement.frente_id??null,tipo:'saida',descricao:movement.descricao,unidade:movement.unidade,quantidade:movement.quantidade,data,observacoes:'Estorno NF-e '+note.chave_acesso,request_id:'nfe-reverse-mov:'+id+':'+r.id}
+        validateStockMovement(db,reversal)
+        const saved=saveEntity('movimentacoes_estoque',reversal)
+        db.prepare('INSERT INTO nota_recebida_estorno_movimentos(estorno_id,recebimento_fiscal_id,movimento_id) VALUES(?,?,?)').run(id,r.id,saved.id)
+      }
+      for(const account of accounts)saveEntity('contas',{id:account.conta_id,status:'cancelado'})
+      db.prepare("UPDATE notas_recebidas SET status_integracao='estornada',deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(note.id)
+      db.exec('COMMIT');return {estorno_id:id,replayed:false}
+    }catch(e){try{db.exec('ROLLBACK')}catch{}throw e}
+  }
+
+  return {commit,receive,reverse}
 }
 
 module.exports={createReceivedNotesService,stockPage,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}

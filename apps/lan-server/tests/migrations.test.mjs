@@ -15,7 +15,7 @@ const migratedTables = [
   'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'epis', 'funcionario_epis',
   'module_migrations', 'module_migration_records', 'record_revisions',
   'fontes_documentais', 'arquivos', 'documentos', 'medicao_anexos', 'contrato_anexos', 'pedido_compra_anexos', 'documentos_editaveis', 'modelos_documento_rh', 'empresa_documentos_admissionais', 'cargo_epi_kits',
-  'notas_recebidas', 'nota_recebida_itens', 'nota_recebida_xml', 'nota_recebida_contas', 'nota_recebida_recebimentos', 'importacoes', 'importacao_linhas', 'rdo_material_linhas', 'rdo_material_revisoes', 'rdo_material_requisicoes', 'rdo_material_efeitos',
+  'notas_recebidas', 'nota_recebida_itens', 'nota_recebida_xml', 'nota_recebida_contas', 'nota_recebida_recebimentos', 'nota_recebida_estornos', 'nota_recebida_estorno_movimentos', 'importacoes', 'importacao_linhas', 'rdo_material_linhas', 'rdo_material_revisoes', 'rdo_material_requisicoes', 'rdo_material_efeitos',
   'contas_bancarias', 'extrato_importacoes', 'transacoes_bancarias', 'reconciliacao_lotes', 'reconciliacao_alocacoes', 'conta_previsao_bancaria', 'finance_bank_period_closures', 'finance_bank_period_events', 'finance_bank_forecast_snapshots','finance_bank_manual_balances'
 ]
 

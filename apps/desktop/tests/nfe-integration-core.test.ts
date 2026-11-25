@@ -35,6 +35,27 @@ describe('núcleo transacional NF-e (não exposto a IPC/HTTP)',()=>{
   expect(db.prepare('SELECT COUNT(*) total FROM nota_recebida_xml').get().total).toBe(1)
   expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
  }finally{f.close()}})
+ it('recebe saldo posteriormente, rejeita excesso e estorna preservando trilha',()=>{const f=fixture();try{
+  const saved=f.service.commit(f.payload),db=f.adapter.db
+  const item=db.prepare('SELECT id FROM nota_recebida_itens WHERE nota_id=? ORDER BY id').get(saved.nota_id)
+  const receive={empresa_id:f.payload.empresa_id,nota_id:saved.nota_id,nota_item_id:item.id,quantidade:'200',data:'2026-11-26',request_id:'rec-1'}
+  const received=f.service.receive(receive)
+  expect(f.service.receive(receive)).toMatchObject({recebimento_id:received.recebimento_id,replayed:true})
+  expect(()=>f.service.receive({...receive,request_id:'rec-2',quantidade:'1'})).toThrow(/supera/)
+  const reverse={empresa_id:f.payload.empresa_id,nota_id:saved.nota_id,request_id:'rev-1',motivo:'Devolução integral',operador:'teste',data:'2026-11-27'}
+  const reversed=f.service.reverse(reverse)
+  expect(f.service.reverse(reverse)).toMatchObject({estorno_id:reversed.estorno_id,replayed:true})
+  expect(db.prepare("SELECT SUM(CASE WHEN tipo='saida' THEN -quantidade ELSE quantidade END) total FROM movimentacoes_estoque").get().total).toBe(0)
+  expect(db.prepare("SELECT COUNT(*) n FROM contas WHERE status='cancelado'").get().n).toBe(2)
+  expect(db.prepare('SELECT COUNT(*) n FROM nota_recebida_xml').get().n).toBe(1)
+  expect(db.prepare('SELECT COUNT(*) n FROM nota_recebida_estorno_movimentos').get().n).toBe(2)
+ }finally{f.close()}})
+ it('não estorna uma nota com baixa financeira',()=>{const f=fixture();try{
+  const saved=f.service.commit(f.payload)
+  f.adapter.save('pagamentos_conta',{conta_id:saved.contas[0],valor_centavos:100,data:'2026-11-25'})
+  expect(()=>f.service.reverse({empresa_id:f.payload.empresa_id,nota_id:saved.nota_id,request_id:'rev-pago',motivo:'Teste',operador:'teste',data:'2026-11-27'})).toThrow(/contas preexistentes, pagas/)
+  expect(f.adapter.db.prepare('SELECT COUNT(*) n FROM nota_recebida_estornos').get().n).toBe(0)
+ }finally{f.close()}})
  it('rejeita rateio incompleto e reverte uma falha tardia de recebimento',()=>{const f=fixture();try{
   expect(()=>f.service.commit({...f.payload,destinos:f.payload.destinos.slice(0,1)})).toThrow()
   expect(()=>f.service.commit({...f.payload,data_recebimento:''})).toThrow()
