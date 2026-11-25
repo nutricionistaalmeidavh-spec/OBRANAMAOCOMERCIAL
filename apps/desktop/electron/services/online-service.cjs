@@ -409,6 +409,10 @@ class OnlineService {
     return result
   }
 
+  async listAuthorizedProjects() {
+    return this.request('/api/desktop/projects', { deviceToken: this.requireToken() })
+  }
+
   async syncPull(sinceRevision = 0) {
     return this.request('/api/desktop/sync/pull', { deviceToken: this.requireToken(), sinceRevision })
   }
