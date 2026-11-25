@@ -40,7 +40,7 @@ const companyStatus=(c:Company)=>c.status==='expired'?'expired':c.status==='susp
 const statusLabel=(status:string)=>({active:'Ativa',pending:'Pendente',freemium:'Freemium',expiring:'Expira em breve',expired:'Vencida',revoked:'Revogada'} as Record<string,string>)[status]||status;
 const formatDate=(value?:string|null)=>value?new Date(value).toLocaleDateString('pt-BR'):'Sem vencimento';
 const dateInput=(value?:string|null)=>value?String(value).slice(0,10):'';
-function choices(name:string,items:string[],selected:string[]){return items.map(k=>`<label class="check"><input type="checkbox" name="${name}" value="${k}" ${selected.includes(k)?'checked':''}>${labels[k]||k}</label>`).join('')}
+function choices(name:string,items:string[],selected:string[]){return items.filter(k=>k!=='universidade').map(k=>`<label class="check"><input type="checkbox" name="${name}" value="${k}" ${selected.includes(k)?'checked':''}>${labels[k]||k}</label>`).join('')}
 function selected(form:HTMLFormElement,name:string){return [...form.querySelectorAll<HTMLInputElement>(`input[name="${name}"]:checked`)].map(x=>x.value)}
 function brlToCents(value:unknown){
   const text=String(value??'').trim();if(!text)return null;
