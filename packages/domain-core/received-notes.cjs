@@ -523,6 +523,7 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
       if(row.pedido_item_id){
         orderItem=fiscalRow(db,'pedido_compra_itens',row.pedido_item_id,'Item do pedido')
         order=fiscalRow(db,'pedidos_compra',orderItem.pedido_compra_id,'Pedido')
+        if(order.status==='cancelado')throw new Error('Pedido cancelado não pode receber materiais.')
         if(Number(order.obra_id)!==Number(work.id)||Number(order.fornecedor_id)!==Number(supplier.id)||Number(order.frente_id||0)!==Number(stage?.id||0))throw new Error('Pedido incompatível com destino ou fornecedor.')
         if(Number(orderItem.material_id)!==material.material_id||String(orderItem.unidade).trim().toLowerCase()!==String(material.unidade).trim().toLowerCase())throw new Error('Material canônico do pedido diverge do item fiscal; concilie antes de confirmar.')
         if(usedOrderItems.has(orderItem.id))throw new Error('O mesmo item de pedido não pode ser apropriado duas vezes.')
@@ -553,6 +554,7 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
       if(amount<=0n)throw new Error('Valor da parcela inválido.')
       const linked=p.conta_id?fiscalRow(db,'contas',p.conta_id,'Conta'):null
       if(linked){
+        if(Number(linked.categoria_id)!==Number(destinos[0].category.id)||linked.competencia!==n.emissao.slice(0,7))throw new Error('Conta existente precisa ter a mesma categoria e competência da NF-e.')
         if(seenAccounts.has(linked.id)||Number(linked.empresa_id)!==Number(company.id)||Number(linked.fornecedor_id)!==Number(supplier.id)||linked.tipo!=='pagar'||linked.status==='cancelado'||BigInt(linked.valor_centavos)!==amount||linked.vencimento!==due)throw new Error('Conta existente incompatível com a parcela.')
         if(db.prepare('SELECT nota_id FROM nota_recebida_contas WHERE conta_id=?').get(linked.id)||db.prepare('SELECT id FROM notas_recebidas WHERE conta_id=? AND deleted_at IS NULL').get(linked.id))throw new Error('Conta já vinculada a uma nota.')
         seenAccounts.add(linked.id)
@@ -666,14 +668,26 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
       }
       const prior=db.prepare('SELECT quantidade_decimal FROM nota_recebida_recebimentos WHERE nota_item_id=?').all(item.id).reduce((sum,r)=>sum+fixedDecimal(r.quantidade_decimal,6,'Quantidade registrada'),0n)
       if(prior+qty>fixedDecimal(item.quantidade_decimal,6,'Quantidade destinada'))throw new Error('Recebimento supera quantidade destinada.')
-      if(item.pedido_item_id)throw new Error('Recebimento posterior vinculado a pedido exige conciliação de pedido; não será criado movimento isolado.')
       if(!item.material_id||!item.unidade_canonica||!item.fator_num||!item.fator_den)throw new Error('Destino fiscal sem equivalência canônica; conciliação necessária.')
       const material=resolveStockMaterial(db,{obra_id:item.obra_id||note.obra_id,material_id:item.material_id,unidade:item.unidade_canonica})
       const converted=convertNfeQuantity(quantityText(qty),item.fator_num,item.fator_den)
-      const stock={obra_id:item.obra_id||note.obra_id,frente_id:item.frente_id??null,tipo:'entrada',material_id:material.id,descricao:material.descricao,unidade:material.unidade,quantidade:Number(converted),data,observacoes:'NF-e '+note.chave_acesso+' — recebimento posterior',request_id:requestId}
+      let receivedId=null
+      if(item.pedido_item_id){
+        const orderItem=fiscalRow(db,'pedido_compra_itens',item.pedido_item_id,'Item do pedido')
+        const order=fiscalRow(db,'pedidos_compra',orderItem.pedido_compra_id,'Pedido')
+        const quantity=Number(converted)
+        if(order.status==='cancelado'||Number(order.obra_id)!==Number(item.obra_id||note.obra_id)||Number(order.fornecedor_id)!==Number(note.fornecedor_id)||Number(order.frente_id||0)!==Number(item.frente_id||0)||Number(orderItem.material_id)!==Number(material.id))throw new Error('Pedido alterado ou incompatível com o destino fiscal.')
+        if(Number(orderItem.quantidade_recebida)+quantity>Number(orderItem.quantidade_pedida)+1e-9)throw new Error('Recebimento excede o pedido.')
+        const r=saveEntity('recebimentos_materiais',{pedido_compra_id:order.id,pedido_item_id:orderItem.id,obra_id:order.obra_id,frente_id:order.frente_id??null,data,quantidade_pedida:orderItem.quantidade_pedida,quantidade_recebida:quantity,nota_fiscal:note.numero,request_id:requestId+':receipt'})
+        receivedId=r.id
+        saveEntity('pedido_compra_itens',{id:orderItem.id,quantidade_recebida:Number(orderItem.quantidade_recebida)+quantity})
+        const pending=db.prepare('SELECT COUNT(*) total FROM pedido_compra_itens WHERE pedido_compra_id=? AND quantidade_recebida<quantidade_pedida').get(order.id).total
+        saveEntity('pedidos_compra',{id:order.id,status:Number(pending)>0?'recebido_parcial':'recebido'})
+      }
+      const stock={obra_id:item.obra_id||note.obra_id,frente_id:item.frente_id??null,pedido_item_id:item.pedido_item_id??null,tipo:'entrada',material_id:material.id,descricao:material.descricao,unidade:material.unidade,quantidade:Number(converted),data,observacoes:'NF-e '+note.chave_acesso+' — recebimento posterior',request_id:requestId}
       validateStockMovement(db,stock)
       const movement=saveEntity('movimentacoes_estoque',stock)
-      const result=db.prepare("INSERT INTO nota_recebida_recebimentos(nota_id,nota_item_id,movimento_id,quantidade_decimal,origem,request_id,data) VALUES(?,?,?,?,'novo',?,?)").run(note.id,item.id,movement.id,quantityText(qty),requestId,data)
+      const result=db.prepare("INSERT INTO nota_recebida_recebimentos(nota_id,nota_item_id,movimento_id,recebimento_id,quantidade_decimal,origem,request_id,data) VALUES(?,?,?,?,?,'novo',?,?)").run(note.id,item.id,movement.id,receivedId,quantityText(qty),requestId,data)
       db.prepare('UPDATE notas_recebidas SET data_recebimento=COALESCE(data_recebimento,?),updated_at=CURRENT_TIMESTAMP WHERE id=?').run(data,note.id)
       db.exec('COMMIT');return {recebimento_id:Number(result.lastInsertRowid),replayed:false}
     }catch(e){try{db.exec('ROLLBACK')}catch{}throw e}
@@ -693,9 +707,10 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
       const accounts=db.prepare('SELECT l.*,c.status,c.deleted_at FROM nota_recebida_contas l JOIN contas c ON c.id=l.conta_id WHERE l.nota_id=?').all(note.id)
       if(accounts.some(a=>!a.criada_na_importacao||a.deleted_at||!['pendente','vencido'].includes(a.status)||db.prepare('SELECT id FROM pagamentos_conta WHERE conta_id=? LIMIT 1').get(a.conta_id)))throw new Error('Existem contas preexistentes, pagas ou alteradas; concilie antes de estornar.')
       const receipts=db.prepare('SELECT r.*,i.pedido_item_id,i.fator_num,i.fator_den FROM nota_recebida_recebimentos r JOIN nota_recebida_itens i ON i.id=r.nota_item_id WHERE r.nota_id=?').all(note.id)
-      if(note.pedido_compra_id||receipts.some(r=>r.origem!=='novo'||r.recebimento_id||r.pedido_item_id||!r.movimento_id))throw new Error('Nota possui vínculo com pedido ou recebimento anterior; estorno coordenado obrigatório.')
+      if(receipts.some(r=>r.origem!=='novo'||!r.movimento_id))throw new Error('Nota possui recebimento preexistente; estorno exige conciliação manual para não desfazer entrada anterior à NF-e.')
       const result=db.prepare('INSERT INTO nota_recebida_estornos(nota_id,request_id,motivo,operador,data) VALUES(?,?,?,?,?)').run(note.id,requestId,reason,actor,data)
       const id=Number(result.lastInsertRowid)
+      const touchedOrders=new Set()
       for(const r of receipts){
         const movement=fiscalRow(db,'movimentacoes_estoque',r.movimento_id,'Movimentação original')
         if(movement.tipo!=='entrada'||fixedDecimal(convertNfeQuantity(r.quantidade_decimal,r.fator_num,r.fator_den),6,'Quantidade original')!==fixedDecimal(movement.quantidade,6,'Movimentação original'))throw new Error('Movimentação original divergente.')
@@ -703,9 +718,21 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
         validateStockMovement(db,reversal)
         const saved=saveEntity('movimentacoes_estoque',reversal)
         db.prepare('INSERT INTO nota_recebida_estorno_movimentos(estorno_id,recebimento_fiscal_id,movimento_id) VALUES(?,?,?)').run(id,r.id,saved.id)
+        if(r.pedido_item_id){
+          const item=fiscalRow(db,'pedido_compra_itens',r.pedido_item_id,'Item do pedido')
+          const order=fiscalRow(db,'pedidos_compra',item.pedido_compra_id,'Pedido')
+          const receipt=fiscalRow(db,'recebimentos_materiais',r.recebimento_id,'Recebimento')
+          if(order.status==='cancelado'||Number(receipt.pedido_item_id)!==Number(item.id)||Number(receipt.quantidade_recebida)!==Number(movement.quantidade)||Number(item.quantidade_recebida)+1e-9<Number(movement.quantidade))throw new Error('Pedido ou recebimento alterado; conciliação obrigatória.')
+          saveEntity('pedido_compra_itens',{id:item.id,quantidade_recebida:Number(item.quantidade_recebida)-Number(movement.quantidade)})
+          touchedOrders.add(order.id)
+        }
       }
-      for(const account of accounts)saveEntity('contas',{id:account.conta_id,status:'cancelado'})
+      for(const orderId of touchedOrders){
+        const totals=db.prepare('SELECT SUM(quantidade_recebida) received,SUM(CASE WHEN quantidade_recebida<quantidade_pedida THEN 1 ELSE 0 END) pending FROM pedido_compra_itens WHERE pedido_compra_id=?').get(orderId)
+        saveEntity('pedidos_compra',{id:orderId,status:Number(totals.received||0)===0?'emitido':Number(totals.pending)>0?'recebido_parcial':'recebido'})
+      }
       db.prepare("UPDATE notas_recebidas SET status_integracao='estornada',deleted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(note.id)
+      for(const account of accounts)saveEntity('contas',{id:account.conta_id,status:'cancelado'})
       db.exec('COMMIT');return {estorno_id:id,replayed:false}
     }catch(e){try{db.exec('ROLLBACK')}catch{}throw e}
   }
