@@ -19,9 +19,10 @@ describe('authorization policy', () => {
     expect(canAccessPlatformSystem('finance', { ...base, licenseActive: false })).toBe(false)
   })
 
-  it('requires a dedicated universidade entitlement', () => {
+  it('denies retired university even with a legacy entitlement or admin access', () => {
     expect(canAccessPlatformSystem('universidade', { ...base, licenseModules: ['finance'] })).toBe(false)
-    expect(canAccessPlatformSystem('universidade', { ...base, licenseModules: ['universidade'] })).toBe(true)
+    expect(canAccessPlatformSystem('universidade', { ...base, licenseModules: ['universidade'] })).toBe(false)
+    expect(canAccessPlatformSystem('universidade', { ...base, isExplicitAdmin: true })).toBe(false)
   })
 
   it('requires an active license for gestao even without a dedicated module', () => {
