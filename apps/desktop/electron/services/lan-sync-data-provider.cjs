@@ -105,6 +105,11 @@ class LanSyncDataProvider {
     return this.lanClient.request('POST', '/api/v1/field/rdo/import-mobile', { body:{scope,report} })
   }
 
+  async linkFieldRdo(scope,date) {
+    await this.requireModule('operation')
+    return this.lanClient.request('POST', '/api/v1/field/rdo/link-manual', { body:{scope,date} })
+  }
+
   async obligations(scope) {
     await this.requireModule('finance')
     return this.lanClient.request('GET', `/api/v1/sync-source/obligations${syncSourceQuery(scope)}`)
@@ -149,6 +154,7 @@ class OperationalSyncDataProvider {
   async applyRemote(entity, localId, payload, scope) { return this.activeProvider().applyRemote(entity, localId, payload, scope) }
   async applyFieldRdo(scope,report) { return this.activeProvider().applyFieldRdo(scope,report) }
   async fieldRdoCatalog(scope) { return this.activeProvider().fieldRdoCatalog(scope) }
+  async linkFieldRdo(scope,date) { return this.activeProvider().linkFieldRdo(scope,date) }
 }
 
 module.exports = { LanSyncDataProvider, OperationalSyncDataProvider }

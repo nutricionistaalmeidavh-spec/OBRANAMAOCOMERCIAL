@@ -391,8 +391,8 @@ class OnlineService {
     })
   }
 
-  async fieldRdoPending() {
-    return this.request('/api/desktop/field/rdo/pending', { deviceToken: this.requireToken() })
+  async fieldRdoPending({ retryDates } = {}) {
+    return this.request('/api/desktop/field/rdo/pending', { deviceToken: this.requireToken(), ...(Array.isArray(retryDates) && retryDates.length ? { retryDates } : {}) })
   }
 
   async fieldRdoPhoto({date,id,sha256}) {

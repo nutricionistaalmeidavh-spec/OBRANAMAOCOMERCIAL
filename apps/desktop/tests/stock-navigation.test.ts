@@ -32,3 +32,12 @@ describe('Estoque: descoberta e saldos canônicos',()=>{
     expect(rows.find(row=>row.unidade==='un')?.saldo).toBe(3)
   })
 })
+describe('Vínculo do celular visível no Painel',()=>{
+  it('pede uma confirmação única sem adivinhar por nome',()=>{
+    const banner=readFileSync(new URL('../src/components/SyncBindingBanner.tsx',import.meta.url),'utf8')
+    expect(readFileSync(new URL('../src/pages/DashboardPage.tsx',import.meta.url),'utf8')).toContain('<SyncBindingBanner/>')
+    expect(banner).toContain('configureSync')
+    expect(banner).toContain("liveCompanies.length === 1 && candidates.length === 1")
+    expect(banner).not.toMatch(/\.nome\s*===|toLowerCase\(\)\s*===/)
+  })
+})

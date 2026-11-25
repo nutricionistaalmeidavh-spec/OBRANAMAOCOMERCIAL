@@ -186,6 +186,16 @@ class LocalSyncDataProvider {
     return new FieldRdoImport({repository:adapter}).apply({scope,report})
   }
 
+  async linkFieldRdo(scope, date) {
+    const FieldRdoImport = await loadFieldRdoImporter()
+    const adapter = {
+      connection: () => this.database.db,
+      get: (table, id) => this.database.get(table, id),
+      save: (table, value) => this.database.save(table, value)
+    }
+    return new FieldRdoImport({repository:adapter}).linkManual({scope,date})
+  }
+
   summary(scope, allowed) {
     const rows = table => this.rowsByWork(table, scope).filter(row => !row.deleted_at)
     const accounts = this.db.prepare(`SELECT c.* FROM v_financeiro_apropriacoes c WHERE empresa_id=? AND obra_id=? AND deleted_at IS NULL`).all(scope.companyId, scope.workId)

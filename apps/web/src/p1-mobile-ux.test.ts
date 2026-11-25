@@ -12,8 +12,9 @@ describe('P1 mobile UX stability',()=>{
     const field=source('../public/field.js');
     expect(field).toContain("receipt?.status==='rejected'");
     expect(field).toContain('Recusado pelo Desktop');
+    expect(field).toContain('aguardando estoque no escritório');
     expect(field).toMatch(/rdo-rejection[^`]*esc\(String\(receipt\.reason/);
-    expect(source('./main.ts')).toContain('/field.js?v=20261125-rdo-reject-1');
+    expect(source('./main.ts')).toContain('/field.js?v=20261125-rdo-p0-1');
   });
   it('mantém título e subtítulo dos cards de ação legíveis antes da normalização visual',()=>{
     const css=source('../public/field.css');

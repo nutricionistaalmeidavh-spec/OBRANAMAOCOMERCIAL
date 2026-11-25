@@ -19,11 +19,20 @@ export default function DailyReportPage() {
   const works = useAsync(() => window.fluxoDre.obras.list(), [])
   useEffect(() => { if (!requestedWork && works.data?.length === 1) setWork(String(works.data[0].id)) }, [requestedWork, works.data])
   const [stock,setStock]=useState<any>(null)
+  const [pendingConsumption,setPendingConsumption]=useState<Array<{rdoId:number;date:string;message:string}>>([])
+  useEffect(()=>{if(typeof window.fluxoDre?.online?.syncState!=='function')return;let active=true;window.fluxoDre.online.syncState().then(state=>{if(active)setPendingConsumption(state?.fieldRdoPendingConsumption||[])}).catch(()=>undefined);return()=>{active=false}},[notice])
   const [stockBusy,setStockBusy]=useState(false)
   async function openStock(id:number,status:string) {
     setStockBusy(true);setError('')
     try {setStock({...await window.fluxoDre.campo.materials(id),readOnly:['concluido','fechado','finalizado'].includes(status),requestId:crypto.randomUUID()})}
     catch(cause){setError(cause instanceof Error?cause.message:'Falha ao carregar o estoque.')}
+    finally{setStockBusy(false)}
+  }
+  async function applyPending(){
+    if(!stock?.pending||stockBusy||stock.readOnly)return
+    setStockBusy(true);setError('')
+    try {await window.fluxoDre.campo.materials(stock.rdoId,{applyPending:true});setStock(null);setNotice('Consumo enviado pelo celular aplicado ao estoque da obra.')}
+    catch(cause){setError(cause instanceof Error?cause.message:'Ainda não foi possível aplicar o consumo.')}
     finally{setStockBusy(false)}
   }
   async function saveStock(){
@@ -109,9 +118,11 @@ export default function DailyReportPage() {
     {!modal && error && <p role="alert">{error}</p>}
     {readFailures.filter(([,q]) => q.error).map(([label,q]) => <p role="alert" key={label}>Não foi possível carregar {label}: {q.error?.message} <Button onClick={() => void q.reload()}>Tentar novamente</Button></p>)}
     {notice && <div className="success-box">{notice}</div>}
+    {!!pendingConsumption.length && <div className="error-box" role="status"><strong>Consumo do celular aguardando estoque</strong><p>Estes diários foram integrados, mas o material ainda não saiu do estoque. Abra o consumo do dia para aplicar.</p><ul>{pendingConsumption.map(item=><li key={item.rdoId}>{new Date(item.date+'T12:00:00').toLocaleDateString('pt-BR')}: {item.message} <Button variant="secondary" disabled={stockBusy} onClick={()=>void openStock(item.rdoId,'rascunho')}>Abrir consumo</Button></li>)}</ul></div>}
     <Card>{rdos.error ? null : rdos.loading ? <Loading/> : rows.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Data</th><th>Etapa</th><th>Clima</th><th>Atividades</th><th>Status</th><th/></tr></thead><tbody>{rows.map((rdo: any) => <tr key={rdo.id}><td><strong>{brDate(rdo.data)}</strong></td><td>{fronts.data?.find((item: any) => item.id === rdo.frente_id)?.nome || 'Obra geral'}</td><td>{rdo.clima || '-'}</td><td>{rdo.atividades || '-'}</td><td><Status value={rdo.status}/></td><td><div className="row-actions"><Button variant="secondary" disabled={stockBusy} onClick={() => void openStock(rdo.id,rdo.status)}>Materiais</Button><button className="icon-button" onClick={() => open(rdo)} title="Editar"><Edit3 size={15}/></button><button className="icon-button" disabled={!documentsActive} onClick={() => attach(rdo)} title={documentsActive?'Anexar arquivo':'Anexos temporariamente indisponíveis'}><Paperclip size={15}/></button></div></td></tr>)}</tbody></table></div> : <Empty title={work ? 'Ainda não há Diário de obra' : 'Selecione uma obra'} description={work ? 'Registre o primeiro dia de campo para reunir atividades, equipe, equipamentos e ocorrências.' : 'Escolha uma obra para consultar e registrar o Diário de obra.'} action={selectedWork && operationActive && !rdos.error ? <Button onClick={() => open()}>Registrar primeiro RDO</Button> : undefined}/>}</Card>
     <Modal open={!!stock} title="Consumo de materiais da obra" onClose={()=>{if(!stockBusy)setStock(null)}}>{stock&&<form onSubmit={e=>{e.preventDefault();void saveStock()}}><div className="modal-body">
       <p>Informe o total consumido neste diário. Ao confirmar, o estoque recebe apenas a diferença em relação ao consumo já registrado.</p>
+      {stock.pending&&<div className="error-box" role="status"><strong>Consumo do celular aguardando estoque</strong><p>{stock.pending.message} Registre a entrada do material e aplique, ou ajuste as quantidades abaixo e confirme.</p><ul>{stock.pending.items.map((item:any)=><li key={item.id}>{item.descricao}: {item.quantidade} {item.unidade}</li>)}</ul><Button type="button" variant="secondary" disabled={stockBusy||stock.readOnly} onClick={()=>void applyPending()}>Aplicar consumo do celular</Button></div>}
       {error&&<p role="alert">{error}</p>}
       {error && <p role="alert">{error}</p>}{stock.readOnly && <p>Diário concluído. Reabra o diário para alterar o consumo.</p>}<fieldset disabled={stockBusy||stock.readOnly}>{stock.items.map((line:any,index:number)=><div className="row-actions" key={line.id}><span>{line.descricao} ({line.unidade})</span><input aria-label={'Quantidade de '+line.descricao} type="number" min="0.000001" step="any" required value={line.quantidade} onChange={e=>setStock({...stock,requestId:crypto.randomUUID(),items:stock.items.map((v:any,i:number)=>i===index?{...v,quantidade:e.target.value}:v)})}/><Button type="button" onClick={()=>setStock({...stock,requestId:crypto.randomUUID(),items:stock.items.filter((_:any,i:number)=>i!==index)})}>Remover</Button></div>)}
       <Field label="Adicionar material"><select value="" onChange={e=>{const m=stock.materials.find((v:any)=>v.id===e.target.value);if(m)setStock({...stock,requestId:crypto.randomUUID(),items:[...stock.items,{id:crypto.randomUUID(),material_id:m.id,descricao:m.descricao,unidade:m.unidade,quantidade:1}]})}}><option value="">Selecione no estoque da obra</option>{stock.materials.map((m:any)=><option key={m.id} value={m.id}>{m.descricao} — {m.saldo} {m.unidade}</option>)}</select></Field></fieldset>

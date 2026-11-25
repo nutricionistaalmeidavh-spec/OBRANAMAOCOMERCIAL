@@ -42,3 +42,12 @@ it('never downgrades an applied receipt and ignores a rejection for an outdated 
   expect(await rejectFieldRdo('project-a',{date:'2026-11-20',fingerprint:'fp-1',reason:'x'},'device-a')).toMatchObject({status:'applied'});
   expect(await rejectFieldRdo('project-a',{date:'2026-11-20',fingerprint:'fp-old',reason:'x'},'device-a')).toMatchObject({status:'stale'});
 });
+
+it('skips the retry pause for a day the office just resolved and records pending consumption on the receipt',async()=>{
+  await rejectFieldRdo('project-a',{date:'2026-11-20',fingerprint:'fp-1',reason:'RDO digitado no escritório em 20/11/2026'},'device-a');
+  expect(await pendingFieldRdos('project-a')).toEqual([]);
+  expect((await pendingFieldRdos('project-a',{retryDates:['2026-11-20']})).map(r=>r.date)).toEqual(['2026-11-20']);
+  const receipt=await confirmFieldRdo('project-a',{date:'2026-11-20',fingerprint:'fp-1',localRdoId:5,materialRevision:0,materialPending:'Saldo insuficiente para Tubo (m). Disponível: 1.'},'device-a');
+  expect(receipt).toMatchObject({status:'applied',materialPending:expect.stringContaining('Saldo insuficiente')});
+  expect(await pendingFieldRdos('project-a',{retryDates:['2026-11-20']})).toEqual([]);
+});

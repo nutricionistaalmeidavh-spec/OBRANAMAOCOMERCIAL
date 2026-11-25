@@ -19,6 +19,8 @@ export type DesktopSyncState = {
   pending: number; lastSyncAt: string | null; lastError: string | null;
   conflicts: Array<{id: number; entity: string; localId: number; remoteRevision: number; remoteConflictId: string | null; createdAt: string}>;
   /** Field RDO problems isolated in the last cycle; they never block the rest of the synchronization. */
-  fieldRdoIssues?: Array<{kind: 'catalog' | 'transport' | 'rdo'; date: string | null; message: string; at: string}>;
+  /** Phone diaries imported whose material consumption waits for stock in the office. */
+  fieldRdoPendingConsumption?: Array<{rdoId: number; date: string; message: string}>;
+  fieldRdoIssues?: Array<{kind: 'catalog' | 'transport' | 'rdo' | 'material'; date: string | null; message: string; at: string; code?: 'manual_rdo_exists' | 'material_pending'}>;
 };
 export type LocalConflictResolution = 'keep_local' | 'accept_remote';

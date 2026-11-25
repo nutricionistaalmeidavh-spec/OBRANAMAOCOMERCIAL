@@ -148,6 +148,7 @@ contextBridge.exposeInMainWorld('fluxoDre', {
       return () => ipcRenderer.removeListener('online:sync-state-changed', handler)
     },
     configureSync: (scope) => call('online:sync-configure', scope),
+    linkFieldRdo: (date) => call('online:sync-link-field-rdo', { date }),
     syncNow: () => call('online:sync-now'),
     resolveLocalConflict: (id, resolution) => call('online:sync-resolve-local', { id, resolution }),
     state: () => call('online:state'),

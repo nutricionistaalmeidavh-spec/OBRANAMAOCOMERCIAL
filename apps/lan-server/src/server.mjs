@@ -575,6 +575,19 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response,200,mobileRdoImport.apply({scope,report:input.report}))
       }
 
+      if (url.pathname === '/api/v1/field/rdo/link-manual') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!mobileRdoImport) return sendJson(response, 503, { error:'mobile_rdo_unavailable',message:'Importação do RDO indisponível.' })
+        const context = await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'operation',action:'edit'})
+        const input = await readJson(request)
+        const scope = input.scope && typeof input.scope === 'object' && !Array.isArray(input.scope) ? input.scope : {}
+        if (!context.companyId || String(scope.remoteCompanyId || '') !== String(context.companyId)) {
+          return sendJson(response,403,{error:'tenant_mismatch',message:'Obra não vinculada à empresa autorizada neste servidor.'})
+        }
+        return sendJson(response,200,mobileRdoImport.linkManual({scope,date:input.date}))
+      }
+
       if (url.pathname === '/api/v1/field/rdo/materials') {
         if (!['GET','POST'].includes(request.method)) return methodNotAllowed(response, ['GET','POST'])
         if (!rdoMaterials) return sendJson(response, 503, { error:'materials_unavailable', message:'Materiais do RDO indisponíveis.' })

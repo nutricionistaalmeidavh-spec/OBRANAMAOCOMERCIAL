@@ -66,6 +66,9 @@ function buildReport(report,stages=new Map()){
     .filter(Boolean).join('\n').slice(0,20000)
   return {activities,notes}
 }
+export const MANUAL_RDO_MARKER='RDO digitado no escritório'
+const brDate=value=>value.split('-').reverse().join('/')
+const mergeText=(base,field)=>[clean(base),clean(field)?'— Registro do celular —\n'+clean(field):''].filter(Boolean).join('\n\n')
 const contentHash=rdo=>digest(JSON.stringify({
   obra_id:Number(rdo.obra_id),data:String(rdo.data),clima:String(rdo.clima||''),
   status:String(rdo.status||''),atividades:String(rdo.atividades||''),observacoes:String(rdo.observacoes||'')
@@ -105,7 +108,7 @@ export class FieldRdoImport {
         if(stored.length!==photos.length||photos.some(p=>!stored.some(s=>s.photo_id===p.id&&s.sha256===p.sha256)))
          throw new Error('Evidência canônica alterada ou ausente: nova conferência necessária.')
         const materials=this.materials.list(rdo.id)
-        return {localRdoId:rdo.id,materialRevision:materials.revision,replayed:true}
+        return {localRdoId:rdo.id,materialRevision:materials.revision,replayed:true,materialPending:materials.pending?.message||null}
       }
       if(oldLink.last_rdo_hash&&oldLink.last_rdo_hash!==contentHash(rdo))throw new Error('O RDO foi alterado no Desktop após a última integração. Revise antes de importar novamente.')
       const currentRevision=this.materials.list(rdo.id).revision
@@ -116,11 +119,13 @@ export class FieldRdoImport {
       }
       if(['fechado','finalizado','concluido'].includes(rdo.status))throw new Error('Reabra o RDO canônico antes de atualizar o consumo.')
       team=crew()
-      rdo=this.repository.save('rdos',{id:rdo.id,atividades:fields.activities,observacoes:fields.notes})
+      rdo=oldLink.manual_merge
+        ?this.repository.save('rdos',{id:rdo.id,atividades:mergeText(oldLink.base_atividades,fields.activities),observacoes:mergeText(oldLink.base_observacoes,fields.notes)})
+        :this.repository.save('rdos',{id:rdo.id,atividades:fields.activities,observacoes:fields.notes})
       this.db.prepare('UPDATE field_rdo_links SET last_rdo_hash=? WHERE remote_project_id=? AND day=?').run(contentHash(rdo),remoteProjectId,date)
     }else{
       const existing=this.db.prepare('SELECT id FROM rdos WHERE obra_id=? AND data=? AND deleted_at IS NULL').get(workId,date)
-      if(existing)throw new Error('Já existe RDO manual nesta obra e data. Vincule-o após conferência para evitar duplicações.')
+      if(existing)throw Object.assign(new Error(`${MANUAL_RDO_MARKER} em ${brDate(date)}: o escritório precisa juntar este diário ao RDO existente no Desktop (Configurações > Sincronização).`),{code:'MANUAL_RDO_EXISTS',rdoId:existing.id})
       team=crew()
       rdo=this.repository.save('rdos',{obra_id:workId,frente_id:null,data:date,clima:null,status:'rascunho',atividades:fields.activities,observacoes:fields.notes})
       this.db.prepare('INSERT INTO field_rdo_links(remote_project_id,day,rdo_id,last_rdo_hash) VALUES(?,?,?,?)')
@@ -130,9 +135,26 @@ export class FieldRdoImport {
     // the retry reuses this identity and the idempotent materials operation.
     const requestId='field-rdo:'+digest(remoteProjectId+'|'+date+'|'+fingerprint).slice(0,64)
     const oldRevision=this.materials.list(rdo.id).revision
-    const materialReceipt=this.materials.save({rdoId:rdo.id,requestId,expectedRevision:oldRevision,items:list(day.materials)})
+    // A diary joined to an office RDO keeps the office lines and adds the phone lines.
+    let baseLines=[]
+    if(oldLink?.manual_merge){try{baseLines=list(JSON.parse(oldLink.base_materiais_json||'[]'))}catch{baseLines=[]}}
+    const desired=oldLink?.manual_merge?[...baseLines,...list(day.materials).map(row=>({...record(row),id:'campo:'+clean(record(row).id)}))]:list(day.materials)
+    // Missing stock no longer blocks the diary: crew, photos and text are imported
+    // and the consumption waits in the office until it can be applied.
+    let materialReceipt,materialPending=null
+    try{materialReceipt=this.materials.save({rdoId:rdo.id,requestId,expectedRevision:oldRevision,items:desired})}
+    catch(error){
+      if(error?.code!=='INSUFFICIENT_STOCK'||!this.materials.hasPendingTable())throw error
+      materialPending=error.message
+      materialReceipt={revision:oldRevision}
+    }
     this.db.exec('BEGIN IMMEDIATE')
     try {
+      if(materialPending){
+        this.db.prepare("DELETE FROM field_rdo_pendencias WHERE rdo_id=? AND kind='material' AND resolved_at IS NULL").run(rdo.id)
+        this.db.prepare("INSERT INTO field_rdo_pendencias(rdo_id,kind,request_id,payload_json,message) VALUES(?,'material',?,?,?)")
+          .run(rdo.id,requestId,JSON.stringify({items:desired}),materialPending)
+      }
       this.db.prepare("DELETE FROM rdo_equipe WHERE rdo_id=? AND observacoes='[Obra360:equipe]'").run(rdo.id)
       const writePerson=this.db.prepare("INSERT INTO rdo_equipe(rdo_id,funcionario_id,nome,horas,observacoes) VALUES(?,?,?,?,'[Obra360:equipe]')")
       for(const p of team)writePerson.run(rdo.id,p.localId,p.name,p.hours)
@@ -152,6 +174,25 @@ export class FieldRdoImport {
       try{this.db.exec('ROLLBACK')}catch{}
       throw error
     }
-    return {localRdoId:rdo.id,materialRevision:materialReceipt.revision,replayed:false}
+    return {localRdoId:rdo.id,materialRevision:materialReceipt.revision,replayed:false,materialPending}
+  }
+
+  /** Joins the phone diary of a day to the RDO typed in the office, keeping the office content. */
+  linkManual(input={}){
+    const scope=record(input.scope),remoteProjectId=clean(scope.remoteProjectId),date=clean(input.date)
+    const companyId=Number(scope.companyId),workId=Number(scope.workId)
+    if(!remoteProjectId||!/^\d{4}-\d{2}-\d{2}$/.test(date))throw new Error('Obra ou data inválidas para juntar o RDO.')
+    const work=this.repository.get('obras',workId)
+    if(!work||work.deleted_at||Number(work.empresa_id)!==companyId)throw new Error('Obra não pertence à empresa autorizada.')
+    if(this.db.prepare('SELECT 1 FROM field_rdo_links WHERE remote_project_id=? AND day=?').get(remoteProjectId,date))throw new Error('Este dia já está ligado a um RDO.')
+    const rows=this.db.prepare('SELECT id FROM rdos WHERE obra_id=? AND data=? AND deleted_at IS NULL').all(workId,date)
+    if(rows.length!==1)throw new Error(rows.length?'Há mais de um RDO no escritório neste dia; revise antes de juntar.':'Não há RDO digitado no escritório neste dia.')
+    const rdo=this.repository.get('rdos',Number(rows[0].id))
+    if(['fechado','finalizado','concluido'].includes(rdo.status))throw new Error('Reabra o RDO do escritório antes de juntar com o do celular.')
+    if(this.db.prepare('SELECT 1 FROM field_rdo_links WHERE rdo_id=?').get(rdo.id))throw new Error('Este RDO já recebe outro diário do celular.')
+    const current=this.materials.list(rdo.id)
+    this.db.prepare(`INSERT INTO field_rdo_links(remote_project_id,day,rdo_id,last_rdo_hash,last_material_revision,manual_merge,base_atividades,base_observacoes,base_materiais_json)
+      VALUES(?,?,?,?,?,1,?,?,?)`).run(remoteProjectId,date,rdo.id,contentHash(rdo),current.revision,rdo.atividades||'',rdo.observacoes||'',JSON.stringify(current.items))
+    return {rdoId:rdo.id,date}
   }
 }
