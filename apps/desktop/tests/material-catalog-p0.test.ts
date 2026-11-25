@@ -56,3 +56,31 @@ describe('identidade persistente por empresa',()=>{
  expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
  }finally{db.close()}})
 })
+
+describe('P1 reconhecimento fiscal determinístico',()=>{
+ it('sugere abreviações sem aprovação automática e rejeita dimensões incompatíveis',()=>{
+  const db=fixture()
+  try{
+   const {recognizeNfeMaterials}=require('../../../packages/domain-core/index.cjs')
+   const add=(descricao:string,unidade:string)=>db.prepare("INSERT INTO materiais_estoque(empresa_id,descricao,unidade,origem) VALUES(1,?,?,'confirmado')").run(descricao,unidade).lastInsertRowid
+   const correct=Number(add('Tubo PVC esgoto DN100 6 m','un'))
+   const wrong=Number(add('Tubo PVC esgoto DN75 6 m','un'))
+   const source={empresa_id:1,fornecedor_id:1,itens:[{numero:'1',codigo:'A-123',descricao:'TB PVC ESG DN100 6MT',unidade:'UN',gtin:'',quantidade:'2'}]}
+   const result=recognizeNfeMaterials(db,source).itens[0]
+   expect(result.status).toBe('revisar')
+   expect(result.candidatos[0].material_id).toBe(correct)
+   expect(result.candidatos.find((x:any)=>x.material_id===wrong)?.conflitos).toContain('diametro')
+   expect(result.material_id).toBeNull()
+   db.prepare("INSERT INTO material_fornecedor_equivalencias(empresa_id,fornecedor_id,material_id,codigo,unidade_comercial,descricao_origem,fator_num,fator_den,confirmado_por) VALUES(1,1,?,'A-123','UN','TB PVC ESG DN100 6MT',1,1,'teste')").run(correct)
+   expect(recognizeNfeMaterials(db,source).itens[0]).toMatchObject({status:'confirmado',material_id:correct,fator_num:1,fator_den:1})
+   expect(recognizeNfeMaterials(db,{...source,itens:[{...source.itens[0],descricao:'TB PVC ESG DN75 6MT'}]}).itens[0]).toMatchObject({status:'conflito',material_id:null})
+   expect(()=>recognizeNfeMaterials(db,{...source,fornecedor_id:2})).toThrow(/empresa/)
+  }finally{db.close()}
+ })
+ it('conversão racional não arredonda estoque silenciosamente',()=>{
+  const {convertNfeQuantity}=require('../../../packages/domain-core/index.cjs')
+  expect(convertNfeQuantity('2.5',12,1)).toBe('30')
+  expect(convertNfeQuantity('3',1,2)).toBe('1.5')
+  expect(()=>convertNfeQuantity('1',1,3)).toThrow(/precisão/)
+ })
+})
