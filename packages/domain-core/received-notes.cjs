@@ -289,4 +289,38 @@ function createReceivedNotesService(db) {
   }
   return { create,list,read,summary,report,attach }
 }
-module.exports={createReceivedNotesService}
+
+/** Shared stock read model. Filter and aggregate before transferring rows. */
+function stockPage(db, filters={}) {
+  const positive=(v,label)=>{const n=Number(v);if(!Number.isSafeInteger(n)||n<=0)throw new Error(label+' inválida.');return n}
+  const limit=filters.limit===undefined?50:positive(filters.limit,'Página')
+  const offset=Number(filters.offset??0)
+  if(limit>100||!Number.isSafeInteger(offset)||offset<0)throw new Error('Paginação inválida.')
+  const conditions=['o.deleted_at IS NULL'],args=[]
+  for(const [field,sql] of [['empresa_id','o.empresa_id'],['obra_id','m.obra_id'],['frente_id','m.frente_id']]){
+    if(filters[field]!==undefined&&filters[field]!==null&&filters[field]!==''){conditions.push(sql+'=?');args.push(positive(filters[field],field))}
+  }
+  const q=String(filters.q??'').trim().slice(0,200)
+  if(q){conditions.push("(instr(lower(m.descricao),lower(?))>0 OR instr(lower(m.unidade),lower(?))>0 OR instr(lower(o.nome),lower(?))>0 OR instr(lower(COALESCE(f.nome,'')),lower(?))>0)");args.push(q,q,q,q)}
+  const from=" FROM movimentacoes_estoque m JOIN obras o ON o.id=m.obra_id LEFT JOIN frentes_obra f ON f.id=m.frente_id WHERE "+conditions.join(' AND ')
+  const history=filters.history===true||filters.history==='true'
+  const grouped=" GROUP BY m.obra_id,COALESCE(m.frente_id,0),lower(trim(m.descricao)),lower(trim(m.unidade))"
+  const sql=history
+    ? "SELECT m.id,m.obra_id,o.empresa_id,o.nome obra_nome,m.frente_id,COALESCE(f.nome,'Obra geral') etapa_nome,m.descricao,m.unidade,m.tipo,m.quantidade,m.data"+from
+    : "SELECT MIN(m.id) id,m.obra_id,o.empresa_id,o.nome obra_nome,m.frente_id,COALESCE(f.nome,'Obra geral') etapa_nome,MIN(trim(m.descricao)) descricao,MIN(trim(m.unidade)) unidade,SUM(CASE WHEN m.tipo IN ('entrada','ajuste') THEN m.quantidade ELSE 0 END) entradas,SUM(CASE WHEN m.tipo='saida' THEN m.quantidade ELSE 0 END) saidas,SUM(CASE WHEN m.tipo IN ('entrada','ajuste') THEN m.quantidade ELSE -m.quantidade END) saldo"+from+grouped
+  const total=Number(db.prepare('SELECT COUNT(*) total FROM ('+sql+')').get(...args).total)
+  const rows=db.prepare(sql+(history?' ORDER BY m.data DESC,m.id DESC':' ORDER BY obra_nome,descricao,unidade,etapa_nome,id')+' LIMIT ? OFFSET ?').all(...args,limit,offset)
+  return {rows,total,limit,offset}
+}
+function stockBalance(db,payload){
+  return Number(db.prepare("SELECT COALESCE(SUM(CASE WHEN tipo IN ('entrada','ajuste') THEN quantidade ELSE -quantidade END),0) total FROM movimentacoes_estoque WHERE obra_id=? AND COALESCE(frente_id,0)=COALESCE(?,0) AND lower(trim(descricao))=lower(trim(?)) AND lower(trim(unidade))=lower(trim(?))").get(payload.obra_id,payload.frente_id||null,payload.descricao,payload.unidade||'un').total)
+}
+function validateStockMovement(db,payload){
+  const qty=Number(payload.quantidade),obra=Number(payload.obra_id)
+  if(!Number.isFinite(qty)||qty<=0||!['entrada','saida','ajuste'].includes(payload.tipo)||!String(payload.descricao||'').trim())throw new Error('Movimentação de estoque inválida.')
+  if(!db.prepare('SELECT id FROM obras WHERE id=? AND deleted_at IS NULL').get(obra))throw new Error('Obra inválida.')
+  if(payload.frente_id&&!db.prepare('SELECT id FROM frentes_obra WHERE id=? AND obra_id=? AND deleted_at IS NULL').get(Number(payload.frente_id),obra))throw new Error('Etapa não pertence à obra.')
+  if(payload.tipo==='saida'&&stockBalance(db,payload)+1e-9<qty)throw new Error('A saída deixaria o estoque negativo.')
+}
+
+module.exports={createReceivedNotesService,stockPage,stockBalance,validateStockMovement}

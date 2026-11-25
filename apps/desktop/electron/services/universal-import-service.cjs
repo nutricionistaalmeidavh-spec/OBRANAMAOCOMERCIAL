@@ -1,3 +1,4 @@
+const { validateStockMovement } = require('./domain-core.cjs')
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -533,7 +534,9 @@ class UniversalImportService {
           const work = workByName(value(row, map, 'obra'))
           const front = frontByName(work, value(row, map, 'frente'))
           if (!work) continue
-          entity = this.db.save('movimentacoes_estoque', { obra_id: work.id, frente_id: front?.id || null, descricao: String(value(row, map, 'descricao') || '').trim(), unidade: String(value(row, map, 'unidade') || 'un'), quantidade: parseQuantity(value(row, map, 'quantidade')), tipo: String(value(row, map, 'tipo') || 'entrada'), data: date(value(row, map, 'data')) || new Date().toISOString().slice(0, 10), observacoes: String(value(row, map, 'observacoes') || '') })
+          const movement = { obra_id: work.id, frente_id: front?.id || null, descricao: String(value(row, map, 'descricao') || '').trim(), unidade: String(value(row, map, 'unidade') || 'un'), quantidade: parseQuantity(value(row, map, 'quantidade')), tipo: String(value(row, map, 'tipo') || 'entrada'), data: date(value(row, map, 'data')) || new Date().toISOString().slice(0, 10), observacoes: String(value(row, map, 'observacoes') || '') }
+          validateStockMovement(this.db.db,movement)
+          entity = this.db.save('movimentacoes_estoque',movement)
         }
         if (entity) {
           count++

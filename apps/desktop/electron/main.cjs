@@ -370,6 +370,7 @@ function registerIpc() {
   ipcMain.handle('received-notes:report', envelope(filters => services.procurement.receivedCostsReport(filters)))
   ipcMain.handle('received-notes:create', envelope(payload => services.procurement.createReceivedNote(payload)))
   ipcMain.handle('received-notes:attach', envelope(({ id,documento_id }) => services.procurement.attachReceivedNote(id,documento_id)))
+  ipcMain.handle('procurement:stock-page', envelope(filters => services.procurement.stockPage(filters)))
   ipcMain.handle('procurement:summary', envelope(({ obra_id }) => services.procurement.summary(obra_id)))
   ipcMain.handle('procurement:create-order', envelope((payload) => services.procurement.createOrder(payload)))
   ipcMain.handle('procurement:receive-material', envelope((payload) => services.procurement.receiveMaterial(payload)))

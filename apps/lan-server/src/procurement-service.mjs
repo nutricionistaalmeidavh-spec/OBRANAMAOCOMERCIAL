@@ -1,3 +1,5 @@
+import domainCore from './domain-core.cjs'
+const { stockPage, validateStockMovement } = domainCore
 function idempotencyKey(value) {
   const key = String(value || '').trim()
   if (!key) throw new Error('Identificador idempotente da operação não informado.')
@@ -10,6 +12,8 @@ export class ProcurementService {
     this.repository = repository
     this.db = repository.connection()
   }
+
+  stockPage(filters){ return stockPage(this.db,filters) }
 
   summary(obraId) {
     const id = Number(obraId)
@@ -178,15 +182,7 @@ export class ProcurementService {
 
     this.db.exec('BEGIN IMMEDIATE')
     try {
-      if (payload.tipo === 'saida') {
-        const balance = Number(this.db.prepare(`
-          SELECT COALESCE(SUM(CASE WHEN tipo='entrada' THEN quantidade WHEN tipo='ajuste' THEN quantidade ELSE -quantidade END),0) total
-          FROM movimentacoes_estoque
-          WHERE obra_id=? AND COALESCE(frente_id,0)=COALESCE(?,0)
-            AND lower(descricao)=lower(?) AND unidade=?
-        `).get(payload.obra_id, payload.frente_id || null, payload.descricao, payload.unidade || 'un')?.total || 0)
-        if (balance < quantity) throw new Error('A saída deixaria o estoque negativo.')
-      }
+      validateStockMovement(this.db,payload)
       const movement = this.repository.save('movimentacoes_estoque', { ...payload, quantidade:quantity, request_id:key })
       this.db.exec('COMMIT')
       return movement

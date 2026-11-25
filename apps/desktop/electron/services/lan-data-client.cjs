@@ -182,6 +182,8 @@ class LanDataClient {
     return this.request('POST','/api/v1/received-notes/'+Number(id)+'/attach',{body:{documento_id:Number(documentId)}})
   }
 
+  async procurementStockPage(filters) { return this.request('GET','/api/v1/procurement/stock-page',{query:filters}) }
+
   async procurementSummary(obraId) {
     return this.request('GET', '/api/v1/procurement/summary', { query: { obra_id: Number(obraId) } })
   }

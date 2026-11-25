@@ -34,6 +34,13 @@ class ProcurementSourceService {
     }
   }
 
+  async stockPage(filters) {
+    const state=this.state()
+    if(state==='local')return this.local.stockPage(filters)
+    if(state==='central-active')return this.lanClient.procurementStockPage(filters)
+    return this.blocked()
+  }
+
   async summary(obraId) {
     const state = this.state()
     if (state === 'local' || state === 'migration-required') return this.local.summary(obraId)

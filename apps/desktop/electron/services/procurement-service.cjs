@@ -1,5 +1,8 @@
+const { stockPage, validateStockMovement } = require('./domain-core.cjs')
 class ProcurementService {
   constructor({ db }) { this.db = db }
+
+  stockPage(filters){ return stockPage(this.db.db,filters) }
 
   summary(obraId) {
     const id = Number(obraId)
@@ -73,18 +76,12 @@ class ProcurementService {
   }
 
   moveStock(payload) {
-    const quantity = Number(payload.quantidade)
-    if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('Informe uma quantidade valida.')
-    if (payload.tipo === 'saida') {
-      const balance = this.db.db.prepare(`
-        SELECT COALESCE(SUM(CASE WHEN tipo='entrada' THEN quantidade WHEN tipo='ajuste' THEN quantidade ELSE -quantidade END),0) total
-        FROM movimentacoes_estoque WHERE obra_id=? AND COALESCE(frente_id,0)=COALESCE(?,0) AND lower(descricao)=lower(?) AND unidade=?
-      `).get(payload.obra_id, payload.frente_id || null, payload.descricao, payload.unidade || 'un').total
-      if (Number(balance) < quantity) throw new Error('A saida deixaria o estoque negativo.')
-    }
-    const movement = this.db.save('movimentacoes_estoque', { ...payload, quantidade: quantity })
-    this.db.audit('movimentacoes_estoque', movement.id, 'movimentar_estoque', { obra_id: payload.obra_id, frente_id: payload.frente_id || null, tipo: payload.tipo, quantidade: quantity })
-    return movement
+    return this.db.db.transaction(()=>{
+      validateStockMovement(this.db.db,payload)
+      const movement=this.db.save('movimentacoes_estoque',{...payload,quantidade:Number(payload.quantidade)})
+      this.db.audit('movimentacoes_estoque',movement.id,'movimentar_estoque',{obra_id:Number(payload.obra_id),tipo:payload.tipo,quantidade:Number(payload.quantidade)})
+      return movement
+    })()
   }
 }
 module.exports = { ProcurementService }
