@@ -122,3 +122,8 @@
 - Accessibility checks: teclado, foco, `<progress>`, `<details>`, Modal/Confirm.
 - Canonical sibling flow used for comparison: Configurações do sistema no Command Center.
 - Failure-path evidence: erro de migração mantém dados locais e expõe retry/rollback.
+
+## Estoque e conferência NF-e
+
+- `/estoque` oferece o ponto de entrada direto nos dois layouts; a grade e o ledger de compras permanecem canônicos. O consolidado separa obra, etapa e unidade; seleção e navegação ficam na URL do HashRouter. A confirmação do importador deve oferecer continuidade para os saldos da empresa gravada.
+- A prévia NF-e local não grava dados. Exibe emitente, chave, itens, total fiscal e parcelas existentes; não declara autorização fiscal verificada externamente, recebimento físico ou obrigação financeira criada. Integração futura depende de comando transacional idempotente no owner financeiro, vínculo com pedido/conta e confirmação explícita de recebimento. Não publicar esta etapa como importação integrada final.

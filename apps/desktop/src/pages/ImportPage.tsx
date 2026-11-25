@@ -1,12 +1,13 @@
 import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, ShieldCheck, UploadCloud } from 'lucide-react'
 import { useEffect, useState, type DragEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Button, Card, Empty, Field, Loading, PageHeader, Segmented } from '../components/ui'
 import { brl, competenceLabel } from '../utils/format'
 import { useAsync } from '../hooks/useAsync'
 
 const labels:any={financeiro:'Financeiro',obras:'Obras',orcamento:'Orcamento',funcionarios:'Funcionarios',compras:'Compras',contratos:'Contratos',aditivos:'Aditivos',medicoes:'Medicoes',ponto:'Ponto',documentos:'Documentos',estoque:'Estoque'}
 export default function ImportPage() {
+  const routeLocation=useLocation()
   const [mode, setMode] = useState('universal')
   const [preview, setPreview] = useState<any>(null)
   const [result, setResult] = useState<any>(null)
@@ -14,9 +15,9 @@ export default function ImportPage() {
   const [error, setError] = useState('')
   const [file, setFile] = useState<any>(null)
   const [sheet, setSheet] = useState('')
-  const [area, setArea] = useState(() => {const requested=new URLSearchParams(location.search).get('area')||'financeiro';return Object.prototype.hasOwnProperty.call(labels,requested)?requested:'financeiro'})
+  const [area, setArea] = useState(() => {const requested=new URLSearchParams(routeLocation.search).get('area')||'financeiro';return Object.prototype.hasOwnProperty.call(labels,requested)?requested:'financeiro'})
   const [mapping, setMapping] = useState<any>({})
-  const [companyId, setCompanyId] = useState(() => new URLSearchParams(location.search).get('empresa') || '')
+  const [companyId, setCompanyId] = useState(() => new URLSearchParams(routeLocation.search).get('empresa') || '')
   const [isDragging, setIsDragging] = useState(false)
   const [mappingSource, setMappingSource] = useState('')
   const [message, setMessage] = useState('')

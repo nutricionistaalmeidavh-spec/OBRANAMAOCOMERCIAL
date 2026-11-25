@@ -49,11 +49,11 @@ export default function StockPage(){
   const selectedWork=params.get('obra')||''
   const available=(works.data||[]).filter((work:any)=>!companyId||String(work.empresa_id)===companyId) as Work[]
   const work=available.find(w=>String(w.id)===selectedWork)
-  const change=(company:string,obra:string)=>setParams({...company?{empresa:company}:{empresa:''},...obra?{obra}:{}})
+  const change=(company:string,obra:string)=>setParams({empresa:company,...(obra?{obra}:{})})
   const pending=works.loading||companies.loading
   const failed=works.error||companies.error
   return <>
-    <PageHeader title="Estoque" description="Encontre os materiais importados, consulte os saldos e acompanhe as movimentações." actions={<Link className="button button-secondary" to="/compras">Compras e notas recebidas</Link>}/>
+    <PageHeader title="Estoque" description="Encontre os materiais importados, consulte os saldos e acompanhe as movimentações." actions={<Link className="button button-secondary" to={work?"/compras?obra="+encodeURIComponent(selectedWork):"/compras"}>Compras e notas recebidas</Link>}/>
     <Card><div className="card-body">
       <div className="form-grid">
         <Field label="Empresa"><select value={companyId} disabled={pending||!!failed} onChange={e=>change(e.target.value,'')}><option value="">Todas as empresas disponíveis</option>{companies.data?.map((company:any)=><option key={company.id} value={String(company.id)}>{company.nome_fantasia||company.razao_social}</option>)}</select></Field>

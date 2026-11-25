@@ -3,7 +3,8 @@ import OperationalSheetGrid, {type SheetColumn,type SheetRow} from '../component
 import { groupStockMovements } from '../utils/operational-sheet'
 import ReceivedNotesSection from '../components/ReceivedNotesSection'
 import { FormEvent, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import NfePreviewSection from '../components/NfePreviewSection'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal, PageHeader, Status } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
 import { brDate, brl, toCents, today } from '../utils/format'
@@ -13,7 +14,8 @@ const quoteBlank = { solicitacao_id: '', fornecedor_id: '', fornecedor_nome: '',
 const orderBlank = { obra_id: '', frente_id: '', solicitacao_id: '', cotacao_id: '', fornecedor_id: '', empresa_id: '', descricao: '', valor: '', quantidade: '1', unidade: 'un', vencimento: today(), competencia: today().slice(0, 7) }
 
 export default function ProcurementPage({stockOnly=false,initialWork=''}:{stockOnly?:boolean;initialWork?:string}={}) {
-  const [work, setWork] = useState(initialWork || new URLSearchParams(location.search).get('obra') || '')
+  const routeLocation=useLocation()
+  const [work, setWork] = useState(initialWork || new URLSearchParams(routeLocation.search).get('obra') || '')
   const [requestForm, setRequestForm] = useState<any>(null)
   const [quoteForm, setQuoteForm] = useState<any>(null)
   const [orderForm, setOrderForm] = useState<any>(null)
@@ -138,6 +140,7 @@ export default function ProcurementPage({stockOnly=false,initialWork=''}:{stockO
     {notice && <div className="success-box">{notice}</div>}
     {!stockOnly&&<><Card><div className="card-header"><h2>Solicitacoes e cotacoes</h2><Button variant="secondary" disabled={!requestOptions.length} onClick={() => setQuoteForm({ ...quoteBlank, solicitacao_id: requestOptions[0]?.id || '' })}>Nova cotacao</Button></div>{requests.loading ? <Loading/> : requests.data?.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Solicitacao</th><th>Etapa</th><th>Prazo</th><th>Status</th><th>Cotacoes</th><th/></tr></thead><tbody>{requests.data.map((item: any) => <tr key={item.id}><td><strong>{item.descricao}</strong><small>{item.solicitante}</small></td><td>{fronts.data?.find((front: any) => front.id === item.frente_id)?.nome || 'Obra geral'}</td><td>{brDate(item.prazo)}</td><td><Status value={item.status}/></td><td>{quotes.data?.filter((quote: any) => quote.solicitacao_id === item.id).length || 0}</td><td><Button variant="secondary" onClick={() => setOrderForm({ ...orderBlank, obra_id: work, frente_id: item.frente_id || '', solicitacao_id: item.id, descricao: item.descricao })}>Virar pedido</Button></td></tr>)}</tbody></table></div> : <Empty title={work ? 'Nenhuma solicitação de compra' : 'Selecione uma obra'} description={work ? 'Registre a necessidade antes de cotar ou emitir um pedido.' : 'Escolha uma obra para acompanhar solicitações, pedidos e estoque.'} action={work ? <Button onClick={() => setRequestForm({ ...requestBlank, obra_id: work })}>Nova solicitação</Button> : undefined}/>}</Card>
     <Card style={{ marginTop: 14 }}><div className="card-header"><h2>Pedidos</h2><Button variant="secondary" disabled={!work} onClick={() => setOrderForm({ ...orderBlank, obra_id: work })}>Pedido direto</Button></div>{orders.loading ? <Loading/> : orders.data?.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Pedido</th><th>Etapa</th><th>Status</th><th>Valor</th><th/></tr></thead><tbody>{orders.data.map((item: any) => <tr key={item.id}><td><strong>{item.descricao}</strong><small>{item.numero || `#${item.id}`}</small></td><td>{fronts.data?.find((front: any) => front.id === item.frente_id)?.nome || 'Obra geral'}</td><td><Status value={item.status}/></td><td>{brl(item.valor_centavos)}</td><td><div className="row-actions"><Button variant="secondary" onClick={()=>void openBatch(item)}>Receber itens</Button><button className="icon-button" disabled={!documentsActive} onClick={() => attachOrder(item)} title={documentsActive ? "Anexar nota/documento" : "Documentos ainda não estão ativos no servidor"}><FilePlus size={15}/></button></div></td></tr>)}</tbody></table></div> : <Empty title="Nenhum pedido" description="Converta solicitacoes ou crie pedido direto."/>}</Card>
+    <NfePreviewSection key={work} obraId={work?Number(work):null}/>
     <ReceivedNotesSection obraId={work ? Number(work) : null}/>
     {work&&<Card style={{marginTop:14}}><OperationalSheetGrid key={'quotes-'+work} area="compras" title="Comparativo de cotações" rows={quotesForWork} columns={quoteColumns} filename={'cotacoes-obra-'+work} importArea="compras" companyId={works.data?.find((w:any)=>String(w.id)===work)?.empresa_id} disabledReason={importBlocked}/></Card>}
     </>}
