@@ -31,6 +31,7 @@ function fixture(dataRows: any[][]) {
   const source = readFileSync(resolve(here, '../electron/services/universal-import-service.cjs'), 'utf8')
   const mod = { exports: {} as any }
   const fakeRequire = (id: string): any => {
+    if (id === './domain-core.cjs') return localRequire('../electron/services/domain-core.cjs')
     if (id === 'electron') return { dialog: {} }
     if (id === './spreadsheet-guard.cjs') return { assertSpreadsheetInput: () => {} }
     if (id === './spreadsheet-reader.cjs') return {
@@ -58,6 +59,7 @@ function line(description: string, quantity: unknown) {
 }
 
 describe('P0/P1 importador universal: quantidades e atomicidade do estoque', () => {
+  it('reverte lote com saída superior ao saldo existente', async()=>{const {sqlite,importer,options}=fixture([line('Tubo',2),['Vila Real','Obra Geral','Tubo','UND',3,'saida']]);try{await expect(importer.commit('token',options)).rejects.toThrow(/estoque negativo/);expect(sqlite.prepare('SELECT COUNT(*) n FROM movimentacoes_estoque').get().n).toBe(0)}finally{sqlite.close()}})
   it('normaliza valores brasileiros e preserva decimais de células numéricas', () => {
     const { sqlite, module } = fixture([])
     try {

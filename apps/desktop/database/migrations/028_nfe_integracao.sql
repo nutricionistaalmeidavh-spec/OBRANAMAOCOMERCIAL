@@ -12,6 +12,7 @@ CREATE INDEX IF NOT EXISTS idx_nota_itens_obra ON nota_recebida_itens(obra_id,no
 CREATE TABLE IF NOT EXISTS nota_recebida_xml (
   nota_id INTEGER PRIMARY KEY REFERENCES notas_recebidas(id),
   sha256 TEXT NOT NULL,
+  operacao_sha256 TEXT NOT NULL,
   xml_original BLOB NOT NULL,
   ambiente TEXT NOT NULL,
   protocolo TEXT NOT NULL,

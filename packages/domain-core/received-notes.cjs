@@ -341,6 +341,7 @@ function fixedDecimal(value,scale,label){
   if(fraction.length>scale&&/[1-9]/.test(fraction.slice(scale)))throw new Error(label+' excede a precisão suportada.')
   return BigInt(integer)*10n**BigInt(scale)+BigInt((fraction.slice(0,scale)+'0'.repeat(scale)).slice(0,scale)||'0')
 }
+function quantityText(n){const whole=n/1000000n;const fraction=String(n%1000000n).padStart(6,'0').replace(/0+$/,'');return String(whole)+(fraction?'.'+fraction:'')}
 function safeInt(n,label){if(n<0n||n>BigInt(Number.MAX_SAFE_INTEGER))throw new Error(label+' excede o limite.');return Number(n)}
 function fiscalKeyValid(key){
   if(!/^\d{44}$/.test(key))return false
@@ -365,7 +366,9 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
     // Never trust a preview object supplied by the renderer.
     const xml=new TextDecoder('utf-8',{fatal:true}).decode(bytes)
     const parsed=parseXml(xml)
-    return {bytes,parsed,hash:createHash('sha256').update(bytes).digest('hex')}
+    const operation={empresa_id:payload.empresa_id,fornecedor_id:payload.fornecedor_id,categoria_id:payload.categoria_id,data_recebimento:payload.data_recebimento,destinos:payload.destinos,parcelas:payload.parcelas}
+    const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().filter(k=>v[k]!==undefined).map(k=>[k,canonical(v[k])])):v
+    return {bytes,parsed,hash:createHash('sha256').update(bytes).digest('hex'),operationHash:createHash('sha256').update(JSON.stringify(canonical(operation))).digest('hex')}
   }
   const prepare=(payload,raw)=>{
     const n=raw.parsed,company=fiscalRow(db,'empresas',payload.empresa_id,'Empresa'),supplier=fiscalRow(db,'fornecedores',payload.fornecedor_id,'Fornecedor')
@@ -458,6 +461,8 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
     }
     // Multiple cost centers are carried by destinations. Do not falsely assign an entire obligation to one work.
     const sameScope=scopeKeys.size===1
+    const categoryIds=new Set(destinos.map(d=>Number(d.category.id)))
+    if(categoryIds.size!==1)throw new Error('Para esta versão do núcleo, use uma classificação financeira única por NF-e; rateio entre categorias exige projeção homologada.')
     return {n,company,supplier,total,products,destinos,schedule,sameScope}
   }
   function commit(payload){
@@ -465,9 +470,9 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
     const companyId=positiveFiscalId(payload.empresa_id,'Empresa')
     db.exec('BEGIN IMMEDIATE')
     try{
-      const existing=db.prepare('SELECT n.id,n.status_integracao,x.sha256 FROM notas_recebidas n JOIN nota_recebida_xml x ON x.nota_id=n.id WHERE n.empresa_id=? AND n.chave_acesso=?').get(companyId,raw.parsed.chave)
+      const existing=db.prepare('SELECT n.id,n.status_integracao,x.sha256,x.operacao_sha256 FROM notas_recebidas n JOIN nota_recebida_xml x ON x.nota_id=n.id WHERE n.empresa_id=? AND n.chave_acesso=?').get(companyId,raw.parsed.chave)
       if(existing){
-        if(existing.sha256!==raw.hash||existing.status_integracao!=='integrada')throw new Error('Chave fiscal já utilizada ou estornada; revise o registro original.')
+        if(existing.sha256!==raw.hash||existing.operacao_sha256!==raw.operationHash||existing.status_integracao!=='integrada')throw new Error('Chave fiscal já utilizada ou estornada; revise o registro original.')
         db.exec('COMMIT')
         return {nota_id:Number(existing.id),replayed:true}
       }
@@ -477,14 +482,14 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
       const orderIds=[...new Set(p.destinos.filter(d=>d.order).map(d=>Number(d.order.id)))]
       const result=db.prepare("INSERT INTO notas_recebidas(empresa_id,obra_id,fornecedor_id,numero,serie,emissao,valor_total_centavos,pedido_compra_id,chave_acesso,status_integracao,total_produtos_centavos) VALUES(?,?,?,?,?,?,?,?,?,'integrada',?)").run(p.company.id,principal,p.supplier.id,n.numero,n.serie,n.emissao,safeInt(p.total,'Total'),orderIds.length===1?orderIds[0]:null,n.chave,safeInt(p.products,'Produtos'))
       const id=Number(result.lastInsertRowid)
-      db.prepare('INSERT INTO nota_recebida_xml(nota_id,sha256,xml_original,ambiente,protocolo) VALUES(?,?,?,?,?)').run(id,raw.hash,raw.bytes,n.ambiente,n.protocolo)
+      db.prepare('INSERT INTO nota_recebida_xml(nota_id,sha256,operacao_sha256,xml_original,ambiente,protocolo) VALUES(?,?,?,?,?,?)').run(id,raw.hash,raw.operationHash,raw.bytes,n.ambiente,n.protocolo)
       const insert=db.prepare('INSERT INTO nota_recebida_itens(nota_id,obra_id,frente_id,subfrente_id,pedido_item_id,descricao,unidade,quantidade,valor_unitario_centavos,valor_total_centavos,nfe_item_numero,quantidade_decimal,valor_unitario_decimal) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
       const receipt=db.prepare('INSERT INTO nota_recebida_recebimentos(nota_id,nota_item_id,movimento_id,recebimento_id,quantidade_decimal,origem,request_id,data) VALUES(?,?,?,?,?,?,?,?)')
       const date=payload.data_recebimento?fiscalDate(payload.data_recebimento):null
       for(const dest of p.destinos){
         const qty=Number(dest.qty)/1e6
         const cost=safeInt(dest.cost,'Custo')
-        const itemId=Number(insert.run(id,dest.work.id,dest.stage?.id??null,dest.sub?.id??null,dest.orderItem?.id??null,dest.item.descricao,dest.item.unidade,qty,Math.round(cost/qty),cost,String(dest.item.numero),String(dest.qty),String(dest.item.valor_unitario)).lastInsertRowid)
+        const itemId=Number(insert.run(id,dest.work.id,dest.stage?.id??null,dest.sub?.id??null,dest.orderItem?.id??null,dest.item.descricao,dest.item.unidade,qty,Math.round(cost/qty),cost,String(dest.item.numero),quantityText(dest.qty),String(dest.item.valor_unitario)).lastInsertRowid)
         if(dest.received===0n)continue
         if(!date&&!dest.existingReceipt)throw new Error('Confirme a data do recebimento físico.')
         let movement=null,receivedId=null
@@ -502,12 +507,12 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
           }
           movement=saveEntity('movimentacoes_estoque',stock)
         }
-        receipt.run(id,itemId,movement?.id??null,receivedId,String(dest.received),dest.existingReceipt?'existente':'novo','nfe:'+id+':'+itemId,date||dest.existingReceipt.data)
+        receipt.run(id,itemId,movement?.id??null,receivedId,quantityText(dest.received),dest.existingReceipt?'existente':'novo','nfe:'+id+':'+itemId,date||dest.existingReceipt.data)
       }
       const accounts=[]
       for(const part of p.schedule){
         const scope=p.destinos[0]
-        const account=part.linked||saveEntity('contas',{empresa_id:p.company.id,obra_id:p.sameScope?scope.work.id:null,frente_id:p.sameScope?scope.stage?.id??null:null,fornecedor_id:p.supplier.id,categoria_id:p.sameScope?scope.category.id:null,tipo:'pagar',descricao:'NF-e '+n.numero+' — parcela '+part.number,competencia:n.emissao.slice(0,7),emissao:n.emissao,vencimento:part.due,valor_bruto_centavos:safeInt(part.amount,'Parcela'),valor_centavos:safeInt(part.amount,'Parcela'),status:'pendente',parcela_atual:part.number,total_parcelas:p.schedule.length,origem_tipo:'nota_recebida',origem_id:id})
+        const account=part.linked||saveEntity('contas',{empresa_id:p.company.id,obra_id:p.sameScope?scope.work.id:null,frente_id:p.sameScope?scope.stage?.id??null:null,fornecedor_id:p.supplier.id,categoria_id:scope.category.id,tipo:'pagar',descricao:'NF-e '+n.numero+' — parcela '+part.number,competencia:n.emissao.slice(0,7),emissao:n.emissao,vencimento:part.due,valor_bruto_centavos:safeInt(part.amount,'Parcela'),valor_centavos:safeInt(part.amount,'Parcela'),status:'pendente',parcela_atual:part.number,total_parcelas:p.schedule.length,origem_tipo:'nota_recebida',origem_id:id})
         db.prepare('INSERT INTO nota_recebida_contas(nota_id,conta_id,parcela,criada_na_importacao) VALUES(?,?,?,?)').run(id,account.id,part.number,part.linked?0:1)
         accounts.push(Number(account.id))
       }

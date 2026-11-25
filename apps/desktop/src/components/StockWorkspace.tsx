@@ -1,11 +1,11 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal } from './ui'
 import { useAsync } from '../hooks/useAsync'
 import { today, brDate, brl } from '../utils/format'
 type Scope={companyId?:string;workId?:string;revision?:number}
 type Draft={obra_id:number;frente_id:number|null;descricao:string;unidade:string;tipo:string;quantidade:string;data:string}
-export default function StockWorkspace({companyId='',workId='',revision=0}:Scope){
+function StockWorkspace({companyId='',workId='',revision=0}:Scope){
   const [mode,setMode]=useState<'saldo'|'historico'>('saldo')
   const [search,setSearch]=useState('')
   const [query,setQuery]=useState('')
@@ -68,3 +68,5 @@ export default function StockWorkspace({companyId='',workId='',revision=0}:Scope
     </div><FormActions loading={saving} submitLabel="Registrar movimentação" onCancel={()=>{if(!saving)setDraft(null)}}/></form></Modal>
   </Card>
 }
+
+export default memo(StockWorkspace)

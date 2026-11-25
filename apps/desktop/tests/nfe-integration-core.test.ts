@@ -28,6 +28,7 @@ describe('núcleo transacional NF-e (não exposto a IPC/HTTP)',()=>{
  it('preserva centavos, rateio, parcelas, XML e recebimento parcial sem duplicar no replay',()=>{const f=fixture();try{
   const saved=f.service.commit(f.payload),db=f.adapter.db
   expect(f.service.commit(f.payload)).toMatchObject({nota_id:saved.nota_id,replayed:true})
+  expect(()=>f.service.commit({...f.payload,destinos:f.payload.destinos.map((d,i)=>i===0?{...d,quantidade_recebida:'500'}:d)})).toThrow(/Chave fiscal/)
   expect(db.prepare('SELECT SUM(valor_centavos) total FROM contas').get().total).toBe(12450)
   expect(db.prepare('SELECT SUM(valor_total_centavos) total FROM nota_recebida_itens').get().total).toBe(12450)
   expect(db.prepare('SELECT SUM(quantidade) total FROM movimentacoes_estoque').get().total).toBe(400)
