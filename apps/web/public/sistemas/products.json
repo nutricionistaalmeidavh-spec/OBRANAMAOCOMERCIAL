@@ -137,7 +137,6 @@
       "features": [
         "Obra360 e rotina de campo",
         "Gestão administrativa",
-        "Universidade empresarial",
         "Acesso web e mobile"
       ],
       "benefits": [
@@ -161,7 +160,7 @@
         },
         {
           "question": "Os módulos operacionais mudam por causa desta página?",
-          "answer": "Não. Esta página é apenas comercial e permanece separada de Obra360, Gestão, Universidade, licenças e dados."
+          "answer": "Não. Esta página é apenas comercial e permanece separada de Obra360, Gestão, licenças e dados."
         }
       ],
       "featured": true,

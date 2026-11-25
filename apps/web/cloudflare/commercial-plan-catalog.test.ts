@@ -16,13 +16,13 @@ describe('commercial billing plans',()=>{
 
   it('keeps Essencial focused on core field operations',()=>{
     const plan=COMMERCIAL_PLANS.find(p=>p.code==='essencial_monthly')!
-    expect(plan.modules).toEqual(['obra360','rdo','documents','universidade'])
+    expect(plan.modules).toEqual(['obra360','rdo','documents'])
     expect(plan.limits).toEqual({users:5,projects:3,devices:2})
   })
 
   it('gives Pro all product modules',()=>{
     const plan=COMMERCIAL_PLANS.find(p=>p.code==='pro_monthly')!
-    expect(plan.modules).toEqual(['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'])
+    expect(plan.modules).toEqual(['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','ai'])
     expect(plan.limits).toEqual({users:20,projects:10,devices:5})
   })
 

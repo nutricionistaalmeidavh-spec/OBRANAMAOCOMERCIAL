@@ -58,21 +58,12 @@ if(!system.ok||!systemHtml.includes('id="content"'))throw new Error('System entr
 const logo=await get('/artisys-logo.svg');
 if(!logo.ok||!String(logo.headers.get('content-type')||'').includes('image/svg+xml'))throw new Error('ArtiSys logo is unavailable');
 
-const university=await get('/universidade.html?ts='+Date.now());
-if(!university.ok)throw new Error('/universidade.html failed: HTTP '+university.status);
-const universityHtml=await university.text();
-if(universityHtml.length<300)throw new Error('/universidade.html returned an unexpectedly small document');
-
-const visualMapResult=await json('/resources/question-visual-map.json?ts='+Date.now());
-if(!visualMapResult.response.ok)throw new Error('question visual map failed: HTTP '+visualMapResult.response.status);
-const visuals=visualMapResult.data;
-const visualEntries=Object.values(visuals);
-if(visualEntries.length!==549)throw new Error('Expected 549 question visuals in production, found '+visualEntries.length);
-const sample=visualEntries.find(item=>item&&typeof item==='object'&&typeof item.src==='string');
-if(!sample)throw new Error('No visual sample found');
-const image=await get(sample.src+'?ts='+Date.now());
-if(!image.ok)throw new Error('Question image sample failed: '+sample.src+' HTTP '+image.status);
-if(!String(image.headers.get('content-type')||'').startsWith('image/'))throw new Error('Question image sample has invalid content type');
+const university=await get('/universidade.html?ts='+Date.now(),{redirect:'manual'});
+if(university.status!==303||university.headers.get('location')!=='/sistema.html#portal')throw new Error('Legacy university route must redirect to operational portal');
+for(const path of ['/manifest-universidade.webmanifest','/resources/question-visual-map.json','/api/edu/admin/overview']){
+  const response=await get(path);
+  if(response.status!==410)throw new Error(path+' must be retired: '+response.status);
+}
 
 const unauthenticated=await get('/api/project?date=2026-09-02',{method:'GET'});
 if(unauthenticated.status!==401)throw new Error('Protected /api/project should reject unauthenticated access with 401, got '+unauthenticated.status);
@@ -88,7 +79,6 @@ console.log('Production smoke passed:',{
   persistedDbSchemaVersion:persistedSchema,
   schemaReady:health.data.schemaReady===true,
   migrationTrackingReady:health.data.migrationTrackingReady===true,
-  university:true,
-  questionVisuals:visualEntries.length,
+  universityRetired:true,
   protectedRoute:true
 });

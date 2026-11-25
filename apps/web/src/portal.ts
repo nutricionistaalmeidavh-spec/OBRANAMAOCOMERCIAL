@@ -113,7 +113,7 @@ function showPortalLoading(){
   setBody('<main class="cp-startup" role="status" aria-live="polite"><span class="cp-startup-mark">Obra na Mão</span><span class="cp-startup-spinner" aria-hidden="true"></span><p>Carregando seus acessos…</p></main>');
 }
 function toast(text:string){const e=document.getElementById('mhToast');if(!e)return;e.textContent=text;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),4500)}
-function card(key:string,title:string,text:string,href:string,_icon:string,role?:string){const names:Record<string,string>={gestao:'file-text',obra:'hard-hat',universidade:'graduation-cap',acessos:'shield-check',ativar:'plus',cobranca:'file-text'};return `<a class="cp-module" data-resource="${esc(key)}" href="${esc(href)}" aria-label="${esc(title)}${role?` — ${esc(role)}`:''}" title="${esc(text)}">${icon(names[key]||'file-text')}<span>${esc(title)}</span>${icon('chevron-right')}</a>`}
+function card(key:string,title:string,text:string,href:string,_icon:string,role?:string){const names:Record<string,string>={gestao:'file-text',obra:'hard-hat',acessos:'shield-check',ativar:'plus',cobranca:'file-text'};return `<a class="cp-module" data-resource="${esc(key)}" href="${esc(href)}" aria-label="${esc(title)}${role?` — ${esc(role)}`:''}" title="${esc(text)}">${icon(names[key]||'file-text')}<span>${esc(title)}</span>${icon('chevron-right')}</a>`}
 
 export function shouldRouteCorporateToPlans(b:Pick<Bootstrap,'needsClaim'|'isOwner'|'platformRole'|'platformAccess'>){
   const status=b.platformAccess?.status;
@@ -206,12 +206,13 @@ function portalShell(name:string,meta:string,cards:string,context?:Bootstrap,pas
   }
 }
 async function renderPhonePortal(p:Participant){
-  let cards=card('universidade','Universidade','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱','colaborador'),meta=`${p.jobRole||'Colaborador'} · acesso por celular`;
+  let cards='',meta=`${p.jobRole||'Colaborador'} · acesso por celular`;
   try{
     const token=localStorage.getItem(SESSION)||'',b=(await api.post('/api/phone/bootstrap',{token})).data as Bootstrap;
     if(b.access?.modules?.includes('obra360'))cards=card('obra','Obra360','Dias, etapas, equipe, presença e rotina de campo.','./obra.html#obra','⌂','encarregado')+cards;
     meta=b.company?.name||'Empresa';
   }catch{}
+  if(!cards)cards='<article class="mh-empty"><h3>Nenhum sistema liberado</h3><p>Procure o administrador da sua empresa.</p></article>';
   portalShell(p.name,meta,cards,undefined,'collaborator')
 }
 async function corporateCentralAccess(){
@@ -235,7 +236,6 @@ async function renderCorporatePortal(verifiedUser?:Awaited<ReturnType<typeof aut
     const systems=pa?.systems;let cards='';
     if(systems?.gestao?.enabled&&b.role==='admin'&&!b.needsClaim&&b.access?.modules?.some(module=>['rh','dre','contracts','procurement','measurements','documents'].includes(module)))cards+=card('gestao','Gestão','RH, documentos, contratos, compras, medições e visão administrativa.','./gestao.html#gestao','▥',systems.gestao.role);
     if(systems?.obra360?.enabled&&!b.needsClaim)cards+=card('obra','Obra360','Dias, etapas, equipe, tarefas, RDO e rotina de campo.','./obra.html#obra','⌂',systems.obra360.role);
-    if(systems?.universidade?.enabled)cards+=card('universidade','Universidade','Capacitação, diagnóstico e trilhas personalizadas.','./universidade.html#universidade','▱',systems.universidade.role);
     if(b.platformRole==='superadmin'||b.isOwner)cards+=card('acessos','Central Artisys','Empresas clientes, licenças e ativações independentes.','./sistema.html#owner','◇','superadmin');
     if(b.needsClaim)cards+=card('ativar','Ativar operação','Conclua a configuração da empresa e da primeira obra.','./obra.html#obra','+');
     if(b.role==='admin'||b.platformRole==='superadmin'||b.isOwner)cards+=card('cobranca','Plano e cobrança','Consulte sua assinatura, pagamentos ou conheça outros planos.','./sistema.html#plano-cobranca','▤');

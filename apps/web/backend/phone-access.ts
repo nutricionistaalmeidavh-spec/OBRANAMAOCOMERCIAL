@@ -39,7 +39,7 @@ export async function ensurePhoneAccess(input:{phone:string;name:string;employee
     status:'active',
     systems:{
       obra360:{enabled:true,role:input.obraRole||'encarregado'},
-      universidade:{enabled:true,role:input.universityRole||'colaborador'},
+      universidade:{enabled:false,role:input.universityRole||'colaborador'},
     },
     createdAt:current?.createdAt||stamp,
     updatedAt:stamp,
