@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button, Card, Field, Loading, Empty, Modal, FormActions } from './ui'
+import { useStockRevision } from '../hooks/useStockRevision'
 import { useAsync } from '../hooks/useAsync'
 const attrs=[['categoria','Categoria'],['material','Composição'],['aplicacao','Aplicação'],['marca','Marca'],['referencia','Referência'],['diametro','Diâmetro'],['comprimento','Comprimento'],['dimensoes','Dimensões'],['especificacao','Especificação']] as const
 const aliasBlank={fornecedor_id:'',codigo:'',unidade_comercial:'',descricao_origem:'',gtin:'',fator_num:'1',fator_den:'1'}
@@ -7,9 +8,10 @@ export default function MaterialCatalogPanel({companyId}:{companyId:string}){
  const [query,setQuery]=useState(''),[search,setSearch]=useState(''),[page,setPage]=useState(0),[rev,setRev]=useState(0)
  const [draft,setDraft]=useState<any>(null),[selected,setSelected]=useState<any>(null),[alias,setAlias]=useState<any>(null),[aliasPage,setAliasPage]=useState(0),[message,setMessage]=useState(''),[busy,setBusy]=useState(false)
  const lock=useRef(false)
+ const {version,unavailable}=useStockRevision(companyId)
  useEffect(()=>{const id=setTimeout(()=>{setSearch(query.trim());setPage(0)},250);return()=>clearTimeout(id)},[query])
- const result=useAsync(()=>window.fluxoDre.compras.catalogPage({empresa_id:Number(companyId),q:search,offset:page*50,limit:50}),[companyId,search,page,rev])
- const aliases=useAsync(async()=>({materialId:selected?.id??null,page:aliasPage,data:selected?await window.fluxoDre.compras.catalogAliases({empresa_id:Number(companyId),material_id:selected.id,offset:aliasPage*50}):{rows:[],total:0}}),[companyId,selected?.id,aliasPage,rev])
+ const result=useAsync(()=>window.fluxoDre.compras.catalogPage({empresa_id:Number(companyId),q:search,offset:page*50,limit:50}),[companyId,search,page,rev,version])
+ const aliases=useAsync(async()=>({materialId:selected?.id??null,page:aliasPage,data:selected?await window.fluxoDre.compras.catalogAliases({empresa_id:Number(companyId),material_id:selected.id,offset:aliasPage*50}):{rows:[],total:0}}),[companyId,selected?.id,aliasPage,rev,version])
  const aliasData=aliases.data?.materialId===selected?.id&&aliases.data?.page===aliasPage?aliases.data.data:null
  const suppliers=useAsync(()=>alias?window.fluxoDre.fornecedores.list({empresa_id:Number(companyId)}):Promise.resolve([]),[companyId,!!alias])
  const run=async(fn:()=>Promise<any>,after:()=>void)=>{if(lock.current)return;lock.current=true;setBusy(true);setMessage('');try{await fn();after();setRev(v=>v+1)}catch(e){setMessage(e instanceof Error?e.message:'Não foi possível salvar.')}finally{lock.current=false;setBusy(false)}}
@@ -17,6 +19,7 @@ export default function MaterialCatalogPanel({companyId}:{companyId:string}){
  return <Card>
  <div className="card-header"><div><h2>Catálogo de materiais</h2><p>Identidades por empresa, atributos e equivalências confirmadas. O saldo permanece no estoque da obra.</p></div><Button onClick={()=>edit({descricao:'',unidade:''})}>Novo material</Button></div>
  <div className="card-body row-actions"><input aria-label="Pesquisar catálogo" placeholder="Material, unidade ou código" value={query} onChange={e=>setQuery(e.target.value)}/><Button variant="secondary" onClick={()=>void result.reload()}>Atualizar</Button></div>
+ {unavailable&&<p role="status" className="card-body">Não foi possível confirmar se o catálogo está atualizado.</p>}
  {message&&!draft&&!alias&&<p className="card-body" role="alert">{message}</p>}
  {result.loading?<Loading/>:result.error?<p className="card-body" role="alert">{result.error.message}</p>:result.data?.rows.length?<div className="table-wrap"><table className="data-table"><thead><tr><th>Material</th><th>Unidade</th><th>Classificação</th><th>Equivalências</th><th/></tr></thead><tbody>{result.data.rows.map(row=><tr key={row.id}><td>{row.descricao}</td><td>{row.unidade}</td><td>{row.origem==='confirmado'?'Confirmado':'Legado — revisar'}</td><td>{row.equivalencias}</td><td><div className="row-actions"><Button variant="secondary" onClick={()=>edit(row)}>Atributos</Button><Button variant="secondary" onClick={()=>{setSelected(row);setAliasPage(0);setMessage('')}}>Equivalências</Button></div></td></tr>)}</tbody></table></div>:<Empty title="Nenhum material encontrado" description="Cadastre um material ou importe uma planilha de estoque."/>}
  {result.data&&<div className="card-body row-actions"><span>{result.data.total} materiais</span><Button variant="secondary" disabled={!page||result.loading} onClick={()=>setPage(p=>p-1)}>Anterior</Button><Button variant="secondary" disabled={result.loading||(page+1)*50>=result.data.total} onClick={()=>setPage(p=>p+1)}>Próxima</Button></div>}

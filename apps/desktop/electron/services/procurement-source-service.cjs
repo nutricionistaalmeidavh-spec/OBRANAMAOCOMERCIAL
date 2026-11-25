@@ -34,6 +34,7 @@ class ProcurementSourceService {
     }
   }
 
+  async stockRevision(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.stockRevision(filters);if(state==='central-active')return this.lanClient.procurementStockRevision(filters);return this.blocked()}
   async catalogPage(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogPage(filters);if(state==='central-active')return this.lanClient.catalogPage(filters);return this.blocked()}
   async catalogAliases(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogAliases(filters);if(state==='central-active')return this.lanClient.catalogAliases(filters);return this.blocked()}
   async catalogSave(payload){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogSave(payload);if(state==='central-active')return this.lanClient.catalogSave(payload);return this.blocked()}

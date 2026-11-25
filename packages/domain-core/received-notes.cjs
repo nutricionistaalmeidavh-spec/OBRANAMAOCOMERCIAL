@@ -686,4 +686,15 @@ function confirmMaterialAlias(db,saveEntity,payload,actor){
   return saveEntity('material_fornecedor_equivalencias',{empresa_id:company,fornecedor_id:supplier.id,material_id:material.id,codigo,unidade_comercial:unidade,descricao_origem:descricao,gtin:gtin||null,fator_num:num,fator_den:den,confirmado_por:operador})
 }
 
-module.exports={materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}
+
+function stockRevision(db,filters={}){
+ const company=filters.empresa_id?positiveFiscalId(filters.empresa_id,'Empresa'):null
+ const work=filters.obra_id?fiscalRow(db,'obras',filters.obra_id,'Obra'):null
+ if(work&&company&&Number(work.empresa_id)!==company)throw new Error('Obra de outra empresa.')
+ const companyId=work?Number(work.empresa_id):company
+ const keys=work?['obra:'+work.id,'catalogo:'+companyId,'catalogo:0']:company?['empresa:'+company,'catalogo:'+company,'catalogo:0']:['all']
+ const identity=db.prepare('SELECT uid FROM estoque_revisao_identidade WHERE id=1').get().uid
+ return {revision:identity+':'+keys.map(k=>Number(db.prepare('SELECT revisao FROM estoque_revisoes WHERE escopo=?').get(k)?.revisao||0)).join(':')}
+}
+
+module.exports={stockRevision,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}

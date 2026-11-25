@@ -658,6 +658,13 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         authorizeAction(context,{domain:'finance',action:'view'})
         return sendJson(response,200,procurement.stockExport(Object.fromEntries(url.searchParams)))
       }
+      if(url.pathname==='/api/v1/procurement/stock-revision'){
+        if(request.method!=='GET')return methodNotAllowed(response,['GET'])
+        if(!procurement?.stockRevision)return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'finance',action:'view'})
+        return sendJson(response,200,procurement.stockRevision(Object.fromEntries(url.searchParams)))
+      }
       if (url.pathname === '/api/v1/procurement/stock-page') {
         if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
         if (!procurement?.stockPage) return sendJson(response,503,{error:'procurement_unavailable'})

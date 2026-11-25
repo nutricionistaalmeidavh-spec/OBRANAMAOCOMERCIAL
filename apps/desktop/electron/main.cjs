@@ -379,6 +379,7 @@ function registerIpc() {
   }))
   const stockChanged=obra_id=>{if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('procurement:stock-changed',{obra_id:obra_id||null})}
   const stockWrite=async(fn,obra_id)=>{const value=await fn();stockChanged(obra_id);return value}
+  ipcMain.handle('procurement:stock-revision',envelope(filters=>services.procurement.stockRevision(filters)))
   ipcMain.handle('procurement:catalog-page',envelope(filters=>services.procurement.catalogPage(filters)))
   ipcMain.handle('procurement:catalog-aliases',envelope(filters=>services.procurement.catalogAliases(filters)))
   ipcMain.handle('procurement:catalog-save',envelope(payload=>stockWrite(()=>services.procurement.catalogSave(payload))))

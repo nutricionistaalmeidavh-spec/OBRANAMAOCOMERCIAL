@@ -182,6 +182,7 @@ class LanDataClient {
     return this.request('POST','/api/v1/received-notes/'+Number(id)+'/attach',{body:{documento_id:Number(documentId)}})
   }
 
+  async procurementStockRevision(filters){return this.request('GET','/api/v1/procurement/stock-revision',{query:filters})}
   async catalogPage(filters){return this.request('GET','/api/v1/procurement/materials',{query:filters})}
   async catalogAliases(filters){return this.request('GET','/api/v1/procurement/material-aliases',{query:filters})}
   async catalogSave(payload){return this.request('POST','/api/v1/procurement/materials',{body:payload})}

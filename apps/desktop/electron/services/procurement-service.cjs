@@ -1,7 +1,8 @@
-const { stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = require('./domain-core.cjs')
+const { stockRevision, stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = require('./domain-core.cjs')
 class ProcurementService {
   constructor({ db }) { this.db = db }
 
+  stockRevision(filters){return stockRevision(this.db.db,filters)}
   catalogPage(filters){return materialCatalog(this.db.db,filters)}
   catalogAliases(filters){return materialAliases(this.db.db,filters)}
   catalogSave(payload){const fn=()=>saveMaterialCatalog(this.db.db,(table,data)=>this.db.save(table,data),payload);return this.db.db.transaction(fn).immediate()}

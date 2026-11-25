@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, memo } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal } from './ui'
+import { useStockRevision } from '../hooks/useStockRevision'
 import { useAsync } from '../hooks/useAsync'
 import { today, brDate, brl } from '../utils/format'
 type Scope={companyId?:string;workId?:string;revision?:number}
@@ -17,8 +18,7 @@ function StockWorkspace({companyId='',workId='',revision=0}:Scope){
   const [exporting,setExporting]=useState(false)
   const [saving,setSaving]=useState(false)
   const savingRef=useRef(false)
-  const [version,setVersion]=useState(0)
-  useEffect(()=>{const refresh=()=>setVersion(v=>v+1);const off=window.fluxoDre.compras.onStockChanged?.(change=>{if(!workId||!change.obra_id||String(change.obra_id)===workId)refresh()});window.addEventListener('focus',refresh);return()=>{off?.();window.removeEventListener('focus',refresh)}},[workId])
+  const {version,unavailable}=useStockRevision(companyId,workId)
   const scope=companyId+':'+workId
   const [priorScope,setPriorScope]=useState(scope)
   if(priorScope!==scope){setPriorScope(scope);setPage(0);setStage('');setDraft(null);setError('')}
@@ -32,7 +32,7 @@ function StockWorkspace({companyId='',workId='',revision=0}:Scope){
   const current=result.data?.scope===scope&&result.data?.mode===mode&&result.data?.page===page&&result.data?.query===query&&result.data?.stage===stage?result.data.data:null
   const open=(row:any)=>{setError('');setDraft({...(row.material_id?{material_id:Number(row.material_id)}:{}),obra_id:Number(row.obra_id),frente_id:row.frente_id?Number(row.frente_id):null,descricao:String(row.descricao),unidade:String(row.unidade),tipo:'saida',quantidade:'1',data:today()})}
   const save=async(e:React.FormEvent)=>{e.preventDefault();if(!draft||savingRef.current)return;savingRef.current=true;setSaving(true);setError('')
-    try{await window.fluxoDre.compras.moveStock({...draft,quantidade:Number(draft.quantidade)});setDraft(null);if(!window.fluxoDre.compras.onStockChanged)setVersion(v=>v+1)}
+    try{await window.fluxoDre.compras.moveStock({...draft,quantidade:Number(draft.quantidade)});setDraft(null);if(!window.fluxoDre.compras.stockRevision)void result.reload()}
     catch(e){setError(e instanceof Error?e.message:'Não foi possível movimentar o estoque.')}
     finally{savingRef.current=false;setSaving(false)}
   }
@@ -55,6 +55,7 @@ function StockWorkspace({companyId='',workId='',revision=0}:Scope){
       {workId&&<Field label="Etapa"><select disabled={stages.loading||!!stages.error} value={stage} onChange={e=>{setStage(e.target.value);setPage(0)}}><option value="">Todas</option>{stages.data?.map((s:any)=><option key={s.id} value={s.id}>{s.nome}</option>)}</select></Field>}
       <Button variant="secondary" onClick={()=>void result.reload()}>Atualizar</Button>
     </div></div>
+    {unavailable&&<p className="card-body" role="status">Não foi possível confirmar a atualização do estoque. Os dados exibidos podem estar desatualizados.</p>}
     {exportMessage&&<p role="status" className="card-body">{exportMessage}</p>}
     {result.loading||!current&&!result.error?<Loading label="Consultando estoque..."/>:result.error?<div className="card-body" role="alert">Não foi possível consultar o estoque. <Button onClick={()=>void result.reload()}>Tentar novamente</Button></div>:current?.rows.length?<div className="table-wrap"><table className="data-table"><thead><tr><th>Empresa</th><th>Obra</th><th>Etapa</th><th>Material</th><th>Unidade</th>{mode==='saldo'?<><th>Entradas</th><th>Saídas</th>{stage&&<th>Líquido da etapa</th>}<th>Saldo da obra</th><th>Custo médio estimado</th><th>Saldo valorizado estimado</th><th/></>:<><th>Tipo</th><th>Quantidade</th><th>Data</th></>}</tr></thead><tbody>{current.rows.map(r=><tr key={r.id}><td>{r.empresa_nome}</td><td>{r.obra_nome}</td><td>{r.etapa_nome}</td><td>{r.descricao}</td><td>{r.unidade}</td>{mode==='saldo'?<><td>{r.entradas}</td><td>{r.saidas}</td>{stage&&<td>{r.liquido_etapa}</td>}<td>{r.saldo}</td><td>{r.custo_medio_centavos===null?'—':brl(r.custo_medio_centavos)}</td><td>{r.saldo_estimado_centavos===null?'—':brl(r.saldo_estimado_centavos)}</td><td>{workId?<Button variant="secondary" onClick={()=>open(r)}>Movimentar</Button>:<Link to={'/estoque?'+new URLSearchParams({empresa:String(r.empresa_id),obra:String(r.obra_id)})}>Abrir obra</Link>}</td></>:<><td>{r.tipo}</td><td>{r.quantidade}</td><td>{brDate(r.data)}</td></>}</tr>)}</tbody></table></div>:<Empty title="Nenhum material nesta seleção" description="Altere os filtros ou importe os materiais."/>}
     {current&&<div className="card-body row-actions"><span>{current.total} registros</span><Button variant="secondary" disabled={!page||result.loading} onClick={()=>setPage(p=>Math.max(0,p-1))}>Anterior</Button><Button variant="secondary" disabled={result.loading||(page+1)*50>=current.total} onClick={()=>setPage(p=>p+1)}>Próxima</Button></div>}
