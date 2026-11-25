@@ -9,8 +9,8 @@ export type CommercialPlan={
   limits:{users:number;projects:number;devices:number}
 }
 
-const CORE_MODULES=['obra360','rdo','documents','universidade']
-const COMPLETE_MODULES=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai']
+const CORE_MODULES=['obra360','rdo','documents']
+const COMPLETE_MODULES=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','ai']
 
 const tiers={
   essencial:{name:'Essencial' as const,modules:CORE_MODULES,limits:{users:5,projects:3,devices:2}},
