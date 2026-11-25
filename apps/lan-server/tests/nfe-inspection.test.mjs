@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import path from 'node:path'
 import { LanRepository } from '../src/repository.mjs'
+import { MigrationService,MODULE_TABLES } from '../src/migration-service.mjs'
+import { FinanceService } from '../src/finance-service.mjs'
 import { ProcurementService } from '../src/procurement-service.mjs'
 const migrationsDir=path.resolve(import.meta.dirname,'../migrations')
 function key(){const prefix='3526111234567800012355001000001234100001234';let sum=0,w=2;for(let i=42;i>=0;i--){sum+=Number(prefix[i])*w;w=w===9?2:w+1}const n=11-sum%11;return prefix+String(n>=10?0:n)}
@@ -30,4 +32,45 @@ test('LAN lê XML original, sugere material, aprende equivalência e não lança
   for(const table of ['contas','movimentacoes_estoque','notas_recebidas'])assert.equal(repository.connection().prepare('SELECT COUNT(*) n FROM '+table).get().n,0)
   assert.deepEqual(repository.connection().prepare('PRAGMA foreign_key_check').all(),[])
  }finally{repository.close()}
+})
+
+test('LAN integra e migra nota, bytes originais, rateios e vínculos para IDs distintos',()=>{
+ const source=new LanRepository({filename:':memory:'}),target=new LanRepository({filename:':memory:'})
+ try{
+  source.applyMigrations(migrationsDir);target.applyMigrations(migrationsDir)
+  const company=source.save('empresas',{razao_social:'Fictícia',cnpj:'12345678000124'})
+  const work=source.save('obras',{empresa_id:company.id,nome:'Obra A'}),work2=source.save('obras',{empresa_id:company.id,nome:'Obra B'})
+  const supplier=source.save('fornecedores',{empresa_id:company.id,nome:'Fornecedor',documento:'12345678000123'})
+  const category=source.connection().prepare("SELECT id FROM categorias_financeiras WHERE natureza='despesa' AND ativa=1 LIMIT 1").get()?.id||source.save('categorias_financeiras',{nome:'Materiais fictícios',natureza:'despesa',ativa:1}).id
+  const service=new ProcurementService({repository:source})
+  const material=service.catalogSave({empresa_id:company.id,descricao:'Tubo PVC esgoto DN100 6 m',unidade:'un',atributos:{}})
+  service.catalogConfirm({empresa_id:company.id,fornecedor_id:supplier.id,material_id:material.id,codigo:'TB-100',unidade_comercial:'UN',descricao_origem:'TB PVC ESG DN100 6MT',fator_num:1,fator_den:1},'teste')
+  const payload={xml_base64:Buffer.from(xml()).toString('base64'),empresa_id:company.id,fornecedor_id:supplier.id,categoria_id:category,data_recebimento:'2026-11-25',destinos:[{nfe_item_numero:'1',obra_id:work.id,quantidade:'1',quantidade_recebida:'1',valor_alocado:'15.00'},{nfe_item_numero:'1',obra_id:work2.id,quantidade:'1',quantidade_recebida:'0',valor_alocado:'15.00'}],parcelas:[{valor:'30.00',vencimento:'2026-12-25'}]}
+  const note=service.nfeCommit(payload)
+  assert.equal(service.nfeCommit(payload).replayed,true)
+  target.save('empresas',{razao_social:'Outra empresa fictícia'})
+  const migration=new MigrationService({repository:target})
+  const mapping={}
+  for(const module of ['core','operation','planning','finance']){
+   const records=Object.fromEntries(MODULE_TABLES[module].map(table=>[table,source.connection().prepare('SELECT * FROM '+table+' ORDER BY id').all()]))
+   const id='nfe-migrate-'+module
+   migration.start({migrationId:id,module,sourceFingerprint:'nfe-ficticia',expectedCounts:Object.fromEntries(Object.entries(records).map(([table,rows])=>[table,rows.length]))})
+   for(const [table,rows] of Object.entries(records))for(const row of rows){
+    let data={...row}
+    if(table==='nota_recebida_xml'){data.__xml_base64=Buffer.from(data.xml_original).toString('base64');delete data.xml_original}
+    const mapped=migration.importRecord(id,{sourceTable:table,sourceId:row.id,data})
+    mapping[table+':'+row.id]=mapped.targetId
+   }
+   migration.validate(id);migration.commit(id)
+  }
+  const mappedCompany=mapping['empresas:'+company.id],mappedWork=mapping['obras:'+work.id],mappedNote=mapping['notas_recebidas:'+note.nota_id]
+  assert.notEqual(mappedCompany,company.id)
+  const restored=target.connection().prepare('SELECT * FROM nota_recebida_xml WHERE nota_id=?').get(mappedNote)
+  assert.equal(Buffer.from(restored.xml_original).toString('base64'),payload.xml_base64)
+  assert.equal(target.connection().prepare('SELECT SUM(valor_centavos) n FROM nota_recebida_rateios').get().n,3000)
+  assert.equal(target.connection().prepare('SELECT COUNT(*) n FROM contas').get().n,1)
+  const report=new FinanceService({repository:target})
+  assert.equal(report.dre({empresa_id:mappedCompany,obra_id:mappedWork,competencia:'2026-11'}).reduce((s,r)=>s+r.valor,0),1500)
+  assert.deepEqual(target.connection().prepare('PRAGMA foreign_key_check').all(),[])
+ }finally{source.close();target.close()}
 })

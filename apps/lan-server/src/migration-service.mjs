@@ -245,6 +245,14 @@ export class MigrationService {
         if (seeded) { targetId = Number(seeded.id); createdTarget = 0 }
       }
       if (!targetId) {
+        if(table==='nota_recebida_contas'){
+          const account=this.db.prepare('SELECT origem_tipo,origem_id FROM contas WHERE id=?').get(remapped.conta_id)
+          if(account?.origem_tipo==='nota_recebida'){
+            const owned=this.db.prepare("SELECT created_target FROM module_migration_records WHERE migration_id=? AND target_table='contas' AND target_id=?").get(String(migrationId),remapped.conta_id)
+            if(owned?.created_target!==1&&Number(account.origem_id)!==Number(remapped.nota_id))throw new Error('Conta fiscal existente possui outra origem.')
+            this.db.prepare("UPDATE contas SET origem_id=? WHERE id=? AND origem_tipo='nota_recebida'").run(remapped.nota_id,remapped.conta_id)
+          }
+        }
         const saved = table === 'arquivos' && data?.__content_missing === true
           ? this.fileStorage?.storeMissingFileRecord?.(remapped)
           : table === 'arquivos' && data?.__content_base64
@@ -257,7 +265,6 @@ export class MigrationService {
       }
       this.db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_target,source_data_json,created_at) VALUES(?,?,?,?,?,?,?,?)')
         .run(String(migrationId), table, asText(sourceId), table, targetId, createdTarget, JSON.stringify(table === 'arquivos' ? { ...(data || {}), __content_base64: undefined } : table==='nota_recebida_xml'?{...(data||{}),__xml_base64:undefined}:(data || {})), this.now())
-      if(table==='nota_recebida_contas')this.db.prepare("UPDATE contas SET origem_id=? WHERE id=? AND origem_tipo='nota_recebida'").run(remapped.nota_id,remapped.conta_id)
       this.backfillDeferredReferences(migrationRow.source_fingerprint, table, sourceId, targetId)
       this.db.exec('COMMIT')
       return { sourceTable: table, sourceId, targetId, reused: false }

@@ -28,7 +28,7 @@ class ProcurementService {
     const id = Number(obraId)
     const requested = this.db.db.prepare("SELECT COUNT(*) total FROM solicitacoes_compra WHERE obra_id=? AND deleted_at IS NULL AND status NOT IN ('cancelada','concluida')").get(id).total
     const ordered = this.db.db.prepare("SELECT COALESCE(SUM(valor_centavos),0) total FROM pedidos_compra WHERE obra_id=? AND deleted_at IS NULL AND status NOT IN ('cancelado','recebido')").get(id).total
-    const received = this.db.db.prepare('SELECT COALESCE(SUM(quantidade_recebida),0) total FROM recebimentos_materiais r JOIN pedidos_compra p ON p.id=r.pedido_compra_id WHERE p.obra_id=? AND p.deleted_at IS NULL').get(id).total
+    const received = this.db.db.prepare('SELECT COALESCE(SUM(quantidade_recebida),0) total FROM recebimentos_materiais r JOIN pedidos_compra p ON p.id=r.pedido_compra_id WHERE p.obra_id=? AND p.deleted_at IS NULL AND NOT EXISTS(SELECT 1 FROM nota_recebida_recebimentos nr JOIN nota_recebida_estorno_movimentos e ON e.recebimento_fiscal_id=nr.id WHERE nr.recebimento_id=r.id)').get(id).total
     const stock = stockWorkBalances(this.db.db,id)
     return { solicitacoes_abertas: Number(requested), comprometido_centavos: Number(ordered), quantidade_recebida: Number(received), estoque: stock }
   }

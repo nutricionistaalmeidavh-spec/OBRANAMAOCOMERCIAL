@@ -153,7 +153,7 @@ async function readJson(request, maxBytes = MAX_BODY_BYTES) {
   }
 }
 
-const COMPOUND_MUTATION_TABLES = new Set(['medicoes','medicao_itens','pedidos_compra','pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos'])
+const COMPOUND_MUTATION_TABLES = new Set(['notas_recebidas','nota_recebida_itens','nota_recebida_xml','nota_recebida_contas','nota_recebida_recebimentos','nota_recebida_rateios','nota_recebida_estornos','nota_recebida_estorno_movimentos','medicoes','medicao_itens','pedidos_compra','pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos'])
 const COMPOUND_CREATE_TABLES = new Set([])
 
 function assertCanonicalEntityMutation(table, method, id) {

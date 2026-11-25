@@ -89,3 +89,32 @@ CREATE VIEW IF NOT EXISTS v_financeiro_apropriacoes AS
  SELECT c.id,c.empresa_id,r.obra_id,r.frente_id,r.subfrente_id,c.tipo,c.categoria_id,c.competencia,c.vencimento,c.status,c.deleted_at,r.valor_centavos,
  MAX(0,MIN(r.valor_centavos,COALESCE(p.paid,0)-r.prior)) paid_cents
  FROM allocated r JOIN contas c ON c.id=r.conta_id LEFT JOIN payments p ON p.conta_id=c.id;
+
+-- Protect the integrated note's financial and physical facts from generic editing.
+CREATE TRIGGER IF NOT EXISTS nfe_conta_update_guard BEFORE UPDATE ON contas
+ WHEN EXISTS(SELECT 1 FROM nota_recebida_contas l JOIN notas_recebidas n ON n.id=l.nota_id WHERE l.conta_id=OLD.id AND n.status_integracao='integrada')
+ AND (NEW.valor_centavos IS NOT OLD.valor_centavos OR NEW.valor_bruto_centavos IS NOT OLD.valor_bruto_centavos OR NEW.empresa_id IS NOT OLD.empresa_id OR NEW.obra_id IS NOT OLD.obra_id OR NEW.frente_id IS NOT OLD.frente_id OR NEW.categoria_id IS NOT OLD.categoria_id OR NEW.tipo IS NOT OLD.tipo OR NEW.competencia IS NOT OLD.competencia OR NEW.fornecedor_id IS NOT OLD.fornecedor_id OR NEW.origem_id IS NOT OLD.origem_id OR NEW.origem_tipo IS NOT OLD.origem_tipo OR NEW.deleted_at IS NOT OLD.deleted_at OR NEW.status='cancelado')
+ BEGIN SELECT RAISE(ABORT,'Conta vinculada à NF-e: use conciliação ou estorno integrado.'); END;
+CREATE TRIGGER IF NOT EXISTS nfe_payment_amount_guard BEFORE INSERT ON pagamentos_conta
+ WHEN EXISTS(SELECT 1 FROM nota_recebida_contas l WHERE l.conta_id=NEW.conta_id)
+ AND (NEW.valor_centavos<=0 OR NEW.valor_centavos+COALESCE((SELECT SUM(valor_centavos) FROM pagamentos_conta WHERE conta_id=NEW.conta_id),0)>(SELECT valor_centavos FROM contas WHERE id=NEW.conta_id))
+ BEGIN SELECT RAISE(ABORT,'Pagamento excede a parcela fiscal.'); END;
+CREATE TRIGGER IF NOT EXISTS nfe_payment_update_guard BEFORE UPDATE ON pagamentos_conta
+ WHEN EXISTS(SELECT 1 FROM nota_recebida_contas l WHERE l.conta_id IN (OLD.conta_id,NEW.conta_id))
+ AND (NEW.conta_id IS NOT OLD.conta_id OR NEW.valor_centavos IS NOT OLD.valor_centavos)
+ BEGIN SELECT RAISE(ABORT,'Baixa de parcela fiscal: revise pelo fluxo financeiro.'); END;
+CREATE TRIGGER IF NOT EXISTS nfe_note_update_guard BEFORE UPDATE ON notas_recebidas
+ WHEN OLD.chave_acesso IS NOT NULL AND
+ (NEW.chave_acesso IS NOT OLD.chave_acesso OR NEW.empresa_id IS NOT OLD.empresa_id OR NEW.obra_id IS NOT OLD.obra_id OR NEW.fornecedor_id IS NOT OLD.fornecedor_id OR NEW.numero IS NOT OLD.numero OR NEW.serie IS NOT OLD.serie OR NEW.emissao IS NOT OLD.emissao OR NEW.valor_total_centavos IS NOT OLD.valor_total_centavos OR ((NEW.status_integracao IS NOT OLD.status_integracao OR NEW.deleted_at IS NOT OLD.deleted_at) AND NOT (NEW.status_integracao='estornada' AND EXISTS(SELECT 1 FROM nota_recebida_estornos e WHERE e.nota_id=OLD.id))))
+ BEGIN SELECT RAISE(ABORT,'Nota fiscal integrada: use a operação canônica.'); END;
+CREATE TRIGGER IF NOT EXISTS nfe_item_update_guard BEFORE UPDATE ON nota_recebida_itens
+ WHEN EXISTS(SELECT 1 FROM notas_recebidas n WHERE n.id=OLD.nota_id AND n.chave_acesso IS NOT NULL)
+ BEGIN SELECT RAISE(ABORT,'Item fiscal integrado é histórico imutável.'); END;
+CREATE TRIGGER IF NOT EXISTS nfe_movement_update_guard BEFORE UPDATE ON movimentacoes_estoque
+ WHEN (EXISTS(SELECT 1 FROM nota_recebida_recebimentos r WHERE r.movimento_id=OLD.id) OR EXISTS(SELECT 1 FROM nota_recebida_estorno_movimentos e WHERE e.movimento_id=OLD.id))
+ AND (NEW.tipo IS NOT OLD.tipo OR NEW.quantidade IS NOT OLD.quantidade OR NEW.obra_id IS NOT OLD.obra_id OR NEW.frente_id IS NOT OLD.frente_id OR NEW.unidade IS NOT OLD.unidade OR NEW.descricao IS NOT OLD.descricao OR NEW.pedido_item_id IS NOT OLD.pedido_item_id OR NEW.data IS NOT OLD.data)
+ BEGIN SELECT RAISE(ABORT,'Movimentação fiscal histórica: use estorno integrado.'); END;
+CREATE TRIGGER IF NOT EXISTS nfe_receipt_update_guard BEFORE UPDATE ON recebimentos_materiais
+ WHEN EXISTS(SELECT 1 FROM nota_recebida_recebimentos r WHERE r.recebimento_id=OLD.id)
+ AND (NEW.quantidade_recebida IS NOT OLD.quantidade_recebida OR NEW.pedido_item_id IS NOT OLD.pedido_item_id OR NEW.pedido_compra_id IS NOT OLD.pedido_compra_id OR NEW.data IS NOT OLD.data OR NEW.obra_id IS NOT OLD.obra_id OR NEW.frente_id IS NOT OLD.frente_id)
+ BEGIN SELECT RAISE(ABORT,'Recebimento fiscal histórico: use estorno integrado.'); END;

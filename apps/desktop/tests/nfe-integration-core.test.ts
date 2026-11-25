@@ -109,3 +109,35 @@ it('confirma importação via serviço Desktop e apropria DRE multiobra sem dupl
   expect(s.nfeDetails({empresa_id:f.payload.empresa_id,nota_id:result.nota_id}).itens.length).toBe(2)
  }finally{f.close()}
 })
+
+it('recebe pedido posteriormente e estorna quantidades sem apagar histórico',()=>{
+ const f=fixture();try{
+  const db=f.adapter.db,work=f.payload.destinos[0].obra_id
+  const order=f.adapter.save('pedidos_compra',{obra_id:work,fornecedor_id:f.payload.fornecedor_id,descricao:'Pedido fictício',valor_centavos:12450})
+  const item=f.adapter.save('pedido_compra_itens',{pedido_compra_id:order.id,material_id:f.material.id,descricao:'Tubo',unidade:'m',quantidade_pedida:2000,valor_centavos:12450})
+  const result=f.service.commit({...f.payload,destinos:[{...f.payload.destinos[0],pedido_item_id:item.id,quantidade:'1000',quantidade_recebida:'400',valor_alocado:'124.50'}]})
+  const dest=db.prepare('SELECT id FROM nota_recebida_itens WHERE nota_id=?').get(result.nota_id)
+  const follow={empresa_id:f.payload.empresa_id,nota_id:result.nota_id,nota_item_id:dest.id,quantidade:'600',data:'2026-11-26',request_id:'pedido-follow'}
+  f.service.receive(follow)
+  expect(f.service.receive(follow).replayed).toBe(true)
+  expect(f.adapter.get('pedido_compra_itens',item.id).quantidade_recebida).toBe(2000)
+  expect(f.adapter.get('pedidos_compra',order.id).status).toBe('recebido')
+  f.service.reverse({empresa_id:f.payload.empresa_id,nota_id:result.nota_id,data:'2026-11-27',request_id:'pedido-reverse',motivo:'Erro de importação',operador:'teste'})
+  expect(f.adapter.get('pedido_compra_itens',item.id).quantidade_recebida).toBe(0)
+  expect(f.adapter.get('pedidos_compra',order.id).status).toBe('emitido')
+  expect(db.prepare("SELECT SUM(CASE WHEN tipo='saida' THEN -quantidade ELSE quantidade END) n FROM movimentacoes_estoque").get().n).toBe(0)
+  expect(db.prepare('SELECT COUNT(*) n FROM recebimentos_materiais').get().n).toBe(2)
+ }finally{f.close()}
+})
+it('protege valores e rateio fiscal contra edição genérica e conserva pagamentos no DRE',()=>{
+ const f=fixture();try{
+  const result=f.service.commit(f.payload)
+  expect(()=>f.adapter.save('contas',{id:result.contas[0],valor_centavos:1})).toThrow(/NF-e/)
+  expect(()=>f.adapter.remove('contas',result.contas[0])).toThrow(/NF-e/)
+  f.adapter.accountPayment(result.contas[0],{valor_centavos:4000,data:'2026-11-26'})
+  expect(()=>f.adapter.accountPayment(result.contas[0],{valor_centavos:3000,data:'2026-11-26'})).toThrow(/excede/)
+  const total=(work?:number)=>f.adapter.dre({competencia:'2026-11',empresa_id:f.payload.empresa_id,obra_id:work}).reduce((sum:number,r:any)=>sum+r.valor_realizado,0)
+  expect(total()).toBe(4000)
+  expect(total(f.payload.destinos[0].obra_id)+total(f.payload.destinos[1].obra_id)).toBe(4000)
+ }finally{f.close()}
+})
