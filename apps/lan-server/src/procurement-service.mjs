@@ -141,6 +141,7 @@ export class ProcurementService {
         obra_id:order.obra_id,
         frente_id:order.frente_id || null,
         pedido_item_id:item.id,
+        material_id:item.material_id??null,
         documento_id:payload.documento_id || null,
         tipo:'entrada',
         descricao:item.descricao,

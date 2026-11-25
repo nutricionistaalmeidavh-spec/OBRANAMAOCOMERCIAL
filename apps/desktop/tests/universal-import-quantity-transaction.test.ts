@@ -18,10 +18,12 @@ function fixture(dataRows: any[][]) {
     'CREATE TABLE importacoes(id INTEGER PRIMARY KEY, arquivo TEXT, hash TEXT, aba TEXT, status TEXT, resumo TEXT, concluida_em TEXT);',
     'CREATE TABLE importacao_linhas(importacao_id INTEGER, competencia TEXT, celula TEXT, tipo TEXT, nome_origem TEXT, valor_centavos INTEGER, dados_brutos TEXT, entidade_tipo TEXT, entidade_id INTEGER, status TEXT);',
     'CREATE TABLE obras(id INTEGER PRIMARY KEY, empresa_id INTEGER, nome TEXT, status TEXT, deleted_at TEXT);',
+    'CREATE TABLE fornecedores(id INTEGER PRIMARY KEY,empresa_id INTEGER,deleted_at TEXT);CREATE TABLE pedidos_compra(id INTEGER PRIMARY KEY,obra_id INTEGER);CREATE TABLE pedido_compra_itens(id INTEGER PRIMARY KEY,pedido_compra_id INTEGER,descricao TEXT,unidade TEXT);',
     'CREATE TABLE frentes_obra(id INTEGER PRIMARY KEY, obra_id INTEGER, nome TEXT, status TEXT, deleted_at TEXT);',
     "CREATE TABLE movimentacoes_estoque(id INTEGER PRIMARY KEY, obra_id INTEGER, frente_id INTEGER, descricao TEXT NOT NULL, unidade TEXT, quantidade REAL NOT NULL CHECK(quantidade > 0), tipo TEXT NOT NULL CHECK(tipo IN ('entrada','saida','ajuste')), data TEXT, observacoes TEXT);",
   ].join('\n'))
 
+  sqlite.exec(readFileSync(resolve(here,'../database/migrations/029_material_catalog.sql'),'utf8'))
   const save = vi.fn((table: string, data: Record<string, any>) => {
     const keys = Object.keys(data)
     const sql = 'INSERT INTO ' + table + '(' + keys.join(',') + ') VALUES (' + keys.map(() => '?').join(',') + ')'

@@ -1,5 +1,5 @@
 import domainCore from './domain-core.cjs'
-const { stockBalance }=domainCore
+const { stockBalance,resolveStockMaterial }=domainCore
 import { createHash } from 'node:crypto'
 import { FieldRdoCatalog } from './field-rdo-catalog.mjs'
 
@@ -80,12 +80,14 @@ export class RdoMaterialConsumption {
       }
 
       const catalog=new FieldRdoCatalog({repository:this.repository})
-      for(const row of lines) catalog.requireMaterial(rdo.obra_id,row)
+      for(const row of lines){const m=catalog.requireMaterial(rdo.obra_id,row);row.material_id='mat_'+m.uid;row.descricao=m.descricao;row.unidade=m.unidade}
       const previous = this.db.prepare('SELECT linha_id AS id, frente_id, descricao, unidade, quantidade FROM rdo_material_linhas WHERE rdo_id=?').all(rdoId)
       const deltas = new Map()
       const add = (row, amount) => {
-        const key = JSON.stringify([materialKey(row.descricao,row.unidade),row.frente_id??null])
-        const existing = deltas.get(key) || { descricao: row.descricao, unidade: row.unidade, frente_id:row.frente_id??null,delta: 0 }
+        const material=resolveStockMaterial(this.db,{obra_id:rdo.obra_id,descricao:row.descricao,unidade:row.unidade})
+        if(!material)throw new Error('Material histórico não classificado; revise o catálogo antes de ajustar o RDO.')
+        const key = JSON.stringify([material.id,row.frente_id??null])
+        const existing = deltas.get(key) || { material_id:material.id,descricao:material.descricao,unidade:material.unidade,frente_id:row.frente_id??null,delta:0 }
         existing.delta = quantity(existing.delta + amount)
         deltas.set(key, existing)
       }
@@ -93,10 +95,10 @@ export class RdoMaterialConsumption {
       for (const row of lines) add(row, row.quantidade)
 
       const netByMaterial=new Map()
-      for(const row of deltas.values()){const key=materialKey(row.descricao,row.unidade);const total=netByMaterial.get(key)||{descricao:row.descricao,unidade:row.unidade,delta:0};total.delta=quantity(total.delta+row.delta);netByMaterial.set(key,total)}
+      for(const row of deltas.values()){const key=row.material_id;const total=netByMaterial.get(key)||{material_id:row.material_id,descricao:row.descricao,unidade:row.unidade,delta:0};total.delta=quantity(total.delta+row.delta);netByMaterial.set(key,total)}
       for (const row of netByMaterial.values()) {
         if (row.delta <= 0) continue
-        const balance=stockBalance(this.db,{obra_id:rdo.obra_id,descricao:row.descricao,unidade:row.unidade},{allStages:true})
+        const balance=stockBalance(this.db,{obra_id:rdo.obra_id,material_id:row.material_id,descricao:row.descricao,unidade:row.unidade},{allStages:true})
         if (balance + 1e-6 < row.delta) throw new Error(`Saldo insuficiente para ${row.descricao} (${row.unidade}). Disponível: ${balance}.`)
       }
 
@@ -110,7 +112,7 @@ export class RdoMaterialConsumption {
         if (Math.abs(row.delta) < 1e-6) continue
         const type = row.delta > 0 ? 'saida' : 'entrada'
         const movement = this.repository.save('movimentacoes_estoque', {
-          obra_id: rdo.obra_id, frente_id: row.frente_id, tipo: type,
+          obra_id: rdo.obra_id, material_id:row.material_id, frente_id: row.frente_id, tipo: type,
           descricao: row.descricao, unidade: row.unidade, quantidade: Math.abs(row.delta),
           data: rdo.data, observacoes: `Ajuste de consumo RDO #${rdoId} (revisão ${revision + 1})`,
           request_id: `rdo:${requestId}:${signature(JSON.stringify([materialKey(row.descricao, row.unidade),row.frente_id])).slice(0,16)}`

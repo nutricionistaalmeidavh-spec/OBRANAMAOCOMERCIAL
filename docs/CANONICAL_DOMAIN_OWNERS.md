@@ -44,3 +44,6 @@
 ## Estoque e NF-e
 - `movimentacoes_estoque` permanece o ledger canônico; consultas paginadas e validação residem no domínio compartilhado, com adapter local/LAN. Compras e Estoque consomem a mesma projeção.
 - `notas_recebidas` permanece o cabeçalho documental/fiscal; `nota_recebida_itens` carrega apropriação e os vínculos não duplicam `contas` ou `movimentacoes_estoque`. Núcleo fiscal sem publicação: não habilitar IPC/HTTP até parser confiável, estorno e migração dos novos relacionamentos homologados.
+
+## Identidade material P0
+O catálogo `materiais_estoque` identifica por empresa e UID persistente; `movimentacoes_estoque` continua único ledger. Migração associa apenas grupos legados de descrição/unidade exatamente equivalentes por lower/trim; não infere sinônimos. A tabela `material_fornecedor_equivalencias` guarda vínculos e fatores racionais confirmados, sem permitir classificação fiscal automática neste estágio. A unidade canônica e UID são imutáveis. Identidades e vínculos acompanham migração financeira com remapeamento de FKs e capability explícita. Saldo físico por obra, etapas são apropriação. Snapshot móvel limitado explicitamente: não publicar resultado truncado. Pendente: editor de catálogo/associações, reconhecimento fiscal, paginação móvel, invalidação entre processos, performance e homologação de migração.

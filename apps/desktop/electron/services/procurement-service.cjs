@@ -43,7 +43,7 @@ class ProcurementService {
     return this.db.db.transaction(() => {
       const receipt = this.db.save('recebimentos_materiais', { pedido_compra_id: order.id, pedido_item_id: item.id, obra_id: order.obra_id, frente_id: order.frente_id || null, data: payload.data, quantidade_pedida: item.quantidade_pedida, quantidade_recebida: quantity, nota_fiscal: payload.nota_fiscal || null, documento_id: payload.documento_id || null, observacoes: payload.observacoes || null })
       this.db.save('pedido_compra_itens', { id: item.id, quantidade_recebida: Number(item.quantidade_recebida) + quantity })
-      this.db.save('movimentacoes_estoque', { obra_id: order.obra_id, frente_id: order.frente_id || null, pedido_item_id: item.id, tipo: 'entrada', descricao: item.descricao, unidade: item.unidade, quantidade: quantity, data: payload.data, documento_id: payload.documento_id || null, observacoes: payload.observacoes || null })
+      this.db.save('movimentacoes_estoque', { obra_id: order.obra_id, frente_id: order.frente_id || null, pedido_item_id: item.id, material_id:item.material_id??null, tipo: 'entrada', descricao: item.descricao, unidade: item.unidade, quantidade: quantity, data: payload.data, documento_id: payload.documento_id || null, observacoes: payload.observacoes || null })
       const pendingItems = this.db.db.prepare('SELECT COUNT(*) total FROM pedido_compra_itens WHERE pedido_compra_id=? AND quantidade_recebida < quantidade_pedida').get(order.id).total
       this.db.save('pedidos_compra', { id: order.id, status: pendingItems > 0 ? 'recebido_parcial' : 'recebido' })
       this.db.audit('pedidos_compra', order.id, 'receber_material', { obra_id: order.obra_id, frente_id: order.frente_id || null, pedido_item_id: item.id, quantidade: quantity })

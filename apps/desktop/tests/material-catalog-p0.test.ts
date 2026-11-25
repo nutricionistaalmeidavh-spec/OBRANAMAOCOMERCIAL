@@ -1,0 +1,19 @@
+import { describe,it,expect } from 'vitest'
+import { createRequire } from 'node:module'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+const require=createRequire(import.meta.url)
+const DB=require('better-sqlite3')
+const {stockPage,stockBalance,validateStockMovement}=require('../../../packages/domain-core/index.cjs')
+function fixture(){
+ const db=new DB(':memory:')
+ db.pragma('foreign_keys=ON')
+ db.exec("CREATE TABLE empresas(id INTEGER PRIMARY KEY,nome_fantasia TEXT,razao_social TEXT);CREATE TABLE fornecedores(id INTEGER PRIMARY KEY,empresa_id INTEGER,deleted_at TEXT);CREATE TABLE obras(id INTEGER PRIMARY KEY,empresa_id INTEGER,nome TEXT,deleted_at TEXT);CREATE TABLE frentes_obra(id INTEGER PRIMARY KEY,obra_id INTEGER,nome TEXT,deleted_at TEXT);CREATE TABLE pedidos_compra(id INTEGER PRIMARY KEY,obra_id INTEGER);CREATE TABLE pedido_compra_itens(id INTEGER PRIMARY KEY,pedido_compra_id INTEGER,descricao TEXT,unidade TEXT,quantidade_pedida REAL,valor_centavos INTEGER);CREATE TABLE movimentacoes_estoque(id INTEGER PRIMARY KEY,obra_id INTEGER,frente_id INTEGER,pedido_item_id INTEGER,descricao TEXT,unidade TEXT,tipo TEXT,quantidade REAL,data TEXT);INSERT INTO empresas VALUES(1,NULL,'A'),(2,NULL,'B');INSERT INTO fornecedores VALUES(1,1,NULL),(2,2,NULL);INSERT INTO obras VALUES(1,1,'A1',NULL),(2,1,'A2',NULL),(3,2,'B1',NULL);INSERT INTO movimentacoes_estoque VALUES(1,1,NULL,NULL,'Tubo PVC','UN','entrada',10,'2026-11-01'),(2,2,NULL,NULL,' tubo pvc ','un','entrada',5,'2026-11-02'),(3,3,NULL,NULL,'Tubo PVC','UN','entrada',8,'2026-11-01'),(4,1,NULL,NULL,'Tubo PVC','m','entrada',2,'2026-11-01');")
+ db.exec(readFileSync(resolve(import.meta.dirname,'../database/migrations/029_material_catalog.sql'),'utf8'))
+ return db
+}
+describe('identidade persistente por empresa',()=>{
+ it('migra por igualdade exata sem mudar descrições, quantidades ou misturar empresas/unidades',()=>{const db=fixture();try{const rows=db.prepare('SELECT * FROM movimentacoes_estoque ORDER BY id').all();expect(rows[0].material_id).toBe(rows[1].material_id);expect(rows[0].material_id).not.toBe(rows[2].material_id);expect(rows[0].material_id).not.toBe(rows[3].material_id);expect(rows[1].descricao).toBe(' tubo pvc ');expect(rows[1].quantidade).toBe(5);expect(stockPage(db,{obra_id:1}).rows).toHaveLength(2);expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])}finally{db.close()}})
+ it('mantém descrição alternativa quando há associação explícita e rejeita material de outra empresa',()=>{const db=fixture();try{const id=db.prepare('SELECT material_id FROM movimentacoes_estoque WHERE id=1').get().material_id;db.prepare("INSERT INTO movimentacoes_estoque(obra_id,descricao,unidade,tipo,quantidade,data,material_id) VALUES(1,'TB PVC','un','entrada',3,'2026-11-03',?)").run(id);expect(stockBalance(db,{obra_id:1,material_id:id,unidade:'un'})).toBe(13);expect(stockPage(db,{obra_id:1}).rows.find((r:any)=>r.material_id===id).saldo).toBe(13);expect(()=>validateStockMovement(db,{obra_id:3,material_id:id,descricao:'TB PVC',unidade:'un',tipo:'entrada',quantidade:1})).toThrow();expect(()=>db.prepare("INSERT INTO movimentacoes_estoque(obra_id,descricao,unidade,tipo,quantidade,data,material_id) VALUES(3,'TB PVC','un','entrada',1,'2026-11-03',?)").run(id)).toThrow()}finally{db.close()}})
+ it('impede equivalência com fornecedor de outra empresa ou fator inválido',()=>{const db=fixture();try{const id=db.prepare('SELECT material_id FROM movimentacoes_estoque WHERE id=1').get().material_id;const ins=db.prepare("INSERT INTO material_fornecedor_equivalencias(empresa_id,fornecedor_id,material_id,codigo,unidade_comercial,descricao_origem,fator_num,fator_den,confirmado_por) VALUES(1,?,?,?,'CX','Tubo',?,1,'operador')");ins.run(1,id,'A',10);expect(()=>ins.run(2,id,'B',10)).toThrow();expect(()=>ins.run(1,id,'C',0)).toThrow()}finally{db.close()}})
+})

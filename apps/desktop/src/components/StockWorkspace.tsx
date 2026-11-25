@@ -4,7 +4,7 @@ import { Button, Card, Empty, Field, FormActions, Loading, Modal } from './ui'
 import { useAsync } from '../hooks/useAsync'
 import { today, brDate, brl } from '../utils/format'
 type Scope={companyId?:string;workId?:string;revision?:number}
-type Draft={obra_id:number;frente_id:number|null;descricao:string;unidade:string;tipo:string;quantidade:string;data:string}
+type Draft={material_id?:number;obra_id:number;frente_id:number|null;descricao:string;unidade:string;tipo:string;quantidade:string;data:string}
 function StockWorkspace({companyId='',workId='',revision=0}:Scope){
   const [mode,setMode]=useState<'saldo'|'historico'>('saldo')
   const [search,setSearch]=useState('')
@@ -29,7 +29,7 @@ function StockWorkspace({companyId='',workId='',revision=0}:Scope){
     return {scope,mode,page,query,stage,data}
   },[scope,stage,query,mode,page,revision,version])
   const current=result.data?.scope===scope&&result.data?.mode===mode&&result.data?.page===page&&result.data?.query===query&&result.data?.stage===stage?result.data.data:null
-  const open=(row:any)=>{setError('');setDraft({obra_id:Number(row.obra_id),frente_id:row.frente_id?Number(row.frente_id):null,descricao:String(row.descricao),unidade:String(row.unidade),tipo:'saida',quantidade:'1',data:today()})}
+  const open=(row:any)=>{setError('');setDraft({...(row.material_id?{material_id:Number(row.material_id)}:{}),obra_id:Number(row.obra_id),frente_id:row.frente_id?Number(row.frente_id):null,descricao:String(row.descricao),unidade:String(row.unidade),tipo:'saida',quantidade:'1',data:today()})}
   const save=async(e:React.FormEvent)=>{e.preventDefault();if(!draft||savingRef.current)return;savingRef.current=true;setSaving(true);setError('')
     try{await window.fluxoDre.compras.moveStock({...draft,quantidade:Number(draft.quantidade)});setDraft(null);setVersion(v=>v+1)}
     catch(e){setError(e instanceof Error?e.message:'Não foi possível movimentar o estoque.')}
@@ -59,8 +59,8 @@ function StockWorkspace({companyId='',workId='',revision=0}:Scope){
     {current&&<div className="card-body row-actions"><span>{current.total} registros</span><Button variant="secondary" disabled={!page||result.loading} onClick={()=>setPage(p=>Math.max(0,p-1))}>Anterior</Button><Button variant="secondary" disabled={result.loading||(page+1)*50>=current.total} onClick={()=>setPage(p=>p+1)}>Próxima</Button></div>}
     <Modal open={!!draft} title="Movimentar estoque" onClose={()=>{if(!saving)setDraft(null)}}><form onSubmit={save}><div className="modal-body form-grid">
     {error&&<div role="alert" className="notice">{error}</div>}
-    <Field label="Material"><input required value={draft?.descricao||''} onChange={e=>setDraft(d=>d?{...d,descricao:e.target.value}:d)}/></Field>
-    <Field label="Unidade"><input required value={draft?.unidade||''} onChange={e=>setDraft(d=>d?{...d,unidade:e.target.value}:d)}/></Field>
+    <Field label="Material"><input readOnly={!!draft?.material_id} required value={draft?.descricao||''} onChange={e=>setDraft(d=>d?{...d,descricao:e.target.value}:d)}/></Field>
+    <Field label="Unidade"><input readOnly={!!draft?.material_id} required value={draft?.unidade||''} onChange={e=>setDraft(d=>d?{...d,unidade:e.target.value}:d)}/></Field>
     <Field label="Tipo"><select value={draft?.tipo||'saida'} onChange={e=>setDraft(d=>d?{...d,tipo:e.target.value}:d)}><option value="entrada">Entrada</option><option value="saida">Saída</option><option value="ajuste">Ajuste positivo</option></select></Field>
     <Field label="Quantidade"><input required type="number" min="0.000001" step="any" value={draft?.quantidade||''} onChange={e=>setDraft(d=>d?{...d,quantidade:e.target.value}:d)}/></Field>
     <Field label="Data"><input required type="date" value={draft?.data||''} onChange={e=>setDraft(d=>d?{...d,data:e.target.value}:d)}/></Field>
