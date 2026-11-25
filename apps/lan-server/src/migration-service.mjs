@@ -2,7 +2,7 @@ const MODULE_TABLES = Object.freeze({
   core: ['empresas', 'clientes', 'obras'],
   operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
   planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
-  finance: ['fornecedores', 'materiais_estoque', 'material_fornecedor_equivalencias', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos', 'notas_recebidas', 'nota_recebida_itens'],
+  finance: ['fornecedores', 'materiais_estoque', 'material_reclassificacoes', 'material_fornecedor_equivalencias', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos', 'notas_recebidas', 'nota_recebida_itens'],
   rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'importacoes', 'importacao_linhas', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'],
   documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais']
 })
@@ -35,6 +35,7 @@ const REF_MAP = Object.freeze({
   cotacoes_compra: { solicitacao_id: 'solicitacoes_compra', fornecedor_id: 'fornecedores' },
   pedidos_compra: { obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', solicitacao_id: 'solicitacoes_compra', cotacao_id: 'cotacoes_compra', fornecedor_id: 'fornecedores', conta_id: 'contas' },
   materiais_estoque: {empresa_id:'empresas'},
+  material_reclassificacoes: {empresa_id:'empresas',origem_id:'materiais_estoque',destino_id:'materiais_estoque'},
   material_fornecedor_equivalencias: {empresa_id:'empresas',fornecedor_id:'fornecedores',material_id:'materiais_estoque'},
   pedido_compra_itens: { material_id:'materiais_estoque',pedido_compra_id: 'pedidos_compra' },
   recebimentos_materiais: { pedido_compra_id: 'pedidos_compra', pedido_item_id: 'pedido_compra_itens', obra_id: 'obras', frente_id: 'frentes_obra', documento_id: { table: 'documentos', deferred: true } },

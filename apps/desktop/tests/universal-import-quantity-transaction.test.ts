@@ -23,7 +23,7 @@ function fixture(dataRows: any[][]) {
     "CREATE TABLE movimentacoes_estoque(id INTEGER PRIMARY KEY, obra_id INTEGER, frente_id INTEGER, descricao TEXT NOT NULL, unidade TEXT, quantidade REAL NOT NULL CHECK(quantidade > 0), tipo TEXT NOT NULL CHECK(tipo IN ('entrada','saida','ajuste')), data TEXT, observacoes TEXT);",
   ].join('\n'))
 
-  sqlite.exec(readFileSync(resolve(here,'../database/migrations/029_material_catalog.sql'),'utf8'))
+  for(const name of ['029_material_catalog.sql','030_stock_revision.sql','031_material_reclassification.sql'])sqlite.exec(readFileSync(resolve(here,'../database/migrations',name),'utf8'))
   const save = vi.fn((table: string, data: Record<string, any>) => {
     const keys = Object.keys(data)
     const sql = 'INSERT INTO ' + table + '(' + keys.join(',') + ') VALUES (' + keys.map(() => '?').join(',') + ')'

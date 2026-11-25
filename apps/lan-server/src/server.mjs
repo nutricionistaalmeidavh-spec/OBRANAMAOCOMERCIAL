@@ -74,7 +74,7 @@ const SERVER_CAPABILITIES = Object.freeze({
   modules:['core','operation','planning','finance','rh','documents','summary'],
   moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:3,documents:2},
   bridgeEntities:['frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra'],
-  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1','stock-material-catalog-v1']
+  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1','stock-material-catalog-v1','stock-material-reclassification-v1']
 })
 
 function publicServerCapabilities(versionedRepository) {

@@ -42,6 +42,7 @@
       "tables": [
         "fornecedores",
         "materiais_estoque",
+        "material_reclassificacoes",
         "material_fornecedor_equivalencias",
         "categorias_financeiras",
         "contas",

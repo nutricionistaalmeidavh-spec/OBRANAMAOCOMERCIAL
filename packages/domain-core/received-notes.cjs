@@ -334,7 +334,7 @@ function stockWorkBalances(db,obraId,{includeZero=false,limit=null}={}){
   const sql="SELECT COALESCE(c.descricao,MIN(trim(m.descricao))) descricao,COALESCE(c.unidade,MIN(trim(m.unidade))) unidade,m.material_id,c.uid material_uid,ROUND(SUM(CASE WHEN m.tipo='saida' THEN -m.quantidade ELSE m.quantidade END),6) saldo FROM movimentacoes_estoque m LEFT JOIN materiais_estoque c ON c.id=m.material_id WHERE m.obra_id=? GROUP BY m.material_id,CASE WHEN m.material_id IS NULL THEN lower(trim(m.descricao)) END,CASE WHEN m.material_id IS NULL THEN lower(trim(m.unidade)) END"+(includeZero?'':' HAVING saldo>0')+" ORDER BY descricao,unidade,material_id"+(limit?' LIMIT ?':'')
   return limit?db.prepare(sql).all(obraId,limit):db.prepare(sql).all(obraId)
 }
-function resolveStockMaterial(db,payload){
+function resolveStockMaterialOriginal(db,payload){
   const obra=Number(payload.obra_id)
   if(payload.material_id!=null&&payload.material_id!==''){
     const id=Number(payload.material_id)
@@ -343,6 +343,15 @@ function resolveStockMaterial(db,payload){
     return row
   }
   return db.prepare("SELECT c.* FROM materiais_estoque c JOIN obras o ON o.empresa_id=c.empresa_id WHERE o.id=? AND lower(trim(c.descricao))=lower(trim(?)) AND lower(trim(c.unidade))=lower(trim(?))").get(obra,String(payload.descricao||''),String(payload.unidade||'un'))||null
+}
+function resolveStockMaterial(db,payload){
+ const original=resolveStockMaterialOriginal(db,payload)
+ if(!original)return null
+ const redirect=db.prepare('SELECT destino_id FROM material_reclassificacoes WHERE origem_id=?').get(original.id)
+ if(!redirect)return original
+ const target=db.prepare('SELECT * FROM materiais_estoque WHERE id=?').get(redirect.destino_id)
+ if(!target)throw new Error('Destino da reclassificação indisponível.')
+ return {...target,original_uid:original.uid}
 }
 function stockBalance(db,payload,{allStages=true}={}){
   const material=resolveStockMaterial(db,payload)
@@ -635,7 +644,7 @@ function materialCatalog(db,{empresa_id,q='',offset=0,limit=50}={}){
   if(!Number.isSafeInteger(company)||company<1||!Number.isSafeInteger(page)||page<0||!Number.isSafeInteger(size)||size<1||size>100)throw new Error('Filtro de catálogo inválido.')
   if(!db.prepare('SELECT id FROM empresas WHERE id=? AND deleted_at IS NULL').get(company))throw new Error('Empresa não encontrada.')
   const search=String(q).trim().slice(0,200)
-  const where=" WHERE c.empresa_id=? AND (instr(lower(c.descricao),lower(?))>0 OR instr(lower(c.unidade),lower(?))>0 OR EXISTS(SELECT 1 FROM material_fornecedor_equivalencias e WHERE e.material_id=c.id AND (instr(lower(e.codigo),lower(?))>0 OR instr(lower(e.descricao_origem),lower(?))>0)))"
+  const where=" WHERE c.empresa_id=? AND NOT EXISTS(SELECT 1 FROM material_reclassificacoes r WHERE r.origem_id=c.id) AND (instr(lower(c.descricao),lower(?))>0 OR instr(lower(c.unidade),lower(?))>0 OR EXISTS(SELECT 1 FROM material_fornecedor_equivalencias e WHERE e.material_id=c.id AND (instr(lower(e.codigo),lower(?))>0 OR instr(lower(e.descricao_origem),lower(?))>0)))"
   const args=[company,search,search,search,search]
   const total=Number(db.prepare('SELECT COUNT(*) total FROM materiais_estoque c'+where).get(...args).total)
   const rows=db.prepare('SELECT c.*,(SELECT COUNT(*) FROM material_fornecedor_equivalencias e WHERE e.material_id=c.id) equivalencias FROM materiais_estoque c'+where+' ORDER BY c.descricao,c.unidade,c.id LIMIT ? OFFSET ?').all(...args,size,page)
@@ -660,6 +669,7 @@ function saveMaterialCatalog(db,saveEntity,payload){
   if(payload.id){
     const existing=fiscalRow(db,'materiais_estoque',payload.id,'Material')
     if(Number(existing.empresa_id)!==company)throw new Error('Material de outra empresa.')
+    if(db.prepare('SELECT id FROM material_reclassificacoes WHERE origem_id=?').get(existing.id))throw new Error('Material reclassificado: utilize o destino.')
     return saveEntity('materiais_estoque',{id:existing.id,atributos_json:attributes,origem:'confirmado'})
   }
   const descricao=String(payload.descricao||'').trim(),unidade=String(payload.unidade||'').trim()
@@ -697,4 +707,25 @@ function stockRevision(db,filters={}){
  return {revision:identity+':'+keys.map(k=>Number(db.prepare('SELECT revisao FROM estoque_revisoes WHERE escopo=?').get(k)?.revisao||0)).join(':')}
 }
 
-module.exports={stockRevision,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}
+
+function materialReclassificationPreview(db,payload){
+ const company=positiveFiscalId(payload.empresa_id,'Empresa')
+ const a=fiscalRow(db,'materiais_estoque',payload.origem_id,'Material de origem'),b=fiscalRow(db,'materiais_estoque',payload.destino_id,'Material de destino')
+ if(a.id===b.id||Number(a.empresa_id)!==company||Number(b.empresa_id)!==company||a.unidade.trim().toLowerCase()!==b.unidade.trim().toLowerCase())throw new Error('Selecione materiais distintos da mesma empresa e unidade.')
+ if(db.prepare('SELECT id FROM material_reclassificacoes WHERE origem_id IN (?,?) OR destino_id=?').get(a.id,b.id,a.id))throw new Error('Reclassificação já existente ou cadeia de reclassificações.')
+ if(db.prepare('SELECT id FROM material_fornecedor_equivalencias WHERE material_id=?').get(a.id))throw new Error('Origem possui equivalências confirmadas. Preserve-a como destino ou revise os vínculos.')
+ const attrsA=JSON.parse(a.atributos_json||'{}'),attrsB=JSON.parse(b.atributos_json||'{}')
+ for(const [key,value] of Object.entries(attrsA))if(value&&String(value).trim().toLowerCase()!==String(attrsB[key]||'').trim().toLowerCase())throw new Error('Atributo '+key+' diverge ou está ausente no destino. Revise os atributos antes de confirmar.')
+ const counts={movimentacoes:Number(db.prepare('SELECT COUNT(*) n FROM movimentacoes_estoque WHERE material_id=?').get(a.id).n),pedidos:Number(db.prepare('SELECT COUNT(*) n FROM pedido_compra_itens WHERE material_id=?').get(a.id).n)}
+ const revision=stockRevision(db,{empresa_id:company}).revision
+ return {origem:{id:a.id,descricao:a.descricao,unidade:a.unidade},destino:{id:b.id,descricao:b.descricao,unidade:b.unidade},...counts,revision}
+}
+function confirmMaterialReclassification(db,saveEntity,payload,actor){
+ const reason=String(payload.motivo||'').trim(),operator=String(actor||'').trim()
+ if(payload.confirmado!==true||!reason||reason.length>500||!operator||operator.length>120)throw new Error('Confirme a equivalência física e informe o motivo.')
+ const impact=materialReclassificationPreview(db,payload)
+ if(payload.revision!==impact.revision)throw new Error('Estoque ou catálogo alterado; refaça a prévia.')
+ return saveEntity('material_reclassificacoes',{empresa_id:Number(payload.empresa_id),origem_id:impact.origem.id,destino_id:impact.destino.id,operador:operator,motivo:reason,movimentacoes:impact.movimentacoes,pedidos:impact.pedidos})
+}
+
+module.exports={materialReclassificationPreview,confirmMaterialReclassification,stockRevision,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}

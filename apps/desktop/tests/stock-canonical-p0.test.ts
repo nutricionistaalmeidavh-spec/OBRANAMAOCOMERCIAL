@@ -8,7 +8,7 @@ const {stockPage,validateStockMovement}=require('../../../packages/domain-core/i
 function fixture(){
  const db=new Database(':memory:')
  db.exec("CREATE TABLE empresas(id INTEGER PRIMARY KEY,nome_fantasia TEXT,razao_social TEXT);INSERT INTO empresas VALUES(1,NULL,'Empresa A'),(2,NULL,'Empresa B');CREATE TABLE fornecedores(id INTEGER PRIMARY KEY,empresa_id INTEGER,deleted_at TEXT);CREATE TABLE pedidos_compra(id INTEGER PRIMARY KEY,obra_id INTEGER);CREATE TABLE pedido_compra_itens(id INTEGER PRIMARY KEY,pedido_compra_id INTEGER,descricao TEXT,unidade TEXT,quantidade_pedida REAL,valor_centavos INTEGER);CREATE TABLE obras(id INTEGER PRIMARY KEY,empresa_id INTEGER,nome TEXT,deleted_at TEXT);CREATE TABLE frentes_obra(id INTEGER PRIMARY KEY,obra_id INTEGER,nome TEXT,deleted_at TEXT);CREATE TABLE movimentacoes_estoque(id INTEGER PRIMARY KEY,obra_id INTEGER,frente_id INTEGER,descricao TEXT,unidade TEXT,tipo TEXT,quantidade REAL,data TEXT,pedido_item_id INTEGER);INSERT INTO obras VALUES(1,1,'A',NULL),(2,2,'B',NULL);INSERT INTO frentes_obra VALUES(1,1,'Etapa',NULL);INSERT INTO movimentacoes_estoque VALUES(1,1,1,'Tubo','UN','entrada',10,'2026-11-01',NULL),(2,1,1,' tubo ','un','saida',2,'2026-11-02',NULL),(3,2,NULL,'Tubo','un','entrada',40,'2026-11-01',NULL);")
- db.exec(readFileSync(resolve(import.meta.dirname,'../database/migrations/029_material_catalog.sql'),'utf8'))
+ for(const name of ['029_material_catalog.sql','030_stock_revision.sql','031_material_reclassification.sql'])db.exec(readFileSync(resolve(import.meta.dirname,'../database/migrations',name),'utf8'))
  return db
 }
 describe('estoque canônico',()=>{

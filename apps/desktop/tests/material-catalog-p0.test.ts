@@ -4,12 +4,12 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 const require=createRequire(import.meta.url)
 const DB=require('better-sqlite3')
-const {stockPage,stockBalance,validateStockMovement,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias}=require('../../../packages/domain-core/index.cjs')
+const {stockPage,stockBalance,validateStockMovement,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,materialReclassificationPreview,confirmMaterialReclassification}=require('../../../packages/domain-core/index.cjs')
 function fixture(){
  const db=new DB(':memory:')
  db.pragma('foreign_keys=ON')
  db.exec("CREATE TABLE empresas(id INTEGER PRIMARY KEY,nome_fantasia TEXT,razao_social TEXT,deleted_at TEXT);CREATE TABLE fornecedores(id INTEGER PRIMARY KEY,empresa_id INTEGER,deleted_at TEXT,nome TEXT,documento TEXT);CREATE TABLE obras(id INTEGER PRIMARY KEY,empresa_id INTEGER,nome TEXT,deleted_at TEXT);CREATE TABLE frentes_obra(id INTEGER PRIMARY KEY,obra_id INTEGER,nome TEXT,deleted_at TEXT);CREATE TABLE pedidos_compra(id INTEGER PRIMARY KEY,obra_id INTEGER);CREATE TABLE pedido_compra_itens(id INTEGER PRIMARY KEY,pedido_compra_id INTEGER,descricao TEXT,unidade TEXT,quantidade_pedida REAL,valor_centavos INTEGER);CREATE TABLE movimentacoes_estoque(id INTEGER PRIMARY KEY,obra_id INTEGER,frente_id INTEGER,pedido_item_id INTEGER,descricao TEXT,unidade TEXT,tipo TEXT,quantidade REAL,data TEXT);INSERT INTO empresas VALUES(1,NULL,'A',NULL),(2,NULL,'B',NULL);INSERT INTO fornecedores VALUES(1,1,NULL,'Fornecedor A','12345678000123'),(2,2,NULL,'Fornecedor B','12345678000124');INSERT INTO obras VALUES(1,1,'A1',NULL),(2,1,'A2',NULL),(3,2,'B1',NULL);INSERT INTO movimentacoes_estoque VALUES(1,1,NULL,NULL,'Tubo PVC','UN','entrada',10,'2026-11-01'),(2,2,NULL,NULL,' tubo pvc ','un','entrada',5,'2026-11-02'),(3,3,NULL,NULL,'Tubo PVC','UN','entrada',8,'2026-11-01'),(4,1,NULL,NULL,'Tubo PVC','m','entrada',2,'2026-11-01');")
- db.exec(readFileSync(resolve(import.meta.dirname,'../database/migrations/029_material_catalog.sql'),'utf8'))
+ for(const name of ['029_material_catalog.sql','030_stock_revision.sql','031_material_reclassification.sql'])db.exec(readFileSync(resolve(import.meta.dirname,'../database/migrations',name),'utf8'))
  return db
 }
 describe('identidade persistente por empresa',()=>{
@@ -39,4 +39,20 @@ describe('identidade persistente por empresa',()=>{
  const data=stockPage(db,{obra_id:1,limit:50});expect(data.rows).toHaveLength(50);expect(data.total).toBe(252)
  }finally{db.close()}})
 
+ it('reclassifica após prévia atual e preserva histórico e entradas futuras',()=>{const db=fixture();try{
+ const save=(table:string,data:any)=>{const keys=Object.keys(data);const result=db.prepare('INSERT INTO '+table+'('+keys.join(',')+') VALUES('+keys.map(()=>'?').join(',')+')').run(...Object.values(data));return db.prepare('SELECT * FROM '+table+' WHERE id=?').get(result.lastInsertRowid)}
+ db.prepare("INSERT INTO movimentacoes_estoque(obra_id,descricao,unidade,tipo,quantidade,data) VALUES(1,'TB PVC','un','entrada',3,'2026-11-25')").run()
+ const a=db.prepare("SELECT id,uid FROM materiais_estoque WHERE descricao='TB PVC' AND empresa_id=1").get(),b=db.prepare("SELECT material_id id FROM movimentacoes_estoque WHERE id=1").get()
+ const payload={empresa_id:1,origem_id:a.id,destino_id:b.id}
+ const impact=materialReclassificationPreview(db,payload)
+ expect(impact.movimentacoes).toBe(1)
+ expect(()=>confirmMaterialReclassification(db,save,{...payload,revision:'stale',motivo:'Mesmo tubo',confirmado:true},'operador')).toThrow(/prévia/)
+ confirmMaterialReclassification(db,save,{...payload,revision:impact.revision,motivo:'Mesmo tubo',confirmado:true},'operador')
+ expect(stockBalance(db,{obra_id:1,descricao:'TB PVC',unidade:'un'})).toBe(13)
+ expect(db.prepare("SELECT descricao,quantidade FROM movimentacoes_estoque WHERE descricao='TB PVC'").get()).toEqual({descricao:'TB PVC',quantidade:3})
+ db.prepare("INSERT INTO movimentacoes_estoque(obra_id,descricao,unidade,tipo,quantidade,data) VALUES(1,'TB PVC','un','entrada',1,'2026-11-25')").run()
+ expect(stockBalance(db,{obra_id:1,material_id:b.id,unidade:'un'})).toBe(14)
+ expect(materialCatalog(db,{empresa_id:1}).rows.some((r:any)=>r.id===a.id)).toBe(false)
+ expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
+ }finally{db.close()}})
 })

@@ -36,7 +36,7 @@ export class FieldRdoCatalog {
     const id=Number(workId)
     const material=resolveStockMaterial(this.db,{obra_id:id,descricao:row.descricao,unidade:row.unidade})
     if(!material||!this.db.prepare('SELECT 1 FROM movimentacoes_estoque WHERE obra_id=? AND material_id=? LIMIT 1').get(id,material.id))throw new Error('Material não consta do estoque canônico desta obra.')
-    if(row.material_id&&row.material_id!=='mat_'+material.uid&&row.material_id!==materialIdentity(id,row.descricao,row.unidade))
+    if(row.material_id&&row.material_id!=='mat_'+material.uid&&!(material.original_uid&&row.material_id==='mat_'+material.original_uid)&&row.material_id!==materialIdentity(id,row.descricao,row.unidade))
       throw new Error('Identificador do material diverge do catálogo canônico da obra.')
 
     return material
