@@ -8,6 +8,12 @@ const source=(relative:string)=>readFileSync(new URL(relative,import.meta.url),'
 const access={modules:['dre','documents','obra360','rdo'],channels:['mobile']};
 
 describe('P1 mobile UX stability',()=>{
+  it('mantém título e subtítulo dos cards de ação legíveis antes da normalização visual',()=>{
+    const css=source('../public/field.css');
+    expect(css).toContain('.quick-action:not(.quick-action-enhanced)>strong');
+    expect(css).toMatch(/quick-action:not\(\.quick-action-enhanced\)>strong[^{]*\{grid-column:1 \/ 3/);
+    for(const page of ['../obra.html','../gestao.html','../sistema.html'])expect(source(page)).toContain('field.css?v=20261125-quickaction-1');
+  });
   beforeEach(()=>{document.body.innerHTML='<main id="content"></main>';location.hash='#gestao'});
 
   it('reserves the same KPI structure before and after the management summary resolves',()=>{

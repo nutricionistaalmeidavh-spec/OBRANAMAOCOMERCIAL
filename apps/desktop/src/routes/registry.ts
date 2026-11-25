@@ -59,8 +59,10 @@ export const COMMAND_NAVIGATION_GROUPS:NavigationGroup[]=[
     {to:ROUTES.cashFlow,label:'Fluxo de caixa',icon:BarChart3},
     {to:ROUTES.budget,label:'Orcamento',icon:FileSpreadsheet},
     {to:ROUTES.measurements,label:'Medicoes',icon:ClipboardCheck},
-    {to:ROUTES.procurementContracts,label:'Compras e Contratos',icon:PackageSearch},
+  ]},
+  {label:'Suprimentos',items:[
     {to:ROUTES.stock,label:'Estoque',icon:PackageSearch},
+    {to:ROUTES.procurementContracts,label:'Compras e Contratos',icon:PackageSearch},
   ]},
   {label:'Obras',items:[
     {to:ROUTES.works,label:'Obras',icon:HardHat},
@@ -96,8 +98,10 @@ export const CLASSIC_NAVIGATION_GROUPS:NavigationGroup[]=[
     {to:ROUTES.works,label:'Obras',icon:HardHat},
     {to:ROUTES.budget,label:'Orcamento',icon:FileSpreadsheet},
     {to:ROUTES.measurements,label:'Medicoes',icon:ClipboardList},
-    {to:ROUTES.procurement,label:'Compras e materiais',icon:Landmark},
+  ]},
+  {label:'Suprimentos',items:[
     {to:ROUTES.stock,label:'Estoque',icon:PackageSearch},
+    {to:ROUTES.procurement,label:'Compras e materiais',icon:Landmark},
     {to:ROUTES.contracts,label:'Contratos e aditivos',icon:FileArchive},
   ]},
   {label:'RH',items:[
@@ -127,10 +131,10 @@ const ROUTE_META:Record<string,{section:string;label:string}>={
   [ROUTES.cashFlow]:{section:'Financeiro',label:'Fluxo de caixa'},
   [ROUTES.budget]:{section:'Financeiro',label:'Orcamento'},
   [ROUTES.measurements]:{section:'Financeiro',label:'Medicoes'},
-  [ROUTES.procurementContracts]:{section:'Financeiro',label:'Compras e Contratos'},
-  [ROUTES.procurement]:{section:'Financeiro',label:'Compras e materiais'},
-  [ROUTES.stock]:{section:'Financeiro',label:'Estoque'},
-  [ROUTES.contracts]:{section:'Financeiro',label:'Contratos e aditivos'},
+  [ROUTES.procurementContracts]:{section:'Suprimentos',label:'Compras e Contratos'},
+  [ROUTES.procurement]:{section:'Suprimentos',label:'Compras e materiais'},
+  [ROUTES.stock]:{section:'Suprimentos',label:'Estoque'},
+  [ROUTES.contracts]:{section:'Suprimentos',label:'Contratos e aditivos'},
   [ROUTES.registries]:{section:'Obras',label:'Clientes e empresas'},
   [ROUTES.works]:{section:'Obras',label:'Obras'},
   [ROUTES.fronts]:{section:'Obras',label:'Etapas e subetapas'},
