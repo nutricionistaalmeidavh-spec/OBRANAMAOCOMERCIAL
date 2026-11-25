@@ -19,7 +19,7 @@ type TeamData={
 type Employee={id:string|number;nome?:string;name?:string}
 type Device={id:string;name:string;platform?:string;email?:string;status:'active'|'revoked';lastSeenAt?:string}
 
-const MODULE_LABELS:Record<string,string>={finance:'Financeiro',rh:'RH',contracts:'Contratos',rdo:'RDO',obra360:'Obra360',dre:'DRE',procurement:'Compras',measurements:'Medições',documents:'Documentos',universidade:'Universidade',ai:'IA'}
+const MODULE_LABELS:Record<string,string>={finance:'Financeiro',rh:'RH',contracts:'Contratos',rdo:'RDO',obra360:'Obra360',dre:'DRE',procurement:'Compras',measurements:'Medições',documents:'Documentos',ai:'IA'}
 const CHANNEL_LABELS:Record<string,string>={mobile:'Web / celular',desktop:'Desktop'}
 const DOMAIN_LABELS:Record<PermissionDomain,string>={core:'Cadastros',operation:'Operação / RDO',planning:'Planejamento',finance:'Financeiro',rh:'RH'}
 const ACTION_LABELS:Record<PermissionAction,string>={view:'Ver',create:'Criar',edit:'Editar',delete:'Excluir',approve:'Aprovar'}
@@ -106,7 +106,7 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
 
   const openEditor=(member?:Member)=>{
     const nextRole=member?.role||'employee'
-    const availableModules=team?.companyAccess.modules||[]
+    const availableModules=(team?.companyAccess.modules||[]).filter(m=>m!=='universidade')
     const availableChannels=team?.companyAccess.channels||[]
     setEditing(member||null)
     setEmail(member?.email||'')
@@ -123,7 +123,7 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
   const toggle=(value:string,current:string[],set:(next:string[])=>void)=>set(current.includes(value)?current.filter(item=>item!==value):[...current,value])
   const changeRole=(next:Role)=>{
     setRole(next)
-    const availableModules=team?.companyAccess.modules||[],availableChannels=team?.companyAccess.channels||[]
+    const availableModules=(team?.companyAccess.modules||[]).filter(m=>m!=='universidade'),availableChannels=team?.companyAccess.channels||[]
     setModules(ROLE_MODULES[next].filter(value=>availableModules.includes(value)))
     setChannels(ROLE_CHANNELS[next].filter(value=>availableChannels.includes(value)&&!(value==='desktop'&&desktopDisabled)))
     setPermissions(ROLE_PERMISSIONS[next])
@@ -221,7 +221,7 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
             {role==='employee'&&<Field label="Vincular ao funcionário" required><select value={employeeId} onChange={event=>setEmployeeId(event.target.value)}><option value="">Selecione</option>{employees.map(employee=><option key={String(employee.id)} value={String(employee.id)}>{employeeLabel(employee)}</option>)}</select></Field>}
           </div>
 
-          <div><strong>Módulos permitidos</strong><div className="checkbox-grid" style={{marginTop:8}}>{team.companyAccess.modules.map(module=><label key={module}><input type="checkbox" checked={modules.includes(module)} onChange={()=>toggle(module,modules,setModules)}/> {MODULE_LABELS[module]||module}</label>)}</div></div>
+          <div><strong>Módulos permitidos</strong><div className="checkbox-grid" style={{marginTop:8}}>{team.companyAccess.modules.filter(m=>m!=='universidade').map(module=><label key={module}><input type="checkbox" checked={modules.includes(module)} onChange={()=>toggle(module,modules,setModules)}/> {MODULE_LABELS[module]||module}</label>)}</div></div>
 
           <div><strong>Onde poderá acessar</strong><div className="checkbox-grid" style={{marginTop:8}}>{team.companyAccess.channels.map(channel=>{
             const disabled=channel==='desktop'&&desktopDisabled
