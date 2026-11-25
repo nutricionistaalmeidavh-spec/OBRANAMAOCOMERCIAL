@@ -188,7 +188,7 @@ class DatabaseService {
         COALESCE(SUM(CASE WHEN tipo='receber' AND status!='cancelado' THEN valor_centavos ELSE 0 END),0) receitas,
         COALESCE(SUM(CASE WHEN tipo='pagar' AND status IN ('pendente','vencido','parcialmente_pago') THEN valor_centavos ELSE 0 END),0) a_pagar,
         COALESCE(SUM(CASE WHEN tipo='receber' AND status IN ('pendente','vencido','parcialmente_pago') THEN valor_centavos ELSE 0 END),0) a_receber
-      FROM contas WHERE obra_id=? AND deleted_at IS NULL
+      FROM v_financeiro_apropriacoes WHERE obra_id=? AND deleted_at IS NULL
     `).get(obra.id)
     const orcado = this.db.prepare(`SELECT COALESCE(SUM(quantidade*valor_unitario_centavos),0) total FROM itens_orcamentarios WHERE obra_id=? AND deleted_at IS NULL`).get(obra.id).total
     const medido = this.db.prepare(`SELECT COALESCE(SUM(valor_liquido_centavos),0) total FROM medicoes WHERE obra_id=? AND deleted_at IS NULL AND status!='cancelada'`).get(obra.id).total
@@ -203,11 +203,11 @@ class DatabaseService {
     `).all(obra.id)
     const frentes = this.db.prepare(`
       SELECT f.*, COALESCE(SUM(i.quantidade*i.valor_unitario_centavos),0) orcado_centavos,
-        COALESCE((SELECT SUM(c.valor_centavos) FROM contas c WHERE c.obra_id=f.obra_id AND c.frente_id=f.id AND c.tipo='pagar' AND c.deleted_at IS NULL AND c.status!='cancelado'),0) comprometido_centavos,
+        COALESCE((SELECT SUM(c.valor_centavos) FROM v_financeiro_apropriacoes c WHERE c.obra_id=f.obra_id AND c.frente_id=f.id AND c.tipo='pagar' AND c.deleted_at IS NULL AND c.status!='cancelado'),0) comprometido_centavos,
         COALESCE((SELECT SUM(co.valor_centavos) FROM contratos_obra co WHERE co.obra_id=f.obra_id AND co.frente_id=f.id AND co.deleted_at IS NULL AND co.status NOT IN ('cancelado','encerrado')),0) contratado_centavos,
-        COALESCE((SELECT SUM(c.valor_centavos) FROM contas c WHERE c.obra_id=f.obra_id AND c.frente_id=f.id AND c.tipo='pagar' AND c.deleted_at IS NULL AND c.status IN ('pago','parcialmente_pago')),0) pago_centavos,
+        COALESCE((SELECT SUM(c.paid_cents) FROM v_financeiro_apropriacoes c WHERE c.obra_id=f.obra_id AND c.frente_id=f.id AND c.tipo='pagar' AND c.deleted_at IS NULL AND c.status IN ('pago','parcialmente_pago')),0) pago_centavos,
         COALESCE((SELECT SUM(m.valor_liquido_centavos) FROM medicoes m WHERE m.obra_id=f.obra_id AND m.frente_id=f.id AND m.deleted_at IS NULL AND m.status!='cancelada'),0) medido_centavos,
-        COALESCE((SELECT SUM(c.valor_centavos) FROM contas c WHERE c.obra_id=f.obra_id AND c.frente_id=f.id AND c.tipo='receber' AND c.deleted_at IS NULL AND c.status='recebido'),0) recebido_centavos,
+        COALESCE((SELECT SUM(c.valor_centavos) FROM v_financeiro_apropriacoes c WHERE c.obra_id=f.obra_id AND c.frente_id=f.id AND c.tipo='receber' AND c.deleted_at IS NULL AND c.status='recebido'),0) recebido_centavos,
         COALESCE((SELECT COUNT(*) FROM tarefas_obra t WHERE t.obra_id=f.obra_id AND t.frente_id=f.id AND t.deleted_at IS NULL AND t.status NOT IN ('concluida','cancelada')),0) pendencias_abertas
       FROM frentes_obra f LEFT JOIN itens_orcamentarios i ON i.frente_id=f.id AND i.deleted_at IS NULL
       WHERE f.obra_id=? AND f.deleted_at IS NULL GROUP BY f.id ORDER BY f.ordem, f.nome
@@ -228,8 +228,8 @@ class DatabaseService {
     if (obra_id) { clauses.push('c.obra_id=@obra_id'); params.obra_id = Number(obra_id) }
     const rows = this.db.prepare(`
       SELECT c.competencia,c.tipo,COALESCE(cf.grupo_dre,'operacional') grupo,COALESCE(cf.nome,'Sem categoria') categoria,SUM(c.valor_centavos) valor,
-        SUM(COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0)) valor_realizado
-      FROM contas c LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
+        SUM(c.paid_cents) valor_realizado
+      FROM v_financeiro_apropriacoes c LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
       WHERE ${clauses.join(' AND ')} GROUP BY c.competencia,c.tipo,grupo,categoria ORDER BY c.competencia,c.tipo,categoria
     `).all(params)
     return rows

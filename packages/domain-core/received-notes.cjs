@@ -428,6 +428,35 @@ function inspectNfeSource(db,payload,parseXml){
  const eligible=parsed.ambiente==='1'&&['100','150'].includes(parsed.status)&&!!parsed.protocolo&&operation==='compra'&&!existing
  return {...recognition,operacao:operation,fiscal:parsed,registro_existente:existing||null,pedidos_referenciados:orderCandidates,elegivel_compra:eligible}
 }
+function allocateNfeAccounts(db,noteId,destinations,schedule,accounts,total){
+ const scopes=new Map()
+ for(const d of destinations){
+  const key=JSON.stringify([d.work.id,d.stage?.id??null,d.sub?.id??null])
+  const row=scopes.get(key)||{obra:d.work.id,frente:d.stage?.id??null,sub:d.sub?.id??null,remaining:0n}
+  row.remaining+=d.cost;scopes.set(key,row)
+ }
+ const ordered=[...scopes.values()].sort((a,b)=>a.obra-b.obra||(a.frente||0)-(b.frente||0)||(a.sub||0)-(b.sub||0))
+ let remaining=total
+ const insert=db.prepare('INSERT INTO nota_recebida_rateios(nota_id,conta_id,obra_id,frente_id,subfrente_id,valor_centavos) VALUES(?,?,?,?,?,?)')
+ for(const [i,p] of schedule.entries()){
+  let cumulative=0n,previous=0n
+  for(const s of ordered){
+   cumulative+=s.remaining
+   const target=cumulative*p.amount/remaining,share=target-previous
+   previous=target
+   if(share>0n){insert.run(noteId,accounts[i],s.obra,s.frente,s.sub,safeInt(share,'Rateio'));s.remaining-=share}
+  }
+  remaining-=p.amount
+ }
+ if(remaining!==0n||ordered.some(s=>s.remaining!==0n))throw new Error('Rateio financeiro divergente.')
+}
+function nfeDetails(db,payload){
+ const note=fiscalRow(db,'notas_recebidas',payload.nota_id,'Nota')
+ if(Number(note.empresa_id)!==positiveFiscalId(payload.empresa_id,'Empresa')||note.status_integracao!=='integrada')throw new Error('Nota integrada não encontrada nesta empresa.')
+ const itens=db.prepare('SELECT i.*,o.nome obra_nome FROM nota_recebida_itens i JOIN obras o ON o.id=i.obra_id WHERE i.nota_id=? ORDER BY i.id').all(note.id).map(i=>({...i,recebida:quantityText(db.prepare('SELECT quantidade_decimal FROM nota_recebida_recebimentos WHERE nota_item_id=?').all(i.id).reduce((sum,r)=>sum+fixedDecimal(r.quantidade_decimal,6,'Recebimento'),0n))}))
+ const contas=db.prepare('SELECT c.id,c.valor_centavos,c.vencimento,c.status FROM nota_recebida_contas l JOIN contas c ON c.id=l.conta_id WHERE l.nota_id=? ORDER BY l.parcela').all(note.id)
+ return {nota_id:note.id,empresa_id:note.empresa_id,numero:note.numero,itens,contas}
+}
 function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
   if(typeof parseXml!=='function'||typeof saveEntity!=='function')throw new Error('Adaptador fiscal de confiança obrigatório.')
   const readXml=payload=>{
@@ -590,6 +619,7 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
         db.prepare('INSERT INTO nota_recebida_contas(nota_id,conta_id,parcela,criada_na_importacao) VALUES(?,?,?,?)').run(id,account.id,part.number,part.linked?0:1)
         accounts.push(Number(account.id))
       }
+      allocateNfeAccounts(db,id,p.destinos,p.schedule,accounts,p.total)
       const receiptDate=p.destinos.some(d=>d.received>0n)?(date||p.destinos.find(d=>d.existingReceipt)?.existingReceipt?.data||null):null
       db.prepare('UPDATE notas_recebidas SET conta_id=?,data_recebimento=? WHERE id=?').run(accounts.length===1?accounts[0]:null,receiptDate,id)
       db.exec('COMMIT')
@@ -883,4 +913,4 @@ function recognizeNfeMaterials(db,payload){
  return {empresa_id:company,fornecedor_id:Number(supplier.id),operacao:classifyNfeOperation(payload.itens),itens:results}
 }
 
-module.exports={inspectNfeSource,recognizeNfeMaterials,normalizeNfeDescription,nfeTechnicalAttributes,nfeTechnicalConflicts,validNfeGtin,classifyNfeOperation,convertNfeQuantity,materialReclassificationPreview,confirmMaterialReclassification,stockRevision,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}
+module.exports={nfeDetails,inspectNfeSource,recognizeNfeMaterials,normalizeNfeDescription,nfeTechnicalAttributes,nfeTechnicalConflicts,validNfeGtin,classifyNfeOperation,convertNfeQuantity,materialReclassificationPreview,confirmMaterialReclassification,stockRevision,materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}
