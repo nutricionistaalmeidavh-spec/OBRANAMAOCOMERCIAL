@@ -15,7 +15,7 @@ function loadService(fileName: string, exportName: string, db?: any) {
   const mod = { exports: {} as any }
   const fakeRequire = (id: string): any => {
     if (id === 'electron') return { dialog: { showOpenDialog: vi.fn() } }
-    if (id === './spreadsheet-reader.cjs' || id === './spreadsheet-guard.cjs') {
+    if (id === './spreadsheet-reader.cjs' || id === './spreadsheet-guard.cjs' || id === './domain-core.cjs') {
       return localRequire(resolve(here, '../electron/services/', id))
     }
     return localRequire(id)
