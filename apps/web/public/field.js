@@ -101,6 +101,7 @@ function rdoClosure(day){
  <div class="card rdo-card rdo-checklist">
  <div class="row rdo-checklist-heading"><div><strong>Fechamento do dia</strong><div class="meta">${completed} de 5 seções revisadas</div></div>
  <span class="badge ${tone}">${status}</span></div>
+ ${confirmed&&receipt?.materialPending?`<div class="meta rdo-rejection" role="status"><strong>Consumo de materiais:</strong> aguardando estoque no escritório. ${esc(String(receipt.materialPending))}</div>`:''}
  ${rejected?`<div class="meta rdo-rejection" role="alert"><strong>Motivo:</strong> ${esc(String(receipt.reason||'O Desktop não conseguiu integrar este diário.'))} Reabra o RDO, ajuste e envie novamente.</div>`:''}
  <div class="rdo-progress"><i style="width:${completed/5*100}%"></i></div>
  <div class="rdo-steps">${items.map((item,index)=>`<div class="rdo-step ${item.done?'is-done':'is-pending'}">

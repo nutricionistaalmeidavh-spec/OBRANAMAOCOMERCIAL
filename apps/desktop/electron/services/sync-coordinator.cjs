@@ -28,7 +28,7 @@ class SyncCoordinator {
    const {remote_payload,...item}=c
    return {...item,localPayload:select(local),remotePayload:select(remote)}
   }):[]
-  return {configured:!!scope,paused,source:runtime.source,pauseReason,running:!!this.running,scope:scope||null,lastSyncAt:b?.last_sync_at||null,lastError:b?.last_error||null,pending:scope?this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND status='pending'").get(this.key(scope)).n:0,conflicts,fieldRdoIssues:Array.isArray(this.fieldRdoIssues)?this.fieldRdoIssues.slice(0,20):[]}
+  return {configured:!!scope,paused,source:runtime.source,pauseReason,running:!!this.running,scope:scope||null,lastSyncAt:b?.last_sync_at||null,lastError:b?.last_error||null,pending:scope?this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND status='pending'").get(this.key(scope)).n:0,conflicts,fieldRdoIssues:Array.isArray(this.fieldRdoIssues)?this.fieldRdoIssues.slice(0,20):[],fieldRdoPendingConsumption:this.pendingConsumption(scope,runtime)}
  }
  notify(){
   const next=this.state(),digest=json(next)
@@ -116,7 +116,10 @@ class SyncCoordinator {
   this.fieldRdoIssues=issues
   // A field RDO problem must never stop the rest of the synchronization: scope
   // errors still abort, every other failure is recorded and isolated.
-  const isolate=(kind,report,error)=>{this.assertScope(scope,generation);const message=String(error?.message||error||'Falha desconhecida.').slice(0,300);issues.push({kind,date:report?.date||null,message,at:new Date(this.now()).toISOString()});return message}
+  const isolate=(kind,report,error)=>{this.assertScope(scope,generation);const message=String(error?.message||error||'Falha desconhecida.').slice(0,300);
+   // The office can resolve this one: join the phone diary to the RDO typed for that day.
+   const code=error?.code==='MANUAL_RDO_EXISTS'||message.includes('RDO digitado no escritório')?'manual_rdo_exists':error?.code==='MATERIAL_PENDING'?'material_pending':null
+   issues.push({kind,date:report?.date||null,message,at:new Date(this.now()).toISOString(),...(code?{code}:{})});return message}
   if(typeof this.dataProvider.fieldRdoCatalog==='function'&&typeof this.online.fieldRdoCatalogPublish==='function'){
    try{
     const catalog=await resolved(this.dataProvider.fieldRdoCatalog(scope))
@@ -125,7 +128,9 @@ class SyncCoordinator {
    }catch(error){isolate('catalog',null,error)}
   }
   let pending
-  try{pending=await this.online.fieldRdoPending()}catch(error){isolate('transport',null,error);return}
+  const retryDates=Array.isArray(this.fieldRdoRetryDates)?this.fieldRdoRetryDates.slice(0,20):[]
+  try{pending=await this.online.fieldRdoPending(retryDates.length?{retryDates}:undefined)}catch(error){isolate('transport',null,error);return}
+  this.fieldRdoRetryDates=[]
   if(!Array.isArray(pending?.reports)||!pending.reports.length)return
   for(const report of pending.reports){
    this.assertScope(scope,generation)
@@ -155,14 +160,38 @@ class SyncCoordinator {
     if(!Number.isSafeInteger(Number(imported?.localRdoId))||Number(imported?.localRdoId)<1)throw new Error('Fonte operacional não confirmou o RDO canônico.')
     if(!Number.isSafeInteger(Number(imported?.materialRevision)))throw new Error('Fonte operacional não confirmou a revisão do estoque.')
    }catch(error){await reject(isolate('rdo',report,error));continue}
+   if(imported.materialPending)isolate('material',report,Object.assign(new Error('Diário integrado; consumo aguardando estoque no escritório: '+imported.materialPending),{code:'MATERIAL_PENDING'}))
    try{
     await this.online.fieldRdoAck({
      date:report.date,fingerprint:report.fingerprint,
-     localRdoId:Number(imported.localRdoId),materialRevision:Number(imported.materialRevision)
+     localRdoId:Number(imported.localRdoId),materialRevision:Number(imported.materialRevision),
+     ...(imported.materialPending?{materialPending:String(imported.materialPending).slice(0,300)}:{})
     })
    }catch(error){isolate('transport',report,error)}
    this.assertScope(scope,generation)
   }
+ }
+ /** Phone consumption waiting for stock, read from the local operational base (persistent across cycles). */
+ pendingConsumption(scope,runtime){
+  if(!scope||runtime.source!=='local')return []
+  try{
+   if(!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='field_rdo_pendencias'").get())return []
+   return this.db.prepare(`SELECT p.rdo_id AS rdoId,r.data AS date,p.message FROM field_rdo_pendencias p JOIN rdos r ON r.id=p.rdo_id
+    WHERE p.kind='material' AND p.resolved_at IS NULL AND r.obra_id=? AND r.deleted_at IS NULL ORDER BY r.data LIMIT 50`).all(Number(scope.workId))
+  }catch{return []}
+ }
+ /** Office decision: attach the phone diary of a day to the RDO already typed for it. */
+ async linkFieldRdo(date){
+  const b=this.binding()
+  if(!b)throw new Error('Ligue primeiro esta base à obra do celular.')
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||'')))throw new Error('Data inválida.')
+  if(typeof this.dataProvider.linkFieldRdo!=='function')throw new Error('Esta fonte operacional não permite juntar diários.')
+  const result=await resolved(this.dataProvider.linkFieldRdo(b.scope,String(date)))
+  if(Array.isArray(this.fieldRdoIssues))this.fieldRdoIssues=this.fieldRdoIssues.filter(issue=>!(issue.code==='manual_rdo_exists'&&issue.date===date))
+  this.fieldRdoRetryDates=[...new Set([...(this.fieldRdoRetryDates||[]),String(date)])]
+  this.notify()
+  this.run({retryNow:true}).catch(()=>{})
+  return result
  }
  async bootstrapBinding(){
   const runtime=this.runtimeState(), connection=this.online.state(), generation=this.generation

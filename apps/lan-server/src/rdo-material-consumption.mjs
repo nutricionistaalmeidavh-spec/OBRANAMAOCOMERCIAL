@@ -26,10 +26,34 @@ export class RdoMaterialConsumption {
     if (!rdo) throw new Error('RDO não encontrado.')
     const current = this.db.prepare('SELECT revisao FROM rdo_material_revisoes WHERE rdo_id=?').get(rdo.id)
     const items = this.db.prepare('SELECT linha_id AS id, material_id, servico, frente_id, descricao, unidade, quantidade FROM rdo_material_linhas WHERE rdo_id=? ORDER BY linha_id').all(rdo.id)
-    return { rdoId: rdo.id, obraId: rdo.obra_id, revision: Number(current?.revisao || 0), items }
+    return { rdoId: rdo.id, obraId: rdo.obra_id, revision: Number(current?.revisao || 0), items, pending: this.openPending(rdo.id) }
+  }
+
+  hasPendingTable() {
+    if (this.pendingTable === undefined) this.pendingTable = !!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='field_rdo_pendencias'").get()
+    return this.pendingTable
+  }
+
+  /** Consumption sent by the phone that is waiting for stock in the office. */
+  openPending(rdoId) {
+    if (!this.hasPendingTable()) return null
+    const row = this.db.prepare("SELECT id,request_id,payload_json,message,created_at FROM field_rdo_pendencias WHERE rdo_id=? AND kind='material' AND resolved_at IS NULL").get(Number(rdoId))
+    if (!row) return null
+    let payload = {}
+    try { payload = JSON.parse(row.payload_json) } catch {}
+    return { id: row.id, message: row.message, createdAt: row.created_at, items: Array.isArray(payload.items) ? payload.items : [] }
+  }
+
+  /** Applies the waiting phone consumption with the current revision; same stock rules as any save. */
+  applyPending(rdoId) {
+    const pending = this.openPending(rdoId)
+    if (!pending) throw new Error('Não há consumo do celular aguardando aplicação neste RDO.')
+    const { revision } = this.list(rdoId)
+    return this.save({ rdoId, requestId: `field-pending:${pending.id}:${revision}`, expectedRevision: revision, items: pending.items })
   }
 
   save(input = {}) {
+    if (input.applyPending === true) return this.applyPending(Number(input.rdoId))
     const rdoId = Number(input.rdoId)
     const requestId = clean(input.requestId)
     const expectedRevision = Number(input.expectedRevision)
@@ -99,7 +123,7 @@ export class RdoMaterialConsumption {
       for (const row of netByMaterial.values()) {
         if (row.delta <= 0) continue
         const balance=stockBalance(this.db,{obra_id:rdo.obra_id,material_id:row.material_id,descricao:row.descricao,unidade:row.unidade},{allStages:true})
-        if (balance + 1e-6 < row.delta) throw new Error(`Saldo insuficiente para ${row.descricao} (${row.unidade}). Disponível: ${balance}.`)
+        if (balance + 1e-6 < row.delta) throw Object.assign(new Error(`Saldo insuficiente para ${row.descricao} (${row.unidade}). Disponível: ${balance}.`), { code: 'INSUFFICIENT_STOCK' })
       }
 
       this.db.prepare('DELETE FROM rdo_material_linhas WHERE rdo_id=?').run(rdoId)
@@ -119,6 +143,12 @@ export class RdoMaterialConsumption {
         })
         this.db.prepare('INSERT INTO rdo_material_efeitos(rdo_id,request_id,movimentacao_id,descricao,unidade,delta_quantidade) VALUES(?,?,?,?,?,?)')
           .run(rdoId, requestId, movement.id, row.descricao, row.unidade, row.delta)
+      }
+      if (this.hasPendingTable()) {
+        // Any successful save is the newest decision about this RDO's consumption.
+        this.db.prepare("UPDATE field_rdo_pendencias SET resolved_at=CURRENT_TIMESTAMP,resolution=? WHERE rdo_id=? AND kind='material' AND resolved_at IS NULL")
+          .run(requestId.startsWith('field-pending:') ? 'aplicado' : 'substituido', rdoId)
+        if (requestId.startsWith('field-pending:')) this.db.prepare('UPDATE field_rdo_links SET last_material_revision=? WHERE rdo_id=?').run(revision + 1, rdoId)
       }
       this.db.exec('COMMIT')
       return { ...this.list(rdoId), replayed: false }

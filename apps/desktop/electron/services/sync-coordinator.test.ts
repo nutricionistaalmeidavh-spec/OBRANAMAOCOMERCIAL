@@ -288,3 +288,41 @@ it('does not reject an RDO when only the photo transport failed', async () => {
   expect(f.sync.dataProvider.applyFieldRdo).not.toHaveBeenCalled()
   expect(f.sync.state().fieldRdoIssues[0]).toMatchObject({ kind: 'transport', date: '2026-11-22' })
 })
+it('acknowledges a diary imported with pending consumption and lists it persistently for the office', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  const rdo = f.database.save('rdos', { obra_id: f.work.id, data: '2026-11-23', status: 'rascunho' })
+  Object.assign(f.online, {
+    fieldRdoPending: vi.fn(async () => ({ reports: [{ date: '2026-11-23', fingerprint: 'fp-d', report: { photos: [] } }] })),
+    fieldRdoPhoto: vi.fn(), fieldRdoReject: vi.fn(),
+    fieldRdoAck: vi.fn(async () => ({ ok: true }))
+  })
+  f.sync.dataProvider.applyFieldRdo = vi.fn(async () => {
+    f.database.db.prepare("INSERT INTO field_rdo_pendencias(rdo_id,kind,request_id,payload_json,message) VALUES(?,'material','r',?,?)").run(rdo.id, JSON.stringify({ items: [] }), 'Saldo insuficiente para Tubo (m). Disponível: 1.')
+    return { localRdoId: rdo.id, materialRevision: 0, materialPending: 'Saldo insuficiente para Tubo (m). Disponível: 1.' }
+  })
+  await f.sync.run()
+  expect(f.online.fieldRdoReject).not.toHaveBeenCalled()
+  expect(f.online.fieldRdoAck).toHaveBeenCalledWith(expect.objectContaining({ date: '2026-11-23', materialPending: expect.stringContaining('Saldo insuficiente') }))
+  expect(f.sync.state().fieldRdoPendingConsumption).toEqual([{ rdoId: rdo.id, date: '2026-11-23', message: expect.stringContaining('Saldo insuficiente') }])
+  expect(f.sync.state().fieldRdoIssues[0]).toMatchObject({ kind: 'material', code: 'material_pending' })
+})
+it('offers to join a phone diary to the office RDO and retries that day immediately', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  Object.assign(f.online, {
+    fieldRdoPending: vi.fn(async () => ({ reports: [{ date: '2026-11-24', fingerprint: 'fp-e', report: { photos: [] } }] })),
+    fieldRdoPhoto: vi.fn(), fieldRdoAck: vi.fn(async () => ({ ok: true })),
+    fieldRdoReject: vi.fn(async () => ({ status: 'rejected' }))
+  })
+  f.sync.dataProvider.applyFieldRdo = vi.fn(async () => { throw new Error('RDO digitado no escritório em 24/11/2026: o escritório precisa juntar este diário ao RDO existente no Desktop (Configurações > Sincronização).') })
+  await f.sync.run()
+  expect(f.sync.state().fieldRdoIssues[0]).toMatchObject({ kind: 'rdo', code: 'manual_rdo_exists', date: '2026-11-24' })
+  f.sync.dataProvider.linkFieldRdo = vi.fn(async () => ({ rdoId: 3, date: '2026-11-24' }))
+  f.sync.dataProvider.applyFieldRdo = vi.fn(async () => ({ localRdoId: 3, materialRevision: 1 }))
+  await f.sync.linkFieldRdo('2026-11-24')
+  await f.sync.run({ retryNow: true })
+  expect(f.sync.dataProvider.linkFieldRdo).toHaveBeenCalledWith(expect.objectContaining({ workId: f.work.id }), '2026-11-24')
+  expect(f.online.fieldRdoPending).toHaveBeenCalledWith({ retryDates: ['2026-11-24'] })
+  expect(f.online.fieldRdoAck).toHaveBeenCalledWith(expect.objectContaining({ date: '2026-11-24', localRdoId: 3 }))
+})

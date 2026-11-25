@@ -582,6 +582,7 @@ function registerIpc() {
   ipcMain.handle('online:sync-state', envelope(() => services.sync.state()))
   ipcMain.handle('online:sync-configure', envelope((scope) => withSyncStopped(() => services.sync.configure(scope))))
   ipcMain.handle('online:sync-now', envelope(() => { requireSyncAvailable(); return services.sync.run({ retryNow: true }) }))
+  ipcMain.handle('online:sync-link-field-rdo', envelope(({ date }) => { requireSyncAvailable(); return services.sync.linkFieldRdo(String(date || '')) }))
   ipcMain.handle('online:sync-resolve-local', envelope(({ id, resolution }) => withSyncStopped(() => services.sync.resolveLocalConflict(id, resolution))))
   ipcMain.handle('online:sync-pull', envelope(({ sinceRevision }) => services.online.syncPull(sinceRevision)))
   ipcMain.handle('online:sync-push', envelope(({ changes }) => services.online.syncPush(changes)))

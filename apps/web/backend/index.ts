@@ -334,7 +334,8 @@ export const handler=router({
     if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
     const ownerError=await remoteSyncOwnerError(session);if(ownerError)return ownerError;
     if(!session.access.modules.includes('rdo')&&!session.access.modules.includes('obra360'))return error('Módulo de diário não autorizado.',403);
-    return json({reports:await pendingFieldRdos(session.device.projectId)})
+    const retryDates=Array.isArray(body.retryDates)?body.retryDates.map(String):[];
+    return json({reports:await pendingFieldRdos(session.device.projectId,{retryDates})})
   }],
   'POST /api/desktop/field/rdo/photo':[async(ctx)=>{
     const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
