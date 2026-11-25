@@ -71,7 +71,7 @@ export function parseNfeXml(xml,SaxesParser){
     return {numero,codigo:value(p,'cProd'),descricao:value(p,'xProd'),unidade:value(p,'uCom'),gtin:value(p,'cEAN',false),gtin_tributavel:value(p,'cEANTrib',false),ncm:value(p,'NCM',false),cfop:value(p,'CFOP',false),pedido:value(p,'xPed',false),item_pedido:value(p,'nItemPed',false),unidade_tributavel:value(p,'uTrib',false),quantidade_tributavel:value(p,'qTrib',false),quantidade:decimal(value(p,'qCom'),'Quantidade',true),valor_unitario:decimal(value(p,'vUnCom'),'Preço unitário'),valor_produto:decimal(value(p,'vProd'),'Total do produto')}
   })
   if(!itens.length||new Set(itens.map(i=>i.numero)).size!==itens.length)throw new Error('Itens ausentes ou repetidos no XML.')
-  const icms=one(one(info,'total'),'ICMSTot')!
+  const icms=one(one(info,'total'),'ICMSTot')
   const componentes={}
   for(const field of ['vProd','vFrete','vSeg','vDesc','vOutro','vIPI','vII','vST','vFCPST','vIPIDevol','vICMSDeson']){const raw=value(icms,field,false);if(raw)componentes[field]=decimal(raw,field)}
   const cobr=one(info,'cobr',false)
