@@ -74,6 +74,8 @@ export default function NfePreviewSection({obraId}:{obraId:number|null}){
         <Button variant="secondary" disabled={busy} onClick={async()=>{if(lock.current)return;lock.current=true;setBusy(true);try{await recognize(xmlBase64)}finally{lock.current=false;setBusy(false)}}}>Atualizar reconhecimento</Button>
         {recognition&&<>
           {recognition.registro_existente&&<p role="status">Nota já registrada (#{recognition.registro_existente.id}). A importação deve preservar o registro anterior.</p>}
+          {!recognition.elegivel_compra&&<p role="status">Esta nota não está elegível para integração automática como compra. Revise ambiente, finalidade, protocolo, classificação e eventual duplicidade.</p>}
+          {recognition.pedidos_referenciados.map(ref=><p key={ref.referencia}>Referência de pedido {ref.referencia}: {ref.pedidos.length?ref.pedidos.map(p=>p.numero+' — '+p.obra_nome+' ('+p.status+')').join('; '):'nenhum pedido correspondente encontrado'}. Confira antes de conciliar.</p>)}
           <p><strong>Classificação: {operationLabels[recognition.operacao]||'Revisar'}</strong> · {recognition.itens.filter(i=>i.status==='confirmado').length}/{recognition.itens.length} vínculos confirmados</p>
           {recognition.itens.slice(page*20,page*20+20).map(row=>{
             const item=preview.itens.find(i=>i.numero===row.numero)

@@ -6,6 +6,7 @@ import { describe,it,expect } from 'vitest'
 import { parseNfePreview } from '../src/utils/nfe-preview'
 const require=createRequire(import.meta.url)
 const {DatabaseService}=require('../electron/services/database.cjs')
+const {ProcurementService}=require('../electron/services/procurement-service.cjs')
 const {createNfeIntegrationService,confirmMaterialAlias}=require('../../../packages/domain-core/index.cjs')
 function fixture(){
  const dir=mkdtempSync(join(tmpdir(),'nfe-core-'))
@@ -81,3 +82,16 @@ it('não integra CFOP de devolução ou material sem equivalência confirmada',(
  expect(f.adapter.db.prepare('SELECT COUNT(*) n FROM movimentacoes_estoque').get().n).toBe(0)
  expect(f.adapter.db.prepare('SELECT COUNT(*) n FROM contas').get().n).toBe(0)
 }finally{f.close()}})
+
+it('revalida XML original no backend, identifica fornecedor e rejeita destinatário divergente',()=>{
+ const f=fixture();try{
+  const service=new ProcurementService({db:f.adapter})
+  const source={obra_id:f.payload.destinos[0].obra_id,xml_base64:f.payload.xml_base64}
+  const result=service.nfeRecognize(source)
+  expect(result).toMatchObject({fornecedor_id:f.payload.fornecedor_id,elegivel_compra:true,registro_existente:null,itens:[{status:'confirmado',material_id:f.material.id}]})
+  expect(()=>service.nfeRecognize({...source,xml_base64:Buffer.from('<!DOCTYPE NFe><NFe/>').toString('base64')})).toThrow()
+  expect(()=>service.nfeRecognize({...source,xml_base64:Buffer.from(Buffer.from(source.xml_base64,'base64').toString().replace('12345678000124','12345678000125')).toString('base64')})).toThrow(/Destinatário/)
+  f.service.commit(f.payload)
+  expect(service.nfeRecognize(source)).toMatchObject({elegivel_compra:false,registro_existente:{status_integracao:'integrada'}})
+ }finally{f.close()}
+})

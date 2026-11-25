@@ -413,10 +413,20 @@ function decodeNfeSource(payload,parseXml){
 function inspectNfeSource(db,payload,parseXml){
  const {parsed}=decodeNfeSource(payload,parseXml)
  const work=fiscalRow(db,'obras',payload.obra_id,'Obra'),company=fiscalRow(db,'empresas',work.empresa_id,'Empresa')
- if(company.status==='inativa'||digits(company.cnpj)!==digits(parsed.destinatario))throw new Error('Destinatário da NF-e não corresponde à empresa da obra.')
+ if(company.status==='inativa'||!/^\d{14}$/.test(digits(parsed.destinatario))||digits(company.cnpj)!==digits(parsed.destinatario))throw new Error('Destinatário da NF-e não corresponde à empresa da obra.')
  const recognition=recognizeNfeMaterials(db,{obra_id:work.id,documento:parsed.documento,fornecedor_id:payload.fornecedor_id,itens:parsed.itens})
  const existing=db.prepare('SELECT id,status_integracao FROM notas_recebidas WHERE empresa_id=? AND (chave_acesso=? OR (fornecedor_id=? AND numero=? AND serie=? AND deleted_at IS NULL)) ORDER BY id LIMIT 1').get(company.id,parsed.chave,recognition.fornecedor_id,parsed.numero,parsed.serie)
- return {...recognition,fiscal:parsed,registro_existente:existing||null}
+ // xPed is a supplier-provided reference, not a local primary key.
+ const references=[...new Set(parsed.itens.map(i=>i.pedido).filter(Boolean))]
+ const orderCandidates=[]
+ for(const reference of references){
+  const matches=db.prepare("SELECT p.id,p.numero,p.obra_id,p.frente_id,p.status,o.nome obra_nome FROM pedidos_compra p JOIN obras o ON o.id=p.obra_id WHERE o.empresa_id=? AND p.fornecedor_id=? AND p.deleted_at IS NULL AND o.deleted_at IS NULL AND trim(p.numero)=? ORDER BY p.id LIMIT 21").all(company.id,recognition.fornecedor_id,reference)
+  if(matches.length>20)throw new Error('Referência de pedido ambígua. Revise os pedidos antes de importar.')
+  orderCandidates.push({referencia:reference,pedidos:matches})
+ }
+ const operation=recognition.operacao==='compra'&&(parsed.tipo_operacao!=='1'||parsed.finalidade!=='1')?'revisar':recognition.operacao
+ const eligible=parsed.ambiente==='1'&&['100','150'].includes(parsed.status)&&!!parsed.protocolo&&operation==='compra'&&!existing
+ return {...recognition,operacao:operation,fiscal:parsed,registro_existente:existing||null,pedidos_referenciados:orderCandidates,elegivel_compra:eligible}
 }
 function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
   if(typeof parseXml!=='function'||typeof saveEntity!=='function')throw new Error('Adaptador fiscal de confiança obrigatório.')
@@ -825,6 +835,12 @@ function recognizeNfeMaterials(db,payload){
  if(catalog.length>20000)throw new Error('Catálogo excede o limite de reconhecimento em lote; revise antes de importar.')
  const entries=catalog.map(m=>({...m,normalized:normalizeNfeDescription(m.descricao),technical:nfeTechnicalAttributes(m.descricao,JSON.parse(m.atributos_json||'{}'))}))
  const byId=new Map(entries.map(m=>[Number(m.id),m]))
+ // Inverted token index: compute candidate overlap without re-tokenizing the catalog per item.
+ const postings=new Map()
+ for(const m of entries){
+  const tokens=new Set(m.normalized.split(' ').filter(Boolean));m.tokenCount=tokens.size
+  for(const token of tokens){if(!postings.has(token))postings.set(token,[]);postings.get(token).push(Number(m.id))}
+ }
  const aliases=db.prepare("SELECT e.* FROM material_fornecedor_equivalencias e JOIN fornecedores f ON f.id=e.fornecedor_id WHERE e.empresa_id=? AND f.deleted_at IS NULL ORDER BY e.id LIMIT 100001").all(company)
  if(aliases.length>100000)throw new Error('Equivalências excedem o limite de reconhecimento em lote.')
  const aliasKeys=new Map(),gtins=new Map()
@@ -843,14 +859,18 @@ function recognizeNfeMaterials(db,payload){
    const material=byId.get(Number(linked.material_id)),conflicts=material?nfeTechnicalConflicts(technical,material.technical):['material_indisponivel']
    const aliasTechnical=nfeTechnicalAttributes(linked.descricao_origem)
    conflicts.push(...nfeTechnicalConflicts(technical,aliasTechnical))
+   if(nfeSimilarity(normalized,normalizeNfeDescription(linked.descricao_origem))<40)conflicts.push('descricao_alterada')
    if(gtin&&validNfeGtin(linked.gtin)&&gtin!==validNfeGtin(linked.gtin))conflicts.push('gtin')
    if(gtinIds.size&&(gtinIds.size!==1||!gtinIds.has(Number(linked.material_id))))conflicts.push('gtin_ambiguo')
    if(!conflicts.length)return {numero,status:'confirmado',material_id:Number(material.id),descricao:material.descricao,unidade:material.unidade,fator_num:linked.fator_num,fator_den:linked.fator_den,conflitos:[],candidatos:[]}
    return {numero,status:'conflito',material_id:null,conflitos:[...new Set(conflicts)],candidatos:[]}
   }
-  const candidates=[]
-  for(const m of entries){
-   const score=nfeSimilarity(normalized,m.normalized),barcode=gtinIds.has(Number(m.id)),reference=m.technical.referencia&&normalized.split(' ').includes(m.technical.referencia)
+  const candidates=[],overlap=new Map(),tokens=new Set(normalized.split(' ').filter(Boolean))
+  for(const token of tokens)for(const id of postings.get(token)||[])overlap.set(id,(overlap.get(id)||0)+1)
+  for(const id of gtinIds)if(!overlap.has(id))overlap.set(id,0)
+  for(const [id,count] of overlap){
+   const m=byId.get(id);if(!m)continue
+   const score=Math.round(200*count/(tokens.size+m.tokenCount||1)),barcode=gtinIds.has(id),reference=m.technical.referencia&&(' '+normalized+' ').includes(' '+m.technical.referencia+' ')
    if(score<30&&!barcode&&!reference)continue
    const conflicts=nfeTechnicalConflicts(technical,m.technical)
    const sameUnit=unidade.toLowerCase()===String(m.unidade).trim().toLowerCase()
