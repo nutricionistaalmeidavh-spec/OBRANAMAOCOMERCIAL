@@ -35,7 +35,6 @@ const TIER_FEATURES:Record<CommercialPlan['tier'],string[]>={
     'Cronograma operacional',
     'RDO e operação de campo',
     'Documentos da obra',
-    'Universidade Empresarial',
     'Acesso Desktop e PWA/mobile'
   ],
   pro:[
