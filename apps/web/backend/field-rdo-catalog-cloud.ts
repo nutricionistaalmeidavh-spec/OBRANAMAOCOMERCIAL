@@ -7,7 +7,7 @@ const array=(v:unknown)=>Array.isArray(v)?v:[]
 export type FieldRdoCatalogRecord={
   schemaVersion:number;workId:number;materials:Array<{id:string;descricao:string;unidade:string;saldo:number}>;
   fronts:Array<{id:number;nome:string}>;services:Array<{id:number;nome:string;frente_id:number|null}>;
-  version:string;updatedAt:string;sourceDeviceId:string
+  employees?:Array<{id:string;name:string}>;version:string;updatedAt:string;sourceDeviceId:string
 }
 const PAGE_SIZE=500
 type Manifest=Omit<FieldRdoCatalogRecord,'materials'> & {paged:true;total:number;pages:number}
@@ -17,6 +17,7 @@ const readLatest=async(projectId:string):Promise<FieldRdoCatalogRecord|Manifest|
  if(!row)return null
  try{return JSON.parse(row.record_json) as FieldRdoCatalogRecord|Manifest}catch{return null}
 }
+export async function fieldRdoOrigin(projectId:string,deviceId:string){const meta=await readLatest(projectId);return meta?.sourceDeviceId===deviceId?{sourceDeviceId:deviceId,localWorkId:meta.workId}:null}
 export async function getFieldRdoCatalog(projectId:string,options:{page?:number;version?:string}={}):Promise<(FieldRdoCatalogRecord&{total?:number;page?:number;pages?:number})|null>{
  const latest=await readLatest(projectId)
  if(!latest)return null
@@ -65,11 +66,12 @@ export async function publishFieldRdoCatalog(projectId:string,deviceId:string,pa
   return{id,nome,frente_id}
  })
  if(new Set(mat.map(m=>m.id)).size!==mat.length)throw new Error('Identidade de material duplicada.')
+ const employees=array(v.employees).map(input=>{const e=record(input),id=strings(e.id,40),name=strings(e.name,250);if(!/^rdo_emp_[a-f0-9]{24}$/.test(id)||!name)throw new Error('Funcionário da obra inválido.');return{id,name}})
  const previous=await readLatest(projectId)
  if(previous?.version===version&&previous.workId===workId&&previous.sourceDeviceId===deviceId)return {...previous,materials:[],total:mat.length}
  const data:FieldRdoCatalogRecord={
   schemaVersion:1,workId,materials:mat,fronts:frontsValidated,services:servicesValidated,
-  version,sourceDeviceId:deviceId,updatedAt:new Date().toISOString()
+  employees,version,sourceDeviceId:deviceId,updatedAt:new Date().toISOString()
  }
  const stamp=data.updatedAt
  const db=runtimeEnv().DB

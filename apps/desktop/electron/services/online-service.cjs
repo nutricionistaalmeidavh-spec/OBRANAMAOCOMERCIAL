@@ -221,6 +221,7 @@ class OnlineService {
     const storageRequired = this.storageBinding(session) || this.storageBinding(bootstrap)
     this.writeConfig({
       tenant: { companyId: String(session.company.id), companyName: session.company.name || '', baseUrl: this.baseUrl },
+      ...(setup && session.project?.id && session.device?.id ? { firstProject: { baseUrl:this.baseUrl, companyId:String(session.company.id), projectId:String(session.project.id), deviceId:String(session.device.id) } } : {}),
       storageRequired
     })
     this.storeToken(result.deviceToken)
@@ -381,6 +382,9 @@ class OnlineService {
     return this.state()
   }
 
+  async fieldRdoCatalogOrigin() {
+    return this.request('/api/desktop/field/rdo/catalog/origin', {deviceToken:this.requireToken()})
+  }
   async fieldRdoCatalogPublish(catalog) {
     return this.request('/api/desktop/field/rdo/catalog/publish', {
       deviceToken:this.requireToken(),catalog

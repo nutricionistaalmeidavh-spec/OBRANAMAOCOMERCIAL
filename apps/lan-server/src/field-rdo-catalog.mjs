@@ -17,6 +17,10 @@ export class FieldRdoCatalog {
     this.repository=repository
     this.db=repository.connection()
   }
+  crew(companyId,workId){
+    const rows=this.db.prepare(`SELECT f.id,f.nome FROM funcionarios f WHERE f.empresa_id=? AND f.deleted_at IS NULL AND f.status='ativo' AND (f.obra_atual_id=? OR EXISTS(SELECT 1 FROM funcionario_obras a WHERE a.funcionario_id=f.id AND a.obra_id=? AND a.inicio<=date('now','localtime') AND (a.fim IS NULL OR a.fim>=date('now','localtime')))) ORDER BY f.id`).all(companyId,workId,workId)
+    return rows.map(row=>({id:'rdo_emp_'+digest(JSON.stringify([companyId,workId,row.id])).slice(0,24),name:row.nome,localId:row.id}))
+  }
   list({companyId,workId}={}){
     const id=Number(workId),company=Number(companyId)
     if(!Number.isSafeInteger(id)||id<1||!Number.isSafeInteger(company)||company<1)throw new Error('Obra e empresa inválidas para o catálogo.')
@@ -29,8 +33,9 @@ export class FieldRdoCatalog {
     }))
     const fronts=this.db.prepare(`SELECT id,nome FROM frentes_obra WHERE obra_id=? AND deleted_at IS NULL ORDER BY ordem,id`).all(id)
     const services=this.db.prepare(`SELECT id,nome,frente_id FROM etapas_obra WHERE obra_id=? AND deleted_at IS NULL ORDER BY id`).all(id)
-    const version=digest(JSON.stringify({materials,fronts,services})).slice(0,32)
-    return {schemaVersion:1,workId:id,materials,fronts,services,version}
+    const employees=this.crew(company,id).map(({id,name})=>({id,name}))
+    const version=digest(JSON.stringify({materials,fronts,services,employees})).slice(0,32)
+    return {schemaVersion:1,workId:id,materials,fronts,services,employees,version}
   }
   requireMaterial(workId,row){
     const id=Number(workId)

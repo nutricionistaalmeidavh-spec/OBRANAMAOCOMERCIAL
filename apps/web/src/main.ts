@@ -38,7 +38,7 @@ declare global {
     multiuserLoadDay?: (date:string)=>Promise<Record<string,unknown>|null>;
     multiuserRefreshReceipts?: ()=>Promise<Record<string,unknown>>;
     mobileRdoReceipts?: Record<string,any>;
-    mobileRdoCatalog?: {schemaVersion:number;workId:number;version:string;materials:Array<any>;fronts:Array<any>;services:Array<any>}|null;
+    mobileRdoCatalog?: {schemaVersion:number;workId:number;version:string;employees?:Array<{id:string;name:string}>;materials:Array<any>;fronts:Array<any>;services:Array<any>}|null;
     mobileRdoUploadPhoto?: (data:{date:string;mimeType:string;data:string;clientId?:string})=>Promise<any>;
     mobileRdoViewPhoto?: (id:string)=>Promise<any>;
     mobileRdoDeletePhoto?: (date:string,id:string)=>Promise<any>;
@@ -185,6 +185,8 @@ function configureSharedContext(role:Role,b:Bootstrap,state?:ProjectState){
     const result=await fieldRdoCatalog(0),catalog=(result.data as {catalog?:any}).catalog||null;
     if(catalog&&Number(catalog.pages)>1){const all=[...catalog.materials];for(let p=1;p<Number(catalog.pages);p++){const response=await fieldRdoCatalog(p,catalog.version),next=(response.data as {catalog?:any}).catalog;if(!next||next.version!==catalog.version||next.page!==p)throw new Error('Catálogo alterado durante a consulta. Atualize novamente.');all.push(...next.materials)}if(all.length!==catalog.total)throw new Error('Catálogo incompleto. Atualize novamente.');catalog.materials=all}
     // Offline cache is best-effort, never discard the current online catalog on quota failure.
+    const current=String(window.multiuserContext?.bootstrap?.membership?.projectId||window.multiuserContext?.bootstrap?.project?.id||'');
+    if(current!==projectId)return null;
     window.mobileRdoCatalog=catalog;
     try{if(catalog)localStorage.setItem(cacheKey,JSON.stringify(catalog));else localStorage.removeItem(cacheKey)}catch{}
     return catalog;

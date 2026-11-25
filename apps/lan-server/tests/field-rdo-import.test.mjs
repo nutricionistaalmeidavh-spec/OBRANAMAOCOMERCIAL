@@ -95,3 +95,25 @@ test('RDO não recebe confirmação operacional com evidência adulterada ou aus
   assert.ok(!link||!link.last_fingerprint)
  }finally{f.repository.close()}
 })
+
+test('equipe por obra: identidade, horas por intervalo, isolamento e reenvio',async()=>{
+ const {FieldRdoCatalog}=await import('../src/field-rdo-catalog.mjs')
+ const f=fixture()
+ try{
+  const another=f.repository.save('obras',{empresa_id:f.company.id,nome:'Obra B'})
+  const employee=(nome,obra)=>f.repository.save('funcionarios',{empresa_id:f.company.id,obra_atual_id:obra,nome,status:'ativo'})
+  const a=employee('Maria',f.work.id),b=employee('João',another.id)
+  const catalog=new FieldRdoCatalog({repository:f.repository}), options=catalog.list(scope(f)).employees
+  assert.equal(options.length,1);assert.equal(options[0].name,'Maria')
+  const input=report(),person=options[0].id
+  input.report.sessions=[{segments:[{start:'08:00',end:'10:00'}],crewEvents:[{time:'08:30',employeeIds:[person]}]}]
+  const delivery={scope:scope(f),report:input}
+  const receipt=f.importer.apply(delivery)
+  f.importer.apply(delivery)
+  const team=f.repository.connection().prepare('SELECT funcionario_id,horas FROM rdo_equipe WHERE rdo_id=?').all(receipt.localRdoId)
+  assert.equal(team.length,1);assert.equal(team[0].funcionario_id,a.id);assert.equal(team[0].horas,1.5)
+  input.fingerprint='other';input.report.sessions[0].crewEvents[0].employeeIds=[catalog.crew(f.company.id,another.id)[0].id]
+  assert.throws(()=>f.importer.apply(delivery),/equipe ativa/)
+  assert.equal(balance(f),28)
+ }finally{f.repository.close()}
+})

@@ -32,6 +32,8 @@ try{
       },
       conflicts:{onRevisionConflict:()=>()=>{}},
       empresas:{list:async()=>[{id:1,razao_social:'Empresa Local QA',nome_fantasia:'Empresa QA',status:'ativa'}]},
+      frentes:{list:async()=>[]},rdos:{list:async({obra_id})=>Number(obra_id)===10?[{id:901,data:'2026-11-25',status:'rascunho',atividades:'Diário de validação QA'}]:[]},
+      campo:{saveRdo:async data=>mark('campo.saveRdo',data),materials:async(id,update)=>update?mark('campo.materials',update):{rdoId:id,revision:3,items:[],materials:[{id:'mat_qa',descricao:'Tubo QA',saldo:4,unidade:'m'}]}},
       obras:{list:async()=>[{id:10,empresa_id:1,nome:'Obra Local QA'}]},
       cargos:{list:async()=>[{id:201,nome:'Encanador',salario_base_centavos:300000}]},
       funcionarios:{list:async()=>[{id:101,empresa_id:1,obra_atual_id:10,cargo_id:201,nome:'João QA',cpf:'12345678901',status:'ativo',salario_centavos:0}]},
@@ -96,6 +98,7 @@ try{
   await page.screenshot({path:path.join(outDir,'01-electron-settings-sync.png'),fullPage:true});
 
   await page.getByRole('button',{name:'Testar conexão'}).click();await page.getByText('Conexão online ativa — Empresa QA.').waitFor({state:'visible'});
+  await syncCard.getByText('Diagnóstico e recuperação de vínculo').click();
   await syncCard.getByLabel('Empresa local').selectOption('1');await syncCard.getByLabel('Obra local').selectOption('10');await syncCard.getByRole('button',{name:'Conferir vínculo e ativar'}).click();
   const publishDialog=page.getByRole('dialog',{name:'Confirmar publicação desta obra'});await publishDialog.waitFor({state:'visible'});await publishDialog.getByRole('button',{name:'Confirmar'}).click();await syncCard.getByText('Vínculo de sincronização configurado.').waitFor({state:'visible'});
 
@@ -109,6 +112,20 @@ try{
   await page.goto(`${base}/#/rh/folha`,{waitUntil:'domcontentloaded'});await page.getByRole('heading',{name:'Controle de pagamento',exact:true}).waitFor({state:'visible'});await page.getByText('Visão geral da competência').waitFor({state:'visible'});await page.screenshot({path:path.join(outDir,'03-electron-rh-payroll.png'),fullPage:true});
   await page.goto(`${base}/#/financeiro?tipo=pagar`,{waitUntil:'domcontentloaded'});await page.getByRole('heading',{name:'Contas',exact:true}).waitFor({state:'visible'});await page.getByText('Total previsto na competência').waitFor({state:'visible'});await page.screenshot({path:path.join(outDir,'04-electron-finance-competence.png'),fullPage:true});
   await page.goto(`${base}/#/dre`,{waitUntil:'domcontentloaded'});await page.getByRole('heading',{name:'Demonstrativo de resultado',exact:true}).waitFor({state:'visible'});await page.getByText('Realizado',{exact:true}).first().waitFor({state:'visible'});await page.screenshot({path:path.join(outDir,'05-electron-dre-competence-realized.png'),fullPage:true});
+  await page.goto(`${base}/#/rdo?obra=10`,{waitUntil:'domcontentloaded'});
+  await page.getByText('Diário de validação QA').waitFor();
+  await page.getByRole('button',{name:'Novo RDO'}).click();
+  const rdo=page.getByRole('dialog',{name:'Novo RDO'});
+  await rdo.getByRole('button',{name:'Adicionar pessoa'}).click();
+  await rdo.locator('select').filter({has:page.locator('option[value="101"]')}).selectOption('101');
+  await rdo.locator('textarea[required]').fill('Serviço executado');
+  await rdo.getByRole('button',{name:'Salvar RDO'}).click();
+  await page.waitForFunction(()=>window.__desktopQaCalls.some(c=>c.name==='campo.saveRdo'&&c.payload.obra_id===10&&Number(c.payload.equipe[0]?.funcionario_id)===101&&c.payload.equipe[0]?.nome==='João QA'));
+  await page.getByRole('button',{name:'Materiais',exact:true}).click();
+  const stock=page.getByRole('dialog',{name:'Consumo de materiais da obra'});
+  await stock.locator('select').selectOption('mat_qa');
+  await stock.getByRole('button',{name:'Confirmar consumo'}).click();
+  await page.waitForFunction(()=>window.__desktopQaCalls.some(c=>c.name==='campo.materials'&&c.payload.expectedRevision===3&&c.payload.items[0]?.material_id==='mat_qa'&&c.payload.requestId));
   const report={schemaVersion:2,status:'passed',generatedAt:new Date().toISOString(),surface:'electron-renderer',linkingVisible:true,syncObservabilityVisible:true,syncConfiguration:true,manualSync:true,conflictResolution:true,canonicalFinanceParity:true,calls,screenshots:['00-electron-settings-hub-command-center.png','01-electron-settings-sync.png','02-electron-sync-reconciled.png','03-electron-rh-payroll.png','04-electron-finance-competence.png','05-electron-dre-competence-realized.png']};
   await fs.writeFile(path.join(outDir,'report.json'),JSON.stringify(report,null,2)+'\n','utf8');console.log(`DESKTOP_RENDERER_TRANSACTIONAL_QA=${path.join(outDir,'report.json')}`);await context.close();
 }finally{if(browser)await browser.close().catch(()=>{});server.kill('SIGTERM');await new Promise(resolve=>setTimeout(resolve,300))}

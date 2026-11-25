@@ -16,7 +16,7 @@ class FieldService {
         this.db.db.prepare('DELETE FROM rdo_equipe WHERE rdo_id=?').run(rdo.id)
         this.db.db.prepare('DELETE FROM rdo_equipamentos WHERE rdo_id=?').run(rdo.id)
         this.db.db.prepare('DELETE FROM rdo_ocorrencias WHERE rdo_id=?').run(rdo.id)
-        this.db.db.prepare('DELETE FROM rdo_anexos WHERE rdo_id=?').run(rdo.id)
+        if (Array.isArray(payload.anexos)) this.db.db.prepare('DELETE FROM rdo_anexos WHERE rdo_id=?').run(rdo.id)
       }
 
       for (const row of rdoChildRows(equipe, rdo.id, data.frente_id, 'equipe')) this.db.save('rdo_equipe', row)

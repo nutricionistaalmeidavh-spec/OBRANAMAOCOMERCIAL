@@ -1,7 +1,7 @@
 import { createCompanyRoutes } from './owner-companies';
 import { restrictForemanSnapshot } from './field-snapshot-rules';
 import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts } from './field-rdo-delivery';
-import { getFieldRdoCatalog, publishFieldRdoCatalog } from './field-rdo-catalog-cloud';
+import { fieldRdoOrigin, getFieldRdoCatalog, publishFieldRdoCatalog } from './field-rdo-catalog-cloud';
 import { uploadFieldPhoto, readFieldPhoto, removeFieldPhoto } from './field-rdo-photos';
 import { centralRoleForEmail, requireCentralAccess } from './central-access';
 import { validateDesktopChange } from '../../../packages/contracts/src/desktop-sync';
@@ -315,6 +315,11 @@ export const handler=router({
   'POST /api/desktop/storage/topology':[async(ctx)=>{const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));if(!session||session.member?.role!=='admin'||!session.device.companyId)return error('Apenas Admin pode alterar a forma de uso dos computadores.',403);const mode=String(body.mode||''),serverId=String(body.serverId||'').trim()||undefined,validateOnly=body.validateOnly===true;if(mode==='local-single'){const devices=(await db.list<Device>('devices',{limit:100})).items.filter(d=>d.companyId===session.device.companyId&&d.status==='active'&&d.id!==session.device.id);if(devices.length)return error(`Existem ${devices.length} outro(s) computador(es) ativo(s). Revogue-os antes de voltar para uso somente neste computador.`,409)}try{const candidate={mode:mode as any,serverId,updatedByDeviceId:session.device.id};const current=await getCompanyStorageTopology(session.device.companyId);assertAdvancedServerEntitlement(candidate,session.access.advancedServer===true,current);if(validateOnly)return json({ok:true,current,candidate});const topology=await setCompanyStorageTopology(session.device.companyId,candidate);return json({storageTopology:topology})}catch(e){return error((e as Error).message,/adicional de licença/.test((e as Error).message)?403:400)}}],
   'POST /api/desktop/devices':[async(ctx)=>{const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''));if(!session||session.member?.role!=='admin'||!session.device.companyId)return error('Apenas Admin pode gerenciar computadores.',403);const {items}=await db.list<Device>('devices',{limit:100});return json({devices:items.filter(d=>d.companyId===session.device.companyId).map(d=>({id:d.id,name:d.name,platform:d.platform,email:d.email,status:d.status,lastSeenAt:d.lastSeenAt,installationId:d.installationId}))})}],
   'POST /api/desktop/devices/revoke':[async(ctx)=>{const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));if(!session||session.member?.role!=='admin'||!session.device.companyId)return error('Apenas Admin pode revogar computadores.',403);const targetId=String(body.deviceId||''),[target]=await db.get<Device>('devices',[targetId]);if(!target||target.companyId!==session.device.companyId)return error('Computador não encontrado nesta empresa.',404);await db.update('devices',[{id:targetId,record:{...target,status:'revoked',updatedAt:now()} as unknown as Record<string,unknown>}]);return json({ok:true})}],
+  'POST /api/desktop/field/rdo/catalog/origin':[async(ctx)=>{
+    const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''))
+    if(!session?.device.projectId || session.member?.role!=='admin' || !session.access.modules.some(m=>m==='rdo'||m==='obra360'))return error('Consulta não autorizada.',403)
+    return json({origin:await fieldRdoOrigin(session.device.projectId,session.device.id)})
+  }],
   'POST /api/desktop/field/rdo/catalog/publish':[async(ctx)=>{
     const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
     if(!session||!session.device.projectId)return error('Desktop sem obra vinculada.',403);
