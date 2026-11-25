@@ -442,7 +442,10 @@ class UniversalImportService {
           + (scoped ? ' AND empresa_id=?' : '') + (onlyActive ? ' AND deleted_at IS NULL' : '')
         const args = scoped ? [String(name).trim(), company.id] : [String(name).trim()]
         let item = this.db.db.prepare(sql).get(...args)
-        if (!item) { item = this.db.save(table, data); created++ }
+        if (!item) {
+          item = this.db.save(table, data); created++
+          if (table === 'obras') { try { this.db.db.prepare('INSERT OR IGNORE INTO desktop_sync_skip_auto(work_id) VALUES (?)').run(item.id) } catch {} }
+        }
         return item
       }
       const workByName = (name) => findOrCreate('obras', 'nome', String(name || '').trim(), { empresa_id: company.id, nome: String(name || '').trim(), status: 'planejada' })

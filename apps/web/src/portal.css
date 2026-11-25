@@ -158,3 +158,4 @@
 .cp-snapshot-status.is-stale{color:#865016;background:#fff5e5;border-color:#efce95}
 .cp-snapshot-placeholder{color:transparent;background:#e0e9f0;border-color:transparent;min-height:38px}
 .cp-wordmark{overflow-wrap:anywhere;white-space:normal;line-height:1.05}
+.cp-project-switch{display:flex;align-items:center;gap:10px;margin:10px 0 0;font-weight:600;color:#34425a}.cp-project-switch select{flex:1;min-height:44px;border:1px solid #d6deea;border-radius:12px;padding:0 12px;font:inherit;background:#fff}

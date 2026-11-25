@@ -496,7 +496,7 @@ function registerIpc() {
   ipcMain.handle('backup:create', envelope(() => services.backup.create()))
   ipcMain.handle('backup:restore', envelope(() => withSyncStopped(async () => {
     const result = await services.backup.restore()
-    if (result?.restored) services.db.db.prepare('DELETE FROM desktop_sync_scope WHERE id=1').run()
+    if (result?.restored) { services.db.db.prepare('DELETE FROM desktop_sync_scope WHERE id=1').run(); try { services.db.db.prepare('DELETE FROM desktop_sync_extra_scopes').run() } catch {} }
     return result
   })))
   ipcMain.handle('backup:open-data-folder', envelope(() => services.backup.openDataFolder()))
@@ -582,6 +582,8 @@ function registerIpc() {
   ipcMain.handle('online:sync-state', envelope(() => services.sync.state()))
   ipcMain.handle('online:sync-configure', envelope((scope) => withSyncStopped(() => services.sync.configure(scope))))
   ipcMain.handle('online:sync-now', envelope(() => { requireSyncAvailable(); return services.sync.run({ retryNow: true }) }))
+  ipcMain.handle('online:sync-projects', envelope(() => { requireSyncAvailable(); return services.sync.listProjects() }))
+  ipcMain.handle('online:sync-add-project', envelope(async ({ workId, remoteProjectId }) => { requireSyncAvailable(); const result = await services.sync.addProject({ workId, remoteProjectId }); services.sync.run({ retryNow: true }).catch(() => {}); return result }))
   ipcMain.handle('online:sync-link-field-rdo', envelope(({ date }) => { requireSyncAvailable(); return services.sync.linkFieldRdo(String(date || '')) }))
   ipcMain.handle('online:sync-resolve-local', envelope(({ id, resolution }) => withSyncStopped(() => services.sync.resolveLocalConflict(id, resolution))))
   ipcMain.handle('online:sync-pull', envelope(({ sinceRevision }) => services.online.syncPull(sinceRevision)))

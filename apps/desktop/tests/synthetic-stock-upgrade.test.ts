@@ -20,7 +20,7 @@ it('atualiza base fictícia Desktop 26 para 31 preservando todos os dados anteri
   // Invoke the production migration runner on a populated, isolated database.
   // Backup mechanics are separate from schema preservation and not simulated here.
   service.migrate(false)
-  expect(service.db.pragma('user_version',{simple:true})).toBe(32)
+  expect(service.db.pragma('user_version',{simple:true})).toBe(33)
   const catalog=service.db.transaction(()=>check(service.db,ids,before))()
   service.close();service.open()
   expect(rows(service.db,'SELECT id,uid FROM materiais_estoque ORDER BY id')).toEqual(catalog)
