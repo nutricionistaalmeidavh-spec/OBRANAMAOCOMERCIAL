@@ -55,7 +55,7 @@ describe('Commercial login and overview DOM flows', () => {
     expect(Array.from(document.querySelectorAll('.cp-bottom-nav span')).map(node=>node.textContent)).toContain('Mais');
     expect(document.querySelector('[data-resource="gestao"]')).toBeNull();
     expect(document.querySelector('[data-resource="obra"]')).not.toBeNull();
-    expect(document.querySelector('[data-resource="universidade"]')).not.toBeNull();
+    expect(document.querySelector('[data-resource="universidade"]')).toBeNull();
     expect(document.body.textContent).not.toContain('Resumo da gestão');
     expect(client.get.mock.calls.map(call=>call[0])).toEqual(['/api/central/access','/api/bootstrap']);
   });

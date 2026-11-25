@@ -1,3 +1,4 @@
+import { retiredUniversityResponse } from './university-availability';
 import { handler } from '../backend/index';
 import { drainLicenseDeliveries } from '../backend/license-delivery';
 import { handleAsaasWebhook } from '../backend/asaas-webhook';
@@ -67,6 +68,8 @@ export default {
     else await task;
   },
   async fetch(request: Request, env: any, ctx?: { waitUntil(promise: Promise<unknown>): void }) {
+    const universityRetired=retiredUniversityResponse(request);
+    if(universityRetired)return universityRetired;
     // DevKitTools was retired: block all legacy URLs before SEO, static assets and application handlers.
     const retiredPath = new URL(request.url).pathname;
     if (/^\/(?:devkits|devkitools)(?:\/|$)/i.test(retiredPath)) {

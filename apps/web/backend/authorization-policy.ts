@@ -14,6 +14,7 @@ const REQUIRED_MODULE: Partial<Record<LicensedPlatformSystem, string>> = {
 }
 
 export function canAccessPlatformSystem(system: LicensedPlatformSystem, input: PlatformAuthorizationInput) {
+  if (system === 'universidade') return false
   if (input.isExplicitAdmin) return true
   if (!input.systemEnabled || !input.licenseActive) return false
   const required = REQUIRED_MODULE[system]

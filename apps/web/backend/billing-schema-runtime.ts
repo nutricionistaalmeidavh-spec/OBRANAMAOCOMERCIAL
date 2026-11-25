@@ -169,12 +169,12 @@ export async function ensureBillingSchema(env:Pick<RuntimeEnv,'DB'>){
     id,plan_code,version,name,price_cents,currency,interval_code,
     modules_json,channels_json,max_users,max_projects,max_devices,active,created_at
   ) VALUES
-  ('catalog_essencial_monthly_v1','essencial_monthly',1,'Essencial',14900,'BRL','monthly','["obra360","rdo","documents","universidade"]','["desktop","mobile"]',5,3,2,1,CURRENT_TIMESTAMP),
-  ('catalog_essencial_yearly_v1','essencial_yearly',1,'Essencial',149000,'BRL','yearly','["obra360","rdo","documents","universidade"]','["desktop","mobile"]',5,3,2,1,CURRENT_TIMESTAMP),
-  ('catalog_pro_monthly_v1','pro_monthly',1,'Pro',29900,'BRL','monthly','["finance","rh","contracts","rdo","obra360","dre","procurement","measurements","documents","universidade","ai"]','["desktop","mobile"]',20,10,5,1,CURRENT_TIMESTAMP),
-  ('catalog_pro_yearly_v1','pro_yearly',1,'Pro',299000,'BRL','yearly','["finance","rh","contracts","rdo","obra360","dre","procurement","measurements","documents","universidade","ai"]','["desktop","mobile"]',20,10,5,1,CURRENT_TIMESTAMP),
-  ('catalog_empresa_monthly_v1','empresa_monthly',1,'Empresa',49900,'BRL','monthly','["finance","rh","contracts","rdo","obra360","dre","procurement","measurements","documents","universidade","ai"]','["desktop","mobile"]',60,30,15,1,CURRENT_TIMESTAMP),
-  ('catalog_empresa_yearly_v1','empresa_yearly',1,'Empresa',499000,'BRL','yearly','["finance","rh","contracts","rdo","obra360","dre","procurement","measurements","documents","universidade","ai"]','["desktop","mobile"]',60,30,15,1,CURRENT_TIMESTAMP)`).run();
+  ('catalog_essencial_monthly_v1','essencial_monthly',1,'Essencial',14900,'BRL','monthly','["obra360","rdo","documents"]','["desktop","mobile"]',5,3,2,1,CURRENT_TIMESTAMP),
+  ('catalog_essencial_yearly_v1','essencial_yearly',1,'Essencial',149000,'BRL','yearly','["obra360","rdo","documents"]','["desktop","mobile"]',5,3,2,1,CURRENT_TIMESTAMP),
+  ('catalog_pro_monthly_v1','pro_monthly',1,'Pro',29900,'BRL','monthly','["finance","rh","contracts","rdo","obra360","dre","procurement","measurements","documents","ai"]','["desktop","mobile"]',20,10,5,1,CURRENT_TIMESTAMP),
+  ('catalog_pro_yearly_v1','pro_yearly',1,'Pro',299000,'BRL','yearly','["finance","rh","contracts","rdo","obra360","dre","procurement","measurements","documents","ai"]','["desktop","mobile"]',20,10,5,1,CURRENT_TIMESTAMP),
+  ('catalog_empresa_monthly_v1','empresa_monthly',1,'Empresa',49900,'BRL','monthly','["finance","rh","contracts","rdo","obra360","dre","procurement","measurements","documents","ai"]','["desktop","mobile"]',60,30,15,1,CURRENT_TIMESTAMP),
+  ('catalog_empresa_yearly_v1','empresa_yearly',1,'Empresa',499000,'BRL','yearly','["finance","rh","contracts","rdo","obra360","dre","procurement","measurements","documents","ai"]','["desktop","mobile"]',60,30,15,1,CURRENT_TIMESTAMP)`).run();
 
   for(const code of CANONICAL_PLAN_CODES){
     const active=await env.DB.prepare('SELECT id FROM billing_plan_versions WHERE plan_code=? AND active=1 ORDER BY version DESC LIMIT 1').bind(code).first<{id:string}>();

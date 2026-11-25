@@ -1,3 +1,5 @@
+import { rmSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 import { configDefaults } from 'vitest/config';
 import { applyPrivateNoindexHtml, applyPublicSeoHtml } from './seo-transform.mjs';
@@ -7,6 +9,15 @@ const PRIVATE_HTML = ['sistema.html', 'gestao.html', 'obra.html', 'universidade.
 export default defineConfig({
   base: './',
   plugins: [
+    {
+      name: 'retire-university-public-assets',
+      apply: 'build',
+      closeBundle() {
+        for (const path of ['manifest-universidade.webmanifest','icon-universidade.svg','question-images','resources/question-visual-map.json','resources/question-visuals-manifest.json']) {
+          rmSync(resolve('dist',path), { recursive: true, force: true });
+        }
+      }
+    },
     {
       name: 'artisys-seo',
       enforce: 'pre',
