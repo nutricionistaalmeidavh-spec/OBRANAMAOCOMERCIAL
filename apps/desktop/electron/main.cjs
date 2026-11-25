@@ -373,7 +373,7 @@ function registerIpc() {
   ipcMain.handle('procurement:stock-export', envelope(async ({filters,format})=>{
     const result=await services.procurement.stockExport(filters)
     const history=filters?.history===true
-    const fields=history?[['empresa_nome','Empresa'],['obra_nome','Obra'],['etapa_nome','Etapa'],['descricao','Material'],['unidade','Unidade'],['tipo','Tipo'],['quantidade','Quantidade'],['data','Data']]:[['empresa_nome','Empresa'],['obra_nome','Obra'],['etapa_nome','Etapa'],['descricao','Material'],['unidade','Unidade'],['entradas','Entradas'],['saidas','Saídas'],['saldo','Saldo'],['custo_medio_centavos','Custo médio estimado (R$)'],['saldo_estimado_centavos','Saldo valorizado estimado (R$)']]
+    const fields=history?[['empresa_nome','Empresa'],['obra_nome','Obra'],['etapa_nome','Etapa'],['descricao','Material'],['unidade','Unidade'],['tipo','Tipo'],['quantidade','Quantidade'],['data','Data']]:[['empresa_nome','Empresa'],['obra_nome','Obra'],['etapa_nome','Etapa'],['descricao','Material'],['unidade','Unidade'],['entradas','Entradas'],['saidas','Saídas'],...(filters?.frente_id?[['liquido_etapa','Líquido da etapa']]:[]),['saldo','Saldo físico da obra'],['custo_medio_centavos','Custo médio estimado (R$)'],['saldo_estimado_centavos','Saldo valorizado estimado (R$)']]
     const rows=result.rows.map(row=>Object.fromEntries(fields.map(([key])=>[key,key.endsWith('_centavos')&&row[key]!=null?row[key]/100:row[key]??''])))
     return services.operationalSheet.exportFile({area:'estoque',format,filename:'estoque',columns:fields.map(([key,label])=>({key,label})),rows})
   }))

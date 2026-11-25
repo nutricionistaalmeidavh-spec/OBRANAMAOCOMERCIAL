@@ -1,5 +1,5 @@
 import domainCore from './domain-core.cjs'
-const { stockPage, validateStockMovement } = domainCore
+const { stockPage, stockWorkBalances, validateStockMovement } = domainCore
 function idempotencyKey(value) {
   const key = String(value || '').trim()
   if (!key) throw new Error('Identificador idempotente da operação não informado.')
@@ -22,15 +22,7 @@ export class ProcurementService {
     const requested = this.db.prepare("SELECT COUNT(*) total FROM solicitacoes_compra WHERE obra_id=? AND deleted_at IS NULL AND status NOT IN ('cancelada','concluida')").get(id).total
     const ordered = this.db.prepare("SELECT COALESCE(SUM(valor_centavos),0) total FROM pedidos_compra WHERE obra_id=? AND deleted_at IS NULL AND status NOT IN ('cancelado','recebido')").get(id).total
     const received = this.db.prepare('SELECT COALESCE(SUM(quantidade_recebida),0) total FROM recebimentos_materiais r JOIN pedidos_compra p ON p.id=r.pedido_compra_id WHERE p.obra_id=? AND p.deleted_at IS NULL').get(id).total
-    const stock = this.db.prepare(`
-      SELECT descricao, unidade,
-        SUM(CASE WHEN tipo='entrada' THEN quantidade WHEN tipo='ajuste' THEN quantidade ELSE -quantidade END) saldo
-      FROM movimentacoes_estoque
-      WHERE obra_id=?
-      GROUP BY lower(descricao), unidade
-      HAVING saldo > 0
-      ORDER BY descricao
-    `).all(id)
+    const stock = stockWorkBalances(this.db,id)
     return {
       solicitacoes_abertas:Number(requested || 0),
       comprometido_centavos:Number(ordered || 0),

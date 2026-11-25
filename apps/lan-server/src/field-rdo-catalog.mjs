@@ -27,7 +27,8 @@ export class FieldRdoCatalog {
       WHERE obra_id=? AND descricao IS NOT NULL AND trim(descricao)<>'' AND trim(unidade)<>''
       GROUP BY lower(trim(descricao)),lower(trim(unidade))
       ORDER BY descricao,unidade
-      LIMIT 1200`).all(id)
+      LIMIT 1201`).all(id)
+    if(rows.length>1200)throw new Error('Catálogo excede a capacidade da sincronização móvel (1.200 materiais). Nenhum catálogo parcial será publicado.')
     const materials=rows.map(row=>({
       id:materialIdentity(id,row.descricao,row.unidade),
       descricao:clean(row.descricao),unidade:clean(row.unidade),saldo:Number(row.saldo)||0

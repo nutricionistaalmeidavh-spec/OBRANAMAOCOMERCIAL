@@ -296,27 +296,45 @@ function stockPage(db, filters={}, {exportMode=false}={}) {
   const limit=exportMode?10000:filters.limit===undefined?50:positive(filters.limit,'Página')
   const offset=exportMode?0:Number(filters.offset??0)
   if(limit>(exportMode?10000:100)||!Number.isSafeInteger(offset)||offset<0)throw new Error('Paginação inválida.')
-  const conditions=['o.deleted_at IS NULL'],args=[]
-  for(const [field,sql] of [['empresa_id','o.empresa_id'],['obra_id','m.obra_id'],['frente_id','m.frente_id']]){
-    if(filters[field]!==undefined&&filters[field]!==null&&filters[field]!==''){conditions.push(sql+'=?');args.push(positive(filters[field],field))}
-  }
-  const q=String(filters.q??'').trim().slice(0,200)
-  if(q){conditions.push("(instr(lower(trim(m.descricao)),lower(?))>0 OR instr(lower(trim(m.unidade)),lower(?))>0 OR instr(lower(o.nome),lower(?))>0 OR instr(lower(COALESCE(f.nome,'')),lower(?))>0 OR instr(lower(COALESCE(e.nome_fantasia,e.razao_social)),lower(?))>0)");args.push(q,q,q,q,q)}
-  const from=" FROM movimentacoes_estoque m JOIN obras o ON o.id=m.obra_id JOIN empresas e ON e.id=o.empresa_id LEFT JOIN frentes_obra f ON f.id=m.frente_id LEFT JOIN pedido_compra_itens pi ON pi.id=m.pedido_item_id WHERE "+conditions.join(' AND ')
   const history=filters.history===true||filters.history==='true'
-  const grouped=" GROUP BY m.obra_id,COALESCE(m.frente_id,0),lower(trim(m.descricao)),lower(trim(m.unidade))"
-  const covered="SUM(CASE WHEN m.tipo IN ('entrada','ajuste') AND pi.quantidade_pedida>0 THEN m.quantidade ELSE 0 END)"
-  const cost="SUM(CASE WHEN m.tipo IN ('entrada','ajuste') AND pi.quantidade_pedida>0 THEN 1.0*pi.valor_centavos*m.quantidade/pi.quantidade_pedida ELSE 0 END)"
-  const valuation=", CASE WHEN "+covered+">0 THEN CAST(ROUND("+cost+"/"+covered+") AS INTEGER) END custo_medio_centavos"
+  const stage=filters.frente_id!=null&&filters.frente_id!==''?positive(filters.frente_id,'Etapa'):null
+  const conditions=['o.deleted_at IS NULL'],args=[]
+  for(const [field,sql] of [['empresa_id','o.empresa_id'],['obra_id','m.obra_id']]){
+    if(filters[field]!=null&&filters[field]!==''){conditions.push(sql+'=?');args.push(positive(filters[field],field))}
+  }
+  if(history&&stage){conditions.push('m.frente_id=?');args.push(stage)}
+  const q=String(filters.q??'').trim().slice(0,200)
+  const match="(instr(lower(trim(m.descricao)),lower(?))>0 OR instr(lower(trim(m.unidade)),lower(?))>0 OR instr(lower(o.nome),lower(?))>0 OR instr(lower(COALESCE(f.nome,'')),lower(?))>0 OR instr(lower(COALESCE(e.nome_fantasia,e.razao_social)),lower(?))>0)"
+  if(history&&q){conditions.push(match);args.push(q,q,q,q,q)}
+  const from=" FROM movimentacoes_estoque m JOIN obras o ON o.id=m.obra_id JOIN empresas e ON e.id=o.empresa_id LEFT JOIN frentes_obra f ON f.id=m.frente_id LEFT JOIN pedido_compra_itens pi ON pi.id=m.pedido_item_id WHERE "+conditions.join(' AND ')
+  const scoped=stage?'m.frente_id='+stage:'1=1'
+  const incoming="m.tipo IN ('entrada','ajuste')"
+  const sum=(condition)=>"SUM(CASE WHEN "+condition+" THEN m.quantidade ELSE 0 END)"
+  const entries=sum(incoming+' AND '+scoped),exits=sum("m.tipo='saida' AND "+scoped)
+  const signed="SUM(CASE WHEN "+incoming+" THEN m.quantidade ELSE -m.quantidade END)"
+  const covered=sum(incoming+" AND pi.quantidade_pedida>0")
+  const cost="SUM(CASE WHEN "+incoming+" AND pi.quantidade_pedida>0 THEN 1.0*pi.valor_centavos*m.quantidade/pi.quantidade_pedida ELSE 0 END)"
+  // Do not present a partial purchase-price sample as the value of all stock.
+  const valuation=", CASE WHEN "+covered+">0 AND ABS("+covered+"-"+sum(incoming)+")<0.000001 THEN CAST(ROUND("+cost+"/"+covered+") AS INTEGER) END custo_medio_centavos"
+  const having=[]
+  if(!history&&stage)having.push('SUM(CASE WHEN '+scoped+' THEN 1 ELSE 0 END)>0')
+  if(!history&&q){having.push('MAX(CASE WHEN '+match+' THEN 1 ELSE 0 END)=1');args.push(q,q,q,q,q)}
+  const group=" GROUP BY m.obra_id,lower(trim(m.descricao)),lower(trim(m.unidade))"+(having.length?' HAVING '+having.join(' AND '):'')
+  const stageId=stage?String(stage):'NULL'
+  const stageName=stage?"MAX(CASE WHEN "+scoped+" THEN f.nome END)":"'Todas as etapas'"
   const sql=history
     ? "SELECT m.id,m.obra_id,o.empresa_id,o.nome obra_nome,COALESCE(e.nome_fantasia,e.razao_social) empresa_nome,m.frente_id,COALESCE(f.nome,'Obra geral') etapa_nome,m.descricao,m.unidade,m.tipo,m.quantidade,m.data"+from
-    : "SELECT MIN(m.id) id,m.obra_id,o.empresa_id,o.nome obra_nome,COALESCE(e.nome_fantasia,e.razao_social) empresa_nome,m.frente_id,COALESCE(f.nome,'Obra geral') etapa_nome,MIN(trim(m.descricao)) descricao,MIN(trim(m.unidade)) unidade,SUM(CASE WHEN m.tipo IN ('entrada','ajuste') THEN m.quantidade ELSE 0 END) entradas,SUM(CASE WHEN m.tipo='saida' THEN m.quantidade ELSE 0 END) saidas,SUM(CASE WHEN m.tipo IN ('entrada','ajuste') THEN m.quantidade ELSE -m.quantidade END) saldo"+valuation+from+grouped
+    : "SELECT MIN(m.id) id,m.obra_id,o.empresa_id,o.nome obra_nome,COALESCE(e.nome_fantasia,e.razao_social) empresa_nome,"+stageId+" frente_id,"+stageName+" etapa_nome,MIN(trim(m.descricao)) descricao,MIN(trim(m.unidade)) unidade,"+entries+" entradas,"+exits+" saidas,"+signed+" saldo,("+entries+"-"+exits+") liquido_etapa"+valuation+from+group
   const total=Number(db.prepare('SELECT COUNT(*) total FROM ('+sql+')').get(...args).total)
   if(exportMode&&total>limit)throw new Error('A exportação excede 10.000 registros. Refine os filtros para exportar todos os resultados.')
-  const rows=db.prepare(sql+(history?' ORDER BY m.data DESC,m.id DESC':' ORDER BY obra_nome,descricao,unidade,etapa_nome,id')+' LIMIT ? OFFSET ?').all(...args,limit,offset)
+  const rows=db.prepare(sql+(history?' ORDER BY m.data DESC,m.id DESC':' ORDER BY obra_nome,descricao,unidade,id')+' LIMIT ? OFFSET ?').all(...args,limit,offset)
   return {rows:history?rows:rows.map(r=>({...r,saldo_estimado_centavos:r.custo_medio_centavos===null?null:Math.round(r.custo_medio_centavos*r.saldo)})),total,limit,offset}
 }
-function stockBalance(db,payload,{allStages=false}={}){
+function stockWorkBalances(db,obraId){
+  return db.prepare("SELECT MIN(trim(descricao)) descricao,MIN(trim(unidade)) unidade,ROUND(SUM(CASE WHEN tipo='saida' THEN -quantidade ELSE quantidade END),6) saldo FROM movimentacoes_estoque WHERE obra_id=? GROUP BY lower(trim(descricao)),lower(trim(unidade)) HAVING saldo>0 ORDER BY descricao,unidade").all(obraId)
+}
+
+function stockBalance(db,payload,{allStages=true}={}){
   return Number(db.prepare("SELECT COALESCE(SUM(CASE WHEN tipo IN ('entrada','ajuste') THEN quantidade ELSE -quantidade END),0) total FROM movimentacoes_estoque WHERE obra_id=? AND (?=1 OR COALESCE(frente_id,0)=COALESCE(?,0)) AND lower(trim(descricao))=lower(trim(?)) AND lower(trim(unidade))=lower(trim(?))").get(payload.obra_id,allStages?1:0,payload.frente_id||null,payload.descricao,payload.unidade||'un').total)
 }
 function validateStockMovement(db,payload){
@@ -594,4 +612,4 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
   return {commit,receive,reverse}
 }
 
-module.exports={createReceivedNotesService,stockPage,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}
+module.exports={createReceivedNotesService,stockPage,stockWorkBalances,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}

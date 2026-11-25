@@ -1,4 +1,4 @@
-const { stockPage, validateStockMovement } = require('./domain-core.cjs')
+const { stockPage, stockWorkBalances, validateStockMovement } = require('./domain-core.cjs')
 class ProcurementService {
   constructor({ db }) { this.db = db }
 
@@ -10,11 +10,7 @@ class ProcurementService {
     const requested = this.db.db.prepare("SELECT COUNT(*) total FROM solicitacoes_compra WHERE obra_id=? AND deleted_at IS NULL AND status NOT IN ('cancelada','concluida')").get(id).total
     const ordered = this.db.db.prepare("SELECT COALESCE(SUM(valor_centavos),0) total FROM pedidos_compra WHERE obra_id=? AND deleted_at IS NULL AND status NOT IN ('cancelado','recebido')").get(id).total
     const received = this.db.db.prepare('SELECT COALESCE(SUM(quantidade_recebida),0) total FROM recebimentos_materiais r JOIN pedidos_compra p ON p.id=r.pedido_compra_id WHERE p.obra_id=? AND p.deleted_at IS NULL').get(id).total
-    const stock = this.db.db.prepare(`
-      SELECT descricao, unidade,
-        SUM(CASE WHEN tipo='entrada' THEN quantidade WHEN tipo='ajuste' THEN quantidade ELSE -quantidade END) saldo
-      FROM movimentacoes_estoque WHERE obra_id=? GROUP BY lower(descricao), unidade HAVING saldo > 0 ORDER BY descricao
-    `).all(id)
+    const stock = stockWorkBalances(this.db.db,id)
     return { solicitacoes_abertas: Number(requested), comprometido_centavos: Number(ordered), quantidade_recebida: Number(received), estoque: stock }
   }
 
