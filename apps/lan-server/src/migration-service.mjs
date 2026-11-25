@@ -1,8 +1,9 @@
+import {createHash} from 'node:crypto'
 const MODULE_TABLES = Object.freeze({
   core: ['empresas', 'clientes', 'obras'],
   operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
   planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
-  finance: ['fornecedores', 'materiais_estoque', 'material_reclassificacoes', 'material_fornecedor_equivalencias', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos', 'notas_recebidas', 'nota_recebida_itens'],
+  finance: ['fornecedores', 'materiais_estoque', 'material_reclassificacoes', 'material_fornecedor_equivalencias', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos', 'notas_recebidas', 'nota_recebida_itens','nota_recebida_xml','nota_recebida_contas','nota_recebida_recebimentos','nota_recebida_rateios','nota_recebida_estornos','nota_recebida_estorno_movimentos'],
   rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'importacoes', 'importacao_linhas', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'],
   documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais']
 })
@@ -29,7 +30,13 @@ const REF_MAP = Object.freeze({
   fornecedores: { empresa_id: 'empresas' },
   contas: { empresa_id: 'empresas', obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', fornecedor_id: 'fornecedores', cliente_id: 'clientes', categoria_id: 'categorias_financeiras', medicao_id: 'medicoes', solicitacao_compra_id: { table: 'solicitacoes_compra', deferred: true }, pedido_compra_id: { table: 'pedidos_compra', deferred: true }, contrato_id: { table: 'contratos_obra', deferred: true } },
   notas_recebidas: { empresa_id:'empresas', obra_id:'obras', fornecedor_id:'fornecedores', pedido_compra_id:'pedidos_compra', conta_id:'contas', documento_id:{table:'documentos',deferred:true} },
-  nota_recebida_itens: { nota_id:'notas_recebidas', frente_id:'frentes_obra', subfrente_id:'subfrentes_obra', pedido_item_id:'pedido_compra_itens' },
+  nota_recebida_itens: { nota_id:'notas_recebidas',obra_id:'obras',material_id:'materiais_estoque', frente_id:'frentes_obra', subfrente_id:'subfrentes_obra', pedido_item_id:'pedido_compra_itens' },
+  nota_recebida_xml:{nota_id:'notas_recebidas'},
+  nota_recebida_contas:{nota_id:'notas_recebidas',conta_id:'contas'},
+  nota_recebida_recebimentos:{nota_id:'notas_recebidas',nota_item_id:'nota_recebida_itens',movimento_id:'movimentacoes_estoque',recebimento_id:'recebimentos_materiais'},
+  nota_recebida_rateios:{nota_id:'notas_recebidas',conta_id:'contas',obra_id:'obras',frente_id:'frentes_obra',subfrente_id:'subfrentes_obra'},
+  nota_recebida_estornos:{nota_id:'notas_recebidas'},
+  nota_recebida_estorno_movimentos:{estorno_id:'nota_recebida_estornos',recebimento_fiscal_id:'nota_recebida_recebimentos',movimento_id:'movimentacoes_estoque'},
   pagamentos_conta: { conta_id: 'contas' },
   solicitacoes_compra: { obra_id: 'obras', frente_id: 'frentes_obra', etapa_id: 'etapas_obra', cotacao_escolhida_id: { table: 'cotacoes_compra', deferred: true } },
   cotacoes_compra: { solicitacao_id: 'solicitacoes_compra', fornecedor_id: 'fornecedores' },
@@ -155,6 +162,12 @@ export class MigrationService {
   remapData(migration, sourceTable, data) {
     const clean = { ...(data || {}) }
     delete clean.id
+    if(sourceTable==='nota_recebida_xml'){
+      const raw=String(clean.__xml_base64||'');delete clean.__xml_base64
+      const bytes=Buffer.from(raw,'base64')
+      if(!bytes.length||bytes.length>8*1024*1024||bytes.toString('base64')!==raw||createHash('sha256').update(bytes).digest('hex')!==clean.sha256)throw new Error('XML fiscal divergente na migração.')
+      clean.xml_original=bytes
+    }
     for (const [field, rawTarget] of Object.entries(REF_MAP[sourceTable] || {})) {
       const value = clean[field]
       if (value === null || value === undefined || value === '') continue
@@ -243,7 +256,8 @@ export class MigrationService {
         targetId = Number(saved.id)
       }
       this.db.prepare('INSERT INTO module_migration_records(migration_id,source_table,source_id,target_table,target_id,created_target,source_data_json,created_at) VALUES(?,?,?,?,?,?,?,?)')
-        .run(String(migrationId), table, asText(sourceId), table, targetId, createdTarget, JSON.stringify(table === 'arquivos' ? { ...(data || {}), __content_base64: undefined } : (data || {})), this.now())
+        .run(String(migrationId), table, asText(sourceId), table, targetId, createdTarget, JSON.stringify(table === 'arquivos' ? { ...(data || {}), __content_base64: undefined } : table==='nota_recebida_xml'?{...(data||{}),__xml_base64:undefined}:(data || {})), this.now())
+      if(table==='nota_recebida_contas')this.db.prepare("UPDATE contas SET origem_id=? WHERE id=? AND origem_tipo='nota_recebida'").run(remapped.nota_id,remapped.conta_id)
       this.backfillDeferredReferences(migrationRow.source_fingerprint, table, sourceId, targetId)
       this.db.exec('COMMIT')
       return { sourceTable: table, sourceId, targetId, reused: false }

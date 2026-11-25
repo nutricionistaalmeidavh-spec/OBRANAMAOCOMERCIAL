@@ -10,7 +10,8 @@ ALTER TABLE nota_recebida_itens ADD COLUMN quantidade_decimal TEXT;
 ALTER TABLE nota_recebida_itens ADD COLUMN valor_unitario_decimal TEXT;
 CREATE INDEX IF NOT EXISTS idx_nota_itens_obra ON nota_recebida_itens(obra_id,nota_id);
 CREATE TABLE IF NOT EXISTS nota_recebida_xml (
-  nota_id INTEGER PRIMARY KEY REFERENCES notas_recebidas(id),
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nota_id INTEGER NOT NULL UNIQUE REFERENCES notas_recebidas(id),
   sha256 TEXT NOT NULL,
   operacao_sha256 TEXT NOT NULL,
   xml_original BLOB NOT NULL,
@@ -19,11 +20,12 @@ CREATE TABLE IF NOT EXISTS nota_recebida_xml (
   criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS nota_recebida_contas (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   nota_id INTEGER NOT NULL REFERENCES notas_recebidas(id),
   conta_id INTEGER NOT NULL UNIQUE REFERENCES contas(id),
   parcela INTEGER NOT NULL,
   criada_na_importacao INTEGER NOT NULL CHECK(criada_na_importacao IN(0,1)),
-  PRIMARY KEY(nota_id,parcela)
+  UNIQUE(nota_id,parcela)
 );
 CREATE TABLE IF NOT EXISTS nota_recebida_recebimentos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,10 +50,11 @@ CREATE TABLE IF NOT EXISTS nota_recebida_estornos (
   criado_em TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS nota_recebida_estorno_movimentos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   estorno_id INTEGER NOT NULL REFERENCES nota_recebida_estornos(id),
   recebimento_fiscal_id INTEGER NOT NULL UNIQUE REFERENCES nota_recebida_recebimentos(id),
   movimento_id INTEGER NOT NULL UNIQUE REFERENCES movimentacoes_estoque(id),
-  PRIMARY KEY(estorno_id,recebimento_fiscal_id)
+  UNIQUE(estorno_id,recebimento_fiscal_id)
 );
 
 -- Fiscal quantities stay original; these columns snapshot the approved canonical conversion.

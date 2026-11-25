@@ -5,7 +5,7 @@ const MODULE_TABLES = Object.freeze({
   core: ['empresas', 'clientes', 'obras'],
   operation: ['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos', 'tarefas_obra'],
   planning: ['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'],
-  finance: ['fornecedores', 'materiais_estoque', 'material_reclassificacoes', 'material_fornecedor_equivalencias', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos', 'notas_recebidas', 'nota_recebida_itens'],
+  finance: ['fornecedores', 'materiais_estoque', 'material_reclassificacoes', 'material_fornecedor_equivalencias', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos', 'notas_recebidas', 'nota_recebida_itens','nota_recebida_xml','nota_recebida_contas','nota_recebida_recebimentos','nota_recebida_rateios','nota_recebida_estornos','nota_recebida_estorno_movimentos'],
   rh: ['cargos', 'beneficios', 'epis', 'funcionarios', 'funcionario_obras', 'cargo_beneficios', 'funcionario_beneficios', 'importacoes', 'importacao_linhas', 'folhas_pagamento', 'folha_lancamentos', 'pagamentos_funcionario', 'pontos_mensais', 'ponto_marcacoes', 'funcionario_epis', 'cargo_epi_kits'],
   documents: ['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais']
 })
@@ -203,6 +203,7 @@ class ModuleMigrationService {
   }
 
   normalizeExportRow(module, table, row) {
+    if(table==='nota_recebida_xml'){const {xml_original,...rest}=row;return {...rest,__xml_base64:Buffer.from(xml_original).toString('base64')}}
     if (table === 'importacoes' || table === 'importacao_linhas') return { ...row }
     if (module === 'rh') return { ...row, empresa_id: this.resolveLegacyRhCompanyId(table, row) }
     if (module === 'documents' && table === 'arquivos') {
@@ -221,7 +222,8 @@ class ModuleMigrationService {
     const records = {}
     const counts = {}
     for (const table of MODULE_TABLES[module]) {
-      const rows = [...(this.database.list(table, {}) || [])]
+      const raw=table==='notas_recebidas'&&this.tableHasColumn(table,'chave_acesso')?this.database.db.prepare('SELECT * FROM notas_recebidas WHERE deleted_at IS NULL OR chave_acesso IS NOT NULL').all():this.database.list(table,{})
+      const rows = [...(raw || [])]
         .sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
         .map(row => this.normalizeExportRow(module, table, row))
       records[table] = rows
@@ -261,6 +263,7 @@ class ModuleMigrationService {
     const supported = Array.isArray(capabilities?.modules) && capabilities.modules.includes(module)
     const requiredVersion = Number(MODULE_CONTRACT_VERSIONS[module] || 1)
     const remoteVersion = Number(capabilities?.moduleContractVersions?.[module] || 1)
+    if(module==='finance'&&exported.counts.nota_recebida_xml&&!capabilities?.features?.includes('nfe-integrated-migration-v1'))return {...base,reason:'capability_missing',requiredVersion,remoteVersion}
     if(module==='finance'&&exported.counts.material_reclassificacoes&&!capabilities?.features?.includes('stock-material-reclassification-v1'))return {...base,reason:'capability_missing',requiredVersion,remoteVersion}
     if(module==='finance'&&(exported.counts.materiais_estoque||exported.counts.material_fornecedor_equivalencias)&&!capabilities?.features?.includes('stock-material-catalog-v1'))return {...base,reason:'capability_missing',requiredVersion,remoteVersion}
     if (!supported || remoteVersion < requiredVersion) return { ...base, reason: 'capability_missing', requiredVersion, remoteVersion }
@@ -286,8 +289,8 @@ class ModuleMigrationService {
     if (remoteStatus?.sanityOk !== true) throw new Error('Sanidade central não foi confirmada após o commit; o módulo continuará em migration-required.')
     if (Array.isArray(remoteStatus?.missingTargets) && remoteStatus.missingTargets.length) throw new Error('Sanidade central encontrou mappings sem registro de destino.')
     for (const [table, expected] of Object.entries(expectedCounts || {})) {
-      if (Number(remoteStatus?.counts?.[table] ?? -1) !== Number(expected)) throw new Error(`Contagem remota pós-commit divergente em ${table}.`)
-      if (Number(remoteStatus?.targetCounts?.[table] ?? -1) !== Number(expected)) throw new Error(`Sanidade de destinos pós-commit divergente em ${table}.`)
+      if (Number(remoteStatus?.counts?.[table] ?? (Number(expected)===0?0:-1)) !== Number(expected)) throw new Error(`Contagem remota pós-commit divergente em ${table}.`)
+      if (Number(remoteStatus?.targetCounts?.[table] ?? (Number(expected)===0?0:-1)) !== Number(expected)) throw new Error(`Sanidade de destinos pós-commit divergente em ${table}.`)
     }
     return remoteStatus
   }
