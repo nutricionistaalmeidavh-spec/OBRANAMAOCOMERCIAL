@@ -95,3 +95,17 @@ it('revalida XML original no backend, identifica fornecedor e rejeita destinatá
   expect(service.nfeRecognize(source)).toMatchObject({elegivel_compra:false,registro_existente:{status_integracao:'integrada'}})
  }finally{f.close()}
 })
+
+it('confirma importação via serviço Desktop e apropria DRE multiobra sem duplicar a obrigação',()=>{
+ const f=fixture();try{
+  const s=new ProcurementService({db:f.adapter})
+  const result=s.nfeCommit(f.payload)
+  expect(s.nfeCommit(f.payload)).toMatchObject({nota_id:result.nota_id,replayed:true})
+  const dre=(work?:number)=>f.adapter.dre({competencia:'2026-11',empresa_id:f.payload.empresa_id,obra_id:work}).reduce((sum:number,r:any)=>sum+r.valor,0)
+  expect(dre()).toBe(12450)
+  expect(dre(f.payload.destinos[0].obra_id)).toBe(7470)
+  expect(dre(f.payload.destinos[1].obra_id)).toBe(4980)
+  expect(f.adapter.db.prepare('SELECT COUNT(*) n FROM contas').get().n).toBe(2)
+  expect(s.nfeDetails({empresa_id:f.payload.empresa_id,nota_id:result.nota_id}).itens.length).toBe(2)
+ }finally{f.close()}
+})
