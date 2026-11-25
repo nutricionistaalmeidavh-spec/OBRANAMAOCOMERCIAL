@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button, Card, Field, Loading, Empty, Modal, FormActions } from './ui'
+import MaterialReclassificationDialog from './MaterialReclassificationDialog'
 import { useStockRevision } from '../hooks/useStockRevision'
 import { useAsync } from '../hooks/useAsync'
 const attrs=[['categoria','Categoria'],['material','Composição'],['aplicacao','Aplicação'],['marca','Marca'],['referencia','Referência'],['diametro','Diâmetro'],['comprimento','Comprimento'],['dimensoes','Dimensões'],['especificacao','Especificação']] as const
@@ -7,6 +8,7 @@ const aliasBlank={fornecedor_id:'',codigo:'',unidade_comercial:'',descricao_orig
 export default function MaterialCatalogPanel({companyId}:{companyId:string}){
  const [query,setQuery]=useState(''),[search,setSearch]=useState(''),[page,setPage]=useState(0),[rev,setRev]=useState(0)
  const [draft,setDraft]=useState<any>(null),[selected,setSelected]=useState<any>(null),[alias,setAlias]=useState<any>(null),[aliasPage,setAliasPage]=useState(0),[message,setMessage]=useState(''),[busy,setBusy]=useState(false)
+ const [reclass,setReclass]=useState<any>(null)
  const lock=useRef(false)
  const {version,unavailable}=useStockRevision(companyId)
  useEffect(()=>{const id=setTimeout(()=>{setSearch(query.trim());setPage(0)},250);return()=>clearTimeout(id)},[query])
@@ -21,7 +23,7 @@ export default function MaterialCatalogPanel({companyId}:{companyId:string}){
  <div className="card-body row-actions"><input aria-label="Pesquisar catálogo" placeholder="Material, unidade ou código" value={query} onChange={e=>setQuery(e.target.value)}/><Button variant="secondary" onClick={()=>void result.reload()}>Atualizar</Button></div>
  {unavailable&&<p role="status" className="card-body">Não foi possível confirmar se o catálogo está atualizado.</p>}
  {message&&!draft&&!alias&&<p className="card-body" role="alert">{message}</p>}
- {result.loading?<Loading/>:result.error?<p className="card-body" role="alert">{result.error.message}</p>:result.data?.rows.length?<div className="table-wrap"><table className="data-table"><thead><tr><th>Material</th><th>Unidade</th><th>Classificação</th><th>Equivalências</th><th/></tr></thead><tbody>{result.data.rows.map(row=><tr key={row.id}><td>{row.descricao}</td><td>{row.unidade}</td><td>{row.origem==='confirmado'?'Confirmado':'Legado — revisar'}</td><td>{row.equivalencias}</td><td><div className="row-actions"><Button variant="secondary" onClick={()=>edit(row)}>Atributos</Button><Button variant="secondary" onClick={()=>{setSelected(row);setAliasPage(0);setMessage('')}}>Equivalências</Button></div></td></tr>)}</tbody></table></div>:<Empty title="Nenhum material encontrado" description="Cadastre um material ou importe uma planilha de estoque."/>}
+ {result.loading?<Loading/>:result.error?<p className="card-body" role="alert">{result.error.message}</p>:result.data?.rows.length?<div className="table-wrap"><table className="data-table"><thead><tr><th>Material</th><th>Unidade</th><th>Classificação</th><th>Equivalências</th><th/></tr></thead><tbody>{result.data.rows.map(row=><tr key={row.id}><td>{row.descricao}</td><td>{row.unidade}</td><td>{row.origem==='confirmado'?'Confirmado':'Legado — revisar'}</td><td>{row.equivalencias}</td><td><div className="row-actions"><Button variant="secondary" onClick={()=>edit(row)}>Atributos</Button><Button variant="secondary" onClick={()=>setReclass(row)}>Reclassificar</Button><Button variant="secondary" onClick={()=>{setSelected(row);setAliasPage(0);setMessage('')}}>Equivalências</Button></div></td></tr>)}</tbody></table></div>:<Empty title="Nenhum material encontrado" description="Cadastre um material ou importe uma planilha de estoque."/>}
  {result.data&&<div className="card-body row-actions"><span>{result.data.total} materiais</span><Button variant="secondary" disabled={!page||result.loading} onClick={()=>setPage(p=>p-1)}>Anterior</Button><Button variant="secondary" disabled={result.loading||(page+1)*50>=result.data.total} onClick={()=>setPage(p=>p+1)}>Próxima</Button></div>}
  {selected&&<div className="card-body"><div className="row-actions"><strong>{selected.descricao} — {selected.unidade}</strong><Button onClick={()=>{setMessage('');setAlias({...aliasBlank})}}>Confirmar equivalência</Button><Button variant="ghost" onClick={()=>setSelected(null)}>Fechar</Button></div>
  {aliases.loading?<Loading/>:aliases.error?<p role="alert">{aliases.error.message}</p>:aliasData?.rows.length?<div className="table-wrap"><table className="data-table"><thead><tr><th>Fornecedor</th><th>Código</th><th>Descrição original</th><th>Unidade comercial</th><th>Conversão</th></tr></thead><tbody>{aliasData.rows.map(row=><tr key={row.id}><td>{row.fornecedor_nome}</td><td>{row.codigo}</td><td>{row.descricao_origem}</td><td>{row.unidade_comercial}</td><td>{row.fator_num}/{row.fator_den} {selected.unidade}</td></tr>)}</tbody></table></div>:<p>Nenhuma equivalência confirmada.</p>}
@@ -41,5 +43,6 @@ export default function MaterialCatalogPanel({companyId}:{companyId:string}){
  <Field label="Quantidade comercial (denominador)" required><input required type="number" min={1} max={1000000000} step={1} value={alias?.fator_den||''} onChange={e=>setAlias((a:any)=>({...a,fator_den:e.target.value}))}/></Field>
  <p>Exemplo: 1 caixa com 10 peças → numerador 10, denominador 1. Não estime fatores.</p>
  </div><FormActions loading={busy} submitLabel="Confirmar vínculo" onCancel={()=>{if(!busy)setAlias(null)}}/></form></Modal>
+ {reclass&&<MaterialReclassificationDialog companyId={companyId} origin={reclass} onClose={()=>setReclass(null)} onSaved={()=>{setReclass(null);setSelected(null);setRev(v=>v+1);setPage(0)}}/>}
  </Card>
 }

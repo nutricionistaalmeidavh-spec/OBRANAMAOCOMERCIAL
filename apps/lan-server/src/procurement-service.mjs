@@ -1,5 +1,5 @@
 import domainCore from './domain-core.cjs'
-const { stockRevision, stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = domainCore
+const { materialReclassificationPreview,confirmMaterialReclassification,stockRevision, stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = domainCore
 function idempotencyKey(value) {
   const key = String(value || '').trim()
   if (!key) throw new Error('Identificador idempotente da operação não informado.')
@@ -13,6 +13,8 @@ export class ProcurementService {
     this.db = repository.connection()
   }
 
+  reclassificationPreview(payload){return materialReclassificationPreview(this.db,payload)}
+  reclassificationConfirm(payload,actor){const fn=()=>confirmMaterialReclassification(this.db,(table,data)=>this.repository.save(table,data),payload,actor);return (()=>{this.db.exec('BEGIN IMMEDIATE');try{const result=fn();this.db.exec('COMMIT');return result}catch(e){try{this.db.exec('ROLLBACK')}catch{}throw e}})()}
   stockRevision(filters){return stockRevision(this.db,filters)}
   catalogPage(filters){return materialCatalog(this.db,filters)}
   catalogAliases(filters){return materialAliases(this.db,filters)}

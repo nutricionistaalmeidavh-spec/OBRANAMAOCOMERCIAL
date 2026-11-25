@@ -9,7 +9,7 @@ export type FieldRdoCatalogRecord={
   fronts:Array<{id:number;nome:string}>;services:Array<{id:number;nome:string;frente_id:number|null}>;
   version:string;updatedAt:string;sourceDeviceId:string
 }
-const PAGE_SIZE=200
+const PAGE_SIZE=500
 type Manifest=Omit<FieldRdoCatalogRecord,'materials'> & {paged:true;total:number;pages:number}
 const readLatest=async(projectId:string):Promise<FieldRdoCatalogRecord|Manifest|null>=>{
  const row=await runtimeEnv().DB.prepare('SELECT record_json FROM kv_records WHERE collection=? AND id=?')

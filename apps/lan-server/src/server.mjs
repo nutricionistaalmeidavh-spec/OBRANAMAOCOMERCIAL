@@ -658,6 +658,15 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         authorizeAction(context,{domain:'finance',action:'view'})
         return sendJson(response,200,procurement.stockExport(Object.fromEntries(url.searchParams)))
       }
+      if(url.pathname==='/api/v1/procurement/material-reclassification/preview'||url.pathname==='/api/v1/procurement/material-reclassification/confirm'){
+        if(request.method!=='POST')return methodNotAllowed(response,['POST'])
+        if(!procurement?.reclassificationPreview)return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security),confirm=url.pathname.endsWith('/confirm')
+        authorizeAction(context,{domain:'finance',action:confirm?'edit':'view'})
+        const payload=await readJson(request)
+        const actor=String(context.member?.id||context.member?.email||'')
+        return sendJson(response,200,confirm?procurement.reclassificationConfirm(payload,actor):procurement.reclassificationPreview(payload))
+      }
       if(url.pathname==='/api/v1/procurement/stock-revision'){
         if(request.method!=='GET')return methodNotAllowed(response,['GET'])
         if(!procurement?.stockRevision)return sendJson(response,503,{error:'procurement_unavailable'})
