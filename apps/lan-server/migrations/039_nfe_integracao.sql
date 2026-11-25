@@ -118,3 +118,36 @@ CREATE TRIGGER IF NOT EXISTS nfe_receipt_update_guard BEFORE UPDATE ON recebimen
  WHEN EXISTS(SELECT 1 FROM nota_recebida_recebimentos r WHERE r.recebimento_id=OLD.id)
  AND (NEW.quantidade_recebida IS NOT OLD.quantidade_recebida OR NEW.pedido_item_id IS NOT OLD.pedido_item_id OR NEW.pedido_compra_id IS NOT OLD.pedido_compra_id OR NEW.data IS NOT OLD.data OR NEW.obra_id IS NOT OLD.obra_id OR NEW.frente_id IS NOT OLD.frente_id)
  BEGIN SELECT RAISE(ABORT,'Recebimento fiscal histórico: use estorno integrado.'); END;
+
+-- Read-only projection of each payment onto the fiscal cost allocation.
+-- FIFO by allocation id is deterministic and exact at centavo precision;
+-- original payments and bank reconciliations remain single canonical records.
+CREATE VIEW IF NOT EXISTS v_financeiro_pagamentos_apropriados AS
+ WITH pay AS (
+ SELECT p.*,COALESCE(SUM(p.valor_centavos) OVER(PARTITION BY p.conta_id ORDER BY p.data,p.id ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) prior
+ FROM pagamentos_conta p
+ ), allocation AS (
+ SELECT r.*,COALESCE(SUM(r.valor_centavos) OVER(PARTITION BY r.conta_id ORDER BY r.id ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) prior
+ FROM nota_recebida_rateios r
+ )
+ SELECT p.id pagamento_id,p.conta_id,p.data,c.empresa_id,c.obra_id,c.frente_id,NULL subfrente_id,0 rateio_id,p.valor_centavos
+ FROM pagamentos_conta p JOIN contas c ON c.id=p.conta_id WHERE NOT EXISTS(SELECT 1 FROM nota_recebida_rateios r WHERE r.conta_id=c.id)
+ UNION ALL
+ SELECT p.id,p.conta_id,p.data,c.empresa_id,r.obra_id,r.frente_id,r.subfrente_id,r.id,
+ MIN(p.prior+p.valor_centavos,r.prior+r.valor_centavos)-MAX(p.prior,r.prior)
+ FROM pay p JOIN allocation r ON r.conta_id=p.conta_id JOIN contas c ON c.id=p.conta_id
+ WHERE MIN(p.prior+p.valor_centavos,r.prior+r.valor_centavos)>MAX(p.prior,r.prior);
+CREATE VIEW IF NOT EXISTS v_financeiro_banco_apropriado AS
+ WITH bank AS (
+ SELECT a.id,a.pagamento_id,a.valor_centavos,t.id transacao_id,t.data,t.empresa_id,t.conta_bancaria_id,t.valor_centavos sinal,
+ COALESCE(SUM(a.valor_centavos) OVER(PARTITION BY a.pagamento_id ORDER BY t.data,t.id,a.id ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) prior
+ FROM reconciliacao_alocacoes a JOIN reconciliacao_lotes l ON l.id=a.lote_id AND l.status='active' JOIN transacoes_bancarias t ON t.id=l.transacao_bancaria_id
+ ), portions AS (
+ SELECT p.*,COALESCE(SUM(p.valor_centavos) OVER(PARTITION BY p.pagamento_id ORDER BY p.rateio_id ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0) prior
+ FROM v_financeiro_pagamentos_apropriados p
+ )
+ SELECT b.transacao_id,b.data,b.empresa_id,b.conta_bancaria_id,p.obra_id,p.frente_id,p.subfrente_id,
+ CASE WHEN b.sinal<0 THEN -1 ELSE 1 END*(MIN(b.prior+b.valor_centavos,p.prior+p.valor_centavos)-MAX(b.prior,p.prior)) valor_centavos
+ FROM bank b JOIN portions p ON p.pagamento_id=b.pagamento_id AND p.empresa_id=b.empresa_id
+ JOIN contas c ON c.id=p.conta_id
+ WHERE c.deleted_at IS NULL AND c.status!='cancelado' AND MIN(b.prior+b.valor_centavos,p.prior+p.valor_centavos)>MAX(b.prior,p.prior);
