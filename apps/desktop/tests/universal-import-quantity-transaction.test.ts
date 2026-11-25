@@ -18,10 +18,12 @@ function fixture(dataRows: any[][]) {
     'CREATE TABLE importacoes(id INTEGER PRIMARY KEY, arquivo TEXT, hash TEXT, aba TEXT, status TEXT, resumo TEXT, concluida_em TEXT);',
     'CREATE TABLE importacao_linhas(importacao_id INTEGER, competencia TEXT, celula TEXT, tipo TEXT, nome_origem TEXT, valor_centavos INTEGER, dados_brutos TEXT, entidade_tipo TEXT, entidade_id INTEGER, status TEXT);',
     'CREATE TABLE obras(id INTEGER PRIMARY KEY, empresa_id INTEGER, nome TEXT, status TEXT, deleted_at TEXT);',
+    'CREATE TABLE fornecedores(id INTEGER PRIMARY KEY,empresa_id INTEGER,deleted_at TEXT);CREATE TABLE pedidos_compra(id INTEGER PRIMARY KEY,obra_id INTEGER);CREATE TABLE pedido_compra_itens(id INTEGER PRIMARY KEY,pedido_compra_id INTEGER,descricao TEXT,unidade TEXT);',
     'CREATE TABLE frentes_obra(id INTEGER PRIMARY KEY, obra_id INTEGER, nome TEXT, status TEXT, deleted_at TEXT);',
     "CREATE TABLE movimentacoes_estoque(id INTEGER PRIMARY KEY, obra_id INTEGER, frente_id INTEGER, descricao TEXT NOT NULL, unidade TEXT, quantidade REAL NOT NULL CHECK(quantidade > 0), tipo TEXT NOT NULL CHECK(tipo IN ('entrada','saida','ajuste')), data TEXT, observacoes TEXT);",
   ].join('\n'))
 
+  for(const name of ['029_material_catalog.sql','030_stock_revision.sql','031_material_reclassification.sql'])sqlite.exec(readFileSync(resolve(here,'../database/migrations',name),'utf8'))
   const save = vi.fn((table: string, data: Record<string, any>) => {
     const keys = Object.keys(data)
     const sql = 'INSERT INTO ' + table + '(' + keys.join(',') + ') VALUES (' + keys.map(() => '?').join(',') + ')'
@@ -31,6 +33,7 @@ function fixture(dataRows: any[][]) {
   const source = readFileSync(resolve(here, '../electron/services/universal-import-service.cjs'), 'utf8')
   const mod = { exports: {} as any }
   const fakeRequire = (id: string): any => {
+    if (id === './domain-core.cjs') return localRequire('../electron/services/domain-core.cjs')
     if (id === 'electron') return { dialog: {} }
     if (id === './spreadsheet-guard.cjs') return { assertSpreadsheetInput: () => {} }
     if (id === './spreadsheet-reader.cjs') return {
@@ -58,6 +61,7 @@ function line(description: string, quantity: unknown) {
 }
 
 describe('P0/P1 importador universal: quantidades e atomicidade do estoque', () => {
+  it('reverte lote com saída superior ao saldo existente', async()=>{const {sqlite,importer,options}=fixture([line('Tubo',2),['Vila Real','Obra Geral','Tubo','UND',3,'saida']]);try{await expect(importer.commit('token',options)).rejects.toThrow(/estoque negativo/);expect(sqlite.prepare('SELECT COUNT(*) n FROM movimentacoes_estoque').get().n).toBe(0)}finally{sqlite.close()}})
   it('normaliza valores brasileiros e preserva decimais de células numéricas', () => {
     const { sqlite, module } = fixture([])
     try {

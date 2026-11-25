@@ -24,6 +24,7 @@ import WorkDetailPage from './pages/WorkDetailPage'
 import SchedulePage from './pages/SchedulePage'
 import DailyReportPage from './pages/DailyReportPage'
 import ProcurementPage from './pages/ProcurementPage'
+import StockPage from './pages/StockPage'
 import ProcurementContractsHubPage from './pages/ProcurementContractsHubPage'
 import HrTemplatesPage from './pages/HrTemplatesPage'
 import RhHubPage from './pages/RhHubPage'
@@ -89,6 +90,7 @@ export default function App() {
       <Route path={ROUTES.measurements} element={<MeasurementsPage/>}/>
       <Route path={ROUTES.procurementContracts} element={<ProcurementContractsHubPage/>}/>
       <Route path={ROUTES.procurement} element={<ProcurementPage/>}/>
+      <Route path={ROUTES.stock} element={<StockPage/>}/>
       <Route path={ROUTES.contracts} element={<ContractsPage/>}/>
       <Route path={ROUTES.registries} element={<RegistriesPage/>}/>
       <Route path={ROUTES.works} element={<WorksPage/>}/>

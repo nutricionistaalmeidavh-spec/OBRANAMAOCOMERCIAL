@@ -35,6 +35,7 @@ afterEach(() => {
 })
 
 describe('ModuleStorageStateService', () => {
+  it('consulta fonte operacional sem contar registros quando SQLite local ou LAN já ativa',()=>{const local=fixture({operationalMode:'local'});const localCount=vi.spyOn(local.service,'localRecordCount');expect(local.service.state('finance',{routingOnly:true}).state).toBe('local');expect(localCount).not.toHaveBeenCalled();const central=fixture();for(const module of ['core','operation','planning','finance']){central.service.write(module,'central-active');central.service.writeVersion(module,2)}const centralCount=vi.spyOn(central.service,'localRecordCount');expect(central.service.state('finance',{routingOnly:true}).state).toBe('central-active');expect(centralCount).not.toHaveBeenCalled();expect(central.service.state('finance').localRecords).toBeDefined()})
   it('mantém módulos locais quando a fonte operacional é local', async () => {
     const f = fixture({ operationalMode: 'local' })
     expect(f.service.state('core')).toEqual(expect.objectContaining({ module: 'core', state: 'local' }))

@@ -74,7 +74,7 @@ const SERVER_CAPABILITIES = Object.freeze({
   modules:['core','operation','planning','finance','rh','documents','summary'],
   moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:3,documents:2},
   bridgeEntities:['frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra'],
-  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1']
+  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1','stock-material-catalog-v1','stock-material-reclassification-v1','nfe-integrated-migration-v1']
 })
 
 function publicServerCapabilities(versionedRepository) {
@@ -153,7 +153,7 @@ async function readJson(request, maxBytes = MAX_BODY_BYTES) {
   }
 }
 
-const COMPOUND_MUTATION_TABLES = new Set(['medicoes','medicao_itens','pedidos_compra','pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos'])
+const COMPOUND_MUTATION_TABLES = new Set(['notas_recebidas','nota_recebida_itens','nota_recebida_xml','nota_recebida_contas','nota_recebida_recebimentos','nota_recebida_rateios','nota_recebida_estornos','nota_recebida_estorno_movimentos','medicoes','medicao_itens','pedidos_compra','pedido_compra_itens','recebimentos_materiais','movimentacoes_estoque','contratos_obra','contrato_aditivos','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos'])
 const COMPOUND_CREATE_TABLES = new Set([])
 
 function assertCanonicalEntityMutation(table, method, id) {
@@ -638,6 +638,65 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         }
         if (request.method!=='GET') return methodNotAllowed(response,['GET'])
         return sendJson(response,200,receivedNotes.read(id))
+      }
+
+      if(['/api/v1/procurement/nfe-commit','/api/v1/procurement/nfe-details','/api/v1/procurement/nfe-receive','/api/v1/procurement/nfe-reverse'].includes(url.pathname)){
+        if(request.method!=='POST')return methodNotAllowed(response,['POST'])
+        const action=url.pathname.split('/').pop(),methods={'nfe-commit':'nfeCommit','nfe-details':'nfeDetails','nfe-receive':'nfeReceive','nfe-reverse':'nfeReverse'},method=methods[action]
+        if(!procurement?.[method])return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'finance',action:action==='nfe-details'?'view':'edit'})
+        const payload=await readJson(request,action==='nfe-commit'?12*1024*1024:MAX_BODY_BYTES)
+        const actor=String(context.member?.memberId||context.member?.id||context.member?.email||'')
+        return sendJson(response,200,procurement[method](payload,actor))
+      }
+      if(url.pathname==='/api/v1/procurement/nfe-recognize'){
+        if(request.method!=='POST')return methodNotAllowed(response,['POST'])
+        if(!procurement?.nfeRecognize)return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'finance',action:'view'})
+        return sendJson(response,200,procurement.nfeRecognize(await readJson(request,12*1024*1024)))
+      }
+      if(url.pathname==='/api/v1/procurement/materials'||url.pathname==='/api/v1/procurement/material-aliases'){
+        if(!['GET','POST'].includes(request.method))return methodNotAllowed(response,['GET','POST'])
+        if(!procurement?.catalogPage)return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security)
+        const write=request.method==='POST',aliases=url.pathname.endsWith('material-aliases')
+        authorizeAction(context,{domain:'finance',action:write?'edit':'view'})
+        if(!write)return sendJson(response,200,aliases?procurement.catalogAliases(Object.fromEntries(url.searchParams)):procurement.catalogPage(Object.fromEntries(url.searchParams)))
+        const payload=await readJson(request)
+        const actor=String(context.member?.id||context.member?.email||'')
+        return sendJson(response,200,aliases?procurement.catalogConfirm(payload,actor):procurement.catalogSave(payload))
+      }
+      if (url.pathname === '/api/v1/procurement/stock-export') {
+        if(request.method!=='GET')return methodNotAllowed(response,['GET'])
+        if(!procurement?.stockExport)return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'finance',action:'view'})
+        return sendJson(response,200,procurement.stockExport(Object.fromEntries(url.searchParams)))
+      }
+      if(url.pathname==='/api/v1/procurement/material-reclassification/preview'||url.pathname==='/api/v1/procurement/material-reclassification/confirm'){
+        if(request.method!=='POST')return methodNotAllowed(response,['POST'])
+        if(!procurement?.reclassificationPreview)return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security),confirm=url.pathname.endsWith('/confirm')
+        authorizeAction(context,{domain:'finance',action:confirm?'edit':'view'})
+        const payload=await readJson(request)
+        const actor=String(context.member?.id||context.member?.email||'')
+        return sendJson(response,200,confirm?procurement.reclassificationConfirm(payload,actor):procurement.reclassificationPreview(payload))
+      }
+      if(url.pathname==='/api/v1/procurement/stock-revision'){
+        if(request.method!=='GET')return methodNotAllowed(response,['GET'])
+        if(!procurement?.stockRevision)return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'finance',action:'view'})
+        return sendJson(response,200,procurement.stockRevision(Object.fromEntries(url.searchParams)))
+      }
+      if (url.pathname === '/api/v1/procurement/stock-page') {
+        if (request.method !== 'GET') return methodNotAllowed(response, ['GET'])
+        if (!procurement?.stockPage) return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security)
+        authorizeAction(context,{domain:'finance',action:'view'})
+        return sendJson(response,200,procurement.stockPage(Object.fromEntries(url.searchParams)))
       }
 
       if (url.pathname === '/api/v1/procurement/summary') {

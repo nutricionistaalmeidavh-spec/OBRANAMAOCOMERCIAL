@@ -46,6 +46,8 @@ jobs:
       - name: Test Desktop
         working-directory: apps/desktop
         run: npm test
+      - name: Install pinned LAN dependencies
+        run: npm --prefix apps/lan-server ci --workspaces=false --ignore-scripts --no-audit --no-fund
       - name: Test LAN server
         run: npm --prefix apps/lan-server test
       - name: Build Desktop

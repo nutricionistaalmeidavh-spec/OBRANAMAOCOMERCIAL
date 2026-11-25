@@ -137,11 +137,11 @@ describe('P0 recebimento em lote atômico',()=>{
     const sqlite=memory()
     sqlite.exec(`
       CREATE TABLE pedidos_compra(id INTEGER PRIMARY KEY,obra_id INTEGER,frente_id INTEGER,status TEXT);
-      CREATE TABLE pedido_compra_itens(id INTEGER PRIMARY KEY,pedido_compra_id INTEGER,descricao TEXT,unidade TEXT,quantidade_pedida REAL,quantidade_recebida REAL);
+      CREATE TABLE pedido_compra_itens(id INTEGER PRIMARY KEY,pedido_compra_id INTEGER,descricao TEXT,unidade TEXT,quantidade_pedida REAL,quantidade_recebida REAL,material_id INTEGER);
       CREATE TABLE recebimentos_materiais(id INTEGER PRIMARY KEY,pedido_compra_id INTEGER,pedido_item_id INTEGER,obra_id INTEGER,frente_id INTEGER,data TEXT,quantidade_pedida REAL,quantidade_recebida REAL,nota_fiscal TEXT,documento_id INTEGER,observacoes TEXT);
-      CREATE TABLE movimentacoes_estoque(id INTEGER PRIMARY KEY,obra_id INTEGER,frente_id INTEGER,pedido_item_id INTEGER,tipo TEXT,descricao TEXT,unidade TEXT,quantidade REAL CHECK(quantidade>0),data TEXT,documento_id INTEGER,observacoes TEXT);
+      CREATE TABLE movimentacoes_estoque(id INTEGER PRIMARY KEY,obra_id INTEGER,frente_id INTEGER,pedido_item_id INTEGER,tipo TEXT,descricao TEXT,unidade TEXT,quantidade REAL CHECK(quantidade>0),data TEXT,documento_id INTEGER,observacoes TEXT,material_id INTEGER);
       INSERT INTO pedidos_compra VALUES (1,7,NULL,'emitido');
-      INSERT INTO pedido_compra_itens VALUES(10,1,'Tubo','un',2,0),(11,1,'Registro','un',1,0);
+      INSERT INTO pedido_compra_itens(id,pedido_compra_id,descricao,unidade,quantidade_pedida,quantidade_recebida) VALUES(10,1,'Tubo','un',2,0),(11,1,'Registro','un',1,0);
     `)
     const procurement=new ProcurementService({db:adapter(sqlite)})
     expect(()=>procurement.receiveMany({data:'2026-11-20',items:[

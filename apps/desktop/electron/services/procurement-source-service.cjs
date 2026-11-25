@@ -10,7 +10,7 @@ class ProcurementSourceService {
     this.pending = new Map()
   }
 
-  state() { return this.moduleStorage.state('finance').state }
+  state() { const info=this.moduleStorage.state('finance',{routingOnly:true}); if(info.state==='migration-required'&&(info.contractUpgradeRequired||Number(info.contractVersion||0)>0))return 'central-upgrade-blocked';return info.state }
   blocked() { throw new Error('Compras/estoque centrais ainda não estão ativos; nenhum dado será salvo localmente como fallback.') }
 
   key(kind, payload) {
@@ -32,6 +32,29 @@ class ProcurementSourceService {
     } catch (error) {
       throw error
     }
+  }
+
+  async reclassificationPreview(payload){const state=this.state();if(state==='local'||state==='migration-required')return this.local.reclassificationPreview(payload);if(state==='central-active')return this.lanClient.reclassificationPreview(payload);return this.blocked()}
+  async reclassificationConfirm(payload,actor){const state=this.state();if(state==='local'||state==='migration-required')return this.local.reclassificationConfirm(payload,actor);if(state==='central-active')return this.lanClient.reclassificationConfirm(payload);return this.blocked()}
+  async stockRevision(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.stockRevision(filters);if(state==='central-active')return this.lanClient.procurementStockRevision(filters);return this.blocked()}
+  async nfeOperation(method,payload,actor){const state=this.state();if(state==='local')return this.local[method](payload,actor);if(state==='central-active')return this.lanClient[method](payload);return this.blocked()}
+  async nfeCommit(payload){return this.nfeOperation('nfeCommit',payload)}
+  async nfeDetails(payload){return this.nfeOperation('nfeDetails',payload)}
+  async nfeReceive(payload){return this.nfeOperation('nfeReceive',payload)}
+  async nfeReverse(payload,actor){return this.nfeOperation('nfeReverse',payload,actor)}
+  async nfeRecognize(payload){const state=this.state();if(state==='local'||state==='migration-required')return this.local.nfeRecognize(payload);if(state==='central-active')return this.lanClient.nfeRecognize(payload);return this.blocked()}
+  async catalogPage(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogPage(filters);if(state==='central-active')return this.lanClient.catalogPage(filters);return this.blocked()}
+  async catalogAliases(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogAliases(filters);if(state==='central-active')return this.lanClient.catalogAliases(filters);return this.blocked()}
+  async catalogSave(payload){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogSave(payload);if(state==='central-active')return this.lanClient.catalogSave(payload);return this.blocked()}
+  async catalogConfirm(payload,actor){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogConfirm(payload,actor);if(state==='central-active')return this.lanClient.catalogConfirm(payload);return this.blocked()}
+
+  async stockExport(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.stockExport(filters);if(state==='central-active')return this.lanClient.procurementStockExport(filters);return this.blocked()}
+
+  async stockPage(filters) {
+    const state=this.state()
+    if(state==='local'||state==='migration-required')return this.local.stockPage(filters)
+    if(state==='central-active')return this.lanClient.procurementStockPage(filters)
+    return this.blocked()
   }
 
   async summary(obraId) {

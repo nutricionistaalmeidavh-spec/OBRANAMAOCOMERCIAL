@@ -90,6 +90,7 @@ class DataAccessService {
   }
 
   async save(table, data) {
+    if(/^nota_recebida_/.test(table)||table==='notas_recebidas')throw new Error('Use a operação canônica de notas recebidas.')
     if (this.assertRoute(table) === 'remote') return this.rememberRevision(table, await this.remote.save(table, data))
     return this.db.save(table, data)
   }
@@ -100,6 +101,7 @@ class DataAccessService {
   }
 
   async remove(table, id, expectedRevision) {
+    if(/^nota_recebida_/.test(table)||table==='notas_recebidas')throw new Error('Use a operação canônica de notas recebidas.')
     if (this.assertRoute(table) === 'remote') {
       const observedRevision = expectedRevision ?? this.observedRevisions.get(this.revisionKey(table, id))
       const removed = await this.remote.remove(table, id, observedRevision)

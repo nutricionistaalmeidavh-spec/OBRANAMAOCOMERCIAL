@@ -11,6 +11,7 @@ function createService(rows: any[][], headers = ['descricao', 'valor'], outputPa
   const source = readFileSync(resolve(here, '../electron/services/universal-import-service.cjs'), 'utf8')
   const mod = { exports: {} as any }
   const fakeRequire = (id: string): any => {
+    if (id === './domain-core.cjs') return originalRequire('../electron/services/domain-core.cjs')
     if (id === 'electron') return { dialog: { showSaveDialog: vi.fn(async () => ({ canceled: false, filePath: outputPath })) } }
     if (id === './spreadsheet-guard.cjs') return { assertSpreadsheetInput: () => {} }
     if (id === './spreadsheet-reader.cjs') return {

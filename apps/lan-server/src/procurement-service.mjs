@@ -1,3 +1,10 @@
+import domainCore from './domain-core.cjs'
+import { createRequire } from 'node:module'
+import nfeFs from 'node:fs'
+import nfePath from 'node:path'
+const nfeRequire=createRequire(import.meta.url)
+function trustedNfeParser(xml){const paths=[nfePath.join(import.meta.dirname,'nfe-xml.mjs'),nfePath.resolve(import.meta.dirname,'../../../packages/domain-core/nfe-xml.mjs'),nfePath.resolve(import.meta.dirname,'../../domain-core/nfe-xml.mjs')];const file=paths.find(p=>nfeFs.existsSync(p));if(!file)throw new Error('Parser fiscal não instalado. Atualize o servidor.');return nfeRequire(file).parseNfeXml(xml,nfeRequire('saxes').SaxesParser)}
+const { nfeDetails,createNfeIntegrationService,inspectNfeSource, materialReclassificationPreview,confirmMaterialReclassification,stockRevision, stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = domainCore
 function idempotencyKey(value) {
   const key = String(value || '').trim()
   if (!key) throw new Error('Identificador idempotente da operação não informado.')
@@ -11,21 +18,30 @@ export class ProcurementService {
     this.db = repository.connection()
   }
 
+  reclassificationPreview(payload){return materialReclassificationPreview(this.db,payload)}
+  reclassificationConfirm(payload,actor){const fn=()=>confirmMaterialReclassification(this.db,(table,data)=>this.repository.save(table,data),payload,actor);return (()=>{this.db.exec('BEGIN IMMEDIATE');try{const result=fn();this.db.exec('COMMIT');return result}catch(e){try{this.db.exec('ROLLBACK')}catch{}throw e}})()}
+  stockRevision(filters){return stockRevision(this.db,filters)}
+  nfeService(){return createNfeIntegrationService(this.db,{parseXml:trustedNfeParser,saveEntity:(table,data)=>this.repository.save(table,data)})}
+  nfeCommit(payload){return this.nfeService().commit(payload)}
+  nfeDetails(payload){return nfeDetails(this.db,payload)}
+  nfeReceive(payload){return this.nfeService().receive(payload)}
+  nfeReverse(payload,actor){return this.nfeService().reverse({...payload,operador:actor})}
+  nfeRecognize(payload){return inspectNfeSource(this.db,payload,trustedNfeParser)}
+  catalogPage(filters){return materialCatalog(this.db,filters)}
+  catalogAliases(filters){return materialAliases(this.db,filters)}
+  catalogSave(payload){const fn=()=>saveMaterialCatalog(this.db,(table,data)=>this.repository.save(table,data),payload);return (()=>{this.db.exec('BEGIN IMMEDIATE');try{const value=fn();this.db.exec('COMMIT');return value}catch(e){try{this.db.exec('ROLLBACK')}catch{}throw e}})()}
+  catalogConfirm(payload,actor){const fn=()=>confirmMaterialAlias(this.db,(table,data)=>this.repository.save(table,data),payload,actor);return (()=>{this.db.exec('BEGIN IMMEDIATE');try{const value=fn();this.db.exec('COMMIT');return value}catch(e){try{this.db.exec('ROLLBACK')}catch{}throw e}})()}
+
+  stockPage(filters){ return stockPage(this.db,filters) }
+  stockExport(filters){return stockPage(this.db,filters,{exportMode:true})}
+
   summary(obraId) {
     const id = Number(obraId)
     if (!Number.isSafeInteger(id) || id < 1) throw new Error('Obra inválida para compras.')
     const requested = this.db.prepare("SELECT COUNT(*) total FROM solicitacoes_compra WHERE obra_id=? AND deleted_at IS NULL AND status NOT IN ('cancelada','concluida')").get(id).total
     const ordered = this.db.prepare("SELECT COALESCE(SUM(valor_centavos),0) total FROM pedidos_compra WHERE obra_id=? AND deleted_at IS NULL AND status NOT IN ('cancelado','recebido')").get(id).total
-    const received = this.db.prepare('SELECT COALESCE(SUM(quantidade_recebida),0) total FROM recebimentos_materiais r JOIN pedidos_compra p ON p.id=r.pedido_compra_id WHERE p.obra_id=? AND p.deleted_at IS NULL').get(id).total
-    const stock = this.db.prepare(`
-      SELECT descricao, unidade,
-        SUM(CASE WHEN tipo='entrada' THEN quantidade WHEN tipo='ajuste' THEN quantidade ELSE -quantidade END) saldo
-      FROM movimentacoes_estoque
-      WHERE obra_id=?
-      GROUP BY lower(descricao), unidade
-      HAVING saldo > 0
-      ORDER BY descricao
-    `).all(id)
+    const received = this.db.prepare('SELECT COALESCE(SUM(quantidade_recebida),0) total FROM recebimentos_materiais r JOIN pedidos_compra p ON p.id=r.pedido_compra_id WHERE p.obra_id=? AND p.deleted_at IS NULL AND NOT EXISTS(SELECT 1 FROM nota_recebida_recebimentos nr JOIN nota_recebida_estorno_movimentos e ON e.recebimento_fiscal_id=nr.id WHERE nr.recebimento_id=r.id)').get(id).total
+    const stock = stockWorkBalances(this.db,id)
     return {
       solicitacoes_abertas:Number(requested || 0),
       comprometido_centavos:Number(ordered || 0),
@@ -144,6 +160,7 @@ export class ProcurementService {
         obra_id:order.obra_id,
         frente_id:order.frente_id || null,
         pedido_item_id:item.id,
+        material_id:item.material_id??null,
         documento_id:payload.documento_id || null,
         tipo:'entrada',
         descricao:item.descricao,
@@ -178,15 +195,7 @@ export class ProcurementService {
 
     this.db.exec('BEGIN IMMEDIATE')
     try {
-      if (payload.tipo === 'saida') {
-        const balance = Number(this.db.prepare(`
-          SELECT COALESCE(SUM(CASE WHEN tipo='entrada' THEN quantidade WHEN tipo='ajuste' THEN quantidade ELSE -quantidade END),0) total
-          FROM movimentacoes_estoque
-          WHERE obra_id=? AND COALESCE(frente_id,0)=COALESCE(?,0)
-            AND lower(descricao)=lower(?) AND unidade=?
-        `).get(payload.obra_id, payload.frente_id || null, payload.descricao, payload.unidade || 'un')?.total || 0)
-        if (balance < quantity) throw new Error('A saída deixaria o estoque negativo.')
-      }
+      validateStockMovement(this.db,payload)
       const movement = this.repository.save('movimentacoes_estoque', { ...payload, quantidade:quantity, request_id:key })
       this.db.exec('COMMIT')
       return movement

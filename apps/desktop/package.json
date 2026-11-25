@@ -1,6 +1,6 @@
 {
   "name": "obra-na-mao-desktop-commercial",
-  "version": "2.1.14",
+  "version": "2.1.15",
   "description": "Obra na Mão Desktop — edição comercial independente",
   "author": "Fluxo DRE",
   "main": "electron/updater-main.cjs",
@@ -43,7 +43,22 @@
         "filter": [
           "index.cjs",
           "received-notes.cjs",
-          "package.json"
+          "package.json",
+          "nfe-xml.mjs"
+        ]
+      },
+      {
+        "from": "node_modules/saxes",
+        "to": "lan-server/node_modules/saxes",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "node_modules/xmlchars",
+        "to": "lan-server/node_modules/xmlchars",
+        "filter": [
+          "**/*"
         ]
       }
     ],
@@ -89,6 +104,7 @@
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
     "recharts": "^3.10.1",
+    "saxes": "5.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

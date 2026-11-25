@@ -29,6 +29,8 @@ describe('ProcurementSourceService',()=>{
     expect(f.lanClient.procurementCreateOrder).not.toHaveBeenCalled()
   })
 
+  it('bloqueia leitura e escrita quando contrato central antigo requer atualização, sem retornar SQLite histórico',async()=>{const f=fixture('migration-required');f.moduleStorage.state.mockReturnValue({module:'finance',state:'migration-required',contractVersion:1} as any);await expect(f.service.stockPage({obra_id:1})).rejects.toThrow(/fallback/);await expect(f.service.moveStock({obra_id:1})).rejects.toThrow(/fallback/);expect(f.local.moveStock).not.toHaveBeenCalled()})
+
   it('central-ready bloqueia sem fallback', async()=>{
     const f=fixture('central-ready')
     await expect(f.service.createOrder({obra_id:1})).rejects.toThrow(/nenhum dado.*fallback/i)

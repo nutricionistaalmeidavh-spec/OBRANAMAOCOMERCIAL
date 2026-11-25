@@ -1,6 +1,7 @@
 import { FilePlus, Plus, Trash2, FileSpreadsheet } from 'lucide-react'
 import OperationalSheetGrid, { type SheetColumn, type SheetRow } from './OperationalSheetGrid'
 import {parseBrDecimal,requirePositiveQuantity} from '../utils/operational-sheet'
+import NfeIntegratedDetails from './NfeIntegratedDetails'
 import ReceivedCostsReport from './ReceivedCostsReport'
 import { FormEvent, useMemo, useState } from 'react'
 import { Button, Card, Empty, Field, FormActions, Loading, Modal } from './ui'
@@ -13,6 +14,7 @@ const emptyItem=():NoteItem=>({descricao:'',quantidade:'1',unidade:'un',valor_un
 const blank=():NoteForm=>({fornecedor_id:'',numero:'',serie:'',emissao:today(),data_recebimento:today(),pedido_compra_id:'',conta_id:'',observacoes:'',itens:[emptyItem()]})
 
 export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
+  const [integrated,setIntegrated]=useState<{empresa_id:number;nota_id:number}|null>(null)
   const [form,setForm]=useState<NoteForm|null>(null)
   const [saving,setSaving]=useState(false)
   const [error,setError]=useState('')
@@ -152,7 +154,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
     {notes.loading?<Loading/>:notes.data?.length?<div className="table-wrap"><table className="data-table">
       <thead><tr><th>Nota</th><th>Fornecedor</th><th>Emissão</th><th>Itens</th><th>Valor</th><th>Documento</th></tr></thead>
       <tbody>{notes.data.map((item:any)=><tr key={item.id}>
-        <td><strong>{item.numero}</strong><small>Série {item.serie||'—'}</small></td>
+        <td><strong>{item.numero}</strong><small>Série {item.serie||'—'}</small>{item.status_integracao==='integrada'&&<Button variant="secondary" onClick={()=>setIntegrated({empresa_id:Number(item.empresa_id),nota_id:Number(item.id)})}>Recebimentos e estorno</Button>}</td>
         <td>{item.fornecedor_nome}</td><td>{brDate(item.emissao)}</td>
         <td>{item.quantidade_itens}</td><td>{brl(item.valor_total_centavos)}</td>
         <td>{item.documento_id?<Button variant="secondary" onClick={()=>openAttachment(item.documento_id)}>Abrir documento</Button>:<Button variant="secondary" onClick={()=>attach(item.id)}>Anexar</Button>}</td>
@@ -164,6 +166,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
       <div className="stage-list">{summary.data.etapas.map((item:any)=><div key={String(item.frente_id??'geral')}><div><strong>Etapa: {item.nome}</strong></div><strong>{brl(item.valor_centavos)}</strong></div>)}</div>
       <div className="stage-list">{summary.data.subetapas?.map((item:any)=><div key={String(item.frente_id??'geral')+':'+String(item.subfrente_id??'geral')}><div><strong>{item.etapa_nome} / {item.subetapa_nome}</strong><span>{item.quantidade_itens} item(ns) de notas recebidas</span></div><span>{brl(item.valor_centavos)}</span></div>)}</div>
     </div>}
+    {integrated&&<NfeIntegratedDetails key={integrated.nota_id} scope={integrated} onClose={()=>setIntegrated(null)} onChanged={()=>{void notes.reload();void summary.reload();setReportRevision(v=>v+1)}}/>}
     <Modal open={!!form} title="Cadastrar nota recebida" onClose={()=>!saving&&setForm(null)} size="lg">
       <form onSubmit={submit}>
         <div className="modal-body form-grid">

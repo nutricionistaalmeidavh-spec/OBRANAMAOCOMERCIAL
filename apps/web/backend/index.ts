@@ -1,7 +1,7 @@
 import { createCompanyRoutes } from './owner-companies';
 import { restrictForemanSnapshot } from './field-snapshot-rules';
 import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts } from './field-rdo-delivery';
-import { getFieldRdoCatalog, publishFieldRdoCatalog } from './field-rdo-catalog-cloud';
+import { fieldRdoOrigin, getFieldRdoCatalog, publishFieldRdoCatalog } from './field-rdo-catalog-cloud';
 import { uploadFieldPhoto, readFieldPhoto, removeFieldPhoto } from './field-rdo-photos';
 import { centralRoleForEmail, requireCentralAccess } from './central-access';
 import { validateDesktopChange } from '../../../packages/contracts/src/desktop-sync';
@@ -209,7 +209,7 @@ export const handler=router({
   'POST /api/phone/field/rdo/catalog':[async(ctx)=>{
     const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));
     if('response'in gate)return gate.response;
-    return json({catalog:await getFieldRdoCatalog(gate.phoneAccess.projectId)})
+    const body=asRecord(ctx.body);try{return json({catalog:await getFieldRdoCatalog(gate.phoneAccess.projectId,{page:body.page===undefined?undefined:Number(body.page),version:body.version?String(body.version):undefined})})}catch(e){return error((e as Error).message,409)}
   }],
   'POST /api/phone/field/rdo/receipts':[async(ctx)=>{
     const gate=await requirePhoneField(String(asRecord(ctx.body).token||''));
@@ -318,8 +318,7 @@ export const handler=router({
   'POST /api/desktop/field/rdo/catalog/origin':[async(ctx)=>{
     const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''))
     if(!session?.device.projectId || session.member?.role!=='admin' || !session.access.modules.some(m=>m==='rdo'||m==='obra360'))return error('Consulta não autorizada.',403)
-    const catalog=await getFieldRdoCatalog(session.device.projectId)
-    return json({origin:catalog?.sourceDeviceId===session.device.id?{sourceDeviceId:session.device.id,localWorkId:catalog.workId}:null})
+    return json({origin:await fieldRdoOrigin(session.device.projectId,session.device.id)})
   }],
   'POST /api/desktop/field/rdo/catalog/publish':[async(ctx)=>{
     const body=asRecord(ctx.body),session=await deviceContext(String(body.deviceToken||''));
@@ -439,7 +438,7 @@ export const handler=router({
   'GET /api/field/rdo/catalog':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');
     if(gate.response)return gate.response;
-    return json({catalog:await getFieldRdoCatalog(gate.member!.projectId)})
+    try{return json({catalog:await getFieldRdoCatalog(gate.member!.projectId,{page:ctx.query.page===undefined?undefined:Number(ctx.query.page),version:ctx.query.version?String(ctx.query.version):undefined})})}catch(e){return error((e as Error).message,409)}
   }],
   'GET /api/field/rdo/receipts':[...secured,async(ctx)=>{
     const gate=await requireMember(ctx.user!,['admin','foreman'],'mobile','obra360');

@@ -4,6 +4,7 @@ import { Card, PageHeader } from '../components/ui'
 
 const cards = [
   {to:'/compras',title:'Compras e materiais',description:'Pedidos, materiais, recebimentos, estoque e custos vinculados às obras.',icon:PackageSearch},
+  {to:'/estoque',title:'Estoque',description:'Consulte saldos e movimentações dos materiais por obra.',icon:PackageSearch},
   {to:'/contratos',title:'Contratos e aditivos',description:'Contratos, aditivos, vigências, valores e documentos relacionados.',icon:FileArchive},
   {to:'/cadastros',title:'Empresas e parceiros',description:'Fornecedores, clientes, construtoras e demais parceiros comerciais.',icon:Building2},
 ]

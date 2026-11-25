@@ -40,6 +40,9 @@ Expand-Archive -Path $nodeArchive -DestinationPath $extractDir -Force
 $nodeExe = Join-Path $extractDir "node-v$nodeVersion-win-x64/node.exe"
 if (-not (Test-Path $nodeExe)) { throw "node.exe não encontrado após extração: $nodeExe" }
 
+& npm --prefix (Join-Path $repoRoot 'apps/lan-server') ci --workspaces=false --ignore-scripts --no-audit --no-fund
+if ($LASTEXITCODE -ne 0) { throw "Dependências fiscais do servidor não instaladas." }
+
 $builderModule = Join-Path $commonDir 'build-package.mjs'
 $platformFiles = @(
   @{ source = $winswPath; destination = 'ObraNaMaoServer.exe' },

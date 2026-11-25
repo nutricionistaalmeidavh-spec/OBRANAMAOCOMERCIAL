@@ -12,6 +12,7 @@ function serviceModule(): any {
   const source = readFileSync(resolve(here, '../electron/services/universal-import-service.cjs'), 'utf8')
   const mod = { exports: {} as any }
   const fakeRequire = (id: string): any => {
+    if (id === './domain-core.cjs') return originalRequire('../electron/services/domain-core.cjs')
     if (id === 'electron') return { dialog: {} }
     if (id === './spreadsheet-guard.cjs') return { assertSpreadsheetInput: () => {} }
     if (id === './spreadsheet-reader.cjs') return {
