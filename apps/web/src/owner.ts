@@ -18,8 +18,8 @@ type DeboraClient={email:string;planCode:string;status:'active'|'freemium'|'revo
 type LicenseEvent={id:string;product:'obra-na-mao'|'debora-lactacao';licenseId?:string;email?:string;action:string;source?:string;actor?:string;createdAt:string;details?:Record<string,unknown>};
 type OwnerView='overview'|'obra'|'debora'|'clients'|'licenses'|'leads'|'links'|'marketing';
 
-const modules=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','universidade','ai'];
-const labels:Record<string,string>={finance:'Financeiro',rh:'RH',contracts:'Contratos',rdo:'RDO',obra360:'Obra360',dre:'DRE',procurement:'Compras',measurements:'Medições',documents:'Documentos',universidade:'Universidade',ai:'IA',desktop:'Desktop',mobile:'Web / mobile'};
+const modules=['finance','rh','contracts','rdo','obra360','dre','procurement','measurements','documents','ai'];
+const labels:Record<string,string>={finance:'Financeiro',rh:'RH',contracts:'Contratos',rdo:'RDO',obra360:'Obra360',dre:'DRE',procurement:'Compras',measurements:'Medições',documents:'Documentos',ai:'IA',desktop:'Desktop',mobile:'Web / mobile'};
 const viewLabels:Record<OwnerView,string>={overview:'Visão geral',obra:'Obra na Mão',debora:'Débora Lactação',clients:'Clientes',licenses:'Licenças',leads:'Leads ArtiSys',links:'Visitas e cliques',marketing:'Marketing e SEO'};
 const productLabels={'obra-na-mao':'Obra na Mão','debora-lactacao':'Débora Lactação'} as const;
 const deboraTaskLabels={
