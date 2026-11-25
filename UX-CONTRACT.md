@@ -127,3 +127,6 @@
 
 - `/estoque` oferece o ponto de entrada direto nos dois layouts; a grade e o ledger de compras permanecem canônicos. O consolidado separa obra, etapa e unidade; seleção e navegação ficam na URL do HashRouter. A confirmação do importador deve oferecer continuidade para os saldos da empresa gravada.
 - A prévia NF-e local não grava dados. Exibe emitente, chave, itens, total fiscal e parcelas existentes; não declara autorização fiscal verificada externamente, recebimento físico ou obrigação financeira criada. Integração futura depende de comando transacional idempotente no owner financeiro, vínculo com pedido/conta e confirmação explícita de recebimento. Não publicar esta etapa como importação integrada final.
+
+### Núcleo fiscal P1 (não exposto)
+A operação compartilhada recebe bytes originais e depende de adaptador de parser confiável no processo proprietário. O cabeçalho canônico é notas_recebidas, com chave única; itens recebem destinos por obra, contas continuam em contas, movimentos em movimentacoes_estoque. XML e vínculos possuem tabelas relacionais auxiliares. A operação é transacional e não é acessível pelo renderer enquanto transporte, exportação/migração de dados, estorno e homologação estiverem pendentes. Não anunciar importação integrada como pronta.

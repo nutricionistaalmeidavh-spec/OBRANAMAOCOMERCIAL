@@ -43,11 +43,11 @@ function createReceivedNotesService(db) {
   }
   const list = obraId => {
     const id=positiveId(obraId,'Obra')
-    return db.prepare('SELECT n.*,f.nome AS fornecedor_nome,(SELECT COUNT(*) FROM nota_recebida_itens i WHERE i.nota_id=n.id) AS quantidade_itens FROM notas_recebidas n JOIN fornecedores f ON f.id=n.fornecedor_id WHERE n.obra_id=? AND n.deleted_at IS NULL ORDER BY n.emissao DESC,n.id DESC').all(id)
+    return db.prepare('SELECT n.*,f.nome AS fornecedor_nome,(SELECT COUNT(*) FROM nota_recebida_itens i WHERE i.nota_id=n.id) AS quantidade_itens FROM notas_recebidas n JOIN fornecedores f ON f.id=n.fornecedor_id WHERE n.deleted_at IS NULL AND (n.obra_id=? OR EXISTS(SELECT 1 FROM nota_recebida_itens i WHERE i.nota_id=n.id AND i.obra_id=?)) ORDER BY n.emissao DESC,n.id DESC').all(id,id)
   }
   const summary = obraId => {
     const id=positiveId(obraId,'Obra')
-    const grouped=db.prepare("SELECT i.frente_id,i.subfrente_id,COALESCE(f.nome,'Sem etapa') AS etapa_nome,COALESCE(s.nome,'Sem subetapa') AS subetapa_nome,COUNT(*) AS quantidade_itens,SUM(i.valor_total_centavos) AS valor_centavos FROM nota_recebida_itens i JOIN notas_recebidas n ON n.id=i.nota_id LEFT JOIN frentes_obra f ON f.id=i.frente_id LEFT JOIN subfrentes_obra s ON s.id=i.subfrente_id WHERE n.obra_id=? AND n.deleted_at IS NULL GROUP BY i.frente_id,i.subfrente_id ORDER BY etapa_nome,subetapa_nome").all(id)
+    const grouped=db.prepare("SELECT i.frente_id,i.subfrente_id,COALESCE(f.nome,'Sem etapa') AS etapa_nome,COALESCE(s.nome,'Sem subetapa') AS subetapa_nome,COUNT(*) AS quantidade_itens,SUM(i.valor_total_centavos) AS valor_centavos FROM nota_recebida_itens i JOIN notas_recebidas n ON n.id=i.nota_id LEFT JOIN frentes_obra f ON f.id=i.frente_id LEFT JOIN subfrentes_obra s ON s.id=i.subfrente_id WHERE COALESCE(i.obra_id,n.obra_id)=? AND n.deleted_at IS NULL GROUP BY i.frente_id,i.subfrente_id ORDER BY etapa_nome,subetapa_nome").all(id)
     const byStage=new Map()
     for (const entry of grouped) {
       const key=entry.frente_id??'none'
@@ -84,7 +84,7 @@ function createReceivedNotesService(db) {
     if (!Number.isSafeInteger(offset)||offset<0||offset>1000000) throw new Error('offset inválido.')
 
     // Never join accounts, payments, orders or stock into these totals.
-    const conditions=['n.obra_id=?','n.deleted_at IS NULL']
+    const conditions=['COALESCE(i.obra_id,n.obra_id)=?','n.deleted_at IS NULL']
     const params=[obraId]
     if(end){conditions.push('n.emissao<=?');params.push(end)}
     if(stageId){conditions.push('i.frente_id=?');params.push(stageId)}
@@ -326,4 +326,197 @@ function validateStockMovement(db,payload){
   if(payload.tipo==='saida'&&stockBalance(db,payload)+1e-9<qty)throw new Error('A saída deixaria o estoque negativo.')
 }
 
-module.exports={createReceivedNotesService,stockPage,stockBalance,validateStockMovement}
+
+const {createHash}=require('node:crypto')
+const digits=value=>String(value??'').replace(/\D/g,'')
+const fiscalDate=value=>{
+  const v=String(value??'')
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v)||!Number.isFinite(Date.parse(v+'T12:00:00Z'))||new Date(v+'T12:00:00Z').toISOString().slice(0,10)!==v)throw new Error('Data fiscal inválida.')
+  return v
+}
+function fixedDecimal(value,scale,label){
+  const text=String(value??'')
+  if(!/^\d{1,15}(?:\.\d{1,10})?$/.test(text))throw new Error(label+' inválido.')
+  const [integer,fraction='']=text.split('.')
+  if(fraction.length>scale&&/[1-9]/.test(fraction.slice(scale)))throw new Error(label+' excede a precisão suportada.')
+  return BigInt(integer)*10n**BigInt(scale)+BigInt((fraction.slice(0,scale)+'0'.repeat(scale)).slice(0,scale)||'0')
+}
+function safeInt(n,label){if(n<0n||n>BigInt(Number.MAX_SAFE_INTEGER))throw new Error(label+' excede o limite.');return Number(n)}
+function fiscalKeyValid(key){
+  if(!/^\d{44}$/.test(key))return false
+  let sum=0,w=2
+  for(let i=42;i>=0;i--){sum+=Number(key[i])*w;w=w===9?2:w+1}
+  const d=11-sum%11
+  return Number(key[43])===(d>=10?0:d)
+}
+function positiveFiscalId(value,label){const n=Number(value);if(!Number.isSafeInteger(n)||n<=0)throw new Error(label+' inválido.');return n}
+function fiscalRow(db,table,id,label){
+  const r=db.prepare('SELECT * FROM '+table+' WHERE id=?').get(positiveFiscalId(id,label))
+  if(!r||r.deleted_at)throw new Error(label+' inexistente.')
+  return r
+}
+function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
+  if(typeof parseXml!=='function'||typeof saveEntity!=='function')throw new Error('Adaptador fiscal de confiança obrigatório.')
+  const readXml=payload=>{
+    const source=payload?.xml_base64
+    if(typeof source!=='string'||source.length>12*1024*1024||!/^[A-Za-z0-9+/]+={0,2}$/.test(source))throw new Error('Arquivo XML inválido.')
+    const bytes=Buffer.from(source,'base64')
+    if(!bytes.length||bytes.length>8*1024*1024||bytes.toString('base64')!==source)throw new Error('Arquivo XML inválido ou muito grande.')
+    // Never trust a preview object supplied by the renderer.
+    const xml=new TextDecoder('utf-8',{fatal:true}).decode(bytes)
+    const parsed=parseXml(xml)
+    return {bytes,parsed,hash:createHash('sha256').update(bytes).digest('hex')}
+  }
+  const prepare=(payload,raw)=>{
+    const n=raw.parsed,company=fiscalRow(db,'empresas',payload.empresa_id,'Empresa'),supplier=fiscalRow(db,'fornecedores',payload.fornecedor_id,'Fornecedor')
+    if(company.status==='inativa'||digits(company.cnpj)!==digits(n.destinatario)||!/^\d{14}$/.test(digits(n.destinatario)))throw new Error('Destinatário da NF-e não corresponde à empresa ativa.')
+    if(supplier.empresa_id!==null&&Number(supplier.empresa_id)!==Number(company.id))throw new Error('Fornecedor de outra empresa.')
+    if(!digits(supplier.documento)||digits(supplier.documento)!==digits(n.documento))throw new Error('Documento do fornecedor não corresponde ao emitente.')
+    if(n.ambiente!=='1'||!['100','150'].includes(n.status)||!n.protocolo)throw new Error('Somente XML de produção com protocolo informado pode ser integrado.')
+    // Key encodes issuer, model, series and invoice number. A valid check digit alone is insufficient.
+    if(!fiscalKeyValid(n.chave)||n.chave.slice(6,20)!==digits(n.documento).padStart(14,'0')||n.chave.slice(20,22)!=='55'||n.chave.slice(22,25)!==String(n.serie).padStart(3,'0')||n.chave.slice(25,34)!==String(n.numero).padStart(9,'0'))throw new Error('Identidade fiscal divergente da chave.')
+    fiscalDate(n.emissao)
+    const total=fixedDecimal(n.total,2,'Total fiscal')
+    if(total<=0n)throw new Error('Total fiscal deve ser positivo.')
+    const sourceItems=new Map(n.itens.map(i=>[String(i.numero),i]))
+    if(!sourceItems.size||sourceItems.size!==n.itens.length)throw new Error('Itens fiscais ausentes ou repetidos.')
+    const products=n.itens.reduce((sum,i)=>sum+fixedDecimal(i.valor_produto,2,'Total do produto'),0n)
+    if(n.total_produtos&&fixedDecimal(n.total_produtos,2,'Total dos produtos')!==products)throw new Error('Total de produtos divergente.')
+    if(!Array.isArray(payload.destinos)||!payload.destinos.length||payload.destinos.length>5000)throw new Error('Classifique os destinos dos itens.')
+    const byItem=new Map(),destinos=[],scopeKeys=new Set(),usedOrderItems=new Set()
+    for(const [index,row] of payload.destinos.entries()){
+      const item=sourceItems.get(String(row.nfe_item_numero))
+      if(!item)throw new Error('Item fiscal não encontrado.')
+      const work=fiscalRow(db,'obras',row.obra_id,'Obra')
+      if(Number(work.empresa_id)!==Number(company.id))throw new Error('Obra pertence a outra empresa.')
+      const stage=row.frente_id?fiscalRow(db,'frentes_obra',row.frente_id,'Etapa'):null
+      if(stage&&Number(stage.obra_id)!==Number(work.id))throw new Error('Etapa de outra obra.')
+      const sub=row.subfrente_id?fiscalRow(db,'subfrentes_obra',row.subfrente_id,'Subetapa'):null
+      if(sub&&(!stage||Number(sub.obra_id)!==Number(work.id)||Number(sub.frente_id)!==Number(stage.id)))throw new Error('Subetapa incompatível.')
+      const qty=fixedDecimal(row.quantidade,6,'Quantidade destinada'),received=fixedDecimal(row.quantidade_recebida??'0',6,'Quantidade recebida'),cost=fixedDecimal(row.valor_alocado,2,'Custo destinado')
+      if(qty<=0n||received>qty)throw new Error('Quantidade destinada ou recebida inválida.')
+      safeInt(qty,'Quantidade')
+      const actual=byItem.get(String(item.numero))||{qty:0n,cost:0n}
+      actual.qty+=qty;actual.cost+=cost;byItem.set(String(item.numero),actual)
+      const category=fiscalRow(db,'categorias_financeiras',row.categoria_id??payload.categoria_id,'Categoria')
+      if(category.natureza!=='despesa'||!category.ativa)throw new Error('Categoria financeira inválida.')
+      let orderItem=null,order=null
+      if(row.pedido_item_id){
+        orderItem=fiscalRow(db,'pedido_compra_itens',row.pedido_item_id,'Item do pedido')
+        order=fiscalRow(db,'pedidos_compra',orderItem.pedido_compra_id,'Pedido')
+        if(Number(order.obra_id)!==Number(work.id)||Number(order.fornecedor_id)!==Number(supplier.id)||Number(order.frente_id||0)!==Number(stage?.id||0))throw new Error('Pedido incompatível com destino ou fornecedor.')
+        if(String(orderItem.descricao).trim().toLowerCase()!==String(item.descricao).trim().toLowerCase()||String(orderItem.unidade).trim().toLowerCase()!==String(item.unidade).trim().toLowerCase())throw new Error('Material do pedido diverge do item fiscal; concilie antes de confirmar.')
+        if(usedOrderItems.has(orderItem.id))throw new Error('O mesmo item de pedido não pode ser apropriado duas vezes.')
+        usedOrderItems.add(orderItem.id)
+        if(Number(received)/1e6+Number(orderItem.quantidade_recebida)>Number(orderItem.quantidade_pedida)+1e-9&&!row.recebimento_existente_id)throw new Error('Recebimento excede o pedido.')
+      }
+      let existingReceipt=null
+      if(row.recebimento_existente_id){
+        existingReceipt=fiscalRow(db,'recebimentos_materiais',row.recebimento_existente_id,'Recebimento')
+        if(!orderItem||Number(existingReceipt.pedido_item_id)!==Number(orderItem.id)||fixedDecimal(existingReceipt.quantidade_recebida,6,'Recebimento existente')!==received||received<=0n)throw new Error('Recebimento existente incompatível.')
+        if(db.prepare('SELECT id FROM nota_recebida_recebimentos WHERE recebimento_id=?').get(existingReceipt.id))throw new Error('Recebimento já vinculado a uma NF-e.')
+      }else if(orderItem&&Number(orderItem.quantidade_recebida)>0&&received>0n)throw new Error('Pedido já possui recebimentos: concilie os recebimentos anteriores antes de registrar novas entradas.')
+      const key=JSON.stringify([work.id,stage?.id||null,category.id])
+      scopeKeys.add(key)
+      destinos.push({index,item,work,stage,sub,qty,received,cost,category,orderItem,order,existingReceipt})
+    }
+    for(const [number,item] of sourceItems){
+      const allocated=byItem.get(number)
+      if(!allocated||allocated.qty!==fixedDecimal(item.quantidade,6,'Quantidade fiscal'))throw new Error('Quantidade dos destinos diverge do item '+number+'.')
+    }
+    if(destinos.reduce((s,x)=>s+x.cost,0n)!==total)throw new Error('Rateio de custos deve reconciliar integralmente o total fiscal.')
+    // No invented due dates. If XML has no duplicatas, the operator supplies an explicit schedule.
+    const parcelas=Array.isArray(payload.parcelas)?payload.parcelas:[]
+    if(!parcelas.length||parcelas.length>1000)throw new Error('Informe as parcelas e vencimentos.')
+    const seenAccounts=new Set()
+    const schedule=parcelas.map((p,i)=>{
+      const amount=fixedDecimal(p.valor,2,'Valor da parcela'),due=fiscalDate(p.vencimento)
+      if(amount<=0n)throw new Error('Valor da parcela inválido.')
+      const linked=p.conta_id?fiscalRow(db,'contas',p.conta_id,'Conta'):null
+      if(linked){
+        if(seenAccounts.has(linked.id)||Number(linked.empresa_id)!==Number(company.id)||Number(linked.fornecedor_id)!==Number(supplier.id)||linked.tipo!=='pagar'||linked.status==='cancelado'||BigInt(linked.valor_centavos)!==amount||linked.vencimento!==due)throw new Error('Conta existente incompatível com a parcela.')
+        if(db.prepare('SELECT nota_id FROM nota_recebida_contas WHERE conta_id=?').get(linked.id)||db.prepare('SELECT id FROM notas_recebidas WHERE conta_id=? AND deleted_at IS NULL').get(linked.id))throw new Error('Conta já vinculada a uma nota.')
+        seenAccounts.add(linked.id)
+      }
+      return {number:i+1,amount,due,linked}
+    })
+    if(schedule.reduce((s,x)=>s+x.amount,0n)!==total)throw new Error('Parcelas não reconciliam o valor fiscal.')
+    if(n.parcelas.length){
+      if(n.parcelas.length!==schedule.length||n.parcelas.some((p,i)=>fixedDecimal(p.valor,2,'Duplicata')!==schedule[i].amount||(p.vencimento&&p.vencimento!==schedule[i].due)))throw new Error('Parcelas divergem do XML; conciliação explícita necessária.')
+    }
+    // Existing purchase commitments must be reused, not silently doubled.
+    for(const {order} of destinos){
+      if(!order)continue
+      const candidates=db.prepare("SELECT id FROM contas WHERE pedido_compra_id=? AND tipo='pagar' AND status!='cancelado' AND deleted_at IS NULL").all(order.id)
+      if(candidates.some(c=>!seenAccounts.has(c.id))||(order.conta_id&&!seenAccounts.has(order.conta_id)))throw new Error('Concilie as contas já criadas pelo pedido.')
+    }
+    // An unlinked exact match is a possible manual obligation; never auto-create another.
+    for(const p of schedule){
+      if(p.linked)continue
+      const matches=db.prepare("SELECT id FROM contas WHERE empresa_id=? AND fornecedor_id=? AND tipo='pagar' AND valor_centavos=? AND vencimento=? AND status!='cancelado' AND deleted_at IS NULL").all(company.id,supplier.id,safeInt(p.amount,'Parcela'),p.due)
+      if(matches.some(m=>!seenAccounts.has(m.id)))throw new Error('Existe possível conta a pagar duplicada. Concilie antes de importar.')
+    }
+    // Multiple cost centers are carried by destinations. Do not falsely assign an entire obligation to one work.
+    const sameScope=scopeKeys.size===1
+    return {n,company,supplier,total,products,destinos,schedule,sameScope}
+  }
+  function commit(payload){
+    const raw=readXml(payload)
+    const companyId=positiveFiscalId(payload.empresa_id,'Empresa')
+    db.exec('BEGIN IMMEDIATE')
+    try{
+      const existing=db.prepare('SELECT n.id,n.status_integracao,x.sha256 FROM notas_recebidas n JOIN nota_recebida_xml x ON x.nota_id=n.id WHERE n.empresa_id=? AND n.chave_acesso=?').get(companyId,raw.parsed.chave)
+      if(existing){
+        if(existing.sha256!==raw.hash||existing.status_integracao!=='integrada')throw new Error('Chave fiscal já utilizada ou estornada; revise o registro original.')
+        db.exec('COMMIT')
+        return {nota_id:Number(existing.id),replayed:true}
+      }
+      const p=prepare(payload,raw),n=p.n
+      if(db.prepare('SELECT id FROM notas_recebidas WHERE empresa_id=? AND fornecedor_id=? AND numero=? AND serie=? AND deleted_at IS NULL').get(p.company.id,p.supplier.id,n.numero,n.serie))throw new Error('Nota documental já cadastrada. Conciliação manual necessária; nenhuma duplicata será criada.')
+      const principal=p.destinos[0].work.id
+      const orderIds=[...new Set(p.destinos.filter(d=>d.order).map(d=>Number(d.order.id)))]
+      const result=db.prepare("INSERT INTO notas_recebidas(empresa_id,obra_id,fornecedor_id,numero,serie,emissao,valor_total_centavos,pedido_compra_id,chave_acesso,status_integracao,total_produtos_centavos) VALUES(?,?,?,?,?,?,?,?,?,'integrada',?)").run(p.company.id,principal,p.supplier.id,n.numero,n.serie,n.emissao,safeInt(p.total,'Total'),orderIds.length===1?orderIds[0]:null,n.chave,safeInt(p.products,'Produtos'))
+      const id=Number(result.lastInsertRowid)
+      db.prepare('INSERT INTO nota_recebida_xml(nota_id,sha256,xml_original,ambiente,protocolo) VALUES(?,?,?,?,?)').run(id,raw.hash,raw.bytes,n.ambiente,n.protocolo)
+      const insert=db.prepare('INSERT INTO nota_recebida_itens(nota_id,obra_id,frente_id,subfrente_id,pedido_item_id,descricao,unidade,quantidade,valor_unitario_centavos,valor_total_centavos,nfe_item_numero,quantidade_decimal,valor_unitario_decimal) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      const receipt=db.prepare('INSERT INTO nota_recebida_recebimentos(nota_id,nota_item_id,movimento_id,recebimento_id,quantidade_decimal,origem,request_id,data) VALUES(?,?,?,?,?,?,?,?)')
+      const date=payload.data_recebimento?fiscalDate(payload.data_recebimento):null
+      for(const dest of p.destinos){
+        const qty=Number(dest.qty)/1e6
+        const cost=safeInt(dest.cost,'Custo')
+        const itemId=Number(insert.run(id,dest.work.id,dest.stage?.id??null,dest.sub?.id??null,dest.orderItem?.id??null,dest.item.descricao,dest.item.unidade,qty,Math.round(cost/qty),cost,String(dest.item.numero),String(dest.qty),String(dest.item.valor_unitario)).lastInsertRowid)
+        if(dest.received===0n)continue
+        if(!date&&!dest.existingReceipt)throw new Error('Confirme a data do recebimento físico.')
+        let movement=null,receivedId=null
+        if(dest.existingReceipt){receivedId=dest.existingReceipt.id}
+        else {
+          const quantity=Number(dest.received)/1e6
+          const stock={obra_id:dest.work.id,frente_id:dest.stage?.id??null,pedido_item_id:dest.orderItem?.id??null,tipo:'entrada',descricao:dest.item.descricao,unidade:dest.item.unidade,quantidade:quantity,data:date,observacoes:'NF-e '+n.chave,request_id:'nfe:'+id+':'+itemId}
+          validateStockMovement(db,stock)
+          if(dest.orderItem){
+            const r=saveEntity('recebimentos_materiais',{pedido_compra_id:dest.order.id,pedido_item_id:dest.orderItem.id,obra_id:dest.work.id,frente_id:dest.stage?.id??null,data:date,quantidade_pedida:dest.orderItem.quantidade_pedida,quantidade_recebida:quantity,nota_fiscal:n.numero,request_id:'nfe-receipt:'+id+':'+itemId})
+            receivedId=r.id
+            saveEntity('pedido_compra_itens',{id:dest.orderItem.id,quantidade_recebida:Number(dest.orderItem.quantidade_recebida)+quantity})
+            const pending=db.prepare('SELECT COUNT(*) total FROM pedido_compra_itens WHERE pedido_compra_id=? AND quantidade_recebida<quantidade_pedida').get(dest.order.id).total
+            saveEntity('pedidos_compra',{id:dest.order.id,status:Number(pending)>0?'recebido_parcial':'recebido'})
+          }
+          movement=saveEntity('movimentacoes_estoque',stock)
+        }
+        receipt.run(id,itemId,movement?.id??null,receivedId,String(dest.received),dest.existingReceipt?'existente':'novo','nfe:'+id+':'+itemId,date||dest.existingReceipt.data)
+      }
+      const accounts=[]
+      for(const part of p.schedule){
+        const scope=p.destinos[0]
+        const account=part.linked||saveEntity('contas',{empresa_id:p.company.id,obra_id:p.sameScope?scope.work.id:null,frente_id:p.sameScope?scope.stage?.id??null:null,fornecedor_id:p.supplier.id,categoria_id:p.sameScope?scope.category.id:null,tipo:'pagar',descricao:'NF-e '+n.numero+' — parcela '+part.number,competencia:n.emissao.slice(0,7),emissao:n.emissao,vencimento:part.due,valor_bruto_centavos:safeInt(part.amount,'Parcela'),valor_centavos:safeInt(part.amount,'Parcela'),status:'pendente',parcela_atual:part.number,total_parcelas:p.schedule.length,origem_tipo:'nota_recebida',origem_id:id})
+        db.prepare('INSERT INTO nota_recebida_contas(nota_id,conta_id,parcela,criada_na_importacao) VALUES(?,?,?,?)').run(id,account.id,part.number,part.linked?0:1)
+        accounts.push(Number(account.id))
+      }
+      db.prepare('UPDATE notas_recebidas SET conta_id=?,data_recebimento=? WHERE id=?').run(accounts.length===1?accounts[0]:null,date,id)
+      db.exec('COMMIT')
+      return {nota_id:id,contas:accounts,replayed:false}
+    }catch(e){try{db.exec('ROLLBACK')}catch{}throw e}
+  }
+  return {commit}
+}
+
+module.exports={createReceivedNotesService,stockPage,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}

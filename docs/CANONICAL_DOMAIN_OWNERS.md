@@ -40,3 +40,7 @@
 - LAN: rollback, revisão otimista e autorização do endpoint de remuneração;
 - renderer: RH hub, aliases e ownership de Configurações;
 - CI de PR: lint, testes Desktop, testes LAN, build e instalador.
+
+## Estoque e NF-e
+- `movimentacoes_estoque` permanece o ledger canônico; consultas paginadas e validação residem no domínio compartilhado, com adapter local/LAN. Compras e Estoque consomem a mesma projeção.
+- `notas_recebidas` permanece o cabeçalho documental/fiscal; `nota_recebida_itens` carrega apropriação e os vínculos não duplicam `contas` ou `movimentacoes_estoque`. Núcleo fiscal sem publicação: não habilitar IPC/HTTP até parser confiável, estorno e migração dos novos relacionamentos homologados.

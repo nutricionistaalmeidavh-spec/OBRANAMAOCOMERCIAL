@@ -31,7 +31,7 @@ export function validNfeKey(key:string){
   const remainder=11-total%11
   return Number(key[43])===(remainder>=10?0:remainder)
 }
-export type NfePreview={chave:string;numero:string;serie:string;emissao:string;fornecedor:string;documento:string;destinatario:string;total:string;protocolo:string;status:string;itens:{numero:string;codigo:string;descricao:string;unidade:string;quantidade:string;valor_unitario:string;valor_produto:string}[];parcelas:{numero:string;vencimento:string;valor:string}[]}
+export type NfePreview={chave:string;numero:string;serie:string;emissao:string;fornecedor:string;documento:string;destinatario:string;ambiente:string;total:string;total_produtos:string;componentes:Record<string,string>;protocolo:string;status:string;itens:{numero:string;codigo:string;descricao:string;unidade:string;quantidade:string;valor_unitario:string;valor_produto:string}[];parcelas:{numero:string;vencimento:string;valor:string}[]}
 export function parseNfePreview(xml:string):NfePreview{
   if(!xml.trim()||new TextEncoder().encode(xml).byteLength>MAX_NFE_BYTES)throw new Error('O XML deve ter conteúdo e até 8 MB.')
   if(/<!\s*(DOCTYPE|ENTITY)\b/i.test(xml))throw new Error('XML com declarações de entidades ou DTD não é aceito.')
@@ -76,7 +76,9 @@ export function parseNfePreview(xml:string):NfePreview{
   })
   if(!itens.length||new Set(itens.map(i=>i.numero)).size!==itens.length)throw new Error('Itens ausentes ou repetidos no XML.')
   const icms=one(one(info,'total')!,'ICMSTot')!
+  const componentes:Record<string,string>={}
+  for(const field of ['vProd','vFrete','vSeg','vDesc','vOutro','vIPI','vII','vST','vFCPST','vIPIDevol','vICMSDeson']){const raw=value(icms,field,false);if(raw)componentes[field]=decimal(raw,field)}
   const cobr=one(info,'cobr',false)
   const parcelas=(cobr?.children||[]).filter(n=>n.name==='dup').map((n,index)=>({numero:value(n,'nDup',false)||String(index+1),vencimento:value(n,'dVenc',false)?date(value(n,'dVenc'),'Vencimento'):'',valor:decimal(value(n,'vDup'),'Valor da parcela')}))
-  return {chave:key,numero:value(ide,'nNF'),serie:value(ide,'serie'),emissao:date(value(ide,'dhEmi',false)||value(ide,'dEmi'),'Emissão'),fornecedor:value(emit,'xNome'),documento:doc,destinatario:dest?(value(dest,'CNPJ',false)||value(dest,'CPF',false)):'',total:decimal(value(icms,'vNF'),'Total da nota'),protocolo:pi?value(pi,'nProt',false):'',status,itens,parcelas}
+  return {chave:key,numero:value(ide,'nNF'),serie:value(ide,'serie'),emissao:date(value(ide,'dhEmi',false)||value(ide,'dEmi'),'Emissão'),fornecedor:value(emit,'xNome'),documento:doc,destinatario:dest?(value(dest,'CNPJ',false)||value(dest,'CPF',false)):'',ambiente:value(ide,'tpAmb',false),total_produtos:componentes.vProd||'',componentes,total:decimal(value(icms,'vNF'),'Total da nota'),protocolo:pi?value(pi,'nProt',false):'',status,itens,parcelas}
 }
