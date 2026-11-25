@@ -304,8 +304,8 @@ function stockPage(db, filters={}, {exportMode=false}={}) {
   }
   if(history&&stage){conditions.push('m.frente_id=?');args.push(stage)}
   const q=String(filters.q??'').trim().slice(0,200)
-  const match="(instr(lower(trim(COALESCE(c.descricao,m.descricao))),lower(?))>0 OR instr(lower(trim(m.unidade)),lower(?))>0 OR instr(lower(o.nome),lower(?))>0 OR instr(lower(COALESCE(f.nome,'')),lower(?))>0 OR instr(lower(COALESCE(e.nome_fantasia,e.razao_social)),lower(?))>0)"
-  if(history&&q){conditions.push(match);args.push(q,q,q,q,q)}
+  const match="(instr(lower(trim(COALESCE(c.descricao,m.descricao))),lower(?))>0 OR instr(lower(trim(m.descricao)),lower(?))>0 OR instr(lower(trim(m.unidade)),lower(?))>0 OR instr(lower(o.nome),lower(?))>0 OR instr(lower(COALESCE(f.nome,'')),lower(?))>0 OR instr(lower(COALESCE(e.nome_fantasia,e.razao_social)),lower(?))>0)"
+  if(history&&q){conditions.push(match);args.push(q,q,q,q,q,q)}
   const from=" FROM movimentacoes_estoque m JOIN obras o ON o.id=m.obra_id JOIN empresas e ON e.id=o.empresa_id LEFT JOIN frentes_obra f ON f.id=m.frente_id LEFT JOIN pedido_compra_itens pi ON pi.id=m.pedido_item_id LEFT JOIN materiais_estoque c ON c.id=m.material_id WHERE "+conditions.join(' AND ')
   const scoped=stage?'m.frente_id='+stage:'1=1'
   const incoming="m.tipo IN ('entrada','ajuste')"
@@ -318,7 +318,7 @@ function stockPage(db, filters={}, {exportMode=false}={}) {
   const valuation=", CASE WHEN "+covered+">0 AND ABS("+covered+"-"+sum(incoming)+")<0.000001 THEN CAST(ROUND("+cost+"/"+covered+") AS INTEGER) END custo_medio_centavos"
   const having=[]
   if(!history&&stage)having.push('SUM(CASE WHEN '+scoped+' THEN 1 ELSE 0 END)>0')
-  if(!history&&q){having.push('MAX(CASE WHEN '+match+' THEN 1 ELSE 0 END)=1');args.push(q,q,q,q,q)}
+  if(!history&&q){having.push('MAX(CASE WHEN '+match+' THEN 1 ELSE 0 END)=1');args.push(q,q,q,q,q,q)}
   const group=" GROUP BY m.obra_id,m.material_id,CASE WHEN m.material_id IS NULL THEN lower(trim(m.descricao)) END,CASE WHEN m.material_id IS NULL THEN lower(trim(m.unidade)) END"+(having.length?' HAVING '+having.join(' AND '):'')
   const stageId=stage?String(stage):'NULL'
   const stageName=stage?"MAX(CASE WHEN "+scoped+" THEN f.nome END)":"'Todas as etapas'"
@@ -628,4 +628,62 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
   return {commit,receive,reverse}
 }
 
-module.exports={createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}
+
+/** Catalog metadata is distinct from stock balances. All actions scoped to company. */
+function materialCatalog(db,{empresa_id,q='',offset=0,limit=50}={}){
+  const company=Number(empresa_id),page=Number(offset),size=Number(limit)
+  if(!Number.isSafeInteger(company)||company<1||!Number.isSafeInteger(page)||page<0||!Number.isSafeInteger(size)||size<1||size>100)throw new Error('Filtro de catálogo inválido.')
+  if(!db.prepare('SELECT id FROM empresas WHERE id=? AND deleted_at IS NULL').get(company))throw new Error('Empresa não encontrada.')
+  const search=String(q).trim().slice(0,200)
+  const where=" WHERE c.empresa_id=? AND (instr(lower(c.descricao),lower(?))>0 OR instr(lower(c.unidade),lower(?))>0 OR EXISTS(SELECT 1 FROM material_fornecedor_equivalencias e WHERE e.material_id=c.id AND (instr(lower(e.codigo),lower(?))>0 OR instr(lower(e.descricao_origem),lower(?))>0)))"
+  const args=[company,search,search,search,search]
+  const total=Number(db.prepare('SELECT COUNT(*) total FROM materiais_estoque c'+where).get(...args).total)
+  const rows=db.prepare('SELECT c.*,(SELECT COUNT(*) FROM material_fornecedor_equivalencias e WHERE e.material_id=c.id) equivalencias FROM materiais_estoque c'+where+' ORDER BY c.descricao,c.unidade,c.id LIMIT ? OFFSET ?').all(...args,size,page)
+  return {rows,total}
+}
+function materialAliases(db,{empresa_id,material_id,offset=0}={}){
+  const company=Number(empresa_id),id=Number(material_id),page=Number(offset)
+  if(!Number.isSafeInteger(company)||company<1||!Number.isSafeInteger(id)||id<1||!Number.isSafeInteger(page)||page<0)throw new Error('Filtro de equivalências inválido.')
+  if(!db.prepare('SELECT id FROM materiais_estoque WHERE empresa_id=? AND id=?').get(company,id))throw new Error('Material não encontrado nesta empresa.')
+  const total=Number(db.prepare('SELECT COUNT(*) total FROM material_fornecedor_equivalencias WHERE empresa_id=? AND material_id=?').get(company,id).total)
+  const rows=db.prepare('SELECT e.*,f.nome fornecedor_nome FROM material_fornecedor_equivalencias e JOIN fornecedores f ON f.id=e.fornecedor_id WHERE e.empresa_id=? AND e.material_id=? ORDER BY f.nome,e.codigo,e.id LIMIT 50 OFFSET ?').all(company,id,page)
+  return {rows,total}
+}
+function saveMaterialCatalog(db,saveEntity,payload){
+  const company=positiveFiscalId(payload.empresa_id,'Empresa')
+  fiscalRow(db,'empresas',company,'Empresa')
+  const attrs=payload.atributos||{}
+  if(!attrs||typeof attrs!=='object'||Array.isArray(attrs))throw new Error('Atributos inválidos.')
+  const allowed=['categoria','material','aplicacao','marca','referencia','diametro','comprimento','dimensoes','especificacao']
+  if(Object.keys(attrs).some(k=>!allowed.includes(k)||typeof attrs[k]!=='string'||attrs[k].length>200))throw new Error('Atributos inválidos.')
+  const attributes=JSON.stringify(Object.fromEntries(Object.entries(attrs).map(([k,v])=>[k,v.trim()]).filter(([,v])=>v)))
+  if(payload.id){
+    const existing=fiscalRow(db,'materiais_estoque',payload.id,'Material')
+    if(Number(existing.empresa_id)!==company)throw new Error('Material de outra empresa.')
+    return saveEntity('materiais_estoque',{id:existing.id,atributos_json:attributes,origem:'confirmado'})
+  }
+  const descricao=String(payload.descricao||'').trim(),unidade=String(payload.unidade||'').trim()
+  if(!descricao||descricao.length>250||!unidade||unidade.length>24)throw new Error('Informe material e unidade canônica.')
+  if(db.prepare('SELECT id FROM materiais_estoque WHERE empresa_id=? AND lower(trim(descricao))=lower(trim(?)) AND lower(trim(unidade))=lower(trim(?))').get(company,descricao,unidade))throw new Error('Já existe material com esta descrição e unidade. Selecione o registro existente.')
+  return saveEntity('materiais_estoque',{empresa_id:company,descricao,unidade,atributos_json:attributes,origem:'confirmado'})
+}
+function confirmMaterialAlias(db,saveEntity,payload,actor){
+  const company=positiveFiscalId(payload.empresa_id,'Empresa'),material=fiscalRow(db,'materiais_estoque',payload.material_id,'Material')
+  const supplier=fiscalRow(db,'fornecedores',payload.fornecedor_id,'Fornecedor')
+  fiscalRow(db,'empresas',company,'Empresa')
+  if(Number(material.empresa_id)!==company||(supplier.empresa_id!=null&&Number(supplier.empresa_id)!==company))throw new Error('Material ou fornecedor de outra empresa.')
+  const document=digits(supplier.documento)
+  if(!/^\d{11}$|^\d{14}$/.test(document))throw new Error('Cadastre CPF/CNPJ do fornecedor antes de confirmar equivalências.')
+  const codigo=String(payload.codigo||'').trim(),unidade=String(payload.unidade_comercial||'').trim(),descricao=String(payload.descricao_origem||'').trim(),gtin=String(payload.gtin||'').trim()
+  const num=positiveFiscalId(payload.fator_num,'Fator numerador'),den=positiveFiscalId(payload.fator_den,'Fator denominador')
+  const operador=String(actor||'').trim()
+  if(!codigo||codigo.length>120||!unidade||unidade.length>24||!descricao||descricao.length>500||num>1e9||den>1e9||!operador||operador.length>120||(gtin&&!/^(?:\d{8}|\d{12}|\d{13}|\d{14})$/.test(gtin)))throw new Error('Dados da equivalência inválidos.')
+  const existing=db.prepare('SELECT * FROM material_fornecedor_equivalencias WHERE empresa_id=? AND fornecedor_id=? AND trim(codigo)=? AND lower(trim(unidade_comercial))=lower(?)').get(company,supplier.id,codigo,unidade)
+  if(existing){
+    if(Number(existing.material_id)!==Number(material.id)||BigInt(existing.fator_num)*BigInt(den)!==BigInt(num)*BigInt(existing.fator_den)||String(existing.gtin||'')!==gtin)throw new Error('Código já possui vínculo ou conversão diferente. Não será substituído automaticamente.')
+    return {...existing,replayed:true}
+  }
+  return saveEntity('material_fornecedor_equivalencias',{empresa_id:company,fornecedor_id:supplier.id,material_id:material.id,codigo,unidade_comercial:unidade,descricao_origem:descricao,gtin:gtin||null,fator_num:num,fator_den:den,confirmado_por:operador})
+}
+
+module.exports={materialCatalog,materialAliases,saveMaterialCatalog,confirmMaterialAlias,createReceivedNotesService,stockPage,stockWorkBalances,resolveStockMaterial,stockBalance,validateStockMovement,createNfeIntegrationService,fixedDecimal}

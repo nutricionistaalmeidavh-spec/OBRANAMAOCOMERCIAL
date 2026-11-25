@@ -3,7 +3,7 @@ const { RevisionConflictError } = require('./revision-conflict-error.cjs')
 const CORE_REMOTE_TABLES = new Set(['empresas', 'clientes', 'obras'])
 const OPERATION_REMOTE_TABLES = new Set(['locais_obra', 'frentes_obra', 'subfrentes_obra', 'checklist_frente_itens', 'tarefas_obra', 'rdos', 'rdo_equipe', 'rdo_equipamentos', 'rdo_ocorrencias', 'rdo_anexos'])
 const PLANNING_REMOTE_TABLES = new Set(['etapas_obra', 'cronograma_etapas', 'itens_orcamentarios', 'medicoes', 'medicao_itens', 'medicao_mapa_itens'])
-const FINANCE_REMOTE_TABLES = new Set(['fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos','notas_recebidas','nota_recebida_itens'])
+const FINANCE_REMOTE_TABLES = new Set(['materiais_estoque','material_fornecedor_equivalencias','fornecedores', 'categorias_financeiras', 'contas', 'pagamentos_conta', 'solicitacoes_compra', 'cotacoes_compra', 'pedidos_compra', 'pedido_compra_itens', 'recebimentos_materiais', 'movimentacoes_estoque', 'contratos_obra', 'contrato_aditivos','notas_recebidas','nota_recebida_itens'])
 const DOCUMENT_REMOTE_TABLES = new Set(['fontes_documentais','arquivos','documentos','medicao_anexos','contrato_anexos','pedido_compra_anexos','documentos_editaveis','modelos_documento_rh','empresa_documentos_admissionais'])
 const RH_REMOTE_TABLES = new Set([
   'funcionarios', 'funcionario_obras', 'cargos', 'beneficios', 'cargo_beneficios', 'funcionario_beneficios',
@@ -182,6 +182,10 @@ class LanDataClient {
     return this.request('POST','/api/v1/received-notes/'+Number(id)+'/attach',{body:{documento_id:Number(documentId)}})
   }
 
+  async catalogPage(filters){return this.request('GET','/api/v1/procurement/materials',{query:filters})}
+  async catalogAliases(filters){return this.request('GET','/api/v1/procurement/material-aliases',{query:filters})}
+  async catalogSave(payload){return this.request('POST','/api/v1/procurement/materials',{body:payload})}
+  async catalogConfirm(payload){return this.request('POST','/api/v1/procurement/material-aliases',{body:payload})}
   async procurementStockExport(filters){return this.request('GET','/api/v1/procurement/stock-export',{query:filters})}
   async procurementStockPage(filters) { return this.request('GET','/api/v1/procurement/stock-page',{query:filters}) }
 

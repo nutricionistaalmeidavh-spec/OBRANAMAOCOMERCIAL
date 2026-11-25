@@ -1,5 +1,5 @@
 import domainCore from './domain-core.cjs'
-const { stockPage, stockWorkBalances, validateStockMovement } = domainCore
+const { stockPage, stockWorkBalances, validateStockMovement, materialCatalog, materialAliases, saveMaterialCatalog, confirmMaterialAlias } = domainCore
 function idempotencyKey(value) {
   const key = String(value || '').trim()
   if (!key) throw new Error('Identificador idempotente da operação não informado.')
@@ -12,6 +12,11 @@ export class ProcurementService {
     this.repository = repository
     this.db = repository.connection()
   }
+
+  catalogPage(filters){return materialCatalog(this.db,filters)}
+  catalogAliases(filters){return materialAliases(this.db,filters)}
+  catalogSave(payload){const fn=()=>saveMaterialCatalog(this.db,(table,data)=>this.repository.save(table,data),payload);return (()=>{this.db.exec('BEGIN IMMEDIATE');try{const value=fn();this.db.exec('COMMIT');return value}catch(e){try{this.db.exec('ROLLBACK')}catch{}throw e}})()}
+  catalogConfirm(payload,actor){const fn=()=>confirmMaterialAlias(this.db,(table,data)=>this.repository.save(table,data),payload,actor);return (()=>{this.db.exec('BEGIN IMMEDIATE');try{const value=fn();this.db.exec('COMMIT');return value}catch(e){try{this.db.exec('ROLLBACK')}catch{}throw e}})()}
 
   stockPage(filters){ return stockPage(this.db,filters) }
   stockExport(filters){return stockPage(this.db,filters,{exportMode:true})}

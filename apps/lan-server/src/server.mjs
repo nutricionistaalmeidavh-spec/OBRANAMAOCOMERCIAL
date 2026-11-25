@@ -640,6 +640,17 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response,200,receivedNotes.read(id))
       }
 
+      if(url.pathname==='/api/v1/procurement/materials'||url.pathname==='/api/v1/procurement/material-aliases'){
+        if(!['GET','POST'].includes(request.method))return methodNotAllowed(response,['GET','POST'])
+        if(!procurement?.catalogPage)return sendJson(response,503,{error:'procurement_unavailable'})
+        const context=await authenticateLanRequest(request,security)
+        const write=request.method==='POST',aliases=url.pathname.endsWith('material-aliases')
+        authorizeAction(context,{domain:'finance',action:write?'edit':'view'})
+        if(!write)return sendJson(response,200,aliases?procurement.catalogAliases(Object.fromEntries(url.searchParams)):procurement.catalogPage(Object.fromEntries(url.searchParams)))
+        const payload=await readJson(request)
+        const actor=String(context.member?.id||context.member?.email||'')
+        return sendJson(response,200,aliases?procurement.catalogConfirm(payload,actor):procurement.catalogSave(payload))
+      }
       if (url.pathname === '/api/v1/procurement/stock-export') {
         if(request.method!=='GET')return methodNotAllowed(response,['GET'])
         if(!procurement?.stockExport)return sendJson(response,503,{error:'procurement_unavailable'})

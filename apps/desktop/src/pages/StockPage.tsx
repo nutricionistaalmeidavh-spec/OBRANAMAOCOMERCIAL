@@ -3,10 +3,13 @@ import { useWorkContext } from '../hooks/useWorkContext'
 import { useAsync } from '../hooks/useAsync'
 import { Button, Card, Empty, Field, Loading, PageHeader } from '../components/ui'
 import StockWorkspace from '../components/StockWorkspace'
+import MaterialCatalogPanel from '../components/MaterialCatalogPanel'
+import { useState } from 'react'
 
 type Work = { id: number; nome: string; empresa_id: number }
 export default function StockPage(){
   const [params,setParams]=useSearchParams()
+  const [section,setSection]=useState<'stock'|'catalog'>('stock')
   const context=useWorkContext()
   const works=useAsync(()=>window.fluxoDre.obras.list(),[])
   const companies=useAsync(()=>window.fluxoDre.empresas.list(),[])
@@ -26,6 +29,8 @@ export default function StockPage(){
       </div>
       <p>Selecione uma obra para registrar movimentações ou consulte todas para localizar materiais importados.</p>
     </div></Card>
-    {pending?<Loading label="Carregando obras..."/>:failed?<Card><div role="alert" className="card-body">Não foi possível carregar as obras ou empresas. <Button onClick={()=>{void works.reload();void companies.reload()}}>Tentar novamente</Button></div></Card>:selectedWork&&!work?<Card><Empty title="Obra indisponível para esta seleção" description="Escolha outra obra ou consulte todas as obras da empresa." action={<Button onClick={()=>change(companyId,'')}>Ver todas as obras</Button>}/></Card>:!available.length?<Card><Empty title="Nenhuma obra disponível" description="Cadastre uma obra ou escolha outra empresa."/></Card>:<StockWorkspace companyId={companyId} workId={work?selectedWork:''}/>}
+    <div className="row-actions"><Button variant={section==='stock'?'primary':'secondary'} onClick={()=>setSection('stock')}>Estoque por obra</Button><Button variant={section==='catalog'?'primary':'secondary'} onClick={()=>setSection('catalog')}>Catálogo de materiais</Button></div>
+    {section==='catalog'?(companyId?<MaterialCatalogPanel key={companyId} companyId={companyId}/>:<Card><Empty title="Selecione uma empresa" description="O catálogo e as equivalências pertencem à empresa."/></Card>):null}
+    {section==='stock'&&(pending?<Loading label="Carregando obras..."/>:failed?<Card><div role="alert" className="card-body">Não foi possível carregar as obras ou empresas. <Button onClick={()=>{void works.reload();void companies.reload()}}>Tentar novamente</Button></div></Card>:selectedWork&&!work?<Card><Empty title="Obra indisponível para esta seleção" description="Escolha outra obra ou consulte todas as obras da empresa." action={<Button onClick={()=>change(companyId,'')}>Ver todas as obras</Button>}/></Card>:!available.length?<Card><Empty title="Nenhuma obra disponível" description="Cadastre uma obra ou escolha outra empresa."/></Card>:<StockWorkspace companyId={companyId} workId={work?selectedWork:''}/>)}
   </>
 }

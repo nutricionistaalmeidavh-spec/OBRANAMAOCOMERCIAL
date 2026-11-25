@@ -18,6 +18,7 @@ function StockWorkspace({companyId='',workId='',revision=0}:Scope){
   const [saving,setSaving]=useState(false)
   const savingRef=useRef(false)
   const [version,setVersion]=useState(0)
+  useEffect(()=>{const refresh=()=>setVersion(v=>v+1);const off=window.fluxoDre.compras.onStockChanged?.(change=>{if(!workId||!change.obra_id||String(change.obra_id)===workId)refresh()});window.addEventListener('focus',refresh);return()=>{off?.();window.removeEventListener('focus',refresh)}},[workId])
   const scope=companyId+':'+workId
   const [priorScope,setPriorScope]=useState(scope)
   if(priorScope!==scope){setPriorScope(scope);setPage(0);setStage('');setDraft(null);setError('')}
@@ -31,7 +32,7 @@ function StockWorkspace({companyId='',workId='',revision=0}:Scope){
   const current=result.data?.scope===scope&&result.data?.mode===mode&&result.data?.page===page&&result.data?.query===query&&result.data?.stage===stage?result.data.data:null
   const open=(row:any)=>{setError('');setDraft({...(row.material_id?{material_id:Number(row.material_id)}:{}),obra_id:Number(row.obra_id),frente_id:row.frente_id?Number(row.frente_id):null,descricao:String(row.descricao),unidade:String(row.unidade),tipo:'saida',quantidade:'1',data:today()})}
   const save=async(e:React.FormEvent)=>{e.preventDefault();if(!draft||savingRef.current)return;savingRef.current=true;setSaving(true);setError('')
-    try{await window.fluxoDre.compras.moveStock({...draft,quantidade:Number(draft.quantidade)});setDraft(null);setVersion(v=>v+1)}
+    try{await window.fluxoDre.compras.moveStock({...draft,quantidade:Number(draft.quantidade)});setDraft(null);if(!window.fluxoDre.compras.onStockChanged)setVersion(v=>v+1)}
     catch(e){setError(e instanceof Error?e.message:'Não foi possível movimentar o estoque.')}
     finally{savingRef.current=false;setSaving(false)}
   }

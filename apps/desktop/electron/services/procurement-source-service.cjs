@@ -10,7 +10,7 @@ class ProcurementSourceService {
     this.pending = new Map()
   }
 
-  state() { return this.moduleStorage.state('finance').state }
+  state() { const info=this.moduleStorage.state('finance'); if(info.state==='migration-required'&&(info.contractUpgradeRequired||Number(info.contractVersion||0)>0))return 'central-upgrade-blocked';return info.state }
   blocked() { throw new Error('Compras/estoque centrais ainda não estão ativos; nenhum dado será salvo localmente como fallback.') }
 
   key(kind, payload) {
@@ -33,6 +33,11 @@ class ProcurementSourceService {
       throw error
     }
   }
+
+  async catalogPage(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogPage(filters);if(state==='central-active')return this.lanClient.catalogPage(filters);return this.blocked()}
+  async catalogAliases(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogAliases(filters);if(state==='central-active')return this.lanClient.catalogAliases(filters);return this.blocked()}
+  async catalogSave(payload){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogSave(payload);if(state==='central-active')return this.lanClient.catalogSave(payload);return this.blocked()}
+  async catalogConfirm(payload,actor){const state=this.state();if(state==='local'||state==='migration-required')return this.local.catalogConfirm(payload,actor);if(state==='central-active')return this.lanClient.catalogConfirm(payload);return this.blocked()}
 
   async stockExport(filters){const state=this.state();if(state==='local'||state==='migration-required')return this.local.stockExport(filters);if(state==='central-active')return this.lanClient.procurementStockExport(filters);return this.blocked()}
 
