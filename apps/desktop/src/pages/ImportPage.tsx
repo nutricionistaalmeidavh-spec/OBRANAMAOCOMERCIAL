@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, ShieldCheck, UploadCloud } from 'lucide-react'
 import { useEffect, useState, type DragEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { Button, Card, Empty, Field, Loading, PageHeader, Segmented } from '../components/ui'
 import { brl, competenceLabel } from '../utils/format'
 import { useAsync } from '../hooks/useAsync'
@@ -140,7 +141,7 @@ export default function ImportPage() {
     </Card>}
     {message && <Card style={{marginTop:14}}><div className="card-body"><CheckCircle2 size={16}/> {message}</div></Card>}
     {loading ? <Card style={{marginTop:14}}><Loading label="Lendo e validando a planilha..."/></Card>
-      : result ? <Result result={result} universal={universal}/>
+      : result ? <><Result result={result} universal={universal}/>{universal&&result.area==='estoque'&&<Card><div className="card-body"><Link className="button button-primary" to={'/estoque?'+new URLSearchParams({empresa:companyId}).toString()}>Visualizar estoque</Link></div></Card>}</>
       : universal ? file
         ? <UniversalSetup file={file} sheet={sheet} area={area} mapping={mapping} mappingSource={mappingSource}
             setSheet={(value: string) => { setSheet(value); setPreview(null); setMapping({}); setMessage('') }}
