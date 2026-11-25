@@ -26,3 +26,8 @@ describe('prévia NF-e local',()=>{
    expect(()=>parseNfePreview(nfe().replace('2.5000','0'))).toThrow()
  })
 })
+
+it('preserva campos fiscais e comerciais para conferência de materiais',()=>{
+ const result=parseNfePreview(nfe().replace('<cProd>P1</cProd>','<cProd>P1</cProd><cEAN>7891234567895</cEAN><cEANTrib>SEM GTIN</cEANTrib><NCM>39172300</NCM><CFOP>5102</CFOP><xPed>PC-123</xPed><nItemPed>2</nItemPed><uTrib>M</uTrib><qTrib>2.5000</qTrib>'))
+ expect(result.itens[0]).toMatchObject({gtin:'7891234567895',gtin_tributavel:'SEM GTIN',ncm:'39172300',cfop:'5102',pedido:'PC-123',item_pedido:'2',unidade_tributavel:'M',quantidade_tributavel:'2.5000'})
+})

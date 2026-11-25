@@ -6,7 +6,7 @@ import { describe,it,expect } from 'vitest'
 import { parseNfePreview } from '../src/utils/nfe-preview'
 const require=createRequire(import.meta.url)
 const {DatabaseService}=require('../electron/services/database.cjs')
-const {createNfeIntegrationService}=require('../../../packages/domain-core/index.cjs')
+const {createNfeIntegrationService,confirmMaterialAlias}=require('../../../packages/domain-core/index.cjs')
 function fixture(){
  const dir=mkdtempSync(join(tmpdir(),'nfe-core-'))
  const adapter=new DatabaseService({dataDir:dir,migrationsDir:resolve(import.meta.dirname,'../database/migrations')})
@@ -16,13 +16,15 @@ function fixture(){
  const work=adapter.save('obras',{empresa_id:empresa.id,nome:'Obra A'})
  const work2=adapter.save('obras',{empresa_id:empresa.id,nome:'Obra B'})
  const category=adapter.db.prepare("SELECT id FROM categorias_financeiras WHERE natureza='despesa' LIMIT 1").get()?.id||adapter.save('categorias_financeiras',{nome:'Material teste',natureza:'despesa'}).id
+ const material=adapter.save('materiais_estoque',{empresa_id:empresa.id,descricao:'Tubo',unidade:'m',origem:'confirmado'})
+ confirmMaterialAlias(adapter.db,(table:string,data:any)=>adapter.save(table,data),{empresa_id:empresa.id,fornecedor_id:supplier.id,material_id:material.id,codigo:'A',unidade_comercial:'UN',descricao_origem:'Tubo',fator_num:2,fator_den:1},'teste')
  const prefix='35'+'2611'+'12345678000123'+'55'+'001'+'000001234'+'1'+'00001234'
  let sum=0,w=2;for(let i=42;i>=0;i--){sum+=Number(prefix[i])*w;w=w===9?2:w+1}
  const d=11-sum%11,key=prefix+String(d>=10?0:d)
- const xml='<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe Id="NFe'+key+'"><ide><mod>55</mod><tpAmb>1</tpAmb><nNF>1234</nNF><serie>1</serie><dhEmi>2026-11-25T08:00:00-03:00</dhEmi></ide><emit><CNPJ>12345678000123</CNPJ><xNome>B</xNome></emit><dest><CNPJ>12345678000124</CNPJ></dest><det nItem="1"><prod><cProd>A</cProd><xProd>Tubo</xProd><uCom>UN</uCom><qCom>1000.0000</qCom><vUnCom>0.1245</vUnCom><vProd>124.50</vProd></prod></det><total><ICMSTot><vProd>124.50</vProd><vNF>124.50</vNF></ICMSTot></total></infNFe></NFe><protNFe><infProt><chNFe>'+key+'</chNFe><cStat>100</cStat><nProt>12345</nProt></infProt></protNFe></nfeProc>'
+ const xml='<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe Id="NFe'+key+'"><ide><mod>55</mod><tpAmb>1</tpAmb><tpNF>1</tpNF><finNFe>1</finNFe><nNF>1234</nNF><serie>1</serie><dhEmi>2026-11-25T08:00:00-03:00</dhEmi></ide><emit><CNPJ>12345678000123</CNPJ><xNome>B</xNome></emit><dest><CNPJ>12345678000124</CNPJ></dest><det nItem="1"><prod><cProd>A</cProd><CFOP>5102</CFOP><xProd>Tubo</xProd><uCom>UN</uCom><qCom>1000.0000</qCom><vUnCom>0.1245</vUnCom><vProd>124.50</vProd></prod></det><total><ICMSTot><vProd>124.50</vProd><vNF>124.50</vNF></ICMSTot></total></infNFe></NFe><protNFe><infProt><chNFe>'+key+'</chNFe><cStat>100</cStat><nProt>12345</nProt></infProt></protNFe></nfeProc>'
  const payload={xml_base64:Buffer.from(xml).toString('base64'),empresa_id:empresa.id,fornecedor_id:supplier.id,categoria_id:category,data_recebimento:'2026-11-25',destinos:[{nfe_item_numero:'1',obra_id:work.id,quantidade:'600',quantidade_recebida:'400',valor_alocado:'74.70'},{nfe_item_numero:'1',obra_id:work2.id,quantidade:'400',quantidade_recebida:'0',valor_alocado:'49.80'}],parcelas:[{valor:'62.25',vencimento:'2026-12-25'},{valor:'62.25',vencimento:'2027-01-25'}]}
  const service=createNfeIntegrationService(adapter.db,{parseXml:parseNfePreview,saveEntity:(table:string,data:any)=>adapter.save(table,data)})
- return {adapter,payload,service,close(){adapter.close();rmSync(dir,{recursive:true,force:true})}}
+ return {adapter,payload,service,material,close(){adapter.close();rmSync(dir,{recursive:true,force:true})}}
 }
 describe('núcleo transacional NF-e (não exposto a IPC/HTTP)',()=>{
  it('preserva centavos, rateio, parcelas, XML e recebimento parcial sem duplicar no replay',()=>{const f=fixture();try{
@@ -31,7 +33,9 @@ describe('núcleo transacional NF-e (não exposto a IPC/HTTP)',()=>{
   expect(()=>f.service.commit({...f.payload,destinos:f.payload.destinos.map((d,i)=>i===0?{...d,quantidade_recebida:'500'}:d)})).toThrow(/Chave fiscal/)
   expect(db.prepare('SELECT SUM(valor_centavos) total FROM contas').get().total).toBe(12450)
   expect(db.prepare('SELECT SUM(valor_total_centavos) total FROM nota_recebida_itens').get().total).toBe(12450)
-  expect(db.prepare('SELECT SUM(quantidade) total FROM movimentacoes_estoque').get().total).toBe(400)
+  expect(db.prepare('SELECT SUM(quantidade) total FROM movimentacoes_estoque').get().total).toBe(800)
+  expect(db.prepare('SELECT material_id,unidade,quantidade FROM movimentacoes_estoque').get()).toMatchObject({material_id:f.material.id,unidade:'m',quantidade:800})
+  expect(db.prepare('SELECT descricao,unidade,quantidade,material_id FROM nota_recebida_itens ORDER BY id').get()).toMatchObject({descricao:'Tubo',unidade:'UN',quantidade:600,material_id:f.material.id})
   expect(db.prepare('SELECT COUNT(*) total FROM nota_recebida_xml').get().total).toBe(1)
   expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([])
  }finally{f.close()}})
@@ -68,3 +72,12 @@ describe('núcleo transacional NF-e (não exposto a IPC/HTTP)',()=>{
   }
  }finally{f.close()}})
 })
+
+it('não integra CFOP de devolução ou material sem equivalência confirmada',()=>{const f=fixture();try{
+ for(const [old,next] of [['<CFOP>5102','<CFOP>5202'],['<cProd>A','<cProd>SEM-VINCULO']]){
+  const xml=Buffer.from(f.payload.xml_base64,'base64').toString().replace(old,next)
+  expect(()=>f.service.commit({...f.payload,xml_base64:Buffer.from(xml).toString('base64')})).toThrow(/compra|equivalência/i)
+ }
+ expect(f.adapter.db.prepare('SELECT COUNT(*) n FROM movimentacoes_estoque').get().n).toBe(0)
+ expect(f.adapter.db.prepare('SELECT COUNT(*) n FROM contas').get().n).toBe(0)
+}finally{f.close()}})
