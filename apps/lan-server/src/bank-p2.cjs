@@ -27,7 +27,7 @@ class BankP2Service{
   let where="t.empresa_id=? AND substr(t.data,1,7)=?",args=[id,m]
   if(bank!==null){where+=" AND t.conta_bancaria_id=?";args.push(bank)}
   if(work!==null){
-   where+=" AND EXISTS (SELECT 1 FROM reconciliacao_lotes l JOIN reconciliacao_alocacoes a ON a.lote_id=l.id JOIN pagamentos_conta p ON p.id=a.pagamento_id JOIN contas c ON c.id=p.conta_id WHERE l.transacao_bancaria_id=t.id AND l.status='active' AND c.empresa_id=? AND c.obra_id=? AND c.deleted_at IS NULL)"
+   where+=" AND EXISTS (SELECT 1 FROM v_financeiro_banco_apropriado a WHERE a.transacao_id=t.id AND a.empresa_id=? AND a.obra_id=?)"
    args.push(id,work)
   }
   const query="SELECT t.id,t.data,t.descricao,t.valor_centavos,t.conta_bancaria_id,COALESCE((SELECT SUM(a.valor_centavos) FROM reconciliacao_alocacoes a JOIN reconciliacao_lotes l ON l.id=a.lote_id WHERE l.transacao_bancaria_id=t.id AND l.status='active'),0) reconciled_cents FROM transacoes_bancarias t WHERE "+where+" ORDER BY t.data,t.id"
@@ -79,7 +79,7 @@ class BankP2Service{
    if(used.has(key))throw Error('Não repita uma obrigação no cenário.')
    used.add(key)
    const sql="SELECT c.id,c.empresa_id,c.obra_id,c.tipo,c.vencimento,c.valor_centavos,v.conta_bancaria_id,COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id AND p.data<=?),0) paid FROM contas c LEFT JOIN conta_previsao_bancaria v ON v.conta_id=c.id AND v.empresa_id=c.empresa_id WHERE c.id=? AND c.empresa_id=? AND c.deleted_at IS NULL AND c.status!='cancelado'"
-   const item=this.db.prepare(sql).get(base.asOf,key,id)
+   const item=base.obraId!==null?this.p0.workPlannedAccounts(id,base.obraId,base.asOf,key).map(x=>({...x,id:x.conta_id,paid:x.pago_centavos}))[0]:this.db.prepare(sql).get(base.asOf,key,id)
    if(!item)throw Error('Obrigação não encontrada nesta empresa.')
    if(base.obraId!==null&&item.obra_id!==base.obraId)throw Error('Obrigação fora da obra selecionada.')
    if(base.contaBancariaId!==null&&item.conta_bancaria_id!==base.contaBancariaId)throw Error('Obrigação fora do banco previsto.')
@@ -157,7 +157,7 @@ class BankP2Service{
   const start=flow.days[0].date,end=flow.days[flow.days.length-1].date
   let sql,args
   if(flow.obraId!==null){
-   sql="SELECT t.data,CASE WHEN t.valor_centavos<0 THEN -a.valor_centavos ELSE a.valor_centavos END valor_centavos FROM reconciliacao_alocacoes a JOIN reconciliacao_lotes l ON l.id=a.lote_id AND l.status='active' JOIN transacoes_bancarias t ON t.id=l.transacao_bancaria_id JOIN pagamentos_conta p ON p.id=a.pagamento_id JOIN contas c ON c.id=p.conta_id WHERE c.empresa_id=? AND c.obra_id=? AND t.data>=? AND t.data<=?"
+   sql="SELECT t.data,t.valor_centavos FROM v_financeiro_banco_apropriado t WHERE t.empresa_id=? AND t.obra_id=? AND t.data>=? AND t.data<=?"
    args=[id,flow.obraId,start,end]
   }else{sql="SELECT t.data,t.valor_centavos FROM transacoes_bancarias t WHERE t.empresa_id=? AND t.data>=? AND t.data<=?";args=[id,start,end]}
   if(flow.contaBancariaId!==null){sql+=" AND t.conta_bancaria_id=?";args.push(flow.contaBancariaId)}

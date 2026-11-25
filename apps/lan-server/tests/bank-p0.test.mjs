@@ -194,3 +194,24 @@ test('P1 B4 fornece filtragem por período e pendência sem duplicar movimentos'
     assert.throws(()=>f.bank.listTransactions({empresaId:f.companyId,contaBancariaId:f.account.id,status:'invalid'}),/situação/i)
   }finally{f.close()}
 })
+
+test('NF-e rateada: previsão e realizado por obra somam a obrigação e a conciliação únicas',()=>{
+ const f=makeFixture();try{
+  const a=f.repository.save('obras',{empresa_id:f.companyId,nome:'Obra A'}).id,b=f.repository.save('obras',{empresa_id:f.companyId,nome:'Obra B'}).id
+  const supplier=f.repository.save('fornecedores',{empresa_id:f.companyId,nome:'Fornecedor fictício'})
+  const account=f.addObligation('pagar',10000,'2026-11-30')
+  const note=f.repository.save('notas_recebidas',{empresa_id:f.companyId,obra_id:a,fornecedor_id:supplier.id,numero:'RATEIO-FICTICIO',serie:'1',emissao:'2026-11-17',valor_total_centavos:10000})
+  f.db.prepare('INSERT INTO nota_recebida_rateios(nota_id,conta_id,obra_id,valor_centavos) VALUES(?,?,?,?)').run(note.id,account,a,6000)
+  f.db.prepare('INSERT INTO nota_recebida_rateios(nota_id,conta_id,obra_id,valor_centavos) VALUES(?,?,?,?)').run(note.id,account,b,4000)
+  const payment=f.addPayment(account,7000)
+  const [tx]=f.addBankMovement([{date:'18/11/2026',description:'NF-e fictícia',amount:'-70,00',fitid:'NFE-001'}])
+  f.bank.confirmReconciliation({empresaId:f.companyId,contaBancariaId:f.account.id,transacaoId:tx.id,requestId:'nfe-reconcile-test',actorId:'admin',allocations:[{pagamentoId:payment,valorCentavos:7000}]})
+  const flow=obraId=>f.bank.cashFlow({empresaId:f.companyId,obraId,asOf:'2026-11-18',horizonDays:30})
+  assert.equal(flow(a).realizedCents,-6000);assert.equal(flow(b).realizedCents,-1000)
+  assert.equal(flow(a).projectedPayablesCents,0);assert.equal(flow(b).projectedPayablesCents,3000)
+  const x=f.bank.listPlannedAccounts({empresaId:f.companyId,obraId:a,asOf:'2026-11-16'}),y=f.bank.listPlannedAccounts({empresaId:f.companyId,obraId:b,asOf:'2026-11-16'})
+  assert.equal(x[0].pendente_centavos,6000);assert.equal(y[0].pendente_centavos,4000)
+  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM contas').get().n,1)
+  assert.equal(f.db.prepare('SELECT COUNT(*) n FROM pagamentos_conta').get().n,1)
+ }finally{f.close()}
+})

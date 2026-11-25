@@ -26,6 +26,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+      - name: Install pinned LAN dependencies
+        run: npm --prefix apps/lan-server ci --workspaces=false --ignore-scripts --no-audit --no-fund
       - name: Test LAN server
         run: npm --prefix apps/lan-server test
       - name: Test packaging contracts
@@ -160,6 +162,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+      - name: Install pinned LAN dependencies
+        run: npm --prefix apps/lan-server ci --workspaces=false --ignore-scripts --no-audit --no-fund
       - name: Test LAN server
         run: npm --prefix apps/lan-server test
       - name: Test packaging contracts

@@ -1,0 +1,14 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+const fake=vi.hoisted(()=>({rows:new Map<string,string>(),fail:false,db:null as any}))
+vi.mock('../cloudflare/sdk',()=>({runtimeEnv:()=>({DB:fake.db})}))
+import { getFieldRdoCatalog,publishFieldRdoCatalog } from './field-rdo-catalog-cloud'
+beforeEach(()=>{
+ fake.rows.clear();fake.fail=false
+ fake.db={prepare(sql:string){return {bind(...args:any[]){return {sql,args,first:async()=>{const row=fake.rows.get(args[0]+'|'+args[1]);return row===undefined?null:{record_json:row}}}}}},async batch(statements:any[]){const copy=new Map(fake.rows);for(const s of statements){const [collection,id,value]=s.args;if(s.sql.startsWith('INSERT'))copy.set(collection+'|'+id,value);else if(s.sql.startsWith('DELETE')){for(const key of copy.keys())if(key.startsWith(collection+'|p:')&&!key.startsWith(collection+'|'+s.args[2]))copy.delete(key)}else throw new Error('SQL inesperado')}if(fake.fail)throw new Error('falha transacional');fake.rows=copy;return []}}
+})
+const data=(n:number,version='a'.repeat(32))=>({schemaVersion:1,workId:1,version,fronts:[],services:[],materials:Array.from({length:n},(_,i)=>({id:'mat_'+i.toString(16).padStart(24,'0'),descricao:'Material '+i,unidade:'un',saldo:i}))})
+describe('catálogo móvel paginado',()=>{
+ it('publica 1501 itens e recupera todas as páginas e o contrato legado',async()=>{const input=data(1501);await publishFieldRdoCatalog('a','device',input);const pages=[];for(let i=0;i<4;i++){const p=await getFieldRdoCatalog('a',{page:i,version:input.version});expect(p?.page).toBe(i);expect(p?.total).toBe(1501);expect(p?.materials.length).toBe(i===3?1:500);pages.push(...(p?.materials||[]))}expect(pages).toEqual(input.materials);expect((await getFieldRdoCatalog('a'))?.materials).toEqual(input.materials);expect(await getFieldRdoCatalog('b')).toBeNull()})
+ it('rejeita versão antiga e não substitui snapshot após falha da transação',async()=>{const old=data(1201),next=data(12,'b'.repeat(32));await publishFieldRdoCatalog('a','device',old);fake.fail=true;await expect(publishFieldRdoCatalog('a','device',next)).rejects.toThrow('falha transacional');expect((await getFieldRdoCatalog('a'))?.version).toBe(old.version);fake.fail=false;await publishFieldRdoCatalog('a','device',next);await expect(getFieldRdoCatalog('a',{page:0,version:old.version})).rejects.toThrow(/atualizado/);expect((await getFieldRdoCatalog('a'))?.materials).toEqual(next.materials)})
+ it('rejeita IDs repetidos em vez de publicar catálogo ambíguo',async()=>{const input=data(2);input.materials[1].id=input.materials[0].id;await expect(publishFieldRdoCatalog('a','device',input)).rejects.toThrow(/duplicada/);expect(await getFieldRdoCatalog('a')).toBeNull()})
+})

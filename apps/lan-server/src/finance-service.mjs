@@ -89,8 +89,8 @@ export class FinanceService {
     }
     return this.db.prepare(`
       SELECT c.competencia,c.tipo,COALESCE(cf.grupo_dre,'operacional') grupo,COALESCE(cf.nome,'Sem categoria') categoria,SUM(c.valor_centavos) valor,
-        SUM(COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0)) valor_realizado
-      FROM contas c LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
+        SUM(c.paid_cents) valor_realizado
+      FROM v_financeiro_apropriacoes c LEFT JOIN categorias_financeiras cf ON cf.id=c.categoria_id
       WHERE ${clauses.join(' AND ')}
       GROUP BY c.competencia,c.tipo,grupo,categoria
       ORDER BY c.competencia,c.tipo,categoria
@@ -282,7 +282,7 @@ export class FinanceService {
 
   syncSummary(scope, allowed = []) {
     const work = this.assertSyncScope(scope)
-    const accounts = this.syncAccounts(scope)
+    const accounts = this.db.prepare('SELECT * FROM v_financeiro_apropriacoes WHERE empresa_id=? AND obra_id=? AND deleted_at IS NULL').all(Number(scope.companyId),Number(scope.workId))
     const today = new Date(this.now()).toISOString().slice(0, 10)
     const stages = this.db.prepare('SELECT * FROM cronograma_etapas WHERE obra_id=? AND deleted_at IS NULL').all(Number(scope.workId))
     const rdos = this.db.prepare('SELECT * FROM rdos WHERE obra_id=? AND deleted_at IS NULL').all(Number(scope.workId))

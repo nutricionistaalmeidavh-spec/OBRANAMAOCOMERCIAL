@@ -8,9 +8,9 @@ export function WorkContextBar() {
   const { pathname } = useLocation()
   const route = canonicalPath(pathname)
   const { competencia, empresaId, obraId, update, setCompetencia } = useWorkContext()
-  const companies = useAsync(() => window.fluxoDre.empresas.list(), [])
-  const works = useAsync(() => window.fluxoDre.obras.list(), [])
   const scoped = [ROUTES.dashboard, ROUTES.dre, ROUTES.finance].includes(route as any)
+  const companies = useAsync(() => scoped?window.fluxoDre.empresas.list():Promise.resolve([]), [scoped])
+  const works = useAsync(() => scoped&&route!==ROUTES.dashboard?window.fluxoDre.obras.list():Promise.resolve([]), [scoped,route])
   if (!scoped && ![ROUTES.rhPayroll,ROUTES.rhTime].includes(route as any)) return null
   const periodLabel = [ROUTES.rhPayroll, ROUTES.rhTime].includes(route as any) ? 'Competência' : 'Período'
   return <section className="work-context-bar" aria-label="Contexto de trabalho">

@@ -95,11 +95,19 @@ class BankP0Service{
   const filters=['c.empresa_id=?','c.deleted_at IS NULL',"c.status!='cancelado'"]
   const values=[id]
   if(obraId!==undefined&&obraId!==null&&obraId!==''){
-   filters.push('c.obra_id=?');values.push(this.work(id,obraId))
+   const work=this.work(id,obraId)
+   return this.workPlannedAccounts(id,work,asOf)
   }
   const reference=asOf?dateISO(asOf):null
   const sql="SELECT c.id conta_id,c.obra_id,c.tipo,c.descricao,c.vencimento,c.valor_centavos,c.status,COALESCE(p.conta_bancaria_id,NULL) conta_bancaria_id,COALESCE((SELECT SUM(x.valor_centavos) FROM pagamentos_conta x WHERE x.conta_id=c.id"+(reference?" AND x.data<=?":"")+"),0) pago_centavos FROM contas c LEFT JOIN conta_previsao_bancaria p ON p.conta_id=c.id AND p.empresa_id=c.empresa_id WHERE "+filters.join(' AND ')+" ORDER BY c.vencimento,c.id LIMIT 500"
   const args=reference?[reference,...values]:values
+  return this.db.prepare(sql).all(...args).map(x=>({...x,pendente_centavos:Math.max(0,Number(x.valor_centavos)-Number(x.pago_centavos))}))
+ }
+ workPlannedAccounts(empresaId,obraId,asOf,contaId=null){
+  const reference=asOf?dateISO(asOf):null
+  const paidFilter=reference?' AND p.data<=?':''
+  const args=[...(reference?[reference]:[]),empresaId,obraId,...(contaId?[contaId]:[])]
+  const sql="SELECT c.id conta_id,r.obra_id,c.tipo,c.descricao,c.vencimento,SUM(r.valor_centavos) valor_centavos,c.status,v.conta_bancaria_id,COALESCE((SELECT SUM(p.valor_centavos) FROM v_financeiro_pagamentos_apropriados p WHERE p.conta_id=c.id AND p.obra_id=r.obra_id"+paidFilter+"),0) pago_centavos FROM v_financeiro_apropriacoes r JOIN contas c ON c.id=r.id LEFT JOIN conta_previsao_bancaria v ON v.conta_id=c.id AND v.empresa_id=c.empresa_id WHERE r.empresa_id=? AND r.obra_id=? AND r.deleted_at IS NULL AND r.status!='cancelado'"+(contaId?' AND c.id=?':'')+" GROUP BY c.id,r.obra_id ORDER BY c.vencimento,c.id"
   return this.db.prepare(sql).all(...args).map(x=>({...x,pendente_centavos:Math.max(0,Number(x.valor_centavos)-Number(x.pago_centavos))}))
  }
  assignPlannedBank({empresaId,contaId,contaBancariaId}={}){
@@ -144,7 +152,7 @@ class BankP0Service{
   }
   const balanceAt=at=>movements.reduce((sum,b)=>sum+(bankBalanceAt(b,at)??0),0)
   const manualBalancesUsed=movements.some(b=>b.anchors.length>0)
-  const workMovementQuery=this.db.prepare("SELECT t.data,l.conta_bancaria_id,CASE WHEN t.valor_centavos<0 THEN -a.valor_centavos ELSE a.valor_centavos END AS valor_centavos FROM reconciliacao_alocacoes a JOIN reconciliacao_lotes l ON l.id=a.lote_id AND l.status='active' JOIN transacoes_bancarias t ON t.id=l.transacao_bancaria_id JOIN pagamentos_conta p ON p.id=a.pagamento_id JOIN contas c ON c.id=p.conta_id WHERE c.empresa_id=? AND c.obra_id=? AND c.deleted_at IS NULL AND c.status!='cancelado' AND t.data<=?")
+  const workMovementQuery=this.db.prepare("SELECT data,conta_bancaria_id,valor_centavos FROM v_financeiro_banco_apropriado WHERE empresa_id=? AND obra_id=? AND data<=?")
   const attributed=hasWork?workMovementQuery.all(id,workId,date).filter(x=>bankId===null||x.conta_bancaria_id===bankId):[]
   const realized=hasWork?attributed.reduce((sum,tx)=>sum+Number(tx.valor_centavos),0):balanceAt(date)
   const history=Array.from({length:30},(_,i)=>{
@@ -153,7 +161,7 @@ class BankP0Service{
    const covered=hasWork?false:movements.every(b=>b.saldo_referencia_data<=current)
    return{date:current,realizedInCents:items.reduce((n,x)=>n+Math.max(0,Number(x.valor_centavos)),0),realizedOutCents:items.reduce((n,x)=>n+Math.max(0,-Number(x.valor_centavos)),0),balanceCents:covered?balanceAt(current):null,coverage:hasWork?'attributed':covered?'full':'partial'}
   })
-  const obligations=this.db.prepare("SELECT c.id,c.tipo,c.obra_id,c.vencimento,c.valor_centavos,v.conta_bancaria_id,COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id AND p.data<=?),0) paid FROM contas c LEFT JOIN conta_previsao_bancaria v ON v.conta_id=c.id AND v.empresa_id=c.empresa_id WHERE c.empresa_id=? AND c.deleted_at IS NULL AND c.status!='cancelado' AND c.tipo IN ('pagar','receber')").all(date,id)
+  const obligations=hasWork?this.workPlannedAccounts(id,workId,date).map(x=>({...x,id:x.conta_id,paid:x.pago_centavos})):this.db.prepare("SELECT c.id,c.tipo,c.obra_id,c.vencimento,c.valor_centavos,v.conta_bancaria_id,COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id AND p.data<=?),0) paid FROM contas c LEFT JOIN conta_previsao_bancaria v ON v.conta_id=c.id AND v.empresa_id=c.empresa_id WHERE c.empresa_id=? AND c.deleted_at IS NULL AND c.status!='cancelado' AND c.tipo IN ('pagar','receber')").all(date,id)
   const tomorrow=nextUTCDate(date,1),last=nextUTCDate(date,horizon),scheduled=new Map()
   let overdues=0,unassignedObligations=0
   for(const entry of obligations){

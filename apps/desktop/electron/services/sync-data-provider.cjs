@@ -188,7 +188,7 @@ class LocalSyncDataProvider {
 
   summary(scope, allowed) {
     const rows = table => this.rowsByWork(table, scope).filter(row => !row.deleted_at)
-    const accounts = this.db.prepare(`SELECT c.*, COALESCE((SELECT SUM(p.valor_centavos) FROM pagamentos_conta p WHERE p.conta_id=c.id),0) paid_cents FROM contas c WHERE empresa_id=? AND obra_id=? AND deleted_at IS NULL`).all(scope.companyId, scope.workId)
+    const accounts = this.db.prepare(`SELECT c.* FROM v_financeiro_apropriacoes c WHERE empresa_id=? AND obra_id=? AND deleted_at IS NULL`).all(scope.companyId, scope.workId)
     const today = new Date(this.now()).toISOString().slice(0, 10)
     const stages = rows('cronograma_etapas')
     const rdos = rows('rdos')
