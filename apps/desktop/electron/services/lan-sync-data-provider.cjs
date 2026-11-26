@@ -117,6 +117,11 @@ class LanSyncDataProvider {
 
   async obra360(op, payload) {
     await this.requireModule('operation')
+    const has = value => Array.isArray(value?.features) && value.features.includes('obra360-field-inbox-v1')
+    // Re-read capabilities while missing, so the feature turns on right after the server update.
+    if (!has(this.capabilitiesCache) && !has(await this.capabilities())) {
+      throw Object.assign(new Error('O Obra na Mão Server desta empresa precisa ser atualizado para receber os registros do celular (Obra360). Nada foi perdido: os registros ficam guardados na nuvem até a atualização.'), { code: 'SERVER_UPDATE_REQUIRED' })
+    }
     return this.lanClient.request('POST', '/api/v1/field/obra360', { body: { ...payload, op } })
   }
 

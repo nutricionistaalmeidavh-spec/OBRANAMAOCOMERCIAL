@@ -54,6 +54,8 @@ test('servidor aplica pavimentos, andamento, histórico e pendências do celular
     const history = await (await f.post({ op: 'historyList', workId: f.work.id, nivel: 0 })).json()
     assert.equal(history.length, 2)
 
+    const all = await (await f.post({ op: 'pending', allWorks: true })).json()
+    assert.equal(Array.isArray(all), true)
     const wrongTenant = await f.post({ op: 'apply', scope: { ...scope, remoteCompanyId: 'outra' }, snapshot })
     assert.equal(wrongTenant.status, 403)
     const unknown = await f.post({ op: 'progressList', workId: 9999 })
@@ -66,5 +68,14 @@ test('perfil sem Obra360 não altera o andamento no servidor', async () => {
   try {
     const response = await f.post({ op: 'progressSave', workId: f.work.id, nivel: 0, service: `etapa:${f.stage.id}`, status: 'completed' })
     assert.equal(response.status, 403)
+  } finally { await close(f) }
+})
+
+test('servidor anuncia o Obra360 nas capacidades', async () => {
+  const f = await fixture()
+  try {
+    const port = f.server.address().port
+    const caps = await (await fetch(`http://127.0.0.1:${port}/api/v1/sync-source/capabilities`, { headers: { authorization: `Bearer ${TOKEN}` } })).json()
+    assert.ok(caps.features.includes('obra360-field-inbox-v1'))
   } finally { await close(f) }
 })

@@ -76,7 +76,7 @@ const SERVER_CAPABILITIES = Object.freeze({
   modules:['core','operation','planning','finance','rh','documents','summary'],
   moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:3,documents:2},
   bridgeEntities:['frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra'],
-  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1','stock-material-catalog-v1','stock-material-reclassification-v1','nfe-integrated-migration-v1']
+  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1','stock-material-catalog-v1','stock-material-reclassification-v1','nfe-integrated-migration-v1','obra360-field-inbox-v1']
 })
 
 function publicServerCapabilities(versionedRepository) {
@@ -593,7 +593,10 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (op === 'apply' && (!context.companyId || String(input.scope?.remoteCompanyId || '') !== String(context.companyId)))
           return sendJson(response, 403, { error: 'tenant_mismatch', message: 'Obra não vinculada à empresa autorizada neste servidor.' })
         const liveWork = id => { const work = repository.get('obras', Number(id)); return work && !work.deleted_at ? work : null }
-        const workIds = (Array.isArray(input.workIds) ? input.workIds : []).map(Number).filter(id => liveWork(id))
+        // Other PCs of the LAN do not know which works the syncing PC binds: they see every work of this server.
+        const workIds = input.allWorks === true
+          ? fieldInbox.db.prepare('SELECT DISTINCT work_id FROM field_inbox').all().map(row => Number(row.work_id)).filter(id => liveWork(id))
+          : (Array.isArray(input.workIds) ? input.workIds : []).map(Number).filter(id => liveWork(id))
         if (op === 'apply') {
           authorizeAction(context, { domain: 'operation', action: 'edit' })
           const scope = input.scope && typeof input.scope === 'object' ? input.scope : {}
