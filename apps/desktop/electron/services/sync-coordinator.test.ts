@@ -415,3 +415,40 @@ it('never publishes automatically a work created by spreadsheet import', async (
   expect(f.online.createProject).not.toHaveBeenCalled()
   expect((await f.sync.listProjects()).localWorks.find((w: any) => w.id === imported.id).bound).toBe(false)
 })
+
+it('does not offer or publish a local work from another company', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  multiobra(f)
+  const company = f.database.save('empresas', { razao_social: 'Outra empresa fictícia', status: 'ativa' })
+  const work = f.database.save('obras', { empresa_id: company.id, nome: 'Obra de outra empresa' })
+  expect((await f.sync.listProjects()).localWorks.map((item: any) => item.id)).not.toContain(work.id)
+  await expect(f.sync.addProject({ workId: work.id })).rejects.toThrow(/empresa/)
+  expect(f.online.createProject).not.toHaveBeenCalled()
+})
+
+it('validates the current online identity before publishing another work', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  const { second } = multiobra(f)
+  f.session.company.id = 'company-other'
+  await expect(f.sync.addProject({ workId: second.id })).rejects.toThrow(/Vínculo online mudou/)
+  expect(f.online.createProject).not.toHaveBeenCalled()
+})
+
+it('recovers a legacy imported work from its unique device-scoped online identity', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  const { second } = multiobra(f)
+  f.database.db.prepare('INSERT INTO desktop_sync_skip_auto(work_id) VALUES(?)').run(second.id)
+  f.online.listAuthorizedProjects.mockResolvedValue({
+    projects: [
+      { id: 'same-name', name: second.nome, modules: ['rdo'] },
+      { id: 'canonical', name: 'Nome online atualizado', localWorkId: second.id, modules: ['rdo'] }
+    ],
+    limits: { maxProjects: 2, used: 2 }
+  })
+  await f.sync.run()
+  expect(f.sync.state().projects).toEqual([expect.objectContaining({ workId: second.id, remoteProjectId: 'canonical' })])
+  expect(f.online.createProject).not.toHaveBeenCalled()
+})

@@ -59,7 +59,7 @@ class SyncCoordinator {
  async stop(){this.generation++;if(this.timer)clearInterval(this.timer);this.timer=null;await this.running?.catch(()=>{});this.notify()}
  start(intervalMs=60000){if(this.timer)return;this.timer=setInterval(()=>this.run().catch(()=>{}),intervalMs);this.timer.unref?.();this.notify();this.run().catch(()=>{})}
  assertScope(scope,generation){const runtime=this.runtimeState();if(runtime.paused)throw new Error(`Sincronização pausada: ${runtime.pauseReason}`);if(runtime.source==='remote'&&(scope.storageMode!=='remote'||String(scope.serverId||'')!==String(this.dataProvider.storage?.state?.()?.serverId||'')))throw new Error('Servidor próprio alterado; reconfirme o vínculo antes de sincronizar.');if(runtime.source!=='remote'&&scope.storageMode==='remote')throw new Error('Modo operacional alterado; reconfirme o vínculo antes de sincronizar.');const connection=this.online.state();if(generation!==this.generation||!connection.linked||connection.baseUrl!==scope.baseUrl||this.key(this.binding()?.scope)!==this.key(scope))throw new Error('Sincronização pausada: conexão ou escopo alterado.')}
- async validate(scope,generation){this.assertScope(scope,generation);const s=await this.online.session();this.assertScope(scope,generation);if(!s.authorized||String(s.device?.id)!==scope.deviceId||String(s.company?.id)!==scope.remoteCompanyId||String(s.project?.id)!==scope.remoteProjectId)throw new Error('Vínculo online mudou. Confirme novamente a empresa e obra locais.');return s.access?.modules||[]}
+ async validate(scope,generation){this.assertScope(scope,generation);const s=await this.online.session();this.assertScope(scope,generation);if(!s.authorized||String(s.device?.id)!==scope.deviceId||String(s.company?.id)!==scope.remoteCompanyId||String(s.project?.id)!==scope.remoteProjectId)throw new Error('Vínculo online mudou. Confirme novamente a empresa e obra locais.');this.online.assertAccountEmail?.(s.user?.email);return s.access?.modules||[]}
  enqueue(scope,kind,entity,localId,payload){const key=this.key(scope),digest=hash(payload),head=this.db.prepare('SELECT * FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(key,entity,localId);if(head?.captured_hash===digest)return
   this.db.prepare('INSERT INTO desktop_sync_outbox(change_id,scope_key,kind,entity,local_id,payload,payload_hash) VALUES(?,?,?,?,?,?,?)').run(randomUUID(),key,kind,entity,localId,json(payload),digest)
   this.db.prepare('INSERT INTO desktop_sync_heads(scope_key,entity,local_id,captured_hash) VALUES(?,?,?,?) ON CONFLICT(scope_key,entity,local_id) DO UPDATE SET captured_hash=excluded.captured_hash').run(key,entity,localId,digest)
@@ -249,31 +249,40 @@ class SyncCoordinator {
   if(!primary)return {configured:false,projects:[],localWorks:[],limits:null}
   const list=await this.authorizedProjects(true),rows=this.extraRows()
   const boundRemote=new Map([[String(primary.scope.remoteProjectId),Number(primary.scope.workId)],...rows.map(row=>[String(row.remote_project_id),Number(row.work_id)])])
-  const works=this.runtimeState().source==='local'?this.db.prepare('SELECT id,nome,empresa_id FROM obras WHERE deleted_at IS NULL ORDER BY nome').all():[]
+  const works=this.runtimeState().source==='local'?this.db.prepare('SELECT id,nome,empresa_id FROM obras WHERE empresa_id=? AND deleted_at IS NULL ORDER BY nome').all(primary.scope.companyId):[]
   const bound=this.boundWorkIds()
   return {configured:true,limits:list.limits||null,
    projects:(list.projects||[]).map(project=>({...project,localWorkId:boundRemote.get(String(project.id))??null})),
    localWorks:works.map(work=>({id:work.id,nome:work.nome,empresaId:work.empresa_id,bound:bound.has(Number(work.id))}))}
  }
  /** Office decision (or automatic for a brand-new work): bind a local work to an online project, creating it when needed. */
- async addProject({workId,remoteProjectId=''}={}){
+ async addProject({workId,remoteProjectId=''}={},requireCanonicalIdentity=false){
   const primary=this.binding()
   if(!primary)throw new Error('Ligue primeiro a obra principal ao celular.')
   if(!this.hasTable('desktop_sync_extra_scopes'))throw new Error('Atualize o Obra na Mão Desktop para publicar outras obras.')
   const id=Number(workId),work=this.db.prepare('SELECT id,nome,empresa_id FROM obras WHERE id=? AND deleted_at IS NULL').get(id)
   if(!work)throw new Error('Obra local não encontrada.')
+  if(Number(work.empresa_id)!==Number(primary.scope.companyId))throw new Error('A obra local pertence a outra empresa.')
+  if(this.runtimeState().source!=='local')throw new Error('A publicação adicional exige uma obra da base local.')
+  const generation=this.generation
+  await this.validate(primary.scope,generation)
   if(this.boundWorkIds().has(id))throw new Error('Esta obra já recebe dados do celular.')
   let project
   if(remoteProjectId){
    const list=await this.authorizedProjects(true)
    project=(list.projects||[]).find(item=>String(item.id)===String(remoteProjectId))
    if(!project)throw new Error('Obra online não autorizada para esta conta.')
+   if(requireCanonicalIdentity&&(project.localWorkId!==id||(list.projects||[]).some(item=>item.localWorkId===id&&String(item.id)!==String(project.id))))throw new Error('A identidade canônica da obra online mudou.')
+   if(project.localWorkId!=null&&Number(project.localWorkId)!==id)throw new Error('A obra online já identifica outra obra local.')
    if(String(primary.scope.remoteProjectId)===String(project.id)||this.extraRows().some(row=>row.remote_project_id===String(project.id)))throw new Error('Esta obra online já está ligada a outra obra local.')
   }else{
    if(typeof this.online.createProject!=='function')throw new Error('Criação de obra online indisponível nesta versão.')
    project=(await this.online.createProject({name:work.nome,localWorkId:id})).project
    this.projectListCache=null
   }
+  this.assertScope(primary.scope,generation)
+  const currentWork=this.db.prepare('SELECT empresa_id FROM obras WHERE id=? AND deleted_at IS NULL').get(id)
+  if(Number(currentWork?.empresa_id)!==Number(primary.scope.companyId))throw new Error('A empresa da obra local mudou durante a publicação.')
   const company=this.db.prepare('SELECT razao_social,nome_fantasia FROM empresas WHERE id=?').get(work.empresa_id)||{}
   const scope={companyId:work.empresa_id,workId:id,companyName:company.nome_fantasia||company.razao_social||primary.scope.companyName,workName:work.nome,
    baseUrl:primary.scope.baseUrl,deviceId:primary.scope.deviceId,remoteCompanyId:primary.scope.remoteCompanyId,remoteProjectId:String(project.id),
@@ -286,16 +295,38 @@ class SyncCoordinator {
  async autoPublishWorks(){
   if(this.runtimeState().source!=='local'||!this.hasTable('desktop_sync_settings')||typeof this.online.createProject!=='function')return
   const primary=this.binding();if(!primary)return
+  await this.validate(primary.scope,this.generation)
+  const {projects=[]}=await this.authorizedProjects(true)
+  const claimedRemoteIds=new Set([String(primary.scope.remoteProjectId),...this.extraRows().map(row=>String(row.remote_project_id))])
+  const evidence=new Map()
+  for(const project of projects){
+   if(!Number.isSafeInteger(project.localWorkId)||project.localWorkId<1)continue
+   const matches=evidence.get(project.localWorkId)||new Set()
+   matches.add(String(project.id))
+   evidence.set(project.localWorkId,matches)
+  }
+  const existingWorks=this.db.prepare('SELECT id FROM obras WHERE empresa_id=? AND deleted_at IS NULL ORDER BY id').all(primary.scope.companyId)
+  const boundBeforeRecovery=this.boundWorkIds()
+  for(const {id} of existingWorks){
+   const matches=evidence.get(id)
+   if(boundBeforeRecovery.has(id)||!matches)continue
+   if(matches.size!==1){this.projectIssue('Há mais de uma obra online para a mesma identidade local.');continue}
+   const [remoteProjectId]=matches
+   if(!claimedRemoteIds.has(remoteProjectId)){
+    await this.addProject({workId:id,remoteProjectId},true)
+    claimedRemoteIds.add(remoteProjectId)
+   }
+  }
   const setting=this.db.prepare("SELECT value FROM desktop_sync_settings WHERE key='auto_publish_after_work_id'").get()
   if(!setting){
-   // Baseline: existing works are offered in the Painel, never published silently.
+   // Existing works without a canonical match remain available for manual publication.
    const max=this.db.prepare('SELECT COALESCE(MAX(id),0) AS id FROM obras').get().id
    this.db.prepare("INSERT INTO desktop_sync_settings(key,value) VALUES('auto_publish_after_work_id',?)").run(String(max))
    return
   }
   const bound=this.boundWorkIds()
   const skip=this.hasTable('desktop_sync_skip_auto')?'AND id NOT IN (SELECT work_id FROM desktop_sync_skip_auto)':''
-  const candidates=this.db.prepare(`SELECT id FROM obras WHERE id>? AND empresa_id=? AND deleted_at IS NULL ${skip} ORDER BY id`).all(Number(setting.value),Number(primary.scope.companyId)).filter(row=>!bound.has(Number(row.id)))
+  const candidates=this.db.prepare(`SELECT id FROM obras WHERE id>? AND empresa_id=? AND deleted_at IS NULL ${skip} ORDER BY id`).all(Number(setting.value),Number(primary.scope.companyId)).filter(row=>!bound.has(Number(row.id))&&!evidence.has(Number(row.id)))
   for(const row of candidates){
    try{await this.addProject({workId:row.id})}
    catch(error){this.projectIssue(String(error?.message||error));break}
