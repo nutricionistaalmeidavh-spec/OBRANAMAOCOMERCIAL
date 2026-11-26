@@ -26,7 +26,7 @@ test('recusa comprovantes conflitantes e recupera identidade verificada sem depe
  const session={authorized:true,role:'admin',company:{id:'c'},project:{id:'p',companyId:'c',workSource:{sourceDeviceId:'d',localWorkId:20}},device:{id:'d'}}
  assert.equal(service.localRdoBinding(db,session,cfg,url),null)
  db.exec("DELETE FROM field_rdo_links;UPDATE obras SET nome='Nome alterado' WHERE id=20")
- assert.deepEqual(service.localRdoBinding(db,session,cfg,url),{companyId:2,workId:20})
+ assert.deepEqual({...service.localRdoBinding(db,session,cfg,url)},{companyId:2,workId:20})
  db.exec("UPDATE empresas SET deleted_at='2026-11-26' WHERE id=2")
  assert.equal(service.localRdoBinding(db,session,cfg,url),null)
  }finally{db.close()}

@@ -16,7 +16,8 @@ describe('mapeamento manual do importador universal', () => {
     expect(page).toContain('file.sheets.find')
     expect(page).toContain('Array.isArray(selectedSheet?.headers)')
     expect(page).toContain('headers.map')
-    expect(page).toContain('value={mapping[field] ||')
+    expect(page).toContain("value={area==='orcamento' && !!workId && field==='obra' ? '' : mapping[field] || ''}")
+    expect(page).toContain("disabled={area==='orcamento' && !!workId && field==='obra'}")
   })
 })
 

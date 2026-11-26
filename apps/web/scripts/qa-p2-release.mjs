@@ -72,6 +72,7 @@ if(desktopTransactional.syncObservabilityVisible!==true)invariantErrors.push('El
 if(desktopTransactional.syncConfiguration!==true)invariantErrors.push('Electron sync configuration transaction was not proven');
 if(desktopTransactional.manualSync!==true)invariantErrors.push('Electron manual sync transaction was not proven');
 if(desktopTransactional.conflictResolution!==true)invariantErrors.push('Electron conflict resolution was not proven');
+if(desktopTransactional.budgetGlobalWork!==true)invariantErrors.push('Customer budget import with explicit global work was not proven');
 if(collaboratorOnboarding.status!=='passed')invariantErrors.push('collaborator onboarding E2E report not passed');
 if(collaboratorOnboarding.adminCreatedInvite!==true)invariantErrors.push('admin-created collaborator invitation was not proven');
 if(collaboratorOnboarding.inviteCodeReusedAcrossChannels!==true)invariantErrors.push('same invitation across PWA and Desktop was not proven');
