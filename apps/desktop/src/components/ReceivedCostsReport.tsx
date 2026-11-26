@@ -104,6 +104,20 @@ export default function ReceivedCostsReport({obraId,revision=0}:{obraId:number|n
             <td>{money(item.documentado_ate_fim_centavos)}</td><td>{money(item.documentado_periodo_centavos)}</td><td>{money(item.desvio_centavos)}</td><td>{alertText(item.alerta)}</td>
           </tr>)}</tbody>
         </table></div>:<Empty title="Sem itens documentados" description="Não há itens de notas recebidas com essa classificação."/>}
+        <h3 style={{marginTop:18}}>Compromissos e pagamentos por destino</h3>
+        <p style={{fontSize:12,color:'#64748b'}}>Comprometido é o valor das contas a pagar ativas hoje, inclusive já pagas, sem filtro de emissão. Pago usa a data da baixa no período selecionado. Os valores não são somados aos documentos; são dimensões distintas. Sem subetapa significa que não existe rateio explícito.</p>
+        {Array.isArray(result.financeiro_por_destino)?result.financeiro_por_destino.length?<div className="table-wrap"><table className="data-table">
+          <thead><tr><th>Etapa</th><th>Subetapa</th><th>Comprometido atual</th><th>Pago no período</th></tr></thead>
+          <tbody>{result.financeiro_por_destino.map((item:any)=><tr key={String(item.frente_id??'geral')+':'+String(item.subfrente_id??'geral')}>
+            <td>{item.etapa_nome}</td><td>{item.subetapa_nome}</td><td>{money(item.comprometido_atual_centavos)}</td><td>{money(item.pago_periodo_centavos)}</td>
+          </tr>)}</tbody>
+        </table></div>:<Empty title="Sem contas classificadas" description="Nenhuma obrigação financeira ativa neste destino."/>:<p>Indicadores financeiros indisponíveis nesta versão do servidor.</p>}
+        <h3 style={{marginTop:18}}>Consumo físico registrado no RDO</h3>
+        <p style={{fontSize:12,color:'#64748b'}}>Quantidades atuais dos RDOs datados no período, por material e unidade. Não representam custo monetário nem todas as saídas de estoque.</p>
+        {Array.isArray(result.consumo_rdo)?result.consumo_rdo.length?<><div className="table-wrap"><table className="data-table">
+          <thead><tr><th>Etapa</th><th>Material</th><th>Quantidade</th><th>Unidade</th></tr></thead>
+          <tbody>{result.consumo_rdo.map((item:any,index:number)=><tr key={String(item.frente_id??'geral')+':'+String(item.material_id??'')+':'+index}><td>{item.etapa_nome}</td><td>{item.descricao}</td><td>{Number(item.quantidade).toLocaleString('pt-BR',{maximumFractionDigits:6})}</td><td>{item.unidade}</td></tr>)}</tbody>
+        </table></div>{result.consumo_rdo_total>100&&<p>Mostrando os primeiros 100 de {result.consumo_rdo_total} grupos. Refine a etapa ou o período para consultar os demais.</p>}</>:<Empty title="Sem consumo de RDO" description="Não há consumo registrado neste período."/>:<p>Consumo indisponível com filtro de fornecedor ou subetapa, ou nesta versão do servidor.</p>}
         <h3 style={{marginTop:18}}>Histórico dos itens de notas recebidas</h3>
         <p style={{fontSize:12,color:'#64748b'}}>{result.historico_total} item(ns) no período e filtros selecionados. Uma nota com vários itens aparece em várias linhas.</p>
         {result.historico.length?<div className="table-wrap"><table className="data-table">

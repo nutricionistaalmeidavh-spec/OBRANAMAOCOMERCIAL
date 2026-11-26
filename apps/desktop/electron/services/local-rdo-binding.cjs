@@ -8,11 +8,16 @@ function localRdoBinding(db, session, config, baseUrl) {
     FROM field_rdo_links l JOIN rdos r ON r.id=l.rdo_id JOIN obras o ON o.id=r.obra_id
     JOIN empresas e ON e.id=o.empresa_id WHERE l.remote_project_id=?
     AND o.deleted_at IS NULL AND e.deleted_at IS NULL AND r.deleted_at IS NULL LIMIT 2`).all(String(project.id))
-  if (receipts.length) return receipts.length === 1 ? receipts[0] : null
   const origin = project.workSource
-  if (origin && String(origin.sourceDeviceId) === String(device.id) && Number.isSafeInteger(origin.localWorkId)) {
-    return db.prepare('SELECT empresa_id AS companyId,id AS workId FROM obras WHERE id=? AND deleted_at IS NULL').get(origin.localWorkId) || null
+  const verifiedOrigin = origin && String(origin.sourceDeviceId) === String(device.id) && Number.isSafeInteger(origin.localWorkId) && origin.localWorkId > 0
+  const originWork = verifiedOrigin ? db.prepare('SELECT o.empresa_id AS companyId,o.id AS workId FROM obras o JOIN empresas e ON e.id=o.empresa_id WHERE o.id=? AND o.deleted_at IS NULL AND e.deleted_at IS NULL').get(origin.localWorkId) : null
+  if (receipts.length > 1) return null
+  if (receipts.length === 1) {
+    // Conflicting canonical evidence must never silently redirect a project.
+    if (verifiedOrigin && (!originWork || receipts[0].workId !== originWork.workId || receipts[0].companyId !== originWork.companyId)) return null
+    return receipts[0]
   }
+  if (verifiedOrigin) return originWork || null
   const fresh=config.firstProject
   if (!fresh || fresh.baseUrl!==baseUrl || fresh.companyId!==String(company.id) ||
       fresh.projectId!==String(project.id) || fresh.deviceId!==String(device.id) || !company.name || !project.name) return null

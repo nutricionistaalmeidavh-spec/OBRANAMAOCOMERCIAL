@@ -189,7 +189,38 @@ function createReceivedNotesService(db) {
     const historico=db.prepare(historyQuery+joins+periodWhere+
       ' ORDER BY n.emissao DESC,n.id DESC,i.id DESC LIMIT ? OFFSET ?').all(...periodParams,limit,offset)
 
+    // Independent projections: never join invoice items to payments or multiply a payable.
+    // Commitments represent the current snapshot, not a reconstructed historical balance.
+    const financialWhere=["a.obra_id=?","a.empresa_id=?","a.tipo='pagar'","a.deleted_at IS NULL","a.status!='cancelado'"]
+    const financialArgs=[obraId,obra.empresa_id]
+    if(stageId){financialWhere.push('a.frente_id=?');financialArgs.push(stageId)}
+    if(substageId){financialWhere.push('a.subfrente_id=?');financialArgs.push(substageId)}
+    if(supplierId){financialWhere.push('c.fornecedor_id=?');financialArgs.push(supplierId)}
+    const financeRows=db.prepare("SELECT a.frente_id,a.subfrente_id,COALESCE(e.nome,'Sem etapa') etapa_nome,COALESCE(s.nome,'Sem subetapa') subetapa_nome,SUM(a.valor_centavos) comprometido_atual_centavos FROM v_financeiro_apropriacoes a JOIN contas c ON c.id=a.id LEFT JOIN frentes_obra e ON e.id=a.frente_id LEFT JOIN subfrentes_obra s ON s.id=a.subfrente_id WHERE "+financialWhere.join(' AND ')+" GROUP BY a.frente_id,a.subfrente_id").all(...financialArgs)
+    const payWhere=["p.obra_id=?","p.empresa_id=?","c.tipo='pagar'","c.deleted_at IS NULL","c.status!='cancelado'"]
+    const payArgs=[obraId,obra.empresa_id]
+    if(stageId){payWhere.push('p.frente_id=?');payArgs.push(stageId)}
+    if(substageId){payWhere.push('p.subfrente_id=?');payArgs.push(substageId)}
+    if(supplierId){payWhere.push('c.fornecedor_id=?');payArgs.push(supplierId)}
+    if(start){payWhere.push('p.data>=?');payArgs.push(start)}
+    if(end){payWhere.push('p.data<=?');payArgs.push(end)}
+    const paidRows=db.prepare("SELECT p.frente_id,p.subfrente_id,SUM(p.valor_centavos) pago_periodo_centavos FROM v_financeiro_pagamentos_apropriados p JOIN contas c ON c.id=p.conta_id WHERE "+payWhere.join(' AND ')+" GROUP BY p.frente_id,p.subfrente_id").all(...payArgs)
+    const paidMap=new Map(paidRows.map(x=>[keyForSub(x.frente_id,x.subfrente_id),Number(x.pago_periodo_centavos)]))
+    const financeiro_por_destino=financeRows.map(x=>({...x,comprometido_atual_centavos:Number(x.comprometido_atual_centavos),pago_periodo_centavos:paidMap.get(keyForSub(x.frente_id,x.subfrente_id))||0}))
+    // RDO stores physical quantities, not a cost valuation or reliable substage/supplier attribution.
+    // Never infer those dimensions or sum different materials/units.
+    let consumo_rdo=null,consumo_rdo_total=0
+    if(!supplierId&&!substageId){
+      const clauses=['r.obra_id=?','r.deleted_at IS NULL'],args=[obraId]
+      if(stageId){clauses.push('l.frente_id=?');args.push(stageId)}
+      if(start){clauses.push('r.data>=?');args.push(start)}
+      if(end){clauses.push('r.data<=?');args.push(end)}
+      const group=" FROM rdo_material_linhas l JOIN rdos r ON r.id=l.rdo_id LEFT JOIN frentes_obra e ON e.id=l.frente_id WHERE "+clauses.join(' AND ')+" GROUP BY l.frente_id,l.material_id,l.descricao,l.unidade"
+      consumo_rdo_total=Number(db.prepare('SELECT COUNT(*) quantidade FROM (SELECT 1'+group+')').get(...args).quantidade)
+      consumo_rdo=db.prepare("SELECT l.frente_id,COALESCE(e.nome,'Sem etapa') etapa_nome,l.material_id,l.descricao,l.unidade,ROUND(SUM(l.quantidade),6) quantidade"+group+" ORDER BY etapa_nome,l.descricao,l.unidade,l.material_id LIMIT 100").all(...args)
+    }
     return {
+      financeiro_por_destino,consumo_rdo,consumo_rdo_total,
       escopo:{obra_id:obraId,obra_nome:obra.nome,data_inicio:start,data_fim:end,
         frente_id:stageId,subfrente_id:substageId,fornecedor_id:supplierId},
       base_comparacao:'orcamento_total_vs_notas_ate_data_final',
