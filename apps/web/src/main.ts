@@ -38,7 +38,7 @@ declare global {
     multiuserLoadDay?: (date:string)=>Promise<Record<string,unknown>|null>;
     multiuserRefreshReceipts?: ()=>Promise<Record<string,unknown>>;
     mobileRdoReceipts?: Record<string,any>;
-    mobileRdoCatalog?: {schemaVersion:number;workId:number;version:string;employees?:Array<{id:string;name:string}>;materials:Array<any>;fronts:Array<any>;services:Array<any>}|null;
+    mobileRdoCatalog?: {schemaVersion:number;workId:number;version:string;employees?:Array<{id:string;name:string}>;locations?:Array<{id:number;nome:string;nivel:number}>;materials:Array<any>;fronts:Array<any>;services:Array<any>}|null;
     mobileRdoUploadPhoto?: (data:{date:string;mimeType:string;data:string;clientId?:string})=>Promise<any>;
     mobileRdoViewPhoto?: (id:string)=>Promise<any>;
     mobileRdoDeletePhoto?: (date:string,id:string)=>Promise<any>;
@@ -231,7 +231,7 @@ async function loadSharedApp(b:Bootstrap){
   setHeader(role,true,pending?'pending':'idle');
   nav().style.display='grid';
   activateRoleUI(role);
-  const fieldModule='/field.js?v=20261125-p1b-1';
+  const fieldModule='/field.js?v=20261125-locais-1';
   await import(/* @vite-ignore */ fieldModule);
 
   // Refresh only the active screen after each independent request completes.
