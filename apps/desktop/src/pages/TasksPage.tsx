@@ -11,7 +11,7 @@ export default function TasksPage() {
   const [work, setWork] = useState(new URLSearchParams(location.search).get('obra') || '')
   const [front, setFront] = useState('')
   const [status, setStatus] = useState('ativas')
-  const [place, setPlace] = useState('')
+  const [place, setPlace] = useState(new URLSearchParams(location.search).get('local') || '')
   const [form, setForm] = useState<any>(null)
   const works = useAsync(() => window.fluxoDre.obras.list(), [])
   const fronts = useAsync(() => work ? window.fluxoDre.frentes.list({ obra_id: Number(work) }) : Promise.resolve([]), [work])
