@@ -2,7 +2,7 @@ import { createCompanyRoutes } from './owner-companies';
 import { restrictForemanSnapshot } from './field-snapshot-rules';
 import { touchDesktopPresence, desktopSeenAt } from './desktop-presence';
 import { pendingFieldRdos, confirmFieldRdo, fieldRdoReceipts, rejectFieldRdo } from './field-rdo-delivery';
-import { fieldRdoOrigin, getFieldRdoCatalog, publishFieldRdoCatalog } from './field-rdo-catalog-cloud';
+import { fieldRdoOrigin, fieldRdoOrigins, getFieldRdoCatalog, publishFieldRdoCatalog } from './field-rdo-catalog-cloud';
 import { uploadFieldPhoto, readFieldPhoto, removeFieldPhoto } from './field-rdo-photos';
 import { centralRoleForEmail, requireCentralAccess } from './central-access';
 import { validateDesktopChange } from '../../../packages/contracts/src/desktop-sync';
@@ -309,7 +309,16 @@ export const handler=router({
     const session=await deviceContext(String(asRecord(ctx.body).deviceToken||''));
     if(!session?.device.companyId)return error('Desktop sem empresa autorizada.',403);
     const grants=await deviceProjectGrants(session),limits=await limitsForCompany(session.device.companyId);
-    const projects=grants.map(({project,member,access})=>{const source=asRecord((project as Record<string,unknown>).workSource);return{id:project.id,name:project.name,role:member.role,modules:access.modules,primary:project.id===session.device.projectId,...(String(source.sourceDeviceId||'')===session.device.id&&Number.isSafeInteger(Number(source.localWorkId))?{localWorkId:Number(source.localWorkId)}:{})}});
+    const origins=await fieldRdoOrigins(grants.map(({project})=>project.id),session.device.id);
+    const projects=grants.map(({project,member,access})=>{
+      const source=asRecord((project as Record<string,unknown>).workSource),catalogId=origins.get(project.id);
+      const storedId=Number(source.localWorkId),sameDevice=source.sourceDeviceId===session.device.id;
+      const identityConflict=sameDevice&&catalogId!==undefined&&Number.isSafeInteger(storedId)&&storedId>0&&storedId!==catalogId;
+      const localWorkId=!identityConflict&&sameDevice&&Number.isSafeInteger(storedId)&&storedId>0?storedId
+        :!source.sourceDeviceId?catalogId:undefined;
+      return{id:project.id,name:project.name,role:member.role,modules:access.modules,
+        primary:project.id===session.device.projectId,...(localWorkId===undefined?{}:{localWorkId}),...(identityConflict?{identityConflict:true}:{})};
+    });
     return json({projects,limits:{maxProjects:limits.maxProjects,used:await companyProjectCount(session.device.companyId)}});
   }],
   'POST /api/desktop/projects/create':[async(ctx)=>{

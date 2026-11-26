@@ -285,6 +285,7 @@ class SyncCoordinator {
    const list=await this.authorizedProjects(true)
    project=(list.projects||[]).find(item=>String(item.id)===String(remoteProjectId))
    if(!project)throw new Error('Obra online não autorizada para esta conta.')
+   if(project.identityConflict)throw new Error('A obra online tem identificações de origem divergentes.')
    if(requireCanonicalIdentity&&(project.localWorkId!==id||(list.projects||[]).some(item=>item.localWorkId===id&&String(item.id)!==String(project.id))))throw new Error('A identidade canônica da obra online mudou.')
    if(project.localWorkId!=null&&Number(project.localWorkId)!==id)throw new Error('A obra online já identifica outra obra local.')
    if(String(primary.scope.remoteProjectId)===String(project.id)||this.extraRows().some(row=>row.remote_project_id===String(project.id)))throw new Error('Esta obra online já está ligada a outra obra local.')

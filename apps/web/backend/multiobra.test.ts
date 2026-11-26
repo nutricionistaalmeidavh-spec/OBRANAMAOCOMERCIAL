@@ -14,7 +14,7 @@ const state = vi.hoisted(() => {
   };
   const createLanClaim=vi.fn(async()=>({claimToken:'claim-token',expiresAt:'2026-09-29T20:10:00.000Z'}));
   const revokeLanServerGrant=vi.fn(async()=>true);
-  return{db,createLanClaim,revokeLanServerGrant,reset(){sequence=0;collections.clear();createLanClaim.mockClear();revokeLanServerGrant.mockReset();revokeLanServerGrant.mockResolvedValue(true)},bucket,setHeaders(h:Record<string,string>){requestHeaders=h},request(){return new Request('https://example.test/api',{headers:requestHeaders})},env:{DB:{prepare(sql:string){let args:any[]=[];return{bind(...v:any[]){args=v;return this},async first(){if(sql.includes("collection='projects'")){let n=0;for(const r of bucket('projects').values())if((r as any).companyId===args[0])n++;return{n}}return null},async run(){return{meta:{changes:0}}},async all(){return{results:[]}}}}},OWNER_EMAIL:'owner@example.com',OWNER_COMPANY:'Obra na Mão',OWNER_PROJECT:'Operação Comercial',OWNER_CUSTOMER:'Obra na Mão',DB:{prepare(){return{bind(){return this},async run(){return{success:true,meta:{changes:1}}},async first(){return null},async all(){return{results:[]}}}}}}};
+  return{db,createLanClaim,revokeLanServerGrant,reset(){sequence=0;collections.clear();createLanClaim.mockClear();revokeLanServerGrant.mockReset();revokeLanServerGrant.mockResolvedValue(true)},bucket,setHeaders(h:Record<string,string>){requestHeaders=h},request(){return new Request('https://example.test/api',{headers:requestHeaders})},env:{DB:{prepare(sql:string){let args:any[]=[];return{bind(...v:any[]){args=v;return this},async first(){if(sql.includes("collection='projects'")){let n=0;for(const r of bucket('projects').values())if((r as any).companyId===args[0])n++;return{n}}return null},async run(){return{meta:{changes:0}}},async all(){return{results:[]}}}}},OWNER_EMAIL:'owner@example.com',OWNER_COMPANY:'Obra na Mão',OWNER_PROJECT:'Operação Comercial',OWNER_CUSTOMER:'Obra na Mão',DB:{prepare(sql:string){let args:any[]=[];return{bind(...values:any[]){args=values;return this},async run(){return{success:true,meta:{changes:1}}},async first(){return null},async all(){return{results:sql.includes('AS work_id')?args.slice(2).flatMap(collection=>{const record=bucket(String(collection)).get('latest');return record?.sourceDeviceId===args[1]?[{collection,work_id:record?.workId}]:[]}):[]}}}}}}};
 });
 
 vi.mock('../cloudflare/sdk',()=>({
@@ -153,5 +153,17 @@ describe('Multiobra: um Desktop, várias obras da mesma empresa',()=>{
     const {projects}=await body(response);
     expect(projects).toHaveLength(31);
     expect(projects).toContainEqual(expect.objectContaining({id:'project-a',primary:true}));
+  });
+  it('uses a legacy catalog only when it identifies this device and no conflicting source exists',async()=>{
+    const token=await seedDesktop('admin');
+    for(const id of ['legacy','other-device','conflicting']){
+      state.bucket('projects').set(id,{companyId:'company-a',name:'Mesmo nome',...(id==='conflicting'?{workSource:{sourceDeviceId:'device-a',localWorkId:30}}:{})});
+      state.bucket(accessTable('admin@example.com')).set('access-'+id,member('admin@example.com',id));
+      state.bucket('field_rdo_catalog_'+id).set('latest',{sourceDeviceId:id==='other-device'?'device-other':'device-a',workId:7});
+    }
+    const result=await body(await call('POST /api/desktop/projects',{deviceToken:token}));
+    expect(result.projects.find((p:any)=>p.id==='legacy').localWorkId).toBe(7);
+    expect(result.projects.find((p:any)=>p.id==='other-device').localWorkId).toBeUndefined();
+    expect(result.projects.find((p:any)=>p.id==='conflicting').localWorkId).toBeUndefined();
   });
 });
