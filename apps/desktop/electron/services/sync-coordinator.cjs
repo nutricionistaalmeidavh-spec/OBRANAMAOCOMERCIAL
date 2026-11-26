@@ -137,6 +137,10 @@ class SyncCoordinator {
   const retryDates=Array.isArray(this.fieldRdoRetryDates)?this.fieldRdoRetryDates.slice(0,20):[]
   try{pending=await this.online.fieldRdoPending(retryDates.length?{retryDates}:undefined)}catch(error){isolate('transport',null,error);return}
   this.fieldRdoRetryDates=[]
+  if(typeof this.dataProvider.retryFieldRdoMaterials==='function'){
+   try{this.assertScope(scope,generation);await this.dataProvider.retryFieldRdoMaterials(scope)}
+   catch(error){isolate('material',null,error)}
+  }
   if(!Array.isArray(pending?.reports)||!pending.reports.length)return
   for(const report of pending.reports){
    this.assertScope(scope,generation)
@@ -211,6 +215,7 @@ class SyncCoordinator {
   return this.extraRows().map(row=>{const scope=JSON.parse(row.binding),item=this.projectCoordinators?.get(row.id)
    return {id:row.id,workId:row.work_id,workName:scope.workName,remoteProjectId:row.remote_project_id,lastSyncAt:row.last_sync_at||null,lastError:row.last_error||null,
     pending:this.db.prepare("SELECT COUNT(*) n FROM desktop_sync_outbox WHERE scope_key=? AND status='pending'").get(this.key(scope)).n,
+    conflicts:this.projectCoordinator(row).state().conflicts,
     fieldRdoIssues:Array.isArray(item?.fieldRdoIssues)?item.fieldRdoIssues.slice(0,10):[]}})
  }
  hasTable(name){try{return !!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name)}catch{return false}}
@@ -371,7 +376,20 @@ class SyncCoordinator {
   }
   this.assertScope(scope,generation);this.db.prepare(`UPDATE ${this.scopeTable} SET last_sync_at=?,last_error=NULL WHERE id=?`).run(new Date(this.now()).toISOString(),this.scopeId)
  }catch(error){if(this.db?.open)this.db.prepare(`UPDATE ${this.scopeTable} SET last_error=? WHERE id=?`).run(String(error.message),this.scopeId);throw error}return this.state()}
- async resolveLocalConflict(id,resolution){if(this.running)throw new Error('Aguarde a sincronização atual terminar.');if(!['keep_local','accept_remote'].includes(resolution))throw new Error('Resolução inválida.');const runtime=this.runtimeState();if(runtime.paused)throw new Error(`Sincronização pausada: ${runtime.pauseReason}`);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};const scope=this.binding()?.scope;if(!scope)throw new Error('Configure a sincronização.');const generation=this.generation;await this.validate(scope,generation);const conflict=this.db.prepare("SELECT * FROM desktop_sync_conflicts WHERE id=? AND scope_key=? AND status='open'").get(Number(id),this.key(scope));if(!conflict)throw new Error('Conflito não encontrado.');const pull=await this.online.syncPull(0);this.assertScope(scope,generation);const item=(pull.snapshot?.desktopBridge?.[BRIDGE[conflict.entity]]||[]).find(x=>String(x.sourceDeviceId)===scope.deviceId&&Number(x.localId)===conflict.local_id);if(!item)throw new Error('Registro remoto não encontrado; revise o vínculo antes de resolver.');if(Number(item.mobileEditedRevision||0)!==conflict.remote_revision){this.conflict(scope,conflict.entity,conflict.local_id,item.payload||{},Number(item.mobileEditedRevision||0),conflict.remote_conflict_id);throw new Error('O registro online mudou; atualize e revise o conflito novamente.');}if(conflict.remote_conflict_id){
+ async resolveLocalConflict(id,resolution){if(this.running)throw new Error('Aguarde a sincronização atual terminar.');
+  if(this.isPrimary){
+   const primary=this.binding()?.scope
+   const conflict=this.db.prepare("SELECT scope_key FROM desktop_sync_conflicts WHERE id=? AND status='open'").get(Number(id))
+   if(primary&&conflict&&conflict.scope_key!==this.key(primary)){
+    const row=this.extraRows().find(item=>{
+     const scope=JSON.parse(item.binding)
+     return this.key(scope)===conflict.scope_key&&scope.companyId===primary.companyId&&scope.remoteCompanyId===primary.remoteCompanyId&&scope.deviceId===primary.deviceId&&scope.baseUrl===primary.baseUrl
+    })
+    if(!row)throw new Error('Conflito não encontrado no vínculo atual.')
+    await this.projectCoordinator(row).resolveLocalConflict(id,resolution)
+    return this.notify()
+   }
+  }if(!['keep_local','accept_remote'].includes(resolution))throw new Error('Resolução inválida.');const runtime=this.runtimeState();if(runtime.paused)throw new Error(`Sincronização pausada: ${runtime.pauseReason}`);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};const scope=this.binding()?.scope;if(!scope)throw new Error('Configure a sincronização.');const generation=this.generation;await this.validate(scope,generation);const conflict=this.db.prepare("SELECT * FROM desktop_sync_conflicts WHERE id=? AND scope_key=? AND status='open'").get(Number(id),this.key(scope));if(!conflict)throw new Error('Conflito não encontrado.');const pull=await this.online.syncPull(0);this.assertScope(scope,generation);const item=(pull.snapshot?.desktopBridge?.[BRIDGE[conflict.entity]]||[]).find(x=>String(x.sourceDeviceId)===scope.deviceId&&Number(x.localId)===conflict.local_id);if(!item)throw new Error('Registro remoto não encontrado; revise o vínculo antes de resolver.');if(Number(item.mobileEditedRevision||0)!==conflict.remote_revision){this.conflict(scope,conflict.entity,conflict.local_id,item.payload||{},Number(item.mobileEditedRevision||0),conflict.remote_conflict_id);throw new Error('O registro online mudou; atualize e revise o conflito novamente.');}if(conflict.remote_conflict_id){
    const result=await this.online.resolveConflict(conflict.remote_conflict_id,'keep_mobile');this.assertScope(scope,generation);if(result?.ok===false)throw new Error('Conflito online não confirmado.')}
   if(resolution==='accept_remote'&&!await resolved(this.applyRemote(scope,conflict.entity,conflict.local_id,item.payload)))throw new Error('Registro local ausente.')
   const row=await resolved(this.dataProvider.getBridge(conflict.entity,conflict.local_id,scope));if(!row)throw new Error('Registro local ausente.');const digest=hash(payloadOf(row));

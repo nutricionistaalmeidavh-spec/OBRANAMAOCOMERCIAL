@@ -187,6 +187,16 @@ class LocalSyncDataProvider {
     return new FieldRdoImport({repository:adapter}).apply({scope,report})
   }
 
+  async retryFieldRdoMaterials(scope) {
+    const FieldRdoImport = await loadFieldRdoImporter()
+    const repository = {
+      connection: () => this.database.db,
+      get: (table,id) => this.database.get(table,id),
+      save: (table,value) => this.database.save(table,value)
+    }
+    return new FieldRdoImport({repository}).retryPending(scope)
+  }
+
   async linkFieldRdo(scope, date) {
     const FieldRdoImport = await loadFieldRdoImporter()
     const adapter = {

@@ -468,3 +468,68 @@ it('joins a phone diary to the explicitly selected additional work', async () =>
     remoteProjectId: 'project-b'
   }), '2026-11-24')
 })
+
+it('upgrades a fictitious 2.1.14 database and resumes its original authorized outbox', async () => {
+  const { OnlineService } = require('./online-service.cjs')
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'obn-upgrade-214-'))
+  const migrationsDir = path.resolve(import.meta.dirname, '../../database/migrations')
+  const oldMigrations = path.join(dataDir, 'schema-214')
+  let database: any
+  try {
+    fs.mkdirSync(oldMigrations)
+    // Migration 026 is the last migration shipped in desktop-commercial-v2.1.14.
+    for (const file of fs.readdirSync(migrationsDir).filter(name => /^\d+.*\.sql$/.test(name) && Number(name.slice(0, 3)) <= 26)) {
+      fs.copyFileSync(path.join(migrationsDir, file), path.join(oldMigrations, file))
+    }
+    database = new DatabaseService({ dataDir, migrationsDir: oldMigrations })
+    database.open()
+    expect(database.db.pragma('user_version', { simple: true })).toBe(26)
+    const company = database.save('empresas', { razao_social: 'Empresa fictícia', status: 'ativa' })
+    const work = database.save('obras', { empresa_id: company.id, nome: 'Obra migrada' })
+    const task = database.save('tarefas_obra', { obra_id: work.id, titulo: 'Tarefa offline', status: 'aberta' })
+    const session = {
+      authorized: true, company: { id: 'company-test' }, project: { id: 'project-test' },
+      device: { id: 'device-test' }, user: { email: 'fixture@example.test' },
+      access: { licenseId: 'license-test', modules: ['obra360'] }
+    }
+    const baseUrl = 'https://mock.example.test'
+    const fetchImpl = vi.fn(async () => ({ ok: true, json: async () => session, headers: { get: () => null } }))
+    const online = new OnlineService({ dataDir, baseUrl, fetchImpl, qaLinked: false })
+    online.writeConfig({ baseUrl, installationId: 'fictional-installation-id', tenant: { companyId: session.company.id, baseUrl } })
+    online.storeToken('fictional-test-token')
+    const config = fs.readFileSync(online.configPath, 'utf8')
+    const legacyCoordinator = new SyncCoordinator({ database, online })
+    legacyCoordinator.dataProvider.summary = () => null
+    await legacyCoordinator.configure({ companyId: company.id, workId: work.id })
+    const queued = database.db.prepare('SELECT change_id FROM desktop_sync_outbox WHERE entity=? AND local_id=?').get('tarefas_obra', task.id)
+    database.close()
+
+    database = new DatabaseService({ dataDir, migrationsDir })
+    database.open()
+    expect(database.db.pragma('user_version', { simple: true })).toBeGreaterThan(26)
+    const backupDir = path.join(dataDir, 'backups', 'pre-migration')
+    const [backupFile] = fs.readdirSync(backupDir)
+    const backup = new (require('better-sqlite3'))(path.join(backupDir, backupFile), { readonly: true })
+    try {
+      expect(backup.pragma('user_version', { simple: true })).toBe(26)
+      expect(backup.prepare('SELECT titulo FROM tarefas_obra WHERE id=?').get(task.id).titulo).toBe('Tarefa offline')
+    } finally { backup.close() }
+    expect(database.get('tarefas_obra', task.id).titulo).toBe('Tarefa offline')
+    expect(fs.readFileSync(online.configPath, 'utf8')).toBe(config)
+    const reopened = new OnlineService({ dataDir, baseUrl, fetchImpl, qaLinked: false })
+    expect(reopened.installationId()).toBe('fictional-installation-id')
+    expect(reopened.deviceToken()).toBe('fictional-test-token')
+    expect((await reopened.session()).access.licenseId).toBe('license-test')
+    reopened.syncPull = vi.fn(async () => ({ changed: false }))
+    reopened.publishMobileSummary = vi.fn(async () => ({ ok: true }))
+    const syncPush = vi.fn(async (changes: any[]) => ({ accepted: changes.map(change => ({ changeId: change.changeId, status: 'accepted' })) }))
+    reopened.syncPush = syncPush
+    const coordinator = new SyncCoordinator({ database, online: reopened })
+    await coordinator.run({ retryNow: true })
+    expect(syncPush.mock.calls.flatMap(([changes]) => changes).some(change => change.changeId === queued.change_id)).toBe(true)
+    expect(coordinator.state().pending).toBe(0)
+  } finally {
+    database?.close()
+    fs.rmSync(dataDir, { recursive: true, force: true })
+  }
+})

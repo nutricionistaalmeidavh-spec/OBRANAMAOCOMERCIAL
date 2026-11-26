@@ -22,7 +22,7 @@ export type DesktopSyncState = {
   /** Phone diaries imported whose material consumption waits for stock in the office. */
   fieldRdoPendingConsumption?: Array<{rdoId: number; date: string; message: string}>;
   /** Multiobra: additional works synchronized with their own online project. */
-  projects?: Array<{id: number; workId: number; workName: string; remoteProjectId: string; lastSyncAt: string | null; lastError: string | null; pending: number; fieldRdoIssues: Array<{kind: string; date: string | null; message: string; at: string; code?: string}>}>;
+  projects?: Array<{id: number; workId: number; workName: string; remoteProjectId: string; lastSyncAt: string | null; lastError: string | null; pending: number; conflicts?: DesktopSyncState['conflicts']; fieldRdoIssues: Array<{kind: string; date: string | null; message: string; at: string; code?: string}>}>;
   projectIssues?: Array<{message: string; at: string}>;
   fieldRdoIssues?: Array<{kind: 'catalog' | 'transport' | 'rdo' | 'material'; date: string | null; message: string; at: string; code?: 'manual_rdo_exists' | 'material_pending'}>;
 };

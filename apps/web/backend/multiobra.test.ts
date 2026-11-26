@@ -29,6 +29,8 @@ vi.mock('./lan-server-authority',()=>({
   redeemLanClaim:vi.fn(),authenticateLanServer:vi.fn(),revokeLanServerGrant:state.revokeLanServerGrant,lanServerSnapshot:vi.fn(),
 }));
 
+vi.mock('./desktop-presence',()=>({touchDesktopPresence:vi.fn(async()=>undefined),desktopSeenAt:vi.fn(async()=>null)}));
+import { touchDesktopPresence } from './desktop-presence';
 import { handler } from './index';
 
 const body=async(response:Response)=>await response.json() as Record<string,any>;
@@ -102,15 +104,41 @@ describe('Multiobra: um Desktop, várias obras da mesma empresa',()=>{
     state.setHeaders({});
   });
 
-  it('keeps the web finance and AI assistant closed unless the company has the explicit add-on',async()=>{
+  it('keeps licensed desktop finance available when the web add-on is disabled',async()=>{
     const token=await seedDesktop('admin');
-    for(const route of ['POST /api/desktop/finance/read','POST /api/desktop/finance/write','POST /api/desktop/ai/analyze']){
-      const response=await call(route,{deviceToken:token,view:'dashboard'});
-      expect(response.status).toBe(403);
-      expect((await body(response)).error).toMatch(/adicional não contratado/);
-    }
-    state.bucket('companies').set('company-a',{...state.bucket('companies').get('company-a'),financeWebAddon:true});
+    const grant=state.bucket(accessTable('admin@example.com')).get('access-a')!;
+    state.bucket(accessTable('admin@example.com')).set('access-a',{...grant,modules:['obra360','finance']});
+    state.bucket('companies').set('company-a',{...state.bucket('companies').get('company-a'),financeWebAddon:false});
     const response=await call('POST /api/desktop/finance/read',{deviceToken:token,view:'dashboard'});
-    expect((await body(response)).error||'').not.toMatch(/adicional não contratado/);
+    expect(response.status).not.toBe(403);
+  });
+
+  it('rejects a primary project when the membership belongs to another account',async()=>{
+    const token=await seedDesktop('admin');
+    const grant=state.bucket(accessTable('admin@example.com')).get('access-a')!;
+    state.bucket(accessTable('admin@example.com')).set('access-a',{...grant,userId:'different-account'});
+    expect((await call('POST /api/desktop/field/rdo/pending',{deviceToken:token})).status).toBe(403);
+  });
+  it('lists members only in the selected work administered by the device account',async()=>{
+    const token=await seedDesktop('admin');
+    state.bucket('projects').set('project-b',{companyId:'company-a',name:'Obra B'});
+    state.bucket(accessTable('admin@example.com')).set('access-b',member('admin@example.com','project-b'));
+    state.bucket('members_project-b').set('member-b',member('bob@example.com','project-b','employee'));
+    const selected=await call('POST /api/desktop/members/list',{deviceToken:token,projectId:'project-b'});
+    expect(selected.status).toBe(200);
+    expect((await body(selected)).members.map((item:any)=>item.email)).toEqual(['bob@example.com']);
+    state.bucket(accessTable('admin@example.com')).set('access-b',member('admin@example.com','project-b','foreman'));
+    expect((await call('POST /api/desktop/members/list',{deviceToken:token,projectId:'project-b'})).status).toBe(403);
+  });
+  it('updates operational heartbeat only after the RDO module gate',async()=>{
+    const token=await seedDesktop('admin');
+    vi.mocked(touchDesktopPresence).mockClear();
+    const grant=state.bucket(accessTable('admin@example.com')).get('access-a')!;
+    state.bucket(accessTable('admin@example.com')).set('access-a',{...grant,modules:['finance']});
+    expect((await call('POST /api/desktop/field/rdo/pending',{deviceToken:token})).status).toBe(403);
+    expect(touchDesktopPresence).not.toHaveBeenCalled();
+    state.bucket(accessTable('admin@example.com')).set('access-a',grant);
+    expect((await call('POST /api/desktop/field/rdo/pending',{deviceToken:token})).status).toBe(200);
+    expect(touchDesktopPresence).toHaveBeenCalledWith('project-a','device-a');
   });
 });

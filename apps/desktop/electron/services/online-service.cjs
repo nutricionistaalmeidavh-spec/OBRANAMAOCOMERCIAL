@@ -334,8 +334,8 @@ class OnlineService {
   }
 
 
-  async membersList() {
-    return this.request('/api/desktop/members/list', { deviceToken: this.requireToken() })
+  async membersList(projectId) {
+    return this.request('/api/desktop/members/list', { deviceToken: this.requireToken(), projectId })
   }
 
   async memberSave(input = {}) {
@@ -347,16 +347,16 @@ class OnlineService {
       employeeId: payload.employeeId ? String(payload.employeeId) : undefined,
       modules: Array.isArray(payload.modules) ? payload.modules.map(String) : [],
       channels: Array.isArray(payload.channels) ? payload.channels.map(String) : [],
-      permissions: payload.permissions
+      permissions: payload.permissions, projectId: payload.projectId
     })
   }
 
-  async memberStatus(memberId, status) {
+  async memberStatus(memberId, status, projectId) {
     const value = status === 'revoked' ? 'revoked' : 'active'
     return this.request('/api/desktop/members/status', {
       deviceToken: this.requireToken(),
       memberId: String(memberId || ''),
-      status: value
+      status: value, projectId
     })
   }
 

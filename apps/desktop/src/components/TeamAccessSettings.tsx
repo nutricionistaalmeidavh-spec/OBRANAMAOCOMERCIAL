@@ -54,6 +54,8 @@ function cleanPermissions(value:PermissionMatrix,modules:string[]):PermissionMat
 }
 
 export default function TeamAccessSettings({onMessage}:{onMessage:(message:string)=>void}){
+  const [projectId,setProjectId]=useState('')
+  const [projects,setProjects]=useState<Array<{id:string;name:string}>>([])
   const [team,setTeam]=useState<TeamData|null>(null)
   const [employees,setEmployees]=useState<Employee[]>([])
   const [devices,setDevices]=useState<Device[]>([])
@@ -70,16 +72,16 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
   const [permissions,setPermissions]=useState<PermissionMatrix>(ROLE_PERMISSIONS.employee)
   const [customPermissions,setCustomPermissions]=useState(false)
 
-  const load=async()=>{
+  const load=async(selectedProject=projectId)=>{
     setLoading(true);setError(null)
     try{
       const session=await window.fluxoDre.online.session()
       setSessionRole(String(session?.role||''))
       if(session?.role!=='admin'){setTeam(null);setDevices([]);return}
-      const [teamData,localEmployees,deviceData]=await Promise.all([
-        window.fluxoDre.online.membersList(),
+      const [teamData,localEmployees,deviceData,projectData]=await Promise.all([
+        window.fluxoDre.online.membersList(selectedProject||undefined),
         window.fluxoDre.funcionarios.list(),
-        window.fluxoDre.online.companyDevices()
+        window.fluxoDre.online.companyDevices(), window.fluxoDre.online.syncProjects?.().catch(()=>null)
       ])
       setTeam({
         ...teamData,
@@ -89,6 +91,7 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
           effectivePermissions:member.effectivePermissions?normalizePermissionMatrix(member.effectivePermissions):undefined
         }))
       })
+      setProjects(projectData?.projects.filter(project=>!project.primary&&project.role==='admin')||[])
       setEmployees((localEmployees||[]) as Employee[])
       setDevices(deviceData?.devices||[])
     }catch(cause){setError(cause as Error)}
@@ -144,7 +147,7 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
     setBusy(true)
     try{
       const result=await window.fluxoDre.online.memberSave({
-        email:email.trim(),role,employeeId:employeeId||undefined,modules,channels,
+        projectId:projectId||undefined,email:email.trim(),role,employeeId:employeeId||undefined,modules,channels,
         permissions:cleanPermissions(permissions,modules)
       })
       const code=result?.member?.joinCode
@@ -171,7 +174,7 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
     const next=member.status==='revoked'?'active':'revoked'
     setBusy(true)
     try{
-      await window.fluxoDre.online.memberStatus(member.id,next)
+      await window.fluxoDre.online.memberStatus(member.id,next,projectId||undefined)
       onMessage(next==='revoked'?'Acesso do colaborador revogado. Os computadores dele também foram bloqueados.':'Acesso do colaborador reativado. Computadores revogados continuam bloqueados até nova autorização.')
       await load()
     }catch(cause){onMessage(cause instanceof Error?cause.message:'Não foi possível alterar o acesso do colaborador.')}
@@ -190,6 +193,7 @@ export default function TeamAccessSettings({onMessage}:{onMessage:(message:strin
         <h3>Equipe e acessos</h3>
         <p>Este é o mesmo cadastro de usuários usado pelo Web/PWA. Funções, módulos, canais e convites não são duplicados no Desktop.</p>
       </div>
+      {!!projects.length&&<Field label="Obra"><select value={projectId} disabled={busy} onChange={event=>{const selected=event.target.value;closeEditor();setProjectId(selected);void load(selected)}}><option value="">Obra principal</option>{projects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}</select></Field>}
       <div className="setting-actions"><Button icon={<Plus size={15}/>} onClick={()=>openEditor()}>Adicionar colaborador</Button><Button variant="secondary" icon={<RefreshCw size={15}/>} onClick={()=>void load()}>Atualizar</Button></div>
       {team.storageTopology.mode==='local-single'
         ?<div className="success-box"><strong>Desktop adicional indisponível.</strong> Esta empresa usa somente este computador. Para liberar Desktop a colaboradores, altere para “Vários computadores” na configuração de dados. O acesso Web / celular continua disponível.</div>

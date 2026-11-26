@@ -39,7 +39,27 @@ export async function retryOnMetaConflict<T>(operation:()=>Promise<T>,attempts=1
 export async function getProject(projectId:string){const[p]=await db.get<ProjectRecord>('projects',[projectId]);return p}
 export async function getCompany(companyId:string){const[c]=await db.get<Record<string,unknown>>('companies',[companyId]);return c}
 export async function getMeta(projectId:string){const{items}=await db.list<ProjectMetaRecord>(metaTable(projectId),{limit:1});return items[0]||null}
-export async function getFloors(projectId:string){const{items}=await db.list<FloorRecord>(floorsTable(projectId),{limit:50});return items.sort((a,b)=>a.number-b.number)}
+export async function getFloors(projectId:string){
+  const DB=runtimeEnv().DB;
+  if(typeof DB.batch!=='function'){
+    const {items}=await db.list<FloorRecord>(floorsTable(projectId),{limit:100});
+    return items.sort((a,b)=>a.number-b.number);
+  }
+  const floors=new Map<number,FloorRecord>();
+  let after='';
+  for(;;){
+    const page=await DB.prepare('SELECT id,record_json FROM kv_records WHERE collection=? AND id>? ORDER BY id LIMIT 100')
+      .bind(floorsTable(projectId),after).all<{id:string;record_json:string}>();
+    for(const row of page.results){
+      const floor={...JSON.parse(row.record_json) as FloorRecord,id:row.id};
+      const previous=floors.get(floor.number);
+      if(!previous||floor.updatedAt>previous.updatedAt)floors.set(floor.number,floor);
+    }
+    if(page.results.length<100)break;
+    after=page.results.at(-1)!.id;
+  }
+  return [...floors.values()].sort((a,b)=>a.number-b.number);
+}
 export async function getDay(projectId:string,date:string){const{items}=await db.list<DayRecord>(dayTable(projectId,date),{limit:1});return items[0]?.day||null}
 
 export async function persistMeta(projectId:string,meta:ProjectMetaRecord){
@@ -80,14 +100,21 @@ async function saveSnapshotAtomically(projectId:string,snapshot:Record<string,un
     SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM kv_records WHERE collection=? AND id=? AND json_extract(record_json,'$.writeId')=?)
     ON CONFLICT(collection,id) DO UPDATE SET record_json=excluded.record_json,updated_at=excluded.updated_at`)
     .bind(collection,id,JSON.stringify(value),stamp,stamp,meta,metaId,writeId);
-  const floorsCollection=floorsTable(projectId),existing=(await db.list<FloorRecord>(floorsCollection,{limit:50})).items,byNumber=new Map(existing.map(item=>[item.number,item]));
+  const floorsCollection=floorsTable(projectId),existing=await getFloors(projectId),byNumber=new Map(existing.map(item=>[item.number,item]));
   for(const value of list(snapshot.floors)){
     const floor=record(value),number=Number(floor.number);if(!Number.isFinite(number))continue;
-    statements.push(guarded(floorsCollection,String(byNumber.get(number)?.id||crypto.randomUUID()),{number,floor,updatedAt:stamp,updatedBy:actor}));
+    statements.push(guarded(floorsCollection,String(byNumber.get(number)?.id||'floor:'+number),{number,floor,updatedAt:stamp,updatedBy:actor}));
   }
-  for(const[date,value]of Object.entries(record(snapshot.days))){
-    const table=dayTable(projectId,date),{items}=await db.list<DayRecord>(table,{limit:1});
-    statements.push(guarded(table,String(items[0]?.id||crypto.randomUUID()),{day:record(value),updatedAt:stamp,updatedBy:actor}));
+  const dayEntries=Object.entries(record(snapshot.days));
+  const existingDays=new Map<string,string>();
+  for(let start=0;start<dayEntries.length;start+=90){
+    const collections=dayEntries.slice(start,start+90).map(([date])=>dayTable(projectId,date));
+    const rows=await DB.prepare(`SELECT collection,id FROM kv_records WHERE collection IN (${collections.map(()=>'?').join(',')}) ORDER BY updated_at DESC,id`).bind(...collections).all();
+    for(const row of rows.results)if(!existingDays.has(row.collection))existingDays.set(row.collection,row.id);
+  }
+  for(const[date,value]of dayEntries){
+    const collection=dayTable(projectId,date);
+    statements.push(guarded(collection,existingDays.get(collection)||'day',{day:record(value),updatedAt:stamp,updatedBy:actor}));
   }
   const results=await DB.batch(statements);
   if(Number(results?.[0]?.meta?.changes||0)!==1)throw new SnapshotRevisionConflict();
@@ -120,11 +147,38 @@ export async function saveSnapshot(projectId:string,snapshot:Record<string,unkno
 }
 
 export async function assembleState(projectId:string,requestedDate?:string){
-  const meta=await getMeta(projectId);if(!meta)return null;
-  const floors=(await getFloors(projectId)).map(item=>item.floor),keys=meta.dayKeys||[],dates=keys.length<=31?[...keys]:keys.slice(-31),days:Record<string,unknown>={};
-  if(requestedDate&&/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)&&keys.includes(requestedDate)&&!dates.includes(requestedDate))dates.push(requestedDate);
-  for(const date of dates){const day=await getDay(projectId,date);if(day)days[date]=day}
-  return{...meta.state,floors,days,_remote:{revision:meta.revision,dayKeys:keys,updatedAt:meta.updatedAt,schemaVersion:PROJECT_STATE_VERSION}};
+  const DB=runtimeEnv().DB;
+  return retryOnMetaConflict(async()=>{
+    const meta=await getMeta(projectId);if(!meta)return null;
+    const keys=meta.dayKeys||[],dates=keys.slice(-31),days:Record<string,unknown>={};
+    if(requestedDate&&/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)&&keys.includes(requestedDate)&&!dates.includes(requestedDate))dates.push(requestedDate);
+    let floors:Record<string,unknown>[];
+    if(typeof DB.batch==='function'){
+      const floorCollection=floorsTable(projectId),metaCollection=metaTable(projectId);
+      const dayCollections=new Map(dates.map(date=>[dayTable(projectId,date),date]));
+      const collections=[metaCollection,floorCollection,...dayCollections.keys()];
+      const {results}=await DB.prepare(`SELECT collection,id,record_json FROM kv_records
+        WHERE collection IN (${collections.map(()=>'?').join(',')}) ORDER BY updated_at DESC,id`)
+        .bind(...collections).all<{collection:string;id:string;record_json:string}>();
+      const selectedMeta=results.find(row=>row.collection===metaCollection);
+      if(!selectedMeta||selectedMeta.id!==meta.id||JSON.parse(selectedMeta.record_json).revision!==meta.revision)throw new SnapshotRevisionConflict();
+      const byNumber=new Map<number,Record<string,unknown>>();
+      for(const row of results){
+        if(row.collection===floorCollection){
+          const value=JSON.parse(row.record_json) as FloorRecord;
+          if(!byNumber.has(value.number))byNumber.set(value.number,value.floor);
+        }else{
+          const date=dayCollections.get(row.collection);
+          if(date&&!Object.hasOwn(days,date))days[date]=(JSON.parse(row.record_json) as DayRecord).day;
+        }
+      }
+      floors=[...byNumber].sort(([a],[b])=>a-b).map(([,floor])=>floor);
+    }else{
+      floors=(await getFloors(projectId)).map(item=>item.floor);
+      for(const date of dates){const day=await getDay(projectId,date);if(day)days[date]=day}
+    }
+    return{...meta.state,floors,days,_remote:{revision:meta.revision,dayKeys:keys,updatedAt:meta.updatedAt,schemaVersion:PROJECT_STATE_VERSION}};
+  });
 }
 
 export async function carryForwardActiveAssignments(projectId:string,date:string,actor:string){

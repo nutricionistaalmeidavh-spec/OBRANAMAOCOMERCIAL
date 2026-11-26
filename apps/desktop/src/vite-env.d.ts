@@ -108,7 +108,7 @@ interface Window { fluxoDre: {
     configureSync(scope:{companyId:number;workId:number}):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     syncNow():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     linkFieldRdo(date:string,workId?:number):Promise<{rdoId:number;date:string}>;
-    syncProjects():Promise<{configured:boolean;limits:{maxProjects:number;used:number}|null;projects:Array<{id:string;name:string;primary?:boolean;localWorkId:number|null}>;localWorks:Array<{id:number;nome:string;empresaId:number;bound:boolean}>}>;
+    syncProjects():Promise<{configured:boolean;limits:{maxProjects:number;used:number}|null;projects:Array<{id:string;name:string;primary?:boolean;role?:string;localWorkId:number|null}>;localWorks:Array<{id:number;nome:string;empresaId:number;bound:boolean}>}>;
     addSyncProject(workId:number,remoteProjectId?:string):Promise<{workId:number;remoteProjectId:string;name:string}>;
     resolveLocalConflict(id:number,resolution:import('../../../packages/contracts/src/desktop-sync').LocalConflictResolution):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     state():Promise<{baseUrl:string;installationId:string;linked:boolean;linkedAt:string|null;pending:{expiresAt:string|null}|null;storageRequired:CompanyStorageRequirement|null}>;
@@ -119,9 +119,9 @@ interface Window { fluxoDre: {
     localTransferPreview():Promise<{serverId:string;alreadyLocal:boolean;devices:Array<{id:string;name:string;email?:string}>}>;
     transferToLocal(input:{confirmed:boolean;expectedServerId:string;otherDeviceIds:string[]}):Promise<{linked:boolean;storageStatus:string;storageRequired:CompanyStorageRequirement|null}>;
     setStorageTopology(input:{mode:'local-single'|'lan-server'|'remote';serverId?:string;validateOnly?:boolean}):Promise<any>;
-    membersList():Promise<{members:Array<{id:string;email:string;name?:string;role:'admin'|'foreman'|'employee';employeeId?:string;userId?:string;joinCode?:string;status:'active'|'revoked';modules:string[];channels:string[];desktopStorage?:{mode:'lan-server'|'remote';serverId:string;autoEnroll?:boolean}|null;permissions?:Record<string,string[]>|null;effectivePermissions?:Record<string,string[]>;permissionsRevision?:string}>;companyAccess:{modules:string[];channels:string[]};storageTopology:{mode:'local-single'|'lan-server'|'remote';serverId?:string|null}}>;
-    memberSave(input:{email:string;role:'admin'|'foreman'|'employee';employeeId?:string;modules?:string[];channels?:string[];permissions?:Record<string,string[]>}):Promise<any>;
-    memberStatus(memberId:string,status:'active'|'revoked'):Promise<{member:{id:string;email:string;role:string;status:'active'|'revoked'}}>;
+    membersList(projectId?:string):Promise<{members:Array<{id:string;email:string;name?:string;role:'admin'|'foreman'|'employee';employeeId?:string;userId?:string;joinCode?:string;status:'active'|'revoked';modules:string[];channels:string[];desktopStorage?:{mode:'lan-server'|'remote';serverId:string;autoEnroll?:boolean}|null;permissions?:Record<string,string[]>|null;effectivePermissions?:Record<string,string[]>;permissionsRevision?:string}>;companyAccess:{modules:string[];channels:string[]};storageTopology:{mode:'local-single'|'lan-server'|'remote';serverId?:string|null}}>;
+    memberSave(input:{projectId?:string;email:string;role:'admin'|'foreman'|'employee';employeeId?:string;modules?:string[];channels?:string[];permissions?:Record<string,string[]>}):Promise<any>;
+    memberStatus(memberId:string,status:'active'|'revoked',projectId?:string):Promise<{member:{id:string;email:string;role:string;status:'active'|'revoked'}}>;
     companyDevices():Promise<{devices:Array<{id:string;name:string;platform?:string;email?:string;status:'active'|'revoked';lastSeenAt?:string;installationId?:string}>}>;
     revokeCompanyDevice(deviceId:string):Promise<{ok:boolean}>;
     session():Promise<any>;disconnect():Promise<any>;syncPull(sinceRevision?:number):Promise<any>;syncPush(changes:any[]):Promise<any>;

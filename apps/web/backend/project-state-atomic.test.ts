@@ -46,3 +46,28 @@ it('rolls back the metadata when a floor or day write fails inside the batch',as
   expect(current._remote.revision).toBe(1);
   expect(current.project.name).toBe('Obra');
 });
+
+it('updates more than 50 floors without creating new floor identities',async()=>{
+  const floors=Array.from({length:125},(_,number)=>({number,stages:['first']}));
+  await saveSnapshot('p',{floors,days:{}},'admin');
+  const base:any=await assembleState('p');
+  expect(base.floors).toHaveLength(125);
+  await saveSnapshot('p',{...base,floors:floors.map(floor=>({...floor,stages:['updated']}))},'admin');
+  const updated:any=await assembleState('p');
+  expect(updated.floors).toHaveLength(125);
+  expect(store.DB.db.prepare("SELECT COUNT(*) AS count FROM kv_records WHERE collection='project_floors_p'").get().count).toBe(125);
+  expect(updated.floors.every((floor:any)=>floor.stages[0]==='updated')).toBe(true);
+});
+
+it('selects the requested historical RDO from a history of 1,100 days',async()=>{
+  const start=Date.UTC(2022,0,1);
+  const days=Object.fromEntries(Array.from({length:1100},(_,index)=>{
+    const date=new Date(start+index*86400000).toISOString().slice(0,10);
+    return [date,{date,note:'Diário '+index}];
+  }));
+  await saveSnapshot('p',{floors:[],days},'admin');
+  const snapshot:any=await assembleState('p','2022-01-01');
+  expect(snapshot._remote.dayKeys).toHaveLength(1100);
+  expect(Object.keys(snapshot.days)).toHaveLength(32);
+  expect(snapshot.days['2022-01-01'].note).toBe('Diário 0');
+});
