@@ -6,7 +6,7 @@ type Destination={key:number;nfe_item_numero:string;obra_id:string;frente_id:str
 type Part={valor:string;vencimento:string;conta_id:string}
 const amount=(value:string)=>/^\d+(?:\.\d{1,2})?$/.test(value)?Math.round(Number(value)*100):NaN
 const num=(s:string)=>s?Number(s):null
-export default function NfeCommitPanel({obraId,preview,recognition,source,manual,initialScopes,onImported}:{obraId:number;preview:IntegrationPreview;recognition:Recognition;source?:string;manual?:ManualNoteSource;initialScopes?:Array<{frente_id:string;subfrente_id:string}>;onImported:(result?:{nota_id:number})=>void|Promise<void>}){
+export default function NfeCommitPanel({obraId,preview,recognition,source,manual,initialScopes,onBusyChange,onImported}:{obraId:number;preview:IntegrationPreview;recognition:Recognition;source?:string;manual?:ManualNoteSource;initialScopes?:Array<{frente_id:string;subfrente_id:string}>;onBusyChange?:(busy:boolean)=>void;onImported:(result?:{nota_id:number})=>void|Promise<void>}){
  const [open,setOpen]=useState(!!manual),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[confirmed,setConfirmed]=useState(false),[date,setDate]=useState(''),[category,setCategory]=useState(''),[page,setPage]=useState(0)
  const lock=useRef(false),next=useRef(preview.itens.length+1)
  const [destinations,setDestinations]=useState<Destination[]>(()=>preview.itens.map((i,k)=>({key:k+1,nfe_item_numero:i.numero,obra_id:String(obraId),frente_id:initialScopes?.[k]?.frente_id||'',subfrente_id:initialScopes?.[k]?.subfrente_id||'',quantidade:i.quantidade,quantidade_recebida:'0',valor_alocado:i.valor_produto,pedido_item_id:'',recebimento_existente_id:''})))
@@ -17,12 +17,12 @@ export default function NfeCommitPanel({obraId,preview,recognition,source,manual
  const total=amount(preview.total),allocated=destinations.reduce((sum,d)=>sum+amount(d.valor_alocado),0),scheduled=parts.reduce((sum,p)=>sum+amount(p.valor),0)
  const submit=async()=>{
   if(lock.current||!confirmed||!category||allocated!==total||scheduled!==total)return
-  lock.current=true;setBusy(true);setMessage('')
+  lock.current=true;setBusy(true);onBusyChange?.(true);setMessage('')
   try{
    const result=await window.fluxoDre.compras.nfeCommit({...(manual?{manual}:{xml_base64:source}),empresa_id:recognition.empresa_id,fornecedor_id:recognition.fornecedor_id,categoria_id:Number(category),data_recebimento:date,destinos:destinations.map(({key,...d})=>({...d,obra_id:Number(d.obra_id),frente_id:num(d.frente_id),subfrente_id:num(d.subfrente_id),pedido_item_id:num(d.pedido_item_id),recebimento_existente_id:num(d.recebimento_existente_id)})),parcelas:parts.map(p=>({...p,conta_id:num(p.conta_id)}))})
    setMessage('Nota #'+result.nota_id+' integrada. Estoque e financeiro atualizados conforme a conferência.');await onImported(result)
   }catch(e){setMessage(e instanceof Error?e.message:'Não foi possível confirmar a importação.')}
-  finally{lock.current=false;setBusy(false)}
+  finally{lock.current=false;setBusy(false);onBusyChange?.(false)}
  }
  if(!open)return <Button onClick={()=>setOpen(true)}>Preparar importação integrada</Button>
  return <Card><div className="card-header"><div><h3>Destinos e financeiro</h3><p>Quantidades em unidade fiscal. O estoque recebe a conversão confirmada. Nenhuma entrada é presumida.</p></div></div>

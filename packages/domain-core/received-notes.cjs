@@ -677,7 +677,7 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
         return {nota_id:Number(existing.id),replayed:true}
       }
       const p=prepare(payload,raw),n=p.n
-      if(db.prepare('SELECT id FROM notas_recebidas WHERE empresa_id=? AND fornecedor_id=? AND numero=? AND serie=? AND deleted_at IS NULL').get(p.company.id,p.supplier.id,n.numero,n.serie))throw new Error('Nota documental já cadastrada. Conciliação manual necessária; nenhuma duplicata será criada.')
+      if(db.prepare('SELECT id FROM notas_recebidas WHERE empresa_id=? AND fornecedor_id=? AND numero=? AND serie=? AND (deleted_at IS NULL'+(raw.manual?" OR (request_id LIKE 'manual:%' AND status_integracao='estornada')":'')+')').get(p.company.id,p.supplier.id,n.numero,n.serie))throw new Error('Nota documental já cadastrada. Conciliação manual necessária; nenhuma duplicata será criada.')
       const principal=p.destinos[0].work.id
       const orderIds=[...new Set(p.destinos.filter(d=>d.order).map(d=>Number(d.order.id)))]
       const result=db.prepare("INSERT INTO notas_recebidas(empresa_id,obra_id,fornecedor_id,numero,serie,emissao,valor_total_centavos,pedido_compra_id,chave_acesso,status_integracao,total_produtos_centavos,request_id,observacoes) VALUES(?,?,?,?,?,?,?,?,?,'integrada',?,?,?)").run(p.company.id,principal,p.supplier.id,n.numero,n.serie,n.emissao,safeInt(p.total,'Total'),orderIds.length===1?orderIds[0]:null,n.chave??null,safeInt(p.products,'Produtos'),manualRequest,n.observacoes??null)

@@ -21,6 +21,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
   const [saving,setSaving]=useState(false)
   const [manualMode,setManualMode]=useState(false)
   const [materialQuery,setMaterialQuery]=useState('')
+  const [reviewBusy,setReviewBusy]=useState(false)
   const [manualReview,setManualReview]=useState<{source:ManualNoteSource;preview:IntegrationPreview;recognition:Awaited<ReturnType<typeof window.fluxoDre.compras.nfeRecognize>>;scopes:Array<{frente_id:string;subfrente_id:string}>}|null>(null)
   const [error,setError]=useState('')
   const [notice,setNotice]=useState('')
@@ -143,8 +144,8 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
     try{
       const note=await window.fluxoDre.compras.notas.get(id)
       const document=await window.fluxoDre.documentos.importForWork({
-        obra_id:obraId,categoria:'nota_fiscal',title:'Nota recebida '+note.numero,
-        frente_id:note.itens.find((item:any)=>item.frente_id)?.frente_id||null
+        obra_id:Number(note.obra_id),categoria:'nota_fiscal',title:'Nota recebida '+note.numero,
+        frente_id:note.itens.find((item:any)=>item.frente_id&&(!item.obra_id||Number(item.obra_id)===Number(note.obra_id)))?.frente_id||null
       })
       if(!document)return
       await window.fluxoDre.compras.notas.attach(id,document.id)
@@ -193,7 +194,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
           <Field label="Número da nota" required><input required value={form?.numero||''} onChange={e=>setForm({...form!,numero:e.target.value})}/></Field>
           <Field label="Série"><input value={form?.serie||''} onChange={e=>setForm({...form!,serie:e.target.value})}/></Field>
           <Field label="Emissão" required><input required type="date" value={form?.emissao||''} onChange={e=>setForm({...form!,emissao:e.target.value})}/></Field>
-          <Field label="Recebimento"><input type="date" value={form?.data_recebimento||''} onChange={e=>setForm({...form!,data_recebimento:e.target.value})}/></Field>
+          {!manualMode&&<Field label="Recebimento"><input type="date" value={form?.data_recebimento||''} onChange={e=>setForm({...form!,data_recebimento:e.target.value})}/></Field>}
           <Field label="Tipo de cadastro" wide><select value={manualMode?'integrada':'documental'} onChange={e=>{setManualMode(e.target.value==='integrada');setItemGrid(false);setError('')}}><option value="documental">Somente documento — sem movimentos ou contas</option><option value="integrada">Compra integrada — estoque e contas a pagar</option></select></Field>
           {!manualMode&&<><Field label="Vincular pedido existente"><select value={form?.pedido_compra_id||''} onChange={e=>setForm({...form!,pedido_compra_id:e.target.value,itens:form!.itens.map(item=>({...item,pedido_item_id:''}))})}><option value="">Nenhum — não criar pedido</option>{orders.data?.filter((item:any)=>!item.fornecedor_id||String(item.fornecedor_id)===form?.fornecedor_id).map((item:any)=><option key={item.id} value={item.id}>{item.numero||'#'+item.id} — {item.descricao}</option>)}</select></Field>
           <Field label="Vincular conta existente"><select value={form?.conta_id||''} onChange={e=>setForm({...form!,conta_id:e.target.value})}><option value="">Nenhuma — não gerar conta</option>{accounts.data?.filter((item:any)=>!item.fornecedor_id||String(item.fornecedor_id)===form?.fornecedor_id).map((item:any)=><option key={item.id} value={item.id}>{item.descricao} — {brl(item.valor_centavos)}</option>)}</select></Field></>}
@@ -237,7 +238,7 @@ export default function ReceivedNotesSection({obraId}:{obraId:number|null}) {
         <FormActions onCancel={()=>setForm(null)} submitLabel={manualMode?'Conferir integração':'Salvar nota recebida'} loading={saving}/>
       </form>
     </Modal>
-    {manualReview&&obraId&&<Modal open title="Conferir compra manual integrada" size="lg" onClose={()=>setManualReview(null)}><div className="modal-body"><NfeCommitPanel obraId={obraId} preview={manualReview.preview} recognition={manualReview.recognition} manual={manualReview.source} initialScopes={manualReview.scopes} onImported={result=>{setManualReview(null);setForm(null);setNotice('Nota manual integrada. Recebimentos e contas registrados conforme conferência.');setPendingAttachment(result?.nota_id??null);void notes.reload();void summary.reload();setReportRevision(v=>v+1)}}/></div></Modal>}
+    {manualReview&&obraId&&<Modal open title="Conferir compra manual integrada" size="lg" onClose={()=>!reviewBusy&&setManualReview(null)}><div className="modal-body"><NfeCommitPanel obraId={obraId} preview={manualReview.preview} recognition={manualReview.recognition} manual={manualReview.source} initialScopes={manualReview.scopes} onBusyChange={setReviewBusy} onImported={result=>{setManualReview(null);setForm(null);setNotice('Nota manual integrada. Recebimentos e contas registrados conforme conferência.');setPendingAttachment(result?.nota_id??null);void notes.reload();void summary.reload();setReportRevision(v=>v+1)}}/></div></Modal>}
   </Card>
   <ReceivedCostsReport obraId={obraId} revision={reportRevision}/>
   </>

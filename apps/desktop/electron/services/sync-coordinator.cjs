@@ -295,7 +295,7 @@ class SyncCoordinator {
    }
    const only=ids.size===1?[...ids][0]:null
    const owner=only?this.db.prepare('SELECT empresa_id FROM obras WHERE id=? AND deleted_at IS NULL').get(only):null
-   const conflict=!!project.identityConflict||ids.size>1||(only!==null&&Number(owner?.empresa_id)!==Number(companyId))
+   const conflict=!!project.identityConflict||(project.localWorkId!=null&&(!Number.isSafeInteger(project.localWorkId)||project.localWorkId<1))||ids.size>1||(only!==null&&Number(owner?.empresa_id)!==Number(companyId))
    byProject.set(remoteId,{ids,workId:conflict?null:only,conflict})
    for(const id of ids){add(byWork,id,remoteId);if(conflict)blockedWorks.add(id)}
   }
