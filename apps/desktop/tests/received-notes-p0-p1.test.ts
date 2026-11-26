@@ -76,3 +76,24 @@ describe('P0/P1 notas recebidas: dados e vínculos canônicos',()=>{
     }finally{f.close()}
   })
 })
+
+describe('custos operacionais por etapa sem confundir documento e pagamento',()=>{
+ it('separa compromisso atual, pagamentos do período e consumo físico do RDO',()=>{
+  const f=fixture()
+  try{
+   f.service.create(f.input)
+   const c=f.adapter.save('contas',{empresa_id:f.empresa.id,obra_id:f.obra.id,frente_id:f.etapa.id,fornecedor_id:f.fornecedor.id,tipo:'pagar',descricao:'Obrigação fictícia',competencia:'2026-11',vencimento:'2026-11-20',valor_centavos:8000})
+   f.adapter.save('pagamentos_conta',{conta_id:c.id,data:'2026-11-17',valor_centavos:3000})
+   f.adapter.save('pagamentos_conta',{conta_id:c.id,data:'2026-12-01',valor_centavos:1000})
+   const rdo=f.adapter.save('rdos',{obra_id:f.obra.id,data:'2026-11-18'})
+   f.adapter.db.prepare('INSERT INTO rdo_material_linhas(rdo_id,linha_id,frente_id,descricao,unidade,quantidade) VALUES (?,?,?,?,?,?)').run(rdo.id,'item',f.etapa.id,'Tubo fictício','m',2.5)
+   const report=f.service.report({obra_id:f.obra.id,data_inicio:'2026-11-01',data_fim:'2026-11-30'})
+   expect(report.indicadores.documentado_periodo_centavos).toBe(5500)
+   expect(report.financeiro_por_destino).toEqual([expect.objectContaining({frente_id:f.etapa.id,subfrente_id:null,comprometido_atual_centavos:8000,pago_periodo_centavos:3000})])
+   expect(report.consumo_rdo).toEqual([expect.objectContaining({frente_id:f.etapa.id,descricao:'Tubo fictício',unidade:'m',quantidade:2.5})])
+   const selected=f.service.report({obra_id:f.obra.id,frente_id:f.etapa.id,subfrente_id:f.subetapa.id,data_inicio:'2026-11-01',data_fim:'2026-11-30'})
+   expect(selected.financeiro_por_destino).toEqual([])
+   expect(selected.consumo_rdo).toBeNull()
+  }finally{f.close()}
+ })
+})

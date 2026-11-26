@@ -32,6 +32,7 @@ try{
       },
       conflicts:{onRevisionConflict:()=>()=>{}},
       empresas:{list:async()=>[{id:1,razao_social:'Empresa Local QA',nome_fantasia:'Empresa QA',status:'ativa'}]},
+      importadorUniversal:{choose:async()=>({token:'qa-budget',file:'orcamento-234-qa.xlsx',sheets:[{name:'Orçamento',rows:234,headers:['Descrição','Preço unit. (R$)'],scores:{orcamento:4},area:'orcamento'}]}),preview:async(token,options)=>{const mapping={obra:'',descricao:'Descrição',valor_unitario:'Preço unit. (R$)'};if(options.mappingOnly)return{mapping,mappingSource:'suggested'};mark('import.preview',options);const valid=options.workId===10&&Number(options.companyId)===1;return{area:'orcamento',label:'Orçamento',companyName:'Empresa QA',mapping,workId:valid?10:null,workName:valid?'Obra Local QA':null,total:234,importable:valid?234:0,invalid:valid?0:234,duplicates:0,missing:valid?[]:['obra'],alreadyImported:false,rows:[{'Descrição':'Serviço fictício','Preço unit. (R$)':'12,50'}],rowNumbers:[2],rowErrors:[valid?[]:['Obra obrigatória']],rowWarnings:[[]],issues:[],page:1,pages:10}},commit:async(token,options)=>{mark('import.commit',options);if(options.workId!==10||Number(options.companyId)!==1)throw new Error('Escopo inválido');return{area:'orcamento',imported:234,created:0}}},
       frentes:{list:async()=>[]},rdos:{list:async({obra_id})=>Number(obra_id)===10?[{id:901,data:'2026-11-25',status:'rascunho',atividades:'Diário de validação QA'}]:[]},
       campo:{saveRdo:async data=>mark('campo.saveRdo',data),materials:async(id,update)=>update?mark('campo.materials',update):{rdoId:id,revision:3,items:[],materials:[{id:'mat_qa',descricao:'Tubo QA',saldo:4,unidade:'m'}]}},
       obras:{list:async()=>[{id:10,empresa_id:1,nome:'Obra Local QA'}]},
@@ -126,6 +127,23 @@ try{
   await stock.locator('select').selectOption('mat_qa');
   await stock.getByRole('button',{name:'Confirmar consumo'}).click();
   await page.waitForFunction(()=>window.__desktopQaCalls.some(c=>c.name==='campo.materials'&&c.payload.expectedRevision===3&&c.payload.items[0]?.material_id==='mat_qa'&&c.payload.requestId));
-  const report={schemaVersion:2,status:'passed',generatedAt:new Date().toISOString(),surface:'electron-renderer',linkingVisible:true,syncObservabilityVisible:true,syncConfiguration:true,manualSync:true,conflictResolution:true,canonicalFinanceParity:true,calls,screenshots:['00-electron-settings-hub-command-center.png','01-electron-settings-sync.png','02-electron-sync-reconciled.png','03-electron-rh-payroll.png','04-electron-finance-competence.png','05-electron-dre-competence-realized.png']};
+  // Customer regression: budget file has no work column. Assert explicit work selection
+  // and the same scoped payload in preview and commit (no production requests).
+  await page.goto(`${base}/#/importacao?empresa=1&area=orcamento`,{waitUntil:'domcontentloaded'});
+  await page.getByRole('heading',{name:'Importador universal',exact:true}).waitFor({state:'visible'});
+  await page.getByRole('button',{name:'Escolher arquivo',exact:true}).click();
+  await page.getByRole('heading',{name:'Mapeamento de colunas'}).waitFor({state:'visible'});
+  await page.getByRole('button',{name:'Gerar prévia'}).click();
+  await page.getByText('Campos obrigatórios sem mapeamento: obra.').waitFor({state:'visible'});
+  if(!await page.getByRole('button',{name:'Confirmar importação'}).isDisabled())throw new Error('Budget commit without work was enabled');
+  await page.getByLabel('Obra de destino para toda a aba').selectOption('10');
+  await page.getByRole('button',{name:'Gerar prévia'}).click();
+  await page.getByText('Obra de destino de todas as linhas:').waitFor({state:'visible'});
+  await page.screenshot({path:path.join(outDir,'06-electron-budget-import.png'),fullPage:true});
+  await page.getByRole('button',{name:'Confirmar importação'}).click();
+  await page.getByText('Importação concluída',{exact:true}).waitFor({state:'visible'});
+  const budgetCalls=await page.evaluate(()=>window.__desktopQaCalls.filter(c=>c.name.startsWith('import.')));
+  if(!budgetCalls.some(c=>c.name==='import.preview'&&c.payload.workId===10)||!budgetCalls.some(c=>c.name==='import.commit'&&c.payload.workId===10&&Number(c.payload.companyId)===1))throw new Error('Budget scope mismatch');
+  const report={budgetGlobalWork:true,schemaVersion:2,status:'passed',generatedAt:new Date().toISOString(),surface:'electron-renderer',linkingVisible:true,syncObservabilityVisible:true,syncConfiguration:true,manualSync:true,conflictResolution:true,canonicalFinanceParity:true,calls,screenshots:['00-electron-settings-hub-command-center.png','01-electron-settings-sync.png','02-electron-sync-reconciled.png','03-electron-rh-payroll.png','04-electron-finance-competence.png','05-electron-dre-competence-realized.png','06-electron-budget-import.png']};
   await fs.writeFile(path.join(outDir,'report.json'),JSON.stringify(report,null,2)+'\n','utf8');console.log(`DESKTOP_RENDERER_TRANSACTIONAL_QA=${path.join(outDir,'report.json')}`);await context.close();
 }finally{if(browser)await browser.close().catch(()=>{});server.kill('SIGTERM');await new Promise(resolve=>setTimeout(resolve,300))}

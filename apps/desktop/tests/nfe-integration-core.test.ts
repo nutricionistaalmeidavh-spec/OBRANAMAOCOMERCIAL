@@ -141,3 +141,32 @@ it('protege valores e rateio fiscal contra edição genérica e conserva pagamen
   expect(total(f.payload.destinos[0].obra_id)+total(f.payload.destinos[1].obra_id)).toBe(4000)
  }finally{f.close()}
 })
+
+it('integra nota manual sem XML ou chave fictícia, rateia, recebe depois e estorna pelo mesmo núcleo',()=>{
+ const f=fixture();try{
+  const {xml_base64,...base}=f.payload
+  const payload={...base,manual:{numero:'MAN-1',serie:'',emissao:'2026-11-25',itens:[{numero:'1',descricao:'Tubo informado',unidade:'m',quantidade:'1000',valor_unitario:'0.1245',valor_produto:'124.50',material_id:f.material.id}]}}
+  const result=f.service.commit(payload),db=f.adapter.db
+  expect(f.service.commit(payload)).toMatchObject({nota_id:result.nota_id,replayed:true})
+  expect(db.prepare('SELECT chave_acesso,status_integracao FROM notas_recebidas WHERE id=?').get(result.nota_id)).toMatchObject({chave_acesso:null,status_integracao:'integrada'})
+  expect(db.prepare('SELECT COUNT(*) n FROM nota_recebida_xml').get().n).toBe(0)
+  expect(()=>db.prepare('UPDATE notas_recebidas SET numero=? WHERE id=?').run('alterada',result.nota_id)).toThrow(/canônica/)
+  expect(()=>db.prepare('UPDATE nota_recebida_itens SET descricao=? WHERE nota_id=?').run('alterada',result.nota_id)).toThrow(/imutável/)
+  expect(db.prepare('SELECT SUM(valor_centavos) n FROM nota_recebida_rateios').get().n).toBe(12450)
+  expect(db.prepare('SELECT SUM(quantidade) n FROM movimentacoes_estoque').get().n).toBe(400)
+  const item=db.prepare('SELECT id FROM nota_recebida_itens ORDER BY id').get()
+  f.service.receive({empresa_id:base.empresa_id,nota_id:result.nota_id,nota_item_id:item.id,quantidade:'200',data:'2026-11-26',request_id:'manual-rec'})
+  f.service.reverse({empresa_id:base.empresa_id,nota_id:result.nota_id,data:'2026-11-27',request_id:'manual-rev',motivo:'Teste',operador:'QA'})
+  expect(db.prepare("SELECT SUM(CASE WHEN tipo='saida' THEN -quantidade ELSE quantidade END) n FROM movimentacoes_estoque").get().n).toBe(0)
+  expect(db.prepare("SELECT COUNT(*) n FROM contas WHERE status='cancelado'").get().n).toBe(2)
+  expect(()=>f.service.commit(payload)).toThrow()
+ }finally{f.close()}
+})
+it('nota manual não aceita material externo, total inventado, mistura com XML ou recebimento de serviço',()=>{
+ const f=fixture();try{
+  const {xml_base64,...base}=f.payload
+  const manual={numero:'MAN-2',serie:'',emissao:'2026-11-25',itens:[{numero:'1',descricao:'Tubo',unidade:'m',quantidade:'1000',valor_unitario:'0.1245',valor_produto:'124.50',material_id:f.material.id}]}
+  for(const bad of [{...base,manual,xml_base64},{...base,manual:{...manual,itens:[{...manual.itens[0],material_id:99999}]}},{...base,manual:{...manual,itens:[{...manual.itens[0],valor_produto:'124.51'}]}},{...base,manual:{...manual,itens:[{...manual.itens[0],material_id:null,servico:true}]}}])expect(()=>f.service.commit(bad)).toThrow()
+  expect(f.adapter.db.prepare('SELECT COUNT(*) n FROM notas_recebidas').get().n).toBe(0)
+ }finally{f.close()}
+})

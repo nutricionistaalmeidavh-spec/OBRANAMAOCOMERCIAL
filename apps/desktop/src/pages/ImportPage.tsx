@@ -18,6 +18,9 @@ export default function ImportPage() {
   const [area, setArea] = useState(() => {const requested=new URLSearchParams(routeLocation.search).get('area')||'financeiro';return Object.prototype.hasOwnProperty.call(labels,requested)?requested:'financeiro'})
   const [mapping, setMapping] = useState<any>({})
   const [companyId, setCompanyId] = useState(() => new URLSearchParams(routeLocation.search).get('empresa') || '')
+  const [workId, setWorkId] = useState('')
+  const works = useAsync(() => window.fluxoDre.obras.list(), [])
+  const budgetWorkId = area === 'orcamento' && workId ? Number(workId) : undefined
   const [isDragging, setIsDragging] = useState(false)
   const [mappingSource, setMappingSource] = useState('')
   const [message, setMessage] = useState('')
@@ -43,7 +46,7 @@ export default function ImportPage() {
       const selected = await select()
       if (!selected) return
       if (!selected.sheets?.length) throw new Error('Não encontramos uma aba com dados. Confira o arquivo selecionado.')
-      setFile(selected); setResult(null); setMapping({})
+      setFile(selected); setResult(null); setMapping({}); setWorkId(''); works.reload()
       const first = selected.sheets.find((item:any)=>item.rows>0) || selected.sheets[0]
       const scores = Object.values(first.scores || {}).map(Number).sort((a,b)=>b-a)
       const unambiguous = (scores[0] || 0) > 0 && (scores[0] || 0) > (scores[1] || 0)
@@ -83,7 +86,7 @@ export default function ImportPage() {
     if (!file || !companyId || !sheet || !area) return
     setError(''); setMessage('')
     try {
-      const saved = await window.fluxoDre.importadorUniversal.exportIssues(file.token, { sheet, area, mapping, companyId })
+      const saved = await window.fluxoDre.importadorUniversal.exportIssues(file.token, { sheet, area, mapping, companyId, workId: budgetWorkId })
       if (saved?.path) setMessage('Relatório completo de erros salvo em: ' + saved.path)
     } catch (e: any) { setError(e.message) }
   }
@@ -102,7 +105,7 @@ export default function ImportPage() {
     if (!file || !companyId || !area) { setError('Selecione uma empresa e confirme a área de destino antes da prévia.'); return }
     setLoading(true); setError('')
     try {
-      setPreview(await window.fluxoDre.importadorUniversal.preview(file.token, { sheet, area, mapping, companyId, page, pageSize: 25 }))
+      setPreview(await window.fluxoDre.importadorUniversal.preview(file.token, { sheet, area, mapping, companyId, workId: budgetWorkId, page, pageSize: 25 }))
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
   }
@@ -110,7 +113,7 @@ export default function ImportPage() {
     if (!file || !companyId || !preview || preview.missing.length || preview.invalid || preview.alreadyImported || !preview.total) return
     setLoading(true); setError('')
     try {
-      setResult(await window.fluxoDre.importadorUniversal.commit(file.token, { sheet, area, mapping, companyId }))
+      setResult(await window.fluxoDre.importadorUniversal.commit(file.token, { sheet, area, mapping, companyId, workId: budgetWorkId }))
       setPreview(null); setFile(null)
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
@@ -128,7 +131,7 @@ export default function ImportPage() {
       <div className="card-body">
         <Field label="Empresa de destino" required>
           <select value={companyId} disabled={companies.loading || loading} onChange={(event) => {
-            setCompanyId(event.target.value); setPreview(null); setResult(null); setMessage(''); setFile(null); setMapping({})
+            setCompanyId(event.target.value); setWorkId(''); setPreview(null); setResult(null); setMessage(''); setFile(null); setMapping({})
           }}>
             <option value="">Selecione a empresa antes de importar</option>
             {companies.data?.filter(company => company.status !== 'inativa').map(company =>
@@ -145,8 +148,9 @@ export default function ImportPage() {
       : result ? <><Result result={result} universal={universal}/>{universal&&result.area==='estoque'&&<Card><div className="card-body"><Link className="button button-primary" to={'/estoque?'+new URLSearchParams({empresa:companyId}).toString()}>Visualizar estoque</Link></div></Card>}</>
       : universal ? file
         ? <UniversalSetup file={file} sheet={sheet} area={area} mapping={mapping} mappingSource={mappingSource}
-            setSheet={(value: string) => { setSheet(value); setPreview(null); setMapping({}); setMessage('') }}
-            setArea={(value: string) => { setArea(value); setPreview(null); setMapping({}); setMessage('') }}
+            workId={workId} works={(works.data||[]).filter((work:any)=>String(work.empresa_id)===companyId&&!work.deleted_at)} worksError={works.error} setWorkId={(value:string)=>{setWorkId(value);setPreview(null);setMessage('')}}
+            setSheet={(value: string) => { setWorkId(''); setSheet(value); setPreview(null); setMapping({}); setMessage('') }}
+            setArea={(value: string) => { setWorkId(''); setArea(value); setPreview(null); setMapping({}); setMessage('') }}
             setMapping={(value: any) => { setMapping(value); setPreview(null); setMessage(''); setMappingSource('edited') }}
             onPreview={() => universalPreview(1)} onSaveMapping={saveMapping} onTemplate={downloadTemplate}/>
         : <Card style={{marginTop:14}}>
@@ -174,7 +178,7 @@ export default function ImportPage() {
     {error && <div className="notice" style={{marginTop:12}}>{error}</div>}
   </>
 }
-function UniversalSetup({file,sheet,area,mapping,mappingSource,setSheet,setArea,setMapping,onPreview,onSaveMapping,onTemplate}:any){
+function UniversalSetup({file,sheet,area,mapping,mappingSource,setSheet,setArea,setMapping,onPreview,onSaveMapping,onTemplate,workId,works,worksError,setWorkId}:any){
   const selectedSheet=file.sheets.find((item:any)=>item.name===sheet)
   const headers = Array.isArray(selectedSheet?.headers) ? selectedSheet.headers : []
   return <Card style={{marginTop:14}}>
@@ -193,12 +197,22 @@ function UniversalSetup({file,sheet,area,mapping,mappingSource,setSheet,setArea,
       <Field label="Detecção automática"><div className="locked-value">{area ? (labels[selectedSheet?.area] || 'Área selecionada manualmente') : 'Inconclusiva — escolha a área acima'}</div></Field>
     </div>
     <div className="card-body">
+      {area==='orcamento' && <div style={{marginBottom:14}}>
+        <Field label="Obra de destino para toda a aba">
+          <select value={workId} onChange={event=>setWorkId(event.target.value)}>
+            <option value="">Usar a coluna de obra da planilha</option>
+            {works.map((work:any)=><option key={work.id} value={work.id}>{work.nome}{work.codigo?' — '+work.codigo:''}</option>)}
+          </select>
+        </Field>
+        {worksError && <div className="notice">Não foi possível carregar as obras. Reabra o importador ou use a coluna de obra.</div>}
+        {workId && <p>Todas as linhas serão vinculadas à obra escolhida, mesmo se existir uma coluna de obra no arquivo. Nenhuma obra será criada pelo nome.</p>}
+      </div>}
       <h3>Mapeamento de colunas</h3>
       {mappingSource==='saved' && <p>Usando o mapeamento salvo para esta empresa e esta estrutura de arquivo.</p>}
       <p>Para cada campo do sistema, selecione a coluna correspondente na sua planilha. Campos obrigatórios não mapeados serão apontados na prévia.</p>
       <div className="form-grid form-grid-3">
         {Object.entries(mapping).map(([field])=><Field key={field} label={field.replaceAll('_',' ')}>
-          <select aria-label={`Coluna de origem para ${field}`} value={mapping[field] || ''} onChange={(event)=>setMapping({ ...mapping, [field]: event.target.value })}>
+          <select aria-label={`Coluna de origem para ${field}`} disabled={area==='orcamento' && !!workId && field==='obra'} value={area==='orcamento' && !!workId && field==='obra' ? '' : mapping[field] || ''} onChange={(event)=>setMapping({ ...mapping, [field]: event.target.value })}>
             <option value="">Coluna de origem: não mapear</option>
             {headers.map((header:string)=><option key={header} value={header}>{header}</option>)}
           </select>
@@ -228,8 +242,9 @@ function UniversalPreview({preview,mapping,onCommit,onPage,onExportIssues}:any){
       </div>
       <div className="card-body">
         <div className="notice">A confirmação processa todas as {preview.total} linhas conferidas, não apenas as exibidas nesta página.</div>
+        {preview.workName && <div className="notice">Obra de destino de todas as linhas: <strong>{preview.workName}</strong></div>}
         {preview.missing.length>0 && <div className="notice">Campos obrigatórios sem mapeamento: {preview.missing.join(', ')}.</div>}
-        {preview.invalid>0 && <div className="notice"><AlertTriangle size={16}/> {preview.invalid} linha(s) precisam de revisão. Corrija o arquivo e selecione-o novamente.</div>}
+        {preview.invalid>0 && <div className="notice"><AlertTriangle size={16}/> {preview.invalid} linha(s) precisam de revisão. Revise os campos de destino, o mapeamento ou os valores do arquivo; gere uma nova prévia.</div>}
         {preview.existingRecords>0 && <div className="notice">{preview.existingRecords} cadastro(s) já existem na empresa e serão reutilizados sem sobrescrever os dados atuais.</div>}
         {preview.alreadyImported && <div className="notice">Este mesmo arquivo e aba já foram importados. Para evitar duplicatas, a confirmação está bloqueada.</div>}
         {(preview.invalid>0 || preview.missing.length>0 || preview.alreadyImported) && <div className="toolbar" style={{marginTop:10}}><Button variant="secondary" icon={<Download size={16}/>} onClick={onExportIssues}>Baixar relatório completo de erros (CSV)</Button></div>}

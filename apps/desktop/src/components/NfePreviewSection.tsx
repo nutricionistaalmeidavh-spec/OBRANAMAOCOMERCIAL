@@ -48,8 +48,10 @@ export default function NfePreviewSection({obraId,onImported}:{obraId:number|nul
     finally{lock.current=false;setBusy(false)}
   }
   const read=async(file:File|undefined)=>{
-    if(!file||busy)return
-    setBusy(true);setError('')
+    if(!file||busy||lock.current)return
+    lock.current=true;setBusy(true);setError('')
+    // A new file invalidates the entire previous authorization/draft, even when parsing fails.
+    setPreview(null);setXmlBase64('');setFileName('');setRecognition(null);setRecognitionError('');setReview(null);setPage(0)
     try{
       if(!/\.xml$/i.test(file.name)||!file.size||file.size>MAX_NFE_BYTES)throw new Error('Selecione um XML de NF-e de até 8 MB.')
       const bytes=new Uint8Array(await file.arrayBuffer())
@@ -58,14 +60,14 @@ export default function NfePreviewSection({obraId,onImported}:{obraId:number|nul
       const source=btoa(raw)
       setXmlBase64(source);setPreview(data);setFileName(file.name);await recognize(source)
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível ler o XML.')}
-    finally{setBusy(false);if(input.current)input.current.value=''}
+    finally{lock.current=false;setBusy(false);if(input.current)input.current.value=''}
   }
   return <Card style={{marginTop:14}}>
     <div className="card-header"><div><h2>Importar nota fiscal (XML)</h2><p>Leia o XML, confira os materiais, escolha obra, etapa e subetapa e confirme para lançar no estoque e no financeiro. Nada é gravado antes da sua confirmação.</p></div><Button type="button" variant="secondary" icon={<FilePlus size={16}/>} disabled={!obraId||busy} onClick={()=>input.current?.click()}>{busy?'Lendo XML...':'Selecionar XML'}</Button></div>
     <input ref={input} type="file" accept=".xml,application/xml,text/xml" hidden onChange={e=>void read(e.target.files?.[0])}/>
     <div className="card-body">
       <p>{!obraId?'Escolha a obra antes de importar o XML.':'Arquivo XML de NF-e modelo 55, até 8 MB. A leitura não consulta a SEFAZ.'}</p>
-      {error&&<div className="notice" role="alert">{error}{preview?' A prévia anterior foi preservada.':''}</div>}
+      {error&&<div className="notice" role="alert">{error} Selecione um XML válido para continuar.</div>}
       {preview&&<><div className="row-actions"><strong>{fileName}</strong><Button variant="secondary" disabled={busy} onClick={()=>{setPreview(null);setXmlBase64('');setFileName('');setError('');setRecognition(null);setRecognitionError('');setReview(null)}}>Limpar prévia</Button></div>
         <dl><dt>Fornecedor</dt><dd>{preview.fornecedor} — {preview.documento}</dd><dt>Nota e série</dt><dd>{preview.numero} / {preview.serie}</dd><dt>Chave de acesso</dt><dd style={{overflowWrap:'anywhere'}}>{preview.chave}</dd><dt>Emissão</dt><dd>{brDate(preview.emissao)}</dd><dt>Total fiscal</dt><dd>{money(preview.total)}</dd><dt>Protocolo</dt><dd>{preview.protocolo||'Não consta no XML'} {preview.status?'(status informado no arquivo '+preview.status+')':''}</dd></dl>
         <OperationalSheetGrid area="compras" title="Itens do XML — somente conferência" rows={preview.itens.map(i=>({...i,id:i.numero}))} columns={columns} showImport={false} filename={'nfe-'+preview.numero}/>
@@ -99,7 +101,7 @@ export default function NfePreviewSection({obraId,onImported}:{obraId:number|nul
         </>}
         <h3>Parcelas informadas no XML</h3>
         {preview.parcelas.length?<ul>{preview.parcelas.map((p,i)=><li key={i}>{p.numero} — {p.vencimento?brDate(p.vencimento):'Sem vencimento'} — {money(p.valor)}</li>)}</ul>:<p>Nenhuma duplicata informada. Não é possível inferir vencimentos.</p>}
-        {obraId&&recognition?.elegivel_compra&&recognition.itens.every(i=>i.status==='confirmado')&&<NfeCommitPanel key={preview.chave} obraId={obraId} preview={preview} recognition={recognition} source={xmlBase64} onImported={async()=>{onImported?.();await recognize(xmlBase64)}}/>}
+        {!busy&&!error&&obraId&&recognition?.elegivel_compra&&recognition.itens.every(i=>i.status==='confirmado')&&<NfeCommitPanel key={preview.chave} obraId={obraId} preview={preview} recognition={recognition} source={xmlBase64} onImported={async()=>{onImported?.();await recognize(xmlBase64)}}/>}
         <p role="status">Prévia concluída. A conferência isolada não movimenta estoque ou financeiro. A importação integrada exige confirmação separada.</p>
       </>}
     </div>

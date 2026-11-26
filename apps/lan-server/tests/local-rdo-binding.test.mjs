@@ -17,3 +17,17 @@ test('primeiro vínculo em base limpa; homônimos, escopo errado e empresa diver
  assert.equal(resolve().workId,1)
  }finally{db.close()}
 })
+
+test('recusa comprovantes conflitantes e recupera identidade verificada sem depender de nome',()=>{
+ const db=new DatabaseSync(':memory:')
+ try{
+ db.exec("CREATE TABLE empresas(id INTEGER PRIMARY KEY,razao_social TEXT,deleted_at TEXT);CREATE TABLE obras(id INTEGER PRIMARY KEY,empresa_id INTEGER,nome TEXT,deleted_at TEXT);CREATE TABLE field_rdo_links(remote_project_id TEXT,rdo_id INTEGER);CREATE TABLE rdos(id INTEGER PRIMARY KEY,obra_id INTEGER,deleted_at TEXT);INSERT INTO empresas VALUES(1,'Empresa',NULL),(2,'Outra',NULL);INSERT INTO obras VALUES(10,1,'Antigo',NULL),(20,2,'Novo',NULL);INSERT INTO rdos VALUES(1,10,NULL);INSERT INTO field_rdo_links VALUES('p',1)")
+ const url='https://example.test',cfg={tenant:{baseUrl:url,companyId:'c'}}
+ const session={authorized:true,role:'admin',company:{id:'c'},project:{id:'p',companyId:'c',workSource:{sourceDeviceId:'d',localWorkId:20}},device:{id:'d'}}
+ assert.equal(service.localRdoBinding(db,session,cfg,url),null)
+ db.exec("DELETE FROM field_rdo_links;UPDATE obras SET nome='Nome alterado' WHERE id=20")
+ assert.deepEqual({...service.localRdoBinding(db,session,cfg,url)},{companyId:2,workId:20})
+ db.exec("UPDATE empresas SET deleted_at='2026-11-26' WHERE id=2")
+ assert.equal(service.localRdoBinding(db,session,cfg,url),null)
+ }finally{db.close()}
+})
