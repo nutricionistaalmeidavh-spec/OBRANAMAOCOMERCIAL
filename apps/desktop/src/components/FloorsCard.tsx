@@ -3,6 +3,7 @@ import { FormEvent, useMemo, useState } from 'react'
 import { Button, Card, Confirm, Empty, Field, FormActions, Loading, Modal } from './ui'
 import { useAsync } from '../hooks/useAsync'
 import { locationOptions, locationWithDescendants } from '../utils/locations'
+import LocationsDiagram from './LocationsDiagram'
 
 /** Default name for a floor level: 0 = Térreo, negatives = subsolos. */
 export function floorName(level: number) {
@@ -19,6 +20,10 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
   const [form, setForm] = useState<any>(null)
   const [remove, setRemove] = useState<any>(null)
   const [error, setError] = useState('')
+  const [view, setView] = useState<'list' | 'diagram'>(() => { try { return localStorage.getItem('locais.view') === 'list' ? 'list' : 'diagram' } catch { return 'diagram' } })
+  const chooseView = (next: 'list' | 'diagram') => { setView(next); try { localStorage.setItem('locais.view', next) } catch { /* optional */ } }
+  const work = useAsync(() => workId ? window.fluxoDre.obras.get(Number(workId)) : Promise.resolve(null), [workId])
+  const tasks = useAsync(() => workId && !disabled && view === 'diagram' ? window.fluxoDre.tarefas.list({ obra_id: Number(workId) }) : Promise.resolve([]), [workId, disabled, view])
   const rows = useAsync(() => workId && !disabled ? window.fluxoDre.locais.list({ obra_id: Number(workId) }) : Promise.resolve([]), [workId, disabled])
   const all = useMemo(() => rows.data || [], [rows.data])
   const options = useMemo(() => locationOptions(all), [all])
@@ -61,11 +66,15 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
 
   return <Card style={{ marginTop: 16 }}>
     <div className="card-header"><div><h2>Locais da obra</h2><span>Pavimentos vão para o celular (Obra360). Complementos (guarita, apto, banheiro…) ficam dentro de um pavimento ou de outro local, se quiser.</span></div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="segmented" role="group" aria-label="Forma de ver">
+          <button type="button" className={view === 'list' ? 'active' : ''} aria-pressed={view === 'list'} onClick={() => chooseView('list')}>Lista</button>
+          <button type="button" className={view === 'diagram' ? 'active' : ''} aria-pressed={view === 'diagram'} onClick={() => chooseView('diagram')}>Diagrama</button>
+        </div>
         <Button variant="secondary" icon={<Plus size={15}/>} disabled={!workId || disabled} onClick={() => openFloor()}>Pavimento</Button>
         <Button variant="secondary" icon={<Plus size={15}/>} disabled={!workId || disabled} onClick={() => openComplement()}>Complemento</Button>
       </div></div>
-    {rows.loading ? <Loading/> : options.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Local</th><th>Tipo</th><th/></tr></thead><tbody>
+    {rows.loading ? <Loading/> : options.length && view === 'diagram' ? <LocationsDiagram workId={workId} workName={work.data?.nome || ''} locations={all} tasks={tasks.data || []} onAddInside={(id) => openComplement(undefined, id)} onEdit={(item) => item.nivel !== null && item.nivel !== undefined ? openFloor(item) : openComplement(item)} onRemove={(item) => setRemove(item)}/> : options.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Local</th><th>Tipo</th><th/></tr></thead><tbody>
       {options.map((option) => { const item: any = byId.get(option.id); return <tr key={option.id}>
         <td style={{ paddingLeft: 12 + option.depth * 20 }}><strong>{option.depth ? '↳ ' : ''}{item.nome}</strong></td>
         <td>{option.floor ? `Pavimento ${item.nivel}` : option.orphan && !option.depth ? 'Direto na obra' : 'Complemento'}</td>
