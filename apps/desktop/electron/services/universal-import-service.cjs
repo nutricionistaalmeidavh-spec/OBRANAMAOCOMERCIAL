@@ -41,7 +41,7 @@ const ALIASES = {
   status: ['status','situacao','situação'],
   unidade: ['unidade','un','und'],
   quantidade: ['quantidade','qtd','quant'],
-  valor_unitario: ['valor unitario','valor unitário','preco unitario','preço unitário'],
+  valor_unitario: ['valor unitario','valor unitário','preco unitario','preço unitário','preco unit','preço unit. (R$)','valor unit (R$)','valor unitario (R$)','preco unitario (R$)','vlr unit','vl unit','custo unitario','custo unitário','custo unitário (R$)','unitario','unitário'],
   etapa: ['etapa','fase'],
   local: ['local','ambiente','setor'],
   cpf: ['cpf'],
@@ -94,6 +94,20 @@ function parseQuantity(value, fallback = NaN) {
   }
   const result = Number(normalized)
   return Number.isFinite(result) ? result : NaN
+}
+function budgetPrice(value) {
+  if (typeof value === 'string') value = value.trim().replace(/^R\$\s*/i, '')
+  const number = parseQuantity(value)
+  const cents = Math.round(number * 100)
+  return number >= 0 && Number.isSafeInteger(cents) ? cents : NaN
+}
+// A global work is explicit, scoped by immutable ID, and never created by name.
+function selectedBudgetWork(db, area, companyId, workId) {
+  if (workId === undefined || workId === null || workId === '') return null
+  if (area !== 'orcamento' || !Number.isSafeInteger(Number(workId)) || Number(workId) <= 0) throw new Error('Obra de destino inválida.')
+  const work = db.prepare('SELECT * FROM obras WHERE id=? AND empresa_id=? AND deleted_at IS NULL').get(Number(workId), companyId)
+  if (!work) throw new Error('Obra de destino não encontrada na empresa selecionada.')
+  return work
 }
 function sheetEntries(pending, sheet) {
   return rowsAsObjects(sheetRows(pending.workbook.getWorksheet(sheet.name)), sheet.headerIndex)
@@ -151,14 +165,15 @@ function selectedCompany(db, companyId) {
   return company
 }
 
-function rowErrors(area, row, map, db, companyId) {
+function rowErrors(area, row, map, db, companyId, budgetWork = null) {
   const mandatory = {
     financeiro: ['descricao'], obras: ['nome'], orcamento: ['obra','descricao'],
     funcionarios: ['nome'], compras: ['obra','descricao'], contratos: ['obra','descricao'],
     aditivos: ['contrato','descricao'], medicoes: ['obra'], ponto: ['funcionario'],
     documentos: ['titulo'], estoque: ['obra','descricao']
   }[area] || []
-  const errors = mandatory.filter((field) => !String(value(row, map, field) ?? '').trim()).map((field) => 'Preencha o campo obrigatório "' + field.replace(/_/g, ' ') + '".')
+  const errors = mandatory.filter((field) => !(field === 'obra' && budgetWork) && !String(value(row, map, field) ?? '').trim()).map((field) => 'Preencha o campo obrigatório "' + field.replace(/_/g, ' ') + '".')
+  if (area === 'orcamento' && !Number.isFinite(budgetPrice(value(row, map, 'valor_unitario')))) errors.push('Preço unitário inválido ou ausente: informe um valor numérico maior ou igual a zero.')
   if (area === 'financeiro' && money(value(row, map, 'valor')) <= 0) errors.push('Valor financeiro deve ser maior que zero.')
   if (area === 'estoque' || area === 'compras' || area === 'orcamento') {
     const rawQuantity = value(row, map, 'quantidade')
@@ -345,7 +360,8 @@ class UniversalImportService {
     if (!sheet) throw new Error('Aba não encontrada.')
     const area = AREAS[options.area] ? options.area : sheet.area
     const savedMapping = this.getSavedMapping({ companyId: company.id, area, headers: sheet.headers })
-    const map = this.validateMapping(area, sheet.headers, { ...mapping(sheet.headers, area), ...(savedMapping || {}), ...(options.mapping || {}) })
+    const budgetWork = selectedBudgetWork(this.db.db, area, company.id, options.workId)
+    const map = this.validateMapping(area, sheet.headers, { ...mapping(sheet.headers, area), ...(savedMapping || {}), ...(options.mapping || {}), ...(budgetWork ? { obra: '' } : {}) })
     if (options.mappingOnly === true) return { mapping: map, mappingSource: savedMapping ? 'saved' : 'suggested' }
     const entries = sheetEntries(pending, sheet)
     const uniqueRows = new Map()
@@ -353,7 +369,7 @@ class UniversalImportService {
     let duplicates = 0
     let existingRecords = 0
     const reviewed = entries.map((item) => {
-      const errors = rowErrors(area, item.row, map, this.db.db, company.id)
+      const errors = rowErrors(area, item.row, map, this.db.db, company.id, budgetWork)
       const warnings = []
       const signature = crypto.createHash('sha256').update(JSON.stringify(Object.values(item.row).map(cell => String(cell ?? '').trim()))).digest('hex')
       if (uniqueRows.has(signature)) {
@@ -396,12 +412,12 @@ class UniversalImportService {
     const slice = reviewed.slice((page - 1) * pageSize, page * pageSize)
     return {
       area, label: AREAS[area].label, companyId: company.id, companyName: company.nome_fantasia || company.razao_social,
-      headers: sheet.headers, mapping: map,
+      headers: sheet.headers, mapping: map, workId: budgetWork?.id ?? null, workName: budgetWork?.nome ?? null,
       rows: slice.map((item) => item.row), rowNumbers: slice.map((item) => item.line), rowErrors: slice.map((item) => item.errors), rowWarnings: slice.map((item) => item.warnings),
       total: reviewed.length, importable: reviewed.length - invalidEntries.length, invalid: invalidEntries.length, duplicates, existingRecords, alreadyImported,
       issues: (options.allIssues === true ? invalidEntries : invalidEntries.slice(0, 20)).map((item) => ({ line: item.line, errors: item.errors })),
       page, pageSize, pages,
-      missing: required(area).filter((field) => !map[field]),
+      missing: required(area).filter((field) => !map[field] && !(field === 'obra' && budgetWork)),
       createMissing: ['categoria','obra','frente','fornecedor','cliente','cargo','funcionario','contrato'].filter((field) => map[field])
     }
   }
@@ -426,6 +442,7 @@ class UniversalImportService {
     const map = preview.mapping
     const result = this.db.db.transaction(() => {
       const company = selectedCompany(this.db.db, options.companyId)
+      const budgetWork = selectedBudgetWork(this.db.db, area, company.id, options.workId)
       if (this.db.db.prepare(`SELECT id FROM importacoes
         WHERE hash=? AND aba=? AND status='concluida'
         AND (json_extract(CASE WHEN json_valid(resumo) THEN resumo ELSE '{}' END, '$.empresa_id') IS NULL
@@ -480,11 +497,11 @@ class UniversalImportService {
           const client = findOrCreate('clientes', 'nome', String(value(row, map, 'cliente') || '').trim(), { nome: String(value(row, map, 'cliente') || '').trim(), status: 'ativo' })
           entity = findOrCreate('obras', 'nome', name, { empresa_id: company.id, nome: name, codigo: String(value(row, map, 'codigo') || ''), cliente_id: client?.id || null, endereco: String(value(row, map, 'endereco') || ''), responsavel: String(value(row, map, 'responsavel') || ''), valor_contratado_centavos: money(value(row, map, 'valor')), data_inicio: date(value(row, map, 'data_inicio')), previsao_termino: date(value(row, map, 'previsao_termino')), status: String(value(row, map, 'status') || 'planejada') })
         } else if (area === 'orcamento') {
-          const work = workByName(value(row, map, 'obra'))
+          const work = budgetWork || workByName(value(row, map, 'obra'))
           const front = frontByName(work, value(row, map, 'frente'))
           const description = String(value(row, map, 'descricao') || '').trim()
           if (!work || !description) continue
-          entity = this.db.save('itens_orcamentarios', { obra_id: work.id, frente_id: front?.id || null, codigo: String(value(row, map, 'codigo') || ''), descricao: description, unidade: String(value(row, map, 'unidade') || 'un'), quantidade: parseQuantity(value(row, map, 'quantidade'), 1), valor_unitario_centavos: money(value(row, map, 'valor_unitario')), tipo: String(value(row, map, 'tipo') || 'servico').replace(/\s+/g, '_') })
+          entity = this.db.save('itens_orcamentarios', { obra_id: work.id, frente_id: front?.id || null, codigo: String(value(row, map, 'codigo') || ''), descricao: description, unidade: String(value(row, map, 'unidade') || 'un'), quantidade: parseQuantity(value(row, map, 'quantidade'), 1), valor_unitario_centavos: budgetPrice(value(row, map, 'valor_unitario')), tipo: String(value(row, map, 'tipo') || 'servico').replace(/\s+/g, '_') })
         } else if (area === 'funcionarios') {
           const name = String(value(row, map, 'nome') || '').trim()
           if (!name) continue
@@ -551,7 +568,7 @@ class UniversalImportService {
           throw new Error(`Falha na linha ${line}${detail ? ' (' + detail + ')' : ''}: ${reason}`, { cause: error })
         }
       }
-      this.db.db.prepare("UPDATE importacoes SET status='concluida',resumo=?,concluida_em=CURRENT_TIMESTAMP WHERE id=?").run(JSON.stringify({ area, empresa_id: company.id, linhas: count, cadastros_criados: created }), imported.id)
+      this.db.db.prepare("UPDATE importacoes SET status='concluida',resumo=?,concluida_em=CURRENT_TIMESTAMP WHERE id=?").run(JSON.stringify({ area, empresa_id: company.id, obra_destino_id: budgetWork?.id ?? null, linhas: count, cadastros_criados: created }), imported.id)
       return { importacao_id: imported.id, area, imported: count, created }
     })()
     this.pending.delete(token)
