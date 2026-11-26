@@ -2,7 +2,7 @@ import { Edit3, Plus, Trash2 } from 'lucide-react'
 import { FormEvent, useMemo, useState } from 'react'
 import { Button, Card, Confirm, Empty, Field, FormActions, Loading, Modal } from './ui'
 import { useAsync } from '../hooks/useAsync'
-import { locationOptions, locationWithDescendants } from '../utils/locations'
+import { locationOptions, locationPath, locationWithDescendants, siblingsOf } from '../utils/locations'
 import LocationsDiagram from './LocationsDiagram'
 
 /** Default name for a floor level: 0 = Térreo, negatives = subsolos. */
@@ -19,6 +19,7 @@ export function floorName(level: number) {
 export default function FloorsCard({ workId, disabled }: { workId: string; disabled?: boolean }) {
   const [form, setForm] = useState<any>(null)
   const [remove, setRemove] = useState<any>(null)
+  const [move, setMove] = useState<{ item: any; parentId: number | null } | null>(null)
   const [error, setError] = useState('')
   const [view, setView] = useState<'list' | 'diagram'>(() => { try { return localStorage.getItem('locais.view') === 'list' ? 'list' : 'diagram' } catch { return 'diagram' } })
   const chooseView = (next: 'list' | 'diagram') => { setView(next); try { localStorage.setItem('locais.view', next) } catch { /* optional */ } }
@@ -59,6 +60,23 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
       counts.reload()
     } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível salvar o local.') }
   }
+  async function confirmMove() {
+    if (!move) return
+    try {
+      await window.fluxoDre.locais.save({ id: move.item.id, obra_id: Number(workId), local_pai_id: move.parentId, ...(move.item.revision !== undefined ? { revision: move.item.revision } : {}) })
+      setMove(null); rows.reload(); counts.reload()
+    } catch (e) { setMove(null); setError(e instanceof Error ? e.message : 'Não foi possível mover o local.') }
+  }
+  /** Swap a complement with its neighbour, renumbering the siblings' order. */
+  async function reorder(item: any, direction: -1 | 1) {
+    const list = siblingsOf(all, item.id), index = list.findIndex((row) => Number(row.id) === Number(item.id)), target = index + direction
+    if (index < 0 || target < 0 || target >= list.length) return
+    const next = [...list];[next[index], next[target]] = [next[target], next[index]]
+    try {
+      for (const [position, row] of next.entries()) if (Number(row.ordem) !== position + 1) await window.fluxoDre.locais.save({ id: row.id, obra_id: Number(workId), ordem: position + 1, ...((row as any).revision !== undefined ? { revision: (row as any).revision } : {}) })
+      rows.reload()
+    } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível reordenar.'); rows.reload() }
+  }
   async function confirmRemove() {
     try { await window.fluxoDre.locais.remove(remove.id, remove.revision); setRemove(null); rows.reload() }
     catch { setRemove(null); setError('Este local tem locais dentro dele ou está em uso (orçamento, pendências ou RDO) e não pode ser removido.') }
@@ -76,7 +94,7 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
         <Button variant="secondary" icon={<Plus size={15}/>} disabled={!workId || disabled} onClick={() => openFloor()}>Pavimento</Button>
         <Button variant="secondary" icon={<Plus size={15}/>} disabled={!workId || disabled} onClick={() => openComplement()}>Complemento</Button>
       </div></div>
-    {rows.loading ? <Loading/> : options.length && view === 'diagram' ? <LocationsDiagram workId={workId} workName={work.data?.nome || ''} locations={all} counts={counts.data} tasks={tasks.data || []} onAddInside={(id) => openComplement(undefined, id)} onEdit={(item) => item.nivel !== null && item.nivel !== undefined ? openFloor(item) : openComplement(item)} onRemove={(item) => setRemove(item)}/> : options.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Local</th><th>Tipo</th><th/></tr></thead><tbody>
+    {rows.loading ? <Loading/> : options.length && view === 'diagram' ? <LocationsDiagram workId={workId} workName={work.data?.nome || ''} locations={all} counts={counts.data} tasks={tasks.data || []} onAddInside={(id) => openComplement(undefined, id)} onEdit={(item) => item.nivel !== null && item.nivel !== undefined ? openFloor(item) : openComplement(item)} onRemove={(item) => setRemove(item)} onMove={(item, parentId) => setMove({ item, parentId })} onReorder={reorder}/> : options.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Local</th><th>Tipo</th><th/></tr></thead><tbody>
       {options.map((option) => { const item: any = byId.get(option.id); return <tr key={option.id}>
         <td style={{ paddingLeft: 12 + option.depth * 20 }}><strong>{option.depth ? '↳ ' : ''}{item.nome}</strong></td>
         <td>{option.floor ? `Pavimento ${item.nivel}` : option.orphan && !option.depth ? 'Direto na obra' : 'Complemento'}</td>
@@ -92,6 +110,7 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
         : <Field label="Fica em"><select value={form?.local_pai_id || ''} onChange={(event) => setForm({ ...form, local_pai_id: event.target.value })}><option value="">Direto na obra</option>{options.filter((option) => !blocked.has(option.id)).map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></Field>}
       <Field label="Nome" required><input required value={form?.nome || ''} onChange={(event) => setForm({ ...form, nome: event.target.value, auto: false })} placeholder={form?.kind === 'floor' ? 'Ex.: Térreo, 1º pavimento, Cobertura' : 'Ex.: Guarita, Apto 101, Banheiro'}/></Field>
     </div><FormActions onCancel={() => setForm(null)} submitLabel="Salvar local"/></form></Modal>
+    <Confirm open={!!move} title="Mover local" description={move ? `Mover "${move.item.nome}" ${move.parentId === null ? 'para direto na obra' : `para dentro de ${locationPath(all, move.parentId)}`}? Pendências e ocorrências ligadas a ele, e o que fica dentro dele, vão junto.` : ''} onCancel={() => setMove(null)} onConfirm={confirmMove}/>
     <Confirm open={!!remove} title="Remover local" description="Só é possível remover um local vazio e sem uso. Se for um pavimento, o que já foi registrado nele no celular é mantido e aparece como fora do cadastro." danger onCancel={() => setRemove(null)} onConfirm={confirmRemove}/>
   </Card>
 }
