@@ -38,7 +38,7 @@ test('servidor aplica pavimentos, andamento, histórico e pendências do celular
     const snapshot = {
       floors: [{ number: 0, stages: [{ service, status: 'in_progress', checklist: [] }] }, { number: 1, stages: [] }],
       history: [{ id: 'h1', floor: 0, service, date: '2026-11-26', time: '09:00', label: 'Alvenaria Térreo: em execução' }],
-      issues: [{ id: 'i1', title: 'Falta bloco', status: 'open' }],
+      issues: [{ id: 'i1', title: 'Falta bloco', status: 'open', floor: 1 }],
     }
     const scope = { remoteProjectId: 'p1', workId: f.work.id, remoteCompanyId: 'company-a' }
     const applied = await f.post({ op: 'apply', scope, snapshot })
@@ -46,6 +46,8 @@ test('servidor aplica pavimentos, andamento, histórico e pendências do celular
     assert.deepEqual(await applied.json(), { issues: 1, staged: 0, floors: 2, progress: 1 })
     assert.equal(f.repository.connection().prepare('SELECT COUNT(*) n FROM locais_obra WHERE obra_id=? AND nivel IS NOT NULL').get(f.work.id).n, 2)
     assert.equal(f.repository.connection().prepare('SELECT COUNT(*) n FROM tarefas_obra WHERE obra_id=?').get(f.work.id).n, 1)
+    const linked = f.repository.connection().prepare('SELECT l.nivel FROM tarefas_obra t JOIN locais_obra l ON l.id=t.local_id WHERE t.obra_id=?').get(f.work.id)
+    assert.equal(linked.nivel, 1)
 
     const saved = await f.post({ op: 'progressSave', workId: f.work.id, nivel: 0, service, status: 'completed', checklist: [] })
     assert.equal(saved.status, 200)

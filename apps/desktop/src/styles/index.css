@@ -21,7 +21,7 @@ html{scrollbar-width:thin;scrollbar-color:#94a3b8 transparent}
 .sidebar-collapsed .brand-mark{width:42px;height:42px;border-radius:11px}
 .sidebar-collapsed .collapse-button{height:54px}
 .rdo-equipment{grid-template-columns:1fr 1.2fr 95px 110px 1fr 32px}
-.rdo-occurrence{grid-template-columns:1fr 150px minmax(180px,1.2fr) 130px 130px 105px 120px 32px}
+.rdo-occurrence{grid-template-columns:1fr 150px 150px minmax(180px,1.2fr) 130px 130px 105px 120px 32px}
 .curve-bars{display:grid;gap:4px;min-width:180px}
 .curve-bars span{display:block;min-height:18px;border-radius:5px;background:#dbe7ff;color:#24436f;font-size:9px;font-weight:700;padding:3px 6px;white-space:nowrap}
 .curve-bars span+span{background:#d8f4e9;color:#155f49}

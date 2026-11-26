@@ -1,3 +1,4 @@
+import locationIntegrity from './location-integrity.cjs'
 function columns(db, table) {
   try { return new Set(db.prepare(`PRAGMA table_info(${table})`).all().map(row => String(row.name))) } catch { return new Set() }
 }
@@ -36,6 +37,7 @@ function workCompany(db, workId) { return requireRow(db, 'obras', workId, 'Obra'
 
 export function validateCoreOperationOwnership(db, table, data, current = null) {
   const get = key => value(data, current, key)
+  locationIntegrity.validateLocationWrite(db, table, get, current)
 
   if (table === 'clientes') {
     const companyId = get('empresa_id')

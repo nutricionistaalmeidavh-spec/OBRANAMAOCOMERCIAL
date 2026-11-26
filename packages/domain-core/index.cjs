@@ -308,6 +308,7 @@ function rdoChildRows(rows = [], rdoId, defaultFrontId, kind) {
     const base = { ...row, rdo_id: rdoId, frente_id: row.frente_id || defaultFrontId || null }
     if (kind === 'equipe') return { ...base, funcionario_id: row.funcionario_id || null, horas: money(row.horas), custo_centavos: money(row.custo_centavos) }
     if (kind === 'equipamentos') return { ...base, horas_uso: money(row.horas_uso), custo_centavos: money(row.custo_centavos) }
+    if (kind === 'ocorrencias') return { ...base, local_id: row.local_id ? Number(row.local_id) : null }
     return base
   })
 }
@@ -317,6 +318,7 @@ function rdoOccurrenceTask(row, data, occurrenceId) {
   return {
     obra_id: data.obra_id,
     frente_id: row.frente_id || data.frente_id || null,
+    ...(row.local_id ? { local_id: Number(row.local_id) } : {}),
     rdo_ocorrencia_id: occurrenceId,
     origem_tipo: 'rdo_ocorrencia',
     origem_id: occurrenceId,
