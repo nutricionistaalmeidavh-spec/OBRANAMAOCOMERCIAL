@@ -38,6 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           node -e "const p=require('./apps/lan-server/package.json'); if(p.version!==process.env.VERSION) process.exit(1)"
+          npm --prefix apps/lan-server ci --workspaces=false --ignore-scripts --no-audit --no-fund
           npm --prefix apps/lan-server test
           npm --prefix apps/lan-server run packaging:test
           bash -n apps/lan-server/packaging/linux/build.sh
