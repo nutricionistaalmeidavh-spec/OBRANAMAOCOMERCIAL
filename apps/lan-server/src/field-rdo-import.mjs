@@ -91,13 +91,20 @@ export class FieldRdoImport {
     if(day.date!==date||day.materialsReviewed!==true)throw new Error('Consumo do RDO não foi conferido na PWA.')
     const work=this.repository.get('obras',workId)
     if(!work||work.deleted_at||Number(work.empresa_id)!==companyId)throw new Error('Obra não pertence à empresa autorizada.')
-    const oldLink=this.db.prepare('SELECT * FROM field_rdo_links WHERE remote_project_id=? AND day=?').get(remoteProjectId,date)
+    let oldLink=this.db.prepare('SELECT * FROM field_rdo_links WHERE remote_project_id=? AND day=?').get(remoteProjectId,date)
     const photos=validatePhotos(list(day.photos))
     const stages=new Map(this.db.prepare('SELECT id,nome FROM etapas_obra WHERE obra_id=? AND deleted_at IS NULL').all(workId).map(row=>[Number(row.id),clean(row.nome)]))
     const fields=buildReport(report,stages)
     // Resolve people who belong to the company, not only today's active crew:
     // an RDO from yesterday stays valid after an employee changes work or leaves.
     const crew=()=>crewRows(day.sessions,new FieldRdoCatalog({repository:this.repository}).companyPeople(companyId,workId))
+    const existing=!oldLink&&this.db.prepare('SELECT id FROM rdos WHERE obra_id=? AND data=? AND deleted_at IS NULL').get(workId,date)
+    if(existing){
+      crew()
+      try{this.linkManual({scope,date})}
+      catch(error){throw Object.assign(new Error(error.message),{code:'MANUAL_RDO_EXISTS',rdoId:existing.id})}
+      oldLink=this.db.prepare('SELECT * FROM field_rdo_links WHERE remote_project_id=? AND day=?').get(remoteProjectId,date)
+    }
     let team
     let rdo
     if(oldLink){
@@ -124,8 +131,6 @@ export class FieldRdoImport {
         :this.repository.save('rdos',{id:rdo.id,atividades:fields.activities,observacoes:fields.notes})
       this.db.prepare('UPDATE field_rdo_links SET last_rdo_hash=? WHERE remote_project_id=? AND day=?').run(contentHash(rdo),remoteProjectId,date)
     }else{
-      const existing=this.db.prepare('SELECT id FROM rdos WHERE obra_id=? AND data=? AND deleted_at IS NULL').get(workId,date)
-      if(existing)throw Object.assign(new Error(`${MANUAL_RDO_MARKER} em ${brDate(date)}: o escritório precisa juntar este diário ao RDO existente no Desktop (Configurações > Sincronização).`),{code:'MANUAL_RDO_EXISTS',rdoId:existing.id})
       team=crew()
       rdo=this.repository.save('rdos',{obra_id:workId,frente_id:null,data:date,clima:null,status:'rascunho',atividades:fields.activities,observacoes:fields.notes})
       this.db.prepare('INSERT INTO field_rdo_links(remote_project_id,day,rdo_id,last_rdo_hash) VALUES(?,?,?,?)')
@@ -175,6 +180,27 @@ export class FieldRdoImport {
       throw error
     }
     return {localRdoId:rdo.id,materialRevision:materialReceipt.revision,replayed:false,materialPending}
+  }
+
+  retryPending(scope){
+    if(!this.materials.hasPendingTable())return 0
+    const pending=this.db.prepare(`SELECT r.id FROM field_rdo_pendencias p
+      JOIN rdos r ON r.id=p.rdo_id
+      JOIN obras w ON w.id=r.obra_id
+      JOIN field_rdo_links l ON l.rdo_id=r.id AND l.day=r.data
+      LEFT JOIN rdo_material_revisoes m ON m.rdo_id=r.id
+      WHERE p.kind='material' AND p.resolved_at IS NULL
+        AND l.remote_project_id=? AND w.id=? AND w.empresa_id=?
+        AND w.deleted_at IS NULL AND r.deleted_at IS NULL
+        AND COALESCE(r.status,'') NOT IN ('fechado','finalizado','concluido')
+        AND l.last_material_revision=COALESCE(m.revisao,0)
+      ORDER BY r.data,r.id`).all(scope.remoteProjectId,scope.workId,scope.companyId)
+    let applied=0
+    for(const {id} of pending){
+      try{this.materials.applyPending(id);applied++}
+      catch(error){if(error?.code!=='INSUFFICIENT_STOCK')throw error}
+    }
+    return applied
   }
 
   /** Joins the phone diary of a day to the RDO typed in the office, keeping the office content. */
