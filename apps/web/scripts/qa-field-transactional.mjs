@@ -49,7 +49,8 @@ try{
       if(pathname==='/api/field/rdo/catalog')return json({catalog:{
         schemaVersion:1,workId:8,version:'qa-stock-1',updatedAt:'2026-11-15T13:00:00Z',
         materials:[{id:'mat_aaaaaaaaaaaaaaaaaaaaaaaa',descricao:'Tubo PVC 25 mm',unidade:'m',saldo:40}],
-        fronts:[{id:1,nome:'Frente hidráulica'}],services:[{id:3,nome:'Água fria',frente_id:1}]
+        // Desktop viewport: work with canonical subetapas; mobile viewport: work without any.
+        fronts:[{id:1,nome:'Frente hidráulica'}],services:viewport.name==='desktop'?[{id:3,nome:'Água fria',frente_id:1}]:[]
       }});
       if(pathname==='/api/field/rdo/receipts'){
         const day=state.days[today],applied=day?.rdoStatus==='ready_for_desktop'&&day?.rdoClosedFingerprint;
@@ -77,6 +78,15 @@ try{
 
     await page.goto(`${base}/obra.html#obra`,{waitUntil:'domcontentloaded'});await page.locator('#newPlan').waitFor({state:'visible'});
     if(!(await page.title()).includes('Obra QA Integrada'))throw new Error(`${viewport.name}: project identity was not loaded from remote bootstrap`);await page.getByText('Fixture QA').waitFor({state:'visible'});await shot('01-day-remote-state');
+    // Obra360 stages come from the canonical subetapas; the unused hydraulic template is gone, history in use stays.
+    await page.locator('nav [data-screen="obra360"]').click();await page.locator('.quick-action[data-screen="floors"]').first().click();
+    await page.locator('[data-floor]').first().click();
+    if(viewport.name==='desktop')await page.getByText('Água fria').first().waitFor({state:'visible'});
+    else{await page.getByText('AF/AQ',{exact:true}).first().waitFor({state:'visible'});if(await page.getByText('Água fria').count())throw new Error('mobile: canonical stage of another work leaked')}
+    if(await page.getByText('Chumbamento',{exact:true}).count())throw new Error(`${viewport.name}: legacy hydraulic stage still shown without any record`);
+    if(!(await page.getByText('AF/AQ',{exact:true}).count()))throw new Error(`${viewport.name}: legacy stage with progress was dropped`);
+    await shot('01b-canonical-stages');
+    await page.locator('nav [data-screen="today"]').click();await page.locator('#newPlan').waitFor({state:'visible'});
 
     const nextActions=page.locator('.rdo-next-link');
     if(await nextActions.count()!==5)throw new Error(`${viewport.name}: expected all five pending RDO sections to be visible, found ${await nextActions.count()}`);

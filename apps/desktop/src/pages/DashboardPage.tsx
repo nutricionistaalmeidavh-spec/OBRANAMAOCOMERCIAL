@@ -7,6 +7,7 @@ import { brl, competenceLabel, currentCompetence } from '../utils/format'
 import BankQuickSummary from './BankQuickSummary'
 import SyncBindingBanner from '../components/SyncBindingBanner'
 import SyncProjectsCard from '../components/SyncProjectsCard'
+import FieldInboxCard from '../components/FieldInboxCard'
 
 export default function DashboardPage() {
   const [competencia, setCompetencia] = useState(currentCompetence())
@@ -14,6 +15,7 @@ export default function DashboardPage() {
   return <>
     <SyncBindingBanner/>
     <SyncProjectsCard compact/>
+    <FieldInboxCard compact/>
     <PageHeader title="Painel geral" description="Uma visão objetiva da operação, do caixa e das obras." actions={<Field label="Competência"><input type="month" value={competencia} onChange={(e) => setCompetencia(e.target.value)}/></Field>}/>
     <BankQuickSummary/>
     {loading ? <Card><Loading/></Card> : error ? <Card><ErrorState error={error} retry={reload}/></Card> : data && <>

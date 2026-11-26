@@ -1,5 +1,6 @@
 import ReceiptPolicySelection from '../components/ReceiptPolicySelection'
 import TimeMatrixPanel from '../components/TimeMatrixPanel'
+import FieldInboxCard from '../components/FieldInboxCard'
 import { useWorkContext } from '../hooks/useWorkContext'
 import { FileDown, Printer, RotateCcw, Save, Sparkles, UsersRound, FileSpreadsheet } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
@@ -44,6 +45,7 @@ export default function TimeSheetPage(){
   return <>
     <PageHeader title="Folhas de ponto" description="Controle mensal das marcações e central de geração, impressão e reimpressão dos documentos do período."
       actions={<Button variant="secondary" icon={<FileSpreadsheet size={16}/>} onClick={()=>setMatrixOpen(v=>!v)}>{matrixOpen?'Ocultar matriz':'Matriz mensal da equipe'}</Button>}/>
+    <FieldInboxCard/>
     <Card className="time-filter"><Field label="Funcionário" wide><select value={employee} onChange={(event)=>setEmployee(event.target.value)}><option value="">Selecione um funcionário...</option>{employees.data?.map((item:any)=><option value={item.id} key={item.id}>{item.nome} · CPF {item.cpf||'não informado'} · {cargos.data?.find((role:any)=>role.id===item.cargo_id)?.nome||'Sem cargo'}</option>)}</select></Field><Field label="Competência"><div className="readonly-person">{competenceLabel(competencia)}</div></Field></Card>
 
     <Card style={{margin:'14px 0',padding:16}}>

@@ -537,3 +537,42 @@ it('upgrades a fictitious 2.1.14 database and resumes its original authorized ou
     fs.rmSync(dataDir, { recursive: true, force: true })
   }
 })
+it('applies phone records to their canonical owners: issues become tasks, attendance waits for review in the Ponto', async () => {
+  const { TimeService } = require('./time-service.cjs')
+  const { createHash } = require('node:crypto')
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  const maria = f.database.save('funcionarios', { empresa_id: f.company.id, obra_atual_id: f.work.id, nome: 'Maria', status: 'ativo' })
+  const fieldId = 'rdo_emp_' + createHash('sha256').update(JSON.stringify([f.company.id, f.work.id, maria.id])).digest('hex').slice(0, 24)
+  const snapshot = (issueStatus: string, attendance: string) => ({
+    issues: [{ id: 'issue-1', type: 'blocked', title: 'Falta tubo 25 mm', floor: 0, service: 'etapa:3', reason: 'Fornecedor atrasou', status: issueStatus }],
+    days: { '2026-11-24': { date: '2026-11-24', attendance: { [fieldId]: attendance, 'legacy-joao': 'absent' }, events: [] } },
+    employees: [{ id: 'legacy-joao', name: 'João (lista do celular)' }]
+  })
+  f.online.syncPull.mockResolvedValue({ changed: true, remoteRevision: 5, snapshot: snapshot('open', 'present') })
+  await f.sync.run()
+  const task = f.database.db.prepare("SELECT * FROM tarefas_obra WHERE titulo='Falta tubo 25 mm'").get() as any
+  expect(task).toMatchObject({ obra_id: f.work.id, prioridade: 'alta', status: 'aberta' })
+  const inbox = f.sync.fieldInbox()
+  const pending = inbox.pending([f.work.id])
+  expect(pending.map((p: any) => [p.kind, p.name, p.funcionarioId])).toEqual([['attendance', 'Maria', maria.id], ['attendance', 'João (lista do celular)', null]])
+  // Nothing touched the Ponto yet.
+  const time = new TimeService({ db: f.database, fileService: null })
+  expect(time.get({ funcionario_id: maria.id, competencia: '2026-11' }).marks.find((m: any) => m.data === '2026-11-24')).toBeUndefined()
+  // The office already marked a day off: the phone never overwrites it silently.
+  time.save({ funcionario_id: maria.id, competencia: '2026-11', marks: [{ data: '2026-11-24', tipo: 'folga' }] })
+  const mariaRow = pending.find((p: any) => p.funcionarioId === maria.id)
+  expect(() => inbox.applyItem({ id: mariaRow.id, workIds: [f.work.id] }, time)).toThrow(/Confirme para substituir/)
+  inbox.applyItem({ id: mariaRow.id, overwrite: true, workIds: [f.work.id] }, time)
+  expect(time.get({ funcionario_id: maria.id, competencia: '2026-11' }).marks.find((m: any) => m.data === '2026-11-24')).toMatchObject({ tipo: 'trabalho', entrada: '07:00' })
+  // Unknown legacy person: must be matched by the office, never by name.
+  const joaoRow = pending.find((p: any) => p.funcionarioId === null)
+  expect(() => inbox.applyItem({ id: joaoRow.id, workIds: [f.work.id] }, time)).toThrow(/Escolha o funcionário/)
+  // Resolving on the phone completes the task; changing attendance after launch goes back to review.
+  f.online.syncPull.mockResolvedValue({ changed: true, remoteRevision: 6, snapshot: snapshot('resolved', 'absent') })
+  await f.sync.run()
+  expect((f.database.get('tarefas_obra', task.id) as any).status).toBe('concluida')
+  expect(f.database.db.prepare("SELECT COUNT(*) n FROM tarefas_obra WHERE titulo='Falta tubo 25 mm'").get()).toEqual({ n: 1 })
+  const again = inbox.pending([f.work.id]).find((p: any) => p.funcionarioId === maria.id)
+  expect(again).toMatchObject({ status: 'absent', message: expect.stringContaining('Alterado no celular') })
+})

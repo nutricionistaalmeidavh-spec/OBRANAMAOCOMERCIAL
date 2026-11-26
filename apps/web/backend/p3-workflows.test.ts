@@ -21,7 +21,7 @@ const memory=vi.hoisted(()=>{
     },
     async delete(collection:string,ids:string[]){for(const id of ids)bucket(collection).delete(String(id));return true}
   };
-  return{
+  return{bucket,
     db,
     reset(){sequence=0;collections.clear()},
     env:{
@@ -33,7 +33,7 @@ const memory=vi.hoisted(()=>{
         // Emulates the two conditional kv_records writes used by production code.
         if(sql.startsWith('UPDATE kv_records SET record_json=')){const [raw,,collection,id,expected]=args,current=bucket(String(collection)).get(String(id));if(!current||Number(current.revision)!==Number(expected))return{meta:{changes:0}};bucket(String(collection)).set(String(id),JSON.parse(raw));return{meta:{changes:1}}}
         if(sql.startsWith('INSERT INTO kv_records')&&sql.includes('DO NOTHING')){const [collection,id,raw]=args,target=bucket(String(collection));if(target.has(String(id)))return{meta:{changes:0}};target.set(String(id),JSON.parse(raw));return{meta:{changes:1}}}
-        return{success:true,meta:{changes:0}}},async first(){return null},async all(){return{results:[]}}}}},
+        return{success:true,meta:{changes:0}}},async first(){if(sql.startsWith('SELECT record_json FROM kv_records WHERE collection=? AND id=?')){const value=bucket(String(args[0])).get(String(args[1]));return value?{record_json:JSON.stringify(value)}:null}return null},async all(){return{results:[]}}}}},
     }
   };
 });
@@ -118,6 +118,15 @@ describe('P3 automated product workflows',()=>{
     });
     expect(attendance.status).toBe(200);
     expect((await body(attendance)).day.attendance['emp-worker']).toBe('present');
+
+    // People published by the Desktop catalog are accepted too; unknown ids are not.
+    const projectOfForeman=String((await body(await last(adminRoutes['GET /api/bootstrap'])({user:foremanUser,body:{},query:{},params:{}}))).membership.projectId);
+    const unknown=await last(adminRoutes['POST /api/attendance'])({user:foremanUser,body:{date:today,employeeId:'rdo_emp_desconhecido',status:'present'},query:{},params:{}});
+    expect(unknown.status).toBe(404);
+    memory.bucket('field_rdo_catalog_'+projectOfForeman).set('latest',{schemaVersion:1,workId:1,materials:[],fronts:[],services:[],employees:[{id:'rdo_emp_maria0000000000000000',name:'Maria'}],version:'v1',updatedAt:today,sourceDeviceId:'device-a'});
+    const canonical=await last(adminRoutes['POST /api/attendance'])({user:foremanUser,body:{date:today,employeeId:'rdo_emp_maria0000000000000000',status:'absent'},query:{},params:{}});
+    expect(canonical.status).toBe(200);
+    expect((await body(canonical)).day.attendance['rdo_emp_maria0000000000000000']).toBe('absent');
 
     const employeeUser={userId:'worker-user',email:'worker@test.local',name:'Worker'};
     const employeeClaim=await last(adminRoutes['POST /api/access/claim'])({
