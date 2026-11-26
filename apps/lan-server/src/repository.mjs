@@ -14,7 +14,7 @@ const TABLE_FIELDS = {
   checklist_frente_itens: new Set(['obra_id', 'frente_id', 'subfrente_id', 'pavimento', 'descricao', 'tipo', 'status', 'responsavel', 'prazo', 'concluido_em', 'observacoes']),
   tarefas_obra: new Set(['obra_id', 'frente_id', 'local_id', 'rdo_ocorrencia_id', 'titulo', 'descricao', 'responsavel', 'prazo', 'prioridade', 'status', 'origem_tipo', 'origem_id', 'concluido_em']),
   rdos: new Set(['obra_id', 'frente_id', 'data', 'clima', 'status', 'atividades', 'observacoes']),
-  rdo_equipe: new Set(['rdo_id', 'frente_id', 'funcionario_id', 'nome', 'funcao', 'horas', 'custo_centavos', 'observacoes']),
+  rdo_equipe: new Set(['rdo_id', 'frente_id', 'local_id', 'funcionario_id', 'nome', 'funcao', 'horas', 'custo_centavos', 'observacoes']),
   rdo_equipamentos: new Set(['rdo_id', 'frente_id', 'nome', 'horas_uso', 'custo_centavos', 'observacoes']),
   rdo_ocorrencias: new Set(['rdo_id', 'frente_id', 'local_id', 'tipo', 'descricao', 'status', 'prioridade', 'responsavel', 'prazo']),
   rdo_anexos: new Set(['rdo_id', 'frente_id', 'documento_id', 'legenda']),

@@ -73,6 +73,20 @@ test('perfil sem Obra360 não altera o andamento no servidor', async () => {
   } finally { await close(f) }
 })
 
+test('servidor devolve contadores por local', async () => {
+  const f = await fixture()
+  try {
+    const port = f.server.address().port
+    const floor = f.repository.save('locais_obra', { obra_id: f.work.id, nome: 'Térreo', nivel: 0 })
+    f.repository.save('tarefas_obra', { obra_id: f.work.id, titulo: 'X', local_id: floor.id, status: 'aberta', prioridade: 'normal' })
+    const res = await fetch(`http://127.0.0.1:${port}/api/v1/locais/counts?obra_id=${f.work.id}`, { headers: { authorization: `Bearer ${TOKEN}` } })
+    assert.equal(res.status, 200)
+    const body = await res.json()
+    assert.equal(body.byLocal[floor.id].total, 1)
+    assert.equal(body.open, 1)
+  } finally { await close(f) }
+})
+
 test('servidor anuncia o Obra360 nas capacidades', async () => {
   const f = await fixture()
   try {

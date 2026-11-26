@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import path from 'node:path'
 import test from 'node:test'
 import { LanRepository } from '../src/repository.mjs'
+import locationIntegrity from '../src/location-integrity.cjs'
 
 function setup() {
   const repository = new LanRepository({ filename: ':memory:' })
@@ -32,5 +33,18 @@ test('locais em cadeia: pavimento no topo, complementos opcionais dentro', () =>
     const occurrence = repository.save('rdo_ocorrencias', { rdo_id: rdo.id, tipo: 'qualidade', descricao: 'Infiltração', local_id: apto.id })
     assert.equal(occurrence.local_id, apto.id)
     assert.throws(() => repository.remove('locais_obra', apto.id))
+
+    // Counts: open pendências + open occurrences not yet a pendência, rolled up the chain.
+    repository.save('tarefas_obra', { obra_id: work.id, titulo: 'Feita', local_id: bath.id, status: 'concluida', prioridade: 'normal' })
+    const converted = repository.save('rdo_ocorrencias', { rdo_id: rdo.id, tipo: 'atraso', descricao: 'Virou pendência', local_id: bath.id })
+    repository.save('tarefas_obra', { obra_id: work.id, titulo: 'Da ocorrência', local_id: bath.id, rdo_ocorrencia_id: converted.id, status: 'aberta', prioridade: 'normal' })
+    const counts = locationIntegrity.locationCounts(repository.connection(), work.id)
+    assert.deepEqual(counts.byLocal[bath.id], { tasks: 2, occurrences: 0, own: 2, total: 2 })
+    assert.deepEqual(counts.byLocal[apto.id], { tasks: 0, occurrences: 1, own: 1, total: 3 })
+    assert.equal(counts.byLocal[floor.id].total, 3)
+    const team = repository.save('rdo_equipe', { rdo_id: rdo.id, nome: 'Equipe', local_id: apto.id, horas: 8 })
+    assert.equal(team.local_id, apto.id)
+    const otherRdo = repository.save('rdos', { obra_id: other.id, data: '2026-11-26' })
+    assert.throws(() => repository.save('rdo_equipe', { rdo_id: otherRdo.id, nome: 'X', local_id: apto.id, horas: 1 }), /mesma obra/)
   } finally { repository.close() }
 })

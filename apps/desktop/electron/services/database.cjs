@@ -109,7 +109,7 @@ class DatabaseService {
     const clean = this.cleanData(table, data)
     const columns = Object.keys(clean)
     if (!columns.length) throw new Error('Nenhum dado válido informado.')
-    if (['locais_obra', 'tarefas_obra', 'rdo_ocorrencias'].includes(table)) {
+    if (['locais_obra', 'tarefas_obra', 'rdo_ocorrencias', 'rdo_equipe'].includes(table)) {
       const current = data.id ? this.db.prepare(`SELECT * FROM ${table} WHERE id=?`).get(Number(data.id)) : null
       validateLocationWrite(this.db, table, key => Object.hasOwn(clean, key) ? clean[key] : current?.[key], current)
     }

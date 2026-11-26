@@ -306,7 +306,7 @@ function planningCash(accounts = []) {
 function rdoChildRows(rows = [], rdoId, defaultFrontId, kind) {
   return rows.map(row => {
     const base = { ...row, rdo_id: rdoId, frente_id: row.frente_id || defaultFrontId || null }
-    if (kind === 'equipe') return { ...base, funcionario_id: row.funcionario_id || null, horas: money(row.horas), custo_centavos: money(row.custo_centavos) }
+    if (kind === 'equipe') return { ...base, local_id: row.local_id ? Number(row.local_id) : null, funcionario_id: row.funcionario_id || null, horas: money(row.horas), custo_centavos: money(row.custo_centavos) }
     if (kind === 'equipamentos') return { ...base, horas_uso: money(row.horas_uso), custo_centavos: money(row.custo_centavos) }
     if (kind === 'ocorrencias') return { ...base, local_id: row.local_id ? Number(row.local_id) : null }
     return base
