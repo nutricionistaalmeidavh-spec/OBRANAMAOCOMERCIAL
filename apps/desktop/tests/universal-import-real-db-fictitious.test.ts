@@ -269,3 +269,54 @@ describe('homologação da importação universal real com dados fictícios', ()
     }
   })
 })
+
+describe('regressão orçamento da cliente — obra única e preço unitário', () => {
+  it('importa 234 linhas sem coluna obra usando o ID explícito da obra e preserva centavos', async () => {
+    const fixture = database()
+    try {
+      const work = fixture.db.save('obras', { empresa_id: fixture.company.id, nome: 'Obra fictícia única', status: 'planejada' })
+      const book = new ExcelJS.Workbook()
+      const sheet = book.addWorksheet('Orçamento')
+      sheet.addRow(['Descrição', 'Quantidade', 'Preço unit. (R$)'])
+      for (let i=1;i<=234;i++) sheet.addRow(['Serviço fictício '+i, 2, i===1?'12.50':'1.234,56'])
+      const file = path.join(fixture.dir,'orcamento-234.xlsx')
+      await book.xlsx.writeFile(file)
+      const service = importService(fixture.db)
+      const analyzed = await service.analyze(file)
+      const options = { sheet:'Orçamento', area:'orcamento', companyId:fixture.company.id, workId:work.id }
+      const preview = await service.preview(analyzed.token, options)
+      expect(preview.missing).toEqual([])
+      expect(preview.invalid).toBe(0)
+      expect(preview.total).toBe(234)
+      expect(count(fixture.db,'itens_orcamentarios')).toBe(0)
+      expect((await service.commit(analyzed.token,options)).imported).toBe(234)
+      expect(fixture.db.db.prepare('SELECT DISTINCT obra_id FROM itens_orcamentarios').all()).toEqual([{obra_id:work.id}])
+      expect(fixture.db.db.prepare("SELECT valor_unitario_centavos FROM itens_orcamentarios WHERE descricao='Serviço fictício 1'").get().valor_unitario_centavos).toBe(1250)
+      expect(fixture.db.db.prepare("SELECT valor_unitario_centavos FROM itens_orcamentarios WHERE descricao='Serviço fictício 2'").get().valor_unitario_centavos).toBe(123456)
+    } finally { fixture.cleanup() }
+  })
+  it('rejeita obra de outra empresa e preço inválido sem gravar linhas', async () => {
+    const fixture=database()
+    try {
+      const other=fixture.db.save('empresas',{razao_social:'Outra empresa fictícia',status:'ativa'})
+      const foreign=fixture.db.save('obras',{empresa_id:other.id,nome:'Obra externa',status:'planejada'})
+      const work=fixture.db.save('obras',{empresa_id:fixture.company.id,nome:'Obra autorizada',status:'planejada'})
+      const book=new ExcelJS.Workbook()
+      const sheet=book.addWorksheet('Orçamento')
+      sheet.addRow(['descricao','quantidade','valor_unitario'])
+      sheet.addRow(['Item válido',1,0])
+      sheet.addRow(['Item inválido',1,'texto'])
+      const file=path.join(fixture.dir,'orcamento-invalido.xlsx')
+      await book.xlsx.writeFile(file)
+      const service=importService(fixture.db)
+      const analyzed=await service.analyze(file)
+      const options={sheet:'Orçamento',area:'orcamento',companyId:fixture.company.id}
+      await expect(service.preview(analyzed.token,{...options,workId:foreign.id})).rejects.toThrow(/obra/i)
+      const preview=await service.preview(analyzed.token,{...options,workId:work.id})
+      expect(preview.invalid).toBe(1)
+      expect(preview.issues[0].line).toBe(3)
+      await expect(service.commit(analyzed.token,{...options,workId:work.id})).rejects.toThrow(/linha 3/i)
+      expect(count(fixture.db,'itens_orcamentarios')).toBe(0)
+    } finally { fixture.cleanup() }
+  })
+})
