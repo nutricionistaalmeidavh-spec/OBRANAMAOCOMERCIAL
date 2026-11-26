@@ -498,9 +498,13 @@ it('upgrades a fictitious 2.1.14 database and resumes its original authorized ou
     online.writeConfig({ baseUrl, installationId: 'fictional-installation-id', tenant: { companyId: session.company.id, baseUrl } })
     online.storeToken('fictional-test-token')
     const config = fs.readFileSync(online.configPath, 'utf8')
-    const legacyCoordinator = new SyncCoordinator({ database, online })
+    const offlineSince = Date.parse('2026-08-01T12:00:00Z')
+    const legacyCoordinator = new SyncCoordinator({ database, online, now: () => offlineSince })
     legacyCoordinator.dataProvider.summary = () => null
     await legacyCoordinator.configure({ companyId: company.id, workId: work.id })
+    online.syncPull = vi.fn(async () => ({ changed: false }))
+    online.syncPush = vi.fn(async () => { throw new Error('rede indisponível') })
+    await expect(legacyCoordinator.run()).rejects.toThrow('rede indisponível')
     const queued = database.db.prepare('SELECT change_id FROM desktop_sync_outbox WHERE entity=? AND local_id=?').get('tarefas_obra', task.id)
     database.close()
 
@@ -524,8 +528,8 @@ it('upgrades a fictitious 2.1.14 database and resumes its original authorized ou
     reopened.publishMobileSummary = vi.fn(async () => ({ ok: true }))
     const syncPush = vi.fn(async (changes: any[]) => ({ accepted: changes.map(change => ({ changeId: change.changeId, status: 'accepted' })) }))
     reopened.syncPush = syncPush
-    const coordinator = new SyncCoordinator({ database, online: reopened })
-    await coordinator.run({ retryNow: true })
+    const coordinator = new SyncCoordinator({ database, online: reopened, now: () => offlineSince + 90 * 86400000 })
+    await coordinator.run()
     expect(syncPush.mock.calls.flatMap(([changes]) => changes).some(change => change.changeId === queued.change_id)).toBe(true)
     expect(coordinator.state().pending).toBe(0)
   } finally {
