@@ -4,6 +4,7 @@ const hash = value => crypto.createHash('sha256').update(JSON.stringify(value)).
 const rec = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 const STAGE_STATUS = new Set(['not_started', 'released', 'in_progress', 'completed', 'blocked'])
+const STATUS_LABEL = { not_started: 'não iniciado', released: 'liberado', in_progress: 'em execução', completed: 'concluído', blocked: 'bloqueado' }
 const floorName = n => n === 0 ? 'Térreo' : n < 0 ? `Subsolo ${-n}` : `${n}º pavimento`
 
 /**
@@ -48,7 +49,7 @@ class FieldInbox {
     let issues = 0, staged = 0, floors = 0, progress = 0
     this.db.exec('BEGIN IMMEDIATE')
     try {
-      if (applyTasks) { floors = this.seedFloors(scope, state); progress = this.ingestProgress(scope, state) }
+      if (applyTasks) { floors = this.seedFloors(scope, state); progress = this.ingestProgress(scope, state); this.ingestHistory(scope, state) }
       for (const issue of Array.isArray(state.issues) ? state.issues : []) {
         const item = rec(issue), id = String(item.id || '')
         if (!id) continue
@@ -156,6 +157,33 @@ class FieldInbox {
     return changed
   }
 
+  /** Append-only copy of the phone history; never edited or removed by a later sync. */
+  ingestHistory(scope, state) {
+    if (!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='obra360_historico'").get()) return 0
+    const workId = Number(scope.workId)
+    if (!Number.isSafeInteger(workId) || workId < 1) return 0
+    const insert = this.db.prepare("INSERT OR IGNORE INTO obra360_historico(obra_id,origem_id,nivel,servico,data,hora,descricao,origem) VALUES(?,?,?,?,?,?,?,'campo')")
+    let added = 0
+    for (const raw of (Array.isArray(state.history) ? state.history : []).slice(-2000)) {
+      const h = rec(raw), id = String(h.id || '').slice(0, 120), date = String(h.date || ''), label = String(h.label || '').trim().slice(0, 500)
+      if (!id || id.startsWith('escritorio:') || !DATE.test(date) || !label) continue
+      const level = Number(h.floor), time = /^\d{2}:\d{2}/.test(String(h.time || '')) ? String(h.time).slice(0, 5) : null
+      added += insert.run(workId, 'campo:' + id, Number.isSafeInteger(level) ? level : null, h.service ? String(h.service).slice(0, 80) : null, date, time, label).changes
+    }
+    return added
+  }
+
+  historyList({ workId, nivel, date, limit } = {}) {
+    const where = ['h.obra_id=?'], args = [Number(workId)]
+    if (nivel !== undefined && nivel !== null) { where.push('h.nivel=?'); args.push(Number(nivel)) }
+    if (date) { where.push('h.data=?'); args.push(String(date)) }
+    args.push(Math.min(Math.max(Number(limit) || 50, 1), 500))
+    return this.db.prepare(`SELECT h.id,h.nivel,h.servico,h.data,h.hora,h.descricao,h.origem,r.id AS rdo_id FROM obra360_historico h
+      LEFT JOIN rdos r ON r.obra_id=h.obra_id AND r.data=h.data AND r.deleted_at IS NULL
+      WHERE ${where.join(' AND ')} ORDER BY h.data DESC,h.hora DESC,h.id DESC LIMIT ?`).all(...args)
+      .map(row => ({ id: row.id, nivel: row.nivel, service: row.servico, date: row.data, time: row.hora, label: row.descricao, origin: row.origem, rdoId: row.rdo_id || null }))
+  }
+
   progressList(workId) {
     return this.db.prepare('SELECT nivel,servico,status,checklist_json,updated_at,origem FROM obra360_andamento WHERE obra_id=? ORDER BY nivel,servico').all(Number(workId))
       .map(row => { let checklist = []; try { checklist = JSON.parse(row.checklist_json || '[]') } catch { /* keep empty */ } return { nivel: row.nivel, service: row.servico, status: row.status, checklist, updatedAt: row.updated_at, origin: row.origem } })
@@ -172,6 +200,15 @@ class FieldInbox {
     const now = new Date().toISOString()
     this.db.prepare(`INSERT INTO obra360_andamento(obra_id,nivel,servico,status,checklist_json,updated_at,origem) VALUES(?,?,?,?,?,?,'escritorio')
       ON CONFLICT(obra_id,nivel,servico) DO UPDATE SET status=excluded.status,checklist_json=excluded.checklist_json,updated_at=excluded.updated_at,origem='escritorio'`).run(work, level, key, String(status), JSON.stringify(items), now)
+    if (this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='obra360_historico'").get()) {
+      const floor = this.db.prepare('SELECT nome FROM locais_obra WHERE obra_id=? AND nivel=?').get(work, level)
+      const stage = this.db.prepare('SELECT nome FROM etapas_obra WHERE id=?').get(Number(key.slice(6)))
+      const done = items.filter(i => i.checked).length
+      const label = `${stage?.nome || 'Subetapa'} · ${floor?.nome || floorName(level)}: ${STATUS_LABEL[status]}${items.length ? ` (checklist ${done}/${items.length})` : ''} — escritório`
+      const local = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString()
+      this.db.prepare("INSERT INTO obra360_historico(obra_id,origem_id,nivel,servico,data,hora,descricao,origem) VALUES(?,?,?,?,?,?,?,'escritorio')")
+        .run(work, 'escritorio:' + require('node:crypto').randomUUID(), level, key, local.slice(0, 10), local.slice(11, 16), label)
+    }
     return { nivel: level, service: key, status: String(status), checklist: items, updatedAt: now, origin: 'escritorio' }
   }
 

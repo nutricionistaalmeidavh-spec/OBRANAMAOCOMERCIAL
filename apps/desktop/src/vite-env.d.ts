@@ -112,6 +112,7 @@ interface Window { fluxoDre: {
     fieldInbox():Promise<{items:Array<{id:number;kind:'issue'|'attendance'|'compensation';workId:number;message:string|null;date?:string;employeeId?:string;status?:string;funcionarioId?:number|null;name?:string;title?:string;reason?:string}>;issue:{message:string;at:string}|null}>;
     obra360Progress(workId:number):Promise<Obra360Progress[]>;
     saveObra360Progress(input:{workId:number;nivel:number;service:string;status:Obra360Progress['status'];checklist:Obra360Progress['checklist']}):Promise<Obra360Progress>;
+    obra360History(input:{workId:number;nivel?:number;date?:string;limit?:number}):Promise<Obra360HistoryEntry[]>;
     applyFieldInbox(id:number,funcionarioId?:number,overwrite?:boolean):Promise<{ok:boolean;taskId?:number}>;
     dismissFieldInbox(id:number):Promise<{ok:boolean}>;
     addSyncProject(workId:number,remoteProjectId?:string):Promise<{workId:number;remoteProjectId:string;name:string}>;
@@ -138,3 +139,4 @@ interface Window { fluxoDre: {
 } }
 
 type Obra360Progress = { nivel:number; service:string; status:'not_started'|'released'|'in_progress'|'completed'|'blocked'; checklist:Array<{id:string;label:string;checked:boolean;required:boolean}>; updatedAt:string; origin:'campo'|'escritorio' }
+type Obra360HistoryEntry = { id:number; nivel:number|null; service:string|null; date:string; time:string|null; label:string; origin:'campo'|'escritorio'; rdoId:number|null }

@@ -523,6 +523,8 @@ function applyOfficeProgress(){
   st.status=p.status;st.checklist=Array.isArray(p.checklist)?p.checklist.map(c=>({...c})):[];
   st.updatedAt=p.updatedAt;st.fp=stageFingerprint(st);changed=true;
  }
+ const office=Array.isArray(catalog?.history)?catalog.history:[];
+ if(office.length){state.history=state.history||[];const known=new Set(state.history.map(h=>h?.id));for(const h of office)if(h?.id&&!known.has(h.id)){state.history.push({...h});changed=true}}
  if(changed&&typeof save==='function')try{save()}catch{}
  return changed;
 }
