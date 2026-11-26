@@ -282,6 +282,26 @@ class SyncCoordinator {
    projects:(list.projects||[]).map(project=>({...project,localWorkId:boundRemote.get(String(project.id))??null})),
    localWorks:works.map(work=>({id:work.id,nome:work.nome,empresaId:work.empresa_id,bound:bound.has(Number(work.id))}))}
  }
+ /** Resolve authenticated cloud identities plus actual RDO receipts; names are never evidence. */
+ projectEvidence(projects,companyId){
+  const byProject=new Map(),byWork=new Map(),blockedWorks=new Set()
+  const add=(map,key,value)=>{if(!map.has(key))map.set(key,new Set());map.get(key).add(value)}
+  for(const project of projects){
+   const remoteId=String(project.id),ids=new Set()
+   if(Number.isSafeInteger(project.localWorkId)&&project.localWorkId>0)ids.add(project.localWorkId)
+   if(this.hasTable('field_rdo_links')){
+    const receipts=this.db.prepare('SELECT DISTINCT o.id,o.empresa_id FROM field_rdo_links l JOIN rdos r ON r.id=l.rdo_id JOIN obras o ON o.id=r.obra_id JOIN empresas e ON e.id=o.empresa_id WHERE l.remote_project_id=? AND r.deleted_at IS NULL AND o.deleted_at IS NULL AND e.deleted_at IS NULL').all(remoteId)
+    for(const receipt of receipts)ids.add(Number(receipt.id))
+   }
+   const only=ids.size===1?[...ids][0]:null
+   const owner=only?this.db.prepare('SELECT empresa_id FROM obras WHERE id=? AND deleted_at IS NULL').get(only):null
+   const conflict=!!project.identityConflict||ids.size>1||(only!==null&&Number(owner?.empresa_id)!==Number(companyId))
+   byProject.set(remoteId,{ids,workId:conflict?null:only,conflict})
+   for(const id of ids){add(byWork,id,remoteId);if(conflict)blockedWorks.add(id)}
+  }
+  for(const [id,matches] of byWork)if(matches.size!==1)blockedWorks.add(id)
+  return {byProject,byWork,blockedWorks}
+ }
  /** Office decision (or automatic for a brand-new work): bind a local work to an online project, creating it when needed. */
  async addProject({workId,remoteProjectId=''}={},requireCanonicalIdentity=false){
   const primary=this.binding()
@@ -299,9 +319,11 @@ class SyncCoordinator {
    const list=await this.authorizedProjects(true)
    project=(list.projects||[]).find(item=>String(item.id)===String(remoteProjectId))
    if(!project)throw new Error('Obra online não autorizada para esta conta.')
-   if(project.identityConflict)throw new Error('A obra online tem identificações de origem divergentes.')
-   if(requireCanonicalIdentity&&(project.localWorkId!==id||(list.projects||[]).some(item=>item.localWorkId===id&&String(item.id)!==String(project.id))))throw new Error('A identidade canônica da obra online mudou.')
-   if(project.localWorkId!=null&&Number(project.localWorkId)!==id)throw new Error('A obra online já identifica outra obra local.')
+   const evidence=this.projectEvidence(list.projects||[],primary.scope.companyId)
+   const identity=evidence.byProject.get(String(project.id))
+   if(identity?.conflict||evidence.blockedWorks.has(id))throw new Error('A obra online tem identificações de origem divergentes.')
+   if(requireCanonicalIdentity&&identity?.workId!==id)throw new Error('A identidade canônica da obra online mudou.')
+   if(identity?.workId!=null&&identity.workId!==id)throw new Error('A obra online já identifica outra obra local.')
    if(String(primary.scope.remoteProjectId)===String(project.id)||this.extraRows().some(row=>row.remote_project_id===String(project.id)))throw new Error('Esta obra online já está ligada a outra obra local.')
   }else{
    if(typeof this.online.createProject!=='function')throw new Error('Criação de obra online indisponível nesta versão.')
@@ -326,23 +348,16 @@ class SyncCoordinator {
   await this.validate(primary.scope,this.generation)
   const {projects=[]}=await this.authorizedProjects(true)
   const claimedRemoteIds=new Set([String(primary.scope.remoteProjectId),...this.extraRows().map(row=>String(row.remote_project_id))])
-  const evidence=new Map()
-  for(const project of projects){
-   if(!Number.isSafeInteger(project.localWorkId)||project.localWorkId<1)continue
-   const matches=evidence.get(project.localWorkId)||new Set()
-   matches.add(String(project.id))
-   evidence.set(project.localWorkId,matches)
-  }
+  const {byWork:evidence,blockedWorks}=this.projectEvidence(projects,primary.scope.companyId)
   const existingWorks=this.db.prepare('SELECT id FROM obras WHERE empresa_id=? AND deleted_at IS NULL ORDER BY id').all(primary.scope.companyId)
   const boundBeforeRecovery=this.boundWorkIds()
   for(const {id} of existingWorks){
    const matches=evidence.get(id)
    if(boundBeforeRecovery.has(id)||!matches)continue
-   if(matches.size!==1){this.projectIssue('Há mais de uma obra online para a mesma identidade local.');continue}
+   if(blockedWorks.has(id)||matches.size!==1){this.projectIssue('Identidades canônicas conflitantes; vínculo preservado sem envio indevido.');continue}
    const [remoteProjectId]=matches
    if(!claimedRemoteIds.has(remoteProjectId)){
-    await this.addProject({workId:id,remoteProjectId},true)
-    claimedRemoteIds.add(remoteProjectId)
+    try{await this.addProject({workId:id,remoteProjectId},true);claimedRemoteIds.add(remoteProjectId)}catch(error){this.projectIssue(String(error?.message||error))}
    }
   }
   const setting=this.db.prepare("SELECT value FROM desktop_sync_settings WHERE key='auto_publish_after_work_id'").get()
@@ -354,7 +369,7 @@ class SyncCoordinator {
   }
   const bound=this.boundWorkIds()
   const skip=this.hasTable('desktop_sync_skip_auto')?'AND id NOT IN (SELECT work_id FROM desktop_sync_skip_auto)':''
-  const candidates=this.db.prepare(`SELECT id FROM obras WHERE id>? AND empresa_id=? AND deleted_at IS NULL ${skip} ORDER BY id`).all(Number(setting.value),Number(primary.scope.companyId)).filter(row=>!bound.has(Number(row.id))&&!evidence.has(Number(row.id)))
+  const candidates=this.db.prepare(`SELECT id FROM obras WHERE id>? AND empresa_id=? AND deleted_at IS NULL ${skip} ORDER BY id`).all(Number(setting.value),Number(primary.scope.companyId)).filter(row=>!bound.has(Number(row.id))&&!evidence.has(Number(row.id))&&!blockedWorks.has(Number(row.id)))
   for(const row of candidates){
    try{await this.addProject({workId:row.id})}
    catch(error){this.projectIssue(String(error?.message||error));break}
