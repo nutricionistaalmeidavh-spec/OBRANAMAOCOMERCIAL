@@ -87,6 +87,24 @@ test('servidor devolve contadores por local', async () => {
   } finally { await close(f) }
 })
 
+test('pendência do celular com complemento escolhido e catálogo com locais e contadores', async () => {
+  const f = await fixture()
+  try {
+    const floor = f.repository.save('locais_obra', { obra_id: f.work.id, nome: 'Térreo', nivel: 0 })
+    const apto = f.repository.save('locais_obra', { obra_id: f.work.id, nome: 'Apto 1', local_pai_id: floor.id })
+    const bath = f.repository.save('locais_obra', { obra_id: f.work.id, nome: 'Banheiro', local_pai_id: apto.id })
+    const scope = { remoteProjectId: 'p2', workId: f.work.id, remoteCompanyId: 'company-a' }
+    const res = await f.post({ op: 'apply', scope, snapshot: { issues: [{ id: 'x1', title: 'Ralo', status: 'open', floor: 0, placeId: bath.id }, { id: 'x2', title: 'Outra obra', status: 'open', floor: 0, placeId: 99999 }] } })
+    assert.equal(res.status, 200)
+    const rows = f.repository.connection().prepare('SELECT titulo,local_id FROM tarefas_obra WHERE obra_id=? ORDER BY titulo').all(f.work.id).map(r => ({ ...r }))
+    assert.deepEqual(rows, [{ titulo: 'Outra obra', local_id: floor.id }, { titulo: 'Ralo', local_id: bath.id }])
+    const { FieldRdoCatalog } = await import('../src/field-rdo-catalog.mjs')
+    const catalog = new FieldRdoCatalog({ repository: f.repository }).list({ companyId: f.work.empresa_id, workId: f.work.id })
+    assert.deepEqual(catalog.places.map(p => [p.nome, p.floor]), [['Apto 1', 0], ['Apto 1 › Banheiro', 0]])
+    assert.equal(catalog.counts['0'], 2)
+  } finally { await close(f) }
+})
+
 test('servidor anuncia o Obra360 nas capacidades', async () => {
   const f = await fixture()
   try {

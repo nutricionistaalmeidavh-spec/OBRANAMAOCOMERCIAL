@@ -1,3 +1,4 @@
+import locationIntegrity from './location-integrity.cjs'
 import domainCore from './domain-core.cjs'
 const {stockWorkBalances,resolveStockMaterial}=domainCore
 import { createHash } from 'node:crypto'
@@ -49,6 +50,23 @@ export class FieldRdoCatalog {
     return this.db.prepare("SELECT origem_id,nivel,servico,data,hora,descricao FROM obra360_historico WHERE obra_id=? AND origem='escritorio' ORDER BY id DESC LIMIT 200").all(workId)
       .map(row=>({id:String(row.origem_id),floor:row.nivel,service:row.servico,date:row.data,time:row.hora,label:row.descricao})).reverse()
   }
+  /** Complements (guarita, apto, banheiro…) under each pavimento, for the phone to pick. */
+  places(workId){
+    if(!this.db.prepare("SELECT 1 FROM pragma_table_info('locais_obra') WHERE name='local_pai_id'").get())return[]
+    const rows=this.db.prepare('SELECT id,nome,nivel,local_pai_id FROM locais_obra WHERE obra_id=?').all(workId)
+    const byId=new Map(rows.map(r=>[Number(r.id),r]))
+    const floorOf=(row)=>{let cur=row,guard=0;while(cur&&cur.local_pai_id&&guard++<50)cur=byId.get(Number(cur.local_pai_id));return cur&&cur.nivel!==null&&cur.nivel!==undefined?Number(cur.nivel):null}
+    const pathOf=(row)=>{const names=[];let cur=row,guard=0;while(cur&&guard++<50){if(cur.nivel!==null&&cur.nivel!==undefined)break;names.unshift(String(cur.nome));cur=cur.local_pai_id?byId.get(Number(cur.local_pai_id)):null}return names.join(' › ')}
+    return rows.filter(r=>r.nivel===null||r.nivel===undefined).map(r=>({id:Number(r.id),nome:pathOf(r).slice(0,200),floor:floorOf(r)}))
+      .filter(r=>r.floor!==null).sort((a,b)=>a.floor-b.floor||a.nome.localeCompare(b.nome,'pt-BR')).slice(0,2000)
+  }
+  /** Open items per pavimento (pendências + open RDO occurrences, the whole chain inside it). */
+  floorCounts(workId,locations){
+    const out={}
+    try{const counts=locationIntegrity.locationCounts(this.db,workId)
+      for(const l of locations){const c=counts.byLocal[l.id];if(c&&c.total)out[String(l.nivel)]=c.total}}catch{}
+    return out
+  }
   list({companyId,workId}={}){
     const id=Number(workId),company=Number(companyId)
     if(!Number.isSafeInteger(id)||id<1||!Number.isSafeInteger(company)||company<1)throw new Error('Obra e empresa inválidas para o catálogo.')
@@ -65,10 +83,12 @@ export class FieldRdoCatalog {
     const locations=this.locations(id)
     const progress=locations.length?this.progress(id,locations):[]
     const history=locations.length?this.officeHistory(id):[]
+    const places=locations.length?this.places(id):[]
+    const counts=locations.length?this.floorCounts(id,locations):{}
     // Bases without pavimentos keep the previous catalog version (no republish churn).
-    const body=locations.length?(progress.length||history.length?{materials,fronts,services,employees,locations,progress,history}:{materials,fronts,services,employees,locations}):{materials,fronts,services,employees}
+    const body=locations.length?(progress.length||history.length||places.length||Object.keys(counts).length?{materials,fronts,services,employees,locations,progress,history,places,counts}:{materials,fronts,services,employees,locations}):{materials,fronts,services,employees}
     const version=digest(JSON.stringify(body)).slice(0,32)
-    return {schemaVersion:1,workId:id,materials,fronts,services,employees,locations,progress,history,version}
+    return {schemaVersion:1,workId:id,materials,fronts,services,employees,locations,progress,history,places,counts,version}
   }
   requireMaterial(workId,row){
     const id=Number(workId)
