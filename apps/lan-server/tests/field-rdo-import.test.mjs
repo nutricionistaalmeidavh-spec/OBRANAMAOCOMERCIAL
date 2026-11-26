@@ -45,11 +45,11 @@ test('alterar o RDO no PWA corrige consumo sem criar um segundo RDO',()=>{
  }finally{f.repository.close()}
 })
 
-test('RDO manual pré-existente não é sobrescrito pela importação mobile',()=>{
+test('RDO manual fechado não é alterado pela importação mobile',()=>{
  const f=fixture()
  try{
-  f.repository.save('rdos',{obra_id:f.work.id,data:'2026-11-15',atividades:'Serviço lançado manualmente',status:'rascunho'})
-  assert.throws(()=>f.importer.apply({scope:scope(f),report:report()}),/RDO digitado no escritório/)
+  f.repository.save('rdos',{obra_id:f.work.id,data:'2026-11-15',atividades:'Serviço lançado manualmente',status:'fechado'})
+  assert.throws(()=>f.importer.apply({scope:scope(f),report:report()}),/Reabra o RDO do escritório/)
   assert.equal(balance(f),40)
  }finally{f.repository.close()}
 })
@@ -164,8 +164,9 @@ test('saldo insuficiente não bloqueia o diário: equipe e texto entram e o cons
   assert.match(f.importer.apply({scope:scope(f),report:report(55)}).materialPending,/Saldo insuficiente/)
   assert.throws(()=>f.importer.materials.save({rdoId:first.localRdoId,applyPending:true}),/Saldo insuficiente/)
   f.repository.save('movimentacoes_estoque',{obra_id:f.work.id,frente_id:null,tipo:'entrada',descricao:'Tubo PVC 25 mm',unidade:'m',quantidade:20,data:'2026-11-16',request_id:'reposicao'})
-  const applied=f.importer.materials.save({rdoId:first.localRdoId,applyPending:true})
-  assert.equal(applied.pending,null)
+  assert.equal(f.importer.retryPending(scope(f)),1)
+  assert.equal(f.importer.retryPending(scope(f)),0)
+  assert.equal(f.importer.materials.list(first.localRdoId).pending,null)
   assert.equal(balance(f),5)
   // The phone may still revise the same diary afterwards.
   const revised=f.importer.apply({scope:scope(f),report:report(50,'fingerprint-2')})
@@ -180,12 +181,10 @@ test('diário do celular junta-se ao RDO digitado no escritório sem perder text
   const manual=f.repository.save('rdos',{obra_id:f.work.id,data:'2026-11-15',status:'rascunho',atividades:'Concretagem da laje',observacoes:'Chuva à tarde'})
   f.importer.materials.save({rdoId:manual.id,requestId:'manual-1',expectedRevision:0,items:[{id:'manual-line',descricao:'Tubo PVC 25 mm',unidade:'m',quantidade:5}]})
   assert.equal(balance(f),35)
-  assert.throws(()=>f.importer.apply({scope:scope(f),report:report(12)}),error=>error.code==='MANUAL_RDO_EXISTS'&&/RDO digitado no escritório em 15\/11\/2026/.test(error.message))
-  const linked=f.importer.linkManual({scope:scope(f),date:'2026-11-15'})
-  assert.equal(linked.rdoId,manual.id)
-  assert.throws(()=>f.importer.linkManual({scope:scope(f),date:'2026-11-15'}),/já está ligado/)
+
   const imported=f.importer.apply({scope:scope(f),report:report(12)})
   assert.equal(imported.localRdoId,manual.id)
+  assert.throws(()=>f.importer.linkManual({scope:scope(f),date:'2026-11-15'}),/já está ligado/)
   const rdo=f.repository.get('rdos',manual.id)
   assert.match(rdo.atividades,/^Concretagem da laje\n\n— Registro do celular —\n/)
   assert.match(rdo.observacoes,/^Chuva à tarde/)

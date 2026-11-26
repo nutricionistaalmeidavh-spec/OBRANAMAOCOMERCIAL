@@ -559,7 +559,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         return sendJson(response,200,rdoCatalog.list({companyId:work.empresa_id,workId:work.id}))
       }
 
-      if (url.pathname === '/api/v1/field/rdo/import-mobile') {
+      if (['/api/v1/field/rdo/import-mobile','/api/v1/field/rdo/retry-materials'].includes(url.pathname)) {
         if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
         if (!mobileRdoImport) return sendJson(response, 503, { error:'mobile_rdo_unavailable',message:'Importação do RDO indisponível.' })
         const context = await authenticateLanRequest(request,security)
@@ -572,6 +572,7 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         if (!context.companyId || String(scope.remoteCompanyId || '') !== String(context.companyId)) {
           return sendJson(response,403,{error:'tenant_mismatch',message:'Obra não vinculada à empresa autorizada neste servidor.'})
         }
+        if(url.pathname.endsWith('/retry-materials'))return sendJson(response,200,{applied:mobileRdoImport.retryPending(scope)})
         return sendJson(response,200,mobileRdoImport.apply({scope,report:input.report}))
       }
 

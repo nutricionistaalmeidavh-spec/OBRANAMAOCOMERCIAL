@@ -415,3 +415,125 @@ it('never publishes automatically a work created by spreadsheet import', async (
   expect(f.online.createProject).not.toHaveBeenCalled()
   expect((await f.sync.listProjects()).localWorks.find((w: any) => w.id === imported.id).bound).toBe(false)
 })
+
+it('does not offer or publish a local work from another company', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  multiobra(f)
+  const company = f.database.save('empresas', { razao_social: 'Outra empresa fictícia', status: 'ativa' })
+  const work = f.database.save('obras', { empresa_id: company.id, nome: 'Obra de outra empresa' })
+  expect((await f.sync.listProjects()).localWorks.map((item: any) => item.id)).not.toContain(work.id)
+  await expect(f.sync.addProject({ workId: work.id })).rejects.toThrow(/empresa/)
+  expect(f.online.createProject).not.toHaveBeenCalled()
+})
+
+it('validates the current online identity before publishing another work', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  const { second } = multiobra(f)
+  f.session.company.id = 'company-other'
+  await expect(f.sync.addProject({ workId: second.id })).rejects.toThrow(/Vínculo online mudou/)
+  expect(f.online.createProject).not.toHaveBeenCalled()
+})
+
+it('recovers a legacy imported work from its unique device-scoped online identity', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  const { second } = multiobra(f)
+  f.database.db.prepare('INSERT INTO desktop_sync_skip_auto(work_id) VALUES(?)').run(second.id)
+  f.online.listAuthorizedProjects.mockResolvedValue({
+    projects: [
+      { id: 'same-name', name: second.nome, modules: ['rdo'] },
+      { id: 'canonical', name: 'Nome online atualizado', localWorkId: second.id, modules: ['rdo'] }
+    ],
+    limits: { maxProjects: 2, used: 2 }
+  })
+  await f.sync.run()
+  expect(f.sync.state().projects).toEqual([expect.objectContaining({ workId: second.id, remoteProjectId: 'canonical' })])
+  expect(f.online.createProject).not.toHaveBeenCalled()
+})
+
+it('joins a phone diary to the explicitly selected additional work', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  const { second } = multiobra(f)
+  await f.sync.addProject({ workId: second.id, remoteProjectId: 'project-b' })
+  const link = vi.fn(async () => ({ rdoId: 3, date: '2026-11-24' }))
+  f.sync.dataProvider.linkFieldRdo = link
+  await expect(f.sync.linkFieldRdo('2026-11-24', second.id + 100)).rejects.toThrow(/obra/)
+  expect(link).not.toHaveBeenCalled()
+  await f.sync.linkFieldRdo('2026-11-24', second.id)
+  expect(link).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+    workId: second.id,
+    remoteProjectId: 'project-b'
+  }), '2026-11-24')
+})
+
+it('upgrades a fictitious 2.1.14 database and resumes its original authorized outbox', async () => {
+  const { OnlineService } = require('./online-service.cjs')
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'obn-upgrade-214-'))
+  const migrationsDir = path.resolve(import.meta.dirname, '../../database/migrations')
+  const oldMigrations = path.join(dataDir, 'schema-214')
+  let database: any
+  try {
+    fs.mkdirSync(oldMigrations)
+    // Migration 026 is the last migration shipped in desktop-commercial-v2.1.14.
+    for (const file of fs.readdirSync(migrationsDir).filter(name => /^\d+.*\.sql$/.test(name) && Number(name.slice(0, 3)) <= 26)) {
+      fs.copyFileSync(path.join(migrationsDir, file), path.join(oldMigrations, file))
+    }
+    database = new DatabaseService({ dataDir, migrationsDir: oldMigrations })
+    database.open()
+    expect(database.db.pragma('user_version', { simple: true })).toBe(26)
+    const company = database.save('empresas', { razao_social: 'Empresa fictícia', status: 'ativa' })
+    const work = database.save('obras', { empresa_id: company.id, nome: 'Obra migrada' })
+    const task = database.save('tarefas_obra', { obra_id: work.id, titulo: 'Tarefa offline', status: 'aberta' })
+    const session = {
+      authorized: true, company: { id: 'company-test' }, project: { id: 'project-test' },
+      device: { id: 'device-test' }, user: { email: 'fixture@example.test' },
+      access: { licenseId: 'license-test', modules: ['obra360'] }
+    }
+    const baseUrl = 'https://mock.example.test'
+    const fetchImpl = vi.fn(async () => ({ ok: true, json: async () => session, headers: { get: () => null } }))
+    const online = new OnlineService({ dataDir, baseUrl, fetchImpl, qaLinked: false })
+    online.writeConfig({ baseUrl, installationId: 'fictional-installation-id', tenant: { companyId: session.company.id, baseUrl } })
+    online.storeToken('fictional-test-token')
+    const config = fs.readFileSync(online.configPath, 'utf8')
+    const offlineSince = Date.parse('2026-08-01T12:00:00Z')
+    const legacyCoordinator = new SyncCoordinator({ database, online, now: () => offlineSince })
+    legacyCoordinator.dataProvider.summary = () => null
+    await legacyCoordinator.configure({ companyId: company.id, workId: work.id })
+    online.syncPull = vi.fn(async () => ({ changed: false }))
+    online.syncPush = vi.fn(async () => { throw new Error('rede indisponível') })
+    await expect(legacyCoordinator.run()).rejects.toThrow('rede indisponível')
+    const queued = database.db.prepare('SELECT change_id FROM desktop_sync_outbox WHERE entity=? AND local_id=?').get('tarefas_obra', task.id)
+    database.close()
+
+    database = new DatabaseService({ dataDir, migrationsDir })
+    database.open()
+    expect(database.db.pragma('user_version', { simple: true })).toBeGreaterThan(26)
+    const backupDir = path.join(dataDir, 'backups', 'pre-migration')
+    const [backupFile] = fs.readdirSync(backupDir)
+    const backup = new (require('better-sqlite3'))(path.join(backupDir, backupFile), { readonly: true })
+    try {
+      expect(backup.pragma('user_version', { simple: true })).toBe(26)
+      expect(backup.prepare('SELECT titulo FROM tarefas_obra WHERE id=?').get(task.id).titulo).toBe('Tarefa offline')
+    } finally { backup.close() }
+    expect(database.get('tarefas_obra', task.id).titulo).toBe('Tarefa offline')
+    expect(fs.readFileSync(online.configPath, 'utf8')).toBe(config)
+    const reopened = new OnlineService({ dataDir, baseUrl, fetchImpl, qaLinked: false })
+    expect(reopened.installationId()).toBe('fictional-installation-id')
+    expect(reopened.deviceToken()).toBe('fictional-test-token')
+    expect((await reopened.session()).access.licenseId).toBe('license-test')
+    reopened.syncPull = vi.fn(async () => ({ changed: false }))
+    reopened.publishMobileSummary = vi.fn(async () => ({ ok: true }))
+    const syncPush = vi.fn(async (changes: any[]) => ({ accepted: changes.map(change => ({ changeId: change.changeId, status: 'accepted' })) }))
+    reopened.syncPush = syncPush
+    const coordinator = new SyncCoordinator({ database, online: reopened, now: () => offlineSince + 90 * 86400000 })
+    await coordinator.run()
+    expect(syncPush.mock.calls.flatMap(([changes]) => changes).some(change => change.changeId === queued.change_id)).toBe(true)
+    expect(coordinator.state().pending).toBe(0)
+  } finally {
+    database?.close()
+    fs.rmSync(dataDir, { recursive: true, force: true })
+  }
+})

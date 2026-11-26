@@ -14,7 +14,7 @@ describe('P1 mobile UX stability',()=>{
     expect(field).toContain('Recusado pelo Desktop');
     expect(field).toContain('aguardando estoque no escritório');
     expect(field).toMatch(/rdo-rejection[^`]*esc\(String\(receipt\.reason/);
-    expect(source('./main.ts')).toContain('/field.js?v=20261125-rdo-p0-1');
+    expect(source('./main.ts')).toContain('/field.js?v=20261125-p1a-1');
   });
   it('mantém título e subtítulo dos cards de ação legíveis antes da normalização visual',()=>{
     const css=source('../public/field.css');
@@ -78,6 +78,6 @@ describe('P1 mobile UX stability',()=>{
     const section=entry.slice(entry.indexOf('async function loadManagementOnly('),entry.indexOf('function injectAdminSettings('));
     expect(section).toContain("renderManagementDashboard(root(),{},b.access||{},'Gestão',true)");
     expect(section.indexOf("renderManagementDashboard(root(),{},b.access||{},'Gestão',true)")).toBeLessThan(section.indexOf("api.get('/api/mobile/summary')"));
-    expect(section).toContain("renderManagementDashboard(root(),data.summary||{},b.access||{},'Gestão')");
+    expect(section).toContain("renderManagementDashboard(root(),{...(data.summary||{}),desktopSeenAt:(data as {desktopSeenAt?:string|null}).desktopSeenAt||null},b.access||{},'Gestão')");
   });
 });

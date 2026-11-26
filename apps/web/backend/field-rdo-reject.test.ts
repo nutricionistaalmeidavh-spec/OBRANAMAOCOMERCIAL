@@ -51,3 +51,17 @@ it('skips the retry pause for a day the office just resolved and records pending
   expect(receipt).toMatchObject({status:'applied',materialPending:expect.stringContaining('Saldo insuficiente')});
   expect(await pendingFieldRdos('project-a',{retryDates:['2026-11-20']})).toEqual([]);
 });
+
+it('redelivers a receipt awaiting material so the phone can learn that stock was applied',async()=>{
+  vi.useFakeTimers();
+  try{
+    vi.setSystemTime(new Date('2026-11-20T10:00:00Z'));
+    const input={date:'2026-11-20',fingerprint:'fp-1',localRdoId:5,materialRevision:0};
+    await confirmFieldRdo('project-a',{...input,materialPending:'Saldo insuficiente'},'device-a');
+    expect(await pendingFieldRdos('project-a')).toEqual([]);
+    vi.setSystemTime(new Date('2026-11-20T10:15:00Z'));
+    expect((await pendingFieldRdos('project-a')).map(report=>report.date)).toEqual([input.date]);
+    await confirmFieldRdo('project-a',{...input,materialRevision:1},'device-a');
+    expect(await pendingFieldRdos('project-a')).toEqual([]);
+  }finally{vi.useRealTimers()}
+});

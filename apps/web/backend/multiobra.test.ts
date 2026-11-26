@@ -14,7 +14,7 @@ const state = vi.hoisted(() => {
   };
   const createLanClaim=vi.fn(async()=>({claimToken:'claim-token',expiresAt:'2026-09-29T20:10:00.000Z'}));
   const revokeLanServerGrant=vi.fn(async()=>true);
-  return{db,createLanClaim,revokeLanServerGrant,reset(){sequence=0;collections.clear();createLanClaim.mockClear();revokeLanServerGrant.mockReset();revokeLanServerGrant.mockResolvedValue(true)},bucket,setHeaders(h:Record<string,string>){requestHeaders=h},request(){return new Request('https://example.test/api',{headers:requestHeaders})},env:{DB:{prepare(sql:string){let args:any[]=[];return{bind(...v:any[]){args=v;return this},async first(){if(sql.includes("collection='projects'")){let n=0;for(const r of bucket('projects').values())if((r as any).companyId===args[0])n++;return{n}}return null},async run(){return{meta:{changes:0}}},async all(){return{results:[]}}}}},OWNER_EMAIL:'owner@example.com',OWNER_COMPANY:'Obra na Mão',OWNER_PROJECT:'Operação Comercial',OWNER_CUSTOMER:'Obra na Mão',DB:{prepare(){return{bind(){return this},async run(){return{success:true,meta:{changes:1}}},async first(){return null},async all(){return{results:[]}}}}}}};
+  return{db,createLanClaim,revokeLanServerGrant,reset(){sequence=0;collections.clear();createLanClaim.mockClear();revokeLanServerGrant.mockReset();revokeLanServerGrant.mockResolvedValue(true)},bucket,setHeaders(h:Record<string,string>){requestHeaders=h},request(){return new Request('https://example.test/api',{headers:requestHeaders})},env:{DB:{prepare(sql:string){let args:any[]=[];return{bind(...v:any[]){args=v;return this},async first(){if(sql.includes("collection='projects'")){let n=0;for(const r of bucket('projects').values())if((r as any).companyId===args[0])n++;return{n}}return null},async run(){return{meta:{changes:0}}},async all(){return{results:[]}}}}},OWNER_EMAIL:'owner@example.com',OWNER_COMPANY:'Obra na Mão',OWNER_PROJECT:'Operação Comercial',OWNER_CUSTOMER:'Obra na Mão',DB:{prepare(sql:string){let args:any[]=[];return{bind(...values:any[]){args=values;return this},async run(){return{success:true,meta:{changes:1}}},async first(){return null},async all(){return{results:sql.includes('AS work_id')?args.slice(2).flatMap(collection=>{const record=bucket(String(collection)).get('latest');return record?.sourceDeviceId===args[1]?[{collection,work_id:record?.workId}]:[]}):[]}}}}}}};
 });
 
 vi.mock('../cloudflare/sdk',()=>({
@@ -29,6 +29,8 @@ vi.mock('./lan-server-authority',()=>({
   redeemLanClaim:vi.fn(),authenticateLanServer:vi.fn(),revokeLanServerGrant:state.revokeLanServerGrant,lanServerSnapshot:vi.fn(),
 }));
 
+vi.mock('./desktop-presence',()=>({touchDesktopPresence:vi.fn(async()=>undefined),desktopSeenAt:vi.fn(async()=>null)}));
+import { touchDesktopPresence } from './desktop-presence';
 import { handler } from './index';
 
 const body=async(response:Response)=>await response.json() as Record<string,any>;
@@ -100,5 +102,68 @@ describe('Multiobra: um Desktop, várias obras da mesma empresa',()=>{
     state.setHeaders({'x-obn-project':'project-of-someone-else'});
     expect((await mine()).find((p:any)=>p.current).id).not.toBe('project-of-someone-else');
     state.setHeaders({});
+  });
+
+  it('keeps licensed desktop finance available when the web add-on is disabled',async()=>{
+    const token=await seedDesktop('admin');
+    const grant=state.bucket(accessTable('admin@example.com')).get('access-a')!;
+    state.bucket(accessTable('admin@example.com')).set('access-a',{...grant,modules:['obra360','finance']});
+    state.bucket('companies').set('company-a',{...state.bucket('companies').get('company-a'),financeWebAddon:false});
+    const response=await call('POST /api/desktop/finance/read',{deviceToken:token,view:'dashboard'});
+    expect(response.status).not.toBe(403);
+  });
+
+  it('rejects a primary project when the membership belongs to another account',async()=>{
+    const token=await seedDesktop('admin');
+    const grant=state.bucket(accessTable('admin@example.com')).get('access-a')!;
+    state.bucket(accessTable('admin@example.com')).set('access-a',{...grant,userId:'different-account'});
+    expect((await call('POST /api/desktop/field/rdo/pending',{deviceToken:token})).status).toBe(403);
+  });
+  it('lists members only in the selected work administered by the device account',async()=>{
+    const token=await seedDesktop('admin');
+    state.bucket('projects').set('project-b',{companyId:'company-a',name:'Obra B'});
+    state.bucket(accessTable('admin@example.com')).set('access-b',member('admin@example.com','project-b'));
+    state.bucket('members_project-b').set('member-b',member('bob@example.com','project-b','employee'));
+    const selected=await call('POST /api/desktop/members/list',{deviceToken:token,projectId:'project-b'});
+    expect(selected.status).toBe(200);
+    expect((await body(selected)).members.map((item:any)=>item.email)).toEqual(['bob@example.com']);
+    state.bucket(accessTable('admin@example.com')).set('access-b',member('admin@example.com','project-b','foreman'));
+    expect((await call('POST /api/desktop/members/list',{deviceToken:token,projectId:'project-b'})).status).toBe(403);
+  });
+  it('updates operational heartbeat only after the RDO module gate',async()=>{
+    const token=await seedDesktop('admin');
+    vi.mocked(touchDesktopPresence).mockClear();
+    const grant=state.bucket(accessTable('admin@example.com')).get('access-a')!;
+    state.bucket(accessTable('admin@example.com')).set('access-a',{...grant,modules:['finance']});
+    expect((await call('POST /api/desktop/field/rdo/pending',{deviceToken:token})).status).toBe(403);
+    expect(touchDesktopPresence).not.toHaveBeenCalled();
+    state.bucket(accessTable('admin@example.com')).set('access-a',grant);
+    expect((await call('POST /api/desktop/field/rdo/pending',{deviceToken:token})).status).toBe(200);
+    expect(touchDesktopPresence).toHaveBeenCalledWith('project-a','device-a');
+  });
+  it('includes all authorized works when an account has more than 20 memberships',async()=>{
+    const token=await seedDesktop('admin');
+    for(let index=0;index<30;index++){
+      const id='project-'+index;
+      state.bucket('projects').set(id,{companyId:'company-a',name:'Obra '+index});
+      state.bucket(accessTable('admin@example.com')).set('access-'+index,member('admin@example.com',id));
+    }
+    const response=await call('POST /api/desktop/projects',{deviceToken:token});
+    expect(response.status).toBe(200);
+    const {projects}=await body(response);
+    expect(projects).toHaveLength(31);
+    expect(projects).toContainEqual(expect.objectContaining({id:'project-a',primary:true}));
+  });
+  it('uses a legacy catalog only when it identifies this device and no conflicting source exists',async()=>{
+    const token=await seedDesktop('admin');
+    for(const id of ['legacy','other-device','conflicting']){
+      state.bucket('projects').set(id,{companyId:'company-a',name:'Mesmo nome',...(id==='conflicting'?{workSource:{sourceDeviceId:'device-a',localWorkId:30}}:{})});
+      state.bucket(accessTable('admin@example.com')).set('access-'+id,member('admin@example.com',id));
+      state.bucket('field_rdo_catalog_'+id).set('latest',{sourceDeviceId:id==='other-device'?'device-other':'device-a',workId:7});
+    }
+    const result=await body(await call('POST /api/desktop/projects',{deviceToken:token}));
+    expect(result.projects.find((p:any)=>p.id==='legacy').localWorkId).toBe(7);
+    expect(result.projects.find((p:any)=>p.id==='other-device').localWorkId).toBeUndefined();
+    expect(result.projects.find((p:any)=>p.id==='conflicting').localWorkId).toBeUndefined();
   });
 });

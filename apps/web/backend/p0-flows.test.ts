@@ -525,7 +525,7 @@ describe('Commercial portal overview API boundaries', () => {
     const {user}=await setup('admin',['documents']);
     const response=await call('GET /api/portal/overview',user);
     expect(response.status).toBe(200);expect(response.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(await body(response)).toEqual({updatedAt:'2026-09-03T14:20:00.000Z',metrics:[],attention:[{key:'documents',label:'Documentos a vencer em 30 dias',value:3,kind:'count'}]});
+    expect(await body(response)).toEqual({updatedAt:'2026-09-03T14:20:00.000Z',metrics:[],attention:[{key:'documents',label:'Documentos a vencer em 30 dias',value:3,kind:'count'}],desktopSeenAt:null});
   });
   it.each(['disabled','blocked','pending','wrong-company','wrong-project'])('denies %s management grants even with an administrative membership', async condition => {
     const {user,member}=await setup('admin',['dre','documents']);

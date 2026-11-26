@@ -18,6 +18,21 @@ const readLatest=async(projectId:string):Promise<FieldRdoCatalogRecord|Manifest|
  try{return JSON.parse(row.record_json) as FieldRdoCatalogRecord|Manifest}catch{return null}
 }
 export async function fieldRdoOrigin(projectId:string,deviceId:string){const meta=await readLatest(projectId);return meta?.sourceDeviceId===deviceId?{sourceDeviceId:deviceId,localWorkId:meta.workId}:null}
+export async function fieldRdoOrigins(projectIds:string[],deviceId:string){
+ const collections=new Map(projectIds.map(id=>[table(id),id]));
+ const names=[...collections.keys()],origins=new Map<string,number>();
+ for(let start=0;start<names.length;start+=90){
+  const chunk=names.slice(start,start+90);
+  const {results}=await runtimeEnv().DB.prepare(`SELECT collection,json_extract(record_json,'$.workId') AS work_id
+   FROM kv_records WHERE id=? AND json_extract(record_json,'$.sourceDeviceId')=?
+   AND collection IN (${chunk.map(()=>'?').join(',')})`).bind('latest',deviceId,...chunk).all<{collection:string;work_id:number}>();
+  for(const row of results){
+   const id=collections.get(row.collection),workId=Number(row.work_id);
+   if(id&&Number.isSafeInteger(workId)&&workId>0)origins.set(id,workId);
+  }
+ }
+ return origins;
+}
 export async function getFieldRdoCatalog(projectId:string,options:{page?:number;version?:string}={}):Promise<(FieldRdoCatalogRecord&{total?:number;page?:number;pages?:number})|null>{
  const latest=await readLatest(projectId)
  if(!latest)return null

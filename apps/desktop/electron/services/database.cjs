@@ -47,7 +47,7 @@ class DatabaseService {
     if (existed && fs.statSync(this.dbPath).size > 0) {
       const backupDir = path.join(this.dataDir, 'backups', 'pre-migration')
       fs.mkdirSync(backupDir, { recursive: true })
-      this.db.backup(path.join(backupDir, `fluxo-dre-${Date.now()}.sqlite`))
+      this.db.prepare('VACUUM INTO ?').run(path.join(backupDir, `fluxo-dre-${Date.now()}.sqlite`))
     }
     for (const file of pending) {
       const version = Number(file.match(/^\d+/)[0])

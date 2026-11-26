@@ -17,7 +17,8 @@ const BRIDGE = { frentes_obra: 'fronts', tarefas_obra: 'tasks', rdos: 'rdos', cr
 const EDITABLE = {
   frentes_obra: ['status', 'observacoes'],
   tarefas_obra: ['status', 'responsavel', 'prazo', 'prioridade', 'descricao', 'observacoes', 'titulo', 'concluido_em'],
-  rdos: ['status', 'clima', 'atividades', 'observacoes'],
+  // RDOs change only through the field RDO import (single write path).
+  rdos: [],
   cronograma_etapas: ['status', 'percentual_realizado', 'observacoes', 'responsavel', 'previsto_inicio', 'previsto_fim']
 }
 const WORK_SCOPED = new Set([...Object.keys(BRIDGE), 'documentos'])
@@ -184,6 +185,16 @@ class LocalSyncDataProvider {
       save: (table, value) => this.database.save(table, value)
     }
     return new FieldRdoImport({repository:adapter}).apply({scope,report})
+  }
+
+  async retryFieldRdoMaterials(scope) {
+    const FieldRdoImport = await loadFieldRdoImporter()
+    const repository = {
+      connection: () => this.database.db,
+      get: (table,id) => this.database.get(table,id),
+      save: (table,value) => this.database.save(table,value)
+    }
+    return new FieldRdoImport({repository}).retryPending(scope)
   }
 
   async linkFieldRdo(scope, date) {

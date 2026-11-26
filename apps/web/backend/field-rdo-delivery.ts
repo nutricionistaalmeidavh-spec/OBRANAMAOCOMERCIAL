@@ -19,6 +19,7 @@ export async function pendingFieldRdos(projectId:string,{retryDates=[]}:{retryDa
   // Dates the office just resolved (e.g. joined to a typed RDO) skip the retry pause.
   const retry=new Set(retryDates.filter(validDate).slice(0,20))
   const prefix=dayPrefix(projectId),ackCollection=collection(projectId)
+  const now=new Date().toISOString(),materialRetryBefore=new Date(Date.now()-FIELD_RDO_RETRY_MS).toISOString()
   const sql=`SELECT d.record_json AS source, d.collection AS source_collection,
    ack.record_json AS receipt
    FROM kv_records d
@@ -29,16 +30,19 @@ export async function pendingFieldRdos(projectId:string,{retryDates=[]}:{retryDa
      AND json_extract(d.record_json,'$.day.materialsReviewed')=1
      AND (ack.record_json IS NULL OR json_extract(ack.record_json,'$.fingerprint')<>json_extract(d.record_json,'$.day.rdoClosedFingerprint')
        OR (json_extract(ack.record_json,'$.status')='rejected' AND (COALESCE(json_extract(ack.record_json,'$.retryAfter'),'')<=? OR ?=1))
+       OR (json_extract(ack.record_json,'$.status')='applied'
+           AND length(COALESCE(json_extract(ack.record_json,'$.materialPending'),''))>0
+           AND ack.updated_at<=?)
        OR json_extract(ack.record_json,'$.status') NOT IN ('applied','rejected'))
    ORDER BY d.updated_at ASC LIMIT 50`
-  const query=await runtimeEnv().DB.prepare(sql).bind(ackCollection,prefix.length+1,prefix+'*',new Date().toISOString(),retry.size?1:0).all<{source:string;receipt:string|null;source_collection:string}>()
+  const query=await runtimeEnv().DB.prepare(sql).bind(ackCollection,prefix.length+1,prefix+'*',now,retry.size?1:0,materialRetryBefore).all<{source:string;receipt:string|null;source_collection:string}>()
   const reports:FieldRdoDelivery[]=[]
   for(const row of query.results||[]){
     const day=record(decode(row.source).day),receipt=decode(row.receipt||'{}')
     const date=String(day.date||'').trim(),fingerprint=String(day.rdoClosedFingerprint||'')
     if(!validDate(date)||row.source_collection!==prefix+date||!fingerprint||fingerprint.length>128000)continue
-    if(receipt.fingerprint===fingerprint&&receipt.status==='applied')continue
-    if(receipt.fingerprint===fingerprint&&receipt.status==='rejected'&&String(receipt.retryAfter||'')>new Date().toISOString()&&!retry.has(date))continue
+    if(receipt.fingerprint===fingerprint&&receipt.status==='applied'&&(!receipt.materialPending||String(receipt.confirmedAt||'')>materialRetryBefore))continue
+    if(receipt.fingerprint===fingerprint&&receipt.status==='rejected'&&String(receipt.retryAfter||'')>now&&!retry.has(date))continue
     reports.push({date,fingerprint,report:{
       date,note:String(day.note||'').slice(0,20000),events:list(day.events).slice(0,200),
       sessions:list(day.sessions).slice(0,200),attendance:record(day.attendance),
