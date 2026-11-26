@@ -115,6 +115,11 @@ class LanSyncDataProvider {
     return this.lanClient.request('POST', '/api/v1/field/rdo/link-manual', { body:{scope,date} })
   }
 
+  async obra360(op, payload) {
+    await this.requireModule('operation')
+    return this.lanClient.request('POST', '/api/v1/field/obra360', { body: { ...payload, op } })
+  }
+
   async obligations(scope) {
     await this.requireModule('finance')
     return this.lanClient.request('GET', `/api/v1/sync-source/obligations${syncSourceQuery(scope)}`)
@@ -161,6 +166,7 @@ class OperationalSyncDataProvider {
   async fieldRdoCatalog(scope) { return this.activeProvider().fieldRdoCatalog(scope) }
   async retryFieldRdoMaterials(scope) { return this.activeProvider().retryFieldRdoMaterials(scope) }
   async linkFieldRdo(scope,date) { return this.activeProvider().linkFieldRdo(scope,date) }
+  async obra360(op,payload) { const p=this.activeProvider(); if(!p.obra360)throw new Error('Obra360 indisponível nesta fonte de dados.'); return p.obra360(op,payload) }
 }
 
 module.exports = { LanSyncDataProvider, OperationalSyncDataProvider }

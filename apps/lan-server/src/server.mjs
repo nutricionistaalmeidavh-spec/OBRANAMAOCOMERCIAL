@@ -14,6 +14,7 @@ const { createReceivedNotesService } = domainCore
 import { RdoMaterialConsumption } from './rdo-material-consumption.mjs'
 import { FieldRdoImport } from './field-rdo-import.mjs'
 import { FieldRdoCatalog } from './field-rdo-catalog.mjs'
+import fieldInboxModule from './field-inbox.cjs'
 import { ContractsService } from './contracts-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
@@ -28,6 +29,7 @@ export const LAN_SERVER_VERSION = '0.4.2'
 const MAX_BODY_BYTES = 1024 * 1024
 const MAX_DOCUMENT_BODY_BYTES = 36 * 1024 * 1024
 const MAX_FIELD_RDO_BODY_BYTES = 48 * 1024 * 1024
+const { FieldInbox } = fieldInboxModule
 const DEFAULT_IDENTITY_STALE_MS = 15 * 60 * 1000
 const ENTITY_ROUTE = /^\/api\/v1\/(empresas|clientes|obras|locais_obra|frentes_obra|subfrentes_obra|checklist_frente_itens|tarefas_obra|rdos|rdo_equipe|rdo_equipamentos|rdo_ocorrencias|rdo_anexos|etapas_obra|cronograma_etapas|itens_orcamentarios|medicoes|medicao_itens|medicao_mapa_itens|fornecedores|categorias_financeiras|contas|pagamentos_conta|solicitacoes_compra|cotacoes_compra|pedidos_compra|pedido_compra_itens|recebimentos_materiais|movimentacoes_estoque|contratos_obra|contrato_aditivos|funcionarios|funcionario_obras|cargos|beneficios|cargo_beneficios|funcionario_beneficios|folhas_pagamento|folha_lancamentos|pagamentos_funcionario|pontos_mensais|ponto_marcacoes|epis|funcionario_epis|fontes_documentais|arquivos|documentos|medicao_anexos|contrato_anexos|pedido_compra_anexos|documentos_editaveis|modelos_documento_rh|empresa_documentos_admissionais|cargo_epi_kits)(?:\/(\d+))?\/?$/
 const ADMIN_DEVICE_ROUTE = /^\/api\/v1\/admin\/devices\/([^/]+)\/?$/
@@ -314,6 +316,11 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
   const rdoMaterials = compoundDomainReady ? new RdoMaterialConsumption({ repository }) : null
   const mobileRdoImport = compoundDomainReady ? new FieldRdoImport({ repository }) : null
   const rdoCatalog = compoundDomainReady ? new FieldRdoCatalog({ repository }) : null
+  // Phone (Obra360) records applied to this server base, the owner in LAN and own-server modes.
+  const fieldInbox = compoundDomainReady && rdoCatalog ? new FieldInbox({
+    database: { db: repositoryDb, save: (table, data) => repository.save(table, data), get: (table, id) => repository.get(table, id) },
+    peopleFor: scope => { const work = repository.get('obras', Number(scope.workId)); return work ? rdoCatalog.companyPeople(work.empresa_id, work.id) : [] },
+  }) : null
   const contracts = contractsService || (compoundDomainReady ? new ContractsService({ repository }) : null)
   const payroll = payrollService || (versionedRepository ? new PayrollService({ repository }) : null)
   const time = timeService || (versionedRepository ? new TimeService({ repository }) : null)
@@ -574,6 +581,47 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         }
         if(url.pathname.endsWith('/retry-materials'))return sendJson(response,200,{applied:mobileRdoImport.retryPending(scope)})
         return sendJson(response,200,mobileRdoImport.apply({scope,report:input.report}))
+      }
+
+      if (url.pathname === '/api/v1/field/obra360') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!fieldInbox?.available()) return sendJson(response, 503, { error: 'obra360_unavailable', message: 'Obra360 indisponível neste servidor. Atualize o servidor.' })
+        const context = await authenticateLanRequest(request, security)
+        const input = await readJson(request, MAX_FIELD_RDO_BODY_BYTES)
+        const op = String(input.op || '')
+        // Applying a phone snapshot must come from the cloud tenant bound to this server.
+        if (op === 'apply' && (!context.companyId || String(input.scope?.remoteCompanyId || '') !== String(context.companyId)))
+          return sendJson(response, 403, { error: 'tenant_mismatch', message: 'Obra não vinculada à empresa autorizada neste servidor.' })
+        const liveWork = id => { const work = repository.get('obras', Number(id)); return work && !work.deleted_at ? work : null }
+        const workIds = (Array.isArray(input.workIds) ? input.workIds : []).map(Number).filter(id => liveWork(id))
+        if (op === 'apply') {
+          authorizeAction(context, { domain: 'operation', action: 'edit' })
+          const scope = input.scope && typeof input.scope === 'object' ? input.scope : {}
+          if (!scope.remoteProjectId || !liveWork(scope.workId)) return sendJson(response, 404, { error: 'work_not_found' })
+          return sendJson(response, 200, fieldInbox.apply({ remoteProjectId: String(scope.remoteProjectId), workId: Number(scope.workId) }, input.snapshot, { applyTasks: true }))
+        }
+        if (op === 'pending') { authorizeAction(context, { domain: 'operation', action: 'view' }); return sendJson(response, 200, fieldInbox.pending(workIds)) }
+        if (op === 'dismiss' || op === 'applyItem') {
+          const row = fieldInbox.get(input.id)
+          if (!row || !workIds.includes(Number(row.work_id))) return sendJson(response, 404, { error: 'not_found', message: 'Registro do celular não encontrado.' })
+          authorizeAction(context, { domain: 'operation', action: 'edit' })
+          if (op === 'dismiss') { fieldInbox.mark(row.id, 'dismissed'); return sendJson(response, 200, { ok: true }) }
+          if (row.kind !== 'issue') authorizeAction(context, { domain: 'rh', action: 'edit' })
+          if (row.kind !== 'issue' && !time) return sendJson(response, 503, { error: 'time_unavailable' })
+          try { return sendJson(response, 200, fieldInbox.applyItem({ id: row.id, funcionarioId: input.funcionarioId, overwrite: input.overwrite === true, workIds }, time)) }
+          catch (error) { if (error?.code === 'PONTO_EXISTS') return sendJson(response, 409, { error: 'PONTO_EXISTS', message: error.message }); throw error }
+        }
+        if (op === 'progressList' || op === 'historyList') {
+          authorizeAction(context, { domain: 'operation', action: 'view' })
+          if (!liveWork(input.workId)) return sendJson(response, 404, { error: 'work_not_found' })
+          return sendJson(response, 200, op === 'progressList' ? fieldInbox.progressList(Number(input.workId)) : fieldInbox.historyList({ workId: Number(input.workId), nivel: input.nivel, date: input.date, limit: input.limit }))
+        }
+        if (op === 'progressSave') {
+          authorizeAction(context, { domain: 'operation', action: 'edit' })
+          if (!liveWork(input.workId)) return sendJson(response, 404, { error: 'work_not_found' })
+          return sendJson(response, 200, fieldInbox.progressSave(input))
+        }
+        return sendJson(response, 400, { error: 'invalid_operation' })
       }
 
       if (url.pathname === '/api/v1/field/rdo/link-manual') {
