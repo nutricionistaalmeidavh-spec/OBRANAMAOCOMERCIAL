@@ -109,6 +109,9 @@ interface Window { fluxoDre: {
     syncNow():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     linkFieldRdo(date:string,workId?:number):Promise<{rdoId:number;date:string}>;
     syncProjects():Promise<{configured:boolean;limits:{maxProjects:number;used:number}|null;projects:Array<{id:string;name:string;primary?:boolean;role?:string;localWorkId:number|null}>;localWorks:Array<{id:number;nome:string;empresaId:number;bound:boolean}>}>;
+    fieldInbox():Promise<{items:Array<{id:number;kind:'issue'|'attendance'|'compensation';workId:number;message:string|null;date?:string;employeeId?:string;status?:string;funcionarioId?:number|null;name?:string;title?:string;reason?:string}>;issue:{message:string;at:string}|null}>;
+    applyFieldInbox(id:number,funcionarioId?:number,overwrite?:boolean):Promise<{ok:boolean;taskId?:number}>;
+    dismissFieldInbox(id:number):Promise<{ok:boolean}>;
     addSyncProject(workId:number,remoteProjectId?:string):Promise<{workId:number;remoteProjectId:string;name:string}>;
     resolveLocalConflict(id:number,resolution:import('../../../packages/contracts/src/desktop-sync').LocalConflictResolution):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     state():Promise<{baseUrl:string;installationId:string;linked:boolean;linkedAt:string|null;pending:{expiresAt:string|null}|null;storageRequired:CompanyStorageRequirement|null}>;
