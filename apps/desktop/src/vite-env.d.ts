@@ -107,7 +107,7 @@ interface Window { fluxoDre: {
     onSyncStateChanged(listener:(state:import('../../../packages/contracts/src/desktop-sync').DesktopSyncState)=>void):()=>void;
     configureSync(scope:{companyId:number;workId:number}):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
     syncNow():Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;
-    linkFieldRdo(date:string):Promise<{rdoId:number;date:string}>;
+    linkFieldRdo(date:string,workId?:number):Promise<{rdoId:number;date:string}>;
     syncProjects():Promise<{configured:boolean;limits:{maxProjects:number;used:number}|null;projects:Array<{id:string;name:string;primary?:boolean;localWorkId:number|null}>;localWorks:Array<{id:number;nome:string;empresaId:number;bound:boolean}>}>;
     addSyncProject(workId:number,remoteProjectId?:string):Promise<{workId:number;remoteProjectId:string;name:string}>;
     resolveLocalConflict(id:number,resolution:import('../../../packages/contracts/src/desktop-sync').LocalConflictResolution):Promise<import('../../../packages/contracts/src/desktop-sync').DesktopSyncState>;

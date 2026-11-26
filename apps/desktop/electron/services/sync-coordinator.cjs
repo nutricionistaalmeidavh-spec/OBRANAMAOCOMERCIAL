@@ -187,14 +187,22 @@ class SyncCoordinator {
   }catch{return []}
  }
  /** Office decision: attach the phone diary of a day to the RDO already typed for it. */
- async linkFieldRdo(date){
+ async linkFieldRdo(date,workId){
   const b=this.binding()
   if(!b)throw new Error('Ligue primeiro esta base à obra do celular.')
   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(date||'')))throw new Error('Data inválida.')
+  let target=this
+  if(workId!=null&&Number(workId)!==Number(b.scope.workId)){
+   const row=this.extraRows().find(item=>Number(item.work_id)===Number(workId))
+   if(!row)throw new Error('Esta obra não possui vínculo ativo com o celular.')
+   target=this.projectCoordinator(row)
+  }
+  const scope=target.binding()?.scope
+  if(!scope||Number(scope.companyId)!==Number(b.scope.companyId)||scope.remoteCompanyId!==b.scope.remoteCompanyId||scope.deviceId!==b.scope.deviceId||scope.baseUrl!==b.scope.baseUrl)throw new Error('O vínculo da obra pertence a outra operação.')
   if(typeof this.dataProvider.linkFieldRdo!=='function')throw new Error('Esta fonte operacional não permite juntar diários.')
-  const result=await resolved(this.dataProvider.linkFieldRdo(b.scope,String(date)))
-  if(Array.isArray(this.fieldRdoIssues))this.fieldRdoIssues=this.fieldRdoIssues.filter(issue=>!(issue.code==='manual_rdo_exists'&&issue.date===date))
-  this.fieldRdoRetryDates=[...new Set([...(this.fieldRdoRetryDates||[]),String(date)])]
+  const result=await resolved(this.dataProvider.linkFieldRdo(scope,String(date)))
+  if(Array.isArray(target.fieldRdoIssues))target.fieldRdoIssues=target.fieldRdoIssues.filter(issue=>!(issue.code==='manual_rdo_exists'&&issue.date===date))
+  target.fieldRdoRetryDates=[...new Set([...(target.fieldRdoRetryDates||[]),String(date)])]
   this.notify()
   this.run({retryNow:true}).catch(()=>{})
   return result

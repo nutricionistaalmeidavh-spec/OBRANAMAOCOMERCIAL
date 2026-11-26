@@ -452,3 +452,19 @@ it('recovers a legacy imported work from its unique device-scoped online identit
   expect(f.sync.state().projects).toEqual([expect.objectContaining({ workId: second.id, remoteProjectId: 'canonical' })])
   expect(f.online.createProject).not.toHaveBeenCalled()
 })
+
+it('joins a phone diary to the explicitly selected additional work', async () => {
+  const f = fixture()
+  await f.sync.configure({ companyId: f.company.id, workId: f.work.id })
+  const { second } = multiobra(f)
+  await f.sync.addProject({ workId: second.id, remoteProjectId: 'project-b' })
+  const link = vi.fn(async () => ({ rdoId: 3, date: '2026-11-24' }))
+  f.sync.dataProvider.linkFieldRdo = link
+  await expect(f.sync.linkFieldRdo('2026-11-24', second.id + 100)).rejects.toThrow(/obra/)
+  expect(link).not.toHaveBeenCalled()
+  await f.sync.linkFieldRdo('2026-11-24', second.id)
+  expect(link).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+    workId: second.id,
+    remoteProjectId: 'project-b'
+  }), '2026-11-24')
+})

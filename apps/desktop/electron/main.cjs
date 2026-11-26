@@ -584,7 +584,7 @@ function registerIpc() {
   ipcMain.handle('online:sync-now', envelope(() => { requireSyncAvailable(); return services.sync.run({ retryNow: true }) }))
   ipcMain.handle('online:sync-projects', envelope(() => { requireSyncAvailable(); return services.sync.listProjects() }))
   ipcMain.handle('online:sync-add-project', envelope(async ({ workId, remoteProjectId }) => { requireSyncAvailable(); const result = await services.sync.addProject({ workId, remoteProjectId }); services.sync.run({ retryNow: true }).catch(() => {}); return result }))
-  ipcMain.handle('online:sync-link-field-rdo', envelope(({ date }) => { requireSyncAvailable(); return services.sync.linkFieldRdo(String(date || '')) }))
+  ipcMain.handle('online:sync-link-field-rdo', envelope(({ date, workId }) => { requireSyncAvailable(); return services.sync.linkFieldRdo(String(date || ''), workId) }))
   ipcMain.handle('online:sync-resolve-local', envelope(({ id, resolution }) => withSyncStopped(() => services.sync.resolveLocalConflict(id, resolution))))
   ipcMain.handle('online:sync-pull', envelope(({ sinceRevision }) => services.online.syncPull(sinceRevision)))
   ipcMain.handle('online:sync-push', envelope(({ changes }) => services.online.syncPush(changes)))
