@@ -101,4 +101,16 @@ describe('Multiobra: um Desktop, várias obras da mesma empresa',()=>{
     expect((await mine()).find((p:any)=>p.current).id).not.toBe('project-of-someone-else');
     state.setHeaders({});
   });
+
+  it('keeps the web finance and AI assistant closed unless the company has the explicit add-on',async()=>{
+    const token=await seedDesktop('admin');
+    for(const route of ['POST /api/desktop/finance/read','POST /api/desktop/finance/write','POST /api/desktop/ai/analyze']){
+      const response=await call(route,{deviceToken:token,view:'dashboard'});
+      expect(response.status).toBe(403);
+      expect((await body(response)).error).toMatch(/adicional não contratado/);
+    }
+    state.bucket('companies').set('company-a',{...state.bucket('companies').get('company-a'),financeWebAddon:true});
+    const response=await call('POST /api/desktop/finance/read',{deviceToken:token,view:'dashboard'});
+    expect((await body(response)).error||'').not.toMatch(/adicional não contratado/);
+  });
 });

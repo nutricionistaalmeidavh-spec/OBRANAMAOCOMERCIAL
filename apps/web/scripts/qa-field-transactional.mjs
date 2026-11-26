@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const today=new Date().toISOString().slice(0,10);
+// Local calendar day (the PWA uses the device's local date, not UTC).
+const today=(()=>{const d=new Date(),z=d.getTimezoneOffset();return new Date(d.getTime()-z*60000).toISOString().slice(0,10)})();
 const services=['corte','fixacao','chumbamento','afaq','esgoto','dreno'];
 const labels={corte:'Corte',fixacao:'Fixação',chumbamento:'Chumbamento',afaq:'AF/AQ',esgoto:'Esgoto aéreo',dreno:'Dreno'};
 const stage=(service,status='not_started')=>({service,label:labels[service],status,targetDate:null,checklist:[{id:`${service}-qa`,label:`Checklist ${labels[service]}`,required:true,checked:false}]});

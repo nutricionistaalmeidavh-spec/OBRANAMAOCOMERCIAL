@@ -26,7 +26,7 @@ export async function loadPortalOverview(context: OverviewAccess): Promise<strin
     const attention = data.attention.filter(item => allowed.has(item.key));
     const pending = attention.filter(item => item.value > 0);
     const money = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
-    const freshness=snapshotFreshness(data.updatedAt),date=freshness.dateLabel;
+    const freshness=snapshotFreshness(data.updatedAt,new Date(),(data as {desktopSeenAt?:string|null}).desktopSeenAt),date=freshness.dateLabel;
     return `${attention.length ? `<section class="cp-section"><h2>Pendências da última atualização</h2><div class="cp-attention">${pending.length ? pending.map(item => `<a class="cp-attention-row" href="./gestao.html#gestao/${esc(item.key)}"><span><strong>${esc(item.value)} ${esc(item.label.toLocaleLowerCase('pt-BR'))}</strong><small>Consultar na Gestão</small></span><span aria-hidden="true">›</span></a>`).join('') : '<p class="cp-empty-inline">Nenhuma pendência nesses indicadores na última atualização.</p>'}</div></section>` : ''}
       <section class="cp-section cp-summary"><div class="cp-section-heading"><h2>Resumo da gestão</h2>${date ? `<small>Desktop · ${esc(date)}</small>` : ''}</div>
       <p class="cp-snapshot-status ${freshness.state==='stale'?'is-stale':''}" role="status">${esc(freshness.label)}</p>

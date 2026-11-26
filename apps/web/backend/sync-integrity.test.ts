@@ -91,3 +91,12 @@ it('does not roll back a concurrent metadata change while carrying assignments f
   expect(meta.dayKeys).toContain('2026-11-25');
   expect(meta.state.desktopBridge.tasks.map((t:any)=>t.localId)).toEqual([7]);
 });
+
+it('accepts RDO changes only through the field diary, never through the bridge copy',async()=>{
+  const { updateMobileBridge }=await import('./e06e09');
+  await memory.db.add('project_meta_project-a',[{state:{desktopBridge:{}},dayKeys:[],revision:0,updatedAt:'',updatedBy:''}]);
+  await applyDesktopBridgeChange('project-a','device-a',{changeId:'r1',entity:'rdos',localId:3,baseMobileRevision:0,payload:{data:'2026-11-25',status:'rascunho'}},1);
+  await expect(updateMobileBridge('project-a',{entity:'rdos',localId:3,sourceDeviceId:'device-a',patch:{status:'finalizado'}},'foreman')).rejects.toThrow(/Diário de Obra/);
+  const meta=await getMeta('project-a') as any;
+  expect(meta.state.desktopBridge.rdos[0].payload.status).toBe('rascunho');
+});
