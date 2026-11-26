@@ -3,6 +3,7 @@
 ## Entrega comercial — 2026-09-05
 
 - `electron/services/sync-coordinator.cjs` e migration `017_desktop_sync.sql`: vínculo explícito empresa/obra/dispositivo, outbox SQLite, repetição idempotente, leitura de bridge e revisão de conflitos. Não associa pessoas por nome nem mistura obras.
+- Obra360 (caixa de entrada do celular, pavimentos, andamento, histórico): núcleo em `apps/lan-server/src/field-inbox.cjs`, carregado pelo Desktop por `electron/services/field-inbox.cjs`. Modo local aplica na base do Desktop; modos `lan-host`/`remote` enviam ao servidor em `POST /api/v1/field/obra360` (`op`: apply, pending, dismiss, applyItem, progressList, progressSave, historyList); PCs `lan-client` leem e editam direto no servidor. Migrations Desktop 034–038, LAN 044–048.
 - O renderer recebe `online:sync-state-changed` pelo preload; `SyncSettings.tsx` não faz polling periódico e relê o estado apenas no bootstrap/retorno de visibilidade.
 - IPC/preload: `online:sync-state`, `online:sync-configure`, `online:sync-now`, `online:sync-resolve-local`. `src/components/SyncSettings.tsx` em Configurações confirma o vínculo e mostra estado/pendências. Alteração de conexão, restauração e encerramento aguardam a sincronização em andamento.
 - `useWorkContext.tsx`/`WorkContextBar.tsx`: competência e contexto persistidos. Dashboard consolidado por empresa; DRE/Contas usam empresa/obra; folha e ponto usam competência. O contexto não implica que todas as telas tenham filtro global.

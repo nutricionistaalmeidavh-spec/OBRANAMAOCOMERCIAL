@@ -6,6 +6,8 @@ const json = JSON.stringify
 const hash = value => createHash('sha256').update(json(value)).digest('hex')
 const resolved = value => Promise.resolve(value)
 
+// Only the parts the field inbox reads travel to the server.
+const fieldInboxSnapshot=state=>{const v=state&&typeof state==='object'?state:{};return{issues:v.issues,days:v.days,employees:v.employees,floors:v.floors,history:v.history}}
 class SyncCoordinator {
  constructor({database,online,dataProvider=null,now=Date.now,onStateChanged=null,scopeRow=null}) { this.scopeTable=scopeRow?.table||'desktop_sync_scope'; this.scopeId=Number(scopeRow?.id||1); this.isPrimary=this.scopeTable==='desktop_sync_scope'; this.database=database; this.online=online; this.now=now; this.dataProvider=dataProvider||new LocalSyncDataProvider({database,now}); this.onStateChanged=typeof onStateChanged==='function'?onStateChanged:null; this.lastStateDigest=''; this.running=null; this.timer=null; this.generation=0 }
  get db(){return this.database.db}
@@ -227,10 +229,33 @@ class SyncCoordinator {
   return this.inbox
  }
  /** Phone records (issues, attendance, compensations) go to their canonical owners in this base. */
- applyFieldInbox(scope,pull){
-  if(!pull?.changed||!pull.snapshot||this.runtimeState().source!=='local')return
-  try{this.fieldInbox().apply(scope,pull.snapshot,{applyTasks:true})}
+ async applyFieldInbox(scope,pull){
+  if(!pull?.changed||!pull.snapshot)return
+  const source=this.runtimeState().source
+  try{
+   if(source==='local')this.fieldInbox().apply(scope,pull.snapshot,{applyTasks:true})
+   // Server modes (LAN host or own remote server): the server base is the owner.
+   else if((source==='lan-host'||source==='remote')&&this.dataProvider.obra360)await this.dataProvider.obra360('apply',{scope,snapshot:fieldInboxSnapshot(pull.snapshot)})
+  }
   catch(error){this.inboxIssue={message:String(error?.message||error).slice(0,300),at:new Date(this.now()).toISOString()}}
+ }
+ /** Obra360 records for the Desktop screens, from this base or from the server. */
+ async obra360(op,payload={}){
+  const source=this.runtimeState().source
+  if(source==='local'){
+   const inbox=this.fieldInbox()
+   if(op==='pending')return inbox.pending(payload.workIds||[])
+   if(op==='get')return inbox.get(payload.id)
+   if(op==='dismiss')return inbox.mark(payload.id,'dismissed')
+   if(op==='progressList')return inbox.progressList(payload.workId)
+   if(op==='progressSave')return inbox.progressSave(payload)
+   if(op==='historyList')return inbox.historyList(payload)
+   throw new Error('Operação do Obra360 desconhecida.')
+  }
+  // Other PCs of a LAN (lan-client) read and edit straight on the server too.
+  const provider=source==='lan-client'?this.dataProvider.lanProvider:this.dataProvider
+  if(!provider?.obra360)throw new Error('Obra360 indisponível nesta fonte de dados.')
+  return provider.obra360(op,payload)
  }
  hasTable(name){try{return !!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name)}catch{return false}}
  extraRows(){return this.hasTable('desktop_sync_extra_scopes')?this.db.prepare('SELECT * FROM desktop_sync_extra_scopes ORDER BY id').all():[]}
@@ -396,7 +421,7 @@ class SyncCoordinator {
    })()
   }catch(error){this.bootstrapReason='Não foi possível identificar a obra online. Nova tentativa automática: '+String(error.message)}
  }
- async perform({retryNow=false}={}){if(!this.binding()&&this.isPrimary)await this.bootstrapBinding();const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{this.assertScope(scope,generation);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare(`UPDATE ${this.scopeTable} SET allowed_modules=? WHERE id=?`).run(json(modules),this.scopeId);const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities);this.applyFieldInbox(scope,pull)}if(modules.some(module=>module==='obra360'||module==='rdo'))await this.syncFieldRdos(scope,generation);
+ async perform({retryNow=false}={}){if(!this.binding()&&this.isPrimary)await this.bootstrapBinding();const b=this.binding();if(!b)return this.state();const runtime=this.runtimeState();if(runtime.paused)return this.state();const scope=b.scope,generation=this.generation;try{this.assertScope(scope,generation);if(runtime.source==='remote'){if(typeof this.online.claimRemoteSyncOwner!=='function')throw new Error('Autoridade de sincronização remota não configurada.');const serverId=String(this.dataProvider.storage?.state?.()?.serverId||'').trim();if(!serverId)throw new Error('Servidor próprio ainda não possui identidade válida para sincronização.');await this.online.claimRemoteSyncOwner(serverId)};await this.capture(scope,JSON.parse(b.allowed_modules||'[]'));const modules=await this.validate(scope,generation);this.db.prepare(`UPDATE ${this.scopeTable} SET allowed_modules=? WHERE id=?`).run(json(modules),this.scopeId);const plan=await this.capture(scope,modules);if(modules.includes('obra360')&&plan.bridgeEntities.length){const pull=await this.online.syncPull(b.remote_revision);this.assertScope(scope,generation);await this.ingest(scope,pull,plan.bridgeEntities);await this.applyFieldInbox(scope,pull)}if(modules.some(module=>module==='obra360'||module==='rdo'))await this.syncFieldRdos(scope,generation);
   const adminModules=modules.some(m=>['finance','rh','dre'].includes(m)),queue=this.db.prepare("SELECT * FROM desktop_sync_outbox WHERE scope_key=? AND status='pending' ORDER BY id").all(this.key(scope));for(const job of queue){this.assertScope(scope,generation);if(job.kind==='bridge'&&!modules.includes('obra360')){this.supersede(scope,job,'Módulo Obra360 não está mais liberado para este Desktop.');continue}if(job.kind==='bridge'&&!plan.bridgeEntities.includes(job.entity)){this.supersede(scope,job,'Entidade não disponível na fonte operacional atual.');continue}if(job.kind==='summary'&&!plan.summary){this.supersede(scope,job,'Resumo ainda não está disponível na fonte operacional atual.');continue}if(job.kind==='finance'&&!adminModules){this.supersede(scope,job,'Módulos administrativos não estão mais liberados para este Desktop.');continue}if(job.kind==='finance'&&!plan.obligations){this.supersede(scope,job,'Financeiro ainda não está disponível na fonte operacional atual.');continue}if(!retryNow&&job.next_attempt_at>this.now())continue;if(this.hasEarlierPending(scope,job))continue;if(this.db.prepare("SELECT id FROM desktop_sync_conflicts WHERE scope_key=? AND entity=? AND local_id=? AND status='open'").get(this.key(scope),job.entity,job.local_id))continue;
    try{const payload=JSON.parse(job.payload);let reply;if(job.kind==='bridge'){const head=this.db.prepare('SELECT remote_revision FROM desktop_sync_heads WHERE scope_key=? AND entity=? AND local_id=?').get(this.key(scope),job.entity,job.local_id);reply=await this.online.syncPush([{changeId:job.change_id,entity:job.entity,localId:job.local_id,baseMobileRevision:head?.remote_revision||0,payload}]);this.assertScope(scope,generation);const result=reply.accepted?.find(x=>x.changeId===job.change_id);if(!result)throw new Error('Servidor não confirmou a alteração.');if(result.conflict||result.status==='conflict'){this.conflict(scope,job.entity,job.local_id,payload,Number(result.currentMobileRevision||0),result.conflictId);continue}if(!['accepted','duplicate'].includes(result.status)||result.bridged===false)throw new Error('Alteração não aplicada à obra online.')}
     else if(job.kind==='summary'){reply=await this.online.publishMobileSummary({...payload,modules:Object.fromEntries(Object.entries(payload.modules||{}).filter(([key])=>modules.includes(key))),generatedAt:new Date(this.now()).toISOString()});if(!reply.ok)throw new Error('Resumo não confirmado.')}

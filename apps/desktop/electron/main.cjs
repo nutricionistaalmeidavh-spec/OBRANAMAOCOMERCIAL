@@ -583,15 +583,21 @@ function registerIpc() {
   ipcMain.handle('online:sync-configure', envelope((scope) => withSyncStopped(() => services.sync.configure(scope))))
   ipcMain.handle('online:sync-now', envelope(() => { requireSyncAvailable(); return services.sync.run({ retryNow: true }) }))
   const fieldInboxWorkIds = () => { const b = services.sync.binding(); return b ? [Number(b.scope.workId), ...services.sync.extraRows().map(row => Number(row.work_id))] : [] }
-  ipcMain.handle('online:field-inbox-list', envelope(() => { requireSyncAvailable(); return { items: services.sync.fieldInbox().pending(fieldInboxWorkIds()), issue: services.sync.inboxIssue || null } }))
-  ipcMain.handle('online:field-inbox-dismiss', envelope(({ id }) => { requireSyncAvailable(); const row = services.sync.fieldInbox().get(id); if (!row || !fieldInboxWorkIds().includes(Number(row.work_id))) throw new Error('Registro do celular não encontrado.'); services.sync.fieldInbox().mark(id, 'dismissed'); return { ok: true } }))
-  ipcMain.handle('online:field-inbox-apply', envelope(({ id, funcionarioId, overwrite }) => {
+  const localObra360 = () => services.sync.runtimeState().source === 'local'
+  ipcMain.handle('online:field-inbox-list', envelope(async () => { requireSyncAvailable(); return { items: await services.sync.obra360('pending', { workIds: fieldInboxWorkIds() }), issue: services.sync.inboxIssue || null } }))
+  ipcMain.handle('online:field-inbox-dismiss', envelope(async ({ id }) => {
     requireSyncAvailable()
+    if (!localObra360()) return services.sync.obra360('dismiss', { id, workIds: fieldInboxWorkIds() })
+    const row = services.sync.fieldInbox().get(id); if (!row || !fieldInboxWorkIds().includes(Number(row.work_id))) throw new Error('Registro do celular não encontrado.'); services.sync.fieldInbox().mark(id, 'dismissed'); return { ok: true }
+  }))
+  ipcMain.handle('online:field-inbox-apply', envelope(async ({ id, funcionarioId, overwrite }) => {
+    requireSyncAvailable()
+    if (!localObra360()) return services.sync.obra360('applyItem', { id, funcionarioId, overwrite, workIds: fieldInboxWorkIds() })
     return services.sync.fieldInbox().applyItem({ id, funcionarioId, overwrite, workIds: fieldInboxWorkIds() }, services.time)
   }))
-  ipcMain.handle('online:obra360-progress-list', envelope(({ workId }) => { requireSyncAvailable(); return services.sync.fieldInbox().progressList(workId) }))
-  ipcMain.handle('online:obra360-history', envelope((input) => { requireSyncAvailable(); return services.sync.fieldInbox().historyList(input || {}) }))
-  ipcMain.handle('online:obra360-progress-save', envelope((input) => { requireSyncAvailable(); const saved = services.sync.fieldInbox().progressSave(input || {}); services.sync.run({ retryNow: true }).catch(() => {}); return saved }))
+  ipcMain.handle('online:obra360-progress-list', envelope(({ workId }) => { requireSyncAvailable(); return services.sync.obra360('progressList', { workId }) }))
+  ipcMain.handle('online:obra360-history', envelope((input) => { requireSyncAvailable(); return services.sync.obra360('historyList', input || {}) }))
+  ipcMain.handle('online:obra360-progress-save', envelope(async (input) => { requireSyncAvailable(); const saved = await services.sync.obra360('progressSave', input || {}); services.sync.run({ retryNow: true }).catch(() => {}); return saved }))
   ipcMain.handle('online:sync-projects', envelope(() => { requireSyncAvailable(); return services.sync.listProjects() }))
   ipcMain.handle('online:sync-add-project', envelope(async ({ workId, remoteProjectId }) => { requireSyncAvailable(); const result = await services.sync.addProject({ workId, remoteProjectId }); services.sync.run({ retryNow: true }).catch(() => {}); return result }))
   ipcMain.handle('online:sync-link-field-rdo', envelope(({ date, workId }) => { requireSyncAvailable(); return services.sync.linkFieldRdo(String(date || ''), workId) }))
