@@ -1,78 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://artisys.dev/gest%C3%A3oholerites/</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.84</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/oficina/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.84</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/wppprospector/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.84</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/links/</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.65</priority>
-  </url>
-  <url>
     <loc>https://artisys.dev/</loc>
     <changefreq>weekly</changefreq>
     <priority>1</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/guia/</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/sistemas/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/sistemas/agro/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.82</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/sistemas/negocios/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.82</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/sistemas/saude/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.82</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/sistemas/pdv-artisys/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/sistemas/pdv-nexus/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/sistemas/obra-na-mao/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/sistemas/artisys-finance/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
-  </url>
-  <url>
-    <loc>https://artisys.dev/sistemas/nutridesk/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
   </url>
 </urlset>
