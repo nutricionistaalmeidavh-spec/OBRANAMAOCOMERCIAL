@@ -2,6 +2,7 @@ const { LanDataClient, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REM
 const { StorageConnectionService } = require('./storage-connection-service.cjs')
 const { LanCredentialService } = require('./lan-credential-service.cjs')
 const { locationCounts } = require('./location-integrity.cjs')
+const { batchLocations, applyLocationBatch } = require('./location-batch.cjs')
 
 function electronSafeStorage() {
   try {
@@ -100,6 +101,14 @@ class DataAccessService {
   async locationCounts(workId) {
     if (this.assertRoute('locais_obra') === 'remote') return this.remote.request('GET', '/api/v1/locais/counts', { query: { obra_id: Number(workId) } })
     return locationCounts(this.db.db, Number(workId))
+  }
+
+  /** Units by floor ranges (dry run = preview). Applied in one transaction. */
+  async locationBatch(workId, spec, dryRun = true) {
+    if (this.assertRoute('locais_obra') === 'remote') return this.remote.request('POST', '/api/v1/locais/batch', { body: { obra_id: Number(workId), spec, dryRun: !!dryRun } })
+    const store = { db: this.db.db, save: (table, data) => this.db.save(table, data) }
+    if (dryRun) return batchLocations(store, workId, spec, { dryRun: true })
+    return applyLocationBatch(store, workId, spec)
   }
 
   isPendingLocalRhRead(table) {

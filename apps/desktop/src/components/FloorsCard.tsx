@@ -4,6 +4,7 @@ import { Button, Card, Confirm, Empty, Field, FormActions, Loading, Modal } from
 import { useAsync } from '../hooks/useAsync'
 import { locationOptions, locationPath, locationWithDescendants, siblingsOf } from '../utils/locations'
 import LocationsDiagram from './LocationsDiagram'
+import LocationBatchModal from './LocationBatchModal'
 
 /** Default name for a floor level: 0 = Térreo, negatives = subsolos. */
 export function floorName(level: number) {
@@ -19,6 +20,9 @@ export function floorName(level: number) {
 export default function FloorsCard({ workId, disabled }: { workId: string; disabled?: boolean }) {
   const [form, setForm] = useState<any>(null)
   const [remove, setRemove] = useState<any>(null)
+  const [batchOpen, setBatchOpen] = useState(false)
+  const [heat, setHeat] = useState(false)
+  const [pdfBusy, setPdfBusy] = useState(false)
   const [move, setMove] = useState<{ item: any; parentId: number | null } | null>(null)
   const [error, setError] = useState('')
   const [view, setView] = useState<'list' | 'diagram'>(() => { try { return localStorage.getItem('locais.view') === 'list' ? 'list' : 'diagram' } catch { return 'diagram' } })
@@ -26,6 +30,9 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
   const work = useAsync(() => workId ? window.fluxoDre.obras.get(Number(workId)) : Promise.resolve(null), [workId])
   const tasks = useAsync(() => workId && !disabled && view === 'diagram' ? window.fluxoDre.tarefas.list({ obra_id: Number(workId) }) : Promise.resolve([]), [workId, disabled, view])
   const counts = useAsync(() => workId && !disabled && view === 'diagram' ? window.fluxoDre.locais.counts(Number(workId)).catch(() => null) : Promise.resolve(null), [workId, disabled, view])
+  const progress = useAsync(() => workId && !disabled && heat ? window.fluxoDre.online.obra360Progress(Number(workId)).catch(() => null) : Promise.resolve(null), [workId, disabled, heat])
+  const heatMap = useMemo(() => { if (!progress.data) return null; const acc: Record<string, { sum: number; n: number }> = {}; for (const item of progress.data) { const k = String(item.nivel), w = item.status === 'completed' ? 1 : item.status === 'in_progress' ? 0.5 : 0; acc[k] = acc[k] || { sum: 0, n: 0 }; acc[k].sum += w; acc[k].n++ } return Object.fromEntries(Object.entries(acc).map(([k, v]) => [k, v.n ? v.sum / v.n * 100 : 0])) as Record<string, number> }, [progress.data])
+  async function exportPdf() { setPdfBusy(true); setError(''); try { await window.fluxoDre.locais.exportPdf(Number(workId), heat) } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível gerar o PDF.') } finally { setPdfBusy(false) } }
   const rows = useAsync(() => workId && !disabled ? window.fluxoDre.locais.list({ obra_id: Number(workId) }) : Promise.resolve([]), [workId, disabled])
   const all = useMemo(() => rows.data || [], [rows.data])
   const options = useMemo(() => locationOptions(all), [all])
@@ -92,9 +99,11 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
           <button type="button" className={view === 'diagram' ? 'active' : ''} aria-pressed={view === 'diagram'} onClick={() => chooseView('diagram')}>Diagrama</button>
         </div>
         <Button variant="secondary" icon={<Plus size={15}/>} disabled={!workId || disabled} onClick={() => openFloor()}>Pavimento</Button>
+        <Button variant="secondary" disabled={!workId || disabled} onClick={() => setBatchOpen(true)}>Gerar em lote</Button>
+        <Button variant="secondary" disabled={!workId || disabled || pdfBusy || !all.length} onClick={exportPdf}>{pdfBusy ? 'Gerando…' : 'PDF'}</Button>
         <Button variant="secondary" icon={<Plus size={15}/>} disabled={!workId || disabled} onClick={() => openComplement()}>Complemento</Button>
       </div></div>
-    {rows.loading ? <Loading/> : options.length && view === 'diagram' ? <LocationsDiagram workId={workId} workName={work.data?.nome || ''} locations={all} counts={counts.data} tasks={tasks.data || []} onAddInside={(id) => openComplement(undefined, id)} onEdit={(item) => item.nivel !== null && item.nivel !== undefined ? openFloor(item) : openComplement(item)} onRemove={(item) => setRemove(item)} onMove={(item, parentId) => setMove({ item, parentId })} onReorder={reorder}/> : options.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Local</th><th>Tipo</th><th/></tr></thead><tbody>
+    {rows.loading ? <Loading/> : options.length && view === 'diagram' ? <LocationsDiagram workId={workId} workName={work.data?.nome || ''} locations={all} counts={counts.data} tasks={tasks.data || []} onAddInside={(id) => openComplement(undefined, id)} onEdit={(item) => item.nivel !== null && item.nivel !== undefined ? openFloor(item) : openComplement(item)} onRemove={(item) => setRemove(item)} onMove={(item, parentId) => setMove({ item, parentId })} onReorder={reorder} heat={heat ? heatMap : null} onToggleHeat={() => setHeat(!heat)} heatOn={heat}/> : options.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Local</th><th>Tipo</th><th/></tr></thead><tbody>
       {options.map((option) => { const item: any = byId.get(option.id); return <tr key={option.id}>
         <td style={{ paddingLeft: 12 + option.depth * 20 }}><strong>{option.depth ? '↳ ' : ''}{item.nome}</strong></td>
         <td>{option.floor ? `Pavimento ${item.nivel}` : option.orphan && !option.depth ? 'Direto na obra' : 'Complemento'}</td>
@@ -110,6 +119,7 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
         : <Field label="Fica em"><select value={form?.local_pai_id || ''} onChange={(event) => setForm({ ...form, local_pai_id: event.target.value })}><option value="">Direto na obra</option>{options.filter((option) => !blocked.has(option.id)).map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></Field>}
       <Field label="Nome" required><input required value={form?.nome || ''} onChange={(event) => setForm({ ...form, nome: event.target.value, auto: false })} placeholder={form?.kind === 'floor' ? 'Ex.: Térreo, 1º pavimento, Cobertura' : 'Ex.: Guarita, Apto 101, Banheiro'}/></Field>
     </div><FormActions onCancel={() => setForm(null)} submitLabel="Salvar local"/></form></Modal>
+    <LocationBatchModal open={batchOpen} workId={workId} onClose={() => setBatchOpen(false)} onDone={() => { rows.reload(); counts.reload() }}/>
     <Confirm open={!!move} title="Mover local" description={move ? `Mover "${move.item.nome}" ${move.parentId === null ? 'para direto na obra' : `para dentro de ${locationPath(all, move.parentId)}`}? Pendências e ocorrências ligadas a ele, e o que fica dentro dele, vão junto.` : ''} onCancel={() => setMove(null)} onConfirm={confirmMove}/>
     <Confirm open={!!remove} title="Remover local" description="Só é possível remover um local vazio e sem uso. Se for um pavimento, o que já foi registrado nele no celular é mantido e aparece como fora do cadastro." danger onCancel={() => setRemove(null)} onConfirm={confirmRemove}/>
   </Card>

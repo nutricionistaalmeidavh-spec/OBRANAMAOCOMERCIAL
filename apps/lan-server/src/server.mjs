@@ -16,6 +16,7 @@ import { FieldRdoImport } from './field-rdo-import.mjs'
 import { FieldRdoCatalog } from './field-rdo-catalog.mjs'
 import fieldInboxModule from './field-inbox.cjs'
 import locationIntegrity from './location-integrity.cjs'
+import locationBatchModule from './location-batch.cjs'
 import { ContractsService } from './contracts-service.mjs'
 import { PayrollService } from './payroll-service.mjs'
 import { TimeService } from './time-service.mjs'
@@ -77,7 +78,7 @@ const SERVER_CAPABILITIES = Object.freeze({
   modules:['core','operation','planning','finance','rh','documents','summary'],
   moduleContractVersions:{core:2,operation:2,planning:2,finance:2,rh:3,documents:2},
   bridgeEntities:['frentes_obra','subfrentes_obra','checklist_frente_itens','tarefas_obra','rdos','cronograma_etapas','medicoes','pedidos_compra','contratos_obra'],
-  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1','stock-material-catalog-v1','stock-material-reclassification-v1','nfe-integrated-migration-v1','obra360-field-inbox-v1','location-counts-v1']
+  features:['optimistic-concurrency-v1','phase2-5-parity-v1','phase6-shared-documents-v1','stock-material-catalog-v1','stock-material-reclassification-v1','nfe-integrated-migration-v1','obra360-field-inbox-v1','location-counts-v1','location-batch-v1']
 })
 
 function publicServerCapabilities(versionedRepository) {
@@ -582,6 +583,21 @@ export function createLanServer({ serverVersion = LAN_SERVER_VERSION, repository
         }
         if(url.pathname.endsWith('/retry-materials'))return sendJson(response,200,{applied:mobileRdoImport.retryPending(scope)})
         return sendJson(response,200,mobileRdoImport.apply({scope,report:input.report}))
+      }
+
+      if (url.pathname === '/api/v1/locais/batch') {
+        if (request.method !== 'POST') return methodNotAllowed(response, ['POST'])
+        if (!compoundDomainReady) return sendJson(response, 503, { error: 'locations_unavailable' })
+        const context = await authenticateLanRequest(request, security)
+        const input = await readJson(request)
+        authorizeAction(context, { domain: 'operation', action: input.dryRun === false ? 'create' : 'view' })
+        const work = repository.get('obras', Number(input.obra_id))
+        if (!work || work.deleted_at) return sendJson(response, 404, { error: 'work_not_found' })
+        const store = { db: repositoryDb, save: (table, data) => repository.save(table, data) }
+        try {
+          if (input.dryRun !== false) return sendJson(response, 200, locationBatchModule.batchLocations(store, work.id, input.spec, { dryRun: true }))
+          return sendJson(response, 200, locationBatchModule.applyLocationBatch(store, work.id, input.spec))
+        } catch (error) { return sendJson(response, 400, { error: 'invalid_batch', message: String(error?.message || error) }) }
       }
 
       if (url.pathname === '/api/v1/locais/counts') {

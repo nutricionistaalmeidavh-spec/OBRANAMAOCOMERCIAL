@@ -53,11 +53,18 @@ class DatabaseService {
     for (const file of pending) {
       const version = Number(file.match(/^\d+/)[0])
       const sql = fs.readFileSync(path.join(this.migrationsDir, file), 'utf8')
-      this.db.transaction(() => {
-        this.db.exec(sql)
-        this.db.prepare('INSERT OR IGNORE INTO migrations(id,name) VALUES (?,?)').run(version, file)
-        this.db.pragma(`user_version = ${version}`)
-      })()
+      // A migration that rebuilds a table declares it; foreign keys are off only for it,
+      // and integrity is checked before the commit.
+      const foreignKeysOff = /^--\s*migration:foreign-keys-off/m.test(sql)
+      if (foreignKeysOff) this.db.pragma('foreign_keys = OFF')
+      try {
+        this.db.transaction(() => {
+          this.db.exec(sql)
+          if (foreignKeysOff && this.db.pragma('foreign_key_check').length) throw new Error(`Migration ${file} deixaria vínculos inválidos; nada foi alterado.`)
+          this.db.prepare('INSERT OR IGNORE INTO migrations(id,name) VALUES (?,?)').run(version, file)
+          this.db.pragma(`user_version = ${version}`)
+        })()
+      } finally { if (foreignKeysOff) this.db.pragma('foreign_keys = ON') }
     }
   }
 

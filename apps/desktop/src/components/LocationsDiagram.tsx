@@ -15,16 +15,21 @@ type Props = {
   onRemove: (location: any) => void
   onMove: (location: any, parentId: number | null) => void
   onReorder: (location: any, direction: -1 | 1) => void
+  heat?: Record<string, number> | null
+  heatOn?: boolean
+  onToggleHeat?: () => void
 }
 
 const OPEN = (status: string) => !['concluida', 'cancelada'].includes(status)
 const COLLAPSE_AT = 6
+// Heat: grey (no progress) → green (done); text stays dark for contrast.
+const heatStyle = (pct?: number) => pct === undefined ? { background: '#f1f3f6', borderColor: '#c3c9d4' } : { background: `hsl(${150} ${Math.round(25 + pct * 0.45)}% ${Math.round(94 - pct * 0.22)}%)`, borderColor: '#1d9e75' }
 
 /**
  * Locais da obra as a map: pavimentos in columns by level, complements in their chain
  * under each, and what sits directly on the work apart. Counts include what is inside.
  */
-export default function LocationsDiagram({ workId, workName, locations, counts, tasks, onAddInside, onEdit, onRemove, onMove, onReorder }: Props) {
+export default function LocationsDiagram({ workId, workName, locations, counts, tasks, onAddInside, onEdit, onRemove, onMove, onReorder, heat, heatOn, onToggleHeat }: Props) {
   const [dragging, setDragging] = useState<number | null>(null)
   const [over, setOver] = useState<string | null>(null)
   // Drag a complement onto a pavimento, another complement or 'Direto na obra' to move it.
@@ -76,6 +81,7 @@ export default function LocationsDiagram({ workId, workName, locations, counts, 
 
   return <div className="loc-diagram">
     <div className="loc-canvas">
+      {onToggleHeat && <label className="loc-heat-toggle"><input type="checkbox" checked={!!heatOn} onChange={onToggleHeat}/>Colorir pavimentos pelo andamento do Obra360</label>}
       <div className="loc-work"><strong>{workName || 'Obra'}</strong><span>{totalOpen} pendência{totalOpen === 1 ? '' : 's'} aberta{totalOpen === 1 ? '' : 's'}</span></div>
       <div className="loc-columns" style={{ gridTemplateColumns: `repeat(${Math.max(columns.length, 1)}, minmax(180px, 1fr))` }}>
         {columns.map((column, index) => {
@@ -85,9 +91,10 @@ export default function LocationsDiagram({ workId, workName, locations, counts, 
           const rootCount = column.root ? countFor(Number(column.root.id)) : 0
           return <div className="loc-column" key={key + ':' + index}>
             {column.root
-              ? <button type="button" className={`loc-floor${selected === Number(column.root.id) ? ' active' : ''}`} onClick={() => setSelected(Number(column.root.id))} {...dropProps(Number(column.root.id))}>
+              ? <button type="button" className={`loc-floor${selected === Number(column.root.id) ? ' active' : ''}`} style={heat && selected !== Number(column.root.id) ? heatStyle(heat[String(column.root.nivel)]) : undefined} onClick={() => setSelected(Number(column.root.id))} {...dropProps(Number(column.root.id))}>
                 <span className="loc-row"><strong>{column.root.nome}</strong>{badge(rootCount)}</span>
                 <small>Pavimento {column.root.nivel} · {column.items.length} complemento{column.items.length === 1 ? '' : 's'}</small>
+                {heat && <small className="loc-pct">{heat[String(column.root.nivel)] === undefined ? 'Sem andamento' : `${Math.round(heat[String(column.root.nivel)])}% concluído`}</small>}
               </button>
               : <div className="loc-direct" {...dropProps(null)}><strong>Direto na obra</strong><small>Sem pavimento</small></div>}
             <div className="loc-chain">

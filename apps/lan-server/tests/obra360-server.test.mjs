@@ -105,6 +105,22 @@ test('pendência do celular com complemento escolhido e catálogo com locais e c
   } finally { await close(f) }
 })
 
+test('servidor gera unidades em lote (prévia e aplicação)', async () => {
+  const f = await fixture()
+  try {
+    const port = f.server.address().port
+    const call = body => fetch(`http://127.0.0.1:${port}/api/v1/locais/batch`, { method: 'POST', headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    const spec = { criarPavimentos: true, faixas: [{ de: 1, ate: 2, unidades: 3, padrao: 'numero', prefixo: 'Apto', duplex: false, ambientes: '' }] }
+    const preview = await (await call({ obra_id: f.work.id, spec })).json()
+    assert.equal(preview.total, 8)
+    const applied = await (await call({ obra_id: f.work.id, spec, dryRun: false })).json()
+    assert.equal(applied.total, 8)
+    assert.equal(f.repository.connection().prepare('SELECT COUNT(*) n FROM locais_obra WHERE obra_id=?').get(f.work.id).n, 8)
+    const bad = await call({ obra_id: f.work.id, spec: { faixas: [] } })
+    assert.equal(bad.status, 400)
+  } finally { await close(f) }
+})
+
 test('servidor anuncia o Obra360 nas capacidades', async () => {
   const f = await fixture()
   try {
