@@ -141,4 +141,17 @@ describe('Multiobra: um Desktop, várias obras da mesma empresa',()=>{
     expect((await call('POST /api/desktop/field/rdo/pending',{deviceToken:token})).status).toBe(200);
     expect(touchDesktopPresence).toHaveBeenCalledWith('project-a','device-a');
   });
+  it('includes all authorized works when an account has more than 20 memberships',async()=>{
+    const token=await seedDesktop('admin');
+    for(let index=0;index<30;index++){
+      const id='project-'+index;
+      state.bucket('projects').set(id,{companyId:'company-a',name:'Obra '+index});
+      state.bucket(accessTable('admin@example.com')).set('access-'+index,member('admin@example.com',id));
+    }
+    const response=await call('POST /api/desktop/projects',{deviceToken:token});
+    expect(response.status).toBe(200);
+    const {projects}=await body(response);
+    expect(projects).toHaveLength(31);
+    expect(projects).toContainEqual(expect.objectContaining({id:'project-a',primary:true}));
+  });
 });
