@@ -8,6 +8,8 @@ function setup() {
   db.exec(`CREATE TABLE obras(id INTEGER PRIMARY KEY);INSERT INTO obras(id) VALUES(7);
   CREATE TABLE locais_obra(id INTEGER PRIMARY KEY AUTOINCREMENT,obra_id INTEGER NOT NULL,nome TEXT NOT NULL,tipo TEXT,nivel INTEGER,ordem INTEGER NOT NULL DEFAULT 0,created_at TEXT,updated_at TEXT,UNIQUE(obra_id,nome));
   CREATE UNIQUE INDEX idx_nivel ON locais_obra(obra_id,nivel) WHERE nivel IS NOT NULL;
+  CREATE TABLE etapas_obra(id INTEGER PRIMARY KEY,obra_id INTEGER,nome TEXT,deleted_at TEXT);INSERT INTO etapas_obra VALUES(3,7,'Alvenaria',NULL);
+  CREATE TABLE obra360_andamento(obra_id INTEGER NOT NULL,nivel INTEGER NOT NULL,servico TEXT NOT NULL,status TEXT NOT NULL,checklist_json TEXT NOT NULL DEFAULT '[]',updated_at TEXT NOT NULL,origem TEXT NOT NULL DEFAULT 'campo',PRIMARY KEY(obra_id,nivel,servico));
   CREATE TABLE obra360_locais_seed(remote_project_id TEXT NOT NULL,work_id INTEGER NOT NULL,imported INTEGER NOT NULL DEFAULT 0,seeded_at TEXT,PRIMARY KEY(remote_project_id,work_id));`)
   return { db, inbox: new FieldInbox({ database: { db }, peopleFor: () => [] }) }
 }
@@ -27,5 +29,19 @@ describe('pavimentos do Obra360 no Desktop', () => {
     db.prepare("INSERT INTO locais_obra(obra_id,nome,nivel) VALUES(7,'Térreo',0)").run()
     expect(inbox.seedFloors(scope, { floors: [{ number: 5 }] })).toBe(0)
     expect(db.prepare('SELECT COUNT(*) n FROM locais_obra').get()).toEqual({ n: 1 })
+  })
+  it('aplica o andamento mais recente e mantém a alteração do escritório', () => {
+    const { inbox } = setup()
+    const state: any = { floors: [{ number: 0, stages: [{ service: 'etapa:3', status: 'in_progress', checklist: [{ id: 'a', label: 'Prumo', checked: true }] }] }, { number: 9, stages: [{ service: 'etapa:3', status: 'completed' }] }] }
+    inbox.seedFloors(scope, state)
+    expect(inbox.ingestProgress(scope, state)).toBe(2)
+    const office = inbox.progressSave({ workId: 7, nivel: 0, service: 'etapa:3', status: 'completed', checklist: [] })
+    state.floors[0].stages[0].updatedAt = '2020-01-01T00:00:00.000Z'
+    expect(inbox.ingestProgress(scope, state)).toBe(0)
+    expect(inbox.progressList(7).find((p: any) => p.nivel === 0)).toMatchObject({ status: 'completed', origin: 'escritorio', updatedAt: office.updatedAt })
+    state.floors[0].stages[0].updatedAt = new Date(Date.now() + 60000).toISOString()
+    expect(inbox.ingestProgress(scope, state)).toBe(1)
+    expect(inbox.progressList(7).find((p: any) => p.nivel === 0)).toMatchObject({ status: 'in_progress', origin: 'campo' })
+    expect(() => inbox.progressSave({ workId: 7, nivel: 50, service: 'etapa:3', status: 'completed' })).toThrow(/Pavimento/)
   })
 })

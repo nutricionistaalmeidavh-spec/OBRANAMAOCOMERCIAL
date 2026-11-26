@@ -110,6 +110,8 @@ interface Window { fluxoDre: {
     linkFieldRdo(date:string,workId?:number):Promise<{rdoId:number;date:string}>;
     syncProjects():Promise<{configured:boolean;limits:{maxProjects:number;used:number}|null;projects:Array<{id:string;name:string;primary?:boolean;role?:string;localWorkId:number|null}>;localWorks:Array<{id:number;nome:string;empresaId:number;bound:boolean}>}>;
     fieldInbox():Promise<{items:Array<{id:number;kind:'issue'|'attendance'|'compensation';workId:number;message:string|null;date?:string;employeeId?:string;status?:string;funcionarioId?:number|null;name?:string;title?:string;reason?:string}>;issue:{message:string;at:string}|null}>;
+    obra360Progress(workId:number):Promise<Obra360Progress[]>;
+    saveObra360Progress(input:{workId:number;nivel:number;service:string;status:Obra360Progress['status'];checklist:Obra360Progress['checklist']}):Promise<Obra360Progress>;
     applyFieldInbox(id:number,funcionarioId?:number,overwrite?:boolean):Promise<{ok:boolean;taskId?:number}>;
     dismissFieldInbox(id:number):Promise<{ok:boolean}>;
     addSyncProject(workId:number,remoteProjectId?:string):Promise<{workId:number;remoteProjectId:string;name:string}>;
@@ -134,3 +136,5 @@ interface Window { fluxoDre: {
   updater:{state():Promise<UpdaterState>;check():Promise<UpdaterState>;download():Promise<UpdaterState>;install():Promise<boolean>;onStateChanged(listener:(state:UpdaterState)=>void):()=>void};
   backup:{create():Promise<any>;restore():Promise<any>;openDataFolder():Promise<any>}
 } }
+
+type Obra360Progress = { nivel:number; service:string; status:'not_started'|'released'|'in_progress'|'completed'|'blocked'; checklist:Array<{id:string;label:string;checked:boolean;required:boolean}>; updatedAt:string; origin:'campo'|'escritorio' }

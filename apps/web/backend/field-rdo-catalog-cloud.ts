@@ -7,7 +7,7 @@ const array=(v:unknown)=>Array.isArray(v)?v:[]
 export type FieldRdoCatalogRecord={
   schemaVersion:number;workId:number;materials:Array<{id:string;descricao:string;unidade:string;saldo:number}>;
   fronts:Array<{id:number;nome:string}>;services:Array<{id:number;nome:string;frente_id:number|null}>;
-  employees?:Array<{id:string;name:string}>;locations?:Array<{id:number;nome:string;nivel:number}>;version:string;updatedAt:string;sourceDeviceId:string
+  employees?:Array<{id:string;name:string}>;locations?:Array<{id:number;nome:string;nivel:number}>;progress?:Array<Record<string,unknown>>;version:string;updatedAt:string;sourceDeviceId:string
 }
 const PAGE_SIZE=500
 type Manifest=Omit<FieldRdoCatalogRecord,'materials'> & {paged:true;total:number;pages:number}
@@ -88,11 +88,18 @@ export async function publishFieldRdoCatalog(projectId:string,deviceId:string,pa
   if(!Number.isSafeInteger(id)||id<1||!nome||!Number.isSafeInteger(nivel)||nivel<-20||nivel>400)throw new Error('Pavimento inválido no catálogo.')
   return{id,nome,nivel}})
  if(new Set(locations.map(l=>l.nivel)).size!==locations.length)throw new Error('Pavimento duplicado no catálogo.')
+ const rawProgress=array(v.progress)
+ if(rawProgress.length>5000)throw new Error('Andamento excede o limite do catálogo.')
+ const STATUS=new Set(['not_started','released','in_progress','completed','blocked'])
+ const progress=rawProgress.map(input=>{const row=record(input),nivel=Number(row.nivel),service=strings(row.service,80),status=String(row.status||''),updatedAt=strings(row.updatedAt,40)
+  if(!Number.isSafeInteger(nivel)||!service||!STATUS.has(status)||!updatedAt||Number.isNaN(Date.parse(updatedAt)))throw new Error('Andamento inválido no catálogo.')
+  const checklist=array(row.checklist).slice(0,60).map(item=>{const c=record(item);return{id:strings(c.id,80)||'item',label:strings(c.label,200),checked:c.checked===true,required:c.required===true}})
+  return{nivel,service,status,checklist,updatedAt,origin:row.origin==='escritorio'?'escritorio':'campo'}})
  const previous=await readLatest(projectId)
  if(previous?.version===version&&previous.workId===workId&&previous.sourceDeviceId===deviceId)return {...previous,materials:[],total:mat.length}
  const data:FieldRdoCatalogRecord={
   schemaVersion:1,workId,materials:mat,fronts:frontsValidated,services:servicesValidated,
-  employees,locations,version,sourceDeviceId:deviceId,updatedAt:new Date().toISOString()
+  employees,locations,progress,version,sourceDeviceId:deviceId,updatedAt:new Date().toISOString()
  }
  const stamp=data.updatedAt
  const db=runtimeEnv().DB

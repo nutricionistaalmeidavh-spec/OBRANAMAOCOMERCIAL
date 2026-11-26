@@ -589,6 +589,8 @@ function registerIpc() {
     requireSyncAvailable()
     return services.sync.fieldInbox().applyItem({ id, funcionarioId, overwrite, workIds: fieldInboxWorkIds() }, services.time)
   }))
+  ipcMain.handle('online:obra360-progress-list', envelope(({ workId }) => { requireSyncAvailable(); return services.sync.fieldInbox().progressList(workId) }))
+  ipcMain.handle('online:obra360-progress-save', envelope((input) => { requireSyncAvailable(); const saved = services.sync.fieldInbox().progressSave(input || {}); services.sync.run({ retryNow: true }).catch(() => {}); return saved }))
   ipcMain.handle('online:sync-projects', envelope(() => { requireSyncAvailable(); return services.sync.listProjects() }))
   ipcMain.handle('online:sync-add-project', envelope(async ({ workId, remoteProjectId }) => { requireSyncAvailable(); const result = await services.sync.addProject({ workId, remoteProjectId }); services.sync.run({ retryNow: true }).catch(() => {}); return result }))
   ipcMain.handle('online:sync-link-field-rdo', envelope(({ date, workId }) => { requireSyncAvailable(); return services.sync.linkFieldRdo(String(date || ''), workId) }))

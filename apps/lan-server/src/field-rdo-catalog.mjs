@@ -33,6 +33,16 @@ export class FieldRdoCatalog {
     return this.db.prepare('SELECT id,nome,nivel FROM locais_obra WHERE obra_id=? AND nivel IS NOT NULL ORDER BY nivel,ordem,id').all(workId)
       .map(row=>({id:Number(row.id),nome:String(row.nome),nivel:Number(row.nivel)}))
   }
+  /** Official stage progress per pavimento (Desktop-owned), published back to the phone. */
+  progress(workId,locations){
+    const has=this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='obra360_andamento'").get()
+    if(!has)return[]
+    const levels=new Set(locations.map(l=>l.nivel))
+    return this.db.prepare('SELECT nivel,servico,status,checklist_json,updated_at,origem FROM obra360_andamento WHERE obra_id=? ORDER BY nivel,servico LIMIT 5000').all(workId)
+      .filter(row=>levels.has(Number(row.nivel)))
+      .map(row=>{let checklist=[];try{checklist=JSON.parse(row.checklist_json||'[]')}catch{}
+        return{nivel:Number(row.nivel),service:String(row.servico),status:String(row.status),checklist:Array.isArray(checklist)?checklist.slice(0,60):[],updatedAt:String(row.updated_at),origin:String(row.origem)}})
+  }
   list({companyId,workId}={}){
     const id=Number(workId),company=Number(companyId)
     if(!Number.isSafeInteger(id)||id<1||!Number.isSafeInteger(company)||company<1)throw new Error('Obra e empresa inválidas para o catálogo.')
@@ -47,9 +57,11 @@ export class FieldRdoCatalog {
     const services=this.db.prepare(`SELECT id,nome,frente_id FROM etapas_obra WHERE obra_id=? AND deleted_at IS NULL ORDER BY id`).all(id)
     const employees=this.crew(company,id).map(({id,name})=>({id,name}))
     const locations=this.locations(id)
+    const progress=locations.length?this.progress(id,locations):[]
     // Bases without pavimentos keep the previous catalog version (no republish churn).
-    const version=digest(JSON.stringify(locations.length?{materials,fronts,services,employees,locations}:{materials,fronts,services,employees})).slice(0,32)
-    return {schemaVersion:1,workId:id,materials,fronts,services,employees,locations,version}
+    const body=locations.length?(progress.length?{materials,fronts,services,employees,locations,progress}:{materials,fronts,services,employees,locations}):{materials,fronts,services,employees}
+    const version=digest(JSON.stringify(body)).slice(0,32)
+    return {schemaVersion:1,workId:id,materials,fronts,services,employees,locations,progress,version}
   }
   requireMaterial(workId,row){
     const id=Number(workId)

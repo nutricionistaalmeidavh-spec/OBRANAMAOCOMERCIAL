@@ -3,6 +3,7 @@ const crypto = require('node:crypto')
 const hash = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex')
 const rec = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 const DATE = /^\d{4}-\d{2}-\d{2}$/
+const STAGE_STATUS = new Set(['not_started', 'released', 'in_progress', 'completed', 'blocked'])
 const floorName = n => n === 0 ? 'Térreo' : n < 0 ? `Subsolo ${-n}` : `${n}º pavimento`
 
 /**
@@ -44,10 +45,10 @@ class FieldInbox {
   apply(scope, snapshot, { applyTasks = false } = {}) {
     if (!this.available() || !scope?.remoteProjectId) return { issues: 0, staged: 0 }
     const state = rec(snapshot)
-    let issues = 0, staged = 0, floors = 0
+    let issues = 0, staged = 0, floors = 0, progress = 0
     this.db.exec('BEGIN IMMEDIATE')
     try {
-      if (applyTasks) floors = this.seedFloors(scope, state)
+      if (applyTasks) { floors = this.seedFloors(scope, state); progress = this.ingestProgress(scope, state) }
       for (const issue of Array.isArray(state.issues) ? state.issues : []) {
         const item = rec(issue), id = String(item.id || '')
         if (!id) continue
@@ -92,7 +93,7 @@ class FieldInbox {
       }
       this.db.exec('COMMIT')
     } catch (error) { this.db.exec('ROLLBACK'); throw error }
-    return { issues, staged, floors }
+    return { issues, staged, floors, progress }
   }
 
   /**
@@ -120,6 +121,58 @@ class FieldInbox {
     }
     this.db.prepare('INSERT INTO obra360_locais_seed(remote_project_id,work_id,imported) VALUES(?,?,?)').run(remote, workId, created)
     return created
+  }
+
+  /**
+   * Stage progress and checklists recorded on the phone, for canonical pavimentos only.
+   * The newest change wins (phone stamps updatedAt); the first sync imports what already
+   * exists. The Desktop then publishes the official state back in the field catalog.
+   */
+  ingestProgress(scope, state) {
+    const has = this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='obra360_andamento'").get()
+    if (!has) return 0
+    const workId = Number(scope.workId)
+    if (!Number.isSafeInteger(workId) || workId < 1) return 0
+    const levels = new Set(this.db.prepare('SELECT nivel FROM locais_obra WHERE obra_id=? AND nivel IS NOT NULL').all(workId).map(r => Number(r.nivel)))
+    if (!levels.size) return 0
+    const current = this.db.prepare('SELECT updated_at FROM obra360_andamento WHERE obra_id=? AND nivel=? AND servico=?')
+    const upsert = this.db.prepare(`INSERT INTO obra360_andamento(obra_id,nivel,servico,status,checklist_json,updated_at,origem) VALUES(?,?,?,?,?,?,'campo')
+      ON CONFLICT(obra_id,nivel,servico) DO UPDATE SET status=excluded.status,checklist_json=excluded.checklist_json,updated_at=excluded.updated_at,origem='campo'`)
+    let changed = 0
+    for (const floor of Array.isArray(state.floors) ? state.floors : []) {
+      const level = Number(rec(floor).number)
+      if (!levels.has(level)) continue
+      for (const raw of Array.isArray(floor.stages) ? floor.stages.slice(0, 300) : []) {
+        const st = rec(raw), service = String(st.service || '').slice(0, 80), status = String(st.status || '')
+        if (!service || !STAGE_STATUS.has(status)) continue
+        const stamp = typeof st.updatedAt === 'string' && !Number.isNaN(Date.parse(st.updatedAt)) ? new Date(st.updatedAt).toISOString() : null
+        const row = current.get(workId, level, service)
+        if (row && (!stamp || stamp <= row.updated_at)) continue
+        const checklist = (Array.isArray(st.checklist) ? st.checklist : []).slice(0, 60).map(item => { const c = rec(item); return { id: String(c.id || '').slice(0, 80) || 'item', label: String(c.label || '').slice(0, 200), checked: c.checked === true, required: c.required === true } })
+        upsert.run(workId, level, service, status, JSON.stringify(checklist), stamp || '1970-01-01T00:00:00.000Z')
+        changed++
+      }
+    }
+    return changed
+  }
+
+  progressList(workId) {
+    return this.db.prepare('SELECT nivel,servico,status,checklist_json,updated_at,origem FROM obra360_andamento WHERE obra_id=? ORDER BY nivel,servico').all(Number(workId))
+      .map(row => { let checklist = []; try { checklist = JSON.parse(row.checklist_json || '[]') } catch { /* keep empty */ } return { nivel: row.nivel, service: row.servico, status: row.status, checklist, updatedAt: row.updated_at, origin: row.origem } })
+  }
+
+  /** Office edit: becomes the official state and is published back to the phone. */
+  progressSave({ workId, nivel, service, status, checklist }) {
+    const work = Number(workId), level = Number(nivel), key = String(service || '').slice(0, 80)
+    if (!Number.isSafeInteger(work) || !Number.isSafeInteger(level) || !/^etapa:\d+$/.test(key)) throw new Error('Andamento inválido.')
+    if (!STAGE_STATUS.has(String(status))) throw new Error('Situação inválida.')
+    if (!this.db.prepare('SELECT 1 FROM locais_obra WHERE obra_id=? AND nivel=?').get(work, level)) throw new Error('Pavimento não cadastrado nesta obra.')
+    if (!this.db.prepare('SELECT 1 FROM etapas_obra WHERE id=? AND obra_id=? AND deleted_at IS NULL').get(Number(key.slice(6)), work)) throw new Error('Subetapa não encontrada nesta obra.')
+    const items = (Array.isArray(checklist) ? checklist : []).slice(0, 60).map(item => { const c = rec(item); return { id: String(c.id || '').slice(0, 80) || 'item', label: String(c.label || '').slice(0, 200), checked: c.checked === true, required: c.required === true } })
+    const now = new Date().toISOString()
+    this.db.prepare(`INSERT INTO obra360_andamento(obra_id,nivel,servico,status,checklist_json,updated_at,origem) VALUES(?,?,?,?,?,?,'escritorio')
+      ON CONFLICT(obra_id,nivel,servico) DO UPDATE SET status=excluded.status,checklist_json=excluded.checklist_json,updated_at=excluded.updated_at,origem='escritorio'`).run(work, level, key, String(status), JSON.stringify(items), now)
+    return { nivel: level, service: key, status: String(status), checklist: items, updatedAt: now, origin: 'escritorio' }
   }
 
   stage(scope, kind, key, payload) {
