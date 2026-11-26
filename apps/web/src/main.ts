@@ -231,7 +231,7 @@ async function loadSharedApp(b:Bootstrap){
   setHeader(role,true,pending?'pending':'idle');
   nav().style.display='grid';
   activateRoleUI(role);
-  const fieldModule='/field.js?v=20261125-rdo-p0-1';
+  const fieldModule='/field.js?v=20261125-p1a-1';
   await import(/* @vite-ignore */ fieldModule);
 
   // Refresh only the active screen after each independent request completes.
@@ -261,7 +261,7 @@ async function loadManagementOnly(b:Bootstrap){
   renderManagementDashboard(root(),{},b.access||{},'Gestão',true);
   try{
     const data=(await api.get('/api/mobile/summary')).data as {summary:any};
-    renderManagementDashboard(root(),data.summary||{},b.access||{},'Gestão');
+    renderManagementDashboard(root(),{...(data.summary||{}),desktopSeenAt:(data as {desktopSeenAt?:string|null}).desktopSeenAt||null},b.access||{},'Gestão');
   }catch(e){
     renderManagementDashboard(root(),{},b.access||{},'Gestão');
     const details=root().querySelector('.management-details');

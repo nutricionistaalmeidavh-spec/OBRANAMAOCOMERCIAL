@@ -64,6 +64,35 @@ async function saveSnapshotParts(projectId:string,snapshot:Record<string,unknown
   for(const[date,value]of Object.entries(days))await saveDay(projectId,date,record(value),actor);
 }
 
+/**
+ * One D1 batch: the metadata compare-and-set plus every floor and day. Floors and
+ * days are written only if the metadata now carries this write's id, so a lost
+ * race writes nothing at all (no half-saved snapshot, no overwrite of the winner).
+ */
+async function saveSnapshotAtomically(projectId:string,snapshot:Record<string,unknown>,actor:string,current:ProjectMetaRecord|null,next:ProjectMetaRecord,expected:number){
+  const DB=runtimeEnv().DB as any,stamp=next.updatedAt,writeId=crypto.randomUUID(),meta=metaTable(projectId);
+  const clean={...next,writeId} as Record<string,unknown>;delete clean.id;
+  const metaId=current?.id?String(current.id):'meta';
+  const statements:any[]=[current
+    ?DB.prepare("UPDATE kv_records SET record_json=?,updated_at=? WHERE collection=? AND id=? AND CAST(json_extract(record_json,'$.revision') AS INTEGER)=?").bind(JSON.stringify(clean),stamp,meta,metaId,expected)
+    :DB.prepare('INSERT INTO kv_records(collection,id,record_json,created_at,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(collection,id) DO NOTHING').bind(meta,metaId,JSON.stringify(clean),stamp,stamp)];
+  const guarded=(collection:string,id:string,value:unknown)=>DB.prepare(`INSERT INTO kv_records(collection,id,record_json,created_at,updated_at)
+    SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM kv_records WHERE collection=? AND id=? AND json_extract(record_json,'$.writeId')=?)
+    ON CONFLICT(collection,id) DO UPDATE SET record_json=excluded.record_json,updated_at=excluded.updated_at`)
+    .bind(collection,id,JSON.stringify(value),stamp,stamp,meta,metaId,writeId);
+  const floorsCollection=floorsTable(projectId),existing=(await db.list<FloorRecord>(floorsCollection,{limit:50})).items,byNumber=new Map(existing.map(item=>[item.number,item]));
+  for(const value of list(snapshot.floors)){
+    const floor=record(value),number=Number(floor.number);if(!Number.isFinite(number))continue;
+    statements.push(guarded(floorsCollection,String(byNumber.get(number)?.id||crypto.randomUUID()),{number,floor,updatedAt:stamp,updatedBy:actor}));
+  }
+  for(const[date,value]of Object.entries(record(snapshot.days))){
+    const table=dayTable(projectId,date),{items}=await db.list<DayRecord>(table,{limit:1});
+    statements.push(guarded(table,String(items[0]?.id||crypto.randomUUID()),{day:record(value),updatedAt:stamp,updatedBy:actor}));
+  }
+  const results=await DB.batch(statements);
+  if(Number(results?.[0]?.meta?.changes||0)!==1)throw new SnapshotRevisionConflict();
+}
+
 export async function saveSnapshot(projectId:string,snapshot:Record<string,unknown>,actor:string,{allowUnversioned=false}:{allowUnversioned?:boolean}={}){
   const current=await getMeta(projectId),expectedRaw=record(snapshot._remote).revision,hasExpected=expectedRaw!==undefined&&expectedRaw!==null,expectedRevision=Number(expectedRaw),revision=(current?.revision||0)+1,days=record(snapshot.days),dayKeys=Array.from(new Set([...(current?.dayKeys||[]),...Object.keys(days)])).sort();
   const stateMeta:Record<string,unknown>={};
@@ -72,6 +101,12 @@ export async function saveSnapshot(projectId:string,snapshot:Record<string,unkno
   stateMeta.version=Math.max(Number(stateMeta.version||0),PROJECT_STATE_VERSION);
   const next:ProjectMetaRecord={state:stateMeta,dayKeys,revision,updatedAt:now(),updatedBy:actor};
   if(current&&!hasExpected&&!allowUnversioned)throw new SnapshotRevisionConflict();
+  if(current&&hasExpected&&(!Number.isSafeInteger(expectedRevision)||expectedRevision<0))throw new SnapshotRevisionConflict();
+  const DB=runtimeEnv().DB as {batch?:(statements:unknown[])=>Promise<Array<{meta?:{changes?:number}}>>}&ReturnType<typeof runtimeEnv>['DB'];
+  if(typeof DB.batch==='function'){
+    await saveSnapshotAtomically(projectId,snapshot,actor,current,next,hasExpected?expectedRevision:Number(current?.revision||0));
+    return revision;
+  }
   if(current&&hasExpected){
     if(!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw new SnapshotRevisionConflict();
     const clean={...next} as Record<string,unknown>;delete clean.id;
