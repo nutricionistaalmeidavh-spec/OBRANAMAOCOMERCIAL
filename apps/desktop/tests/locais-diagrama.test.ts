@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
-import { locationOptions, locationWithDescendants, locationPath } from '../src/utils/locations'
+import { canMoveInto, locationOptions, locationWithDescendants, locationPath, siblingsOf } from '../src/utils/locations'
 
 const rows = [
   { id: 1, nome: '1º pavimento', nivel: 1 },
@@ -27,5 +27,14 @@ describe('locais da obra em diagrama', () => {
     expect(card).toMatch(/Diagrama/)
     expect(diagram).toMatch(/\?obra=\$\{workId\}&local=\$\{current\.id\}/)
     expect(tasks).toMatch(/get\('local'\)/)
+  })
+  it('arrastar respeita as regras: pavimento não se move, nada entra em si mesmo, ordem dos irmãos', () => {
+    expect(canMoveInto(rows, 1, 2)).toBe(false)
+    expect(canMoveInto(rows, 3, 4)).toBe(false)
+    expect(canMoveInto(rows, 3, 1)).toBe(false)
+    expect(canMoveInto(rows, 3, 2)).toBe(true)
+    expect(canMoveInto(rows, 5, null)).toBe(true)
+    const ordered = [...rows, { id: 7, nome: 'Apto 102', local_pai_id: 1, ordem: 1 }, { id: 8, nome: 'Apto 100', local_pai_id: 1, ordem: 2 }]
+    expect(siblingsOf(ordered, 7).map((r) => r.id)).toEqual([3, 7, 8])
   })
 })

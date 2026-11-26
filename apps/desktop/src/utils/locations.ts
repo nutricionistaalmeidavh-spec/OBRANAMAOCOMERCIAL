@@ -1,9 +1,10 @@
 /** Canonical work locations: pavimentos (with level) on top, complements optionally inside. */
-export type WorkLocation = { id: number; nome: string; nivel?: number | null; local_pai_id?: number | null; obra_id?: number }
+export type WorkLocation = { id: number; nome: string; nivel?: number | null; local_pai_id?: number | null; obra_id?: number; ordem?: number | null }
 export type LocationOption = { id: number; label: string; path: string; depth: number; floor: boolean; orphan: boolean }
 
 const isFloor = (row: WorkLocation) => row.nivel !== null && row.nivel !== undefined
-const byName = (a: WorkLocation, b: WorkLocation) => String(a.nome).localeCompare(String(b.nome), 'pt-BR')
+// Complements keep the order the office set (ordem), then name.
+const byName = (a: WorkLocation, b: WorkLocation) => (Number(a.ordem) || 0) - (Number(b.ordem) || 0) || String(a.nome).localeCompare(String(b.nome), 'pt-BR')
 
 /** Tree order: pavimentos by level with their complements, then locations directly on the work. */
 export function locationOptions(rows: WorkLocation[] = []): LocationOption[] {
@@ -43,4 +44,21 @@ export function locationWithDescendants(rows: WorkLocation[] = [], id: number | 
 export function locationPath(rows: WorkLocation[] = [], id: number | string | null | undefined): string {
   if (!id) return ''
   return locationOptions(rows).find((option) => option.id === Number(id))?.path || ''
+}
+
+/** Can `id` move inside `parentId` (null = directly on the work)? Mirrors the base's rules. */
+export function canMoveInto(rows: WorkLocation[] = [], id: number, parentId: number | null): boolean {
+  const row = rows.find((r) => Number(r.id) === Number(id))
+  if (!row || row.nivel !== null && row.nivel !== undefined) return false
+  if ((row.local_pai_id ? Number(row.local_pai_id) : null) === (parentId === null ? null : Number(parentId))) return false
+  if (parentId === null) return true
+  return !locationWithDescendants(rows, id).has(Number(parentId))
+}
+
+/** Siblings of a complement in display order (same parent). */
+export function siblingsOf(rows: WorkLocation[] = [], id: number): WorkLocation[] {
+  const row = rows.find((r) => Number(r.id) === Number(id))
+  if (!row) return []
+  const parent = row.local_pai_id ? Number(row.local_pai_id) : null
+  return rows.filter((r) => (r.nivel === null || r.nivel === undefined) && (r.local_pai_id ? Number(r.local_pai_id) : null) === parent).sort(byName)
 }

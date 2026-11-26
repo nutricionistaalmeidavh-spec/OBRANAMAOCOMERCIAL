@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type DragEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from './ui'
 import { ROUTES } from '../routes/registry'
-import { locationOptions, locationWithDescendants, type WorkLocation } from '../utils/locations'
+import { canMoveInto, locationOptions, locationWithDescendants, siblingsOf, type WorkLocation } from '../utils/locations'
 
 type Props = {
   workId: string
@@ -13,6 +13,8 @@ type Props = {
   onAddInside: (parentId: number) => void
   onEdit: (location: any) => void
   onRemove: (location: any) => void
+  onMove: (location: any, parentId: number | null) => void
+  onReorder: (location: any, direction: -1 | 1) => void
 }
 
 const OPEN = (status: string) => !['concluida', 'cancelada'].includes(status)
@@ -22,7 +24,20 @@ const COLLAPSE_AT = 6
  * Locais da obra as a map: pavimentos in columns by level, complements in their chain
  * under each, and what sits directly on the work apart. Counts include what is inside.
  */
-export default function LocationsDiagram({ workId, workName, locations, counts, tasks, onAddInside, onEdit, onRemove }: Props) {
+export default function LocationsDiagram({ workId, workName, locations, counts, tasks, onAddInside, onEdit, onRemove, onMove, onReorder }: Props) {
+  const [dragging, setDragging] = useState<number | null>(null)
+  const [over, setOver] = useState<string | null>(null)
+  // Drag a complement onto a pavimento, another complement or 'Direto na obra' to move it.
+  const dropProps = (target: number | null) => {
+    const key = target === null ? 'obra' : String(target)
+    const allowed = dragging !== null && canMoveInto(locations, dragging, target)
+    return {
+      onDragOver: (event: DragEvent) => { if (allowed) { event.preventDefault(); setOver(key) } },
+      onDragLeave: () => setOver((value) => value === key ? null : value),
+      onDrop: (event: DragEvent) => { event.preventDefault(); setOver(null); const id = dragging; setDragging(null); if (id !== null && canMoveInto(locations, id, target)) onMove(byId.get(id), target) },
+      'data-drop': allowed ? (over === key ? 'over' : 'ok') : undefined,
+    }
+  }
   const [selected, setSelected] = useState<number | null>(null)
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
   const options = useMemo(() => locationOptions(locations), [locations])
@@ -70,13 +85,13 @@ export default function LocationsDiagram({ workId, workName, locations, counts, 
           const rootCount = column.root ? countFor(Number(column.root.id)) : 0
           return <div className="loc-column" key={key + ':' + index}>
             {column.root
-              ? <button type="button" className={`loc-floor${selected === Number(column.root.id) ? ' active' : ''}`} onClick={() => setSelected(Number(column.root.id))}>
+              ? <button type="button" className={`loc-floor${selected === Number(column.root.id) ? ' active' : ''}`} onClick={() => setSelected(Number(column.root.id))} {...dropProps(Number(column.root.id))}>
                 <span className="loc-row"><strong>{column.root.nome}</strong>{badge(rootCount)}</span>
                 <small>Pavimento {column.root.nivel} · {column.items.length} complemento{column.items.length === 1 ? '' : 's'}</small>
               </button>
-              : <div className="loc-direct"><strong>Direto na obra</strong><small>Sem pavimento</small></div>}
+              : <div className="loc-direct" {...dropProps(null)}><strong>Direto na obra</strong><small>Sem pavimento</small></div>}
             <div className="loc-chain">
-              {shown.map((option) => <button type="button" key={option.id} className={`loc-item${selected === option.id ? ' active' : ''}`} style={{ marginLeft: option.depth * 14 }} onClick={() => setSelected(option.id)}>
+              {shown.map((option) => <button type="button" key={option.id} className={`loc-item${selected === option.id ? ' active' : ''}`} style={{ marginLeft: option.depth * 14 }} onClick={() => setSelected(option.id)} draggable title="Arraste para dentro de outro local" onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', String(option.id)); setDragging(option.id) }} onDragEnd={() => { setDragging(null); setOver(null) }} {...dropProps(option.id)}>
                 <span>{option.depth ? '↳ ' : ''}{byId.get(option.id)?.nome}</span>{badge(countFor(option.id))}
               </button>)}
               {!isOpen && <button type="button" className="loc-more" onClick={() => setExpanded({ ...expanded, [key]: true })}>+ {column.items.length - shown.length} complementos · expandir</button>}
@@ -88,6 +103,7 @@ export default function LocationsDiagram({ workId, workName, locations, counts, 
         <span><i className="sw floor"/>Pavimento (vai para o celular)</span>
         <span><i className="sw item"/>Complemento (opcional)</span>
         <span><i className="sw direct"/>Direto na obra</span>
+        <span>Arraste um complemento para mudar onde ele fica</span>
         <span><span className="loc-badge has">2</span>Pendências e ocorrências em aberto, somando o que fica dentro</span>
       </div>
     </div>
@@ -105,6 +121,17 @@ export default function LocationsDiagram({ workId, workName, locations, counts, 
             <Button variant="secondary" onClick={() => onEdit(current)}>Editar</Button>
             <Link className="button button-secondary" to={`${ROUTES.tasks}?obra=${workId}&local=${current.id}`}>Ver pendências</Link>
           </div>
+          {(current.nivel === null || current.nivel === undefined) && <>
+            <label className="field"><span>Mover para</span><select aria-label="Mover para" value="" onChange={(event) => { const v = event.target.value; if (!v) return; onMove(current, v === 'obra' ? null : Number(v)) }}>
+              <option value="">Escolha onde este local fica…</option>
+              {canMoveInto(locations, current.id, null) && <option value="obra">Direto na obra</option>}
+              {options.filter((option) => canMoveInto(locations, current.id, option.id)).map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+            </select></label>
+            {siblingsOf(locations, current.id).length > 1 && <div className="loc-row">
+              <Button variant="secondary" disabled={siblingsOf(locations, current.id)[0]?.id === current.id} onClick={() => onReorder(current, -1)}>↑ Subir</Button>
+              <Button variant="secondary" disabled={siblingsOf(locations, current.id).at(-1)?.id === current.id} onClick={() => onReorder(current, 1)}>↓ Descer</Button>
+            </div>}
+          </>}
           <Button variant="ghost" onClick={() => { onRemove(current); setSelected(null) }}>Remover local</Button>
         </div>
       </> : <><small className="loc-eyebrow">LOCAL SELECIONADO</small><p className="muted">Clique num pavimento ou complemento para ver o caminho, as pendências e as ações.</p></>}
