@@ -355,6 +355,7 @@ function registerIpc() {
   ipcMain.handle('operational-sheet:p1-measurements', envelope(payload => services.operationalSheetP1.measurementOverview(payload)))
   ipcMain.handle('operational-sheet:p1-time-matrix', envelope(payload => services.operationalSheetP1.timeMatrix(payload)))
   ipcMain.handle('operational-sheet:p1-time-commit', envelope(payload => services.operationalSheetP1.commitTime(payload)))
+  ipcMain.handle('locais:counts', envelope(({ obra_id }) => services.dataAccess.locationCounts(obra_id)))
   ipcMain.handle('entity:list', envelope(({ table, filters }) => services.dataAccess.list(table, filters)))
   ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))
   ipcMain.handle('entity:save', envelope(({ table, data }) => services.dataAccess.save(table, data)))

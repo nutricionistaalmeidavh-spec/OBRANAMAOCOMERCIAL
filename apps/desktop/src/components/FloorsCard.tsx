@@ -24,6 +24,7 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
   const chooseView = (next: 'list' | 'diagram') => { setView(next); try { localStorage.setItem('locais.view', next) } catch { /* optional */ } }
   const work = useAsync(() => workId ? window.fluxoDre.obras.get(Number(workId)) : Promise.resolve(null), [workId])
   const tasks = useAsync(() => workId && !disabled && view === 'diagram' ? window.fluxoDre.tarefas.list({ obra_id: Number(workId) }) : Promise.resolve([]), [workId, disabled, view])
+  const counts = useAsync(() => workId && !disabled && view === 'diagram' ? window.fluxoDre.locais.counts(Number(workId)).catch(() => null) : Promise.resolve(null), [workId, disabled, view])
   const rows = useAsync(() => workId && !disabled ? window.fluxoDre.locais.list({ obra_id: Number(workId) }) : Promise.resolve([]), [workId, disabled])
   const all = useMemo(() => rows.data || [], [rows.data])
   const options = useMemo(() => locationOptions(all), [all])
@@ -55,6 +56,7 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
       }
       setForm(null)
       rows.reload()
+      counts.reload()
     } catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível salvar o local.') }
   }
   async function confirmRemove() {
@@ -74,7 +76,7 @@ export default function FloorsCard({ workId, disabled }: { workId: string; disab
         <Button variant="secondary" icon={<Plus size={15}/>} disabled={!workId || disabled} onClick={() => openFloor()}>Pavimento</Button>
         <Button variant="secondary" icon={<Plus size={15}/>} disabled={!workId || disabled} onClick={() => openComplement()}>Complemento</Button>
       </div></div>
-    {rows.loading ? <Loading/> : options.length && view === 'diagram' ? <LocationsDiagram workId={workId} workName={work.data?.nome || ''} locations={all} tasks={tasks.data || []} onAddInside={(id) => openComplement(undefined, id)} onEdit={(item) => item.nivel !== null && item.nivel !== undefined ? openFloor(item) : openComplement(item)} onRemove={(item) => setRemove(item)}/> : options.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Local</th><th>Tipo</th><th/></tr></thead><tbody>
+    {rows.loading ? <Loading/> : options.length && view === 'diagram' ? <LocationsDiagram workId={workId} workName={work.data?.nome || ''} locations={all} counts={counts.data} tasks={tasks.data || []} onAddInside={(id) => openComplement(undefined, id)} onEdit={(item) => item.nivel !== null && item.nivel !== undefined ? openFloor(item) : openComplement(item)} onRemove={(item) => setRemove(item)}/> : options.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Local</th><th>Tipo</th><th/></tr></thead><tbody>
       {options.map((option) => { const item: any = byId.get(option.id); return <tr key={option.id}>
         <td style={{ paddingLeft: 12 + option.depth * 20 }}><strong>{option.depth ? '↳ ' : ''}{item.nome}</strong></td>
         <td>{option.floor ? `Pavimento ${item.nivel}` : option.orphan && !option.depth ? 'Direto na obra' : 'Complemento'}</td>

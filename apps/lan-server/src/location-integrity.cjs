@@ -37,7 +37,7 @@ function validateLocationWrite(db, table, get, current = null) {
     requireWorkLocation(db, get('local_id'), get('obra_id'))
     return
   }
-  if (table === 'rdo_ocorrencias' && hasColumn(db, 'rdo_ocorrencias', 'local_id')) {
+  if ((table === 'rdo_ocorrencias' || table === 'rdo_equipe') && hasColumn(db, table, 'local_id')) {
     if (blank(get('local_id'))) return
     const report = db.prepare('SELECT obra_id FROM rdos WHERE id=?').get(Number(get('rdo_id')))
     if (!report) throw new Error('RDO não encontrado.')
@@ -57,4 +57,39 @@ function locationDescendants(db, localId) {
   return [...out]
 }
 
-module.exports = { validateLocationWrite, locationDescendants, requireWorkLocation }
+/**
+ * Open items per location of a work: open pendências (tarefas) and open RDO occurrences
+ * that did not become a pendência yet (so nothing counts twice). `total` adds everything
+ * inside the location, following the chain.
+ */
+function locationCounts(db, workId) {
+  const work = Number(workId)
+  const out = { byLocal: {}, open: 0 }
+  if (!hasColumn(db, 'locais_obra', 'local_pai_id')) return out
+  const locais = db.prepare('SELECT id,local_pai_id FROM locais_obra WHERE obra_id=?').all(work)
+  for (const row of locais) out.byLocal[row.id] = { tasks: 0, occurrences: 0, own: 0, total: 0 }
+  const taskDeleted = hasColumn(db, 'tarefas_obra', 'deleted_at') ? ' AND deleted_at IS NULL' : ''
+  out.open = db.prepare(`SELECT COUNT(*) AS n FROM tarefas_obra WHERE obra_id=? AND status NOT IN ('concluida','cancelada')${taskDeleted}`).get(work).n
+  if (hasColumn(db, 'tarefas_obra', 'local_id')) {
+    for (const row of db.prepare(`SELECT local_id, COUNT(*) AS n FROM tarefas_obra WHERE obra_id=? AND local_id IS NOT NULL AND status NOT IN ('concluida','cancelada')${taskDeleted} GROUP BY local_id`).all(work))
+      if (out.byLocal[row.local_id]) out.byLocal[row.local_id].tasks = row.n
+  }
+  if (hasColumn(db, 'rdo_ocorrencias', 'local_id')) {
+    const rdoDeleted = hasColumn(db, 'rdos', 'deleted_at') ? ' AND r.deleted_at IS NULL' : ''
+    const linked = hasColumn(db, 'tarefas_obra', 'rdo_ocorrencia_id') ? `AND NOT EXISTS (SELECT 1 FROM tarefas_obra t WHERE t.rdo_ocorrencia_id=o.id${taskDeleted.replace('deleted_at', 't.deleted_at')})` : ''
+    for (const row of db.prepare(`SELECT o.local_id, COUNT(*) AS n FROM rdo_ocorrencias o JOIN rdos r ON r.id=o.rdo_id WHERE r.obra_id=? AND o.local_id IS NOT NULL AND COALESCE(o.status,'aberta') <> 'resolvida'${rdoDeleted} ${linked} GROUP BY o.local_id`).all(work))
+      if (out.byLocal[row.local_id]) out.byLocal[row.local_id].occurrences = row.n
+  }
+  const children = new Map()
+  for (const row of locais) if (row.local_pai_id && out.byLocal[row.local_pai_id]) children.set(row.local_pai_id, [...(children.get(row.local_pai_id) || []), row.id])
+  const total = (id, guard = 0) => {
+    const node = out.byLocal[id]
+    if (guard > 50) return node.own
+    return node.own + (children.get(id) || []).reduce((sum, child) => sum + total(child, guard + 1), 0)
+  }
+  for (const node of Object.values(out.byLocal)) node.own = node.tasks + node.occurrences
+  for (const id of Object.keys(out.byLocal)) out.byLocal[id].total = total(Number(id))
+  return out
+}
+
+module.exports = { validateLocationWrite, locationDescendants, requireWorkLocation, locationCounts }

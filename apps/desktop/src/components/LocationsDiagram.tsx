@@ -8,6 +8,7 @@ type Props = {
   workId: string
   workName: string
   locations: WorkLocation[]
+  counts?: LocationCounts | null
   tasks: Array<{ id: number; titulo: string; status: string; prioridade?: string; prazo?: string | null; local_id?: number | null }>
   onAddInside: (parentId: number) => void
   onEdit: (location: any) => void
@@ -21,14 +22,21 @@ const COLLAPSE_AT = 6
  * Locais da obra as a map: pavimentos in columns by level, complements in their chain
  * under each, and what sits directly on the work apart. Counts include what is inside.
  */
-export default function LocationsDiagram({ workId, workName, locations, tasks, onAddInside, onEdit, onRemove }: Props) {
+export default function LocationsDiagram({ workId, workName, locations, counts, tasks, onAddInside, onEdit, onRemove }: Props) {
   const [selected, setSelected] = useState<number | null>(null)
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
   const options = useMemo(() => locationOptions(locations), [locations])
   const byId = useMemo(() => new Map(locations.map((row: any) => [Number(row.id), row])), [locations])
   const open = useMemo(() => tasks.filter((task) => OPEN(task.status) && task.local_id), [tasks])
-  const countFor = (id: number) => { const scope = locationWithDescendants(locations, id); return open.filter((task) => scope.has(Number(task.local_id))).length }
-  const totalOpen = tasks.filter((task) => OPEN(task.status)).length
+  // Counts come from the base (pendências + open RDO occurrences, rolled up the chain);
+  // the screen-side count is only a fallback while they load.
+  const countFor = (id: number) => {
+    const fromBase = counts?.byLocal?.[String(id)]
+    if (fromBase) return fromBase.total
+    const scope = locationWithDescendants(locations, id); return open.filter((task) => scope.has(Number(task.local_id))).length
+  }
+  const totalOpen = counts ? counts.open : tasks.filter((task) => OPEN(task.status)).length
+  const occurrencesFor = (id: number) => { const own = counts?.byLocal?.[String(id)]; if (!own) return 0; const scope = locationWithDescendants(locations, id); return [...scope].reduce((sum, local) => sum + (counts?.byLocal?.[String(local)]?.occurrences || 0), 0) }
 
   // Columns: each root (pavimento, then "direto na obra" roots grouped) with its chain below.
   const columns = useMemo(() => {
@@ -80,7 +88,7 @@ export default function LocationsDiagram({ workId, workName, locations, tasks, o
         <span><i className="sw floor"/>Pavimento (vai para o celular)</span>
         <span><i className="sw item"/>Complemento (opcional)</span>
         <span><i className="sw direct"/>Direto na obra</span>
-        <span><span className="loc-badge has">2</span>Pendências abertas, somando o que fica dentro</span>
+        <span><span className="loc-badge has">2</span>Pendências e ocorrências em aberto, somando o que fica dentro</span>
       </div>
     </div>
     <aside className="loc-panel" aria-live="polite">
@@ -88,7 +96,8 @@ export default function LocationsDiagram({ workId, workName, locations, tasks, o
         <small className="loc-eyebrow">LOCAL SELECIONADO</small>
         <h3>{current.nome}</h3>
         <small className="muted">{[workName, currentOption?.path].filter(Boolean).join(' › ')}</small>
-        <div className="loc-tags"><span>{current.nivel !== null && current.nivel !== undefined ? `Pavimento ${current.nivel}` : current.local_pai_id ? 'Complemento' : 'Direto na obra'}</span><span className="warn">{currentTasks.length} pendência{currentTasks.length === 1 ? '' : 's'} aberta{currentTasks.length === 1 ? '' : 's'}</span></div>
+        <div className="loc-tags"><span>{current.nivel !== null && current.nivel !== undefined ? `Pavimento ${current.nivel}` : current.local_pai_id ? 'Complemento' : 'Direto na obra'}</span><span className="warn">{countFor(current.id)} em aberto</span></div>
+        {occurrencesFor(current.id) > 0 && <small className="muted">+ {occurrencesFor(current.id)} ocorrência{occurrencesFor(current.id) === 1 ? '' : 's'} do RDO em aberto, ainda sem pendência</small>}
         <div className="loc-tasks">{currentTasks.length ? currentTasks.slice(0, 8).map((task) => <div key={task.id}><strong>{task.titulo}</strong><small>{[task.prioridade, task.prazo].filter(Boolean).join(' · ')}</small></div>) : <small className="muted">Nenhuma pendência aberta aqui nem dentro.</small>}</div>
         <div className="loc-actions">
           <Button onClick={() => onAddInside(current.id)}>+ Complemento dentro</Button>

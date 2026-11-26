@@ -1,6 +1,7 @@
 const { LanDataClient, CORE_REMOTE_TABLES, OPERATION_REMOTE_TABLES, PLANNING_REMOTE_TABLES, FINANCE_REMOTE_TABLES, RH_REMOTE_TABLES, DOCUMENT_REMOTE_TABLES } = require('./lan-data-client.cjs')
 const { StorageConnectionService } = require('./storage-connection-service.cjs')
 const { LanCredentialService } = require('./lan-credential-service.cjs')
+const { locationCounts } = require('./location-integrity.cjs')
 
 function electronSafeStorage() {
   try {
@@ -93,6 +94,12 @@ class DataAccessService {
     if(/^nota_recebida_/.test(table)||table==='notas_recebidas')throw new Error('Use a operação canônica de notas recebidas.')
     if (this.assertRoute(table) === 'remote') return this.rememberRevision(table, await this.remote.save(table, data))
     return this.db.save(table, data)
+  }
+
+  /** Open items per work location (pendências + open RDO occurrences), rolled up the chain. */
+  async locationCounts(workId) {
+    if (this.assertRoute('locais_obra') === 'remote') return this.remote.request('GET', '/api/v1/locais/counts', { query: { obra_id: Number(workId) } })
+    return locationCounts(this.db.db, Number(workId))
   }
 
   isPendingLocalRhRead(table) {

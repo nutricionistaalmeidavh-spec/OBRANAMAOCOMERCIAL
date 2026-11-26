@@ -5,8 +5,9 @@ import os from 'node:os'
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const { DatabaseService } = require('../electron/services/database.cjs')
+const { DataAccessService } = require('../electron/services/data-access-service.cjs')
 
-it('Desktop aplica as mesmas regras da cadeia de locais e liga pendências e ocorrências', () => {
+it('Desktop aplica as mesmas regras da cadeia de locais e liga pendências e ocorrências', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'locais-desktop-'))
   const service = new DatabaseService({ dataDir: dir, migrationsDir: path.resolve(import.meta.dirname, '../database/migrations') })
   try {
@@ -24,5 +25,10 @@ it('Desktop aplica as mesmas regras da cadeia de locais e liga pendências e oco
     const rdo = service.save('rdos', { obra_id: work.id, data: '2026-11-26' })
     expect(() => service.save('rdo_ocorrencias', { rdo_id: rdo.id, tipo: 'qualidade', descricao: 'x', local_id: 9999 })).toThrow(/não encontrado/)
     expect(() => service.remove('locais_obra', floor.id)).toThrow()
+    service.save('rdo_equipe', { rdo_id: rdo.id, nome: 'Pedreiros', local_id: guarita.id, horas: 8 })
+    service.save('rdo_ocorrencias', { rdo_id: rdo.id, tipo: 'qualidade', descricao: 'Trinca', local_id: guarita.id })
+    const counts = await new DataAccessService({ db: service, storage: { state: () => ({ mode: 'local' }) }, credentials: null }).locationCounts(work.id)
+    expect(counts.byLocal[guarita.id]).toEqual({ tasks: 1, occurrences: 1, own: 2, total: 2 })
+    expect(counts.byLocal[floor.id].total).toBe(2)
   } finally { service.close?.() }
 })
