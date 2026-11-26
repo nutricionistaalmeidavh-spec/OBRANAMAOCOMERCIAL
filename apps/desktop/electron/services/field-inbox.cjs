@@ -3,6 +3,7 @@ const crypto = require('node:crypto')
 const hash = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex')
 const rec = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 const DATE = /^\d{4}-\d{2}-\d{2}$/
+const floorName = n => n === 0 ? 'Térreo' : n < 0 ? `Subsolo ${-n}` : `${n}º pavimento`
 
 /**
  * Applies what the field team records on the phone to the Desktop's canonical owners.
@@ -43,9 +44,10 @@ class FieldInbox {
   apply(scope, snapshot, { applyTasks = false } = {}) {
     if (!this.available() || !scope?.remoteProjectId) return { issues: 0, staged: 0 }
     const state = rec(snapshot)
-    let issues = 0, staged = 0
+    let issues = 0, staged = 0, floors = 0
     this.db.exec('BEGIN IMMEDIATE')
     try {
+      if (applyTasks) floors = this.seedFloors(scope, state)
       for (const issue of Array.isArray(state.issues) ? state.issues : []) {
         const item = rec(issue), id = String(item.id || '')
         if (!id) continue
@@ -90,7 +92,34 @@ class FieldInbox {
       }
       this.db.exec('COMMIT')
     } catch (error) { this.db.exec('ROLLBACK'); throw error }
-    return { issues, staged }
+    return { issues, staged, floors }
+  }
+
+  /**
+   * One-time import of the floors that already exist in the online Obra360 into the
+   * work's locais (pavimentos). Afterwards the Desktop owns the list: deleting a
+   * pavimento in the office is never undone by the phone. Matched by floor level only.
+   */
+  seedFloors(scope, state) {
+    const hasSeed = this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='obra360_locais_seed'").get()
+    if (!hasSeed) return 0
+    const workId = Number(scope.workId), remote = String(scope.remoteProjectId)
+    if (!Number.isSafeInteger(workId) || workId < 1) return 0
+    if (this.db.prepare('SELECT 1 FROM obra360_locais_seed WHERE remote_project_id=? AND work_id=?').get(remote, workId)) return 0
+    const existing = this.db.prepare('SELECT COUNT(*) AS n FROM locais_obra WHERE obra_id=? AND nivel IS NOT NULL').get(workId).n
+    const levels = [...new Set((Array.isArray(state.floors) ? state.floors : []).map(f => Number(rec(f).number)).filter(n => Number.isSafeInteger(n) && n >= -20 && n <= 400))].sort((a, b) => a - b)
+    let created = 0
+    if (!existing) {
+      for (const [index, level] of levels.entries()) {
+        const name = floorName(level)
+        const sameName = this.db.prepare('SELECT id,nivel FROM locais_obra WHERE obra_id=? AND nome=?').get(workId, name)
+        if (sameName) { if (sameName.nivel == null) this.db.prepare('UPDATE locais_obra SET nivel=?,ordem=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(level, index, sameName.id); continue }
+        this.db.prepare("INSERT INTO locais_obra(obra_id,nome,tipo,nivel,ordem) VALUES(?,?,'pavimento',?,?)").run(workId, name, level, index)
+        created++
+      }
+    }
+    this.db.prepare('INSERT INTO obra360_locais_seed(remote_project_id,work_id,imported) VALUES(?,?,?)').run(remote, workId, created)
+    return created
   }
 
   stage(scope, kind, key, payload) {

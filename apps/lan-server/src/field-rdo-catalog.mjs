@@ -26,6 +26,13 @@ export class FieldRdoCatalog {
     const rows=this.db.prepare(`SELECT id,nome FROM funcionarios WHERE empresa_id=? AND deleted_at IS NULL ORDER BY id`).all(companyId)
     return rows.map(row=>({id:'rdo_emp_'+digest(JSON.stringify([companyId,workId,row.id])).slice(0,24),name:row.nome,localId:row.id}))
   }
+  /** Pavimentos: canonical locais of the work with a floor level, owned by the Desktop. */
+  locations(workId){
+    const hasLevel=this.db.prepare("SELECT 1 FROM pragma_table_info('locais_obra') WHERE name='nivel'").get()
+    if(!hasLevel)return[]
+    return this.db.prepare('SELECT id,nome,nivel FROM locais_obra WHERE obra_id=? AND nivel IS NOT NULL ORDER BY nivel,ordem,id').all(workId)
+      .map(row=>({id:Number(row.id),nome:String(row.nome),nivel:Number(row.nivel)}))
+  }
   list({companyId,workId}={}){
     const id=Number(workId),company=Number(companyId)
     if(!Number.isSafeInteger(id)||id<1||!Number.isSafeInteger(company)||company<1)throw new Error('Obra e empresa inválidas para o catálogo.')
@@ -39,8 +46,10 @@ export class FieldRdoCatalog {
     const fronts=this.db.prepare(`SELECT id,nome FROM frentes_obra WHERE obra_id=? AND deleted_at IS NULL ORDER BY ordem,id`).all(id)
     const services=this.db.prepare(`SELECT id,nome,frente_id FROM etapas_obra WHERE obra_id=? AND deleted_at IS NULL ORDER BY id`).all(id)
     const employees=this.crew(company,id).map(({id,name})=>({id,name}))
-    const version=digest(JSON.stringify({materials,fronts,services,employees})).slice(0,32)
-    return {schemaVersion:1,workId:id,materials,fronts,services,employees,version}
+    const locations=this.locations(id)
+    // Bases without pavimentos keep the previous catalog version (no republish churn).
+    const version=digest(JSON.stringify(locations.length?{materials,fronts,services,employees,locations}:{materials,fronts,services,employees})).slice(0,32)
+    return {schemaVersion:1,workId:id,materials,fronts,services,employees,locations,version}
   }
   requireMaterial(workId,row){
     const id=Number(workId)

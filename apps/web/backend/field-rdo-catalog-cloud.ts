@@ -7,7 +7,7 @@ const array=(v:unknown)=>Array.isArray(v)?v:[]
 export type FieldRdoCatalogRecord={
   schemaVersion:number;workId:number;materials:Array<{id:string;descricao:string;unidade:string;saldo:number}>;
   fronts:Array<{id:number;nome:string}>;services:Array<{id:number;nome:string;frente_id:number|null}>;
-  employees?:Array<{id:string;name:string}>;version:string;updatedAt:string;sourceDeviceId:string
+  employees?:Array<{id:string;name:string}>;locations?:Array<{id:number;nome:string;nivel:number}>;version:string;updatedAt:string;sourceDeviceId:string
 }
 const PAGE_SIZE=500
 type Manifest=Omit<FieldRdoCatalogRecord,'materials'> & {paged:true;total:number;pages:number}
@@ -82,11 +82,17 @@ export async function publishFieldRdoCatalog(projectId:string,deviceId:string,pa
  })
  if(new Set(mat.map(m=>m.id)).size!==mat.length)throw new Error('Identidade de material duplicada.')
  const employees=array(v.employees).map(input=>{const e=record(input),id=strings(e.id,40),name=strings(e.name,250);if(!/^rdo_emp_[a-f0-9]{24}$/.test(id)||!name)throw new Error('Funcionário da obra inválido.');return{id,name}})
+ const rawLocations=array(v.locations)
+ if(rawLocations.length>500)throw new Error('Pavimentos excedem o limite do catálogo.')
+ const locations=rawLocations.map(input=>{const row=record(input),id=Number(row.id),nome=strings(row.nome,120),nivel=Number(row.nivel)
+  if(!Number.isSafeInteger(id)||id<1||!nome||!Number.isSafeInteger(nivel)||nivel<-20||nivel>400)throw new Error('Pavimento inválido no catálogo.')
+  return{id,nome,nivel}})
+ if(new Set(locations.map(l=>l.nivel)).size!==locations.length)throw new Error('Pavimento duplicado no catálogo.')
  const previous=await readLatest(projectId)
  if(previous?.version===version&&previous.workId===workId&&previous.sourceDeviceId===deviceId)return {...previous,materials:[],total:mat.length}
  const data:FieldRdoCatalogRecord={
   schemaVersion:1,workId,materials:mat,fronts:frontsValidated,services:servicesValidated,
-  employees,version,sourceDeviceId:deviceId,updatedAt:new Date().toISOString()
+  employees,locations,version,sourceDeviceId:deviceId,updatedAt:new Date().toISOString()
  }
  const stamp=data.updatedAt
  const db=runtimeEnv().DB
