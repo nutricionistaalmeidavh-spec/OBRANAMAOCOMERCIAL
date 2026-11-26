@@ -27,7 +27,7 @@ export default function TimeSheetPage(){
   const [policySaving,setPolicySaving]=useState(false)
   const policyState=useCallback((ready:boolean,saving:boolean)=>{setPolicyReady(ready);setPolicySaving(saving)},[])
   const documentBusy=busy||policySaving||!policyReady
-  const employees=useAsync(()=>window.fluxoDre.funcionarios.list({status:'ativo'}),[])
+  const employees=useAsync(()=>window.fluxoDre.funcionarios.list().then((rows:any[])=>rows.filter(row=>!['inativo','inativa'].includes(String(row.status||'').trim().toLowerCase()))),[])
   const cargos=useAsync(()=>window.fluxoDre.cargos.list(),[])
   const point=useAsync(()=>employee?window.fluxoDre.ponto.get({funcionario_id:Number(employee),competencia}):Promise.resolve(null),[employee,competencia,version])
   useEffect(()=>setMarks(point.data?.marks||[]),[point.data])

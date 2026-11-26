@@ -507,7 +507,7 @@ class UniversalImportService {
           if (!name) continue
           const role = findOrCreate('cargos', 'nome', String(value(row, map, 'cargo') || '').trim(), { nome: String(value(row, map, 'cargo') || '').trim(), ativo: 1 })
           const work = workByName(value(row, map, 'obra'))
-          entity = findOrCreate('funcionarios', 'nome', name, { empresa_id: company.id, nome: name, cpf: String(value(row, map, 'cpf') || '') || null, telefone: String(value(row, map, 'telefone') || ''), email: String(value(row, map, 'email') || ''), cargo_id: role?.id || null, obra_atual_id: work?.id || null, salario_centavos: money(value(row, map, 'salario')), departamento: String(value(row, map, 'departamento') || ''), status: String(value(row, map, 'status') || 'ativo') })
+          entity = findOrCreate('funcionarios', 'nome', name, { empresa_id: company.id, nome: name, cpf: String(value(row, map, 'cpf') || '') || null, telefone: String(value(row, map, 'telefone') || ''), email: String(value(row, map, 'email') || ''), cargo_id: role?.id || null, obra_atual_id: work?.id || null, salario_centavos: money(value(row, map, 'salario')), departamento: String(value(row, map, 'departamento') || ''), status: String(value(row, map, 'status') || 'ativo').trim().toLowerCase() })
         } else if (area === 'compras') {
           const work = workByName(value(row, map, 'obra'))
           const front = frontByName(work, value(row, map, 'frente'))

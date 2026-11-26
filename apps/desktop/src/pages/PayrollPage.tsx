@@ -65,7 +65,7 @@ export default function PayrollPage(){
   const [message,setMessage]=useState('')
   const [exporting,setExporting]=useState<''|'xlsx'|'pdf'>('')
   const [form,setForm]=useState<any>({tipo:'diaria',descricao:'Diária',natureza:'credito',quinzena:1,valor:''})
-  const employees=useAsync(()=>window.fluxoDre.funcionarios.list({status:'ativo'}),[])
+  const employees=useAsync(()=>window.fluxoDre.funcionarios.list().then((rows:any[])=>rows.filter(row=>!['inativo','inativa'].includes(String(row.status||'').trim().toLowerCase()))),[])
   const cargos=useAsync(()=>window.fluxoDre.cargos.list(),[])
   const companies=useAsync(()=>window.fluxoDre.empresas.list({status:'ativa'}),[])
   const works=useAsync(()=>window.fluxoDre.obras.list(empresaId?{empresa_id:Number(empresaId)}:{}),[empresaId])
