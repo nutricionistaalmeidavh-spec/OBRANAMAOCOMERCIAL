@@ -26,7 +26,7 @@ import { RevisionConflictError } from './concurrency-service.mjs'
 import { createVersionedRepository } from './versioned-repository.mjs'
 
 export const LAN_API_VERSION = '1'
-export const LAN_SERVER_VERSION = '0.4.4'
+export const LAN_SERVER_VERSION = '0.4.5'
 
 const MAX_BODY_BYTES = 1024 * 1024
 const MAX_DOCUMENT_BODY_BYTES = 36 * 1024 * 1024
