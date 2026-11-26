@@ -150,6 +150,8 @@ it('integra nota manual sem XML ou chave fictícia, rateia, recebe depois e esto
   expect(f.service.commit(payload)).toMatchObject({nota_id:result.nota_id,replayed:true})
   expect(db.prepare('SELECT chave_acesso,status_integracao FROM notas_recebidas WHERE id=?').get(result.nota_id)).toMatchObject({chave_acesso:null,status_integracao:'integrada'})
   expect(db.prepare('SELECT COUNT(*) n FROM nota_recebida_xml').get().n).toBe(0)
+  expect(()=>db.prepare('UPDATE notas_recebidas SET numero=? WHERE id=?').run('alterada',result.nota_id)).toThrow(/canônica/)
+  expect(()=>db.prepare('UPDATE nota_recebida_itens SET descricao=? WHERE nota_id=?').run('alterada',result.nota_id)).toThrow(/imutável/)
   expect(db.prepare('SELECT SUM(valor_centavos) n FROM nota_recebida_rateios').get().n).toBe(12450)
   expect(db.prepare('SELECT SUM(quantidade) n FROM movimentacoes_estoque').get().n).toBe(400)
   const item=db.prepare('SELECT id FROM nota_recebida_itens ORDER BY id').get()

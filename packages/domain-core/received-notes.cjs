@@ -468,10 +468,11 @@ function manualNoteSource(db,payload){
   }
   recognized.push({numero,status:'confirmado',material_id:material?.id??null,descricao:material?.descricao??descricao,unidade:material?.unidade??unidade,fator_num:1,fator_den:1,servico:v.servico===true,conflitos:[],candidatos:[]})
   total+=cost
-  return {numero,descricao,unidade,quantidade:quantityText(qty),valor_unitario:String(v.valor_unitario),valor_produto:(safeInt(cost,'Total')/100).toFixed(2)}
+  return {numero,descricao,unidade,quantidade:quantityText(qty),valor_unitario:String(v.valor_unitario),valor_produto:String(cost/100n)+'.'+String(cost%100n).padStart(2,'0')}
  })
  if(total<=0n)throw new Error('Total da nota manual deve ser positivo.')
- const totalText=(safeInt(total,'Total')/100).toFixed(2)
+ safeInt(total,'Total')
+ const totalText=String(total/100n)+'.'+String(total%100n).padStart(2,'0')
  const parsed={numero:clean(m.numero,'Número da nota',100),serie:clean(m.serie,'Série',30,true),emissao:fiscalDate(m.emissao),observacoes:clean(m.observacoes,'Observações',2000,true),fornecedor:supplier.nome,total:totalText,total_produtos:totalText,itens,parcelas:[]}
  return {parsed,company,supplier,recognized:{empresa_id:company.id,fornecedor_id:supplier.id,itens:recognized}}
 }
@@ -566,7 +567,7 @@ function createNfeIntegrationService(db,{parseXml,saveEntity}={}){
     fiscalDate(n.emissao)
     if(n.tipo_operacao!=='1'||n.finalidade!=='1'||classifyNfeOperation(n.itens)!=='compra')throw new Error('Somente NF-e de compra normal com CFOP reconhecido pode ser integrada. Devoluções, remessas e operações mistas exigem tratamento próprio.')
     }
-    const recognized=raw.manual?raw.manual.recognized:recognizeNfeMaterials(db,{empresa_id:company.id,fornecedor_id:supplier.id,documento:n.documento,itens:n.itens})
+    const recognized=raw.manual?manualNoteSource(db,payload).recognized:recognizeNfeMaterials(db,{empresa_id:company.id,fornecedor_id:supplier.id,documento:n.documento,itens:n.itens})
     const recognizedByNumber=new Map(recognized.itens.map(r=>[r.numero,r]))
     if(recognized.itens.some(r=>r.status!=='confirmado'))throw new Error('Confirme a equivalência de cada material antes de integrar.')
     const total=fixedDecimal(n.total,2,'Total fiscal')
