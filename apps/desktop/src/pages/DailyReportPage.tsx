@@ -7,6 +7,8 @@ import { brDate, brl, toCents, today } from '../utils/format'
 
 const blank = { obra_id: '', frente_id: '', data: today(), clima: 'ensolarado', status: 'rascunho', atividades: '', observacoes: '', equipe: [], equipamentos: [], ocorrencias: [] }
 
+import Obra360DayHistory from '../components/Obra360DayHistory'
+
 export default function DailyReportPage() {
   const [params] = useSearchParams()
   const requestedWork = params.get('obra') || ''
@@ -127,7 +129,7 @@ export default function DailyReportPage() {
       {error && <p role="alert">{error}</p>}{stock.readOnly && <p>Diário concluído. Reabra o diário para alterar o consumo.</p>}<fieldset disabled={stockBusy||stock.readOnly}>{stock.items.map((line:any,index:number)=><div className="row-actions" key={line.id}><span>{line.descricao} ({line.unidade})</span><input aria-label={'Quantidade de '+line.descricao} type="number" min="0.000001" step="any" required value={line.quantidade} onChange={e=>setStock({...stock,requestId:crypto.randomUUID(),items:stock.items.map((v:any,i:number)=>i===index?{...v,quantidade:e.target.value}:v)})}/><Button type="button" onClick={()=>setStock({...stock,requestId:crypto.randomUUID(),items:stock.items.filter((_:any,i:number)=>i!==index)})}>Remover</Button></div>)}
       <Field label="Adicionar material"><select value="" onChange={e=>{const m=stock.materials.find((v:any)=>v.id===e.target.value);if(m)setStock({...stock,requestId:crypto.randomUUID(),items:[...stock.items,{id:crypto.randomUUID(),material_id:m.id,descricao:m.descricao,unidade:m.unidade,quantidade:1}]})}}><option value="">Selecione no estoque da obra</option>{stock.materials.map((m:any)=><option key={m.id} value={m.id}>{m.descricao} — {m.saldo} {m.unidade}</option>)}</select></Field></fieldset>
       <Button type="submit" disabled={stockBusy||stock.readOnly}>Confirmar consumo</Button></div></form>}</Modal>
-    <Modal open={modal} title={form.id ? 'Editar RDO' : 'Novo RDO'} onClose={() => setModal(false)} size="xl"><form onSubmit={submit}><div className="modal-body">{error && <p role="alert">{error}</p>}
+    <Modal open={modal} title={form.id ? 'Editar RDO' : 'Novo RDO'} onClose={() => setModal(false)} size="xl"><form onSubmit={submit}><div className="modal-body">{error && <p role="alert">{error}</p>}<Obra360DayHistory workId={form.obra_id} date={form.data}/>
       <div className="form-grid form-grid-3">
         <Field label="Obra" required><select required disabled={!!form.id || !!form.equipe?.length || !!form.equipamentos?.length || !!form.ocorrencias?.length} value={form.obra_id} onChange={(event) => { setForm({ ...form, obra_id: event.target.value, frente_id: '' }); setWork(event.target.value) }}><option value="">Selecione</option>{works.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>
         <Field label="Etapa principal"><select value={form.frente_id || ''} onChange={(event) => setForm({ ...form, frente_id: event.target.value })}><option value="">Obra geral</option>{fronts.data?.map((item: any) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></Field>

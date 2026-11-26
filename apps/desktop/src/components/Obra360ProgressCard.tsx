@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ROUTES } from '../routes/registry'
 import { Button, Card, Empty, Loading } from './ui'
 import { useAsync } from '../hooks/useAsync'
 
@@ -20,6 +22,7 @@ export default function Obra360ProgressCard({ workId, disabled }: { workId: stri
   const progress = useAsync(() => workId && !disabled ? window.fluxoDre.online.obra360Progress(Number(workId)).catch(() => null) : Promise.resolve([]), [workId, disabled])
   const levels = useMemo(() => (floors.data || []).filter((f: any) => f.nivel !== null && f.nivel !== undefined).sort((a: any, b: any) => a.nivel - b.nivel), [floors.data])
   const current = level ?? (levels[0] ? Number(levels[0].nivel) : null)
+  const history = useAsync(() => workId && !disabled && current !== null ? window.fluxoDre.online.obra360History({ workId: Number(workId), nivel: current, limit: 30 }).catch(() => []) : Promise.resolve([]), [workId, disabled, current, progress.data])
   const byKey = useMemo(() => new Map((progress.data || []).map((p: Obra360Progress) => [`${p.nivel}|${p.service}`, p])), [progress.data])
 
   async function save(stageId: number, status: Obra360Progress['status'], checklist: Obra360Progress['checklist']) {
@@ -48,6 +51,8 @@ export default function Obra360ProgressCard({ workId, disabled }: { workId: stri
             <td>{p ? `${p.origin === 'escritorio' ? 'Escritório' : 'Celular'} · ${when(p.updatedAt)}` : <span className="muted">Sem registro</span>}</td></tr>
         })}
       </tbody></table></div>
+      <h3 style={{ marginTop: 16 }}>Histórico do pavimento</h3>
+      {(history.data || []).length ? <ul style={{ paddingLeft: 18 }}>{(history.data || []).map((h: Obra360HistoryEntry) => <li key={h.id}>{h.date.split('-').reverse().join('/')}{h.time ? ` ${h.time}` : ''} · {h.label}{h.origin === 'campo' ? ' (celular)' : ''}{h.rdoId ? <> · <Link to={`${ROUTES.dailyReport}?obra=${workId}`}>ver RDO do dia</Link></> : ''}</li>)}</ul> : <p className="muted">Nenhum registro neste pavimento ainda.</p>}
     </>}
     {error && <p role="alert" style={{ color: '#b42318' }}>{error}</p>}
   </Card>
