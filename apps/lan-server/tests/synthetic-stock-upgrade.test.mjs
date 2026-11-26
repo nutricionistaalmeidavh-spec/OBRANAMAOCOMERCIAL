@@ -18,7 +18,7 @@ test('atualiza base fictícia LAN 37 para 43 preservando todos os dados anterior
   const ids=seed(db);db.exec('COMMIT')
   const before=snapshot(db)
   repository.close();repository=new LanRepository({filename});db=repository.connection()
-  assert.deepEqual(repository.applyMigrations(current).applied,[38,39,40,41,42,43,44])
+  assert.deepEqual(repository.applyMigrations(current).applied,[38,39,40,41,42,43,44,45])
   db.exec('BEGIN IMMEDIATE');const catalog=check(db,ids,before);db.exec('COMMIT')
   repository.close();repository=new LanRepository({filename});db=repository.connection()
   assert.deepEqual(repository.applyMigrations(current).applied,[])

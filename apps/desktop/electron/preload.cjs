@@ -151,6 +151,8 @@ contextBridge.exposeInMainWorld('fluxoDre', {
     linkFieldRdo: (date, workId) => call('online:sync-link-field-rdo', { date, workId }),
     syncProjects: () => call('online:sync-projects'),
     fieldInbox: () => call('online:field-inbox-list'),
+    obra360Progress: (workId) => call('online:obra360-progress-list', { workId }),
+    saveObra360Progress: (input) => call('online:obra360-progress-save', input),
     applyFieldInbox: (id, funcionarioId, overwrite) => call('online:field-inbox-apply', { id, funcionarioId, overwrite }),
     dismissFieldInbox: (id) => call('online:field-inbox-dismiss', { id }),
     addSyncProject: (workId, remoteProjectId) => call('online:sync-add-project', { workId, remoteProjectId }),
