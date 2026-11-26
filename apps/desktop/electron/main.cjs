@@ -31,6 +31,7 @@ const { RhCatalogSourceService } = require('./services/rh-catalog-source-service
 const { RhSourceService } = require('./services/rh-source-service.cjs')
 const { RhDocumentService } = require('./services/rh-document-service.cjs')
 const { TimeService } = require('./services/time-service.cjs')
+const { locationsPdfHtml, floorProgress } = require('./services/location-pdf.cjs')
 const { ReceiptPolicyService } = require('./services/receipt-policy-service.cjs')
 const { ScannerService } = require('./services/scanner-service.cjs')
 const { WorkImportService } = require('./services/work-import-service.cjs')
@@ -355,6 +356,20 @@ function registerIpc() {
   ipcMain.handle('operational-sheet:p1-measurements', envelope(payload => services.operationalSheetP1.measurementOverview(payload)))
   ipcMain.handle('operational-sheet:p1-time-matrix', envelope(payload => services.operationalSheetP1.timeMatrix(payload)))
   ipcMain.handle('operational-sheet:p1-time-commit', envelope(payload => services.operationalSheetP1.commitTime(payload)))
+  ipcMain.handle('locais:export-pdf', envelope(async ({ obra_id, heat }) => {
+    const workId = Number(obra_id)
+    const [work, rows, counts] = await Promise.all([services.dataAccess.get('obras', workId), services.dataAccess.list('locais_obra', { obra_id: workId }), services.dataAccess.locationCounts(workId)])
+    if (!work) throw new Error('Obra não encontrada.')
+    let progress = null
+    if (heat) { try { progress = floorProgress(await services.sync.obra360('progressList', { workId })) } catch { progress = null } }
+    const safe = String(work.nome || 'obra').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80)
+    const target = await dialog.showSaveDialog(BrowserWindow.getFocusedWindow() || undefined, { title: 'Salvar mapa de locais', defaultPath: path.join(app.getPath('documents'), `Locais da obra - ${safe}.pdf`), filters: [{ name: 'PDF', extensions: ['pdf'] }] })
+    if (target.canceled || !target.filePath) return null
+    await services.time.printHtml(locationsPdfHtml({ work, rows, counts, progress }), target.filePath)
+    shell.openPath(target.filePath)
+    return { path: target.filePath }
+  }))
+  ipcMain.handle('locais:batch', envelope(({ obra_id, spec, dryRun }) => services.dataAccess.locationBatch(obra_id, spec, dryRun !== false)))
   ipcMain.handle('locais:counts', envelope(({ obra_id }) => services.dataAccess.locationCounts(obra_id)))
   ipcMain.handle('entity:list', envelope(({ table, filters }) => services.dataAccess.list(table, filters)))
   ipcMain.handle('entity:get', envelope(({ table, id }) => services.dataAccess.get(table, id)))

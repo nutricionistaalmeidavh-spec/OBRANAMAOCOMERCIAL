@@ -30,9 +30,14 @@ export function applyLanMigrations(db, migrationsDir) {
   for (const migration of migrations) {
     if (migration.version <= current) continue
     const sql = fs.readFileSync(migration.filename, 'utf8')
+    // A migration that rebuilds a table declares it; foreign keys are off only for it.
+    const foreignKeysOff = /^--\s*migration:foreign-keys-off/m.test(sql)
+    const foreignKeysBefore = foreignKeysOff ? Number(db.prepare('PRAGMA foreign_keys').get()?.foreign_keys || 0) : 0
+    if (foreignKeysOff) db.exec('PRAGMA foreign_keys = OFF;')
     db.exec('BEGIN IMMEDIATE;')
     try {
       db.exec(sql)
+      if (foreignKeysOff && db.prepare('PRAGMA foreign_key_check').all().length) throw new Error(`Migration ${migration.version} deixaria vínculos inválidos; nada foi alterado.`)
       db.exec(`PRAGMA user_version = ${migration.version};`)
       db.exec('COMMIT;')
       current = migration.version
@@ -40,6 +45,8 @@ export function applyLanMigrations(db, migrationsDir) {
     } catch (error) {
       try { db.exec('ROLLBACK;') } catch {}
       throw new Error(`Falha ao aplicar migration LAN ${migration.name}: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      if (foreignKeysOff && foreignKeysBefore) db.exec('PRAGMA foreign_keys = ON;')
     }
   }
 
