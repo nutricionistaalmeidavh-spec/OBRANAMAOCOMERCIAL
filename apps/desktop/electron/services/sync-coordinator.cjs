@@ -255,7 +255,7 @@ class SyncCoordinator {
   // Other PCs of a LAN (lan-client) read and edit straight on the server too.
   const provider=source==='lan-client'?this.dataProvider.lanProvider:this.dataProvider
   if(!provider?.obra360)throw new Error('Obra360 indisponível nesta fonte de dados.')
-  return provider.obra360(op,payload)
+  return provider.obra360(op,source==='lan-client'&&['pending','dismiss','applyItem'].includes(op)?{...payload,allWorks:true}:payload)
  }
  hasTable(name){try{return !!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name)}catch{return false}}
  extraRows(){return this.hasTable('desktop_sync_extra_scopes')?this.db.prepare('SELECT * FROM desktop_sync_extra_scopes ORDER BY id').all():[]}

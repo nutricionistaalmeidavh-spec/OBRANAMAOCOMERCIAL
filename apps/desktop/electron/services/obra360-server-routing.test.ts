@@ -23,6 +23,21 @@ describe('Obra360 no modo servidor', () => {
     const c = coordinator('lan-client', { lanProvider: { obra360 } })
     await expect(c.obra360('progressList', { workId: 3 })).resolves.toEqual([{ nivel: 0 }])
     expect(obra360).toHaveBeenCalledWith('progressList', { workId: 3 })
+    await c.obra360('pending', { workIds: [] })
+    expect(obra360).toHaveBeenLastCalledWith('pending', { workIds: [], allWorks: true })
+  })
+  it('avisa que o servidor precisa ser atualizado, sem chamar a rota', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require('./lan-sync-data-provider.cjs')
+    const Lan = mod.LanSyncDataProvider
+    const request = vi.fn()
+    const provider = Object.create(Lan.prototype)
+    Object.assign(provider, { lanClient: { request, syncSourceCapabilities: vi.fn().mockResolvedValue({ features: ['optimistic-concurrency-v1'] }) }, requireModule: vi.fn().mockResolvedValue(true) })
+    await expect(provider.obra360('pending', {})).rejects.toMatchObject({ code: 'SERVER_UPDATE_REQUIRED' })
+    expect(request).not.toHaveBeenCalled()
+    provider.lanClient.syncSourceCapabilities = vi.fn().mockResolvedValue({ features: ['obra360-field-inbox-v1'] })
+    request.mockResolvedValue([])
+    await expect(provider.obra360('pending', {})).resolves.toEqual([])
   })
   it('falha visível quando a fonte não tem Obra360', async () => {
     const c = coordinator('remote', {})
