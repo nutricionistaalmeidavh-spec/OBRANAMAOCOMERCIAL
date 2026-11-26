@@ -54,12 +54,12 @@ class FieldInbox {
       for (const issue of Array.isArray(state.issues) ? state.issues : []) {
         const item = rec(issue), id = String(item.id || '')
         if (!id) continue
-        const payload = { title: String(item.title || 'Pendência').slice(0, 200), reason: String(item.reason || '').slice(0, 2000), type: String(item.type || ''), floor: item.floor ?? null, service: String(item.service || ''), status: item.status === 'resolved' ? 'resolved' : 'open', external: !!item.external }
+        const payload = { title: String(item.title || 'Pendência').slice(0, 200), reason: String(item.reason || '').slice(0, 2000), type: String(item.type || ''), floor: item.floor ?? null, service: String(item.service || ''), status: item.status === 'resolved' ? 'resolved' : 'open', external: !!item.external, ...(Number.isSafeInteger(Number(item.placeId)) && Number(item.placeId) > 0 ? { placeId: Number(item.placeId) } : {}) }
         const result = this.upsert(scope, 'issue', id, payload)
         if (!applyTasks) { if (result.changed) this.db.prepare("UPDATE field_inbox SET payload_json=?,payload_hash=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").run(JSON.stringify(payload), result.digest, result.row.id); continue }
         if (result.created || (result.row.status === 'pending' && !result.row.local_id)) {
           const task = this.database.save('tarefas_obra', {
-            obra_id: Number(scope.workId), titulo: payload.title, ...this.floorLocal(scope.workId, payload.floor),
+            obra_id: Number(scope.workId), titulo: payload.title, ...this.floorLocal(scope.workId, payload.floor, payload.placeId),
             descricao: [payload.reason, payload.external ? 'Responsabilidade externa.' : '', 'Registrada no celular (Obra360).'].filter(Boolean).join('\n'),
             prioridade: payload.type === 'blocked' ? 'alta' : 'normal', status: payload.status === 'resolved' ? 'concluida' : 'aberta'
           })
@@ -214,11 +214,16 @@ class FieldInbox {
   }
 
   /** Pavimento of the phone record, matched by floor level only (never by name). */
-  floorLocal(workId, floor) {
+  floorLocal(workId, floor, placeId = null) {
     const level = Number(floor)
-    if (floor === null || floor === undefined || floor === '' || !Number.isSafeInteger(level)) return {}
     try {
       if (!this.db.prepare("SELECT 1 FROM pragma_table_info('tarefas_obra') WHERE name='local_id'").get()) return {}
+      // A complement picked on the phone, by its canonical id, if it is still of this work.
+      if (placeId) {
+        const place = this.db.prepare('SELECT id FROM locais_obra WHERE id=? AND obra_id=?').get(Number(placeId), Number(workId))
+        if (place) return { local_id: place.id }
+      }
+      if (floor === null || floor === undefined || floor === '' || !Number.isSafeInteger(level)) return {}
       const row = this.db.prepare('SELECT id FROM locais_obra WHERE obra_id=? AND nivel=?').get(Number(workId), level)
       return row ? { local_id: row.id } : {}
     } catch { return {} }
@@ -253,7 +258,7 @@ class FieldInbox {
     if (!row || row.status !== 'pending' || !workIds.map(Number).includes(Number(row.work_id))) throw new Error('Registro do celular não encontrado ou já conferido.')
     const payload = row.payload
     if (row.kind === 'issue') {
-      const task = this.database.save('tarefas_obra', { obra_id: Number(row.work_id), ...this.floorLocal(row.work_id, payload.floor), titulo: String(payload.title || 'Pendência').slice(0, 200), descricao: [payload.reason, 'Registrada no celular (Obra360).'].filter(Boolean).join('\n'), prioridade: payload.type === 'blocked' ? 'alta' : 'normal', status: payload.status === 'resolved' ? 'concluida' : 'aberta' })
+      const task = this.database.save('tarefas_obra', { obra_id: Number(row.work_id), ...this.floorLocal(row.work_id, payload.floor, payload.placeId), titulo: String(payload.title || 'Pendência').slice(0, 200), descricao: [payload.reason, 'Registrada no celular (Obra360).'].filter(Boolean).join('\n'), prioridade: payload.type === 'blocked' ? 'alta' : 'normal', status: payload.status === 'resolved' ? 'concluida' : 'aberta' })
       this.mark(id, 'applied', { localTable: 'tarefas_obra', localId: task.id })
       return { ok: true, taskId: task.id }
     }
