@@ -73,8 +73,8 @@ async function scenario(slug,title,seedOpts,fn){
       recordVideo:{dir,size:{width:1280,height:800}}})
     const page=await app.firstWindow({timeout:90000})
     await page.setViewportSize({width:1280,height:800})
-    await page.waitForLoadState('domcontentloaded')
-    await sleep(2500)
+    await page.locator('body').waitFor({state:'attached',timeout:60000})
+    await sleep(4000)
     await setContext(page,ids)
     await sleep(1500)
     try{await fn(page,ids)}catch(e){
