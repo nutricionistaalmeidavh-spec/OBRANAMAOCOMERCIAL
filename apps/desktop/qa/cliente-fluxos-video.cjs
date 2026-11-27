@@ -81,6 +81,7 @@ async function scenario(slug,title,seedOpts,fn){
     try{await fn(page,ids)}catch(e){
       status='falha';detail=String(e.message||e).slice(0,600)
       await page.screenshot({path:path.join(out,slug+'-FALHA.png')}).catch(()=>{})
+      detail+=' | TELA: '+((await page.locator('main').innerText().catch(()=>''))||'').replace(/\s+/g,' ').slice(0,500)
     }
     await sleep(1500)
   }catch(e){status='falha';detail=String(e.message||e).slice(0,600)}
@@ -98,6 +99,7 @@ const pick=(page,placeholder)=>page.locator('select').filter({has:page.locator('
 async function main(){
   await scenario('01-folha-de-pagamento','Folha e pagamentos — funcionários aparecem na lista',{employees:true},async(page)=>{
     await go(page,'#/rh/folha')
+    await page.locator('.payroll-tabs').getByText('Funcionários',{exact:true}).click()
     await caption(page,'Controle de pagamento: antes a lista de funcionários aparecia vazia')
     const sel=pick(page,'Selecione um funcionário')
     await sel.waitFor({state:'visible',timeout:30000})
@@ -116,6 +118,7 @@ async function main(){
   })
   await scenario('03-funcionarios-sem-cadastro','Folha e ponto — aviso quando não há funcionários',{},async(page)=>{
     await go(page,'#/rh/folha')
+    await page.locator('.payroll-tabs').getByText('Funcionários',{exact:true}).click()
     await caption(page,'Sem funcionários cadastrados, a tela agora explica o que fazer')
     await page.getByText('Nenhum funcionário ativo cadastrado').first().waitFor({state:'visible',timeout:30000})
     await caption(page,'O botão "Ir para Funcionários" leva direto ao cadastro')
