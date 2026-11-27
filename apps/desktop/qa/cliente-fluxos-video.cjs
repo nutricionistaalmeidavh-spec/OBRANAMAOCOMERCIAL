@@ -60,6 +60,7 @@ async function setContext(page,ids){
   await page.evaluate(([k,v])=>localStorage.setItem(k,v),['artisys.commercial.work-context.v1',JSON.stringify({competencia:competence,empresaId:String(ids.company),obraId:String(ids.work)})])
   await page.evaluate(()=>{setTimeout(()=>location.reload(),50)});await sleep(5000)
 }
+async function focus(loc){await loc.first().evaluate(e=>e.scrollIntoView({block:'center',behavior:'smooth'}));await sleep(900)}
 async function chooseWork(page){
   const sel=page.locator('select').filter({has:page.locator('option',{hasText:'Residencial Monte Real'})}).first()
   await sel.waitFor({state:'visible',timeout:30000})
@@ -79,10 +80,10 @@ async function scenario(slug,title,seedOpts,fn){
     await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];w.setFullScreen(false);w.setBounds({x:0,y:0,width:1280,height:800})})
     await page.locator('body').waitFor({state:'attached',timeout:60000})
     await sleep(4000)
-    rec=spawn('ffmpeg',['-y','-loglevel','error','-f','x11grab','-video_size','1280x800','-framerate','15','-i',process.env.DISPLAY+'.0+0,0','-c:v','libx264','-preset','veryfast','-pix_fmt','yuv420p',path.join(out,slug+'.mp4')],{stdio:['pipe','inherit','inherit']})
-    await sleep(1500)
     await setContext(page,ids)
     await sleep(1500)
+    rec=spawn('ffmpeg',['-y','-loglevel','error','-f','x11grab','-video_size','1280x800','-framerate','15','-i',process.env.DISPLAY+'.0+0,0','-c:v','libx264','-preset','veryfast','-pix_fmt','yuv420p',path.join(out,slug+'.mp4')],{stdio:['pipe','inherit','inherit']})
+    await sleep(500)
     try{await fn(page,ids)}catch(e){
       status='falha';detail=String(e.message||e).slice(0,600)
       await page.screenshot({path:path.join(out,slug+'-FALHA.png')}).catch(()=>{})
@@ -142,7 +143,8 @@ async function main(){
     await caption(page,'Agora o campo avisa que falta cadastrar etapas e oferece o link "Criar etapa"')
     await page.getByRole('link',{name:'Criar etapa'}).click()
     await sleep(1500)
-    await caption(page,'O link leva para Etapas e subetapas, onde a etapa é cadastrada')
+    await chooseWork(page)
+    await caption(page,'O link leva para Etapas e subetapas: escolhendo a obra, o botão "Nova etapa" cadastra a etapa')
   })
   await scenario('05-importacao-xml-nota-fiscal','Compras — importação do XML guiada passo a passo',{catalog:true},async(page,ids)=>{
     await go(page,'#/compras')
@@ -152,13 +154,16 @@ async function main(){
     const file=page.locator('input[type=file][accept=".xml,application/xml,text/xml"]')
     await file.setInputFiles({name:'nota-4321.xml',mimeType:'application/xml',buffer:Buffer.from(nfeXml(ids.cnpj))})
     await page.getByText('Próximo passo:').first().waitFor({state:'visible',timeout:30000})
+    await focus(page.getByText('Próximo passo:'))
     await caption(page,'A leitura do XML mostra os itens, e agora um quadro "Próximo passo" diz o que fazer')
-    await page.getByText(/ainda não lançou nada/).first().scrollIntoViewIfNeeded().catch(()=>{})
+    await focus(page.getByText(/ainda não lançou nada/))
     await caption(page,'O texto deixa claro: a leitura ainda não lançou nada no estoque nem no financeiro')
     const reg=page.getByRole('button',{name:'Cadastrar fornecedor com os dados da nota'})
     await reg.waitFor({state:'visible',timeout:20000})
+    await focus(reg)
     await caption(page,'Fornecedor da nota não cadastrado: antes o sistema só avisava e travava')
-    await reg.click()
+    await reg.click();await sleep(1500)
+    await focus(page.getByText('Próximo passo:'))
     await caption(page,'O botão cadastra o fornecedor com o nome e o CNPJ do próprio XML')
     const batch=page.getByRole('button',{name:/Confirmar \d+ vínculo/})
     if(await batch.count()){
@@ -171,7 +176,7 @@ async function main(){
     const prep=page.getByRole('button',{name:'Preparar importação integrada'})
     if(await prep.count()){
       await caption(page,'Com os materiais conferidos, "Preparar importação integrada" libera os destinos e parcelas')
-      await prep.click();await sleep(1500)
+      await focus(prep);await prep.click();await sleep(1500)
     }
     await caption(page,'Só depois de "Confirmar importação" a nota entra em Compras, Estoque e Financeiro')
   })
