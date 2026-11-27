@@ -138,7 +138,7 @@ async function main(){
     await page.getByRole('button',{name:'Nova programação'}).click()
     await page.getByText('Programação da etapa').first().waitFor({state:'visible',timeout:30000})
     await caption(page,'Antes o campo Etapa da obra abria vazio, sem explicação')
-    await page.getByText('Nenhuma etapa cadastrada nesta obra').first().waitFor({state:'visible',timeout:15000})
+    await page.getByText(/Cadastre as etapas da obra em/).first().waitFor({state:'visible',timeout:15000})
     await caption(page,'Agora o campo avisa que falta cadastrar etapas e oferece o link "Criar etapa"')
     await page.getByRole('link',{name:'Criar etapa'}).click()
     await sleep(1500)
