@@ -30,7 +30,7 @@ function seed(dataDir,opts={}){
   const work=db.save('obras',{empresa_id:company.id,nome:'Residencial Monte Real',codigo:'MR-01'})
   const ids={company:company.id,work:work.id,cnpj:'12345678000124'}
   if(opts.employees){
-    const cargo=db.save('cargos',{nome:'Encanador',salario_base_centavos:350000})
+    const cargo=db.db.prepare('SELECT id FROM cargos ORDER BY id LIMIT 1').get()||db.save('cargos',{nome:'Encanador',salario_base_centavos:350000})
     // status gravado com maiúscula, como uma planilha importada: era o caso que deixava a lista vazia
     for(const [nome,cpf] of [['Carlos Almeida','11122233396'],['Marcos Pereira','22233344405'],['Rafael Souza','33344455514']])
       db.save('funcionarios',{empresa_id:company.id,obra_atual_id:work.id,cargo_id:cargo.id,nome,cpf,admissao:today,salario:3500,status:'Ativo'})
@@ -65,9 +65,9 @@ async function go(page,hash){await page.evaluate(h=>{location.hash=h},hash);awai
 async function scenario(slug,title,seedOpts,fn){
   const dir=path.join(out,'_raw',slug);fs.mkdirSync(dir,{recursive:true})
   const dataDir=fs.mkdtempSync(path.join(os.tmpdir(),'obranamao-cliente-'))
-  const ids=seed(dataDir,seedOpts)
-  let app,status='ok',detail=''
+  let app,status='ok',detail='',ids
   try{
+    ids=seed(dataDir,seedOpts)
     app=await electron.launch({executablePath:require('electron'),args:['.','--no-sandbox','--disable-gpu'],cwd:root,timeout:90000,
       env:{...process.env,NODE_ENV:'test',ARTISYS_QA:'1',OBRA_NA_MAO_DATA_DIR:dataDir,ELECTRON_DISABLE_SECURITY_WARNINGS:'true'},
       recordVideo:{dir,size:{width:1280,height:800}}})
