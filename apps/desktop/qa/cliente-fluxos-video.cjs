@@ -58,7 +58,7 @@ async function caption(page,text){
 
 async function setContext(page,ids){
   await page.evaluate(([k,v])=>localStorage.setItem(k,v),['artisys.commercial.work-context.v1',JSON.stringify({competencia:competence,empresaId:String(ids.company),obraId:String(ids.work)})])
-  await page.reload();await page.waitForLoadState('domcontentloaded')
+  await page.evaluate(()=>{setTimeout(()=>location.reload(),50)});await sleep(5000)
 }
 async function go(page,hash){await page.evaluate(h=>{location.hash=h},hash);await sleep(1200)}
 
