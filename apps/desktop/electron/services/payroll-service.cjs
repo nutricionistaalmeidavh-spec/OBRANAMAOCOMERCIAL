@@ -18,7 +18,7 @@ class PayrollService {
     const cargo = employee.cargo_id ? this.db.get('cargos', employee.cargo_id) : null
     let sheet = this.db.db.prepare('SELECT * FROM folhas_pagamento WHERE empresa_id IS ? AND competencia=?').get(employee.empresa_id || null, competencia)
     if (!sheet) sheet = this.db.save('folhas_pagamento', { empresa_id: employee.empresa_id || null, competencia, status: 'aberta' })
-    const companyEmployees = this.db.db.prepare("SELECT * FROM funcionarios WHERE empresa_id IS ? AND deleted_at IS NULL AND status='ativo' ORDER BY id").all(employee.empresa_id || null)
+    const companyEmployees = this.db.db.prepare("SELECT * FROM funcionarios WHERE empresa_id IS ? AND deleted_at IS NULL AND LOWER(TRIM(COALESCE(status,'')))='ativo' ORDER BY id").all(employee.empresa_id || null)
     for (const person of companyEmployees) {
       const paid = this.db.db.prepare("SELECT COUNT(*) total FROM pagamentos_funcionario WHERE funcionario_id=? AND competencia=? AND status='pago'").get(person.id, competencia).total
       if (!paid) this.syncFixed(sheet, person, person.cargo_id ? this.db.get('cargos', person.cargo_id) : null)
@@ -172,7 +172,7 @@ class PayrollService {
     const empresaId = Number(payload.empresa_id) || null
     const obraId = Number(payload.obra_id) || null
 
-    const employeeWhere = ["deleted_at IS NULL", "status='ativo'"]
+    const employeeWhere = ["deleted_at IS NULL", "LOWER(TRIM(COALESCE(status,'')))='ativo'"]
     const employeeParams = []
     if (empresaId) { employeeWhere.push('empresa_id=?'); employeeParams.push(empresaId) }
     if (obraId) { employeeWhere.push('obra_atual_id=?'); employeeParams.push(obraId) }
@@ -211,7 +211,7 @@ class PayrollService {
   importUndo(importacaoId) { const result=this.importEngine.undo(importacaoId);const sheets=this.db.db.prepare('SELECT * FROM folhas_pagamento').all();for(const sheet of sheets)this.syncPayrollAccount(sheet);return result }
 
   pending(competencia) {
-    const employees = this.db.db.prepare("SELECT * FROM funcionarios WHERE deleted_at IS NULL AND status='ativo' ORDER BY nome COLLATE NOCASE").all()
+    const employees = this.db.db.prepare("SELECT * FROM funcionarios WHERE deleted_at IS NULL AND LOWER(TRIM(COALESCE(status,'')))='ativo' ORDER BY nome COLLATE NOCASE").all()
     const result = []
     for (const employee of employees) {
       const data = this.getEmployee({ funcionario_id: employee.id, competencia })

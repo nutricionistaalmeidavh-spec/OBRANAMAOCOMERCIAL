@@ -1,3 +1,5 @@
+import { ROUTES } from '../routes/registry'
+import { Link } from 'react-router-dom'
 import ReceiptPolicySelection from '../components/ReceiptPolicySelection'
 import TimeMatrixPanel from '../components/TimeMatrixPanel'
 import FieldInboxCard from '../components/FieldInboxCard'
@@ -27,7 +29,7 @@ export default function TimeSheetPage(){
   const [policySaving,setPolicySaving]=useState(false)
   const policyState=useCallback((ready:boolean,saving:boolean)=>{setPolicyReady(ready);setPolicySaving(saving)},[])
   const documentBusy=busy||policySaving||!policyReady
-  const employees=useAsync(()=>window.fluxoDre.funcionarios.list({status:'ativo'}),[])
+  const employees=useAsync(()=>window.fluxoDre.funcionarios.list().then((rows:any[])=>rows.filter(row=>!['inativo','inativa'].includes(String(row.status||'').trim().toLowerCase()))),[])
   const cargos=useAsync(()=>window.fluxoDre.cargos.list(),[])
   const point=useAsync(()=>employee?window.fluxoDre.ponto.get({funcionario_id:Number(employee),competencia}):Promise.resolve(null),[employee,competencia,version])
   useEffect(()=>setMarks(point.data?.marks||[]),[point.data])
@@ -65,7 +67,7 @@ export default function TimeSheetPage(){
       <div className="row-actions" style={{justifyContent:'flex-end',flexWrap:'wrap',padding:'0 14px 14px'}}><Button variant="secondary" onClick={()=>setBatchOpen(false)} disabled={busy}>Cancelar</Button><Button variant="secondary" icon={<FileDown size={15}/>} onClick={generateAll} disabled={documentBusy}>Somente gerar</Button><Button variant="secondary" icon={<RotateCcw size={15}/>} onClick={reprintAll} disabled={documentBusy}>Reimprimir</Button><Button icon={<Printer size={15}/>} onClick={printAll} disabled={documentBusy}>Imprimir</Button></div>
     </Card>}
 
-    {!employee?<Card><Empty title="Selecione um funcionário" description="Escolha um colaborador para revisar as marcações e gerar os documentos da competência."/></Card>:point.loading?<Card><Loading label="Carregando ficha de ponto..."/></Card>:<>
+    {!employee?<Card><Empty title={employees.data&&!employees.data.length?"Nenhum funcionário ativo cadastrado":"Selecione um funcionário"} description={employees.data&&!employees.data.length?"Cadastre ou ative um funcionário em RH para gerar a ficha de ponto.":"Escolha um colaborador para revisar as marcações e gerar os documentos da competência."} action={employees.data&&!employees.data.length?<Link className="button button-secondary" to={ROUTES.rhEmployees}>Ir para Funcionários</Link>:undefined}/></Card>:point.loading?<Card><Loading label="Carregando ficha de ponto..."/></Card>:<>
       <div className="time-banner"><div><strong>{selected?.nome}</strong><span>CPF {selected?.cpf||'não informado'} · {cargo?.nome||'Sem cargo'} · {competenceLabel(competencia)}</span></div><div className="time-schedule"><span>Jornada prevista</span><b>{point.data?.point.jornada_inicio} - {point.data?.point.intervalo_inicio} / {point.data?.point.intervalo_fim} - {point.data?.point.jornada_fim}</b></div><Status value={point.data?.point.status||'rascunho'}/></div>
       <Card style={{marginTop:14}}>
         <div className="card-header" style={{cursor:'pointer'}} onClick={()=>setMarksOpen((value)=>!value)}>

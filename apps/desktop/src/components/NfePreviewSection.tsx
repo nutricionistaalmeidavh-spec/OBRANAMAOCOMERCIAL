@@ -28,6 +28,46 @@ export default function NfePreviewSection({obraId,onImported}:{obraId:number|nul
   const [review,setReview]=useState<{numero:string;candidate:Candidate;num:string;den:string;confirmed:boolean}|null>(null)
   const [page,setPage]=useState(0)
   const lock=useRef(false)
+  const [batchOk,setBatchOk]=useState(false)
+  const supplierMissing=recognitionError.startsWith('Cadastre o fornecedor')
+  const registerSupplier=async()=>{
+    if(!preview||lock.current)return
+    lock.current=true;setBusy(true);setRecognitionError('')
+    try{
+      await window.fluxoDre.fornecedores.save({nome:preview.fornecedor,documento:preview.documento,status:'ativo'})
+      lock.current=false
+      await recognize(xmlBase64)
+    }catch(e){setRecognitionError(e instanceof Error?e.message:'Não foi possível cadastrar o fornecedor.')}
+    finally{lock.current=false;setBusy(false)}
+  }
+  const suggested=(recognition?.itens||[]).filter(i=>i.status!=='confirmado'&&i.candidatos.length===1&&!i.candidatos[0].conflitos.length&&!i.candidatos[0].conversao_necessaria)
+  const confirmSuggested=async()=>{
+    if(!recognition||!preview||!batchOk||lock.current)return
+    lock.current=true;setBusy(true);setRecognitionError('')
+    try{
+      for(const row of suggested){
+        const item=preview.itens.find(i=>i.numero===row.numero);if(!item)continue
+        await window.fluxoDre.compras.catalogConfirm({empresa_id:recognition.empresa_id,fornecedor_id:recognition.fornecedor_id,material_id:row.candidatos[0].material_id,codigo:item.codigo,unidade_comercial:item.unidade,descricao_origem:item.descricao,gtin:/^(?:\d{8}|\d{12}|\d{13}|\d{14})$/.test(item.gtin)?item.gtin:'',fator_num:1,fator_den:1})
+      }
+      setBatchOk(false)
+      lock.current=false
+      await recognize(xmlBase64)
+    }catch(e){setRecognitionError(e instanceof Error?e.message:'Não foi possível confirmar os vínculos.')}
+    finally{lock.current=false;setBusy(false)}
+  }
+  const confirmedCount=recognition?recognition.itens.filter(i=>i.status==='confirmado').length:0
+  const allConfirmed=!!recognition&&recognition.itens.length>0&&confirmedCount===recognition.itens.length
+  const steps=[
+    {label:'Fornecedor',done:!!recognition},
+    {label:'Materiais',done:allConfirmed},
+    {label:'Destinos e financeiro',done:false}
+  ]
+  const nextStep=!obraId?'Escolha a obra para continuar.'
+    :supplierMissing?'Falta cadastrar o fornecedor da nota. Use o botão abaixo: ele cadastra com o nome e o CNPJ do XML.'
+    :!recognition?'Aguardando o reconhecimento da nota. Toque em "Atualizar reconhecimento".'
+    :!recognition.elegivel_compra?'Esta nota não pode ser integrada automaticamente. Revise os avisos acima.'
+    :!allConfirmed?'Confirme o vínculo de cada material ('+confirmedCount+'/'+recognition.itens.length+'). Itens sem correspondência precisam existir no catálogo de Estoque.'
+    :'Tudo conferido. Toque em "Preparar importação integrada" abaixo para escolher destinos e parcelas e confirmar.'
   const recognize=async(source:string)=>{
     if(!obraId)return
     setRecognition(null);setRecognitionError('');setReview(null);setPage(0)
@@ -71,15 +111,19 @@ export default function NfePreviewSection({obraId,onImported}:{obraId:number|nul
       {preview&&<><div className="row-actions"><strong>{fileName}</strong><Button variant="secondary" disabled={busy} onClick={()=>{setPreview(null);setXmlBase64('');setFileName('');setError('');setRecognition(null);setRecognitionError('');setReview(null)}}>Limpar prévia</Button></div>
         <dl><dt>Fornecedor</dt><dd>{preview.fornecedor} — {preview.documento}</dd><dt>Nota e série</dt><dd>{preview.numero} / {preview.serie}</dd><dt>Chave de acesso</dt><dd style={{overflowWrap:'anywhere'}}>{preview.chave}</dd><dt>Emissão</dt><dd>{brDate(preview.emissao)}</dd><dt>Total fiscal</dt><dd>{money(preview.total)}</dd><dt>Protocolo</dt><dd>{preview.protocolo||'Não consta no XML'} {preview.status?'(status informado no arquivo '+preview.status+')':''}</dd></dl>
         <OperationalSheetGrid area="compras" title="Itens do XML — somente conferência" rows={preview.itens.map(i=>({...i,id:i.numero}))} columns={columns} showImport={false} filename={'nfe-'+preview.numero}/>
+        <ol className="row-actions" aria-label="Etapas da importação" style={{listStyle:'none',padding:0}}>{steps.map((st,i)=><li key={st.label}><strong>{i+1}. {st.label}</strong> {st.done?'✓':''}</li>)}</ol>
+        <div className="notice" role="status"><strong>Próximo passo:</strong> {nextStep}</div>
         <h3>Reconhecimento de materiais</h3>
         <p>Consulta determinística do catálogo da empresa. Sugestões não criam lançamentos e exigem confirmação.</p>
         {recognitionError&&<p role="alert">{recognitionError}</p>}
+        {supplierMissing&&<div className="row-actions"><Button disabled={busy} onClick={()=>void registerSupplier()}>Cadastrar fornecedor com os dados da nota</Button><small>{preview.fornecedor} — {preview.documento}</small></div>}
         <Button variant="secondary" disabled={busy} onClick={async()=>{if(lock.current)return;lock.current=true;setBusy(true);try{await recognize(xmlBase64)}finally{lock.current=false;setBusy(false)}}}>Atualizar reconhecimento</Button>
         {recognition&&<>
           {recognition.registro_existente&&<p role="status">Nota já registrada (#{recognition.registro_existente.id}). A importação deve preservar o registro anterior.</p>}
           {!recognition.elegivel_compra&&<p role="status">Esta nota não está elegível para integração automática como compra. Revise ambiente, finalidade, protocolo, classificação e eventual duplicidade.</p>}
           {recognition.pedidos_referenciados.map(ref=><p key={ref.referencia}>Referência de pedido {ref.referencia}: {ref.pedidos.length?ref.pedidos.map(p=>p.numero+' — '+p.obra_nome+' ('+p.status+')').join('; '):'nenhum pedido correspondente encontrado'}. Confira antes de conciliar.</p>)}
           <p><strong>Classificação: {operationLabels[recognition.operacao]||'Revisar'}</strong> · {recognition.itens.filter(i=>i.status==='confirmado').length}/{recognition.itens.length} vínculos confirmados</p>
+          {suggested.length>0&&<div className="card-body"><p>{suggested.length} item(ns) têm uma única sugestão, sem divergência e sem conversão de unidade.</p><label><input type="checkbox" checked={batchOk} onChange={e=>setBatchOk(e.target.checked)}/> Conferi material, especificações e unidade desses itens (equivalência 1 para 1). Salvar para próximas notas deste fornecedor.</label><div className="row-actions"><Button disabled={busy||!batchOk} onClick={()=>void confirmSuggested()}>Confirmar {suggested.length} vínculo(s) sugerido(s)</Button></div></div>}
           {recognition.itens.slice(page*20,page*20+20).map(row=>{
             const item=preview.itens.find(i=>i.numero===row.numero)
             return <section key={row.numero} style={{padding:'12px 0',borderBottom:'1px solid var(--border)'}}>
@@ -102,7 +146,7 @@ export default function NfePreviewSection({obraId,onImported}:{obraId:number|nul
         <h3>Parcelas informadas no XML</h3>
         {preview.parcelas.length?<ul>{preview.parcelas.map((p,i)=><li key={i}>{p.numero} — {p.vencimento?brDate(p.vencimento):'Sem vencimento'} — {money(p.valor)}</li>)}</ul>:<p>Nenhuma duplicata informada. Não é possível inferir vencimentos.</p>}
         {!busy&&!error&&obraId&&recognition?.elegivel_compra&&recognition.itens.every(i=>i.status==='confirmado')&&<NfeCommitPanel key={preview.chave} obraId={obraId} preview={preview} recognition={recognition} source={xmlBase64} onImported={async()=>{onImported?.();await recognize(xmlBase64)}}/>}
-        <p role="status">Prévia concluída. A conferência isolada não movimenta estoque ou financeiro. A importação integrada exige confirmação separada.</p>
+        <p role="status">A leitura do XML ainda não lançou nada no estoque nem no financeiro. O lançamento só acontece depois de "Confirmar importação".</p>
       </>}
     </div>
   </Card>
