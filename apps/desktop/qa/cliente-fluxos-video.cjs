@@ -1,7 +1,7 @@
 'use strict'
 // Grava em vídeo, no Electron Desktop REAL e em banco isolado, os fluxos que a cliente
 // reportou com dificuldade (nov/2026). Playwright é dependência só de CI.
-const fs=require('node:fs'),os=require('node:os'),path=require('node:path')
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawn}=require('node:child_process')
 const { _electron: electron }=require('playwright')
 const { DatabaseService }=require('../electron/services/database-safe.cjs')
 const root=path.resolve(__dirname,'..')
@@ -65,16 +65,17 @@ async function go(page,hash){await page.evaluate(h=>{location.hash=h},hash);awai
 async function scenario(slug,title,seedOpts,fn){
   const dir=path.join(out,'_raw',slug);fs.mkdirSync(dir,{recursive:true})
   const dataDir=fs.mkdtempSync(path.join(os.tmpdir(),'obranamao-cliente-'))
-  let app,status='ok',detail='',ids
+  let app,rec,status='ok',detail='',ids
   try{
     ids=seed(dataDir,seedOpts)
     app=await electron.launch({executablePath:require('electron'),args:['.','--no-sandbox','--disable-gpu'],cwd:root,timeout:90000,
-      env:{...process.env,NODE_ENV:'test',ARTISYS_QA:'1',OBRA_NA_MAO_DATA_DIR:dataDir,ELECTRON_DISABLE_SECURITY_WARNINGS:'true'},
-      recordVideo:{dir,size:{width:1280,height:800}}})
+      env:{...process.env,NODE_ENV:'test',ARTISYS_QA:'1',OBRA_NA_MAO_DATA_DIR:dataDir,ELECTRON_DISABLE_SECURITY_WARNINGS:'true'}})
     const page=await app.firstWindow({timeout:90000})
-    await page.setViewportSize({width:1280,height:800})
+    await app.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];w.setFullScreen(false);w.setBounds({x:0,y:0,width:1280,height:800})})
     await page.locator('body').waitFor({state:'attached',timeout:60000})
     await sleep(4000)
+    rec=spawn('ffmpeg',['-y','-loglevel','error','-f','x11grab','-video_size','1280x800','-framerate','15','-i',process.env.DISPLAY+'.0+0,0','-c:v','libx264','-preset','veryfast','-pix_fmt','yuv420p',path.join(out,slug+'.mp4')],{stdio:['pipe','inherit','inherit']})
+    await sleep(1500)
     await setContext(page,ids)
     await sleep(1500)
     try{await fn(page,ids)}catch(e){
@@ -83,10 +84,12 @@ async function scenario(slug,title,seedOpts,fn){
     }
     await sleep(1500)
   }catch(e){status='falha';detail=String(e.message||e).slice(0,600)}
-  finally{if(app)await app.close().catch(()=>{})}
-  const vids=fs.existsSync(dir)?fs.readdirSync(dir).filter(f=>f.endsWith('.webm')):[]
-  if(vids[0])fs.renameSync(path.join(dir,vids[0]),path.join(out,slug+'.webm'))
-  results.push({slug,title,status,detail,video:vids[0]?slug+'.webm':null})
+  finally{
+    if(rec){await new Promise(r=>{rec.on('close',r);try{rec.stdin.write('q')}catch{r()};setTimeout(()=>{rec.kill('SIGINT')},8000)})}
+    if(app)await app.close().catch(()=>{})
+  }
+  const has=fs.existsSync(path.join(out,slug+'.mp4'))
+  results.push({slug,title,status,detail,video:has?slug+'.mp4':null})
   console.log(slug,status,detail)
 }
 
