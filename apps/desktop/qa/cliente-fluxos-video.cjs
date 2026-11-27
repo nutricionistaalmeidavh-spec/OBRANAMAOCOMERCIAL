@@ -60,6 +60,11 @@ async function setContext(page,ids){
   await page.evaluate(([k,v])=>localStorage.setItem(k,v),['artisys.commercial.work-context.v1',JSON.stringify({competencia:competence,empresaId:String(ids.company),obraId:String(ids.work)})])
   await page.evaluate(()=>{setTimeout(()=>location.reload(),50)});await sleep(5000)
 }
+async function chooseWork(page){
+  const sel=page.locator('select').filter({has:page.locator('option',{hasText:'Residencial Monte Real'})}).first()
+  await sel.waitFor({state:'visible',timeout:30000})
+  await sel.selectOption({label:'Residencial Monte Real'});await sleep(1500)
+}
 async function go(page,hash){await page.evaluate(h=>{location.hash=h},hash);await sleep(1200)}
 
 async function scenario(slug,title,seedOpts,fn){
@@ -128,6 +133,7 @@ async function main(){
   })
   await scenario('04-cronograma-etapa-da-obra','Cronograma — campo Etapa da obra',{},async(page,ids)=>{
     await go(page,'#/planejamento')
+    await chooseWork(page)
     await caption(page,'Cronograma: a obra ainda não tem etapas cadastradas')
     await page.getByRole('button',{name:'Nova programação'}).click()
     await page.getByText('Programação da etapa').first().waitFor({state:'visible',timeout:30000})
@@ -140,6 +146,7 @@ async function main(){
   })
   await scenario('05-importacao-xml-nota-fiscal','Compras — importação do XML guiada passo a passo',{catalog:true},async(page,ids)=>{
     await go(page,'#/compras')
+    await chooseWork(page)
     await page.getByRole('heading',{name:'Compras e materiais',exact:true}).waitFor({state:'visible',timeout:30000})
     await caption(page,'Compras e materiais: vamos importar a nota fiscal (XML)')
     const file=page.locator('input[type=file][accept=".xml,application/xml,text/xml"]')
