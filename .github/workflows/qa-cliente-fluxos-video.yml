@@ -1,0 +1,54 @@
+name: QA video - fluxos reportados pela cliente
+
+on:
+  push:
+    branches: [qa/cliente-fluxos-video]
+    paths:
+      - '.github/workflows/qa-cliente-fluxos-video.yml'
+      - 'apps/desktop/qa/cliente-fluxos-video.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install Desktop dependencies
+        working-directory: apps/desktop
+        run: npm install --workspaces=false --no-audit --no-fund
+      - name: Build production renderer
+        working-directory: apps/desktop
+        run: npm run build
+      - name: Install Playwright test driver (isolated)
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pw" --no-audit --no-fund --no-save playwright@1.62.1
+          node "$RUNNER_TEMP/pw/node_modules/playwright/cli.js" install-deps chromium
+      - name: Record customer flows in the real Electron app
+        working-directory: apps/desktop
+        env:
+          NODE_ENV: test
+          ARTISYS_QA: '1'
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: xvfb-run -a -s "-screen 0 1280x800x24" node qa/cliente-fluxos-video.cjs
+      - name: Convert to MP4
+        if: always()
+        working-directory: apps/desktop/qa-artifacts/cliente-fluxos
+        run: |
+          for f in *.webm; do [ -e "$f" ] && ffmpeg -y -loglevel error -i "$f" -c:v libx264 -pix_fmt yuv420p -movflags +faststart "${f%.webm}.mp4"; done; ls -la
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cliente-fluxos-video
+          path: |
+            apps/desktop/qa-artifacts/cliente-fluxos/*.mp4
+            apps/desktop/qa-artifacts/cliente-fluxos/*.png
+            apps/desktop/qa-artifacts/cliente-fluxos/resultado.json
+          if-no-files-found: warn
+          retention-days: 14
