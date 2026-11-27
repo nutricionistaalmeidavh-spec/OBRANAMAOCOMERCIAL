@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "01-folha-de-pagamento",
+    "title": "Folha e pagamentos — funcionários aparecem na lista",
+    "status": "ok",
+    "detail": "",
+    "video": "01-folha-de-pagamento.mp4"
+  },
+  {
+    "slug": "02-folha-de-ponto",
+    "title": "Folha de ponto — funcionários aparecem na lista",
+    "status": "ok",
+    "detail": "",
+    "video": "02-folha-de-ponto.mp4"
+  },
+  {
+    "slug": "03-funcionarios-sem-cadastro",
+    "title": "Folha e ponto — aviso quando não há funcionários",
+    "status": "ok",
+    "detail": "",
+    "video": "03-funcionarios-sem-cadastro.mp4"
+  },
+  {
+    "slug": "04-cronograma-etapa-da-obra",
+    "title": "Cronograma — campo Etapa da obra",
+    "status": "ok",
+    "detail": "",
+    "video": "04-cronograma-etapa-da-obra.mp4"
+  },
+  {
+    "slug": "05-importacao-xml-nota-fiscal",
+    "title": "Compras — importação do XML guiada passo a passo",
+    "status": "ok",
+    "detail": "",
+    "video": "05-importacao-xml-nota-fiscal.mp4"
+  },
+  {
+    "slug": "06-diario-e-tarefas-vazios",
+    "title": "Diário de obra e Tarefas — telas vazias orientam",
+    "status": "ok",
+    "detail": "",
+    "video": "06-diario-e-tarefas-vazios.mp4"
+  }
+]
